@@ -58,12 +58,16 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
       ) : null}
 
       <View style={styles.content}>
+        <View style={[styles.iconContainer, { backgroundColor: theme.backgroundDefault }]}>
+          <Feather name="frown" size={48} color={theme.link} />
+        </View>
+
         <ThemedText type="h1" style={styles.title}>
-          Something went wrong
+          Oops! StyleWise hit a snag
         </ThemedText>
 
         <ThemedText type="body" style={styles.message}>
-          Please reload the app to continue.
+          Something went wrong, but don't worry - your style journey isn't over. Let's get you back on track!
         </ThemedText>
 
         <Pressable
@@ -77,11 +81,12 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
             },
           ]}
         >
+          <Feather name="refresh-cw" size={20} color="#FFFFFF" />
           <ThemedText
             type="body"
             style={[styles.buttonText, { color: theme.buttonText }]}
           >
-            Try Again
+            Refresh My Look
           </ThemedText>
         </Pressable>
       </View>
@@ -159,14 +164,20 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 600,
   },
+  iconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.md,
+  },
   title: {
     textAlign: "center",
-    lineHeight: 40,
   },
   message: {
     textAlign: "center",
     opacity: 0.7,
-    lineHeight: 24,
   },
   topButton: {
     position: "absolute",
@@ -181,18 +192,15 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   button: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
     paddingVertical: Spacing.lg,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.full,
     paddingHorizontal: Spacing["2xl"],
     minWidth: 200,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: "center",
+    marginTop: Spacing.md,
   },
   buttonText: {
     fontWeight: "600",

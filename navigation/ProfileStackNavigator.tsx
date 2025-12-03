@@ -1,14 +1,17 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-
 import ProfileScreen from "@/screens/ProfileScreen";
-import CrashScreen from "@/screens/CrashScreen";
+import SettingsScreen from "@/screens/SettingsScreen";
+import SubscriptionScreen from "@/screens/SubscriptionScreen";
+import EditProfileScreen from "@/screens/EditProfileScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
 export type ProfileStackParamList = {
   Profile: undefined;
-  Crash: undefined;
+  Settings: undefined;
+  Subscription: undefined;
+  EditProfile: undefined;
 };
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -26,10 +29,25 @@ export default function ProfileStackNavigator() {
         }}
       />
       <Stack.Screen
-        name="Crash"
-        component={CrashScreen}
+        name="Settings"
+        component={SettingsScreen}
         options={{
-          title: "Crash Test",
+          title: "Settings",
+        }}
+      />
+      <Stack.Screen
+        name="Subscription"
+        component={SubscriptionScreen}
+        options={{
+          title: "Subscription",
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{
+          title: "Edit Profile",
         }}
       />
     </Stack.Navigator>

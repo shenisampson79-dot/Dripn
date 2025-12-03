@@ -1,32 +1,27 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import HomeScreen from "@/screens/HomeScreen";
+import DiscoverScreen from "@/screens/DiscoverScreen";
 import PostDetailScreen from "@/screens/PostDetailScreen";
-import { HeaderTitle } from "@/components/HeaderTitle";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
-export type HomeStackParamList = {
-  Home: undefined;
+export type DiscoverStackParamList = {
+  Discover: undefined;
   PostDetail: { postId: string };
 };
 
-const Stack = createNativeStackNavigator<HomeStackParamList>();
+const Stack = createNativeStackNavigator<DiscoverStackParamList>();
 
-export default function HomeStackNavigator() {
+export default function DiscoverStackNavigator() {
   const { theme, isDark } = useTheme();
 
   return (
-    <Stack.Navigator
-      screenOptions={{
-        ...getCommonScreenOptions({ theme, isDark }),
-      }}
-    >
+    <Stack.Navigator screenOptions={getCommonScreenOptions({ theme, isDark })}>
       <Stack.Screen
-        name="Home"
-        component={HomeScreen}
+        name="Discover"
+        component={DiscoverScreen}
         options={{
-          headerTitle: () => <HeaderTitle title="StyleWise" />,
+          title: "Discover",
         }}
       />
       <Stack.Screen
