@@ -14,8 +14,9 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "Try the 'French tuck' popularized by American influencers - tuck just the front of your shirt for a polished yet casual vibe.",
       "Statement belts are huge right now - add a vintage-style chain belt to elevate a simple dress, inspired by NYC street style.",
       "Layer a structured blazer over a relaxed outfit - it's the go-to formula for looking put-together without trying too hard.",
+      "Athleisure is the new casual - Lululemon leggings with an oversized blazer and On Running sneakers is the ultimate rest day look that's shopping-ready.",
     ],
-    trendingPieces: ["Barrel-leg jeans", "Shearling Penny Lane coat", "Leopard print pieces", "Statement chain belt", "White sneakers"],
+    trendingPieces: ["Barrel-leg jeans", "Shearling Penny Lane coat", "Leopard print pieces", "Lululemon Align leggings", "On Running Cloudmonster", "Hoka Bondi 8"],
   },
   'UK': {
     influencers: [
@@ -28,8 +29,9 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "British influencers love the 'smart casual' balance - pair tailored trousers with a relaxed knit for effortless sophistication.",
       "Embrace sustainable fashion like Alexandra Stedman - rewear and restyle pieces creatively rather than always buying new.",
       "The London street style formula: neutral base + one statement piece + quality accessories.",
+      "Gymshark and Sweaty Betty have made athleisure acceptable everywhere - leggings with a long coat and chunky trainers is the new weekend uniform.",
     ],
-    trendingPieces: ["Trench coat", "Tailored wool coat", "Quality leather boots", "Oversized blazer", "Cashmere knits"],
+    trendingPieces: ["Trench coat", "Tailored wool coat", "Gymshark seamless sets", "Sweaty Betty leggings", "On Running sneakers", "Oner Active"],
   },
   'Europe': {
     influencers: [
@@ -123,11 +125,12 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
     ],
     styleTips: [
       "Australian fashion embraces laid-back luxury - quality basics styled with intention rather than excess.",
+      "The Sydney athleisure scene is huge - Lululemon, On Running and Hoka are perfect for the coffee-run-to-shopping transition that defines Aussie weekend style.",
       "Nicole Warne shows that travel and fashion go hand-in-hand - invest in versatile pieces that work across destinations.",
       "The Sydney street style formula: minimalist base + architectural accessory + natural textures.",
       "Sustainable and ethical fashion is central to Australian influencer culture - quality over fast fashion always.",
     ],
-    trendingPieces: ["Linen blazer", "Vintage denim", "Leather slides", "Woven bag", "Neutral-tone separates"],
+    trendingPieces: ["Linen blazer", "Vintage denim", "Lululemon Define jacket", "On Running Cloud 5", "Hoka sneakers", "Woven bag"],
   },
 };
 
@@ -144,8 +147,9 @@ const TRENDING_STYLES_2024_2025 = {
   pieces: {
     mustHave: ["Shearling Penny Lane coat", "Leopard print anything", "Statement belt", "Polo shirt (Miu Miu inspired)", "Head scarf/silk scarf"],
     accessories: ["Sculptural earrings", "Animal-shaped purses", "Cowboy boots", "Ballet flats", "Geometric handbags"],
+    athleisure: ["Gymshark Vital leggings", "Lululemon Align pants", "On Running Cloudmonster", "Hoka Bondi 8", "Sweaty Betty Power leggings", "Oner Active sets"],
   },
-  aesthetics: ["Quiet luxury", "Coastal grandma", "Western chic", "Wearable art", "Underconsumption core"],
+  aesthetics: ["Quiet luxury", "Coastal grandma", "Western chic", "Wearable art", "Underconsumption core", "Rest day chic"],
 };
 
 const STYLE_ADVICE_TEMPLATES = {
@@ -216,6 +220,14 @@ const STYLE_ADVICE_TEMPLATES = {
     "Deep chocolate brown instead of all-black? Very fashion-forward! This is the 'quiet luxury' moment happening right now.",
     "The oversized relaxed silhouette you've chosen is peak 2025 style - understated luxury at its finest.",
   ],
+  athleisure: [
+    "Rest day chic done perfectly! Athleisure for shopping and brunch is THE move right now. Your leggings-to-lifestyle look is spot on.",
+    "Love this gym-to-street transition! Pairing quality activewear with everyday pieces is what 2024/2025 fashion is all about.",
+    "This athleisure look is exactly what influencers are wearing on their coffee runs! Consider adding an oversized blazer to elevate it further.",
+    "Yoga pants outside the studio? Absolutely! The 'rest day outfit' trend means quality leggings are now acceptable everywhere.",
+    "Your activewear styling is on point! The key is quality pieces - brands like Gymshark, Lululemon, and Sweaty Betty make athleisure look intentional, not lazy.",
+    "This is giving major wellness-era vibes! On Running or Hoka sneakers would complete this 'I take care of myself' aesthetic perfectly.",
+  ],
 };
 
 const HASHTAG_SUGGESTIONS = [
@@ -231,6 +243,7 @@ const PRODUCT_SUGGESTIONS = [
   { category: "Shoes", items: ["White sneakers", "Block heels", "Ankle boots", "Loafers"] },
   { category: "Layers", items: ["Denim jacket", "Cardigan", "Blazer", "Trench coat"] },
   { category: "Basics", items: ["White t-shirt", "Black trousers", "Classic jeans", "Neutral sweater"] },
+  { category: "Athleisure", items: ["Lululemon Align leggings", "On Running sneakers", "Gymshark sports bra", "Oversized hoodie", "Hoka running shoes"] },
 ];
 
 export interface AIAdviceResult {

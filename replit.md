@@ -224,3 +224,22 @@ The app includes multiple layers of code protection:
   - "Trending Pieces Right Now" tags based on user's region
   - "Hot Colors for 2024/2025" with visual color swatches
   - Adapts content based on user's country for culturally relevant advice
+- Expanded Bargain of the Week with premium athleisure brands:
+  - Gymshark: Vital Seamless Leggings, Arrival Shorts (UK origin, global shipping)
+  - Sweaty Betty: Power Workout Leggings (UK premium activewear)
+  - Oner Active: Effortless Seamless Leggings (UK brand, influencer favorite)
+  - Lululemon: Align leggings, Scuba Half-Zip, Define Jacket (US/Canada/UK/AUS)
+  - On Running: Cloudmonster running shoes (Switzerland, global)
+  - Hoka: Bondi 8, Clifton 9 running shoes (US, global through JD Sports)
+  - All athleisure items include brand social handles where applicable
+- Updated AI Advice Service with athleisure/rest day styling:
+  - New "athleisure" category in STYLE_ADVICE_TEMPLATES for gym/yoga outfit posts
+  - "Rest day chic" aesthetic added to TRENDING_STYLES_2024_2025
+  - Athleisure trending pieces: Gymshark Vital, Lululemon Align, On Running Cloudmonster, Hoka Bondi 8
+  - Regional influencer style tips now include athleisure advice for UK, US, and Australia
+  - Product suggestions include new "Athleisure" category
+- Recognition that athleisure is mainstream casual wear:
+  - Leggings and running shoes are now everyday wear for coffee runs, shopping, brunch
+  - Premium activewear brands (Lululemon, Gymshark, On Running) are fashion statements
+  - "Rest day outfit" trend: gym clothes worn intentionally for non-workout activities
+  - Styling tip: oversized blazer + quality leggings + chunky trainers = elevated casual
