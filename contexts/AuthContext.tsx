@@ -24,11 +24,13 @@ export interface UserProfile {
   subscriptionTier: SubscriptionTier;
   contributorTier: ContributorTier;
   feedPreference: FeedPreference;
+  aiSuggestionsEnabled: boolean;
   postsCount: number;
   helpfulVotes: number;
   thanksReceived: number;
   createdAt: string;
   hasCompletedOnboarding: boolean;
+  hasSeenTour: boolean;
   hasDismissedTrialOffer: boolean;
 }
 
@@ -61,11 +63,13 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
   subscriptionTier: 'free',
   contributorTier: 'none',
   feedPreference: 'global',
+  aiSuggestionsEnabled: true,
   postsCount: 0,
   helpfulVotes: 0,
   thanksReceived: 0,
   createdAt: new Date().toISOString(),
   hasCompletedOnboarding: false,
+  hasSeenTour: false,
   hasDismissedTrialOffer: false,
 });
 

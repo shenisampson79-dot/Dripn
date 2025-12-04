@@ -160,6 +160,23 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
     );
   };
 
+  const handleAISuggestions = () => {
+    const isEnabled = user?.aiSuggestionsEnabled !== false;
+    Alert.alert(
+      "AI Style Suggestions",
+      isEnabled 
+        ? "AI suggestions are currently ON. Would you like to turn them off and only receive feedback from the community?"
+        : "AI suggestions are currently OFF. Would you like to turn them on to receive AI-powered style advice?",
+      [
+        { 
+          text: isEnabled ? "Turn Off AI" : "Turn On AI", 
+          onPress: () => updateProfile({ aiSuggestionsEnabled: !isEnabled }) 
+        },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  };
+
   const handlePrivacy = () => {
     Linking.openURL("https://stylewise.app/privacy");
   };
@@ -210,7 +227,7 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
         </ThemedText>
         <View style={styles.sectionContent}>
           <SettingItem
-            icon="palette"
+            icon="heart"
             title="Style Theme"
             subtitle={STYLE_NAMES[user?.stylePreference || "luxury"]}
             onPress={handleChangeStyle}
@@ -227,6 +244,13 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
                   : "Local Only"
             }
             onPress={handleFeedPreference}
+            theme={theme}
+          />
+          <SettingItem
+            icon="cpu"
+            title="AI Style Suggestions"
+            subtitle={user?.aiSuggestionsEnabled !== false ? "On - Get AI advice" : "Off - Community only"}
+            onPress={handleAISuggestions}
             theme={theme}
           />
           <SettingItem
