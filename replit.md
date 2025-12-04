@@ -174,3 +174,12 @@ The app includes multiple layers of code protection:
   - Latin American couple for Mexico, Brazil, Argentina, Caribbean nations, etc.
 - Style category names updated: "Luxury" renamed to "Formal", "Streetwear" renamed to "Casual"
 - Sporty category image updated to show a white woman running (full body shot)
+- Added 5-step App Tour (components/AppTour.tsx) that displays after onboarding completion:
+  1. Welcome to the Community - Community intro
+  2. AI Suggestions Are Optional - Explains users can turn off AI in Settings
+  3. Share Your Style - How to post outfits
+  4. Help Others Too - Community engagement
+  5. You're All Set - Final step
+- Added AI Style Suggestions toggle in Settings > Preferences to turn AI advice on/off
+- User profile now includes `aiSuggestionsEnabled` (boolean) and `hasSeenTour` (boolean) flags
+- Tour resets properly when reopened to ensure all users see complete tour starting from step 1
