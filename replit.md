@@ -159,3 +159,8 @@ The app includes multiple layers of code protection:
 - Enhanced Discover screen with trending challenges
 - Integrated voice comments with expo-audio
 - Added referral code generation in subscription flow
+- Enhanced Welcome screen: removed duplicate title, increased logo size (180x180), added tagline
+- Implemented comprehensive country selection with 85+ countries (all European nations, NZ, Mexico) in expandable "Other" list
+- Replaced style category color boxes with actual fashion images for all 6 themes
+- Added gender selection step in onboarding (Woman/Man/Non-binary/Prefer not to say) with gender-specific body shape options
+- Implemented multicultural Style of the Day with regional model images based on user's country (Europe/NA, Asia, Africa, Middle East, South Asia, Latin America)
