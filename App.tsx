@@ -30,11 +30,11 @@ function AppContent() {
   }
 
   if (!isAuthenticated) {
-    return <AuthStackNavigator />;
+    return <AuthStackNavigator initialRouteName="Welcome" />;
   }
 
   if (user && !user.hasCompletedOnboarding) {
-    return <AuthStackNavigator />;
+    return <AuthStackNavigator initialRouteName="Onboarding" />;
   }
 
   return (

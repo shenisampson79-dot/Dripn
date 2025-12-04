@@ -14,11 +14,16 @@ export type AuthStackParamList = {
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
-export default function AuthStackNavigator() {
+type AuthStackNavigatorProps = {
+  initialRouteName?: keyof AuthStackParamList;
+};
+
+export default function AuthStackNavigator({ initialRouteName = "Welcome" }: AuthStackNavigatorProps) {
   const { theme, isDark } = useTheme();
 
   return (
     <Stack.Navigator 
+      initialRouteName={initialRouteName}
       screenOptions={{
         ...getCommonScreenOptions({ theme, isDark, transparent: false }),
         headerShown: false,
