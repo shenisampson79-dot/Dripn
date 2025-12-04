@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { StyleSheet, View, Pressable, Image, ScrollView, Dimensions, Alert, ImageSourcePropType } from "react-native";
+import { StyleSheet, View, Pressable, Image, ScrollView, Dimensions, Alert, ImageSourcePropType, Linking } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -11,6 +11,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { usePosts } from "@/contexts/PostsContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { shareChallenge } from "@/services/SharingService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
 
@@ -152,11 +153,151 @@ const TRENDING_CHALLENGES: Challenge[] = [
   },
 ];
 
+interface CelebrityLook {
+  id: string;
+  styleName: string;
+  inspiration: string;
+  image: ImageSourcePropType;
+  budgetItems: { name: string; price: number; store: string }[];
+  luxuryItems: { name: string; price: number; store: string }[];
+}
+
+const CELEBRITY_LOOKS: CelebrityLook[] = [
+  {
+    id: "look1",
+    styleName: "Street Style Chic",
+    inspiration: "Off-duty model aesthetic",
+    image: require("../assets/images/celebrity-looks/street_style_chic_outfit.png"),
+    budgetItems: [
+      { name: "Oversized Cream Blazer", price: 59.99, store: "Zara" },
+      { name: "High-Waisted Blue Jeans", price: 39.99, store: "H&M" },
+      { name: "Basic White Tee", price: 12.99, store: "Uniqlo" },
+      { name: "Gold Layered Necklace Set", price: 19.99, store: "ASOS" },
+    ],
+    luxuryItems: [
+      { name: "Wool Blend Blazer", price: 395, store: "Theory" },
+      { name: "High Rise Slim Jeans", price: 228, store: "Citizens of Humanity" },
+      { name: "Pima Cotton Tee", price: 95, store: "Vince" },
+      { name: "14K Gold Chain Necklace", price: 450, store: "Mejuri" },
+    ],
+  },
+  {
+    id: "look2",
+    styleName: "Evening Elegance",
+    inspiration: "Red carpet glamour",
+    image: require("../assets/images/celebrity-looks/elegant_evening_slip_dress.png"),
+    budgetItems: [
+      { name: "Emerald Satin Slip Dress", price: 49.99, store: "Mango" },
+      { name: "Strappy Block Heels", price: 45.99, store: "Steve Madden" },
+      { name: "Layered Gold Necklaces", price: 24.99, store: "Nordstrom Rack" },
+      { name: "Mini Clutch Bag", price: 29.99, store: "Target" },
+    ],
+    luxuryItems: [
+      { name: "Silk Midi Slip Dress", price: 595, store: "Reformation" },
+      { name: "Leather Strappy Sandals", price: 695, store: "Jimmy Choo" },
+      { name: "Diamond Tennis Necklace", price: 2500, store: "Tiffany & Co" },
+      { name: "Leather Clutch", price: 890, store: "Bottega Veneta" },
+    ],
+  },
+  {
+    id: "look3",
+    styleName: "Athleisure Vibes",
+    inspiration: "Sporty wellness aesthetic",
+    image: require("../assets/images/celebrity-looks/trendy_athleisure_look.png"),
+    budgetItems: [
+      { name: "Sage Green Workout Set", price: 44.99, store: "Amazon Essentials" },
+      { name: "Oversized Hoodie", price: 34.99, store: "Nike" },
+      { name: "White Sneakers", price: 69.99, store: "New Balance" },
+      { name: "Gym Tote Bag", price: 24.99, store: "Lululemon Outlet" },
+    ],
+    luxuryItems: [
+      { name: "Seamless Training Set", price: 178, store: "Alo Yoga" },
+      { name: "Cashmere Hoodie", price: 395, store: "Naadam" },
+      { name: "Leather Sneakers", price: 550, store: "Golden Goose" },
+      { name: "Yoga Mat Bag", price: 158, store: "Lululemon" },
+    ],
+  },
+];
+
+interface BargainItem {
+  id: string;
+  brand: string;
+  name: string;
+  originalPrice: number;
+  salePrice: number;
+  discountPercent: number;
+  store: string;
+  category: string;
+  icon: keyof typeof Feather.glyphMap;
+}
+
+const BARGAIN_ITEMS: BargainItem[] = [
+  {
+    id: "b1",
+    brand: "Mango",
+    name: "Wool Blend Coat",
+    originalPrice: 199.99,
+    salePrice: 79.99,
+    discountPercent: 60,
+    store: "Mango",
+    category: "Outerwear",
+    icon: "cloud",
+  },
+  {
+    id: "b2",
+    brand: "Zara",
+    name: "Leather Ankle Boots",
+    originalPrice: 149.99,
+    salePrice: 59.99,
+    discountPercent: 60,
+    store: "Zara",
+    category: "Shoes",
+    icon: "award",
+  },
+  {
+    id: "b3",
+    brand: "H&M",
+    name: "Cashmere Blend Sweater",
+    originalPrice: 89.99,
+    salePrice: 35.99,
+    discountPercent: 60,
+    store: "H&M",
+    category: "Knitwear",
+    icon: "heart",
+  },
+  {
+    id: "b4",
+    brand: "ASOS",
+    name: "Wide Leg Trousers",
+    originalPrice: 65.00,
+    salePrice: 26.00,
+    discountPercent: 60,
+    store: "ASOS",
+    category: "Bottoms",
+    icon: "star",
+  },
+  {
+    id: "b5",
+    brand: "Nordstrom",
+    name: "Designer Handbag",
+    originalPrice: 298.00,
+    salePrice: 149.00,
+    discountPercent: 50,
+    store: "Nordstrom Rack",
+    category: "Bags",
+    icon: "shopping-bag",
+  },
+];
+
 export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { tier } = useSubscription();
   const { posts, votePost, voteComparison, thankPost } = usePosts();
   const [selectedCategory, setSelectedCategory] = useState("trending");
+  const [selectedLook, setSelectedLook] = useState<CelebrityLook | null>(null);
+
+  const isPremium = tier === "premium" || tier === "vip";
 
   const userRegion = useMemo(() => {
     return getRegionFromCountry(user?.country || 'United States');
@@ -186,6 +327,64 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
           onPress: () => shareChallenge(challenge.name, challenge.description),
         },
         { text: "Join Now", onPress: () => {} },
+      ]
+    );
+  };
+
+  const handleGetTheLook = (look: CelebrityLook) => {
+    const items = isPremium ? look.luxuryItems : look.budgetItems;
+    const priceLabel = isPremium ? "Luxury" : "Budget-Friendly";
+    const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
+    
+    Alert.alert(
+      `Get the ${look.styleName} Look`,
+      `${priceLabel} alternatives (Total: $${totalPrice.toFixed(2)}):\n\n${items.map(item => `${item.name}\n$${item.price.toFixed(2)} at ${item.store}`).join("\n\n")}`,
+      [
+        { text: "Close", style: "cancel" },
+        { 
+          text: isPremium ? "View Budget Options" : "View Luxury Options", 
+          onPress: () => {
+            const altItems = isPremium ? look.budgetItems : look.luxuryItems;
+            const altLabel = isPremium ? "Budget-Friendly" : "Luxury";
+            const altTotal = altItems.reduce((sum, item) => sum + item.price, 0);
+            Alert.alert(
+              `${altLabel} Alternatives`,
+              `Total: $${altTotal.toFixed(2)}\n\n${altItems.map(item => `${item.name}\n$${item.price.toFixed(2)} at ${item.store}`).join("\n\n")}`,
+              [{ text: "Close" }]
+            );
+          }
+        },
+      ]
+    );
+  };
+
+  const handleBargainPress = (item: BargainItem) => {
+    Alert.alert(
+      `${item.brand} Sale`,
+      `${item.name}\n\nOriginal: $${item.originalPrice.toFixed(2)}\nSale: $${item.salePrice.toFixed(2)}\nYou save: ${item.discountPercent}%\n\nAvailable at ${item.store}`,
+      [
+        { text: "Close", style: "cancel" },
+        { 
+          text: "Shop Now",
+          onPress: () => {
+            Alert.alert(
+              "Opening Store",
+              `StyleWise may earn a small commission on purchases.\n\nYou'll be redirected to ${item.store} to complete your purchase.`,
+              [
+                { text: "Cancel", style: "cancel" },
+                { 
+                  text: "Continue to Store", 
+                  onPress: () => {
+                    Alert.alert(
+                      "Coming Soon",
+                      `Direct shopping links to ${item.store} will be available soon! Check back for live deals.`
+                    );
+                  }
+                },
+              ]
+            );
+          }
+        },
       ]
     );
   };
@@ -221,6 +420,117 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             </ThemedText>
           </View>
         </Pressable>
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <ThemedText type="h2" style={styles.sectionTitle}>
+            Celebrity-Inspired Looks
+          </ThemedText>
+        </View>
+        <View style={[styles.affiliateNotice, { backgroundColor: theme.backgroundDefault }]}>
+          <Feather name="info" size={14} color={theme.tabIconDefault} />
+          <ThemedText type="small" style={[styles.affiliateText, { color: theme.tabIconDefault }]}>
+            StyleWise may earn a commission if you shop through these links
+          </ThemedText>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.looksContainer}
+        >
+          {CELEBRITY_LOOKS.map((look) => (
+            <Pressable
+              key={look.id}
+              onPress={() => handleGetTheLook(look)}
+              style={({ pressed }) => [
+                styles.lookCard,
+                { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.9 : 1 },
+              ]}
+            >
+              <Image source={look.image} style={styles.lookImage} />
+              <View style={styles.lookOverlay}>
+                <View style={styles.lookBadge}>
+                  <Feather name="star" size={12} color="#FFD700" />
+                  <ThemedText type="small" style={styles.lookBadgeText}>
+                    Inspired Look
+                  </ThemedText>
+                </View>
+                <ThemedText type="h3" style={styles.lookTitle} numberOfLines={1}>
+                  {look.styleName}
+                </ThemedText>
+                <ThemedText type="small" style={styles.lookInspiration}>
+                  {look.inspiration}
+                </ThemedText>
+                <View style={styles.getTheLookButton}>
+                  <Feather name="shopping-bag" size={14} color="#FFFFFF" />
+                  <ThemedText type="small" style={styles.getTheLookText}>
+                    Get the Look
+                  </ThemedText>
+                </View>
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <ThemedText type="h2" style={styles.sectionTitle}>
+            Bargain of the Week
+          </ThemedText>
+        </View>
+        <ThemedText type="small" style={[styles.bargainSubtitle, { color: theme.tabIconDefault }]}>
+          Top deals from popular brands this week
+        </ThemedText>
+        <View style={[styles.affiliateNotice, { backgroundColor: theme.backgroundDefault }]}>
+          <Feather name="info" size={14} color={theme.tabIconDefault} />
+          <ThemedText type="small" style={[styles.affiliateText, { color: theme.tabIconDefault }]}>
+            StyleWise may earn a commission if you shop through these links
+          </ThemedText>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.bargainsContainer}
+        >
+          {BARGAIN_ITEMS.map((item) => (
+            <Pressable
+              key={item.id}
+              onPress={() => handleBargainPress(item)}
+              style={({ pressed }) => [
+                styles.bargainCard,
+                { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.9 : 1 },
+              ]}
+            >
+              <View style={[styles.discountBadge, { backgroundColor: "#FF4757" }]}>
+                <ThemedText type="small" style={styles.discountText}>
+                  -{item.discountPercent}%
+                </ThemedText>
+              </View>
+              <View style={[styles.bargainIconContainer, { backgroundColor: theme.link + "15" }]}>
+                <Feather name={item.icon} size={28} color={theme.link} />
+              </View>
+              <ThemedText type="small" style={styles.bargainBrand}>
+                {item.brand}
+              </ThemedText>
+              <ThemedText type="body" style={styles.bargainName} numberOfLines={2}>
+                {item.name}
+              </ThemedText>
+              <View style={styles.priceContainer}>
+                <ThemedText type="small" style={styles.originalPrice}>
+                  ${item.originalPrice.toFixed(2)}
+                </ThemedText>
+                <ThemedText type="h3" style={[styles.salePrice, { color: "#FF4757" }]}>
+                  ${item.salePrice.toFixed(2)}
+                </ThemedText>
+              </View>
+              <ThemedText type="small" style={styles.storeText}>
+                at {item.store}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </ScrollView>
       </View>
 
       <View style={styles.section}>
@@ -515,5 +825,137 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "600",
     marginLeft: "auto",
+  },
+  affiliateNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  affiliateText: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  looksContainer: {
+    gap: Spacing.md,
+    paddingRight: Spacing.lg,
+  },
+  lookCard: {
+    width: width * 0.65,
+    borderRadius: BorderRadius.lg,
+    overflow: "hidden",
+  },
+  lookImage: {
+    width: "100%",
+    height: 220,
+    resizeMode: "cover",
+  },
+  lookOverlay: {
+    padding: Spacing.md,
+  },
+  lookBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: Spacing.xs,
+  },
+  lookBadgeText: {
+    color: "#FFD700",
+    fontWeight: "600",
+    fontSize: 11,
+  },
+  lookTitle: {
+    marginBottom: 2,
+  },
+  lookInspiration: {
+    opacity: 0.7,
+    marginBottom: Spacing.sm,
+  },
+  getTheLookButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+    backgroundColor: "#667eea",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.xs,
+  },
+  getTheLookText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
+  bargainSubtitle: {
+    marginBottom: Spacing.md,
+    marginTop: -Spacing.sm,
+  },
+  bargainsContainer: {
+    gap: Spacing.md,
+    paddingRight: Spacing.lg,
+  },
+  bargainCard: {
+    width: 160,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    alignItems: "center",
+    position: "relative",
+  },
+  discountBadge: {
+    position: "absolute",
+    top: Spacing.sm,
+    right: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+    zIndex: 1,
+  },
+  discountText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 11,
+  },
+  bargainIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  bargainBrand: {
+    opacity: 0.6,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    fontSize: 10,
+    letterSpacing: 0.5,
+  },
+  bargainName: {
+    textAlign: "center",
+    marginVertical: Spacing.xs,
+    fontWeight: "500",
+  },
+  priceContainer: {
+    alignItems: "center",
+    marginTop: Spacing.xs,
+  },
+  originalPrice: {
+    textDecorationLine: "line-through",
+    opacity: 0.5,
+    fontSize: 12,
+  },
+  salePrice: {
+    fontWeight: "700",
+    marginTop: 2,
+  },
+  storeText: {
+    opacity: 0.6,
+    fontSize: 11,
+    marginTop: Spacing.xs,
   },
 });

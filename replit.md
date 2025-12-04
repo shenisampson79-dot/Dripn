@@ -183,3 +183,14 @@ The app includes multiple layers of code protection:
 - Added AI Style Suggestions toggle in Settings > Preferences to turn AI advice on/off
 - User profile now includes `aiSuggestionsEnabled` (boolean) and `hasSeenTour` (boolean) flags
 - Tour resets properly when reopened to ensure all users see complete tour starting from step 1
+- Added Celebrity-Inspired Looks section on Discover screen:
+  - Uses AI-generated fashion images (legally safe, no real celebrity photos)
+  - Shows 3 style looks: Street Style Chic, Evening Elegance, Athleisure Vibes
+  - "Get the Look" shows budget-friendly alternatives for free/basic users
+  - Premium/VIP users see luxury alternatives with option to toggle
+  - FTC-compliant affiliate disclosure visible above cards
+- Added Bargain of the Week section on Discover screen:
+  - Shows discounted items from popular brands (Mango, Zara, H&M, ASOS, Nordstrom)
+  - Displays original price, sale price, and discount percentage badges
+  - FTC-compliant affiliate disclosure visible above cards
+  - "Shop Now" flow ready for real affiliate API integration (shows "Coming Soon" for now)
