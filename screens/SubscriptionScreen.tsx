@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, View, Pressable, Alert } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -9,6 +10,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, SubscriptionColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 type SubscriptionScreenProps = {
@@ -101,6 +103,19 @@ const PLANS: Plan[] = [
 export default function SubscriptionScreen({ navigation }: SubscriptionScreenProps) {
   const { theme } = useTheme();
   const { user, updateProfile } = useAuth();
+  const { 
+    usage, 
+    limits, 
+    getRemainingUploads, 
+    getRemainingAIAdvice, 
+    getRemainingVoice,
+    getRemainingPolls,
+    isTrialActive,
+    trialDaysRemaining,
+    startTrial,
+    referralCode,
+  } = useSubscription();
+  
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>(
     user?.subscriptionTier || "free"
   );
@@ -109,10 +124,12 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
   const handleSelectPlan = async (planId: SubscriptionTier) => {
     if (planId === user?.subscriptionTier) return;
 
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsProcessing(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await updateProfile({ subscriptionTier: planId });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
         "Success",
         `You've successfully ${planId === "free" ? "downgraded to" : "upgraded to"} the ${planId} plan!`,
@@ -123,6 +140,26 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleStartTrial = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    await startTrial();
+    Alert.alert(
+      "Trial Started",
+      "You now have 7 days of Premium access! Explore all the features.",
+      [{ text: "Let's Go" }]
+    );
+  };
+
+  const formatRemaining = (value: number): string => {
+    if (value === Infinity) return "Unlimited";
+    return value.toString();
+  };
+
+  const getUsagePercent = (used: number, limit: number): number => {
+    if (limit === Infinity) return 0;
+    return Math.min(100, (used / limit) * 100);
   };
 
   const renderPlanCard = (plan: Plan) => {
@@ -225,13 +262,130 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         </ThemedText>
       </View>
 
-      <View style={styles.trialBanner}>
-        <Feather name="gift" size={24} color={theme.link} />
-        <View style={styles.trialContent}>
-          <ThemedText type="h3">7-Day Free Trial</ThemedText>
-          <ThemedText type="small" style={styles.trialSubtitle}>
-            Try any premium plan free for 7 days
-          </ThemedText>
+      <View style={[styles.usageSection, { backgroundColor: theme.backgroundDefault }]}>
+        <ThemedText type="h3" style={styles.usageTitle}>
+          Your Usage This Month
+        </ThemedText>
+        <View style={styles.usageGrid}>
+          <View style={styles.usageItem}>
+            <View style={styles.usageHeader}>
+              <Feather name="upload" size={16} color={theme.link} />
+              <ThemedText type="small">Posts</ThemedText>
+            </View>
+            <View style={[styles.usageBar, { backgroundColor: theme.backgroundSecondary }]}>
+              <View 
+                style={[
+                  styles.usageProgress, 
+                  { 
+                    backgroundColor: theme.link,
+                    width: `${getUsagePercent(usage.uploadsThisMonth, limits.uploadsPerMonth)}%` 
+                  }
+                ]} 
+              />
+            </View>
+            <ThemedText type="caption">
+              {formatRemaining(getRemainingUploads())} remaining
+            </ThemedText>
+          </View>
+          <View style={styles.usageItem}>
+            <View style={styles.usageHeader}>
+              <Feather name="cpu" size={16} color={theme.link} />
+              <ThemedText type="small">AI Advice</ThemedText>
+            </View>
+            <View style={[styles.usageBar, { backgroundColor: theme.backgroundSecondary }]}>
+              <View 
+                style={[
+                  styles.usageProgress, 
+                  { 
+                    backgroundColor: theme.link,
+                    width: `${getUsagePercent(usage.aiAdviceThisMonth, limits.aiAdvicePerMonth)}%` 
+                  }
+                ]} 
+              />
+            </View>
+            <ThemedText type="caption">
+              {formatRemaining(getRemainingAIAdvice())} remaining
+            </ThemedText>
+          </View>
+          <View style={styles.usageItem}>
+            <View style={styles.usageHeader}>
+              <Feather name="mic" size={16} color={theme.link} />
+              <ThemedText type="small">Voice</ThemedText>
+            </View>
+            <View style={[styles.usageBar, { backgroundColor: theme.backgroundSecondary }]}>
+              <View 
+                style={[
+                  styles.usageProgress, 
+                  { 
+                    backgroundColor: theme.link,
+                    width: `${getUsagePercent(usage.voiceCommentsThisMonth, limits.voiceCommentsPerMonth)}%` 
+                  }
+                ]} 
+              />
+            </View>
+            <ThemedText type="caption">
+              {limits.voiceCommentsPerMonth === 0 ? "Not available" : `${formatRemaining(getRemainingVoice())} remaining`}
+            </ThemedText>
+          </View>
+          <View style={styles.usageItem}>
+            <View style={styles.usageHeader}>
+              <Feather name="bar-chart-2" size={16} color={theme.link} />
+              <ThemedText type="small">Polls</ThemedText>
+            </View>
+            <View style={[styles.usageBar, { backgroundColor: theme.backgroundSecondary }]}>
+              <View 
+                style={[
+                  styles.usageProgress, 
+                  { 
+                    backgroundColor: theme.link,
+                    width: `${getUsagePercent(usage.comparisonPollsThisMonth, limits.comparisonPollsPerMonth)}%` 
+                  }
+                ]} 
+              />
+            </View>
+            <ThemedText type="caption">
+              {formatRemaining(getRemainingPolls())} remaining
+            </ThemedText>
+          </View>
+        </View>
+      </View>
+
+      {!isTrialActive && user?.subscriptionTier === 'free' ? (
+        <Pressable 
+          onPress={handleStartTrial}
+          style={[styles.trialBanner, { backgroundColor: "rgba(184, 134, 11, 0.1)" }]}
+        >
+          <Feather name="gift" size={24} color={theme.link} />
+          <View style={styles.trialContent}>
+            <ThemedText type="h3">7-Day Free Trial</ThemedText>
+            <ThemedText type="small" style={styles.trialSubtitle}>
+              Tap to try Premium features free for 7 days
+            </ThemedText>
+          </View>
+          <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
+        </Pressable>
+      ) : isTrialActive ? (
+        <View style={[styles.trialBanner, { backgroundColor: "rgba(52, 199, 89, 0.1)" }]}>
+          <Feather name="clock" size={24} color={theme.success || "#34C759"} />
+          <View style={styles.trialContent}>
+            <ThemedText type="h3">Trial Active</ThemedText>
+            <ThemedText type="small" style={styles.trialSubtitle}>
+              {trialDaysRemaining} days remaining
+            </ThemedText>
+          </View>
+        </View>
+      ) : null}
+
+      <View style={[styles.referralSection, { backgroundColor: theme.backgroundDefault }]}>
+        <View style={styles.referralHeader}>
+          <Feather name="users" size={20} color={theme.link} />
+          <ThemedText type="h3">Invite Friends</ThemedText>
+        </View>
+        <ThemedText type="small" style={styles.referralSubtitle}>
+          Share your code and both get 5 extra posts when they sign up
+        </ThemedText>
+        <View style={[styles.referralCode, { backgroundColor: theme.backgroundSecondary }]}>
+          <ThemedText type="h3" style={{ letterSpacing: 2 }}>{referralCode}</ThemedText>
         </View>
       </View>
 
@@ -273,14 +427,65 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     opacity: 0.7,
   },
+  usageSection: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  usageTitle: {
+    marginBottom: Spacing.md,
+  },
+  usageGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.md,
+  },
+  usageItem: {
+    flex: 1,
+    minWidth: "45%",
+    gap: 4,
+  },
+  usageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  usageBar: {
+    height: 6,
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  usageProgress: {
+    height: "100%",
+    borderRadius: 3,
+  },
   trialBanner: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
     padding: Spacing.lg,
-    backgroundColor: "rgba(184, 134, 11, 0.1)",
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  referralSection: {
+    padding: Spacing.lg,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.xl,
+  },
+  referralHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  referralSubtitle: {
+    opacity: 0.7,
+    marginBottom: Spacing.md,
+  },
+  referralCode: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    alignItems: "center",
   },
   trialContent: {
     flex: 1,

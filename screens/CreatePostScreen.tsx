@@ -3,6 +3,7 @@ import { StyleSheet, View, TextInput, Pressable, Image, Alert, ScrollView, Platf
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as Haptics from "expo-haptics";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -10,7 +11,8 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePosts, PostType } from "@/contexts/PostsContext";
+import { usePosts, PostType, PostMedia } from "@/contexts/PostsContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
 interface CreatePostScreenProps {
   onClose: () => void;
@@ -21,18 +23,35 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
   const { createPost } = usePosts();
+  const { 
+    tier, 
+    limits, 
+    canUpload, 
+    canRequestAIAdvice, 
+    canCreatePoll,
+    incrementUpload,
+    incrementAIAdvice,
+    incrementPoll,
+    getRemainingUploads,
+    getRemainingAIAdvice,
+    getRemainingPolls,
+  } = useSubscription();
 
   const [postType, setPostType] = useState<PostType>("standard");
-  const [images, setImages] = useState<{ id: string; uri: string }[]>([]);
+  const [media, setMedia] = useState<PostMedia[]>([]);
   const [description, setDescription] = useState("");
   const [requestAIAdvice, setRequestAIAdvice] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const maxImages = postType === "comparison" ? 2 : 1;
+  const maxMedia = postType === "comparison" ? limits.maxImagesPerPost : 1;
+  const hasVideo = media.some(m => m.type === 'video');
+  const remainingUploads = getRemainingUploads();
+  const remainingAI = getRemainingAIAdvice();
+  const remainingPolls = getRemainingPolls();
 
   const handlePickImage = async () => {
-    if (images.length >= maxImages) {
-      Alert.alert("Limit Reached", `You can only add ${maxImages} image(s) for this post type.`);
+    if (media.length >= maxMedia) {
+      Alert.alert("Limit Reached", `You can only add ${maxMedia} item(s) for this post type.`);
       return;
     }
 
@@ -44,20 +63,40 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: limits.canUploadVideo ? ["images", "videos"] : ["images"],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
+      videoMaxDuration: limits.maxVideoSeconds,
     });
 
     if (!result.canceled && result.assets[0]) {
-      setImages([...images, { id: Date.now().toString(), uri: result.assets[0].uri }]);
+      const asset = result.assets[0];
+      const isVideo = asset.type === 'video';
+      
+      if (isVideo && !limits.canUploadVideo) {
+        Alert.alert("Upgrade Required", "Video uploads are available for Basic subscribers and above.");
+        return;
+      }
+
+      if (isVideo && asset.duration && asset.duration / 1000 > limits.maxVideoSeconds) {
+        Alert.alert("Video Too Long", `Your plan allows videos up to ${limits.maxVideoSeconds} seconds.`);
+        return;
+      }
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setMedia([...media, { 
+        id: Date.now().toString(), 
+        uri: asset.uri, 
+        type: isVideo ? 'video' : 'image',
+        duration: asset.duration,
+      }]);
     }
   };
 
   const handleTakePhoto = async () => {
-    if (images.length >= maxImages) {
-      Alert.alert("Limit Reached", `You can only add ${maxImages} image(s) for this post type.`);
+    if (media.length >= maxMedia) {
+      Alert.alert("Limit Reached", `You can only add ${maxMedia} item(s) for this post type.`);
       return;
     }
 
@@ -75,27 +114,109 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setImages([...images, { id: Date.now().toString(), uri: result.assets[0].uri }]);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setMedia([...media, { 
+        id: Date.now().toString(), 
+        uri: result.assets[0].uri, 
+        type: 'image' 
+      }]);
     }
   };
 
-  const handleRemoveImage = (imageId: string) => {
-    setImages(images.filter((img) => img.id !== imageId));
+  const handleRecordVideo = async () => {
+    if (!limits.canUploadVideo) {
+      Alert.alert("Upgrade Required", "Video recording is available for Basic subscribers and above.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Upgrade", onPress: () => onClose() },
+      ]);
+      return;
+    }
+
+    if (media.length >= maxMedia) {
+      Alert.alert("Limit Reached", `You can only add ${maxMedia} item(s) for this post type.`);
+      return;
+    }
+
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      Alert.alert("Permission Required", "Please allow access to your camera to record video.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["videos"],
+      allowsEditing: true,
+      videoMaxDuration: limits.maxVideoSeconds,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setMedia([...media, { 
+        id: Date.now().toString(), 
+        uri: result.assets[0].uri, 
+        type: 'video',
+        duration: result.assets[0].duration,
+      }]);
+    }
+  };
+
+  const handleRemoveMedia = (mediaId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setMedia(media.filter((m) => m.id !== mediaId));
   };
 
   const handleSubmit = async () => {
-    if (images.length === 0) {
-      Alert.alert("Image Required", "Please add at least one image to your post.");
+    if (!canUpload()) {
+      Alert.alert(
+        "Upload Limit Reached", 
+        `You've used all ${limits.uploadsPerMonth} uploads this month. Upgrade to get more uploads.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Upgrade", onPress: () => onClose() },
+        ]
+      );
       return;
     }
 
-    if (postType === "comparison" && images.length < 2) {
-      Alert.alert("Two Images Required", "Please add two images for a comparison post.");
+    if (media.length === 0) {
+      Alert.alert("Media Required", "Please add at least one photo or video to your post.");
       return;
+    }
+
+    if (postType === "comparison") {
+      if (!canCreatePoll()) {
+        Alert.alert(
+          "Poll Limit Reached", 
+          `You've used all ${limits.comparisonPollsPerMonth} comparison polls this month.`,
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Upgrade", onPress: () => onClose() },
+          ]
+        );
+        return;
+      }
+      if (media.length < 2) {
+        Alert.alert("Two Options Required", "Please add at least two options for a comparison poll.");
+        return;
+      }
     }
 
     if (!description.trim()) {
       Alert.alert("Description Required", "Please add a description to your post.");
+      return;
+    }
+
+    if (requestAIAdvice && !canRequestAIAdvice()) {
+      Alert.alert(
+        "AI Advice Limit Reached", 
+        `You've used all ${limits.aiAdvicePerMonth} AI advice requests this month.`,
+        [
+          { text: "Post Without AI", onPress: () => setRequestAIAdvice(false) },
+          { text: "Upgrade", onPress: () => onClose() },
+        ]
+      );
       return;
     }
 
@@ -112,17 +233,31 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
         userAvatar: user.avatar,
         userSubscriptionTier: user.subscriptionTier,
         type: postType,
-        images: images.map((img) => ({
-          id: img.id,
-          uri: img.uri,
+        media: media.map((m) => ({
+          ...m,
+          votes: postType === "comparison" ? 0 : undefined,
+        })),
+        images: media.map((m) => ({
+          ...m,
           votes: postType === "comparison" ? 0 : undefined,
         })),
         description: description.trim(),
         isAIAdviceRequested: requestAIAdvice,
         aiAdvice: requestAIAdvice
-          ? "Great outfit choice! The colors work well together, and the silhouette is flattering. Consider adding a statement accessory to elevate the look."
+          ? "Analyzing your outfit... Great style choice! The proportions work well together. Consider accessorizing with complementary pieces to elevate the look."
           : undefined,
+        country: user.country,
       });
+
+      await incrementUpload();
+      if (requestAIAdvice) {
+        await incrementAIAdvice();
+      }
+      if (postType === "comparison") {
+        await incrementPoll();
+      }
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
     } catch (error) {
       Alert.alert("Error", "Failed to create post. Please try again.");
@@ -147,6 +282,29 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
         <View style={styles.headerSpacer} />
       </View>
 
+      <View style={[styles.usageBar, { backgroundColor: theme.backgroundSecondary }]}>
+        <View style={styles.usageItem}>
+          <Feather name="upload" size={14} color={theme.tabIconDefault} />
+          <ThemedText type="caption">
+            {remainingUploads === Infinity ? "Unlimited" : `${remainingUploads} left`}
+          </ThemedText>
+        </View>
+        <View style={styles.usageItem}>
+          <Feather name="cpu" size={14} color={theme.tabIconDefault} />
+          <ThemedText type="caption">
+            {remainingAI === Infinity ? "Unlimited" : `${remainingAI} AI`}
+          </ThemedText>
+        </View>
+        {postType === "comparison" ? (
+          <View style={styles.usageItem}>
+            <Feather name="bar-chart-2" size={14} color={theme.tabIconDefault} />
+            <ThemedText type="caption">
+              {remainingPolls === Infinity ? "Unlimited" : `${remainingPolls} polls`}
+            </ThemedText>
+          </View>
+        ) : null}
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
@@ -160,7 +318,8 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
             <Pressable
               onPress={() => {
                 setPostType("standard");
-                if (images.length > 1) setImages([images[0]]);
+                if (media.length > 1) setMedia([media[0]]);
+                Haptics.selectionAsync();
               }}
               style={[
                 styles.typeOption,
@@ -183,7 +342,10 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
               </ThemedText>
             </Pressable>
             <Pressable
-              onPress={() => setPostType("comparison")}
+              onPress={() => {
+                setPostType("comparison");
+                Haptics.selectionAsync();
+              }}
               style={[
                 styles.typeOption,
                 {
@@ -209,42 +371,85 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
 
         <View style={styles.section}>
           <ThemedText type="h3" style={styles.sectionTitle}>
-            {postType === "comparison" ? "Add 2 Options" : "Add Photo"}
+            {postType === "comparison" ? `Add ${limits.maxImagesPerPost} Options` : "Add Photo/Video"}
           </ThemedText>
-          <View style={styles.imagesContainer}>
-            {images.map((image) => (
-              <View key={image.id} style={styles.imageWrapper}>
-                <Image source={{ uri: image.uri }} style={styles.imagePreview} />
+          <View style={styles.mediaContainer}>
+            {media.map((item) => (
+              <View key={item.id} style={styles.mediaWrapper}>
+                <Image source={{ uri: item.uri }} style={styles.mediaPreview} />
+                {item.type === 'video' ? (
+                  <View style={styles.videoBadge}>
+                    <Feather name="video" size={12} color="#FFFFFF" />
+                    {item.duration ? (
+                      <ThemedText type="caption" style={styles.videoDuration}>
+                        {Math.round(item.duration / 1000)}s
+                      </ThemedText>
+                    ) : null}
+                  </View>
+                ) : null}
                 <Pressable
-                  onPress={() => handleRemoveImage(image.id)}
-                  style={[styles.removeImageButton, { backgroundColor: theme.error || "#FF3B30" }]}
+                  onPress={() => handleRemoveMedia(item.id)}
+                  style={[styles.removeMediaButton, { backgroundColor: theme.error || "#FF3B30" }]}
                 >
                   <Feather name="x" size={16} color="#FFFFFF" />
                 </Pressable>
               </View>
             ))}
-            {images.length < maxImages ? (
-              <View style={styles.addImageButtons}>
+            {media.length < maxMedia ? (
+              <View style={styles.addMediaButtons}>
                 <Pressable
                   onPress={handlePickImage}
-                  style={[styles.addImageButton, { backgroundColor: theme.backgroundDefault }]}
+                  style={[styles.addMediaButton, { backgroundColor: theme.backgroundDefault }]}
                 >
-                  <Feather name="image" size={28} color={theme.tabIconDefault} />
-                  <ThemedText type="small" style={styles.addImageText}>
+                  <Feather name="image" size={24} color={theme.tabIconDefault} />
+                  <ThemedText type="caption" style={styles.addMediaText}>
                     Gallery
                   </ThemedText>
                 </Pressable>
                 {Platform.OS !== "web" ? (
-                  <Pressable
-                    onPress={handleTakePhoto}
-                    style={[styles.addImageButton, { backgroundColor: theme.backgroundDefault }]}
-                  >
-                    <Feather name="camera" size={28} color={theme.tabIconDefault} />
-                    <ThemedText type="small" style={styles.addImageText}>
-                      Camera
+                  <>
+                    <Pressable
+                      onPress={handleTakePhoto}
+                      style={[styles.addMediaButton, { backgroundColor: theme.backgroundDefault }]}
+                    >
+                      <Feather name="camera" size={24} color={theme.tabIconDefault} />
+                      <ThemedText type="caption" style={styles.addMediaText}>
+                        Photo
+                      </ThemedText>
+                    </Pressable>
+                    <Pressable
+                      onPress={handleRecordVideo}
+                      style={[
+                        styles.addMediaButton, 
+                        { 
+                          backgroundColor: limits.canUploadVideo 
+                            ? theme.backgroundDefault 
+                            : theme.backgroundSecondary,
+                          opacity: limits.canUploadVideo ? 1 : 0.6,
+                        }
+                      ]}
+                    >
+                      <Feather name="video" size={24} color={theme.tabIconDefault} />
+                      <ThemedText type="caption" style={styles.addMediaText}>
+                        Video
+                      </ThemedText>
+                      {!limits.canUploadVideo ? (
+                        <View style={[styles.proBadge, { backgroundColor: theme.link }]}>
+                          <ThemedText type="caption" style={{ color: "#FFFFFF", fontSize: 8 }}>
+                            PRO
+                          </ThemedText>
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  </>
+                ) : (
+                  <View style={[styles.webNotice, { backgroundColor: theme.backgroundDefault }]}>
+                    <Feather name="smartphone" size={20} color={theme.tabIconDefault} />
+                    <ThemedText type="caption" style={styles.webNoticeText}>
+                      Use Expo Go for camera access
                     </ThemedText>
-                  </Pressable>
-                ) : null}
+                  </View>
+                )}
               </View>
             ) : null}
           </View>
@@ -263,7 +468,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
             onChangeText={setDescription}
             placeholder={
               postType === "comparison"
-                ? "Tell us about your dilemma - which option do you prefer?"
+                ? "Help me decide! Which outfit works better for..."
                 : "Describe your outfit and what you'd like feedback on..."
             }
             placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
@@ -278,7 +483,10 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
 
         <View style={styles.section}>
           <Pressable
-            onPress={() => setRequestAIAdvice(!requestAIAdvice)}
+            onPress={() => {
+              setRequestAIAdvice(!requestAIAdvice);
+              Haptics.selectionAsync();
+            }}
             style={styles.aiToggle}
           >
             <View style={styles.aiToggleContent}>
@@ -288,7 +496,11 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
                   Get AI Styling Advice
                 </ThemedText>
                 <ThemedText type="small" style={styles.aiToggleSubtitle}>
-                  StyleWise AI will analyze your outfit
+                  {remainingAI === 0 
+                    ? "No AI requests remaining this month" 
+                    : remainingAI === Infinity 
+                      ? "Unlimited AI advice" 
+                      : `${remainingAI} requests remaining`}
                 </ThemedText>
               </View>
             </View>
@@ -298,6 +510,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
                 {
                   backgroundColor: requestAIAdvice ? theme.link : "transparent",
                   borderColor: requestAIAdvice ? theme.link : theme.tabIconDefault,
+                  opacity: remainingAI === 0 ? 0.5 : 1,
                 },
               ]}
             >
@@ -345,6 +558,18 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 44,
   },
+  usageBar: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: Spacing.xl,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+  },
+  usageItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   scrollView: {
     flex: 1,
   },
@@ -370,20 +595,36 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
   },
-  imagesContainer: {
+  mediaContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.md,
   },
-  imageWrapper: {
+  mediaWrapper: {
     position: "relative",
   },
-  imagePreview: {
-    width: 140,
-    height: 140,
+  mediaPreview: {
+    width: 120,
+    height: 120,
     borderRadius: BorderRadius.md,
   },
-  removeImageButton: {
+  videoBadge: {
+    position: "absolute",
+    bottom: Spacing.xs,
+    left: Spacing.xs,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: BorderRadius.xs,
+  },
+  videoDuration: {
+    color: "#FFFFFF",
+    fontSize: 10,
+  },
+  removeMediaButton: {
     position: "absolute",
     top: -8,
     right: -8,
@@ -393,23 +634,43 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  addImageButtons: {
+  addMediaButtons: {
     flexDirection: "row",
-    gap: Spacing.md,
+    flexWrap: "wrap",
+    gap: Spacing.sm,
   },
-  addImageButton: {
-    width: 100,
-    height: 100,
+  addMediaButton: {
+    width: 80,
+    height: 80,
     borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
-    gap: Spacing.xs,
+    gap: 4,
+    position: "relative",
   },
-  addImageText: {
+  addMediaText: {
+    opacity: 0.7,
+  },
+  proBadge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.xs,
+  },
+  webNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  webNoticeText: {
     opacity: 0.7,
   },
   descriptionInput: {
-    minHeight: 120,
+    minHeight: 100,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     fontSize: Typography.body.fontSize,

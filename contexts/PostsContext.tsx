@@ -2,11 +2,15 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type PostType = 'standard' | 'comparison';
+export type MediaType = 'image' | 'video';
 
-export interface PostImage {
+export interface PostMedia {
   id: string;
   uri: string;
+  type: MediaType;
   votes?: number;
+  duration?: number;
+  thumbnail?: string;
 }
 
 export interface Comment {
@@ -30,28 +34,36 @@ export interface Post {
   userAvatar: string | null;
   userSubscriptionTier: 'free' | 'basic' | 'premium' | 'vip';
   type: PostType;
-  images: PostImage[];
+  media: PostMedia[];
+  images: PostMedia[];
   description: string;
   upvotes: number;
   downvotes: number;
   thanksCount: number;
   commentsCount: number;
+  sharesCount: number;
   createdAt: string;
   isAIAdviceRequested: boolean;
   aiAdvice?: string;
+  country?: string;
+  isViralBadge?: boolean;
+  shareUnlockTip?: string;
 }
 
 interface PostsContextType {
   posts: Post[];
   userPosts: Post[];
   isLoading: boolean;
-  createPost: (post: Omit<Post, 'id' | 'createdAt' | 'upvotes' | 'downvotes' | 'thanksCount' | 'commentsCount'>) => Promise<Post>;
+  createPost: (post: Omit<Post, 'id' | 'createdAt' | 'upvotes' | 'downvotes' | 'thanksCount' | 'commentsCount' | 'sharesCount'>) => Promise<Post>;
+  updatePost: (postId: string, updates: Partial<Post>) => Promise<void>;
   deletePost: (postId: string) => Promise<void>;
   votePost: (postId: string, voteType: 'up' | 'down') => Promise<void>;
-  voteComparison: (postId: string, imageId: string) => Promise<void>;
+  voteComparison: (postId: string, mediaId: string) => Promise<void>;
   thankPost: (postId: string) => Promise<void>;
+  sharePost: (postId: string) => Promise<void>;
   getPostComments: (postId: string) => Comment[];
   addComment: (postId: string, comment: Omit<Comment, 'id' | 'createdAt'>) => Promise<void>;
+  getPostById: (postId: string) => Post | undefined;
   refreshPosts: () => Promise<void>;
 }
 
@@ -68,14 +80,17 @@ const SAMPLE_POSTS: Post[] = [
     userAvatar: null,
     userSubscriptionTier: 'vip',
     type: 'standard',
-    images: [{ id: '1-1', uri: 'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600' }],
+    media: [{ id: '1-1', uri: 'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600', type: 'image' }],
+    images: [{ id: '1-1', uri: 'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600', type: 'image' }],
     description: 'Style of the Day: Elegant minimalist look perfect for a business casual setting. Neutral tones paired with structured pieces create a sophisticated silhouette.',
     upvotes: 247,
     downvotes: 3,
     thanksCount: 89,
     commentsCount: 34,
+    sharesCount: 156,
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     isAIAdviceRequested: false,
+    isViralBadge: true,
   },
   {
     id: '2',
@@ -84,15 +99,20 @@ const SAMPLE_POSTS: Post[] = [
     userAvatar: null,
     userSubscriptionTier: 'premium',
     type: 'comparison',
+    media: [
+      { id: '2-1', uri: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600', type: 'image', votes: 156 },
+      { id: '2-2', uri: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=600', type: 'image', votes: 89 },
+    ],
     images: [
-      { id: '2-1', uri: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600', votes: 156 },
-      { id: '2-2', uri: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=600', votes: 89 },
+      { id: '2-1', uri: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600', type: 'image', votes: 156 },
+      { id: '2-2', uri: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=600', type: 'image', votes: 89 },
     ],
     description: 'Help me choose! Date night outfit - which one says "romantic dinner" better?',
     upvotes: 312,
     downvotes: 5,
     thanksCount: 45,
     commentsCount: 67,
+    sharesCount: 89,
     createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
     isAIAdviceRequested: true,
     aiAdvice: 'Both options are lovely! The first outfit has a more classic romantic vibe with its flowing silhouette, while the second is modern and chic. For a romantic dinner, I\'d lean towards the first - the soft lines are very flattering.',
@@ -104,15 +124,18 @@ const SAMPLE_POSTS: Post[] = [
     userAvatar: null,
     userSubscriptionTier: 'basic',
     type: 'standard',
-    images: [{ id: '3-1', uri: 'https://images.unsplash.com/photo-1507680434567-5739c80be1ac?w=600' }],
+    media: [{ id: '3-1', uri: 'https://images.unsplash.com/photo-1507680434567-5739c80be1ac?w=600', type: 'image' }],
+    images: [{ id: '3-1', uri: 'https://images.unsplash.com/photo-1507680434567-5739c80be1ac?w=600', type: 'image' }],
     description: 'First day at new job outfit check! Going for professional but approachable. Thoughts?',
     upvotes: 89,
     downvotes: 2,
     thanksCount: 23,
     commentsCount: 45,
+    sharesCount: 34,
     createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
     isAIAdviceRequested: true,
     aiAdvice: 'Great choice for a first day! The neutral palette is perfect for making a professional impression. Consider adding a statement accessory to show personality while keeping it workplace-appropriate.',
+    country: 'United States',
   },
   {
     id: '4',
@@ -121,14 +144,17 @@ const SAMPLE_POSTS: Post[] = [
     userAvatar: null,
     userSubscriptionTier: 'free',
     type: 'standard',
-    images: [{ id: '4-1', uri: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=600' }],
+    media: [{ id: '4-1', uri: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=600', type: 'image' }],
+    images: [{ id: '4-1', uri: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=600', type: 'image' }],
     description: 'Weekend brunch vibes! Casual but put-together. Rate my look?',
     upvotes: 156,
     downvotes: 8,
     thanksCount: 34,
     commentsCount: 28,
+    sharesCount: 12,
     createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
     isAIAdviceRequested: false,
+    country: 'United Kingdom',
   },
   {
     id: '5',
@@ -137,18 +163,24 @@ const SAMPLE_POSTS: Post[] = [
     userAvatar: null,
     userSubscriptionTier: 'premium',
     type: 'comparison',
+    media: [
+      { id: '5-1', uri: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600', type: 'image', votes: 234 },
+      { id: '5-2', uri: 'https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?w=600', type: 'image', votes: 178 },
+    ],
     images: [
-      { id: '5-1', uri: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600', votes: 234 },
-      { id: '5-2', uri: 'https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?w=600', votes: 178 },
+      { id: '5-1', uri: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600', type: 'image', votes: 234 },
+      { id: '5-2', uri: 'https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?w=600', type: 'image', votes: 178 },
     ],
     description: 'Wedding guest outfit dilemma! Which one is more appropriate for a garden wedding?',
     upvotes: 445,
     downvotes: 12,
     thanksCount: 78,
     commentsCount: 92,
+    sharesCount: 203,
     createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
     isAIAdviceRequested: true,
     aiAdvice: 'For a garden wedding, Option A is the clear winner! The floral pattern and flowing fabric are perfect for the setting. Option B is stunning but might be better suited for an evening indoor event.',
+    isViralBadge: true,
   },
 ];
 
@@ -244,7 +276,7 @@ export function PostsProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const createPost = async (postData: Omit<Post, 'id' | 'createdAt' | 'upvotes' | 'downvotes' | 'thanksCount' | 'commentsCount'>): Promise<Post> => {
+  const createPost = async (postData: Omit<Post, 'id' | 'createdAt' | 'upvotes' | 'downvotes' | 'thanksCount' | 'commentsCount' | 'sharesCount'>): Promise<Post> => {
     const newPost: Post = {
       ...postData,
       id: Date.now().toString(),
@@ -253,11 +285,22 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       downvotes: 0,
       thanksCount: 0,
       commentsCount: 0,
+      sharesCount: 0,
     };
 
     const updatedPosts = [newPost, ...posts];
     await savePosts(updatedPosts);
     return newPost;
+  };
+
+  const updatePost = async (postId: string, updates: Partial<Post>) => {
+    const updatedPosts = posts.map(post => {
+      if (post.id === postId) {
+        return { ...post, ...updates };
+      }
+      return post;
+    });
+    await savePosts(updatedPosts);
   };
 
   const deletePost = async (postId: string) => {
@@ -282,20 +325,43 @@ export function PostsProvider({ children }: { children: ReactNode }) {
     await savePosts(updatedPosts);
   };
 
-  const voteComparison = async (postId: string, imageId: string) => {
+  const voteComparison = async (postId: string, mediaId: string) => {
     const updatedPosts = posts.map(post => {
       if (post.id === postId && post.type === 'comparison') {
         return {
           ...post,
+          media: post.media.map(m => ({
+            ...m,
+            votes: m.id === mediaId ? (m.votes || 0) + 1 : m.votes,
+          })),
           images: post.images.map(img => ({
             ...img,
-            votes: img.id === imageId ? (img.votes || 0) + 1 : img.votes,
+            votes: img.id === mediaId ? (img.votes || 0) + 1 : img.votes,
           })),
         };
       }
       return post;
     });
     await savePosts(updatedPosts);
+  };
+
+  const sharePost = async (postId: string) => {
+    const updatedPosts = posts.map(post => {
+      if (post.id === postId) {
+        const newSharesCount = post.sharesCount + 1;
+        return {
+          ...post,
+          sharesCount: newSharesCount,
+          isViralBadge: newSharesCount >= 100,
+        };
+      }
+      return post;
+    });
+    await savePosts(updatedPosts);
+  };
+
+  const getPostById = (postId: string): Post | undefined => {
+    return posts.find(p => p.id === postId);
   };
 
   const thankPost = async (postId: string) => {
@@ -348,12 +414,15 @@ export function PostsProvider({ children }: { children: ReactNode }) {
         userPosts,
         isLoading,
         createPost,
+        updatePost,
         deletePost,
         votePost,
         voteComparison,
         thankPost,
+        sharePost,
         getPostComments,
         addComment,
+        getPostById,
         refreshPosts,
       }}
     >

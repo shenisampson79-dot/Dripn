@@ -12,6 +12,7 @@ import CreatePostScreen from "@/screens/CreatePostScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PostsProvider } from "@/contexts/PostsContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -58,11 +59,13 @@ export default function App() {
         <GestureHandlerRootView style={styles.root}>
           <KeyboardProvider>
             <AuthProvider>
-              <PostsProvider>
-                <NavigationContainer>
-                  <AppContent />
-                </NavigationContainer>
-              </PostsProvider>
+              <SubscriptionProvider>
+                <PostsProvider>
+                  <NavigationContainer>
+                    <AppContent />
+                  </NavigationContainer>
+                </PostsProvider>
+              </SubscriptionProvider>
             </AuthProvider>
             <StatusBar style="auto" />
           </KeyboardProvider>

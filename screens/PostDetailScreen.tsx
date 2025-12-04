@@ -1,17 +1,23 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Image, TextInput, Pressable, ScrollView, Dimensions, KeyboardAvoidingView, Platform } from "react-native";
+import { StyleSheet, View, Image, TextInput, Pressable, ScrollView, Dimensions, KeyboardAvoidingView, Platform, Alert, Share } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
+import { ReportModal } from "@/components/ReportModal";
 import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePosts, Post, Comment } from "@/contexts/PostsContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { getAIFashionAdvice, getComparisonAdvice, AIAdviceResult } from "@/services/AIAdviceService";
+import { sharePost, generateHashtags } from "@/services/SharingService";
+import { VoiceCommentInput, VoiceCommentPlayer } from "@/components/VoiceCommentInput";
 import type { HomeStackParamList } from "@/navigation/HomeStackNavigator";
 
 type PostDetailScreenProps = {
@@ -26,10 +32,15 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
-  const { posts, getPostComments, addComment, votePost, thankPost } = usePosts();
+  const { posts, getPostComments, addComment, votePost, thankPost, updatePost } = usePosts();
+  const { tier, canRequestAIAdvice, incrementAIAdvice, canRecordVoice, incrementVoiceComment } = useSubscription();
 
   const [commentText, setCommentText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRequestingAI, setIsRequestingAI] = useState(false);
+  const [aiAdvice, setAiAdvice] = useState<AIAdviceResult | null>(null);
+  const [showVoiceInput, setShowVoiceInput] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const post = posts.find((p) => p.id === postId);
   const comments = getPostComments(postId);
@@ -68,6 +79,98 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
 
   const handleThank = () => {
     thankPost(postId);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleRequestAIAdvice = async () => {
+    if (!post) return;
+
+    if (!canRequestAIAdvice()) {
+      Alert.alert(
+        "AI Advice Limit Reached",
+        "You've used all your AI advice requests this month. Upgrade your plan for unlimited AI styling advice.",
+        [
+          { text: "Maybe Later", style: "cancel" },
+          { text: "View Plans", onPress: () => navigation.navigate("Subscription") },
+        ]
+      );
+      return;
+    }
+
+    setIsRequestingAI(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
+      const isPremium = tier !== "free" && tier !== "basic";
+      const advice = await getAIFashionAdvice(
+        post.images[0]?.uri || "",
+        post.description,
+        isPremium
+      );
+
+      setAiAdvice(advice);
+      await incrementAIAdvice();
+
+      if (updatePost) {
+        updatePost(postId, { aiAdvice: advice.mainAdvice });
+      }
+
+      await addComment(postId, {
+        postId,
+        userId: "ai-stylist",
+        userName: "StyleWise AI",
+        content: advice.mainAdvice,
+        isVoice: false,
+        isAI: true,
+      });
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      Alert.alert("Error", "Could not get AI advice. Please try again.");
+    } finally {
+      setIsRequestingAI(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!post) return;
+
+    try {
+      const shared = await sharePost(post);
+      if (shared) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (error) {
+      console.log("Share cancelled");
+    }
+  };
+
+  const handleReport = () => {
+    setShowReportModal(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleVoiceRecordingComplete = async (uri: string, duration: number) => {
+    if (!user) return;
+
+    setIsSubmitting(true);
+    try {
+      await addComment(postId, {
+        postId,
+        userId: user.id,
+        userName: user.name,
+        userAvatar: user.avatar,
+        content: uri,
+        isVoice: true,
+        voiceDuration: duration,
+        isAI: false,
+      });
+      await incrementVoiceComment();
+      setShowVoiceInput(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatTime = (dateString: string) => {
@@ -89,6 +192,8 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
           <Image source={{ uri: comment.userAvatar }} style={styles.commentAvatarImage} />
         ) : comment.isAI ? (
           <Feather name="cpu" size={16} color={theme.link} />
+        ) : comment.isVoice ? (
+          <Feather name="mic" size={16} color={theme.link} />
         ) : (
           <Feather name="user" size={16} color={theme.tabIconDefault} />
         )}
@@ -105,13 +210,26 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
               </ThemedText>
             </View>
           ) : null}
+          {comment.isVoice ? (
+            <View style={[styles.voiceBadge, { backgroundColor: theme.success || theme.link }]}>
+              <Feather name="mic" size={10} color="#FFFFFF" />
+            </View>
+          ) : null}
           <ThemedText type="caption" style={styles.commentTime}>
             {formatTime(comment.createdAt)}
           </ThemedText>
         </View>
-        <ThemedText type="body" style={styles.commentText}>
-          {comment.content}
-        </ThemedText>
+        {comment.isVoice && comment.voiceDuration ? (
+          <VoiceCommentPlayer
+            uri={comment.content}
+            duration={comment.voiceDuration}
+            transcript={comment.voiceTranscript}
+          />
+        ) : (
+          <ThemedText type="body" style={styles.commentText}>
+            {comment.content}
+          </ThemedText>
+        )}
       </View>
     </View>
   );
@@ -198,6 +316,24 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
                 <Feather name="x" size={24} color={theme.text} />
                 <ThemedText type="body">{post.downvotes}</ThemedText>
               </Pressable>
+              <Pressable
+                onPress={handleShare}
+                style={({ pressed }) => [
+                  styles.engagementButton,
+                  { opacity: pressed ? 0.7 : 1 },
+                ]}
+              >
+                <Feather name="share-2" size={24} color={theme.text} />
+              </Pressable>
+              <Pressable
+                onPress={handleReport}
+                style={({ pressed }) => [
+                  styles.engagementButton,
+                  { opacity: pressed ? 0.7 : 1 },
+                ]}
+              >
+                <Feather name="flag" size={24} color={theme.tabIconDefault} />
+              </Pressable>
             </View>
             <Pressable
               onPress={handleThank}
@@ -213,11 +349,27 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
             </Pressable>
           </View>
 
+          {!post.aiAdvice && !aiAdvice ? (
+            <Pressable
+              onPress={handleRequestAIAdvice}
+              disabled={isRequestingAI}
+              style={({ pressed }) => [
+                styles.aiRequestButton,
+                { backgroundColor: theme.link, opacity: isRequestingAI ? 0.6 : pressed ? 0.8 : 1 },
+              ]}
+            >
+              <Feather name="cpu" size={20} color="#FFFFFF" />
+              <ThemedText type="body" style={styles.aiRequestButtonText}>
+                {isRequestingAI ? "Getting AI Advice..." : "Get AI Style Advice"}
+              </ThemedText>
+            </Pressable>
+          ) : null}
+
           <ThemedText type="body" style={styles.description}>
             {post.description}
           </ThemedText>
 
-          {post.aiAdvice ? (
+          {post.aiAdvice || aiAdvice ? (
             <View style={[styles.aiAdviceCard, { backgroundColor: theme.backgroundDefault }]}>
               <View style={styles.aiAdviceHeader}>
                 <Feather name="cpu" size={18} color={theme.link} />
@@ -226,8 +378,58 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
                 </ThemedText>
               </View>
               <ThemedText type="body" style={styles.aiAdviceText}>
-                {post.aiAdvice}
+                {aiAdvice?.mainAdvice || post.aiAdvice}
               </ThemedText>
+
+              {aiAdvice?.colorAdvice ? (
+                <View style={styles.aiAdviceSection}>
+                  <ThemedText type="small" style={[styles.aiSectionTitle, { color: theme.link }]}>
+                    Color Analysis
+                  </ThemedText>
+                  <ThemedText type="body" style={styles.aiAdviceText}>
+                    {aiAdvice.colorAdvice}
+                  </ThemedText>
+                </View>
+              ) : null}
+
+              {aiAdvice?.proportionAdvice ? (
+                <View style={styles.aiAdviceSection}>
+                  <ThemedText type="small" style={[styles.aiSectionTitle, { color: theme.link }]}>
+                    Proportions
+                  </ThemedText>
+                  <ThemedText type="body" style={styles.aiAdviceText}>
+                    {aiAdvice.proportionAdvice}
+                  </ThemedText>
+                </View>
+              ) : null}
+
+              {aiAdvice?.productRecommendations && aiAdvice.productRecommendations.length > 0 ? (
+                <View style={styles.aiAdviceSection}>
+                  <ThemedText type="small" style={[styles.aiSectionTitle, { color: theme.link }]}>
+                    Shop Similar
+                  </ThemedText>
+                  {aiAdvice.productRecommendations.map((rec, idx) => (
+                    <View key={idx} style={styles.productCategory}>
+                      <ThemedText type="caption" style={styles.productCategoryTitle}>
+                        {rec.category}:
+                      </ThemedText>
+                      <ThemedText type="body" style={styles.productItems}>
+                        {rec.items.join(" • ")}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {aiAdvice?.hashtags && aiAdvice.hashtags.length > 0 ? (
+                <View style={styles.hashtagRow}>
+                  {aiAdvice.hashtags.map((tag, idx) => (
+                    <ThemedText key={idx} type="caption" style={[styles.hashtag, { color: theme.link }]}>
+                      {tag}
+                    </ThemedText>
+                  ))}
+                </View>
+              ) : null}
             </View>
           ) : null}
 
@@ -256,33 +458,58 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
             { backgroundColor: theme.backgroundRoot, paddingBottom: insets.bottom + Spacing.sm },
           ]}
         >
-          <TextInput
-            style={[
-              styles.commentInput,
-              { backgroundColor: theme.backgroundDefault, color: theme.text },
-            ]}
-            value={commentText}
-            onChangeText={setCommentText}
-            placeholder="Add your style advice..."
-            placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
-            multiline
-            maxLength={500}
-          />
-          <Pressable
-            onPress={handleSubmitComment}
-            disabled={!commentText.trim() || isSubmitting}
-            style={({ pressed }) => [
-              styles.sendButton,
-              {
-                backgroundColor: theme.link,
-                opacity: !commentText.trim() || isSubmitting ? 0.5 : pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            <Feather name="send" size={20} color="#FFFFFF" />
-          </Pressable>
+          {showVoiceInput ? (
+            <VoiceCommentInput
+              onRecordingComplete={handleVoiceRecordingComplete}
+              onCancel={() => setShowVoiceInput(false)}
+            />
+          ) : (
+            <>
+              <Pressable
+                onPress={() => setShowVoiceInput(true)}
+                style={({ pressed }) => [
+                  styles.voiceToggleButton,
+                  { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.8 : 1 },
+                ]}
+              >
+                <Feather name="mic" size={20} color={theme.link} />
+              </Pressable>
+              <TextInput
+                style={[
+                  styles.commentInput,
+                  { backgroundColor: theme.backgroundDefault, color: theme.text },
+                ]}
+                value={commentText}
+                onChangeText={setCommentText}
+                placeholder="Add your style advice..."
+                placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
+                multiline
+                maxLength={500}
+              />
+              <Pressable
+                onPress={handleSubmitComment}
+                disabled={!commentText.trim() || isSubmitting}
+                style={({ pressed }) => [
+                  styles.sendButton,
+                  {
+                    backgroundColor: theme.link,
+                    opacity: !commentText.trim() || isSubmitting ? 0.5 : pressed ? 0.8 : 1,
+                  },
+                ]}
+              >
+                <Feather name="send" size={20} color="#FFFFFF" />
+              </Pressable>
+            </>
+          )}
         </View>
       </ThemedView>
+
+      <ReportModal
+        visible={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        contentType="post"
+        contentId={postId}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -401,6 +628,52 @@ const styles = StyleSheet.create({
   },
   aiAdviceText: {
     opacity: 0.9,
+    lineHeight: 22,
+  },
+  aiRequestButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  aiRequestButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
+  aiAdviceSection: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(128,128,128,0.1)",
+  },
+  aiSectionTitle: {
+    fontWeight: "600",
+    marginBottom: Spacing.xs,
+  },
+  productCategory: {
+    marginTop: Spacing.xs,
+  },
+  productCategoryTitle: {
+    fontWeight: "600",
+    opacity: 0.7,
+  },
+  productItems: {
+    opacity: 0.9,
+  },
+  hashtagRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(128,128,128,0.1)",
+  },
+  hashtag: {
+    fontWeight: "500",
   },
   commentsSection: {
     marginTop: Spacing.md,
@@ -448,6 +721,20 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "600",
     fontSize: 10,
+  },
+  voiceBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    borderRadius: BorderRadius.xs,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  voiceToggleButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
   },
   commentTime: {
     opacity: 0.5,

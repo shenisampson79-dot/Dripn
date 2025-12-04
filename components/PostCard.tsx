@@ -1,12 +1,13 @@
 import React from "react";
 import { StyleSheet, View, Image, Pressable, Dimensions, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 import { ThemedText } from "@/components/ThemedText";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { Post } from "@/contexts/PostsContext";
+import { Post, PostMedia } from "@/contexts/PostsContext";
 
 const { width } = Dimensions.get("window");
 
@@ -14,7 +15,7 @@ interface PostCardProps {
   post: Post;
   onPress: () => void;
   onVote: (postId: string, voteType: "up" | "down") => void;
-  onComparisonVote: (postId: string, imageId: string) => void;
+  onComparisonVote: (postId: string, mediaId: string) => void;
   onThank: (postId: string) => void;
   compact?: boolean;
 }
@@ -41,7 +42,95 @@ export function PostCard({
     return "now";
   };
 
-  const imageSize = compact ? 160 : width - Spacing.xl * 2;
+  const handleVote = async (voteType: "up" | "down") => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onVote(post.id, voteType);
+  };
+
+  const handleComparisonVote = async (mediaId: string) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onComparisonVote(post.id, mediaId);
+  };
+
+  const handleThank = async () => {
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onThank(post.id);
+  };
+
+  const mediaSize = compact ? 160 : width - Spacing.xl * 2;
+  const mediaList = post.media?.length > 0 ? post.media : post.images;
+
+  const renderMedia = (item: PostMedia, index: number) => {
+    const isVideo = item.type === 'video';
+    
+    if (isVideo) {
+      return (
+        <View key={item.id} style={{ width: post.type === "comparison" ? mediaSize : undefined }}>
+          <Image
+            source={{ uri: item.thumbnail || item.uri }}
+            style={[styles.postMedia, { width: mediaSize, height: compact ? mediaSize * 0.75 : mediaSize }]}
+          />
+          <View style={styles.videoOverlay}>
+            <View style={[styles.playButton, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
+              <Feather name="play" size={32} color="#FFFFFF" />
+            </View>
+          </View>
+          {item.duration ? (
+            <View style={styles.durationBadge}>
+              <ThemedText type="caption" style={styles.durationText}>
+                {Math.round(item.duration / 1000)}s
+              </ThemedText>
+            </View>
+          ) : null}
+          {post.type === "comparison" ? (
+            <>
+              <Pressable
+                onPress={() => handleComparisonVote(item.id)}
+                style={[styles.voteOverlay, { backgroundColor: theme.link }]}
+              >
+                <Feather name="check" size={16} color="#FFFFFF" />
+                <ThemedText type="small" style={styles.voteText}>
+                  Vote ({item.votes || 0})
+                </ThemedText>
+              </Pressable>
+              <View style={styles.optionBadge}>
+                <ThemedText type="caption" style={styles.optionText}>
+                  Option {index + 1}
+                </ThemedText>
+              </View>
+            </>
+          ) : null}
+        </View>
+      );
+    }
+
+    return (
+      <View key={item.id} style={{ width: post.type === "comparison" ? mediaSize : undefined }}>
+        <Image
+          source={{ uri: item.uri }}
+          style={[styles.postMedia, { width: mediaSize, height: compact ? mediaSize * 0.75 : mediaSize }]}
+        />
+        {post.type === "comparison" ? (
+          <>
+            <Pressable
+              onPress={() => handleComparisonVote(item.id)}
+              style={[styles.voteOverlay, { backgroundColor: theme.link }]}
+            >
+              <Feather name="check" size={16} color="#FFFFFF" />
+              <ThemedText type="small" style={styles.voteText}>
+                Vote ({item.votes || 0})
+              </ThemedText>
+            </Pressable>
+            <View style={styles.optionBadge}>
+              <ThemedText type="caption" style={styles.optionText}>
+                Option {index + 1}
+              </ThemedText>
+            </View>
+          </>
+        ) : null}
+      </View>
+    );
+  };
 
   return (
     <Pressable
@@ -67,6 +156,11 @@ export function PostCard({
               {post.userName}
             </ThemedText>
             <SubscriptionBadge tier={post.userSubscriptionTier} small />
+            {post.isViralBadge ? (
+              <View style={[styles.viralBadge, { backgroundColor: "#FF6B6B" }]}>
+                <Feather name="trending-up" size={10} color="#FFFFFF" />
+              </View>
+            ) : null}
           </View>
           <ThemedText type="caption" style={styles.time}>
             {formatTime(post.createdAt)}
@@ -79,7 +173,7 @@ export function PostCard({
         ) : null}
       </View>
 
-      <View style={styles.imageContainer}>
+      <View style={styles.mediaContainer}>
         {post.type === "comparison" ? (
           <ScrollView
             horizontal
@@ -87,48 +181,24 @@ export function PostCard({
             showsHorizontalScrollIndicator={false}
             style={styles.comparisonScroll}
           >
-            {post.images.map((image, index) => (
-              <View key={image.id} style={{ width: imageSize }}>
-                <Image
-                  source={{ uri: image.uri }}
-                  style={[styles.postImage, { width: imageSize, height: imageSize }]}
-                />
-                <Pressable
-                  onPress={() => onComparisonVote(post.id, image.id)}
-                  style={[styles.voteOverlay, { backgroundColor: theme.link }]}
-                >
-                  <Feather name="check" size={16} color="#FFFFFF" />
-                  <ThemedText type="small" style={styles.voteText}>
-                    Vote ({image.votes || 0})
-                  </ThemedText>
-                </Pressable>
-                <View style={styles.optionBadge}>
-                  <ThemedText type="caption" style={styles.optionText}>
-                    Option {index + 1}
-                  </ThemedText>
-                </View>
-              </View>
-            ))}
+            {mediaList.map((item, index) => renderMedia(item, index))}
           </ScrollView>
         ) : (
-          <Image
-            source={{ uri: post.images[0]?.uri }}
-            style={[styles.postImage, { width: imageSize, height: compact ? imageSize * 0.75 : imageSize }]}
-          />
+          mediaList[0] ? renderMedia(mediaList[0], 0) : null
         )}
       </View>
 
       <View style={styles.engagementRow}>
         <View style={styles.voteButtons}>
           <Pressable
-            onPress={() => onVote(post.id, "up")}
+            onPress={() => handleVote("up")}
             style={({ pressed }) => [styles.voteButton, { opacity: pressed ? 0.7 : 1 }]}
           >
             <Feather name="heart" size={20} color={theme.text} />
             <ThemedText type="small">{post.upvotes}</ThemedText>
           </Pressable>
           <Pressable
-            onPress={() => onVote(post.id, "down")}
+            onPress={() => handleVote("down")}
             style={({ pressed }) => [styles.voteButton, { opacity: pressed ? 0.7 : 1 }]}
           >
             <Feather name="x" size={20} color={theme.text} />
@@ -140,9 +210,15 @@ export function PostCard({
               {post.commentsCount}
             </ThemedText>
           </View>
+          <View style={styles.shareCount}>
+            <Feather name="share" size={18} color={theme.tabIconDefault} />
+            <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+              {post.sharesCount || 0}
+            </ThemedText>
+          </View>
         </View>
         <Pressable
-          onPress={() => onThank(post.id)}
+          onPress={handleThank}
           style={({ pressed }) => [
             styles.thankButton,
             { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
@@ -216,6 +292,13 @@ const styles = StyleSheet.create({
   time: {
     opacity: 0.5,
   },
+  viralBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   aiBadge: {
     width: 24,
     height: 24,
@@ -223,14 +306,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  imageContainer: {
+  mediaContainer: {
     width: "100%",
   },
   comparisonScroll: {
     width: "100%",
   },
-  postImage: {
+  postMedia: {
     resizeMode: "cover",
+  },
+  videoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  playButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  durationBadge: {
+    position: "absolute",
+    bottom: Spacing.sm,
+    right: Spacing.sm,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: BorderRadius.xs,
+  },
+  durationText: {
+    color: "#FFFFFF",
+    fontSize: 12,
   },
   voteOverlay: {
     position: "absolute",
@@ -275,6 +383,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   commentCount: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  shareCount: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
