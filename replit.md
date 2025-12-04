@@ -90,9 +90,19 @@ App is fully functional with comprehensive features including:
 
 ## Environment Variables
 - `SESSION_SECRET`: For session management
+- `EXPO_PUBLIC_API_URL`: Backend API URL (optional, for production)
+
+## Backend Integration
+A complete backend API is available in the `backend-code/` folder:
+- Copy files to a new Node.js Replit
+- Set up PostgreSQL database
+- Add OpenAI API key for real AI advice
+- Set `EXPO_PUBLIC_API_URL` in this app to connect
+
+The `services/ApiService.ts` handles all backend communication.
 
 ## Notes
-- Pure frontend Expo app - backend integration needed for production
+- Frontend works standalone with local storage (no backend required for testing)
 - AI advice uses mock service (services/AIAdviceService.ts)
 - Stripe integration is client-side ready, needs backend checkout
 - Voice comments require Expo Go on device for full functionality
