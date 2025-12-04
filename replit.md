@@ -98,7 +98,28 @@ App is fully functional with comprehensive features including:
 - Voice comments require Expo Go on device for full functionality
 - Web version may differ from native iOS/Android experience
 
+## Code Protection (Anti-Copy Measures)
+The app includes multiple layers of code protection:
+
+### ProGuard (Android Native)
+- Enabled in `app.json` via `expo-build-properties`
+- Minifies and obfuscates native Android code
+- Shrinks resources to reduce APK size
+
+### JavaScript Obfuscation  
+- Configured in `metro.config.js` via `obfuscator-io-metro-plugin`
+- Only active in production builds (NODE_ENV=production)
+- Features: control flow flattening, dead code injection, string encryption, self-defending code
+
+### Hermes Engine
+- Compiles JavaScript to bytecode
+- Set in `app.json` with `"jsEngine": "hermes"`
+- Provides additional protection by not shipping readable JavaScript
+
+**Note**: Obfuscation runs during production builds (EAS Build), not in Expo Go development mode.
+
 ## Recent Changes
+- Added code obfuscation and protection configuration
 - Added content reporting modal (components/ReportModal.tsx)
 - Implemented viral sharing service (services/SharingService.ts)
 - Added shoppable product cards (components/ShoppableCard.tsx)
