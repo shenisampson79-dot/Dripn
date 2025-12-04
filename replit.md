@@ -190,7 +190,8 @@ The app includes multiple layers of code protection:
   - Premium/VIP users see luxury alternatives with option to toggle
   - FTC-compliant affiliate disclosure visible above cards
 - Added Bargain of the Week section on Discover screen:
-  - Shows discounted items from popular brands (Mango, Zara, H&M, ASOS, Nordstrom)
+  - Features luxury household-name brands with realistic 10-20% discounts (Burberry, Canada Goose, Moncler, Gucci, Prada, Ralph Lauren, UGG, Hunter, Loake, Celine)
+  - Sources from premium retailers: Flannels, Frasers, Selfridges
   - Displays original price, sale price, and discount percentage badges
   - FTC-compliant affiliate disclosure visible above cards
   - "Shop Now" flow ready for real affiliate API integration (shows "Coming Soon" for now)
