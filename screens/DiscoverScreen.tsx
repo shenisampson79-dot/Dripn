@@ -13,6 +13,7 @@ import { usePosts } from "@/contexts/PostsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { shareChallenge } from "@/services/SharingService";
+import { getInfluencerStyleGuide, TRENDING_STYLES_2024_2025 } from "@/services/AIAdviceService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
 
 type RegionalModelType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
@@ -625,6 +626,23 @@ const getCurrencySymbol = (currency: string): string => {
   return symbols[currency] || '$';
 };
 
+const getColorFromName = (colorName: string): string => {
+  const colorMap: Record<string, string> = {
+    'Deep chocolate brown': '#3D2314',
+    'Burgundy': '#722F37',
+    'Icy blue/powder blue': '#B0E0E6',
+    'Butter yellow': '#FFFACD',
+    'Mint green': '#98FB98',
+    'Marigold gold': '#EAA221',
+    'Cardinal red': '#C41E3A',
+    'Leopard print (the new neutral)': '#C19A6B',
+    'Cream': '#FFFDD0',
+    'Olive green': '#808000',
+    'Midnight plum': '#553355',
+  };
+  return colorMap[colorName] || '#888888';
+};
+
 export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const { theme } = useTheme();
   const { user } = useAuth();
@@ -649,6 +667,10 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const countryBargains = useMemo(() => {
     const userCountry = user?.country || 'United States';
     return ALL_BARGAIN_ITEMS.filter(item => item.regions.includes(userCountry));
+  }, [user?.country]);
+
+  const influencerGuide = useMemo(() => {
+    return getInfluencerStyleGuide(user?.country || 'United States');
   }, [user?.country]);
 
   const trendingPosts = posts.slice(0, 5);
@@ -763,6 +785,92 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             </ThemedText>
           </View>
         </Pressable>
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <ThemedText type="h2" style={styles.sectionTitle}>
+            Influencer Inspiration
+          </ThemedText>
+          <Pressable
+            onPress={() => {
+              Alert.alert(
+                "Style Inspiration Sources",
+                "Our style tips are curated from top fashion influencers worldwide, tailored to your region for culturally relevant fashion advice."
+              );
+            }}
+          >
+            <Feather name="info" size={18} color={theme.tabIconDefault} />
+          </Pressable>
+        </View>
+        <ThemedText type="small" style={[styles.influencerSubtitle, { color: theme.tabIconDefault }]}>
+          Tips inspired by top fashion influencers from your region
+        </ThemedText>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.influencerTipsContainer}
+        >
+          {influencerGuide.styleTips.slice(0, 3).map((tip, index) => (
+            <View
+              key={index}
+              style={[styles.influencerTipCard, { backgroundColor: theme.backgroundDefault }]}
+            >
+              <View style={[styles.influencerTipIcon, { backgroundColor: theme.link + "15" }]}>
+                <Feather 
+                  name={index === 0 ? "star" : index === 1 ? "trending-up" : "award"} 
+                  size={20} 
+                  color={theme.link} 
+                />
+              </View>
+              <ThemedText type="body" style={styles.influencerTipText}>
+                {tip}
+              </ThemedText>
+              <View style={styles.influencerCredits}>
+                {influencerGuide.influencers[index] ? (
+                  <ThemedText type="small" style={[styles.influencerHandle, { color: theme.link }]}>
+                    {influencerGuide.influencers[index].handle}
+                  </ThemedText>
+                ) : null}
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+        <View style={styles.trendingPiecesSection}>
+          <ThemedText type="h3" style={styles.trendingPiecesTitle}>
+            Trending Pieces Right Now
+          </ThemedText>
+          <View style={styles.trendingPiecesContainer}>
+            {influencerGuide.trendingPieces.slice(0, 5).map((piece, index) => (
+              <View 
+                key={index} 
+                style={[styles.trendingPieceTag, { backgroundColor: theme.link + "20" }]}
+              >
+                <ThemedText type="small" style={[styles.trendingPieceText, { color: theme.link }]}>
+                  {piece}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        </View>
+        <View style={styles.trendingColorsSection}>
+          <ThemedText type="h3" style={styles.trendingPiecesTitle}>
+            Hot Colors for 2024/2025
+          </ThemedText>
+          <View style={styles.trendingPiecesContainer}>
+            {TRENDING_STYLES_2024_2025.colors.hot.slice(0, 5).map((color, index) => (
+              <View 
+                key={index} 
+                style={[styles.colorTag, { backgroundColor: theme.backgroundDefault }]}
+              >
+                <View style={[styles.colorDot, { backgroundColor: getColorFromName(color) }]} />
+                <ThemedText type="small" style={styles.colorName}>
+                  {color}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -1303,5 +1411,79 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     fontSize: 11,
     marginTop: Spacing.xs,
+  },
+  influencerSubtitle: {
+    marginBottom: Spacing.md,
+    marginTop: -Spacing.sm,
+  },
+  influencerTipsContainer: {
+    gap: Spacing.md,
+    paddingRight: Spacing.lg,
+  },
+  influencerTipCard: {
+    width: width * 0.75,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+  },
+  influencerTipIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.sm,
+  },
+  influencerTipText: {
+    lineHeight: 22,
+    marginBottom: Spacing.sm,
+  },
+  influencerCredits: {
+    marginTop: Spacing.xs,
+  },
+  influencerHandle: {
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  trendingPiecesSection: {
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.md,
+  },
+  trendingPiecesTitle: {
+    marginBottom: Spacing.sm,
+  },
+  trendingPiecesContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  trendingPieceTag: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+  },
+  trendingPieceText: {
+    fontWeight: "500",
+    fontSize: 13,
+  },
+  trendingColorsSection: {
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.md,
+  },
+  colorTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    gap: Spacing.xs,
+  },
+  colorDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+  },
+  colorName: {
+    fontSize: 12,
+    fontWeight: "500",
   },
 });

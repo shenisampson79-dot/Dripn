@@ -203,3 +203,24 @@ The app includes multiple layers of code protection:
   - Currency symbols display correctly based on store region (GBP, USD, EUR, AED, JPY, HKD, AUD)
   - FTC-compliant affiliate disclosure visible above cards
   - "Shop Now" flow ready for real affiliate API integration (shows "Coming Soon" for now)
+- Enhanced AI Advice Service with Influencer-Inspired Content (services/AIAdviceService.ts):
+  - Research-based influencer database covering 9 regions worldwide
+  - Regional influencer profiles with signature styles:
+    - North America: Monroe Steele (@monroesteele), Fashion Influx, Camille Styles
+    - UK: Victoria Magrath (@inthefrow), Lydia Jane Tomlinson, Alexandra Stedman
+    - Europe: Jeanne Damas (@jeannedamas), Chiara Ferragni, Leonie Hanne
+    - Middle East: Karen Wazen, Rawan Bin Hussain, Huda Kattan
+    - Asia: Irene Kim (@ireneisgood), Heart Evangelista, Ming Xi
+    - South Asia: Masoom Minawala, Komal Pandey, Diipa Buller-Khosla
+    - Africa: Temi Otedola, Mihlali Ndamase, Kefilwe Mabote
+    - Latin America: Thassia Naves, Yuya, Pamela Allier
+    - Australia: Nicole Warne (@garypeppergirl), Jessica Stein, Carmen Hamilton
+  - Country-specific style tips tailored to member's region
+  - Trending 2024/2025 fashion data: colors, silhouettes, must-have pieces
+  - Premium users get influencer insights in their AI feedback
+- Added Influencer Inspiration section on Discover screen:
+  - Displays 3 rotating style tips from regional influencers
+  - Shows influencer handle credits for each tip
+  - "Trending Pieces Right Now" tags based on user's region
+  - "Hot Colors for 2024/2025" with visual color swatches
+  - Adapts content based on user's country for culturally relevant advice
