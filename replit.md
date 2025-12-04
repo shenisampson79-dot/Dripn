@@ -31,3 +31,50 @@ The app is built with **Expo React Native** and **TypeScript**, utilizing **Reac
 - **OpenAI API**: Intended for real AI fashion advice (currently uses a mock service).
 - **PostgreSQL**: Database solution for the backend.
 - **Affiliate APIs**: Planned integration for "Shop Now" functionality in shoppable content (currently "Coming Soon").
+
+## Fashion Accessories System
+The AI advice service includes comprehensive coverage of fashion accessories, key to completing any outfit:
+
+### Luxury Bags (Women)
+- **Celine**: Triomphe, Ava, 16 Bag - quiet luxury essentials
+- **Chanel**: Classic Flap, Boy Bag, Gabrielle - timeless status symbols
+- **Mulberry**: Bayswater, Lily, Alexa - British heritage icons
+- **Bottega Veneta**: Jodie, Cassette - intrecciato woven luxury
+- **Loewe**: Puzzle, Hammock - architectural masterpieces
+- **Dior**: Lady Dior, Saddle - cannage quilting elegance
+- **Hermes**: Birkin, Kelly - ultimate investment pieces
+- **YSL**: Loulou - Parisian chic
+- **Prada**: Re-Edition 2005, Galleria - modern classics
+
+### Luxury Bags (Men)
+- **Young/Cool**: LV Christopher Backpack, MCM Stark Backpack, Gucci GG Supreme
+- **Business Travel**: Rimowa Original Cabin, Tumi Alpha Bravo, Montblanc Meisterstuck Briefcase, Berluti Un Jour
+- **Everyday**: LV Keepall 45, Prada Re-Nylon Backpack, Gucci Ophidia Messenger
+
+### Designer Eyewear
+- **Miu Miu**: Oversized cat-eye, crystal embellished - playful feminine
+- **Celine**: Square oversized, Triomphe - French minimalism
+- **Prada**: Geometric cat-eye - architectural elegance
+- **Gucci**: Web stripe, oversized square - Hollywood glamour
+- **Ray-Ban**: Wayfarer, Aviator - timeless classics
+- **Oliver Peoples**: O'Malley - celebrity favorite
+- **Cartier**: Rimless gold - quiet wealth
+
+### Designer Belts
+- **Hermes H Belt** - stealth wealth icon
+- **Gucci GG Marmont** - instantly recognizable
+- **Celine Triomphe** - quiet sophistication
+- **Bottega Veneta Intrecciato** - no-logo luxury
+- **YSL Cassandre** - Parisian chic
+- **Ferragamo Gancini** - Italian elegance for men
+
+### Fine Jewelry
+- **Cartier**: Love Bracelet, Juste un Clou, Trinity Ring
+- **Tiffany & Co**: T Collection, Return to Tiffany, Elsa Peretti Bean
+- **Van Cleef & Arpels**: Alhambra Necklace, Perlee Bracelet
+- **Bvlgari**: B.zero1 Ring, Serpenti Bracelet
+- **Men's Options**: David Yurman Spiritual Beads, Tom Wood rings, Miansai cuffs
+
+### Luxury Watches
+- **Women**: Cartier Tank/Panthère, Rolex Datejust 31, Chanel J12
+- **Men**: Rolex Submariner/Datejust, Omega Seamaster, Patek Philippe Nautilus, AP Royal Oak
