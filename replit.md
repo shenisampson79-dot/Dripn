@@ -190,8 +190,16 @@ The app includes multiple layers of code protection:
   - Premium/VIP users see luxury alternatives with option to toggle
   - FTC-compliant affiliate disclosure visible above cards
 - Added Bargain of the Week section on Discover screen:
-  - Features luxury household-name brands with realistic 10-20% discounts (Burberry, Canada Goose, Moncler, Gucci, Prada, Ralph Lauren, UGG, Hunter, Loake, Celine)
-  - Sources from premium retailers: Flannels, Frasers, Selfridges
-  - Displays original price, sale price, and discount percentage badges
+  - Features luxury household-name brands with realistic 10-20% discounts (Burberry, Canada Goose, Moncler, Gucci, Prada, Ralph Lauren, UGG, Hunter, Loake, Celine, Nike)
+  - Nike trainer deals inspired by Captain Creps (@CaptainCreps) - UK sneaker deals aggregator
+  - Country-specific deals: Users only see bargains from stores in their country or that ship to their country
+  - Regional stores by country:
+    - UK/Ireland: Flannels, Frasers, Selfridges, END Clothing, Size?, JD Sports
+    - US/Canada: Nordstrom, Saks Fifth Avenue, Neiman Marcus, Bloomingdale's, Foot Locker, Nike.com
+    - Europe: MyTheresa, 24S, Farfetch, Net-a-Porter
+    - Middle East: Level Shoes, Ounass
+    - Asia: ZOZOTOWN (Japan), Lane Crawford (HK/China/Singapore)
+    - Australia/NZ: The Iconic, David Jones
+  - Currency symbols display correctly based on store region (GBP, USD, EUR, AED, JPY, HKD, AUD)
   - FTC-compliant affiliate disclosure visible above cards
   - "Shop Now" flow ready for real affiliate API integration (shows "Coming Soon" for now)

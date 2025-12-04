@@ -227,13 +227,50 @@ interface BargainItem {
   salePrice: number;
   discountPercent: number;
   store: string;
+  storeHandle?: string;
   category: string;
   icon: keyof typeof Feather.glyphMap;
+  regions: string[];
+  currency: string;
 }
 
-const BARGAIN_ITEMS: BargainItem[] = [
+const UK_COUNTRIES = ['United Kingdom', 'Ireland'];
+const EU_COUNTRIES = [
+  'Germany', 'France', 'Italy', 'Spain', 'Portugal', 'Netherlands', 'Belgium', 
+  'Switzerland', 'Austria', 'Poland', 'Czech Republic', 'Hungary', 'Romania',
+  'Bulgaria', 'Greece', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Iceland',
+  'Croatia', 'Serbia', 'Slovenia', 'Slovakia', 'Lithuania', 'Latvia', 'Estonia',
+  'Luxembourg', 'Malta', 'Cyprus'
+];
+const US_COUNTRIES = ['United States'];
+const CANADA_COUNTRIES = ['Canada'];
+const AUSTRALIA_COUNTRIES = ['Australia', 'New Zealand'];
+const ASIA_COUNTRIES = [
+  'Japan', 'South Korea', 'China', 'Taiwan', 'Hong Kong', 'Singapore', 
+  'Thailand', 'Vietnam', 'Malaysia', 'Indonesia', 'Philippines'
+];
+const MIDDLE_EAST_COUNTRIES = [
+  'United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain', 
+  'Oman', 'Jordan', 'Lebanon', 'Israel', 'Turkey'
+];
+
+const ALL_BARGAIN_ITEMS: BargainItem[] = [
   {
-    id: "b1",
+    id: "uk1",
+    brand: "Nike",
+    name: "Air Max 90 Premium",
+    originalPrice: 149.99,
+    salePrice: 112.49,
+    discountPercent: 25,
+    store: "END Clothing",
+    storeHandle: "@CaptainCreps",
+    category: "Trainers",
+    icon: "zap",
+    regions: [...UK_COUNTRIES, ...EU_COUNTRIES],
+    currency: "GBP",
+  },
+  {
+    id: "uk2",
     brand: "Burberry",
     name: "Vintage Check Wool Scarf",
     originalPrice: 450.00,
@@ -242,9 +279,11 @@ const BARGAIN_ITEMS: BargainItem[] = [
     store: "Flannels",
     category: "Accessories",
     icon: "gift",
+    regions: UK_COUNTRIES,
+    currency: "GBP",
   },
   {
-    id: "b2",
+    id: "uk3",
     brand: "Canada Goose",
     name: "Expedition Parka",
     originalPrice: 1295.00,
@@ -253,9 +292,25 @@ const BARGAIN_ITEMS: BargainItem[] = [
     store: "Frasers",
     category: "Outerwear",
     icon: "cloud",
+    regions: UK_COUNTRIES,
+    currency: "GBP",
   },
   {
-    id: "b3",
+    id: "uk4",
+    brand: "Nike",
+    name: "Dunk Low Retro",
+    originalPrice: 109.99,
+    salePrice: 87.99,
+    discountPercent: 20,
+    store: "Size?",
+    storeHandle: "@CaptainCreps",
+    category: "Trainers",
+    icon: "zap",
+    regions: [...UK_COUNTRIES, ...EU_COUNTRIES],
+    currency: "GBP",
+  },
+  {
+    id: "uk5",
     brand: "Moncler",
     name: "Maya Down Jacket",
     originalPrice: 1590.00,
@@ -264,9 +319,11 @@ const BARGAIN_ITEMS: BargainItem[] = [
     store: "Flannels",
     category: "Outerwear",
     icon: "award",
+    regions: UK_COUNTRIES,
+    currency: "GBP",
   },
   {
-    id: "b4",
+    id: "uk6",
     brand: "Gucci",
     name: "GG Marmont Belt",
     originalPrice: 420.00,
@@ -275,9 +332,11 @@ const BARGAIN_ITEMS: BargainItem[] = [
     store: "Selfridges",
     category: "Accessories",
     icon: "star",
+    regions: UK_COUNTRIES,
+    currency: "GBP",
   },
   {
-    id: "b5",
+    id: "uk7",
     brand: "UGG",
     name: "Classic Mini II Boots",
     originalPrice: 170.00,
@@ -286,20 +345,11 @@ const BARGAIN_ITEMS: BargainItem[] = [
     store: "Frasers",
     category: "Shoes",
     icon: "shopping-bag",
+    regions: UK_COUNTRIES,
+    currency: "GBP",
   },
   {
-    id: "b6",
-    brand: "Ralph Lauren",
-    name: "Cable-Knit Cashmere Sweater",
-    originalPrice: 398.00,
-    salePrice: 318.40,
-    discountPercent: 20,
-    store: "Flannels",
-    category: "Knitwear",
-    icon: "heart",
-  },
-  {
-    id: "b7",
+    id: "uk8",
     brand: "Hunter",
     name: "Original Tall Wellington Boots",
     originalPrice: 140.00,
@@ -308,20 +358,11 @@ const BARGAIN_ITEMS: BargainItem[] = [
     store: "Selfridges",
     category: "Shoes",
     icon: "umbrella",
+    regions: [...UK_COUNTRIES, ...EU_COUNTRIES],
+    currency: "GBP",
   },
   {
-    id: "b8",
-    brand: "Prada",
-    name: "Re-Nylon Bucket Hat",
-    originalPrice: 495.00,
-    salePrice: 445.50,
-    discountPercent: 10,
-    store: "Flannels",
-    category: "Accessories",
-    icon: "sun",
-  },
-  {
-    id: "b9",
+    id: "uk9",
     brand: "Loake",
     name: "Aldwych Oxford Shoes",
     originalPrice: 325.00,
@@ -330,19 +371,259 @@ const BARGAIN_ITEMS: BargainItem[] = [
     store: "Frasers",
     category: "Shoes",
     icon: "briefcase",
+    regions: UK_COUNTRIES,
+    currency: "GBP",
   },
   {
-    id: "b10",
-    brand: "Celine",
-    name: "Triomphe Canvas Belt",
-    originalPrice: 550.00,
-    salePrice: 467.50,
+    id: "uk10",
+    brand: "Nike",
+    name: "Air Force 1 '07",
+    originalPrice: 119.99,
+    salePrice: 95.99,
+    discountPercent: 20,
+    store: "JD Sports",
+    storeHandle: "@CaptainCreps",
+    category: "Trainers",
+    icon: "zap",
+    regions: [...UK_COUNTRIES, ...EU_COUNTRIES, ...AUSTRALIA_COUNTRIES],
+    currency: "GBP",
+  },
+  {
+    id: "us1",
+    brand: "Nike",
+    name: "Air Jordan 1 Retro High",
+    originalPrice: 180.00,
+    salePrice: 144.00,
+    discountPercent: 20,
+    store: "Foot Locker",
+    category: "Trainers",
+    icon: "zap",
+    regions: [...US_COUNTRIES, ...CANADA_COUNTRIES],
+    currency: "USD",
+  },
+  {
+    id: "us2",
+    brand: "Canada Goose",
+    name: "Chilliwack Bomber",
+    originalPrice: 1150.00,
+    salePrice: 977.50,
     discountPercent: 15,
-    store: "Selfridges",
+    store: "Nordstrom",
+    category: "Outerwear",
+    icon: "cloud",
+    regions: [...US_COUNTRIES, ...CANADA_COUNTRIES],
+    currency: "USD",
+  },
+  {
+    id: "us3",
+    brand: "Gucci",
+    name: "Horsebit Loafers",
+    originalPrice: 890.00,
+    salePrice: 801.00,
+    discountPercent: 10,
+    store: "Saks Fifth Avenue",
+    category: "Shoes",
+    icon: "star",
+    regions: US_COUNTRIES,
+    currency: "USD",
+  },
+  {
+    id: "us4",
+    brand: "Ralph Lauren",
+    name: "Cable-Knit Cashmere Sweater",
+    originalPrice: 498.00,
+    salePrice: 398.40,
+    discountPercent: 20,
+    store: "Bloomingdale's",
+    category: "Knitwear",
+    icon: "heart",
+    regions: [...US_COUNTRIES, ...CANADA_COUNTRIES],
+    currency: "USD",
+  },
+  {
+    id: "us5",
+    brand: "Nike",
+    name: "Air Max 97",
+    originalPrice: 185.00,
+    salePrice: 138.75,
+    discountPercent: 25,
+    store: "Nike.com",
+    category: "Trainers",
+    icon: "zap",
+    regions: [...US_COUNTRIES, ...CANADA_COUNTRIES],
+    currency: "USD",
+  },
+  {
+    id: "us6",
+    brand: "UGG",
+    name: "Tasman Slippers",
+    originalPrice: 130.00,
+    salePrice: 104.00,
+    discountPercent: 20,
+    store: "Nordstrom Rack",
+    category: "Shoes",
+    icon: "shopping-bag",
+    regions: [...US_COUNTRIES, ...CANADA_COUNTRIES],
+    currency: "USD",
+  },
+  {
+    id: "us7",
+    brand: "Prada",
+    name: "Saffiano Leather Belt",
+    originalPrice: 550.00,
+    salePrice: 495.00,
+    discountPercent: 10,
+    store: "Neiman Marcus",
     category: "Accessories",
     icon: "circle",
+    regions: US_COUNTRIES,
+    currency: "USD",
+  },
+  {
+    id: "eu1",
+    brand: "Moncler",
+    name: "Montcla Jacket",
+    originalPrice: 1890.00,
+    salePrice: 1512.00,
+    discountPercent: 20,
+    store: "MyTheresa",
+    category: "Outerwear",
+    icon: "award",
+    regions: EU_COUNTRIES,
+    currency: "EUR",
+  },
+  {
+    id: "eu2",
+    brand: "Celine",
+    name: "Triomphe Canvas Belt",
+    originalPrice: 490.00,
+    salePrice: 416.50,
+    discountPercent: 15,
+    store: "24S",
+    category: "Accessories",
+    icon: "circle",
+    regions: EU_COUNTRIES,
+    currency: "EUR",
+  },
+  {
+    id: "eu3",
+    brand: "Prada",
+    name: "Re-Nylon Bucket Hat",
+    originalPrice: 450.00,
+    salePrice: 405.00,
+    discountPercent: 10,
+    store: "Farfetch",
+    category: "Accessories",
+    icon: "sun",
+    regions: [...EU_COUNTRIES, ...UK_COUNTRIES, ...US_COUNTRIES, ...ASIA_COUNTRIES],
+    currency: "EUR",
+  },
+  {
+    id: "eu4",
+    brand: "Burberry",
+    name: "Kensington Trench Coat",
+    originalPrice: 2190.00,
+    salePrice: 1861.50,
+    discountPercent: 15,
+    store: "Net-a-Porter",
+    category: "Outerwear",
+    icon: "cloud",
+    regions: [...EU_COUNTRIES, ...UK_COUNTRIES, ...US_COUNTRIES],
+    currency: "EUR",
+  },
+  {
+    id: "me1",
+    brand: "Gucci",
+    name: "GG Supreme Sneakers",
+    originalPrice: 2890.00,
+    salePrice: 2601.00,
+    discountPercent: 10,
+    store: "Level Shoes",
+    category: "Shoes",
+    icon: "star",
+    regions: MIDDLE_EAST_COUNTRIES,
+    currency: "AED",
+  },
+  {
+    id: "me2",
+    brand: "Moncler",
+    name: "Grenoble Down Jacket",
+    originalPrice: 5990.00,
+    salePrice: 5091.50,
+    discountPercent: 15,
+    store: "Ounass",
+    category: "Outerwear",
+    icon: "award",
+    regions: MIDDLE_EAST_COUNTRIES,
+    currency: "AED",
+  },
+  {
+    id: "asia1",
+    brand: "Nike",
+    name: "Air Max Plus",
+    originalPrice: 18900,
+    salePrice: 15120,
+    discountPercent: 20,
+    store: "ZOZOTOWN",
+    category: "Trainers",
+    icon: "zap",
+    regions: ['Japan'],
+    currency: "JPY",
+  },
+  {
+    id: "asia2",
+    brand: "Canada Goose",
+    name: "Wyndham Parka",
+    originalPrice: 12800,
+    salePrice: 10880,
+    discountPercent: 15,
+    store: "Lane Crawford",
+    category: "Outerwear",
+    icon: "cloud",
+    regions: ['Hong Kong', 'China', 'Singapore'],
+    currency: "HKD",
+  },
+  {
+    id: "au1",
+    brand: "Nike",
+    name: "Air Max 90",
+    originalPrice: 200.00,
+    salePrice: 160.00,
+    discountPercent: 20,
+    store: "The Iconic",
+    category: "Trainers",
+    icon: "zap",
+    regions: AUSTRALIA_COUNTRIES,
+    currency: "AUD",
+  },
+  {
+    id: "au2",
+    brand: "UGG",
+    name: "Classic Ultra Mini",
+    originalPrice: 219.00,
+    salePrice: 175.20,
+    discountPercent: 20,
+    store: "David Jones",
+    category: "Shoes",
+    icon: "shopping-bag",
+    regions: AUSTRALIA_COUNTRIES,
+    currency: "AUD",
   },
 ];
+
+const getCurrencySymbol = (currency: string): string => {
+  const symbols: Record<string, string> = {
+    'GBP': '£',
+    'USD': '$',
+    'EUR': '€',
+    'AED': 'AED ',
+    'JPY': '¥',
+    'HKD': 'HK$',
+    'AUD': 'A$',
+    'CAD': 'C$',
+  };
+  return symbols[currency] || '$';
+};
 
 export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const { theme } = useTheme();
@@ -364,6 +645,11 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
       ...REGIONAL_STYLE_TIPS[userRegion],
     };
   }, [userRegion]);
+
+  const countryBargains = useMemo(() => {
+    const userCountry = user?.country || 'United States';
+    return ALL_BARGAIN_ITEMS.filter(item => item.regions.includes(userCountry));
+  }, [user?.country]);
 
   const trendingPosts = posts.slice(0, 5);
 
@@ -414,9 +700,11 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   };
 
   const handleBargainPress = (item: BargainItem) => {
+    const symbol = getCurrencySymbol(item.currency);
+    const storeInfo = item.storeHandle ? `${item.store} (via ${item.storeHandle})` : item.store;
     Alert.alert(
       `${item.brand} Sale`,
-      `${item.name}\n\nOriginal: $${item.originalPrice.toFixed(2)}\nSale: $${item.salePrice.toFixed(2)}\nYou save: ${item.discountPercent}%\n\nAvailable at ${item.store}`,
+      `${item.name}\n\nOriginal: ${symbol}${item.originalPrice.toFixed(2)}\nSale: ${symbol}${item.salePrice.toFixed(2)}\nYou save: ${item.discountPercent}%\n\nAvailable at ${storeInfo}`,
       [
         { text: "Close", style: "cancel" },
         { 
@@ -549,42 +837,45 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.bargainsContainer}
         >
-          {BARGAIN_ITEMS.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => handleBargainPress(item)}
-              style={({ pressed }) => [
-                styles.bargainCard,
-                { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.9 : 1 },
-              ]}
-            >
-              <View style={[styles.discountBadge, { backgroundColor: "#FF4757" }]}>
-                <ThemedText type="small" style={styles.discountText}>
-                  -{item.discountPercent}%
+          {countryBargains.map((item) => {
+            const symbol = getCurrencySymbol(item.currency);
+            return (
+              <Pressable
+                key={item.id}
+                onPress={() => handleBargainPress(item)}
+                style={({ pressed }) => [
+                  styles.bargainCard,
+                  { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.9 : 1 },
+                ]}
+              >
+                <View style={[styles.discountBadge, { backgroundColor: "#FF4757" }]}>
+                  <ThemedText type="small" style={styles.discountText}>
+                    -{item.discountPercent}%
+                  </ThemedText>
+                </View>
+                <View style={[styles.bargainIconContainer, { backgroundColor: theme.link + "15" }]}>
+                  <Feather name={item.icon} size={28} color={theme.link} />
+                </View>
+                <ThemedText type="small" style={styles.bargainBrand}>
+                  {item.brand}
                 </ThemedText>
-              </View>
-              <View style={[styles.bargainIconContainer, { backgroundColor: theme.link + "15" }]}>
-                <Feather name={item.icon} size={28} color={theme.link} />
-              </View>
-              <ThemedText type="small" style={styles.bargainBrand}>
-                {item.brand}
-              </ThemedText>
-              <ThemedText type="body" style={styles.bargainName} numberOfLines={2}>
-                {item.name}
-              </ThemedText>
-              <View style={styles.priceContainer}>
-                <ThemedText type="small" style={styles.originalPrice}>
-                  ${item.originalPrice.toFixed(2)}
+                <ThemedText type="body" style={styles.bargainName} numberOfLines={2}>
+                  {item.name}
                 </ThemedText>
-                <ThemedText type="h3" style={[styles.salePrice, { color: "#FF4757" }]}>
-                  ${item.salePrice.toFixed(2)}
+                <View style={styles.priceContainer}>
+                  <ThemedText type="small" style={styles.originalPrice}>
+                    {symbol}{item.originalPrice.toFixed(2)}
+                  </ThemedText>
+                  <ThemedText type="h3" style={[styles.salePrice, { color: "#FF4757" }]}>
+                    {symbol}{item.salePrice.toFixed(2)}
+                  </ThemedText>
+                </View>
+                <ThemedText type="small" style={styles.storeText}>
+                  at {item.store}{item.storeHandle ? ` ${item.storeHandle}` : ''}
                 </ThemedText>
-              </View>
-              <ThemedText type="small" style={styles.storeText}>
-                at {item.store}
-              </ThemedText>
-            </Pressable>
-          ))}
+              </Pressable>
+            );
+          })}
         </ScrollView>
       </View>
 
