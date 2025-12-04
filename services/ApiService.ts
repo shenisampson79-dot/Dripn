@@ -1,0 +1,146 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
+
+const TOKEN_KEY = '@stylewise_token';
+
+class ApiService {
+  private token: string | null = null;
+
+  async init() {
+    this.token = await AsyncStorage.getItem(TOKEN_KEY);
+  }
+
+  async setToken(token: string | null) {
+    this.token = token;
+    if (token) {
+      await AsyncStorage.setItem(TOKEN_KEY, token);
+    } else {
+      await AsyncStorage.removeItem(TOKEN_KEY);
+    }
+  }
+
+  async getToken() {
+    if (!this.token) {
+      this.token = await AsyncStorage.getItem(TOKEN_KEY);
+    }
+    return this.token;
+  }
+
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    if (!API_URL) {
+      throw new Error('Backend API URL not configured. Set EXPO_PUBLIC_API_URL environment variable.');
+    }
+
+    const token = await this.getToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    };
+
+    if (token) {
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async register(email: string, password: string, displayName?: string) {
+    const result = await this.request<{ token: string; user: any }>('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, displayName }),
+    });
+    await this.setToken(result.token);
+    return result;
+  }
+
+  async login(email: string, password: string) {
+    const result = await this.request<{ token: string; user: any }>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    await this.setToken(result.token);
+    return result;
+  }
+
+  async logout() {
+    await this.setToken(null);
+  }
+
+  async getCurrentUser() {
+    return this.request<any>('/api/auth/me');
+  }
+
+  async updateProfile(data: { displayName?: string; bio?: string; avatarUrl?: string }) {
+    return this.request<any>('/api/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getPosts() {
+    return this.request<any[]>('/api/posts');
+  }
+
+  async getPost(id: string) {
+    return this.request<any>(`/api/posts/${id}`);
+  }
+
+  async createPost(data: {
+    type?: string;
+    caption: string;
+    tags?: string[];
+    images?: string[];
+    videoUrl?: string;
+  }) {
+    return this.request<any>('/api/posts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async likePost(id: string) {
+    return this.request<{ liked: boolean }>(`/api/posts/${id}/like`, {
+      method: 'POST',
+    });
+  }
+
+  async addComment(postId: string, text: string, isVoice?: boolean, voiceUrl?: string) {
+    return this.request<any>(`/api/posts/${postId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ text, isVoice, voiceUrl }),
+    });
+  }
+
+  async getAIAdvice(data: {
+    outfitDescription: string;
+    colorPalette?: string;
+    occasion?: string;
+    bodyType?: string;
+  }) {
+    return this.request<{ advice: string; source: string }>('/api/ai/advice', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  isConfigured() {
+    return Boolean(API_URL);
+  }
+}
+
+export const apiService = new ApiService();
+export default apiService;
