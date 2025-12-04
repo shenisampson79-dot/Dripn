@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { StyleSheet, View, Pressable, Image, ScrollView, Dimensions, Alert } from "react-native";
+import React, { useState, useMemo } from "react";
+import { StyleSheet, View, Pressable, Image, ScrollView, Dimensions, Alert, ImageSourcePropType } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -10,8 +10,88 @@ import { PostCard } from "@/components/PostCard";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { usePosts } from "@/contexts/PostsContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { shareChallenge } from "@/services/SharingService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+
+type RegionalModelType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
+
+const REGIONAL_STYLE_IMAGES: Record<RegionalModelType, ImageSourcePropType> = {
+  'multicultural': require("../assets/images/models/multicultural.png"),
+  'asian': require("../assets/images/models/asian.png"),
+  'african': require("../assets/images/models/african.png"),
+  'middle-eastern': require("../assets/images/models/middle-eastern.png"),
+  'south-asian': require("../assets/images/models/south-asian.png"),
+  'latin-american': require("../assets/images/models/latin-american.png"),
+};
+
+const REGIONAL_STYLE_TIPS: Record<RegionalModelType, { title: string; description: string }> = {
+  'multicultural': {
+    title: "Global Fusion Elegance",
+    description: "Style of the Day: A sophisticated blend of contemporary fashion celebrating diverse influences. Clean lines meet bold accessories for a universally flattering look.",
+  },
+  'asian': {
+    title: "Modern Minimalist Chic",
+    description: "Style of the Day: Elegant simplicity with contemporary Asian-inspired aesthetics. Structured silhouettes balanced with refined details create effortless sophistication.",
+  },
+  'african': {
+    title: "Vibrant Heritage Style",
+    description: "Style of the Day: Bold patterns and rich colors celebrating African fashion heritage. Modern cuts paired with traditional-inspired prints for confident elegance.",
+  },
+  'middle-eastern': {
+    title: "Modest Elegance",
+    description: "Style of the Day: Graceful contemporary styling with sophisticated modest fashion. Flowing fabrics and refined details create timeless beauty.",
+  },
+  'south-asian': {
+    title: "Contemporary Fusion",
+    description: "Style of the Day: Modern tailoring meets cultural richness. Sharp lines and quality fabrics showcase the best of South Asian fashion sensibility.",
+  },
+  'latin-american': {
+    title: "Warm Vibrant Style",
+    description: "Style of the Day: Earthy tones and vibrant accents celebrating Latin American fashion. Contemporary styling with warm, welcoming aesthetics.",
+  },
+};
+
+const getRegionFromCountry = (country: string): RegionalModelType => {
+  const europeanCountries = [
+    'United Kingdom', 'Germany', 'France', 'Italy', 'Spain', 'Portugal', 'Netherlands',
+    'Belgium', 'Switzerland', 'Austria', 'Poland', 'Czech Republic', 'Hungary', 'Romania',
+    'Bulgaria', 'Greece', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Ireland', 'Iceland',
+    'Croatia', 'Serbia', 'Slovenia', 'Slovakia', 'Lithuania', 'Latvia', 'Estonia',
+    'Luxembourg', 'Malta', 'Cyprus', 'Albania', 'Montenegro', 'North Macedonia',
+    'Bosnia and Herzegovina', 'Moldova', 'Belarus', 'Ukraine', 'Russia'
+  ];
+  const northAmericanCountries = ['United States', 'Canada'];
+  const asianCountries = [
+    'Japan', 'South Korea', 'China', 'Taiwan', 'Hong Kong', 'Singapore', 'Thailand',
+    'Vietnam', 'Malaysia', 'Indonesia', 'Philippines'
+  ];
+  const southAsianCountries = ['India', 'Pakistan', 'Bangladesh', 'Sri Lanka', 'Nepal'];
+  const africanCountries = [
+    'Nigeria', 'Kenya', 'South Africa', 'Ghana', 'Ethiopia', 'Egypt', 'Morocco',
+    'Tanzania', 'Uganda', 'Senegal', 'Cameroon', 'Ivory Coast'
+  ];
+  const middleEasternCountries = [
+    'United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain', 'Oman',
+    'Jordan', 'Lebanon', 'Israel', 'Turkey', 'Iran', 'Iraq'
+  ];
+  const latinAmericanCountries = [
+    'Mexico', 'Brazil', 'Argentina', 'Colombia', 'Chile', 'Peru', 'Venezuela',
+    'Ecuador', 'Bolivia', 'Paraguay', 'Uruguay', 'Costa Rica', 'Panama',
+    'Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Dominican Republic'
+  ];
+
+  if (europeanCountries.includes(country) || northAmericanCountries.includes(country)) {
+    return 'multicultural';
+  }
+  if (asianCountries.includes(country)) return 'asian';
+  if (southAsianCountries.includes(country)) return 'south-asian';
+  if (africanCountries.includes(country)) return 'african';
+  if (middleEasternCountries.includes(country)) return 'middle-eastern';
+  if (latinAmericanCountries.includes(country)) return 'latin-american';
+
+  return 'multicultural';
+};
 
 type DiscoverScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "Discover">;
@@ -74,10 +154,21 @@ const TRENDING_CHALLENGES: Challenge[] = [
 
 export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const { posts, votePost, voteComparison, thankPost } = usePosts();
   const [selectedCategory, setSelectedCategory] = useState("trending");
 
-  const styleOfTheDay = posts.find((p) => p.userId === "ai-stylist");
+  const userRegion = useMemo(() => {
+    return getRegionFromCountry(user?.country || 'United States');
+  }, [user?.country]);
+
+  const regionalStyleContent = useMemo(() => {
+    return {
+      image: REGIONAL_STYLE_IMAGES[userRegion],
+      ...REGIONAL_STYLE_TIPS[userRegion],
+    };
+  }, [userRegion]);
+
   const trendingPosts = posts.slice(0, 5);
 
   const handlePostPress = (postId: string) => {
@@ -105,31 +196,31 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         <ThemedText type="h2" style={styles.sectionTitle}>
           Style of the Day
         </ThemedText>
-        {styleOfTheDay ? (
-          <Pressable
-            onPress={() => handlePostPress(styleOfTheDay.id)}
-            style={({ pressed }) => [
-              styles.featuredCard,
-              { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.9 : 1 },
-            ]}
-          >
-            <Image
-              source={{ uri: styleOfTheDay.images[0]?.uri }}
-              style={styles.featuredImage}
-            />
-            <View style={styles.featuredOverlay}>
-              <View style={styles.featuredBadge}>
-                <Feather name="award" size={16} color="#FFD700" />
-                <ThemedText type="small" style={styles.featuredBadgeText}>
-                  StyleWise AI Pick
-                </ThemedText>
-              </View>
-              <ThemedText type="body" style={styles.featuredDescription} numberOfLines={2}>
-                {styleOfTheDay.description}
+        <Pressable
+          style={({ pressed }) => [
+            styles.featuredCard,
+            { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.9 : 1 },
+          ]}
+        >
+          <Image
+            source={regionalStyleContent.image}
+            style={styles.featuredImage}
+          />
+          <View style={styles.featuredOverlay}>
+            <View style={styles.featuredBadge}>
+              <Feather name="award" size={16} color="#FFD700" />
+              <ThemedText type="small" style={styles.featuredBadgeText}>
+                StyleWise AI Pick
               </ThemedText>
             </View>
-          </Pressable>
-        ) : null}
+            <ThemedText type="h3" style={styles.featuredTitle}>
+              {regionalStyleContent.title}
+            </ThemedText>
+            <ThemedText type="body" style={styles.featuredDescription} numberOfLines={3}>
+              {regionalStyleContent.description}
+            </ThemedText>
+          </View>
+        </Pressable>
       </View>
 
       <View style={styles.section}>
@@ -309,7 +400,8 @@ const styles = StyleSheet.create({
   },
   featuredImage: {
     width: "100%",
-    height: 240,
+    height: 200,
+    resizeMode: "cover",
   },
   featuredOverlay: {
     padding: Spacing.lg,
@@ -323,6 +415,9 @@ const styles = StyleSheet.create({
   featuredBadgeText: {
     color: "#FFD700",
     fontWeight: "600",
+  },
+  featuredTitle: {
+    marginBottom: Spacing.xs,
   },
   featuredDescription: {
     opacity: 0.9,

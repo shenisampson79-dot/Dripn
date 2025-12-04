@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Pressable, ScrollView } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -7,10 +7,42 @@ import { Feather } from "@expo/vector-icons";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
-import { Spacing, BorderRadius, StyleTheme, StyleThemes } from "@/constants/theme";
+import { Spacing, BorderRadius, StyleTheme } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useAuth, SizeRange, BodyShape, BudgetRange } from "@/contexts/AuthContext";
+import { useAuth, SizeRange, BodyShape, BudgetRange, Gender } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
+
+const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
+  { id: "woman", name: "Woman", icon: "user" },
+  { id: "man", name: "Man", icon: "user" },
+  { id: "non-binary", name: "Non-Binary", icon: "users" },
+  { id: "prefer-not-to-say", name: "Prefer not to say", icon: "user-x" },
+];
+
+const WOMEN_BODY_SHAPES: { id: BodyShape; name: string; description: string }[] = [
+  { id: "Hourglass", name: "Hourglass", description: "Balanced shoulders and hips, defined waist" },
+  { id: "Pear", name: "Pear", description: "Hips wider than shoulders" },
+  { id: "Apple", name: "Apple", description: "Fuller midsection, slimmer legs" },
+  { id: "Rectangle", name: "Rectangle", description: "Similar measurements throughout" },
+  { id: "Athletic", name: "Athletic", description: "Broader shoulders, defined muscles" },
+];
+
+const MEN_BODY_SHAPES: { id: BodyShape; name: string; description: string }[] = [
+  { id: "Rectangle", name: "Rectangle", description: "Shoulders, waist, and hips similar width" },
+  { id: "Trapezoid", name: "Trapezoid", description: "Broader shoulders, narrower waist" },
+  { id: "Inverted Triangle", name: "Inverted Triangle", description: "Wide shoulders, narrow hips" },
+  { id: "Oval", name: "Oval", description: "Fuller midsection" },
+  { id: "Athletic", name: "Athletic", description: "Muscular build, defined physique" },
+];
+
+const STYLE_IMAGES: Record<StyleTheme, ImageSourcePropType> = {
+  luxury: require("../assets/images/styles/luxury.png"),
+  streetwear: require("../assets/images/styles/streetwear.png"),
+  boho: require("../assets/images/styles/boho.png"),
+  sporty: require("../assets/images/styles/sporty.png"),
+  romantic: require("../assets/images/styles/romantic.png"),
+  edgy: require("../assets/images/styles/edgy.png"),
+};
 
 type OnboardingScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Onboarding">;
@@ -27,14 +59,6 @@ const STYLE_OPTIONS: { id: StyleTheme; name: string; description: string }[] = [
 
 const SIZE_OPTIONS: SizeRange[] = ["XS-S", "M-L", "XL-2X", "3X+"];
 
-const BODY_SHAPE_OPTIONS: { id: BodyShape; name: string }[] = [
-  { id: "Hourglass", name: "Hourglass" },
-  { id: "Pear", name: "Pear" },
-  { id: "Apple", name: "Apple" },
-  { id: "Rectangle", name: "Rectangle" },
-  { id: "Athletic", name: "Athletic" },
-];
-
 const BUDGET_OPTIONS: { id: BudgetRange; name: string }[] = [
   { id: "Budget", name: "Budget-Friendly" },
   { id: "Mid-Range", name: "Mid-Range" },
@@ -42,7 +66,7 @@ const BUDGET_OPTIONS: { id: BudgetRange; name: string }[] = [
   { id: "Luxury", name: "Luxury" },
 ];
 
-const COUNTRIES = [
+const PRIMARY_COUNTRIES = [
   "United States",
   "United Kingdom",
   "Canada",
@@ -56,6 +80,95 @@ const COUNTRIES = [
   "Other",
 ];
 
+const ALL_COUNTRIES = [
+  "Albania",
+  "Andorra",
+  "Argentina",
+  "Armenia",
+  "Austria",
+  "Azerbaijan",
+  "Bangladesh",
+  "Belarus",
+  "Belgium",
+  "Bolivia",
+  "Bosnia and Herzegovina",
+  "Bulgaria",
+  "Chile",
+  "China",
+  "Colombia",
+  "Costa Rica",
+  "Croatia",
+  "Cyprus",
+  "Czech Republic",
+  "Denmark",
+  "Dominican Republic",
+  "Ecuador",
+  "Egypt",
+  "Estonia",
+  "Ethiopia",
+  "Finland",
+  "Georgia",
+  "Ghana",
+  "Greece",
+  "Guatemala",
+  "Honduras",
+  "Hungary",
+  "Iceland",
+  "India",
+  "Indonesia",
+  "Ireland",
+  "Israel",
+  "Italy",
+  "Jamaica",
+  "Kazakhstan",
+  "Kenya",
+  "Kosovo",
+  "Latvia",
+  "Liechtenstein",
+  "Lithuania",
+  "Luxembourg",
+  "Malaysia",
+  "Malta",
+  "Moldova",
+  "Monaco",
+  "Montenegro",
+  "Morocco",
+  "Netherlands",
+  "New Zealand",
+  "Nicaragua",
+  "Nigeria",
+  "North Macedonia",
+  "Norway",
+  "Pakistan",
+  "Panama",
+  "Paraguay",
+  "Peru",
+  "Philippines",
+  "Poland",
+  "Portugal",
+  "Romania",
+  "Russia",
+  "San Marino",
+  "Saudi Arabia",
+  "Serbia",
+  "Singapore",
+  "Slovakia",
+  "Slovenia",
+  "South Africa",
+  "Spain",
+  "Sweden",
+  "Switzerland",
+  "Taiwan",
+  "Thailand",
+  "Turkey",
+  "Ukraine",
+  "United Arab Emirates",
+  "Uruguay",
+  "Vatican City",
+  "Venezuela",
+  "Vietnam",
+];
+
 export default function OnboardingScreen({ navigation }: OnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
@@ -63,12 +176,29 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
 
   const [step, setStep] = useState(0);
   const [country, setCountry] = useState("United States");
+  const [showAllCountries, setShowAllCountries] = useState(false);
+  const [gender, setGender] = useState<Gender>(null);
   const [stylePreference, setStylePreference] = useState<StyleTheme>("luxury");
   const [sizeRange, setSizeRange] = useState<SizeRange>(null);
   const [bodyShape, setBodyShape] = useState<BodyShape>(null);
   const [budgetRange, setBudgetRange] = useState<BudgetRange>(null);
 
-  const totalSteps = 3;
+  const totalSteps = 4;
+
+  const getBodyShapeOptions = () => {
+    if (gender === "man") return MEN_BODY_SHAPES;
+    if (gender === "woman") return WOMEN_BODY_SHAPES;
+    return [...WOMEN_BODY_SHAPES, ...MEN_BODY_SHAPES.filter(s => !WOMEN_BODY_SHAPES.find(w => w.id === s.id))];
+  };
+
+  const handleCountrySelect = (c: string) => {
+    if (c === "Other") {
+      setShowAllCountries(true);
+    } else {
+      setCountry(c);
+      setShowAllCountries(false);
+    }
+  };
 
   const handleNext = () => {
     if (step < totalSteps - 1) {
@@ -85,6 +215,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const handleComplete = async () => {
     await completeOnboarding({
       country,
+      gender,
       stylePreference,
       sizeRange,
       bodyShape,
@@ -95,20 +226,37 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const renderStep = () => {
     switch (step) {
       case 0:
+        const countriesToShow = showAllCountries ? ALL_COUNTRIES : PRIMARY_COUNTRIES;
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
               Where are you located?
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              This helps us show seasonal and regional content
+              {showAllCountries 
+                ? "Select your country from the full list" 
+                : "This helps us show seasonal and regional content"}
             </ThemedText>
+            {showAllCountries ? (
+              <Pressable
+                onPress={() => setShowAllCountries(false)}
+                style={({ pressed }) => [
+                  styles.backButton,
+                  { opacity: pressed ? 0.7 : 1 },
+                ]}
+              >
+                <Feather name="arrow-left" size={16} color={theme.link} />
+                <ThemedText type="body" style={{ color: theme.link, marginLeft: Spacing.xs }}>
+                  Back to common countries
+                </ThemedText>
+              </Pressable>
+            ) : null}
             <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.optionsGrid}>
-                {COUNTRIES.map((c) => (
+                {countriesToShow.map((c) => (
                   <Pressable
                     key={c}
-                    onPress={() => setCountry(c)}
+                    onPress={() => handleCountrySelect(c)}
                     style={({ pressed }) => [
                       styles.optionChip,
                       {
@@ -137,6 +285,57 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
+              How do you identify?
+            </ThemedText>
+            <ThemedText type="body" style={styles.stepSubtitle}>
+              This helps us tailor style recommendations for you
+            </ThemedText>
+            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.genderOptions}>
+                {GENDER_OPTIONS.map((g) => (
+                  <Pressable
+                    key={g.id}
+                    onPress={() => setGender(g.id)}
+                    style={({ pressed }) => [
+                      styles.genderOption,
+                      {
+                        backgroundColor:
+                          gender === g.id ? theme.link : theme.backgroundDefault,
+                        borderColor:
+                          gender === g.id ? theme.link : theme.backgroundSecondary,
+                        opacity: pressed ? 0.8 : 1,
+                      },
+                    ]}
+                  >
+                    <Feather
+                      name={g.icon}
+                      size={24}
+                      color={gender === g.id ? "#FFFFFF" : theme.text}
+                    />
+                    <ThemedText
+                      type="h3"
+                      style={{
+                        color: gender === g.id ? "#FFFFFF" : theme.text,
+                      }}
+                    >
+                      {g.name}
+                    </ThemedText>
+                    {gender === g.id ? (
+                      <View style={[styles.checkCircleSmall, { backgroundColor: "rgba(255,255,255,0.3)" }]}>
+                        <Feather name="check" size={14} color="#FFFFFF" />
+                      </View>
+                    ) : null}
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        );
+
+      case 2:
+        return (
+          <View style={styles.stepContent}>
+            <ThemedText type="h2" style={styles.stepTitle}>
               What's your style?
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
@@ -144,64 +343,50 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
             </ThemedText>
             <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.styleOptions}>
-                {STYLE_OPTIONS.map((s) => {
-                  const styleColors = StyleThemes[s.id].light;
-                  return (
-                    <Pressable
-                      key={s.id}
-                      onPress={() => setStylePreference(s.id)}
-                      style={({ pressed }) => [
-                        styles.styleOption,
-                        {
-                          backgroundColor:
-                            stylePreference === s.id
-                              ? theme.link
-                              : theme.backgroundDefault,
-                          borderColor:
-                            stylePreference === s.id
-                              ? theme.link
-                              : "transparent",
-                          opacity: pressed ? 0.8 : 1,
-                        },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.styleColorPreview,
-                          { backgroundColor: styleColors.primary },
-                        ]}
-                      />
-                      <View style={styles.styleTextContainer}>
-                        <ThemedText
-                          type="h3"
-                          style={{
-                            color: stylePreference === s.id ? "#FFFFFF" : theme.text,
-                          }}
-                        >
-                          {s.name}
-                        </ThemedText>
-                        <ThemedText
-                          type="small"
-                          style={{
-                            color: stylePreference === s.id ? "#FFFFFF" : theme.text,
-                            opacity: 0.7,
-                          }}
-                        >
-                          {s.description}
-                        </ThemedText>
+                {STYLE_OPTIONS.map((s) => (
+                  <Pressable
+                    key={s.id}
+                    onPress={() => setStylePreference(s.id)}
+                    style={({ pressed }) => [
+                      styles.styleOption,
+                      {
+                        borderColor:
+                          stylePreference === s.id
+                            ? theme.link
+                            : theme.backgroundSecondary,
+                        opacity: pressed ? 0.8 : 1,
+                      },
+                    ]}
+                  >
+                    <Image
+                      source={STYLE_IMAGES[s.id]}
+                      style={styles.styleImagePreview}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.styleTextContainer}>
+                      <ThemedText type="h3">
+                        {s.name}
+                      </ThemedText>
+                      <ThemedText
+                        type="small"
+                        style={{ opacity: 0.7 }}
+                      >
+                        {s.description}
+                      </ThemedText>
+                    </View>
+                    {stylePreference === s.id ? (
+                      <View style={[styles.checkCircle, { backgroundColor: theme.link }]}>
+                        <Feather name="check" size={16} color="#FFFFFF" />
                       </View>
-                      {stylePreference === s.id ? (
-                        <Feather name="check-circle" size={24} color="#FFFFFF" />
-                      ) : null}
-                    </Pressable>
-                  );
-                })}
+                    ) : null}
+                  </Pressable>
+                ))}
               </View>
             </ScrollView>
           </View>
         );
 
-      case 2:
+      case 3:
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
@@ -246,20 +431,24 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                 <ThemedText type="h3" style={styles.sectionLabel}>
                   Body Shape
                 </ThemedText>
-                <View style={styles.optionsRow}>
-                  {BODY_SHAPE_OPTIONS.map((shape) => (
+                <View style={styles.bodyShapeOptions}>
+                  {getBodyShapeOptions().map((shape) => (
                     <Pressable
                       key={shape.id}
                       onPress={() =>
                         setBodyShape(bodyShape === shape.id ? null : shape.id)
                       }
                       style={({ pressed }) => [
-                        styles.optionChip,
+                        styles.bodyShapeOption,
                         {
                           backgroundColor:
                             bodyShape === shape.id
                               ? theme.link
                               : theme.backgroundDefault,
+                          borderColor:
+                            bodyShape === shape.id
+                              ? theme.link
+                              : theme.backgroundSecondary,
                           opacity: pressed ? 0.8 : 1,
                         },
                       ]}
@@ -268,9 +457,19 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                         type="body"
                         style={{
                           color: bodyShape === shape.id ? "#FFFFFF" : theme.text,
+                          fontWeight: "600",
                         }}
                       >
                         {shape.name}
+                      </ThemedText>
+                      <ThemedText
+                        type="small"
+                        style={{
+                          color: bodyShape === shape.id ? "#FFFFFF" : theme.text,
+                          opacity: 0.7,
+                        }}
+                      >
+                        {shape.description}
                       </ThemedText>
                     </Pressable>
                   ))}
@@ -395,6 +594,11 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginBottom: Spacing.xl,
   },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
   optionsScroll: {
     flex: 1,
   },
@@ -414,18 +618,43 @@ const styles = StyleSheet.create({
   styleOption: {
     flexDirection: "row",
     alignItems: "center",
-    padding: Spacing.lg,
+    padding: Spacing.md,
     borderRadius: BorderRadius.md,
     borderWidth: 2,
     gap: Spacing.md,
   },
-  styleColorPreview: {
-    width: 48,
-    height: 48,
+  styleImagePreview: {
+    width: 64,
+    height: 64,
     borderRadius: BorderRadius.sm,
   },
   styleTextContainer: {
     flex: 1,
+  },
+  checkCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkCircleSmall: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  genderOptions: {
+    gap: Spacing.md,
+  },
+  genderOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+    gap: Spacing.md,
   },
   optionalSection: {
     marginBottom: Spacing["2xl"],
@@ -437,6 +666,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.sm,
+  },
+  bodyShapeOptions: {
+    gap: Spacing.sm,
+  },
+  bodyShapeOption: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    gap: Spacing.xs,
   },
   footer: {
     paddingHorizontal: Spacing.xl,

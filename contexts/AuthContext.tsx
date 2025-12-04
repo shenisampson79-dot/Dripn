@@ -2,8 +2,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StyleTheme } from '@/constants/theme';
 
+export type Gender = 'woman' | 'man' | 'non-binary' | 'prefer-not-to-say' | null;
 export type SizeRange = 'XS-S' | 'M-L' | 'XL-2X' | '3X+' | null;
-export type BodyShape = 'Hourglass' | 'Pear' | 'Apple' | 'Rectangle' | 'Athletic' | null;
+export type BodyShape = 'Hourglass' | 'Pear' | 'Apple' | 'Rectangle' | 'Athletic' | 'Inverted Triangle' | 'Trapezoid' | 'Oval' | null;
 export type BudgetRange = 'Budget' | 'Mid-Range' | 'Premium' | 'Luxury' | null;
 export type SubscriptionTier = 'free' | 'basic' | 'premium' | 'vip';
 export type ContributorTier = 'none' | 'styleContributor' | 'fashionAdvisor' | 'styleExpert' | 'fashionGuru';
@@ -15,6 +16,7 @@ export interface UserProfile {
   name: string;
   avatar: string | null;
   country: string;
+  gender: Gender;
   stylePreference: StyleTheme;
   sizeRange: SizeRange;
   bodyShape: BodyShape;
@@ -51,6 +53,7 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
   name,
   avatar: null,
   country: 'United States',
+  gender: null,
   stylePreference: 'luxury',
   sizeRange: null,
   bodyShape: null,

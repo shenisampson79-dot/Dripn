@@ -28,13 +28,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
             style={styles.logo}
             resizeMode="contain"
           />
-        </View>
-
-        <View style={styles.textContainer}>
-          <ThemedText type="h1" style={styles.title}>
-            StyleWise
-          </ThemedText>
-          <ThemedText type="body" style={styles.subtitle}>
+          <ThemedText type="body" style={styles.tagline}>
             Your personal AI stylist and global fashion community
           </ThemedText>
         </View>
@@ -124,23 +118,18 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: "center",
     marginBottom: Spacing["3xl"],
+    marginTop: Spacing["2xl"],
   },
   logo: {
-    width: 120,
-    height: 120,
-    borderRadius: BorderRadius.lg,
+    width: 180,
+    height: 180,
+    borderRadius: BorderRadius.xl,
+    marginBottom: Spacing.xl,
   },
-  textContainer: {
-    alignItems: "center",
-    marginBottom: Spacing["3xl"],
-  },
-  title: {
-    textAlign: "center",
-    marginBottom: Spacing.sm,
-  },
-  subtitle: {
+  tagline: {
     textAlign: "center",
     opacity: 0.7,
+    paddingHorizontal: Spacing.xl,
   },
   featuresContainer: {
     gap: Spacing.lg,
