@@ -3,6 +3,7 @@
     "name": "StyleWise",
     "slug": "stylewise",
     "version": "1.0.0",
+    "description": "StyleWise is your personal fashion advisor powered by AI and a vibrant community. Get instant outfit advice, discover trending styles from top influencers worldwide, and receive daily style tips featuring exclusive bargains from luxury and household brands. Whether you love athleisure, preppy classics, or countryside chic, StyleWise delivers personalized recommendations, size-inclusive styling, voice comments, and shoppable content. Join millions of fashion enthusiasts sharing outfits, voting on looks, and elevating their style game every day.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "stylewise",
@@ -10,10 +11,21 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.stylewise.app"
+      "bundleIdentifier": "com.stylewise.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "StyleWise needs camera access to take outfit photos for style advice.",
+        "NSPhotoLibraryUsageDescription": "StyleWise needs photo library access to select outfit images for style advice.",
+        "NSMicrophoneUsageDescription": "StyleWise needs microphone access to record voice comments on outfits."
+      }
     },
     "android": {
       "package": "com.stylewise.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#FDFBF7",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -52,7 +64,8 @@
             "deploymentTarget": "15.1"
           }
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "jsEngine": "hermes",
     "experiments": {
