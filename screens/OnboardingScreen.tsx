@@ -43,10 +43,11 @@ const STYLE_IMAGES: Record<Exclude<StyleTheme, 'romantic'>, ImageSourcePropType>
   edgy: require("../assets/images/styles/edgy.png"),
 };
 
-type RegionalType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
+type RegionalType = 'multicultural' | 'nordic' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
 
 const ROMANTIC_REGIONAL_IMAGES: Record<RegionalType, ImageSourcePropType> = {
   'multicultural': require("../assets/images/styles/romantic/multicultural.png"),
+  'nordic': require("../assets/images/styles/romantic/nordic.png"),
   'asian': require("../assets/images/styles/romantic/asian.png"),
   'african': require("../assets/images/styles/romantic/african.png"),
   'middle-eastern': require("../assets/images/styles/romantic/middle-eastern.png"),
@@ -55,15 +56,18 @@ const ROMANTIC_REGIONAL_IMAGES: Record<RegionalType, ImageSourcePropType> = {
 };
 
 const getRegionFromCountry = (country: string): RegionalType => {
+  const nordicEasternEuropeanCountries = [
+    'Norway', 'Sweden', 'Finland', 'Iceland', 'Denmark',
+    'Estonia', 'Latvia', 'Lithuania', 'Poland', 'Czech Republic', 'Slovakia',
+    'Hungary', 'Romania', 'Bulgaria', 'Russia', 'Ukraine', 'Belarus', 'Moldova'
+  ];
   const multiculturalCountries = [
     'United States', 'United Kingdom', 'Canada', 'Australia', 'New Zealand',
     'Germany', 'France', 'Italy', 'Spain', 'Portugal', 'Netherlands',
-    'Belgium', 'Switzerland', 'Austria', 'Poland', 'Czech Republic', 'Hungary', 'Romania',
-    'Bulgaria', 'Greece', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Ireland', 'Iceland',
-    'Croatia', 'Serbia', 'Slovenia', 'Slovakia', 'Lithuania', 'Latvia', 'Estonia',
-    'Luxembourg', 'Malta', 'Cyprus', 'Albania', 'Montenegro', 'North Macedonia',
-    'Bosnia and Herzegovina', 'Moldova', 'Belarus', 'Ukraine', 'Russia', 'Andorra',
-    'Armenia', 'Azerbaijan', 'Georgia', 'Kazakhstan', 'Kosovo'
+    'Belgium', 'Switzerland', 'Austria', 'Ireland', 'Greece',
+    'Croatia', 'Serbia', 'Slovenia', 'Luxembourg', 'Malta', 'Cyprus', 
+    'Albania', 'Montenegro', 'North Macedonia', 'Bosnia and Herzegovina', 
+    'Andorra', 'Armenia', 'Azerbaijan', 'Georgia', 'Kazakhstan', 'Kosovo'
   ];
   const asianCountries = [
     'Japan', 'South Korea', 'China', 'Taiwan', 'Hong Kong', 'Singapore', 'Thailand',
@@ -87,6 +91,7 @@ const getRegionFromCountry = (country: string): RegionalType => {
     'Bahamas', 'Belize', 'Guyana', 'Suriname'
   ];
 
+  if (nordicEasternEuropeanCountries.includes(country)) return 'nordic';
   if (multiculturalCountries.includes(country)) return 'multicultural';
   if (asianCountries.includes(country)) return 'asian';
   if (southAsianCountries.includes(country)) return 'south-asian';
@@ -102,8 +107,8 @@ type OnboardingScreenProps = {
 };
 
 const STYLE_OPTIONS: { id: StyleTheme; name: string; description: string }[] = [
-  { id: "luxury", name: "Luxury", description: "Elegant, refined, timeless pieces" },
-  { id: "streetwear", name: "Streetwear", description: "Urban, bold, trend-forward" },
+  { id: "luxury", name: "Formal", description: "Elegant, refined, timeless pieces" },
+  { id: "streetwear", name: "Casual", description: "Relaxed, comfortable, everyday style" },
   { id: "boho", name: "Boho", description: "Earthy, relaxed, artistic" },
   { id: "sporty", name: "Sporty", description: "Active, dynamic, athletic" },
   { id: "romantic", name: "Romantic", description: "Soft, feminine, delicate" },

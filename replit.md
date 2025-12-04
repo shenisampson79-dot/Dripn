@@ -165,9 +165,12 @@ The app includes multiple layers of code protection:
 - Added gender selection step in onboarding (Woman/Man/Non-binary/Prefer not to say) with gender-specific body shape options
 - Implemented multicultural Style of the Day with regional model images based on user's country (Europe/NA, Asia, Africa, Middle East, South Asia, Latin America)
 - Romantic style category now shows region-appropriate couple dinner images:
-  - Mixed race couple for US, UK, Canada, Australia, NZ, and European countries
+  - White couple for Nordic/Eastern European countries (Norway, Sweden, Iceland, Finland, Denmark, Estonia, Latvia, Lithuania, Poland, Czech Republic, Slovakia, Hungary, Romania, Bulgaria, Russia, Ukraine, Belarus, Moldova)
+  - Mixed race couple for US, UK, Canada, Australia, NZ, and Western European countries (Germany, France, Italy, Spain, etc.)
   - Asian couple for Japan, South Korea, China, etc.
   - African couple for Nigeria, Kenya, South Africa, etc.
   - Middle Eastern couple for UAE, Saudi Arabia, etc.
   - South Asian couple for India, Pakistan, etc.
   - Latin American couple for Mexico, Brazil, Argentina, Caribbean nations, etc.
+- Style category names updated: "Luxury" renamed to "Formal", "Streetwear" renamed to "Casual"
+- Sporty category image updated to show a white woman running (full body shot)
