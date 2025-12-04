@@ -35,13 +35,66 @@ const MEN_BODY_SHAPES: { id: BodyShape; name: string; description: string }[] = 
   { id: "Athletic", name: "Athletic", description: "Muscular build, defined physique" },
 ];
 
-const STYLE_IMAGES: Record<StyleTheme, ImageSourcePropType> = {
+const STYLE_IMAGES: Record<Exclude<StyleTheme, 'romantic'>, ImageSourcePropType> = {
   luxury: require("../assets/images/styles/luxury.png"),
   streetwear: require("../assets/images/styles/streetwear.png"),
   boho: require("../assets/images/styles/boho.png"),
   sporty: require("../assets/images/styles/sporty.png"),
-  romantic: require("../assets/images/styles/romantic.png"),
   edgy: require("../assets/images/styles/edgy.png"),
+};
+
+type RegionalType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
+
+const ROMANTIC_REGIONAL_IMAGES: Record<RegionalType, ImageSourcePropType> = {
+  'multicultural': require("../assets/images/styles/romantic/multicultural.png"),
+  'asian': require("../assets/images/styles/romantic/asian.png"),
+  'african': require("../assets/images/styles/romantic/african.png"),
+  'middle-eastern': require("../assets/images/styles/romantic/middle-eastern.png"),
+  'south-asian': require("../assets/images/styles/romantic/south-asian.png"),
+  'latin-american': require("../assets/images/styles/romantic/latin-american.png"),
+};
+
+const getRegionFromCountry = (country: string): RegionalType => {
+  const multiculturalCountries = [
+    'United States', 'United Kingdom', 'Canada', 'Australia', 'New Zealand',
+    'Germany', 'France', 'Italy', 'Spain', 'Portugal', 'Netherlands',
+    'Belgium', 'Switzerland', 'Austria', 'Poland', 'Czech Republic', 'Hungary', 'Romania',
+    'Bulgaria', 'Greece', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Ireland', 'Iceland',
+    'Croatia', 'Serbia', 'Slovenia', 'Slovakia', 'Lithuania', 'Latvia', 'Estonia',
+    'Luxembourg', 'Malta', 'Cyprus', 'Albania', 'Montenegro', 'North Macedonia',
+    'Bosnia and Herzegovina', 'Moldova', 'Belarus', 'Ukraine', 'Russia', 'Andorra',
+    'Armenia', 'Azerbaijan', 'Georgia', 'Kazakhstan', 'Kosovo'
+  ];
+  const asianCountries = [
+    'Japan', 'South Korea', 'China', 'Taiwan', 'Hong Kong', 'Singapore', 'Thailand',
+    'Vietnam', 'Malaysia', 'Indonesia', 'Philippines', 'Myanmar', 'Cambodia', 'Laos'
+  ];
+  const southAsianCountries = ['India', 'Pakistan', 'Bangladesh', 'Sri Lanka', 'Nepal', 'Bhutan', 'Maldives'];
+  const africanCountries = [
+    'Nigeria', 'Kenya', 'South Africa', 'Ghana', 'Ethiopia', 'Egypt', 'Morocco',
+    'Tanzania', 'Uganda', 'Senegal', 'Cameroon', 'Ivory Coast', 'Algeria', 'Tunisia',
+    'Zimbabwe', 'Zambia', 'Rwanda', 'Angola', 'Mozambique', 'Madagascar'
+  ];
+  const middleEasternCountries = [
+    'United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain', 'Oman',
+    'Jordan', 'Lebanon', 'Israel', 'Turkey', 'Iran', 'Iraq', 'Yemen', 'Syria'
+  ];
+  const latinAmericanCountries = [
+    'Mexico', 'Brazil', 'Argentina', 'Colombia', 'Chile', 'Peru', 'Venezuela',
+    'Ecuador', 'Bolivia', 'Paraguay', 'Uruguay', 'Costa Rica', 'Panama',
+    'Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Dominican Republic',
+    'Jamaica', 'Cuba', 'Puerto Rico', 'Haiti', 'Trinidad and Tobago', 'Barbados',
+    'Bahamas', 'Belize', 'Guyana', 'Suriname'
+  ];
+
+  if (multiculturalCountries.includes(country)) return 'multicultural';
+  if (asianCountries.includes(country)) return 'asian';
+  if (southAsianCountries.includes(country)) return 'south-asian';
+  if (africanCountries.includes(country)) return 'african';
+  if (middleEasternCountries.includes(country)) return 'middle-eastern';
+  if (latinAmericanCountries.includes(country)) return 'latin-american';
+
+  return 'multicultural';
 };
 
 type OnboardingScreenProps = {
@@ -359,7 +412,9 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                     ]}
                   >
                     <Image
-                      source={STYLE_IMAGES[s.id]}
+                      source={s.id === 'romantic' 
+                        ? ROMANTIC_REGIONAL_IMAGES[getRegionFromCountry(country)]
+                        : STYLE_IMAGES[s.id]}
                       style={styles.styleImagePreview}
                       resizeMode="cover"
                     />

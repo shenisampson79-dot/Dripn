@@ -164,3 +164,10 @@ The app includes multiple layers of code protection:
 - Replaced style category color boxes with actual fashion images for all 6 themes
 - Added gender selection step in onboarding (Woman/Man/Non-binary/Prefer not to say) with gender-specific body shape options
 - Implemented multicultural Style of the Day with regional model images based on user's country (Europe/NA, Asia, Africa, Middle East, South Asia, Latin America)
+- Romantic style category now shows region-appropriate couple dinner images:
+  - Mixed race couple for US, UK, Canada, Australia, NZ, and European countries
+  - Asian couple for Japan, South Korea, China, etc.
+  - African couple for Nigeria, Kenya, South Africa, etc.
+  - Middle Eastern couple for UAE, Saudi Arabia, etc.
+  - South Asian couple for India, Pakistan, etc.
+  - Latin American couple for Mexico, Brazil, Argentina, Caribbean nations, etc.
