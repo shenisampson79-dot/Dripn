@@ -91,6 +91,27 @@ App is fully functional with comprehensive features including:
 ## Environment Variables
 - `SESSION_SECRET`: For session management
 - `EXPO_PUBLIC_API_URL`: Backend API URL (optional, for production)
+- `STRIPE_PUBLISHABLE_KEY`: Stripe publishable API key (configured)
+- `STRIPE_SECRET_KEY`: Stripe secret API key (configured)
+
+## Stripe Integration
+Stripe API keys are stored as secrets in Replit. The app is configured for subscription payments:
+
+**Subscription Plans (in SubscriptionContext.tsx):**
+- Free: $0/month - 5 posts, 3 AI advice, 2 polls
+- Style Starter: $9.99/month - 20 posts, 15 AI advice, voice comments
+- Fashion Forward: $24.99/month - 100 posts, 50 AI advice, priority support
+- VIP Influencer: $49.99/month - Unlimited everything, VIP features
+
+**Current Status:**
+- Stripe keys are configured and stored securely
+- Frontend subscription UI is complete
+- Payment processing requires backend server (see backend-code/ folder)
+
+**To Enable Live Payments:**
+1. Set up backend server with the code in backend-code/
+2. Create products/prices in Stripe Dashboard matching the plan IDs
+3. Connect backend to process checkout sessions
 
 ## Backend Integration
 A complete backend API is available in the `backend-code/` folder:
@@ -129,6 +150,8 @@ The app includes multiple layers of code protection:
 **Note**: Obfuscation runs during production builds (EAS Build), not in Expo Go development mode.
 
 ## Recent Changes
+- Connected Stripe API keys for payment processing
+- Updated app logo to elegant serif "StyleWise" wordmark
 - Added code obfuscation and protection configuration
 - Added content reporting modal (components/ReportModal.tsx)
 - Implemented viral sharing service (services/SharingService.ts)
