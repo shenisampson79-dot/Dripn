@@ -571,6 +571,153 @@ const PRODUCT_SUGGESTIONS_MALE = [
   { category: "Watches", items: ["Rolex Submariner", "Rolex Datejust 41", "Omega Seamaster", "Patek Philippe Nautilus", "TAG Heuer Monaco", "AP Royal Oak"] },
 ];
 
+const CURATED_OUTFIT_LIBRARY: Record<string, Record<'female' | 'male', { id: string; imageUri: string; title: string; description: string }[]>> = {
+  casual: {
+    female: [
+      { id: 'cas-f-1', imageUri: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400', title: 'Relaxed Weekend Look', description: 'High-waisted jeans with a cozy knit sweater and white sneakers' },
+      { id: 'cas-f-2', imageUri: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400', title: 'Effortless Chic', description: 'Oversized blazer with vintage tee and mom jeans' },
+      { id: 'cas-f-3', imageUri: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400', title: 'Coffee Run Ready', description: 'Midi skirt with tucked blouse and ankle boots' },
+      { id: 'cas-f-4', imageUri: 'https://images.unsplash.com/photo-1485968579169-a6f4c5cb8365?w=400', title: 'Minimalist Casual', description: 'Wide-leg trousers with fitted turtleneck' },
+    ],
+    male: [
+      { id: 'cas-m-1', imageUri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', title: 'Smart Weekend', description: 'Chinos with polo shirt and leather loafers' },
+      { id: 'cas-m-2', imageUri: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400', title: 'Urban Casual', description: 'Dark jeans with crew neck sweater and clean sneakers' },
+      { id: 'cas-m-3', imageUri: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400', title: 'Layered Look', description: 'Oxford shirt under lightweight knit with chinos' },
+      { id: 'cas-m-4', imageUri: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400', title: 'Relaxed Modern', description: 'Relaxed fit jeans with quality t-shirt and bomber jacket' },
+    ],
+  },
+  formal: {
+    female: [
+      { id: 'for-f-1', imageUri: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400', title: 'Power Suit', description: 'Tailored blazer with matching trousers and silk cami' },
+      { id: 'for-f-2', imageUri: 'https://images.unsplash.com/photo-1617922001439-4a2e6562f328?w=400', title: 'Elegant Evening', description: 'Midi dress with statement jewelry and heels' },
+      { id: 'for-f-3', imageUri: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400', title: 'Business Chic', description: 'Pencil skirt with structured blouse and court shoes' },
+      { id: 'for-f-4', imageUri: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400', title: 'Sophisticated Style', description: 'Wide-leg suit with delicate accessories' },
+    ],
+    male: [
+      { id: 'for-m-1', imageUri: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=400', title: 'Classic Suit', description: 'Navy two-piece suit with crisp white shirt and silk tie' },
+      { id: 'for-m-2', imageUri: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?w=400', title: 'Modern Business', description: 'Slim-fit charcoal suit with minimal accessories' },
+      { id: 'for-m-3', imageUri: 'https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?w=400', title: 'Executive Look', description: 'Three-piece suit with pocket square and oxford shoes' },
+      { id: 'for-m-4', imageUri: 'https://images.unsplash.com/photo-1611601322175-ef8ae6e5ba8f?w=400', title: 'Black Tie', description: 'Tuxedo with bow tie and patent leather shoes' },
+    ],
+  },
+  streetwear: {
+    female: [
+      { id: 'str-f-1', imageUri: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=400', title: 'Urban Edge', description: 'Oversized hoodie with bike shorts and chunky sneakers' },
+      { id: 'str-f-2', imageUri: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=400', title: 'Street Chic', description: 'Cargo pants with crop top and platform sneakers' },
+      { id: 'str-f-3', imageUri: 'https://images.unsplash.com/photo-1551803091-e20673f15770?w=400', title: 'Athleisure Mix', description: 'Track pants with vintage band tee and dad sneakers' },
+      { id: 'str-f-4', imageUri: 'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400', title: 'Bold Statement', description: 'Oversized denim jacket with graphic tee and baggy jeans' },
+    ],
+    male: [
+      { id: 'str-m-1', imageUri: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=400', title: 'Hypebeast', description: 'Oversized tee with joggers and limited edition sneakers' },
+      { id: 'str-m-2', imageUri: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400', title: 'Urban Cool', description: 'Hoodie layered under bomber with distressed jeans' },
+      { id: 'str-m-3', imageUri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400', title: 'Skater Style', description: 'Graphic hoodie with cargo pants and Vans' },
+      { id: 'str-m-4', imageUri: 'https://images.unsplash.com/photo-1534030347209-467a5b0ad3e6?w=400', title: 'Tech Wear', description: 'Utility vest with black basics and chunky boots' },
+    ],
+  },
+  boho: {
+    female: [
+      { id: 'boh-f-1', imageUri: 'https://images.unsplash.com/photo-1518577915332-c2a19f149a75?w=400', title: 'Free Spirit', description: 'Flowy maxi dress with layered jewelry and sandals' },
+      { id: 'boh-f-2', imageUri: 'https://images.unsplash.com/photo-1509087859087-a384654eca4d?w=400', title: 'Earthy Elegance', description: 'Crochet top with wide-leg pants and leather bag' },
+      { id: 'boh-f-3', imageUri: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=400', title: 'Festival Ready', description: 'Tiered skirt with embroidered blouse and fringe bag' },
+      { id: 'boh-f-4', imageUri: 'https://images.unsplash.com/photo-1523264766585-fb8c0bc0c4a7?w=400', title: 'Vintage Boho', description: 'Floral midi dress with denim jacket and ankle boots' },
+    ],
+    male: [
+      { id: 'boh-m-1', imageUri: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400', title: 'Relaxed Artisan', description: 'Linen shirt with loose trousers and leather sandals' },
+      { id: 'boh-m-2', imageUri: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=400', title: 'Earth Tones', description: 'Natural fiber sweater with chinos and suede boots' },
+      { id: 'boh-m-3', imageUri: 'https://images.unsplash.com/photo-1488161628813-04466f872be2?w=400', title: 'Festival Casual', description: 'Printed shirt with rolled-up jeans and espadrilles' },
+      { id: 'boh-m-4', imageUri: 'https://images.unsplash.com/photo-1531891437562-4301cf35b7e4?w=400', title: 'Coastal Boho', description: 'Open linen shirt with shorts and woven accessories' },
+    ],
+  },
+  sporty: {
+    female: [
+      { id: 'spo-f-1', imageUri: 'https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=400', title: 'Gym to Street', description: 'High-waisted leggings with crop top and trainers' },
+      { id: 'spo-f-2', imageUri: 'https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=400', title: 'Active Chic', description: 'Tennis skirt with fitted top and sneakers' },
+      { id: 'spo-f-3', imageUri: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400', title: 'Yoga Ready', description: 'Matching set with lightweight jacket and trainers' },
+      { id: 'spo-f-4', imageUri: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400', title: 'Running Style', description: 'Performance leggings with sports bra and windbreaker' },
+    ],
+    male: [
+      { id: 'spo-m-1', imageUri: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400', title: 'Training Ready', description: 'Performance shorts with fitted tank and running shoes' },
+      { id: 'spo-m-2', imageUri: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=400', title: 'Athleisure King', description: 'Track pants with hoodie and designer sneakers' },
+      { id: 'spo-m-3', imageUri: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400', title: 'Gym Essential', description: 'Compression wear with performance tee and trainers' },
+      { id: 'spo-m-4', imageUri: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400', title: 'Active Lifestyle', description: 'Joggers with performance polo and clean sneakers' },
+    ],
+  },
+  business: {
+    female: [
+      { id: 'bus-f-1', imageUri: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=400', title: 'Corporate Chic', description: 'Tailored dress with structured blazer and heels' },
+      { id: 'bus-f-2', imageUri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400', title: 'Boardroom Ready', description: 'Suit separates with silk blouse and pumps' },
+      { id: 'bus-f-3', imageUri: 'https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?w=400', title: 'Power Dressing', description: 'Wide-leg trousers with tucked blouse and statement belt' },
+      { id: 'bus-f-4', imageUri: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400', title: 'Modern Professional', description: 'Midi skirt with knit top and pointed toe flats' },
+    ],
+    male: [
+      { id: 'bus-m-1', imageUri: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400', title: 'Executive Style', description: 'Charcoal suit with light blue shirt and leather shoes' },
+      { id: 'bus-m-2', imageUri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400', title: 'Business Casual', description: 'Chinos with button-down and loafers' },
+      { id: 'bus-m-3', imageUri: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400', title: 'Sharp Professional', description: 'Navy blazer with grey trousers and oxford shoes' },
+      { id: 'bus-m-4', imageUri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', title: 'Meeting Ready', description: 'Three-piece suit with pocket square and cufflinks' },
+    ],
+  },
+  edgy: {
+    female: [
+      { id: 'edg-f-1', imageUri: 'https://images.unsplash.com/photo-1509096942067-6ad8f1f0d0e9?w=400', title: 'Rock Chic', description: 'Leather jacket with band tee and ripped jeans' },
+      { id: 'edg-f-2', imageUri: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400', title: 'Dark Romance', description: 'All black with lace details and combat boots' },
+      { id: 'edg-f-3', imageUri: 'https://images.unsplash.com/photo-1534126416832-a88fdf2911c2?w=400', title: 'Punk Princess', description: 'Plaid skirt with fishnet tights and platform boots' },
+      { id: 'edg-f-4', imageUri: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400', title: 'Modern Goth', description: 'Oversized blazer with leather pants and statement jewelry' },
+    ],
+    male: [
+      { id: 'edg-m-1', imageUri: 'https://images.unsplash.com/photo-1541855492-581f618f69a0?w=400', title: 'Rocker Style', description: 'Leather jacket with slim jeans and boots' },
+      { id: 'edg-m-2', imageUri: 'https://images.unsplash.com/photo-1531891437562-4301cf35b7e4?w=400', title: 'Dark Minimal', description: 'All black with layered textures and silver accents' },
+      { id: 'edg-m-3', imageUri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400', title: 'Punk Revival', description: 'Studded jacket with ripped jeans and combat boots' },
+      { id: 'edg-m-4', imageUri: 'https://images.unsplash.com/photo-1553267751-1c148a7280a1?w=400', title: 'Urban Edge', description: 'Distressed denim with graphic tee and chunky boots' },
+    ],
+  },
+};
+
+const OUTFIT_GENERATION_PROMPTS: Record<string, string[]> = {
+  casual: [
+    'A stylish casual outfit featuring relaxed-fit jeans paired with a cozy oversized sweater in neutral tones',
+    'Effortless weekend look with high-waisted mom jeans, vintage-inspired graphic tee, and clean white sneakers',
+    'Minimalist casual ensemble with wide-leg trousers, fitted turtleneck, and leather accessories',
+  ],
+  formal: [
+    'Elegant evening look with tailored suit in deep navy, silk pocket square, and polished oxford shoes',
+    'Power dressing outfit featuring structured blazer, matching trousers, and statement heels',
+    'Sophisticated cocktail attire with midi dress, delicate jewelry, and pointed-toe pumps',
+  ],
+  streetwear: [
+    'Urban streetwear look with oversized hoodie, baggy cargo pants, and limited-edition sneakers',
+    'Hypebeast style featuring designer logo tee, distressed jeans, and chunky platform sneakers',
+    'Tech-wear inspired outfit with utility vest, slim joggers, and futuristic sneakers',
+  ],
+  boho: [
+    'Free-spirited boho look with flowing maxi dress, layered necklaces, and leather sandals',
+    'Earthy bohemian style featuring crochet top, wide-leg linen pants, and woven accessories',
+    'Festival-ready outfit with embroidered blouse, tiered skirt, and fringe crossbody bag',
+  ],
+  sporty: [
+    'Gym-to-street athleisure with high-waisted leggings, sports bra, and oversized bomber jacket',
+    'Performance-inspired look with matching set, lightweight windbreaker, and designer trainers',
+    'Active lifestyle outfit featuring joggers, fitted tank, and premium running shoes',
+  ],
+  business: [
+    'Executive style with tailored charcoal suit, crisp white shirt, and leather briefcase',
+    'Modern business casual featuring navy blazer, chinos, and loafers without socks',
+    'Corporate chic look with pencil skirt, silk blouse, and structured handbag',
+  ],
+  edgy: [
+    'Rock-inspired outfit with leather jacket, band tee, ripped black jeans, and combat boots',
+    'Dark romantic style featuring all-black ensemble with lace details and statement jewelry',
+    'Punk revival look with studded jacket, slim trousers, and platform boots',
+  ],
+};
+
+export interface SimilarOutfit {
+  id: string;
+  imageUri: string;
+  title: string;
+  style: string;
+  isSaved?: boolean;
+}
+
 export interface AIAdviceResult {
   mainAdvice: string;
   colorAdvice?: string;
@@ -581,6 +728,9 @@ export interface AIAdviceResult {
   confidence: number;
   influencerInsight?: string;
   trendingTip?: string;
+  generatedOutfitImage?: string;
+  generatedOutfitDescription?: string;
+  similarOutfits?: SimilarOutfit[];
   trendInsights?: {
     hotItems: TrendingItem[];
     recommendedInfluencers: FashionInfluencer[];
@@ -858,6 +1008,11 @@ async function generateAdvice(
     }
   }
 
+  const genderParam: 'male' | 'female' = userGender === 'man' ? 'male' : 'female';
+  const styleCategory = detectStyleCategory(description);
+  const similarOutfits = getSimilarOutfits(styleCategory, genderParam, 4);
+  const generatedOutfitDescription = generateOutfitDescription(styleCategory, genderParam);
+
   return {
     mainAdvice: localizedMainAdvice,
     colorAdvice: isPremium ? localizedColorAdvice : undefined,
@@ -869,7 +1024,72 @@ async function generateAdvice(
     influencerInsight: isPremium ? influencerInsight : undefined,
     trendingTip: localizedTrendingTip,
     trendInsights,
+    generatedOutfitDescription: isPremium ? generatedOutfitDescription : undefined,
+    similarOutfits: similarOutfits,
   };
+}
+
+function detectStyleCategory(description: string): string {
+  const descLower = description.toLowerCase();
+  
+  if (descLower.includes('formal') || descLower.includes('suit') || descLower.includes('evening') || descLower.includes('cocktail')) {
+    return 'formal';
+  }
+  if (descLower.includes('street') || descLower.includes('urban') || descLower.includes('sneaker') || descLower.includes('hoodie')) {
+    return 'streetwear';
+  }
+  if (descLower.includes('boho') || descLower.includes('bohemian') || descLower.includes('flowy') || descLower.includes('maxi')) {
+    return 'boho';
+  }
+  if (descLower.includes('sport') || descLower.includes('gym') || descLower.includes('athletic') || descLower.includes('legging')) {
+    return 'sporty';
+  }
+  if (descLower.includes('business') || descLower.includes('office') || descLower.includes('professional') || descLower.includes('work')) {
+    return 'business';
+  }
+  if (descLower.includes('edgy') || descLower.includes('leather') || descLower.includes('punk') || descLower.includes('rock')) {
+    return 'edgy';
+  }
+  
+  return 'casual';
+}
+
+function getSimilarOutfits(styleCategory: string, gender: 'male' | 'female', count: number = 4): SimilarOutfit[] {
+  const categoryOutfits = CURATED_OUTFIT_LIBRARY[styleCategory];
+  if (!categoryOutfits) {
+    return getSimilarOutfits('casual', gender, count);
+  }
+  
+  const genderOutfits = categoryOutfits[gender];
+  if (!genderOutfits || genderOutfits.length === 0) {
+    return [];
+  }
+  
+  const shuffled = [...genderOutfits].sort(() => Math.random() - 0.5);
+  
+  return shuffled.slice(0, count).map(outfit => ({
+    id: outfit.id,
+    imageUri: outfit.imageUri,
+    title: outfit.title,
+    style: styleCategory,
+    isSaved: false,
+  }));
+}
+
+function generateOutfitDescription(styleCategory: string, gender: 'male' | 'female'): string {
+  const prompts = OUTFIT_GENERATION_PROMPTS[styleCategory];
+  if (!prompts || prompts.length === 0) {
+    return OUTFIT_GENERATION_PROMPTS.casual[0];
+  }
+  
+  const basePrompt = getRandomItem(prompts);
+  const genderModifier = gender === 'male' ? 'masculine' : 'feminine';
+  
+  return `${basePrompt}, with a ${genderModifier} silhouette and contemporary styling details`;
+}
+
+export function getOutfitInspirationByStyle(style: string, gender: 'male' | 'female', count: number = 4): SimilarOutfit[] {
+  return getSimilarOutfits(style, gender, count);
 }
 
 export async function getAIFashionAdvice(
