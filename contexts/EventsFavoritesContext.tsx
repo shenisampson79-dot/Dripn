@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Event } from '@/services/EventsService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface EventsFavoritesContextType {
   likedEventIds: string[];
@@ -12,27 +13,45 @@ interface EventsFavoritesContextType {
 
 const EventsFavoritesContext = createContext<EventsFavoritesContextType | null>(null);
 
-const LIKED_EVENTS_IDS_KEY = '@stylewise_liked_event_ids';
-const LIKED_EVENTS_DATA_KEY = '@stylewise_liked_events_data';
+const getStorageKeys = (userId: string) => ({
+  idsKey: `@stylewise_liked_event_ids_${userId}`,
+  dataKey: `@stylewise_liked_events_data_${userId}`,
+});
 
 interface EventsFavoritesProviderProps {
   children: ReactNode;
 }
 
 export function EventsFavoritesProvider({ children }: EventsFavoritesProviderProps) {
+  const { user } = useAuth();
   const [likedEventIds, setLikedEventIds] = useState<string[]>([]);
   const [likedEventsData, setLikedEventsData] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadLikedEvents();
-  }, []);
+    const userId = user?.id || null;
+    
+    if (userId !== currentUserId) {
+      setLikedEventIds([]);
+      setLikedEventsData([]);
+      setCurrentUserId(userId);
+      
+      if (userId) {
+        loadLikedEvents(userId);
+      } else {
+        setIsLoading(false);
+      }
+    }
+  }, [user?.id, currentUserId]);
 
-  const loadLikedEvents = async () => {
+  const loadLikedEvents = async (userId: string) => {
     try {
+      setIsLoading(true);
+      const { idsKey, dataKey } = getStorageKeys(userId);
       const [idsJson, dataJson] = await Promise.all([
-        AsyncStorage.getItem(LIKED_EVENTS_IDS_KEY),
-        AsyncStorage.getItem(LIKED_EVENTS_DATA_KEY),
+        AsyncStorage.getItem(idsKey),
+        AsyncStorage.getItem(dataKey),
       ]);
 
       if (idsJson) {
@@ -49,10 +68,13 @@ export function EventsFavoritesProvider({ children }: EventsFavoritesProviderPro
   };
 
   const saveLikedEvents = async (ids: string[], data: Event[]) => {
+    if (!currentUserId) return;
+    
     try {
+      const { idsKey, dataKey } = getStorageKeys(currentUserId);
       await Promise.all([
-        AsyncStorage.setItem(LIKED_EVENTS_IDS_KEY, JSON.stringify(ids)),
-        AsyncStorage.setItem(LIKED_EVENTS_DATA_KEY, JSON.stringify(data)),
+        AsyncStorage.setItem(idsKey, JSON.stringify(ids)),
+        AsyncStorage.setItem(dataKey, JSON.stringify(data)),
       ]);
     } catch (error) {
       console.error('Error saving liked events:', error);
@@ -64,6 +86,8 @@ export function EventsFavoritesProvider({ children }: EventsFavoritesProviderPro
   }, [likedEventIds]);
 
   const toggleLike = useCallback(async (event: Event): Promise<void> => {
+    if (!currentUserId) return;
+    
     const eventId = event.id;
     let newIds: string[];
     let newData: Event[];
@@ -79,7 +103,7 @@ export function EventsFavoritesProvider({ children }: EventsFavoritesProviderPro
     setLikedEventIds(newIds);
     setLikedEventsData(newData);
     await saveLikedEvents(newIds, newData);
-  }, [likedEventIds, likedEventsData]);
+  }, [likedEventIds, likedEventsData, currentUserId]);
 
   const getLikedEvents = useCallback((): Event[] => {
     return likedEventsData;

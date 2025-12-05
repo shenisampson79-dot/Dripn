@@ -1,15 +1,18 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Pressable, Image, Alert } from "react-native";
+import { StyleSheet, View, Pressable, Image, Alert, ScrollView, ActivityIndicator } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { PostCard } from "@/components/PostCard";
+import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, SubscriptionColors, ContributorColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePosts } from "@/contexts/PostsContext";
+import { useEventsFavorites } from "@/contexts/EventsFavoritesContext";
+import { getCategoryIcon } from "@/services/EventsService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 type ProfileScreenProps = {
@@ -20,9 +23,11 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { posts, votePost, voteComparison, thankPost } = usePosts();
-  const [activeTab, setActiveTab] = useState<"posts" | "advice">("posts");
+  const { getLikedEvents, toggleLike, isLoading: eventsLoading } = useEventsFavorites();
+  const [activeTab, setActiveTab] = useState<"posts" | "advice" | "events">("posts");
 
   const userPosts = posts.filter((p) => p.userId === user?.id);
+  const likedEvents = getLikedEvents();
 
   const handleSettingsPress = () => {
     navigation.navigate("Settings");
@@ -182,7 +187,31 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
               fontWeight: activeTab === "advice" ? "600" : "400",
             }}
           >
-            My Advice
+            Advice
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={() => setActiveTab("events")}
+          style={[
+            styles.tab,
+            {
+              borderBottomColor: activeTab === "events" ? theme.link : "transparent",
+            },
+          ]}
+        >
+          <Feather
+            name="heart"
+            size={20}
+            color={activeTab === "events" ? theme.link : theme.tabIconDefault}
+          />
+          <ThemedText
+            type="body"
+            style={{
+              color: activeTab === "events" ? theme.link : theme.tabIconDefault,
+              fontWeight: activeTab === "events" ? "600" : "400",
+            }}
+          >
+            Events
           </ThemedText>
         </Pressable>
       </View>
@@ -214,7 +243,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
               </ThemedText>
             </View>
           )
-        ) : (
+        ) : activeTab === "advice" ? (
           <View style={styles.emptyState}>
             <Feather name="message-circle" size={48} color={theme.tabIconDefault} />
             <ThemedText type="h3" style={styles.emptyTitle}>
@@ -222,6 +251,77 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
             </ThemedText>
             <ThemedText type="body" style={styles.emptySubtitle}>
               Help others with their style choices to build your reputation
+            </ThemedText>
+          </View>
+        ) : eventsLoading ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color={theme.link} />
+            <ThemedText type="body" style={styles.emptySubtitle}>
+              Loading liked events...
+            </ThemedText>
+          </View>
+        ) : likedEvents.length > 0 ? (
+          <View style={styles.eventsContainer}>
+            {likedEvents.map((event) => (
+              <Card key={event.id} style={styles.likedEventCard}>
+                <View style={styles.likedEventHeader}>
+                  <View style={[styles.likedEventIcon, { backgroundColor: theme.backgroundSecondary }]}>
+                    <Feather name={getCategoryIcon(event.category) as any} size={18} color={theme.link} />
+                  </View>
+                  <View style={styles.likedEventText}>
+                    <ThemedText type="small" style={{ color: theme.link, fontWeight: "600" }}>
+                      {event.category}
+                    </ThemedText>
+                    <ThemedText type="h3" numberOfLines={1}>{event.title}</ThemedText>
+                  </View>
+                  <Pressable
+                    onPress={() => toggleLike(event)}
+                    style={({ pressed }) => [
+                      styles.unlikeButton,
+                      { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
+                    ]}
+                  >
+                    <Feather name="heart" size={16} color="#E74C3C" />
+                  </Pressable>
+                </View>
+                <View style={styles.likedEventDetails}>
+                  <View style={styles.likedEventDetail}>
+                    <Feather name="calendar" size={12} color={theme.tabIconDefault} />
+                    <ThemedText type="small" style={{ marginLeft: 4, opacity: 0.7 }}>
+                      {event.date}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.likedEventDetail}>
+                    <Feather name="clock" size={12} color={theme.tabIconDefault} />
+                    <ThemedText type="small" style={{ marginLeft: 4, opacity: 0.7 }}>
+                      {event.time}
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={styles.likedEventDetail}>
+                  <Feather name="map-pin" size={12} color={theme.tabIconDefault} />
+                  <ThemedText type="small" style={{ marginLeft: 4, opacity: 0.7 }}>
+                    {event.location}
+                  </ThemedText>
+                </View>
+                <View style={[styles.likedEventOutfit, { backgroundColor: theme.backgroundSecondary }]}>
+                  <Feather name="star" size={12} color={theme.link} />
+                  <ThemedText type="small" style={{ marginLeft: 4, flex: 1 }} numberOfLines={2}>
+                    <ThemedText type="small" style={{ fontWeight: "600" }}>Wear: </ThemedText>
+                    {event.outfitSuggestion}
+                  </ThemedText>
+                </View>
+              </Card>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyState}>
+            <Feather name="heart" size={48} color={theme.tabIconDefault} />
+            <ThemedText type="h3" style={styles.emptyTitle}>
+              No liked events
+            </ThemedText>
+            <ThemedText type="body" style={styles.emptySubtitle}>
+              Like events to save them here for easy access later
             </ThemedText>
           </View>
         )}
@@ -354,5 +454,50 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     textAlign: "center",
     opacity: 0.7,
+  },
+  eventsContainer: {
+    gap: Spacing.md,
+  },
+  likedEventCard: {
+    padding: Spacing.md,
+  },
+  likedEventHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: Spacing.sm,
+  },
+  likedEventIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.sm,
+  },
+  likedEventText: {
+    flex: 1,
+  },
+  unlikeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  likedEventDetails: {
+    flexDirection: "row",
+    gap: Spacing.lg,
+    marginBottom: Spacing.xs,
+  },
+  likedEventDetail: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  likedEventOutfit: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.sm,
   },
 });

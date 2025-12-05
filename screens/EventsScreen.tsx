@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { StyleSheet, View, Pressable, RefreshControl, Platform, ActivityIndicator, Linking, Alert } from "react-native";
+import { StyleSheet, View, Pressable, RefreshControl, Platform, ActivityIndicator, Linking, Alert, Share } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Location from "expo-location";
 
@@ -10,6 +10,7 @@ import { Card } from "@/components/Card";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEventsFavorites } from "@/contexts/EventsFavoritesContext";
 import { 
   EventsService, 
   Event, 
@@ -22,6 +23,7 @@ import {
 export default function EventsScreen() {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { isLiked, toggleLike } = useEventsFavorites();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -30,6 +32,22 @@ export default function EventsScreen() {
   const [events, setEvents] = useState<Event[]>([]);
 
   const isVip = user?.subscriptionTier === "vip";
+
+  const handleShareEvent = async (event: Event) => {
+    try {
+      const message = `Check out this event on StyleWise!\n\n${event.title}\n${event.date} at ${event.time}\n${event.location}\n${event.price}\n\nWhat to wear: ${event.outfitSuggestion}`;
+      await Share.share({
+        message,
+        title: event.title,
+      });
+    } catch (error) {
+      console.log("Share error:", error);
+    }
+  };
+
+  const handleToggleLike = async (event: Event) => {
+    await toggleLike(event);
+  };
 
   const categories = EventsService.getCategories(events);
   const filteredEvents = EventsService.filterEvents(events, selectedCategory, isVip);
@@ -341,16 +359,53 @@ export default function EventsScreen() {
                 <ThemedText type="small" style={{ opacity: 0.5 }}>
                   via {event.source}
                 </ThemedText>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.viewButton,
-                    { backgroundColor: theme.link, opacity: pressed ? 0.8 : 1 },
-                  ]}
-                >
-                  <ThemedText type="small" style={{ color: "#FFFFFF" }}>
-                    View Details
-                  </ThemedText>
-                </Pressable>
+                <View style={styles.actionButtons}>
+                  <Pressable
+                    onPress={() => handleToggleLike(event)}
+                    style={({ pressed }) => [
+                      styles.likeButton,
+                      { 
+                        backgroundColor: isLiked(event.id) ? "#E74C3C" : theme.backgroundSecondary, 
+                        opacity: pressed ? 0.7 : 1 
+                      },
+                    ]}
+                  >
+                    <Feather 
+                      name="heart" 
+                      size={16} 
+                      color={isLiked(event.id) ? "#FFFFFF" : theme.tabIconDefault} 
+                    />
+                    {isLiked(event.id) ? (
+                      <ThemedText type="small" style={styles.savedText}>Saved</ThemedText>
+                    ) : null}
+                  </Pressable>
+                  <Pressable
+                    onPress={() => handleShareEvent(event)}
+                    style={({ pressed }) => [
+                      styles.iconButton,
+                      { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
+                    ]}
+                  >
+                    <Feather name="share-2" size={18} color={theme.tabIconDefault} />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      Alert.alert(
+                        event.title,
+                        `${event.description}\n\nDate: ${event.date}\nTime: ${event.time}\nLocation: ${event.location}\nPrice: ${event.price}\n\nWhat to wear: ${event.outfitSuggestion}\n\nSource: ${event.source}`,
+                        [{ text: "Close", style: "default" }]
+                      );
+                    }}
+                    style={({ pressed }) => [
+                      styles.viewButton,
+                      { backgroundColor: theme.link, opacity: pressed ? 0.8 : 1 },
+                    ]}
+                  >
+                    <ThemedText type="small" style={{ color: "#FFFFFF" }}>
+                      View Details
+                    </ThemedText>
+                  </Pressable>
+                </View>
               </View>
             </Card>
           ))}
@@ -482,6 +537,32 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  actionButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  iconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  likeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    gap: 4,
+    minHeight: 36,
+  },
+  savedText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 12,
   },
   viewButton: {
     paddingVertical: Spacing.xs,
