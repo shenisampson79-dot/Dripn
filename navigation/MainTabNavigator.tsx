@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import HomeStackNavigator from "@/navigation/HomeStackNavigator";
 import DiscoverStackNavigator from "@/navigation/DiscoverStackNavigator";
+import CommunityStackNavigator from "@/navigation/CommunityStackNavigator";
 import BargainsStackNavigator from "@/navigation/BargainsStackNavigator";
 import EventsStackNavigator from "@/navigation/EventsStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
@@ -16,6 +17,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 export type MainTabParamList = {
   HomeTab: undefined;
   DiscoverTab: undefined;
+  CommunityTab: undefined;
   PostTab: undefined;
   BargainsTab: undefined;
   EventsTab: undefined;
@@ -106,6 +108,16 @@ export default function MainTabNavigator({ onCreatePost }: MainTabNavigatorProps
             title: "Discover",
             tabBarIcon: ({ color, size }) => (
               <Feather name="compass" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="CommunityTab"
+          component={CommunityStackNavigator}
+          options={{
+            title: "Community",
+            tabBarIcon: ({ color, size }) => (
+              <Feather name="users" size={size} color={color} />
             ),
           }}
         />
