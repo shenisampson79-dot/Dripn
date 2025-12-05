@@ -94,7 +94,7 @@ const PLANS: Plan[] = [
       { text: "Personal AI stylist", included: true },
       { text: "Early access to features", included: true },
       { text: "Exclusive community events", included: true },
-      { text: "Direct stylist consultation", included: true },
+      { text: "4x 15-min stylist sessions/month (text or call)", included: true },
       { text: "Completely ad-free", included: true },
     ],
   },

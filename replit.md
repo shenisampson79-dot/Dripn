@@ -30,7 +30,7 @@ The app is built with **Expo React Native** and **TypeScript**, utilizing **Reac
 - Theme colors in `constants/theme.ts` should be updated accordingly each year
 
 **Key Features:**
-- **Subscription Tiers**: Freemium model with Free ($0), Basic ($4.99/mo, ad-free), Premium ($9.99/mo, ad-free), and VIP ($49.99/mo) tiers, offering varying levels of uploads, AI advice requests, and advanced features like video posts and personal styling sessions.
+- **Subscription Tiers**: Freemium model with Free ($0), Basic ($4.99/mo, ad-free), Premium ($9.99/mo, ad-free), and VIP ($49.99/mo) tiers, offering varying levels of uploads, AI advice requests, and advanced features like video posts. VIP includes 4x 15-minute personal stylist sessions per month (user's choice of text chat or voice/video call via WhatsApp or similar).
 - **Content Creation**: Users can create standard outfit posts with photos/videos and comparison polls (A vs B voting).
 - **AI Fashion Advice**: Integration for AI-driven advice, including color analysis and personalized recommendations. This service also incorporates influencer-inspired content, trending fashion data, and culturally relevant advice based on user region, including athleisure and preppy/countryside styles. It features both male and female fashion influencers.
 - **Community Engagement**: Supports voice comments, content reporting, and viral sharing with auto-generated hashtags.
