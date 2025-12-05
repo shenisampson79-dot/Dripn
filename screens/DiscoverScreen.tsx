@@ -27,30 +27,68 @@ const REGIONAL_STYLE_IMAGES: Record<RegionalModelType, ImageSourcePropType> = {
   'latin-american': require("../assets/images/models/latin-american.png"),
 };
 
-const REGIONAL_STYLE_TIPS: Record<RegionalModelType, { title: string; description: string }> = {
+type GenderType = 'male' | 'female';
+
+const REGIONAL_STYLE_TIPS: Record<RegionalModelType, Record<GenderType, { title: string; description: string }>> = {
   'multicultural': {
-    title: "Global Fusion Elegance",
-    description: "Style of the Day: A sophisticated blend of contemporary fashion celebrating diverse influences. Clean lines meet bold accessories for a universally flattering look.",
+    female: {
+      title: "Global Fusion Elegance",
+      description: "Style of the Day: A sophisticated blend of contemporary fashion celebrating diverse influences. Flowing silhouettes meet statement jewelry for effortless glamour.",
+    },
+    male: {
+      title: "Modern Global Sophistication",
+      description: "Style of the Day: Sharp tailoring meets global influences. A well-fitted blazer, quality leather loafers, and subtle accessories for refined confidence.",
+    },
   },
   'asian': {
-    title: "Modern Minimalist Chic",
-    description: "Style of the Day: Elegant simplicity with contemporary Asian-inspired aesthetics. Structured silhouettes balanced with refined details create effortless sophistication.",
+    female: {
+      title: "Modern Minimalist Chic",
+      description: "Style of the Day: Elegant simplicity with contemporary aesthetics. Structured silhouettes, clean lines, and delicate pearl accessories for understated beauty.",
+    },
+    male: {
+      title: "Clean-Cut Contemporary",
+      description: "Style of the Day: Minimalist elegance with precise tailoring. Slim-fit trousers, quality knitwear, and sleek leather goods for refined simplicity.",
+    },
   },
   'african': {
-    title: "Vibrant Heritage Style",
-    description: "Style of the Day: Bold patterns and rich colors celebrating African fashion heritage. Modern cuts paired with traditional-inspired prints for confident elegance.",
+    female: {
+      title: "Vibrant Heritage Style",
+      description: "Style of the Day: Bold patterns and rich colors celebrating African fashion heritage. Modern cuts paired with statement earrings for confident elegance.",
+    },
+    male: {
+      title: "Bold Heritage Confidence",
+      description: "Style of the Day: Rich earth tones and bold prints celebrating African heritage. A well-fitted blazer with patterned pocket square for distinguished style.",
+    },
   },
   'middle-eastern': {
-    title: "Modest Elegance",
-    description: "Style of the Day: Graceful contemporary styling with sophisticated modest fashion. Flowing fabrics and refined details create timeless beauty.",
+    female: {
+      title: "Modest Elegance",
+      description: "Style of the Day: Graceful contemporary styling with sophisticated modest fashion. Flowing abayas, silk scarves, and gold accessories for timeless beauty.",
+    },
+    male: {
+      title: "Distinguished Refinement",
+      description: "Style of the Day: Classic tailoring with modern touches. Crisp white shirts, quality leather belts, and subtle cufflinks for polished sophistication.",
+    },
   },
   'south-asian': {
-    title: "Contemporary Fusion",
-    description: "Style of the Day: Modern tailoring meets cultural richness. Sharp lines and quality fabrics showcase the best of South Asian fashion sensibility.",
+    female: {
+      title: "Contemporary Fusion",
+      description: "Style of the Day: Modern styling meets cultural richness. Elegant kurtas with statement jhumkas, or contemporary saree draping for graceful confidence.",
+    },
+    male: {
+      title: "Modern Traditional Fusion",
+      description: "Style of the Day: Sharp Indo-western styling. A well-tailored bandhgala jacket with contemporary trousers for distinguished elegance.",
+    },
   },
   'latin-american': {
-    title: "Warm Vibrant Style",
-    description: "Style of the Day: Earthy tones and vibrant accents celebrating Latin American fashion. Contemporary styling with warm, welcoming aesthetics.",
+    female: {
+      title: "Warm Vibrant Style",
+      description: "Style of the Day: Earthy tones and vibrant accents. Flowy dresses with bold jewelry celebrating Latin warmth and contemporary elegance.",
+    },
+    male: {
+      title: "Confident Latin Elegance",
+      description: "Style of the Day: Warm earth tones with refined tailoring. Linen blazers, quality leather accessories, and relaxed sophistication.",
+    },
   },
 };
 
@@ -233,6 +271,7 @@ interface BargainItem {
   icon: keyof typeof Feather.glyphMap;
   regions: string[];
   currency: string;
+  gender: 'male' | 'female' | 'unisex';
 }
 
 const UK_COUNTRIES = ['United Kingdom', 'Ireland'];
@@ -269,6 +308,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "zap",
     regions: [...UK_COUNTRIES, ...EU_COUNTRIES],
     currency: "GBP",
+    gender: "unisex",
   },
   {
     id: "uk2",
@@ -282,6 +322,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "gift",
     regions: UK_COUNTRIES,
     currency: "GBP",
+    gender: "female",
   },
   {
     id: "uk3",
@@ -295,6 +336,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "cloud",
     regions: UK_COUNTRIES,
     currency: "GBP",
+    gender: "male",
   },
   {
     id: "uk4",
@@ -309,6 +351,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "zap",
     regions: [...UK_COUNTRIES, ...EU_COUNTRIES],
     currency: "GBP",
+    gender: "unisex",
   },
   {
     id: "uk5",
@@ -322,6 +365,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "award",
     regions: UK_COUNTRIES,
     currency: "GBP",
+    gender: "unisex",
   },
   {
     id: "uk6",
@@ -335,6 +379,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "star",
     regions: UK_COUNTRIES,
     currency: "GBP",
+    gender: "unisex",
   },
   {
     id: "uk7",
@@ -348,6 +393,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "shopping-bag",
     regions: UK_COUNTRIES,
     currency: "GBP",
+    gender: "unisex",
   },
   {
     id: "uk8",
@@ -361,6 +407,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "umbrella",
     regions: [...UK_COUNTRIES, ...EU_COUNTRIES],
     currency: "GBP",
+    gender: "unisex",
   },
   {
     id: "uk9",
@@ -374,6 +421,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "briefcase",
     regions: UK_COUNTRIES,
     currency: "GBP",
+    gender: "unisex",
   },
   {
     id: "uk10",
@@ -388,6 +436,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "zap",
     regions: [...UK_COUNTRIES, ...EU_COUNTRIES, ...AUSTRALIA_COUNTRIES],
     currency: "GBP",
+    gender: "unisex",
   },
   {
     id: "us1",
@@ -401,6 +450,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "zap",
     regions: [...US_COUNTRIES, ...CANADA_COUNTRIES],
     currency: "USD",
+    gender: "unisex",
   },
   {
     id: "us2",
@@ -414,6 +464,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "cloud",
     regions: [...US_COUNTRIES, ...CANADA_COUNTRIES],
     currency: "USD",
+    gender: "unisex",
   },
   {
     id: "us3",
@@ -427,6 +478,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "star",
     regions: US_COUNTRIES,
     currency: "USD",
+    gender: "unisex",
   },
   {
     id: "us4",
@@ -440,6 +492,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "heart",
     regions: [...US_COUNTRIES, ...CANADA_COUNTRIES],
     currency: "USD",
+    gender: "unisex",
   },
   {
     id: "us5",
@@ -453,6 +506,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "zap",
     regions: [...US_COUNTRIES, ...CANADA_COUNTRIES],
     currency: "USD",
+    gender: "unisex",
   },
   {
     id: "us6",
@@ -466,6 +520,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "shopping-bag",
     regions: [...US_COUNTRIES, ...CANADA_COUNTRIES],
     currency: "USD",
+    gender: "unisex",
   },
   {
     id: "us7",
@@ -479,6 +534,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "circle",
     regions: US_COUNTRIES,
     currency: "USD",
+    gender: "unisex",
   },
   {
     id: "eu1",
@@ -492,6 +548,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "award",
     regions: EU_COUNTRIES,
     currency: "EUR",
+    gender: "unisex",
   },
   {
     id: "eu2",
@@ -505,6 +562,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "circle",
     regions: EU_COUNTRIES,
     currency: "EUR",
+    gender: "unisex",
   },
   {
     id: "eu3",
@@ -518,6 +576,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "sun",
     regions: [...EU_COUNTRIES, ...UK_COUNTRIES, ...US_COUNTRIES, ...ASIA_COUNTRIES],
     currency: "EUR",
+    gender: "unisex",
   },
   {
     id: "eu4",
@@ -531,6 +590,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "cloud",
     regions: [...EU_COUNTRIES, ...UK_COUNTRIES, ...US_COUNTRIES],
     currency: "EUR",
+    gender: "unisex",
   },
   {
     id: "me1",
@@ -544,6 +604,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "star",
     regions: MIDDLE_EAST_COUNTRIES,
     currency: "AED",
+    gender: "unisex",
   },
   {
     id: "me2",
@@ -557,6 +618,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "award",
     regions: MIDDLE_EAST_COUNTRIES,
     currency: "AED",
+    gender: "unisex",
   },
   {
     id: "asia1",
@@ -570,6 +632,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "zap",
     regions: ['Japan'],
     currency: "JPY",
+    gender: "unisex",
   },
   {
     id: "asia2",
@@ -583,6 +646,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "cloud",
     regions: ['Hong Kong', 'China', 'Singapore'],
     currency: "HKD",
+    gender: "male",
   },
   {
     id: "au1",
@@ -596,6 +660,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "zap",
     regions: AUSTRALIA_COUNTRIES,
     currency: "AUD",
+    gender: "unisex",
   },
   {
     id: "au2",
@@ -609,6 +674,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "shopping-bag",
     regions: AUSTRALIA_COUNTRIES,
     currency: "AUD",
+    gender: "unisex",
   },
   {
     id: "ath-uk1",
@@ -623,6 +689,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "activity",
     regions: [...UK_COUNTRIES, ...EU_COUNTRIES, ...US_COUNTRIES, ...AUSTRALIA_COUNTRIES],
     currency: "GBP",
+    gender: "unisex",
   },
   {
     id: "ath-uk2",
@@ -637,6 +704,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "activity",
     regions: [...UK_COUNTRIES, ...EU_COUNTRIES, ...US_COUNTRIES, ...AUSTRALIA_COUNTRIES],
     currency: "GBP",
+    gender: "unisex",
   },
   {
     id: "ath-uk3",
@@ -651,6 +719,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "activity",
     regions: [...UK_COUNTRIES, ...EU_COUNTRIES, ...US_COUNTRIES, ...AUSTRALIA_COUNTRIES],
     currency: "GBP",
+    gender: "unisex",
   },
   {
     id: "ath-uk4",
@@ -665,6 +734,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "activity",
     regions: [...UK_COUNTRIES, ...EU_COUNTRIES, ...US_COUNTRIES, ...AUSTRALIA_COUNTRIES],
     currency: "GBP",
+    gender: "unisex",
   },
   {
     id: "ath-us1",
@@ -679,6 +749,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "activity",
     regions: [...US_COUNTRIES, 'Canada', ...UK_COUNTRIES, ...AUSTRALIA_COUNTRIES],
     currency: "USD",
+    gender: "unisex",
   },
   {
     id: "ath-us2",
@@ -693,6 +764,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "activity",
     regions: [...US_COUNTRIES, 'Canada', ...UK_COUNTRIES, ...AUSTRALIA_COUNTRIES],
     currency: "USD",
+    gender: "unisex",
   },
   {
     id: "ath-run1",
@@ -707,6 +779,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "zap",
     regions: [...US_COUNTRIES, 'Canada', ...UK_COUNTRIES, ...EU_COUNTRIES, ...AUSTRALIA_COUNTRIES],
     currency: "USD",
+    gender: "unisex",
   },
   {
     id: "ath-run2",
@@ -721,6 +794,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "zap",
     regions: [...US_COUNTRIES, 'Canada', ...UK_COUNTRIES, ...EU_COUNTRIES, ...AUSTRALIA_COUNTRIES],
     currency: "USD",
+    gender: "unisex",
   },
   {
     id: "ath-run3",
@@ -735,6 +809,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "zap",
     regions: UK_COUNTRIES,
     currency: "GBP",
+    gender: "unisex",
   },
   {
     id: "ath-au1",
@@ -749,6 +824,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "activity",
     regions: AUSTRALIA_COUNTRIES,
     currency: "AUD",
+    gender: "unisex",
   },
   {
     id: "ath-au2",
@@ -762,6 +838,7 @@ const ALL_BARGAIN_ITEMS: BargainItem[] = [
     icon: "zap",
     regions: AUSTRALIA_COUNTRIES,
     currency: "AUD",
+    gender: "unisex",
   },
 ];
 
@@ -810,17 +887,27 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
     return getRegionFromCountry(user?.country || 'United States');
   }, [user?.country]);
 
+  const userGender: GenderType = useMemo(() => {
+    const gender = user?.gender?.toLowerCase();
+    if (gender === 'male') return 'male';
+    return 'female';
+  }, [user?.gender]);
+
   const regionalStyleContent = useMemo(() => {
     return {
       image: REGIONAL_STYLE_IMAGES[userRegion],
-      ...REGIONAL_STYLE_TIPS[userRegion],
+      ...REGIONAL_STYLE_TIPS[userRegion][userGender],
     };
-  }, [userRegion]);
+  }, [userRegion, userGender]);
 
   const countryBargains = useMemo(() => {
     const userCountry = user?.country || 'United States';
-    return ALL_BARGAIN_ITEMS.filter(item => item.regions.includes(userCountry));
-  }, [user?.country]);
+    return ALL_BARGAIN_ITEMS.filter(item => {
+      const matchesRegion = item.regions.includes(userCountry);
+      const matchesGender = item.gender === 'unisex' || item.gender === userGender;
+      return matchesRegion && matchesGender;
+    });
+  }, [user?.country, userGender]);
 
   const influencerGuide = useMemo(() => {
     return getInfluencerStyleGuide(user?.country || 'United States', user?.gender || undefined);

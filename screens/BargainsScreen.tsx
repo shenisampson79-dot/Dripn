@@ -58,7 +58,7 @@ export default function BargainsScreen() {
     };
   }, []);
 
-  const filteredBargains = BargainsService.filterDeals(deals, selectedCategory, isVip);
+  const filteredBargains = BargainsService.filterDeals(deals, selectedCategory, isVip, user?.gender || undefined);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

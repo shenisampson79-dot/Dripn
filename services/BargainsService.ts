@@ -11,6 +11,7 @@ export interface BargainDeal {
   expiresAt: number;
   imageUrl?: string;
   isVipOnly?: boolean;
+  gender: 'male' | 'female' | 'unisex';
 }
 
 export interface BargainCategory {
@@ -19,17 +20,36 @@ export interface BargainCategory {
   count: number;
 }
 
-const DEAL_TEMPLATES = [
-  { brand: "Gymshark", title: "Vital Seamless Leggings", originalPrice: 50, salePrice: 25, discount: "50% OFF", source: "Gymshark.com", category: "Athleisure", hoursToExpire: 2 },
-  { brand: "Adidas", title: "Ultraboost Running Shoes", originalPrice: 180, salePrice: 54, discount: "70% OFF", source: "Sports Direct", category: "Footwear", hoursToExpire: 5 },
-  { brand: "Burberry", title: "Classic Check Scarf", originalPrice: 470, salePrice: 47, discount: "90% OFF", source: "Huntd", category: "Luxury", hoursToExpire: 24, isVipOnly: true },
-  { brand: "Lululemon", title: "Align High-Rise Pants", originalPrice: 98, salePrice: 69, discount: "30% OFF", source: "Lululemon Outlet", category: "Athleisure", hoursToExpire: 3 },
-  { brand: "Gucci", title: "GG Marmont Belt", originalPrice: 450, salePrice: 225, discount: "50% OFF", source: "The Outnet", category: "Luxury", hoursToExpire: 12, isVipOnly: true },
-  { brand: "Nike", title: "Air Max 90 Essential", originalPrice: 130, salePrice: 78, discount: "40% OFF", source: "Nike.com", category: "Footwear", hoursToExpire: 6 },
-  { brand: "Zara", title: "Oversized Blazer", originalPrice: 119, salePrice: 59, discount: "50% OFF", source: "Zara.com", category: "Outerwear", hoursToExpire: 8 },
-  { brand: "New Balance", title: "574 Classic Sneakers", originalPrice: 90, salePrice: 63, discount: "30% OFF", source: "Sports Direct", category: "Footwear", hoursToExpire: 4 },
-  { brand: "Prada", title: "Re-Edition 2005 Bag", originalPrice: 1250, salePrice: 875, discount: "30% OFF", source: "The Outnet", category: "Luxury", hoursToExpire: 18, isVipOnly: true },
-  { brand: "ASOS", title: "High Waist Jeans", originalPrice: 45, salePrice: 27, discount: "40% OFF", source: "ASOS.com", category: "Casual", hoursToExpire: 7 },
+type GenderType = 'male' | 'female' | 'unisex';
+
+const DEAL_TEMPLATES: Array<{
+  brand: string;
+  title: string;
+  originalPrice: number;
+  salePrice: number;
+  discount: string;
+  source: string;
+  category: string;
+  hoursToExpire: number;
+  isVipOnly?: boolean;
+  gender: GenderType;
+}> = [
+  { brand: "Gymshark", title: "Vital Seamless Leggings", originalPrice: 50, salePrice: 25, discount: "50% OFF", source: "Gymshark.com", category: "Athleisure", hoursToExpire: 2, gender: "female" },
+  { brand: "Gymshark", title: "Apex Shorts", originalPrice: 40, salePrice: 20, discount: "50% OFF", source: "Gymshark.com", category: "Athleisure", hoursToExpire: 3, gender: "male" },
+  { brand: "Adidas", title: "Ultraboost Running Shoes", originalPrice: 180, salePrice: 54, discount: "70% OFF", source: "Sports Direct", category: "Footwear", hoursToExpire: 5, gender: "unisex" },
+  { brand: "Burberry", title: "Classic Check Scarf", originalPrice: 470, salePrice: 47, discount: "90% OFF", source: "Huntd", category: "Luxury", hoursToExpire: 24, isVipOnly: true, gender: "unisex" },
+  { brand: "Lululemon", title: "Align High-Rise Pants", originalPrice: 98, salePrice: 69, discount: "30% OFF", source: "Lululemon Outlet", category: "Athleisure", hoursToExpire: 3, gender: "female" },
+  { brand: "Lululemon", title: "ABC Jogger", originalPrice: 128, salePrice: 89, discount: "30% OFF", source: "Lululemon Outlet", category: "Athleisure", hoursToExpire: 4, gender: "male" },
+  { brand: "Gucci", title: "GG Marmont Belt", originalPrice: 450, salePrice: 225, discount: "50% OFF", source: "The Outnet", category: "Luxury", hoursToExpire: 12, isVipOnly: true, gender: "female" },
+  { brand: "Gucci", title: "GG Canvas Belt", originalPrice: 420, salePrice: 210, discount: "50% OFF", source: "The Outnet", category: "Luxury", hoursToExpire: 12, isVipOnly: true, gender: "male" },
+  { brand: "Nike", title: "Air Max 90 Essential", originalPrice: 130, salePrice: 78, discount: "40% OFF", source: "Nike.com", category: "Footwear", hoursToExpire: 6, gender: "unisex" },
+  { brand: "Zara", title: "Oversized Blazer", originalPrice: 119, salePrice: 59, discount: "50% OFF", source: "Zara.com", category: "Outerwear", hoursToExpire: 8, gender: "female" },
+  { brand: "Zara", title: "Tailored Suit Jacket", originalPrice: 149, salePrice: 75, discount: "50% OFF", source: "Zara.com", category: "Outerwear", hoursToExpire: 8, gender: "male" },
+  { brand: "New Balance", title: "574 Classic Sneakers", originalPrice: 90, salePrice: 63, discount: "30% OFF", source: "Sports Direct", category: "Footwear", hoursToExpire: 4, gender: "unisex" },
+  { brand: "Prada", title: "Re-Edition 2005 Bag", originalPrice: 1250, salePrice: 875, discount: "30% OFF", source: "The Outnet", category: "Luxury", hoursToExpire: 18, isVipOnly: true, gender: "female" },
+  { brand: "Prada", title: "Saffiano Leather Wallet", originalPrice: 650, salePrice: 455, discount: "30% OFF", source: "The Outnet", category: "Luxury", hoursToExpire: 18, isVipOnly: true, gender: "male" },
+  { brand: "ASOS", title: "High Waist Jeans", originalPrice: 45, salePrice: 27, discount: "40% OFF", source: "ASOS.com", category: "Casual", hoursToExpire: 7, gender: "female" },
+  { brand: "ASOS", title: "Slim Fit Chinos", originalPrice: 40, salePrice: 24, discount: "40% OFF", source: "ASOS.com", category: "Casual", hoursToExpire: 7, gender: "male" },
 ];
 
 class BargainsServiceImpl {
@@ -37,7 +57,7 @@ class BargainsServiceImpl {
   private lastFetchTime: number = 0;
   private readonly CACHE_DURATION = 60 * 1000;
 
-  async fetchDeals(userCountry?: string): Promise<BargainDeal[]> {
+  async fetchDeals(userCountry?: string, userGender?: string): Promise<BargainDeal[]> {
     const now = Date.now();
     
     if (this.deals.length > 0 && now - this.lastFetchTime < this.CACHE_DURATION) {
@@ -60,16 +80,17 @@ class BargainsServiceImpl {
       category: template.category,
       expiresAt: now + template.hoursToExpire * 60 * 60 * 1000 + Math.random() * 30 * 60 * 1000,
       isVipOnly: template.isVipOnly,
+      gender: template.gender,
     }));
 
     this.lastFetchTime = now;
     return this.deals;
   }
 
-  async refreshDeals(userCountry?: string): Promise<BargainDeal[]> {
+  async refreshDeals(userCountry?: string, userGender?: string): Promise<BargainDeal[]> {
     this.lastFetchTime = 0;
     this.deals = [];
-    return this.fetchDeals(userCountry);
+    return this.fetchDeals(userCountry, userGender);
   }
 
   getCategories(deals: BargainDeal[]): BargainCategory[] {
@@ -95,12 +116,14 @@ class BargainsServiceImpl {
     });
   }
 
-  filterDeals(deals: BargainDeal[], category: string, isVip: boolean): BargainDeal[] {
+  filterDeals(deals: BargainDeal[], category: string, isVip: boolean, userGender?: string): BargainDeal[] {
     const now = Date.now();
+    const normalizedGender = userGender?.toLowerCase() === 'male' ? 'male' : 'female';
     return deals.filter(deal => {
       if (deal.expiresAt <= now) return false;
       if (deal.isVipOnly && !isVip) return false;
       if (category !== "All" && deal.category !== category) return false;
+      if (deal.gender !== 'unisex' && deal.gender !== normalizedGender) return false;
       return true;
     });
   }
