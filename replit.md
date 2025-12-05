@@ -21,9 +21,18 @@ The app is built with **Expo React Native** and **TypeScript**, utilizing **Reac
 
 **Technical Implementations:**
 - **Dynamic Theming**: Six style themes with light/dark modes.
-- **AI Integration**: Mock service is in place, ready for OpenAI integration.
+- **AI Integration**: Mock service is in place, ready for OpenAI integration. All advice is gender-specific and region-specific.
+- **Gender-Specific Experience**: Males see male models and fashion advice; females see female models and advice. Influencer recommendations are filtered by gender.
+- **Region-Specific Images**: Style previews (Boho, Sporty) use regional models based on user's country (African, Latin American, Asian, South Asian, Middle Eastern, Nordic, Multicultural).
 - **Stripe Integration**: Client-side ready for subscription payments, requiring a backend for checkout processing.
 - **Backend**: A separate Node.js backend is available for full API functionality, including OpenAI and PostgreSQL integration.
+
+## Gender-Specific & Regional Image System
+The onboarding and style selection shows gender-appropriate and region-appropriate models:
+- **Image Structure**: `assets/images/styles/[category]/[gender]/[region].png`
+- **Supported Styles**: Boho, Sporty (with full gender/region matrix)
+- **7 Regions**: African, Latin American, Asian, South Asian, Middle Eastern, Nordic, Multicultural
+- **2 Genders**: Male, Female (non-binary defaults to female representation)
 
 ## External Dependencies
 - **Stripe**: For subscription management and payment processing.

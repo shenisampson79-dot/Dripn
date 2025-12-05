@@ -572,18 +572,31 @@ function getRegionFromCountry(country: string): string {
   return regionMap[country] || 'North America';
 }
 
-function generateInfluencerInsight(region: string): string {
+function generateInfluencerInsight(region: string, userGender?: string): string {
   const regionData = REGIONAL_INFLUENCER_STYLES[region];
   if (!regionData) return "";
   
-  const influencer = getRandomItem(regionData.influencers);
-  const styleTip = getRandomItem(regionData.styleTips);
+  const genderFilter = userGender === 'man' ? 'male' : 'female';
+  const genderedInfluencers = regionData.influencers.filter(i => i.gender === genderFilter);
+  const influencer = getRandomItem(genderedInfluencers.length > 0 ? genderedInfluencers : regionData.influencers);
+  
+  const genderSpecificTips = regionData.styleTips.filter(tip => {
+    if (genderFilter === 'male') {
+      return tip.toLowerCase().includes('men') || tip.toLowerCase().includes('his') || 
+             !tip.toLowerCase().includes('women') && !tip.toLowerCase().includes('her ') && !tip.toLowerCase().includes('she ');
+    }
+    return tip.toLowerCase().includes('women') || tip.toLowerCase().includes('her ') ||
+           !tip.toLowerCase().includes('men') && !tip.toLowerCase().includes('his ');
+  });
+  
+  const styleTip = getRandomItem(genderSpecificTips.length > 0 ? genderSpecificTips : regionData.styleTips);
   
   return styleTip;
 }
 
-function generateTrendingTip(description: string): string {
+function generateTrendingTip(description: string, userGender?: string): string {
   const descLower = description.toLowerCase();
+  const isMale = userGender === 'man';
   
   if (descLower.includes('leopard') || descLower.includes('animal print')) {
     return STYLE_ADVICE_TEMPLATES.trendingNow[0];
@@ -601,10 +614,18 @@ function generateTrendingTip(description: string): string {
     return STYLE_ADVICE_TEMPLATES.trendingNow[4];
   }
   
-  return getRandomItem(STYLE_ADVICE_TEMPLATES.trendingNow);
+  const tips = STYLE_ADVICE_TEMPLATES.trendingNow.filter(tip => {
+    const tipLower = tip.toLowerCase();
+    if (isMale) {
+      return !tipLower.includes('dress') && !tipLower.includes('skirt') && !tipLower.includes('heels');
+    }
+    return true;
+  });
+  
+  return getRandomItem(tips.length > 0 ? tips : STYLE_ADVICE_TEMPLATES.trendingNow);
 }
 
-function generateAdvice(description: string, isPremium: boolean, userCountry?: string): AIAdviceResult {
+function generateAdvice(description: string, isPremium: boolean, userCountry?: string, userGender?: string): AIAdviceResult {
   const descLower = description.toLowerCase();
 
   let category: 'general' | 'casual' | 'formal' = 'general';
@@ -621,8 +642,8 @@ function generateAdvice(description: string, isPremium: boolean, userCountry?: s
   const sizeInclusiveAdvice = getRandomItem(STYLE_ADVICE_TEMPLATES.sizeInclusive);
   
   const region = userCountry ? getRegionFromCountry(userCountry) : 'North America';
-  const influencerInsight = generateInfluencerInsight(region);
-  const trendingTip = generateTrendingTip(description);
+  const influencerInsight = generateInfluencerInsight(region, userGender);
+  const trendingTip = generateTrendingTip(description, userGender);
 
   const suggestions = [seasonalAdvice];
   if (isPremium) {
@@ -652,11 +673,12 @@ export async function getAIFashionAdvice(
   imageUri: string,
   description: string,
   isPremiumUser: boolean = false,
-  userCountry?: string
+  userCountry?: string,
+  userGender?: string
 ): Promise<AIAdviceResult> {
   await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
 
-  return generateAdvice(description, isPremiumUser, userCountry);
+  return generateAdvice(description, isPremiumUser, userCountry, userGender);
 }
 
 export async function getQuickAdvice(description: string): Promise<string> {
@@ -695,16 +717,28 @@ export function getComparisonAdvice(): { optionA: string; optionB: string; recom
   return getRandomItem(recommendations);
 }
 
-export function getInfluencerStyleGuide(country: string): {
+export function getInfluencerStyleGuide(country: string, userGender?: string): {
   influencers: { name: string; handle: string; signature: string }[];
   styleTips: string[];
   trendingPieces: string[];
 } {
   const region = getRegionFromCountry(country);
-  return REGIONAL_INFLUENCER_STYLES[region] || REGIONAL_INFLUENCER_STYLES['North America'];
+  const regionData = REGIONAL_INFLUENCER_STYLES[region] || REGIONAL_INFLUENCER_STYLES['North America'];
+  const genderFilter = userGender === 'man' ? 'male' : 'female';
+  
+  const genderedInfluencers = regionData.influencers.filter(i => i.gender === genderFilter);
+  const trendingPieces = userGender === 'man' && regionData.mensTrendingPieces 
+    ? regionData.mensTrendingPieces 
+    : regionData.trendingPieces;
+  
+  return {
+    influencers: genderedInfluencers.length > 0 ? genderedInfluencers : regionData.influencers,
+    styleTips: regionData.styleTips,
+    trendingPieces,
+  };
 }
 
-export function getStyleOfTheDayContent(country: string): {
+export function getStyleOfTheDayContent(country: string, userGender?: string): {
   title: string;
   tip: string;
   influencerCredit: string;
@@ -713,14 +747,20 @@ export function getStyleOfTheDayContent(country: string): {
 } {
   const region = getRegionFromCountry(country);
   const regionData = REGIONAL_INFLUENCER_STYLES[region] || REGIONAL_INFLUENCER_STYLES['North America'];
-  const influencer = getRandomItem(regionData.influencers);
+  const genderFilter = userGender === 'man' ? 'male' : 'female';
+  
+  const genderedInfluencers = regionData.influencers.filter(i => i.gender === genderFilter);
+  const influencer = getRandomItem(genderedInfluencers.length > 0 ? genderedInfluencers : regionData.influencers);
+  const mustHavePieces = userGender === 'man' && regionData.mensTrendingPieces 
+    ? regionData.mensTrendingPieces 
+    : regionData.trendingPieces;
   
   return {
     title: `Today's Style Inspiration from ${region}`,
     tip: getRandomItem(regionData.styleTips),
     influencerCredit: `Inspired by ${influencer.name} (${influencer.handle})`,
     trendingColors: TRENDING_STYLES_2024_2025.colors.hot.slice(0, 4),
-    mustHavePieces: regionData.trendingPieces,
+    mustHavePieces,
   };
 }
 

@@ -53,24 +53,54 @@ const ROMANTIC_REGIONAL_IMAGES: Record<RegionalType, ImageSourcePropType> = {
   'latin-american': require("../assets/images/styles/romantic/latin-american.png"),
 };
 
-const BOHO_REGIONAL_IMAGES: Record<RegionalType, ImageSourcePropType> = {
-  'multicultural': require("../assets/images/styles/boho/multicultural.png"),
-  'nordic': require("../assets/images/styles/boho/nordic.png"),
-  'asian': require("../assets/images/styles/boho/asian.png"),
-  'african': require("../assets/images/styles/boho/african.png"),
-  'middle-eastern': require("../assets/images/styles/boho/middle-eastern.png"),
-  'south-asian': require("../assets/images/styles/boho/south-asian.png"),
-  'latin-american': require("../assets/images/styles/boho/latin-american.png"),
+const BOHO_FEMALE_IMAGES: Record<RegionalType, ImageSourcePropType> = {
+  'multicultural': require("../assets/images/styles/boho/female/multicultural.png"),
+  'nordic': require("../assets/images/styles/boho/female/nordic.png"),
+  'asian': require("../assets/images/styles/boho/female/asian.png"),
+  'african': require("../assets/images/styles/boho/female/african.png"),
+  'middle-eastern': require("../assets/images/styles/boho/female/middle-eastern.png"),
+  'south-asian': require("../assets/images/styles/boho/female/south-asian.png"),
+  'latin-american': require("../assets/images/styles/boho/female/latin-american.png"),
 };
 
-const SPORTY_REGIONAL_IMAGES: Record<RegionalType, ImageSourcePropType> = {
-  'multicultural': require("../assets/images/styles/sporty/multicultural.png"),
-  'nordic': require("../assets/images/styles/sporty/nordic.png"),
-  'asian': require("../assets/images/styles/sporty/asian.png"),
-  'african': require("../assets/images/styles/sporty/african.png"),
-  'middle-eastern': require("../assets/images/styles/sporty/middle-eastern.png"),
-  'south-asian': require("../assets/images/styles/sporty/south-asian.png"),
-  'latin-american': require("../assets/images/styles/sporty/latin-american.png"),
+const BOHO_MALE_IMAGES: Record<RegionalType, ImageSourcePropType> = {
+  'multicultural': require("../assets/images/styles/boho/male/multicultural.png"),
+  'nordic': require("../assets/images/styles/boho/male/nordic.png"),
+  'asian': require("../assets/images/styles/boho/male/asian.png"),
+  'african': require("../assets/images/styles/boho/male/african.png"),
+  'middle-eastern': require("../assets/images/styles/boho/male/middle-eastern.png"),
+  'south-asian': require("../assets/images/styles/boho/male/south-asian.png"),
+  'latin-american': require("../assets/images/styles/boho/male/latin-american.png"),
+};
+
+const SPORTY_FEMALE_IMAGES: Record<RegionalType, ImageSourcePropType> = {
+  'multicultural': require("../assets/images/styles/sporty/female/multicultural.png"),
+  'nordic': require("../assets/images/styles/sporty/female/nordic.png"),
+  'asian': require("../assets/images/styles/sporty/female/asian.png"),
+  'african': require("../assets/images/styles/sporty/female/african.png"),
+  'middle-eastern': require("../assets/images/styles/sporty/female/middle-eastern.png"),
+  'south-asian': require("../assets/images/styles/sporty/female/south-asian.png"),
+  'latin-american': require("../assets/images/styles/sporty/female/latin-american.png"),
+};
+
+const SPORTY_MALE_IMAGES: Record<RegionalType, ImageSourcePropType> = {
+  'multicultural': require("../assets/images/styles/sporty/male/multicultural.png"),
+  'nordic': require("../assets/images/styles/sporty/male/nordic.png"),
+  'asian': require("../assets/images/styles/sporty/male/asian.png"),
+  'african': require("../assets/images/styles/sporty/male/african.png"),
+  'middle-eastern': require("../assets/images/styles/sporty/male/middle-eastern.png"),
+  'south-asian': require("../assets/images/styles/sporty/male/south-asian.png"),
+  'latin-american': require("../assets/images/styles/sporty/male/latin-american.png"),
+};
+
+const getGenderSpecificBohoImage = (region: RegionalType, gender: Gender): ImageSourcePropType => {
+  if (gender === 'man') return BOHO_MALE_IMAGES[region];
+  return BOHO_FEMALE_IMAGES[region];
+};
+
+const getGenderSpecificSportyImage = (region: RegionalType, gender: Gender): ImageSourcePropType => {
+  if (gender === 'man') return SPORTY_MALE_IMAGES[region];
+  return SPORTY_FEMALE_IMAGES[region];
 };
 
 const getRegionFromCountry = (country: string): RegionalType => {
@@ -439,9 +469,9 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                         s.id === 'romantic' 
                           ? ROMANTIC_REGIONAL_IMAGES[getRegionFromCountry(country)]
                           : s.id === 'boho'
-                            ? BOHO_REGIONAL_IMAGES[getRegionFromCountry(country)]
+                            ? getGenderSpecificBohoImage(getRegionFromCountry(country), gender)
                             : s.id === 'sporty'
-                              ? SPORTY_REGIONAL_IMAGES[getRegionFromCountry(country)]
+                              ? getGenderSpecificSportyImage(getRegionFromCountry(country), gender)
                               : STYLE_IMAGES[s.id as keyof typeof STYLE_IMAGES]
                       }
                       style={styles.styleImagePreview}

@@ -105,7 +105,9 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
       const advice = await getAIFashionAdvice(
         post.images[0]?.uri || "",
         post.description,
-        isPremium
+        isPremium,
+        user?.country || undefined,
+        user?.gender || undefined
       );
 
       setAiAdvice(advice);

@@ -823,8 +823,8 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   }, [user?.country]);
 
   const influencerGuide = useMemo(() => {
-    return getInfluencerStyleGuide(user?.country || 'United States');
-  }, [user?.country]);
+    return getInfluencerStyleGuide(user?.country || 'United States', user?.gender || undefined);
+  }, [user?.country, user?.gender]);
 
   const trendingPosts = posts.slice(0, 5);
 
