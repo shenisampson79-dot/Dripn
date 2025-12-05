@@ -67,6 +67,18 @@ const DEAL_TEMPLATES: Array<{
   { brand: "Ugg", title: "Disquette Platform Slippers", originalPrice: 130, salePrice: 91, discount: "30% OFF", source: "Schuh", category: "Cosy Comfort", hoursToExpire: 3, isVipOnly: true, gender: "female" },
   { brand: "Weekday", title: "Oversized Joggers", originalPrice: 45, salePrice: 27, discount: "40% OFF", source: "ASOS", category: "Cosy Comfort", hoursToExpire: 6, gender: "female" },
   { brand: "Topshop", title: "Baggy Boyfriend Jeans", originalPrice: 52, salePrice: 31, discount: "40% OFF", source: "ASOS", category: "Cosy Comfort", hoursToExpire: 5, gender: "female" },
+  { brand: "The North Face", title: "Nuptse Puffer Jacket", originalPrice: 270, salePrice: 189, discount: "30% OFF", source: "JD Sports", category: "Outerwear", hoursToExpire: 8, gender: "unisex" },
+  { brand: "The North Face", title: "Resolve Rain Jacket", originalPrice: 110, salePrice: 77, discount: "30% OFF", source: "Blacks", category: "Outerwear", hoursToExpire: 6, gender: "unisex" },
+  { brand: "The North Face", title: "McMurdo Parka", originalPrice: 380, salePrice: 266, discount: "30% OFF", source: "The North Face", category: "Outerwear", hoursToExpire: 5, gender: "male" },
+  { brand: "The North Face", title: "1996 Retro Nuptse", originalPrice: 300, salePrice: 210, discount: "30% OFF", source: "Size?", category: "Outerwear", hoursToExpire: 4, gender: "female" },
+  { brand: "Rab", title: "Microlight Alpine Jacket", originalPrice: 220, salePrice: 154, discount: "30% OFF", source: "Cotswold Outdoor", category: "Outerwear", hoursToExpire: 7, gender: "unisex" },
+  { brand: "Rab", title: "Downpour Eco Jacket", originalPrice: 130, salePrice: 91, discount: "30% OFF", source: "Go Outdoors", category: "Outerwear", hoursToExpire: 5, gender: "unisex" },
+  { brand: "Arc'teryx", title: "Beta AR Jacket", originalPrice: 550, salePrice: 385, discount: "30% OFF", source: "Ellis Brigham", category: "Outerwear", hoursToExpire: 6, isVipOnly: true, gender: "unisex" },
+  { brand: "Arc'teryx", title: "Atom Hoody", originalPrice: 240, salePrice: 168, discount: "30% OFF", source: "Snow+Rock", category: "Outerwear", hoursToExpire: 4, gender: "unisex" },
+  { brand: "Jack Wolfskin", title: "Jasper 3-in-1 Jacket", originalPrice: 200, salePrice: 120, discount: "40% OFF", source: "Jack Wolfskin", category: "Outerwear", hoursToExpire: 8, gender: "male" },
+  { brand: "Jack Wolfskin", title: "Stormy Point Jacket", originalPrice: 150, salePrice: 90, discount: "40% OFF", source: "Millets", category: "Outerwear", hoursToExpire: 6, gender: "female" },
+  { brand: "Mackage", title: "Adali Down Coat", originalPrice: 890, salePrice: 623, discount: "30% OFF", source: "Selfridges", category: "Outerwear", hoursToExpire: 5, isVipOnly: true, gender: "female" },
+  { brand: "Mackage", title: "Edward Down Jacket", originalPrice: 850, salePrice: 595, discount: "30% OFF", source: "Harrods", category: "Outerwear", hoursToExpire: 4, isVipOnly: true, gender: "male" },
 ];
 
 class BargainsServiceImpl {
