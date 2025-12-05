@@ -109,3 +109,79 @@ The AI advice service includes comprehensive coverage of fashion accessories, ke
 ### Luxury Watches
 - **Women**: Cartier Tank/Panthère, Rolex Datejust 31, Chanel J12
 - **Men**: Rolex Submariner/Datejust, Omega Seamaster, Patek Philippe Nautilus, AP Royal Oak
+
+## Fashion Trend Intelligence System
+
+StyleWise maintains cutting-edge fashion knowledge through an integrated Trend Intelligence System that curates data from fashion publications and influencers worldwide.
+
+### Architecture Overview
+The system is built with a three-phased approach:
+1. **Phase 1 (Current)**: Curated trend data from global fashion sources, manually maintained and updated
+2. **Phase 2 (Future)**: API integration with official publication RSS feeds and brand APIs
+3. **Phase 3 (Long-term)**: Partnership integrations with major fashion publications and brands
+
+### Key Services
+- **TrendInsightsService** (`services/TrendInsightsService.ts`): Core service providing regional/gender-specific trend data
+- **AIAdviceService** (`services/AIAdviceService.ts`): Integrates trend insights into fashion recommendations
+
+### Data Structure
+The TrendInsightsService provides:
+- **Regional Trends**: Curated data for 10+ regions (North America, UK, Europe, Middle East, Asia, South Asia, Africa, Latin America, Australia)
+- **Trending Items**: Hot fashion items by region and gender with brand recommendations
+- **Fashion Influencers**: Male and female influencers by region with specialties and platforms
+- **Color Trends**: 2025/2026 color palettes with seasonal recommendations
+- **Style Movements**: Current fashion movements (Quiet Luxury, Coastal Grandmother, etc.)
+- **Publication References**: GQ, Vogue, regional fashion magazines with gender-specific focus
+- **Cultural Notes**: Region-specific fashion considerations and cultural awareness
+
+### Subscription Tier Access
+Trend data access is tiered by subscription level:
+- **Free**: Basic AI advice without trend insights
+- **Basic**: 2 trending items, 1 influencer recommendation
+- **Premium**: 3-4 trending items, 2-3 influencers, style movement insights
+- **VIP**: Full access - 5 trending items, 5 influencers, complete color forecasts, all cultural notes, earliest trend access
+
+### Publications Covered
+**Global Publications:**
+- Vogue (US, UK, Paris, Italia, India, Arabia, Japan, Mexico, Brazil)
+- GQ (US, UK, Middle East, Japan, India)
+- Harper's Bazaar, Elle, W Magazine, Dazed
+
+**Regional Publications:**
+- Africa: Arise Magazine, True Love Magazine, Nataal
+- Middle East: Mojeh, Arabian Business Style
+- Asia: Nylon Japan, Numero Tokyo, Harper's Bazaar China
+- Latin America: L'Officiel Brasil, Vogue México y Latinoamérica
+
+### Influencer Database
+Each region includes 4-8 influencers per gender with:
+- Name and social handle
+- Platform (Instagram, YouTube, TikTok)
+- Specialty areas (streetwear, luxury, sustainable, etc.)
+- Regional relevance and cultural significance
+
+### API Methods
+```typescript
+TrendInsightsService.getTrendsForRegion(country: string)
+TrendInsightsService.getTrendingItemsForRegion(country: string, gender: 'male' | 'female')
+TrendInsightsService.getInfluencersForRegion(country: string, gender: 'male' | 'female')
+TrendInsightsService.getColorPaletteForRegion(country: string)
+TrendInsightsService.getStyleMovementsForRegion(country: string)
+TrendInsightsService.getPublicationsForRegion(country: string, gender: 'male' | 'female')
+TrendInsightsService.getCulturalNotesForRegion(country: string)
+TrendInsightsService.getGlobalTrendingBrands(gender: 'male' | 'female')
+TrendInsightsService.get2025ColorTrends()
+```
+
+### Legal/Ethical Considerations
+- No web scraping of publications without permission
+- Uses only official RSS feeds, APIs, or partnership data
+- All influencer data is publicly available profile information
+- Color trend data from official Pantone and industry announcements
+- Brand data from official press releases and public announcements
+
+### Update Policy
+- Trend data updated quarterly or when major fashion weeks occur
+- Color palettes updated when Pantone announces new colors
+- Influencer lists refreshed bi-annually
+- Regional publications reviewed annually for relevance

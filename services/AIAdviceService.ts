@@ -775,15 +775,15 @@ async function generateAdvice(
         TrendInsightsService.getCulturalNotesForRegion(userCountry),
       ]);
 
-      const itemLimit = subscriptionTier === 'vip' ? 5 : subscriptionTier === 'premium' ? 3 : 2;
-      const influencerLimit = subscriptionTier === 'vip' ? 4 : subscriptionTier === 'premium' ? 2 : 1;
+      const itemLimit = subscriptionTier === 'vip' ? 5 : subscriptionTier === 'premium' ? 4 : 2;
+      const influencerLimit = subscriptionTier === 'vip' ? 5 : subscriptionTier === 'premium' ? 3 : 1;
 
       trendInsights = {
         hotItems: hotItems.slice(0, itemLimit),
         recommendedInfluencers: influencers.slice(0, influencerLimit),
         colorTrends: subscriptionTier === 'vip' ? colorTrends : colorTrends.slice(0, 3),
         styleMovement: subscriptionTier === 'premium' || subscriptionTier === 'vip' ? styleMovements[0] : undefined,
-        culturalNotes: subscriptionTier === 'vip' ? culturalNotes : culturalNotes.slice(0, 2),
+        culturalNotes: subscriptionTier === 'vip' || subscriptionTier === 'premium' ? culturalNotes : culturalNotes.slice(0, 2),
         publications: publications.map(p => ({ name: p.name, focus: p.focus })),
       };
 
@@ -803,6 +803,10 @@ async function generateAdvice(
         const trendingColor = colorTrends[0];
         const colorTip = `2025/2026 Colour Forecast: ${trendingColor.name} is the colour of the moment for ${trendingColor.usage.slice(0, 2).join(' and ')}.`;
         suggestions.push(colorTip);
+      }
+
+      if (subscriptionTier === 'vip') {
+        suggestions.push(`VIP Early Access: Get tomorrow's trends today! These insights are 4-6 weeks ahead of mainstream fashion coverage.`);
       }
     } catch (error) {
       console.warn('Failed to fetch trend insights:', error);
@@ -954,8 +958,8 @@ export async function getTrendInsightsForUser(
       hotItems: hotItems.slice(0, itemLimit),
       influencers: influencers.slice(0, influencerLimit),
       colorTrends: subscriptionTier === 'vip' ? colorTrends : colorTrends.slice(0, 3),
-      styleMovements: subscriptionTier === 'vip' ? styleMovements : styleMovements.slice(0, 1),
-      culturalNotes: subscriptionTier === 'vip' ? culturalNotes : culturalNotes.slice(0, 2),
+      styleMovements: subscriptionTier === 'vip' || subscriptionTier === 'premium' ? styleMovements : styleMovements.slice(0, 1),
+      culturalNotes: subscriptionTier === 'vip' || subscriptionTier === 'premium' ? culturalNotes : culturalNotes.slice(0, 2),
       publications,
       globalTrendingBrands: TrendInsightsService.getGlobalTrendingBrands(gender),
       colorForecast2025: subscriptionTier === 'vip' ? TrendInsightsService.get2025ColorTrends() : TrendInsightsService.get2025ColorTrends().slice(0, 4),
