@@ -229,7 +229,7 @@ export default function BargainsScreen() {
         <Card style={styles.infoCard}>
           <Feather name="info" size={20} color={theme.link} />
           <ThemedText type="small" style={{ marginLeft: Spacing.sm, flex: 1, opacity: 0.7 }}>
-            Deals are sourced from trusted retailers including Huntd, Sports Direct, The Outnet, and brand websites. Prices and availability may vary.
+            Deals are sourced from trusted retailers including Gymshark, Selfridges, The Outnet, and brand websites. Prices and availability may vary.
           </ThemedText>
         </Card>
       </ThemedView>

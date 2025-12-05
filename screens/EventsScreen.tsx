@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { StyleSheet, View, Pressable, RefreshControl, Platform, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Pressable, RefreshControl, Platform, ActivityIndicator, Linking, Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Location from "expo-location";
 
@@ -15,6 +15,8 @@ import {
   Event, 
   LocationData,
   getCategoryIcon,
+  estimateTravelTime,
+  getMapsUrl,
 } from "@/services/EventsService";
 
 export default function EventsScreen() {
@@ -250,6 +252,52 @@ export default function EventsScreen() {
                 </View>
               </View>
 
+              {event.category !== "Flights" && event.distance && event.distance > 0 ? (
+                <View style={styles.detailsRow}>
+                  <View style={styles.detailItem}>
+                    <Feather name="navigation" size={14} color={theme.link} />
+                    <ThemedText type="small" style={{ marginLeft: 4, color: theme.link, fontWeight: "600" }}>
+                      {event.distance} km away
+                    </ThemedText>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Feather name="clock" size={14} color={theme.link} />
+                    <ThemedText type="small" style={{ marginLeft: 4, color: theme.link, fontWeight: "600" }}>
+                      {estimateTravelTime(event.distance)}
+                    </ThemedText>
+                  </View>
+                </View>
+              ) : null}
+
+              {event.coordinates && event.category !== "Flights" ? (
+                <Pressable
+                  onPress={async () => {
+                    const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
+                    const url = getMapsUrl(event.coordinates!, event.title, platform);
+                    try {
+                      const canOpen = await Linking.canOpenURL(url);
+                      if (canOpen) {
+                        await Linking.openURL(url);
+                      } else {
+                        Alert.alert("Unable to Open Maps", "Please ensure you have a maps app or web browser installed.");
+                      }
+                    } catch (error) {
+                      Alert.alert("Error", "Could not open directions. Please try again.");
+                    }
+                  }}
+                  style={({ pressed }) => [
+                    styles.directionsButton,
+                    { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
+                  ]}
+                >
+                  <Feather name="map" size={14} color={theme.link} />
+                  <ThemedText type="small" style={{ marginLeft: Spacing.xs, color: theme.link, fontWeight: "600" }}>
+                    Get Directions
+                  </ThemedText>
+                  <Feather name="external-link" size={12} color={theme.link} style={{ marginLeft: 4 }} />
+                </Pressable>
+              ) : null}
+
               <View style={[styles.outfitSuggestion, { backgroundColor: theme.backgroundSecondary }]}>
                 <Feather name="star" size={14} color={theme.link} />
                 <ThemedText type="small" style={{ marginLeft: Spacing.xs, flex: 1 }}>
@@ -381,6 +429,15 @@ const styles = StyleSheet.create({
   detailItem: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  directionsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.sm,
+    alignSelf: "flex-start",
   },
   outfitSuggestion: {
     flexDirection: "row",

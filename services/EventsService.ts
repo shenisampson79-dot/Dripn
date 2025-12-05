@@ -42,6 +42,10 @@ const EVENT_TEMPLATES = [
   { title: "Hiking Group Meetup", category: "Outdoor", time: "9:00 AM", dateType: "upcoming", price: "Free", description: "Scenic 5-mile hike with photo opportunities", source: "Meetup", outfitSuggestion: "Practical outdoor wear - hiking boots, layers, and a quality backpack", radius: 25 },
   { title: "Yoga at Sunset", category: "Fitness", time: "6:00 PM", dateType: "weekly", price: "$10", description: "Relaxing yoga session with beautiful sunset views", source: "ClassPass", outfitSuggestion: "Comfortable yoga wear - stretchy and breathable fabrics", radius: 7 },
   { title: "Art Gallery Opening", category: "Social", time: "7:00 PM", dateType: "upcoming", price: "Free", description: "Exclusive preview of new contemporary art exhibition", source: "Timeout", outfitSuggestion: "Smart casual with an artistic edge - express your creativity", radius: 10 },
+  { title: "Paris Fashion Week Getaway", category: "Flights", time: "Departs 6:00 AM", dateType: "upcoming", price: "From $299", description: "Fly to Paris for Fashion Week - exclusive VIP access and styling events", source: "Skyscanner", outfitSuggestion: "Chic travel outfit - comfortable yet stylish for the journey", radius: 0, isVipOnly: true },
+  { title: "Milan Design District Trip", category: "Flights", time: "Departs 8:30 AM", dateType: "upcoming", price: "From $249", description: "Weekend trip to Milan's famous design and fashion district", source: "Kayak", outfitSuggestion: "Italian-inspired elegance - tailored pieces and quality accessories", radius: 0, isVipOnly: true },
+  { title: "NYC Shopping Weekend", category: "Flights", time: "Departs 7:00 AM", dateType: "upcoming", price: "From $189", description: "Shop the best of New York - SoHo, Fifth Avenue, and Brooklyn boutiques", source: "Google Flights", outfitSuggestion: "Comfortable walking shoes and layers for varying store temperatures", radius: 0 },
+  { title: "Dubai Luxury Experience", category: "Flights", time: "Departs 10:00 PM", dateType: "upcoming", price: "From $499", description: "Experience Dubai's luxury malls and exclusive designer boutiques", source: "Skyscanner", outfitSuggestion: "Modest yet stylish - respect local customs while staying fashionable", radius: 0, isVipOnly: true },
 ];
 
 class EventsServiceImpl {
@@ -119,6 +123,7 @@ class EventsServiceImpl {
       "Fashion": "shopping-bag",
       "Music": "music",
       "Outdoor": "sun",
+      "Flights": "navigation",
     };
 
     const categories: EventCategory[] = [
@@ -159,7 +164,8 @@ class EventsServiceImpl {
     );
   }
 
-  private calculateMockDistance(maxRadius: number): number {
+  private calculateMockDistance(maxRadius: number): number | undefined {
+    if (maxRadius === 0) return undefined;
     return Math.round((Math.random() * maxRadius + 0.5) * 10) / 10;
   }
 
@@ -227,6 +233,31 @@ export function getCategoryIcon(category: string): string {
     "Fashion": "shopping-bag",
     "Music": "music",
     "Outdoor": "sun",
+    "Flights": "navigation",
   };
   return icons[category] || "calendar";
+}
+
+export function estimateTravelTime(distanceKm: number): string {
+  const walkingSpeed = 5;
+  const drivingSpeed = 40;
+  
+  if (distanceKm <= 2) {
+    const walkMins = Math.max(1, Math.round((distanceKm / walkingSpeed) * 60));
+    return walkMins < 5 ? "< 5 min walk" : `${walkMins} min walk`;
+  } else {
+    const driveMins = Math.max(1, Math.round((distanceKm / drivingSpeed) * 60));
+    return driveMins < 5 ? "< 5 min drive" : `${driveMins} min drive`;
+  }
+}
+
+export function getMapsUrl(coordinates: { latitude: number; longitude: number }, title: string, platform: 'ios' | 'android' | 'web'): string {
+  const encodedTitle = encodeURIComponent(title);
+  const { latitude, longitude } = coordinates;
+  const encodedCoords = encodeURIComponent(`${latitude},${longitude}`);
+  
+  if (platform === 'ios') {
+    return `http://maps.apple.com/?saddr=Current+Location&daddr=${encodedTitle}@${latitude},${longitude}&dirflg=d`;
+  }
+  return `https://www.google.com/maps/dir/?api=1&origin=Current+Location&destination=${encodedCoords}&travelmode=driving`;
 }
