@@ -506,20 +506,34 @@ const HASHTAG_SUGGESTIONS = [
   "#DailyFashion #StyleInspiration #LookOfTheDay",
 ];
 
-const PRODUCT_SUGGESTIONS = [
+const PRODUCT_SUGGESTIONS_FEMALE = [
   { category: "Accessories", items: ["Statement earrings", "Leather belt", "Crossbody bag", "Silk scarf"] },
   { category: "Shoes", items: ["White sneakers", "Block heels", "Ankle boots", "Loafers"] },
   { category: "Layers", items: ["Denim jacket", "Cardigan", "Blazer", "Trench coat"] },
   { category: "Basics", items: ["White t-shirt", "Black trousers", "Classic jeans", "Neutral sweater"] },
-  { category: "Athleisure", items: ["Lululemon Align leggings", "On Running sneakers", "Gymshark sports bra", "Oversized hoodie", "Hoka running shoes"] },
+  { category: "Athleisure", items: ["Lululemon Align leggings", "On Running sneakers", "Gymshark seamless set", "Oversized hoodie", "Hoka running shoes"] },
   { category: "Preppy", items: ["Pearl necklace", "Cable-knit sweater", "Penny loafers", "Tennis bracelet", "Quilted handbag", "Cashmere cardigan"] },
-  { category: "Countryside", items: ["Barbour jacket", "Hunter boots", "Tweed blazer", "Flat cap", "Wax cotton bag", "Quilted gilet"] },
-  { category: "Luxury Bags (Women)", items: ["Celine Triomphe", "Chanel Classic Flap", "Mulberry Bayswater", "Bottega Veneta Jodie", "Loewe Puzzle", "Hermes Kelly", "Dior Lady Dior", "YSL Loulou"] },
-  { category: "Luxury Bags (Men)", items: ["LV Christopher Backpack", "MCM Stark Backpack", "Gucci GG Supreme", "Rimowa Original Cabin", "Tumi Alpha Bravo", "Montblanc Briefcase", "Berluti Un Jour"] },
-  { category: "Designer Eyewear", items: ["Miu Miu cat-eye", "Celine square oversized", "Prada geometric", "Gucci Web stripe", "Ray-Ban Aviator", "Oliver Peoples O'Malley", "Cartier rimless"] },
-  { category: "Designer Belts", items: ["Hermes H Belt", "Gucci GG Marmont", "Celine Triomphe Belt", "Bottega Intrecciato", "YSL Cassandre", "Ferragamo Gancini", "Dior Saddle Belt"] },
-  { category: "Fine Jewelry", items: ["Cartier Love Bracelet", "Tiffany T Collection", "Van Cleef Alhambra", "Bvlgari Serpenti", "Messika Move", "David Yurman Cable"] },
-  { category: "Watches", items: ["Cartier Tank", "Rolex Datejust", "Omega Seamaster", "Chanel J12", "TAG Heuer Monaco", "Patek Philippe Nautilus"] },
+  { category: "Countryside", items: ["Barbour jacket", "Hunter boots", "Tweed blazer", "Wax cotton bag", "Quilted gilet"] },
+  { category: "Luxury Bags", items: ["Celine Triomphe", "Chanel Classic Flap", "Mulberry Bayswater", "Bottega Veneta Jodie", "Loewe Puzzle", "Hermes Kelly", "Dior Lady Dior", "YSL Loulou"] },
+  { category: "Designer Eyewear", items: ["Miu Miu cat-eye", "Celine square oversized", "Prada geometric", "Gucci Web stripe", "Ray-Ban Aviator", "Oliver Peoples O'Malley"] },
+  { category: "Designer Belts", items: ["Hermes H Belt", "Gucci GG Marmont", "Celine Triomphe Belt", "Bottega Intrecciato", "YSL Cassandre", "Dior Saddle Belt"] },
+  { category: "Fine Jewelry", items: ["Cartier Love Bracelet", "Tiffany T Collection", "Van Cleef Alhambra", "Bvlgari Serpenti", "Messika Move", "Mejuri Bold Hoops"] },
+  { category: "Watches", items: ["Cartier Tank", "Cartier Panthere", "Rolex Datejust 31", "Chanel J12"] },
+];
+
+const PRODUCT_SUGGESTIONS_MALE = [
+  { category: "Accessories", items: ["Quality leather belt", "Messenger bag", "Silk tie", "Leather wallet"] },
+  { category: "Shoes", items: ["White sneakers", "Leather loafers", "Chelsea boots", "Oxford shoes"] },
+  { category: "Layers", items: ["Denim jacket", "Bomber jacket", "Blazer", "Trench coat"] },
+  { category: "Basics", items: ["White t-shirt", "Tailored trousers", "Classic jeans", "Quality polo shirt"] },
+  { category: "Athleisure", items: ["Gymshark training shorts", "On Running sneakers", "Performance hoodie", "Hoka running shoes", "Nike Dri-Fit tee"] },
+  { category: "Preppy", items: ["Cable-knit sweater", "Penny loafers", "Oxford shirt", "Cashmere cardigan", "Blazer with gold buttons"] },
+  { category: "Countryside", items: ["Barbour jacket", "Hunter boots", "Tweed blazer", "Flat cap", "Quilted gilet"] },
+  { category: "Luxury Bags", items: ["LV Christopher Backpack", "MCM Stark Backpack", "Gucci GG Supreme", "Rimowa Original Cabin", "Tumi Alpha Bravo", "Montblanc Briefcase", "Berluti Un Jour"] },
+  { category: "Designer Eyewear", items: ["Ray-Ban Aviator", "Ray-Ban Wayfarer", "Cartier rimless", "Oliver Peoples O'Malley", "Tom Ford square", "Persol 649"] },
+  { category: "Designer Belts", items: ["Hermes H Belt", "Gucci GG Marmont", "Ferragamo Gancini", "Bottega Intrecciato", "Louis Vuitton Initiales"] },
+  { category: "Fine Jewelry", items: ["Cartier Love Bracelet", "David Yurman Spiritual Beads", "Tom Wood Cushion Ring", "Miansai Cuff", "Gucci Interlocking G Ring"] },
+  { category: "Watches", items: ["Rolex Submariner", "Rolex Datejust 41", "Omega Seamaster", "Patek Philippe Nautilus", "TAG Heuer Monaco", "AP Royal Oak"] },
 ];
 
 export interface AIAdviceResult {
@@ -566,10 +580,67 @@ function getRegionFromCountry(country: string): string {
     'Morocco': 'Africa', 'Tanzania': 'Africa',
     'Brazil': 'Latin America', 'Argentina': 'Latin America', 'Colombia': 'Latin America', 'Chile': 'Latin America',
     'Peru': 'Latin America', 'Venezuela': 'Latin America', 'Cuba': 'Latin America', 'Puerto Rico': 'Latin America',
-    'Jamaica': 'Latin America', 'Dominican Republic': 'Latin America',
+    'Jamaica': 'Latin America', 'Dominican Republic': 'Latin America', 'Trinidad and Tobago': 'Latin America',
+    'Barbados': 'Latin America', 'Bahamas': 'Latin America', 'Saint Lucia': 'Latin America',
     'Australia': 'Australia', 'New Zealand': 'Australia',
   };
   return regionMap[country] || 'North America';
+}
+
+const REGIONAL_TERMINOLOGY: Record<string, Record<string, string>> = {
+  'UK': {
+    'sneakers': 'trainers',
+    'pants': 'trousers',
+    'sweater': 'jumper',
+    'vest': 'waistcoat',
+    'undershirt': 'vest',
+    'fanny pack': 'bum bag',
+    'turtleneck': 'polo neck',
+    'suspenders': 'braces',
+    'thongs': 'flip-flops',
+  },
+  'Australia': {
+    'sneakers': 'trainers',
+    'flip-flops': 'thongs',
+    'swimsuit': 'cossie',
+    'sweater': 'jumper',
+  },
+  'North America': {
+    'trainers': 'sneakers',
+    'trousers': 'pants',
+    'jumper': 'sweater',
+    'waistcoat': 'vest',
+    'polo neck': 'turtleneck',
+    'braces': 'suspenders',
+    'bum bag': 'fanny pack',
+  },
+};
+
+export function localizeClothingTerm(term: string, country: string): string {
+  const region = getRegionFromCountry(country);
+  const regionTerms = REGIONAL_TERMINOLOGY[region];
+  if (!regionTerms) return term;
+  
+  const lowerTerm = term.toLowerCase();
+  for (const [from, to] of Object.entries(regionTerms)) {
+    if (lowerTerm.includes(from)) {
+      return term.replace(new RegExp(from, 'gi'), to);
+    }
+  }
+  return term;
+}
+
+export function localizeAdviceText(text: string, country: string): string {
+  const region = getRegionFromCountry(country);
+  const regionTerms = REGIONAL_TERMINOLOGY[region];
+  if (!regionTerms) return text;
+  
+  let localizedText = text;
+  for (const [from, to] of Object.entries(regionTerms)) {
+    const regex = new RegExp(`\\b${from}\\b`, 'gi');
+    localizedText = localizedText.replace(regex, to);
+  }
+  return localizedText;
 }
 
 function generateInfluencerInsight(region: string, userGender?: string): string {
@@ -653,19 +724,29 @@ function generateAdvice(description: string, isPremium: boolean, userCountry?: s
   const hashtags = getRandomItem(HASHTAG_SUGGESTIONS).split(' ');
 
   const numProducts = isPremium ? 3 : 1;
-  const shuffledProducts = [...PRODUCT_SUGGESTIONS].sort(() => Math.random() - 0.5);
+  const genderProducts = userGender === 'man' ? PRODUCT_SUGGESTIONS_MALE : PRODUCT_SUGGESTIONS_FEMALE;
+  const shuffledProducts = [...genderProducts].sort(() => Math.random() - 0.5);
   const productRecommendations = shuffledProducts.slice(0, numProducts);
 
+  const localizedMainAdvice = userCountry ? localizeAdviceText(mainAdvice, userCountry) : mainAdvice;
+  const localizedColorAdvice = userCountry && colorAdvice ? localizeAdviceText(colorAdvice, userCountry) : colorAdvice;
+  const localizedTrendingTip = userCountry && trendingTip ? localizeAdviceText(trendingTip, userCountry) : trendingTip;
+  
+  const localizedProducts = productRecommendations.map(cat => ({
+    category: cat.category,
+    items: userCountry ? cat.items.map(item => localizeClothingTerm(item, userCountry)) : cat.items,
+  }));
+
   return {
-    mainAdvice,
-    colorAdvice: isPremium ? colorAdvice : undefined,
+    mainAdvice: localizedMainAdvice,
+    colorAdvice: isPremium ? localizedColorAdvice : undefined,
     proportionAdvice: isPremium ? proportionAdvice : undefined,
     suggestions,
     hashtags,
-    productRecommendations,
+    productRecommendations: localizedProducts,
     confidence: 0.85 + Math.random() * 0.1,
     influencerInsight: isPremium ? influencerInsight : undefined,
-    trendingTip: trendingTip,
+    trendingTip: localizedTrendingTip,
   };
 }
 

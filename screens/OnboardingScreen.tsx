@@ -53,6 +53,16 @@ const SMART_CASUAL_FEMALE_IMAGES: Record<RegionalType, ImageSourcePropType> = {
   'latin-american': require("../assets/images/styles/smart-casual/female/latin-american.png"),
 };
 
+const SMART_CASUAL_MALE_IMAGES: Record<RegionalType, ImageSourcePropType> = {
+  'multicultural': require("../assets/images/styles/smart-casual/male/multicultural.png"),
+  'nordic': require("../assets/images/styles/smart-casual/male/nordic.png"),
+  'asian': require("../assets/images/styles/smart-casual/male/asian.png"),
+  'african': require("../assets/images/styles/smart-casual/male/african.png"),
+  'middle-eastern': require("../assets/images/styles/smart-casual/male/middle-eastern.png"),
+  'south-asian': require("../assets/images/styles/smart-casual/male/south-asian.png"),
+  'latin-american': require("../assets/images/styles/smart-casual/male/latin-american.png"),
+};
+
 const BOHO_FEMALE_IMAGES: Record<RegionalType, ImageSourcePropType> = {
   'multicultural': require("../assets/images/styles/boho/female/multicultural.png"),
   'nordic': require("../assets/images/styles/boho/female/nordic.png"),
@@ -117,7 +127,8 @@ const getGenderSpecificBusinessImage = (region: RegionalType): ImageSourcePropTy
   return BUSINESS_MALE_IMAGES[region];
 };
 
-const getSmartCasualImage = (region: RegionalType): ImageSourcePropType => {
+const getSmartCasualImage = (region: RegionalType, gender: Gender): ImageSourcePropType => {
+  if (gender === 'man') return SMART_CASUAL_MALE_IMAGES[region];
   return SMART_CASUAL_FEMALE_IMAGES[region];
 };
 
@@ -182,7 +193,7 @@ const STYLE_OPTIONS_FEMALE: { id: StyleTheme; name: string; description: string 
 ];
 
 const STYLE_OPTIONS_MALE: { id: StyleTheme; name: string; description: string }[] = [
-  { id: "luxury", name: "Formal", description: "Elegant, refined, timeless pieces" },
+  { id: "smart-casual", name: "Smart Casual", description: "Blue blazer, white t-shirt, relaxed sophistication" },
   { id: "streetwear", name: "Casual", description: "Relaxed, comfortable, everyday style" },
   { id: "boho", name: "Boho", description: "Earthy, relaxed, artistic" },
   { id: "sporty", name: "Sporty", description: "Active, dynamic, athletic" },
@@ -216,34 +227,47 @@ const PRIMARY_COUNTRIES = [
 const ALL_COUNTRIES = [
   "Albania",
   "Andorra",
+  "Antigua and Barbuda",
   "Argentina",
   "Armenia",
   "Austria",
   "Azerbaijan",
+  "Bahamas",
   "Bangladesh",
+  "Barbados",
   "Belarus",
   "Belgium",
+  "Belize",
   "Bolivia",
   "Bosnia and Herzegovina",
+  "Botswana",
   "Bulgaria",
+  "Cayman Islands",
   "Chile",
   "China",
   "Colombia",
   "Costa Rica",
   "Croatia",
+  "Cuba",
+  "Curacao",
   "Cyprus",
   "Czech Republic",
   "Denmark",
+  "Dominica",
   "Dominican Republic",
   "Ecuador",
   "Egypt",
+  "El Salvador",
   "Estonia",
   "Ethiopia",
   "Finland",
   "Georgia",
   "Ghana",
   "Greece",
+  "Grenada",
   "Guatemala",
+  "Guyana",
+  "Haiti",
   "Honduras",
   "Hungary",
   "Iceland",
@@ -262,10 +286,12 @@ const ALL_COUNTRIES = [
   "Luxembourg",
   "Malaysia",
   "Malta",
+  "Mauritius",
   "Moldova",
   "Monaco",
   "Montenegro",
   "Morocco",
+  "Namibia",
   "Netherlands",
   "New Zealand",
   "Nicaragua",
@@ -279,8 +305,12 @@ const ALL_COUNTRIES = [
   "Philippines",
   "Poland",
   "Portugal",
+  "Puerto Rico",
   "Romania",
   "Russia",
+  "Saint Kitts and Nevis",
+  "Saint Lucia",
+  "Saint Vincent and the Grenadines",
   "San Marino",
   "Saudi Arabia",
   "Serbia",
@@ -289,17 +319,22 @@ const ALL_COUNTRIES = [
   "Slovenia",
   "South Africa",
   "Spain",
+  "Suriname",
   "Sweden",
   "Switzerland",
   "Taiwan",
   "Thailand",
+  "Trinidad and Tobago",
   "Turkey",
+  "Turks and Caicos Islands",
   "Ukraine",
   "United Arab Emirates",
   "Uruguay",
+  "US Virgin Islands",
   "Vatican City",
   "Venezuela",
   "Vietnam",
+  "Zimbabwe",
 ];
 
 export default function OnboardingScreen({ navigation }: OnboardingScreenProps) {
@@ -380,7 +415,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
               >
                 <Feather name="arrow-left" size={16} color={theme.link} />
                 <ThemedText type="body" style={{ color: theme.link, marginLeft: Spacing.xs }}>
-                  Back to common countries
+                  Back
                 </ThemedText>
               </Pressable>
             ) : null}
@@ -469,7 +504,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
         const styleOptions = gender === 'man' ? STYLE_OPTIONS_MALE : STYLE_OPTIONS_FEMALE;
         const getStyleImage = (styleId: StyleTheme): ImageSourcePropType => {
           const region = getRegionFromCountry(country);
-          if (styleId === 'smart-casual') return getSmartCasualImage(region);
+          if (styleId === 'smart-casual') return getSmartCasualImage(region, gender);
           if (styleId === 'boho') return getGenderSpecificBohoImage(region, gender);
           if (styleId === 'sporty') return getGenderSpecificSportyImage(region, gender);
           if (styleId === 'business') return getGenderSpecificBusinessImage(region);

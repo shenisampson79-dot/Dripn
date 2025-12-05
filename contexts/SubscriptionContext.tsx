@@ -139,7 +139,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: 'basic',
     tier: 'basic',
     name: 'Style Starter',
-    price: 9.99,
+    price: 4.99,
     interval: 'month',
     priceId: 'price_basic_monthly',
     features: [
@@ -148,13 +148,14 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       '10 voice comments',
       '30 second videos',
       'Custom themes',
+      'Ad-free experience',
     ],
   },
   {
     id: 'premium',
     tier: 'premium',
     name: 'Fashion Forward',
-    price: 24.99,
+    price: 9.99,
     interval: 'month',
     priceId: 'price_premium_monthly',
     popular: true,
@@ -166,6 +167,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Priority support',
       'Exclusive content',
       'Affiliate access',
+      'Ad-free experience',
     ],
   },
   {

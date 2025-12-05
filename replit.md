@@ -30,11 +30,13 @@ The app is built with **Expo React Native** and **TypeScript**, utilizing **Reac
 - Theme colors in `constants/theme.ts` should be updated accordingly each year
 
 **Key Features:**
-- **Subscription Tiers**: Freemium model with Free, Basic, Plus, Premium, and Elite tiers, offering varying levels of uploads, AI advice requests, and advanced features like video posts and personal styling sessions.
+- **Subscription Tiers**: Freemium model with Free ($0), Basic ($4.99/mo, ad-free), Premium ($9.99/mo, ad-free), and VIP ($49.99/mo) tiers, offering varying levels of uploads, AI advice requests, and advanced features like video posts and personal styling sessions.
 - **Content Creation**: Users can create standard outfit posts with photos/videos and comparison polls (A vs B voting).
 - **AI Fashion Advice**: Integration for AI-driven advice, including color analysis and personalized recommendations. This service also incorporates influencer-inspired content, trending fashion data, and culturally relevant advice based on user region, including athleisure and preppy/countryside styles. It features both male and female fashion influencers.
 - **Community Engagement**: Supports voice comments, content reporting, and viral sharing with auto-generated hashtags.
-- **Discovery**: Features include "Style of the Day," category browsing (Trending, Casual, Formal), trending challenges, weekly highlights, Celebrity-Inspired Looks (AI-generated), Bargain of the Week with country-specific deals from luxury brands, and Influencer Inspiration.
+- **Discovery**: Features include "Style of the Day," category browsing (Trending, Casual, Formal), trending challenges, weekly highlights, Celebrity-Inspired Looks (AI-generated), and Influencer Inspiration.
+- **Bargains of the Day**: Dedicated tab showing daily deals from trusted retailers (Huntd, Sports Direct, The Outnet, brand websites). Features category filtering, VIP-exclusive luxury deals up to 90% off, and real-time expiry countdowns.
+- **Events Near You**: Location-based event discovery with outfit suggestions. Categories include Fitness, Social, Lifestyle, Dating, Fashion, Music, and Outdoor. Sources events from Timeout, TodayTix, Eventbrite, Meetup, ClassPass, and local venues.
 - **Code Protection**: Includes ProGuard for Android, JavaScript obfuscation (via `obfuscator-io-metro-plugin` in `metro.config.js`) for production builds, and Hermes Engine for compiling JavaScript to bytecode, enhancing security and performance.
 
 **Technical Implementations:**

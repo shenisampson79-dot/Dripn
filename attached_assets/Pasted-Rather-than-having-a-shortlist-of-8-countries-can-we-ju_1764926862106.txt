@@ -1,0 +1,27 @@
+Rather than having a shortlist of 8 countries, can we just have the full list? If not, rather than saying “Back to common countries” when someone selects other, just have “Back”.
+Saying common countries sounds slightly offensive to countries not on the main list, especially those with larger populations.
+Can we add a few Caribbean countries and South Africa to the country list also.
+
+Replace the “Formal” male category to “Smart Casual” and for the icon, have  a man wearing a blue blazer with a white tshirt and shoes instead. 
+
+Make sure accessory suggestions from the AI stylist is gender specific to the member. On the test, I chose to be a man but the accessories the AI stylist suggested were for women. It said statement earrings and a cross body purse. This isn’t cool.
+
+New feature - Ask for member’s favourite brands then regularly scan websites, especially that brand’s actual website, to find new releases, special editions and special offers of that brand online at other sites then send members personalized notifications related to that brand.
+
+Can we do “bargain of the day” instead of bargain of the week, where we provide daily special offers of different brands, depending on the member’s favourite brands and style?
+
+Can we scan popular brand websites like Gymshark that hold regular influencer events, branding events, launch events that the public can attend and other public events then  inform members when these events are coming up?
+
+Scan the Huntd website and other luxury for less websites to find special offers on luxury brands to offer to our members. Huntd have 90% off items sometimes. Sportsdirect often have 70% of adidas items also. 
+
+Change basic package to $4.99 per month, Premium to $9.99 but keep VIP to $49.99. Basic and Premium packages should be ad-free also.
+
+Can we suggest cool events, like live sporting events, musicals, pop up events, farmers markets, run clubs, Pilates, sip and paint, free or low cost taster events, date nights or out by yourself to make friends events  in the member’s local area to wear their clothes to? We will need their location first. Use websites like Timeout, TodayTix, Londonist, Secret London, Eventbrite and Meetup in the UK and similar websites for other countries to find out what’s going on in various areas.
+
+Can we create another icon at the bottom of the screen and a specific page for “bargains of the day” and another icon and specific page for events to wear clothes to so we can offer more options to members, especially VIP members.
+
+Use this url https://www.instagram.com/secret.flying?igsh=MXcwdWUwcmZsY202eg== to find cheap flights and holidays for our members to wear their clothes to. Look for similar similar niche websites that have even cheaper deals and routes or cheaper holidays and share that with our VIP members 
+
+On the initial landing page add a 4th icon for getting daily special offers on top brands.
+
+Use local terms for clothing items based on that region. For example North Americans call trainers sneakers but in England they are called trainers.
