@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Image, TextInput, Pressable, ScrollView, Dimensions, KeyboardAvoidingView, Platform, Alert, Share } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePosts, Post, Comment } from "@/contexts/PostsContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useOutfitFavorites } from "@/contexts/OutfitFavoritesContext";
-import { getAIFashionAdvice, getComparisonAdvice, AIAdviceResult, SimilarOutfit } from "@/services/AIAdviceService";
+import { getAIFashionAdvice, getComparisonAdvice, getOutfitInspirationByStyle, AIAdviceResult, SimilarOutfit } from "@/services/AIAdviceService";
 import { sharePost, generateHashtags } from "@/services/SharingService";
 import { VoiceCommentInput, VoiceCommentPlayer } from "@/components/VoiceCommentInput";
 import type { HomeStackParamList } from "@/navigation/HomeStackNavigator";
@@ -28,6 +28,34 @@ type PostDetailScreenProps = {
 };
 
 const { width } = Dimensions.get("window");
+
+function detectStyleFromDescription(description: string): string {
+  const descLower = description.toLowerCase();
+  
+  if (descLower.includes('formal') || descLower.includes('suit') || descLower.includes('evening') || descLower.includes('cocktail') || descLower.includes('dinner')) {
+    return 'formal';
+  }
+  if (descLower.includes('street') || descLower.includes('urban') || descLower.includes('sneaker') || descLower.includes('hoodie')) {
+    return 'streetwear';
+  }
+  if (descLower.includes('boho') || descLower.includes('bohemian') || descLower.includes('flowy') || descLower.includes('maxi')) {
+    return 'boho';
+  }
+  if (descLower.includes('sport') || descLower.includes('gym') || descLower.includes('athletic') || descLower.includes('legging')) {
+    return 'sporty';
+  }
+  if (descLower.includes('business') || descLower.includes('office') || descLower.includes('professional') || descLower.includes('work')) {
+    return 'business';
+  }
+  if (descLower.includes('edgy') || descLower.includes('leather') || descLower.includes('punk') || descLower.includes('rock')) {
+    return 'edgy';
+  }
+  if (descLower.includes('date') || descLower.includes('romantic') || descLower.includes('night out')) {
+    return 'formal';
+  }
+  
+  return 'casual';
+}
 
 export default function PostDetailScreen({ navigation, route }: PostDetailScreenProps) {
   const { postId } = route.params;
@@ -44,8 +72,18 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
   const [aiAdvice, setAiAdvice] = useState<AIAdviceResult | null>(null);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [similarOutfits, setSimilarOutfits] = useState<SimilarOutfit[]>([]);
 
   const post = posts.find((p) => p.id === postId);
+
+  useEffect(() => {
+    if (post) {
+      const genderParam: 'male' | 'female' = user?.gender === 'man' ? 'male' : 'female';
+      const styleCategory = detectStyleFromDescription(post.description);
+      const outfits = getOutfitInspirationByStyle(styleCategory, genderParam, 4);
+      setSimilarOutfits(outfits);
+    }
+  }, [post?.id, user?.gender]);
   const comments = getPostComments(postId);
 
   if (!post) {
@@ -465,6 +503,15 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
                 />
               ) : null}
             </View>
+          ) : null}
+
+          {similarOutfits.length > 0 && !aiAdvice?.similarOutfits ? (
+            <SimilarOutfitsGrid
+              outfits={similarOutfits}
+              onOutfitPress={handleSimilarOutfitPress}
+              onSaveOutfit={handleSaveSimilarOutfit}
+              savedOutfitIds={likedOutfitIds}
+            />
           ) : null}
 
           <View style={styles.commentsSection}>
