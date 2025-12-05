@@ -50,6 +50,15 @@ const DEAL_TEMPLATES: Array<{
   { brand: "Prada", title: "Saffiano Leather Wallet", originalPrice: 650, salePrice: 455, discount: "30% OFF", source: "The Outnet", category: "Luxury", hoursToExpire: 18, isVipOnly: true, gender: "male" },
   { brand: "ASOS", title: "High Waist Jeans", originalPrice: 45, salePrice: 27, discount: "40% OFF", source: "ASOS.com", category: "Casual", hoursToExpire: 7, gender: "female" },
   { brand: "ASOS", title: "Slim Fit Chinos", originalPrice: 40, salePrice: 24, discount: "40% OFF", source: "ASOS.com", category: "Casual", hoursToExpire: 7, gender: "male" },
+  { brand: "Stone Island", title: "Badge Compass Jumper", originalPrice: 295, salePrice: 206, discount: "30% OFF", source: "Flannels", category: "Football Casual", hoursToExpire: 6, gender: "male" },
+  { brand: "Stone Island", title: "Soft Shell Jacket", originalPrice: 475, salePrice: 285, discount: "40% OFF", source: "End Clothing", category: "Football Casual", hoursToExpire: 8, gender: "male" },
+  { brand: "Stone Island", title: "Shadow Project Hoodie", originalPrice: 425, salePrice: 255, discount: "40% OFF", source: "Flannels", category: "Football Casual", hoursToExpire: 4, isVipOnly: true, gender: "male" },
+  { brand: "C.P. Company", title: "Goggle Jacket", originalPrice: 545, salePrice: 382, discount: "30% OFF", source: "End Clothing", category: "Football Casual", hoursToExpire: 5, gender: "male" },
+  { brand: "C.P. Company", title: "Soft Shell R Jacket", originalPrice: 395, salePrice: 237, discount: "40% OFF", source: "Tessuti", category: "Football Casual", hoursToExpire: 7, gender: "male" },
+  { brand: "C.P. Company", title: "Lens Beanie", originalPrice: 95, salePrice: 57, discount: "40% OFF", source: "End Clothing", category: "Football Casual", hoursToExpire: 3, gender: "male" },
+  { brand: "Lyle & Scott", title: "Quarter Zip Jumper", originalPrice: 85, salePrice: 51, discount: "40% OFF", source: "Lyle & Scott", category: "Football Casual", hoursToExpire: 6, gender: "male" },
+  { brand: "Lyle & Scott", title: "Classic Polo Shirt", originalPrice: 55, salePrice: 33, discount: "40% OFF", source: "JD Sports", category: "Football Casual", hoursToExpire: 4, gender: "male" },
+  { brand: "Lyle & Scott", title: "Lightweight Jacket", originalPrice: 120, salePrice: 72, discount: "40% OFF", source: "Lyle & Scott", category: "Football Casual", hoursToExpire: 5, gender: "male" },
 ];
 
 class BargainsServiceImpl {
@@ -118,7 +127,8 @@ class BargainsServiceImpl {
 
   filterDeals(deals: BargainDeal[], category: string, isVip: boolean, userGender?: string): BargainDeal[] {
     const now = Date.now();
-    const normalizedGender = userGender?.toLowerCase() === 'male' ? 'male' : 'female';
+    const genderLower = userGender?.toLowerCase() || '';
+    const normalizedGender = (genderLower === 'male' || genderLower === 'man') ? 'male' : 'female';
     return deals.filter(deal => {
       if (deal.expiresAt <= now) return false;
       if (deal.isVipOnly && !isVip) return false;

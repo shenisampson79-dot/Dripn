@@ -55,7 +55,7 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "For men: Hector Bellerin proves footballers can be fashion pioneers - embrace sustainable brands and avant-garde silhouettes.",
     ],
     trendingPieces: ["Trench coat", "Tailored wool coat", "Gymshark seamless sets", "Sweaty Betty leggings", "On Running sneakers", "Oner Active"],
-    mensTrendingPieces: ["Flat cap", "Tweed blazer", "Chelsea boots", "Burberry scarf", "Barbour jacket", "Quality knitwear"],
+    mensTrendingPieces: ["Flat cap", "Tweed blazer", "Chelsea boots", "Burberry scarf", "Barbour jacket", "Quality knitwear", "Stone Island jumper", "C.P. Company jacket", "Lyle & Scott polo", "White trainers"],
   },
   'Europe': {
     influencers: [
@@ -564,6 +564,7 @@ const PRODUCT_SUGGESTIONS_MALE = [
   { category: "Athleisure", items: ["Gymshark training shorts", "On Running sneakers", "Performance hoodie", "Hoka running shoes", "Nike Dri-Fit tee"] },
   { category: "Preppy", items: ["Cable-knit sweater", "Penny loafers", "Oxford shirt", "Cashmere cardigan", "Blazer with gold buttons"] },
   { category: "Countryside", items: ["Barbour jacket", "Hunter boots", "Tweed blazer", "Flat cap", "Quilted gilet"] },
+  { category: "Football Casual", items: ["Stone Island jumper", "Stone Island jacket", "C.P. Company goggle jacket", "C.P. Company soft shell", "Lyle & Scott polo", "Lyle & Scott quarter zip", "Straight-leg jeans", "White trainers", "Stone Island badge hoodie", "C.P. Company lens beanie"] },
   { category: "Luxury Bags", items: ["LV Christopher Backpack", "MCM Stark Backpack", "Gucci GG Supreme", "Rimowa Original Cabin", "Tumi Alpha Bravo", "Montblanc Briefcase", "Berluti Un Jour"] },
   { category: "Designer Eyewear", items: ["Ray-Ban Aviator", "Ray-Ban Wayfarer", "Cartier rimless", "Oliver Peoples O'Malley", "Tom Ford square", "Persol 649"] },
   { category: "Designer Belts", items: ["Hermes H Belt", "Gucci GG Marmont", "Ferragamo Gancini", "Bottega Intrecciato", "Louis Vuitton Initiales"] },
@@ -670,6 +671,20 @@ const CURATED_OUTFIT_LIBRARY: Record<string, Record<'female' | 'male', { id: str
       { id: 'edg-m-4', imageUri: 'https://images.unsplash.com/photo-1553267751-1c148a7280a1?w=400', title: 'Urban Edge', description: 'Distressed denim with graphic tee and chunky boots' },
     ],
   },
+  terrace: {
+    female: [
+      { id: 'ter-f-1', imageUri: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400', title: 'Match Day Ready', description: 'Relaxed jeans with cozy knit jumper and clean trainers' },
+      { id: 'ter-f-2', imageUri: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400', title: 'Casual Supporter', description: 'Straight-leg jeans with quarter zip and white sneakers' },
+      { id: 'ter-f-3', imageUri: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400', title: 'Stadium Style', description: 'Fitted jacket with comfortable jeans and trainers' },
+      { id: 'ter-f-4', imageUri: 'https://images.unsplash.com/photo-1485968579169-a6f4c5cb8365?w=400', title: 'Football Casual', description: 'Polo shirt with straight-leg jeans and white trainers' },
+    ],
+    male: [
+      { id: 'ter-m-1', imageUri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', title: 'Stone Island Look', description: 'Stone Island jumper with straight-leg jeans and white trainers' },
+      { id: 'ter-m-2', imageUri: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400', title: 'C.P. Company Style', description: 'C.P. Company goggle jacket with quality jeans and clean trainers' },
+      { id: 'ter-m-3', imageUri: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400', title: 'Lyle & Scott Classic', description: 'Lyle & Scott polo with straight-leg jeans and white trainers' },
+      { id: 'ter-m-4', imageUri: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400', title: 'Match Day Essential', description: 'Designer jumper with selvedge denim and premium white trainers' },
+    ],
+  },
 };
 
 const OUTFIT_GENERATION_PROMPTS: Record<string, string[]> = {
@@ -707,6 +722,12 @@ const OUTFIT_GENERATION_PROMPTS: Record<string, string[]> = {
     'Rock-inspired outfit with leather jacket, band tee, ripped black jeans, and combat boots',
     'Dark romantic style featuring all-black ensemble with lace details and statement jewelry',
     'Punk revival look with studded jacket, slim trousers, and platform boots',
+  ],
+  terrace: [
+    'Classic football casual look with Stone Island jumper, straight-leg jeans, and crisp white trainers',
+    'Match day style featuring C.P. Company soft shell jacket with quality denim and clean sneakers',
+    'Terrace-inspired outfit with Lyle & Scott polo, straight-leg jeans, and white trainers',
+    'Premium casual look with designer jumper, selvedge denim, and box-fresh white trainers',
   ],
 };
 
@@ -1050,6 +1071,12 @@ function detectStyleCategory(description: string): string {
   }
   if (descLower.includes('edgy') || descLower.includes('leather') || descLower.includes('punk') || descLower.includes('rock')) {
     return 'edgy';
+  }
+  if (descLower.includes('football') || descLower.includes('match day') || descLower.includes('matchday') || 
+      descLower.includes('terrace') || descLower.includes('stone island') || descLower.includes('c.p. company') || 
+      descLower.includes('cp company') || descLower.includes('lyle & scott') || descLower.includes('lyle and scott') ||
+      descLower.includes('stadium') || descLower.includes('soccer') || descLower.includes('premier league')) {
+    return 'terrace';
   }
   
   return 'casual';

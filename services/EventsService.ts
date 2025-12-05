@@ -32,6 +32,10 @@ export interface LocationData {
 }
 
 const EVENT_TEMPLATES = [
+  { title: "Live Football Match", category: "Sports", time: "3:00 PM", dateType: "weekly", price: "From $45", description: "Watch your local team play live at the stadium", source: "Official Club", outfitSuggestion: "Football casual - Stone Island jumper or C.P. Company jacket with straight-leg jeans and white trainers. Lyle & Scott polo is also a classic match day choice.", radius: 15 },
+  { title: "Premier League Matchday", category: "Sports", time: "12:30 PM", dateType: "upcoming", price: "From $65", description: "Premier League action - experience the atmosphere of English football", source: "Ticketmaster", outfitSuggestion: "Classic terrace style - Stone Island badge jumper, quality straight-leg jeans, and crisp white trainers. C.P. Company soft shell for colder days.", radius: 25 },
+  { title: "Championship Football", category: "Sports", time: "7:45 PM", dateType: "upcoming", price: "From $30", description: "Midweek Championship football under the lights", source: "Official Club", outfitSuggestion: "Layer up for evening kick-off - Lyle & Scott quarter zip with Stone Island overshirt, straight jeans, and clean white trainers", radius: 20 },
+  { title: "FA Cup Match", category: "Sports", time: "5:30 PM", dateType: "upcoming", price: "From $40", description: "The magic of the FA Cup - knockout football at its finest", source: "FA", outfitSuggestion: "Cup day calls for your best - premium Stone Island jumper or C.P. Company goggle jacket with quality denim and box-fresh white trainers", radius: 30 },
   { title: "Saturday Morning Run Club", category: "Fitness", time: "8:00 AM", dateType: "weekly", price: "Free", description: "Join our community run club - all paces welcome!", source: "Meetup", outfitSuggestion: "Wear your best athleisure - leggings, trainers, and a light jacket", radius: 5 },
   { title: "Sip & Paint Evening", category: "Social", time: "7:00 PM", dateType: "upcoming", price: "$35", description: "Paint, sip wine, and make new friends in a relaxed creative atmosphere", source: "Eventbrite", outfitSuggestion: "Smart casual - something you do not mind getting paint on!", radius: 10 },
   { title: "Local Farmers Market", category: "Lifestyle", time: "9:00 AM - 2:00 PM", dateType: "weekly", price: "Free entry", description: "Fresh produce, artisan goods, and street food from local vendors", source: "Local Council", outfitSuggestion: "Countryside chic - comfortable shoes, tote bag, relaxed layers", radius: 8 },
@@ -124,6 +128,7 @@ class EventsServiceImpl {
       "Music": "music",
       "Outdoor": "sun",
       "Flights": "navigation",
+      "Sports": "award",
     };
 
     const categories: EventCategory[] = [
