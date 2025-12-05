@@ -376,7 +376,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
                   { opacity: pressed ? 0.7 : 1 },
                 ]}
               >
-                <Feather name="x" size={24} color={theme.text} />
+                <Feather name="thumbs-down" size={24} color={theme.text} />
                 <ThemedText type="body">{post.downvotes}</ThemedText>
               </Pressable>
               <Pressable
