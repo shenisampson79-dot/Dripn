@@ -911,7 +911,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const handleSaveStyleOfTheDay = async () => {
     const styleOutfit: StyleOfTheDayOutfit = {
       id: styleOfTheDayId,
-      type: 'style_of_the_day',
+      outfitType: 'style_of_the_day',
       title: regionalStyleContent.title,
       description: regionalStyleContent.description,
       imageUri: '', 

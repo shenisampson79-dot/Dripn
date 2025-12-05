@@ -10,12 +10,14 @@ import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { ReportModal } from "@/components/ReportModal";
+import { SimilarOutfitsGrid } from "@/components/SimilarOutfitsGrid";
 import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePosts, Post, Comment } from "@/contexts/PostsContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { getAIFashionAdvice, getComparisonAdvice, AIAdviceResult } from "@/services/AIAdviceService";
+import { useOutfitFavorites } from "@/contexts/OutfitFavoritesContext";
+import { getAIFashionAdvice, getComparisonAdvice, AIAdviceResult, SimilarOutfit } from "@/services/AIAdviceService";
 import { sharePost, generateHashtags } from "@/services/SharingService";
 import { VoiceCommentInput, VoiceCommentPlayer } from "@/components/VoiceCommentInput";
 import type { HomeStackParamList } from "@/navigation/HomeStackNavigator";
@@ -34,6 +36,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
   const { user } = useAuth();
   const { posts, getPostComments, addComment, votePost, thankPost, updatePost } = usePosts();
   const { tier, canRequestAIAdvice, incrementAIAdvice, canRecordVoice, incrementVoiceComment } = useSubscription();
+  const { likedOutfitIds, isOutfitLiked } = useOutfitFavorites();
 
   const [commentText, setCommentText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +44,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
   const [aiAdvice, setAiAdvice] = useState<AIAdviceResult | null>(null);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [savedSimilarOutfitIds, setSavedSimilarOutfitIds] = useState<string[]>([]);
 
   const post = posts.find((p) => p.id === postId);
   const comments = getPostComments(postId);
@@ -185,6 +189,24 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
     if (days > 0) return `${days}d ago`;
     if (hours > 0) return `${hours}h ago`;
     return "Just now";
+  };
+
+  const handleSimilarOutfitPress = (outfit: SimilarOutfit) => {
+    Alert.alert(
+      outfit.title,
+      `Style: ${outfit.style.charAt(0).toUpperCase() + outfit.style.slice(1)}\n\nThis outfit inspiration will be available to view in full detail in a future update.`,
+      [{ text: "OK" }]
+    );
+  };
+
+  const handleSaveSimilarOutfit = (outfit: SimilarOutfit) => {
+    setSavedSimilarOutfitIds(prev => {
+      if (prev.includes(outfit.id)) {
+        return prev.filter(id => id !== outfit.id);
+      }
+      return [...prev, outfit.id];
+    });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const renderComment = (comment: Comment) => (
@@ -431,6 +453,15 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
                     </ThemedText>
                   ))}
                 </View>
+              ) : null}
+
+              {aiAdvice?.similarOutfits && aiAdvice.similarOutfits.length > 0 ? (
+                <SimilarOutfitsGrid
+                  outfits={aiAdvice.similarOutfits}
+                  onOutfitPress={handleSimilarOutfitPress}
+                  onSaveOutfit={handleSaveSimilarOutfit}
+                  savedOutfitIds={savedSimilarOutfitIds}
+                />
               ) : null}
             </View>
           ) : null}

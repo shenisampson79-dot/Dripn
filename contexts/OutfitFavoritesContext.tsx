@@ -5,7 +5,7 @@ import { Post } from '@/contexts/PostsContext';
 
 export interface StyleOfTheDayOutfit {
   id: string;
-  type: 'style_of_the_day';
+  outfitType: 'style_of_the_day';
   title: string;
   description: string;
   imageUri: string;
@@ -13,7 +13,12 @@ export interface StyleOfTheDayOutfit {
   savedAt: string;
 }
 
-export type LikedOutfit = (Post & { type: 'post'; savedAt: string }) | StyleOfTheDayOutfit;
+export interface SavedPost extends Post {
+  outfitType: 'post';
+  savedAt: string;
+}
+
+export type LikedOutfit = SavedPost | StyleOfTheDayOutfit;
 
 interface OutfitFavoritesContextType {
   likedOutfitIds: string[];
@@ -106,17 +111,34 @@ export function OutfitFavoritesProvider({ children }: OutfitFavoritesProviderPro
     
     const outfitId = outfit.id;
     let newIds: string[];
-    let newData: LikedOutfit[];
+    let newData: LikedOutfit[] = [...likedOutfitsData];
 
     if (likedOutfitIds.includes(outfitId)) {
       newIds = likedOutfitIds.filter(id => id !== outfitId);
       newData = likedOutfitsData.filter(o => o.id !== outfitId);
     } else {
       newIds = [...likedOutfitIds, outfitId];
-      const savedOutfit: LikedOutfit = 'type' in outfit && outfit.type === 'style_of_the_day'
-        ? { ...outfit, savedAt: new Date().toISOString() }
-        : { ...(outfit as Post), type: 'post', savedAt: new Date().toISOString() };
-      newData = [...likedOutfitsData, savedOutfit];
+      if ('outfitType' in outfit && outfit.outfitType === 'style_of_the_day') {
+        const styleOutfit = outfit as StyleOfTheDayOutfit;
+        const savedStyleOutfit: StyleOfTheDayOutfit = {
+          id: styleOutfit.id,
+          outfitType: 'style_of_the_day',
+          title: styleOutfit.title,
+          description: styleOutfit.description,
+          imageUri: styleOutfit.imageUri,
+          region: styleOutfit.region,
+          savedAt: new Date().toISOString(),
+        };
+        newData = [...likedOutfitsData, savedStyleOutfit];
+      } else {
+        const postOutfit = outfit as Post;
+        const savedPostOutfit: SavedPost = {
+          ...postOutfit,
+          outfitType: 'post',
+          savedAt: new Date().toISOString(),
+        };
+        newData = [...likedOutfitsData, savedPostOutfit];
+      }
     }
 
     setLikedOutfitIds(newIds);

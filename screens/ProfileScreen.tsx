@@ -309,7 +309,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
             <View style={styles.outfitsContainer}>
               {likedOutfits.map((outfit) => (
                 <Card key={outfit.id} style={styles.likedOutfitCard}>
-                  {outfit.type === 'style_of_the_day' ? (
+                  {outfit.outfitType === 'style_of_the_day' ? (
                     <>
                       <View style={styles.likedOutfitHeader}>
                         <View style={[styles.likedOutfitBadge, { backgroundColor: theme.link }]}>
