@@ -59,6 +59,14 @@ const DEAL_TEMPLATES: Array<{
   { brand: "Lyle & Scott", title: "Quarter Zip Jumper", originalPrice: 85, salePrice: 51, discount: "40% OFF", source: "Lyle & Scott", category: "Football Casual", hoursToExpire: 6, gender: "male" },
   { brand: "Lyle & Scott", title: "Classic Polo Shirt", originalPrice: 55, salePrice: 33, discount: "40% OFF", source: "JD Sports", category: "Football Casual", hoursToExpire: 4, gender: "male" },
   { brand: "Lyle & Scott", title: "Lightweight Jacket", originalPrice: 120, salePrice: 72, discount: "40% OFF", source: "Lyle & Scott", category: "Football Casual", hoursToExpire: 5, gender: "male" },
+  { brand: "Ugg", title: "Classic Mini II Boots", originalPrice: 155, salePrice: 109, discount: "30% OFF", source: "Schuh", category: "Cosy Comfort", hoursToExpire: 8, gender: "female" },
+  { brand: "Ugg", title: "Classic Short II Boots", originalPrice: 185, salePrice: 130, discount: "30% OFF", source: "Office", category: "Cosy Comfort", hoursToExpire: 6, gender: "female" },
+  { brand: "Ugg", title: "Tasman Slippers", originalPrice: 110, salePrice: 77, discount: "30% OFF", source: "Ugg.com", category: "Cosy Comfort", hoursToExpire: 5, gender: "female" },
+  { brand: "Ugg", title: "Ultra Mini Platform", originalPrice: 175, salePrice: 123, discount: "30% OFF", source: "Selfridges", category: "Cosy Comfort", hoursToExpire: 4, gender: "female" },
+  { brand: "Ugg", title: "Scuffette II Slippers", originalPrice: 95, salePrice: 67, discount: "30% OFF", source: "John Lewis", category: "Cosy Comfort", hoursToExpire: 7, gender: "female" },
+  { brand: "Ugg", title: "Disquette Platform Slippers", originalPrice: 130, salePrice: 91, discount: "30% OFF", source: "Schuh", category: "Cosy Comfort", hoursToExpire: 3, isVipOnly: true, gender: "female" },
+  { brand: "Weekday", title: "Oversized Joggers", originalPrice: 45, salePrice: 27, discount: "40% OFF", source: "ASOS", category: "Cosy Comfort", hoursToExpire: 6, gender: "female" },
+  { brand: "Topshop", title: "Baggy Boyfriend Jeans", originalPrice: 52, salePrice: 31, discount: "40% OFF", source: "ASOS", category: "Cosy Comfort", hoursToExpire: 5, gender: "female" },
 ];
 
 class BargainsServiceImpl {

@@ -51,10 +51,11 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "Embrace sustainable fashion like Alexandra Stedman - rewear and restyle pieces creatively rather than always buying new.",
       "The London street style formula: neutral base + one statement piece + quality accessories.",
       "Gymshark and Sweaty Betty have made athleisure acceptable everywhere - leggings with a long coat and chunky trainers is the new weekend uniform.",
+      "The Ugg trend is back stronger than ever - pair classic Ugg boots or Tasman slippers with oversized baggy sweatpants or boyfriend jeans for the ultimate cosy autumn/winter look.",
       "For men: David Beckham's country gentleman look - flat caps, tweed, and quality leather boots - is timeless British style.",
       "For men: Hector Bellerin proves footballers can be fashion pioneers - embrace sustainable brands and avant-garde silhouettes.",
     ],
-    trendingPieces: ["Trench coat", "Tailored wool coat", "Gymshark seamless sets", "Sweaty Betty leggings", "On Running sneakers", "Oner Active"],
+    trendingPieces: ["Trench coat", "Tailored wool coat", "Gymshark seamless sets", "Sweaty Betty leggings", "On Running sneakers", "Oner Active", "Ugg Classic Mini boots", "Ugg Tasman slippers", "Oversized baggy sweatpants", "Boyfriend jeans"],
     mensTrendingPieces: ["Flat cap", "Tweed blazer", "Chelsea boots", "Burberry scarf", "Barbour jacket", "Quality knitwear", "Stone Island jumper", "C.P. Company jacket", "Lyle & Scott polo", "White trainers"],
   },
   'Europe': {
@@ -73,10 +74,11 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "Italian influencers like Chiara Ferragni teach us to embrace glamour confidently - don't shy away from bold designer pieces.",
       "Master the art of looking undone yet polished - slightly tousled hair, minimal makeup, but impeccable tailoring.",
       "Invest in quality basics that serve as a canvas for rotating statement pieces - the European capsule wardrobe approach.",
+      "Ugg boots with oversized sweatpants or boyfriend jeans is the go-to cosy look across Europe this autumn/winter - comfort meets effortless style.",
       "For men: European footballers like Ronaldo and Mbappé set the global standard - sharp suits, designer collaborations, and impeccable grooming.",
       "For men: Jude Bellingham's Gucci partnership shows how young players are becoming fashion icons - embrace bold designer pieces confidently.",
     ],
-    trendingPieces: ["Striped Breton top", "High-waisted tailored pants", "Ballet flats", "Silk scarf", "Classic handbag"],
+    trendingPieces: ["Striped Breton top", "High-waisted tailored pants", "Ballet flats", "Silk scarf", "Classic handbag", "Ugg Classic boots", "Ugg Tasman slippers", "Oversized sweatpants", "Boyfriend jeans"],
     mensTrendingPieces: ["Double-breasted blazer", "Slim-fit chinos", "Leather loafers", "Designer sunglasses", "Quality polo shirt", "Luxury watch"],
   },
   'Middle East': {
@@ -547,6 +549,7 @@ const PRODUCT_SUGGESTIONS_FEMALE = [
   { category: "Athleisure", items: ["Lululemon Align leggings", "On Running sneakers", "Gymshark seamless set", "Oversized hoodie", "Hoka running shoes"] },
   { category: "Preppy", items: ["Pearl necklace", "Cable-knit sweater", "Penny loafers", "Tennis bracelet", "Quilted handbag", "Cashmere cardigan"] },
   { category: "Countryside", items: ["Barbour jacket", "Hunter boots", "Tweed blazer", "Wax cotton bag", "Quilted gilet"] },
+  { category: "Cosy Comfort", items: ["Ugg Classic Mini boots", "Ugg Classic Short boots", "Ugg Tasman slippers", "Ugg Ultra Mini boots", "Oversized baggy sweatpants", "Boyfriend jeans", "Oversized knit jumper", "Cosy fleece hoodie", "Teddy fleece jacket"] },
   { category: "Luxury Bags", items: ["Celine Triomphe", "Chanel Classic Flap", "Mulberry Bayswater", "Bottega Veneta Jodie", "Loewe Puzzle", "Hermes Kelly", "Dior Lady Dior", "YSL Loulou"] },
   { category: "Designer Eyewear", items: ["Miu Miu cat-eye", "Celine square oversized", "Prada geometric", "Gucci Web stripe", "Ray-Ban Aviator", "Oliver Peoples O'Malley"] },
   { category: "Designer Belts", items: ["Hermes H Belt", "Gucci GG Marmont", "Celine Triomphe Belt", "Bottega Intrecciato", "YSL Cassandre", "Dior Saddle Belt"] },
@@ -685,6 +688,20 @@ const CURATED_OUTFIT_LIBRARY: Record<string, Record<'female' | 'male', { id: str
       { id: 'ter-m-4', imageUri: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400', title: 'Match Day Essential', description: 'Designer jumper with selvedge denim and premium white trainers' },
     ],
   },
+  cosy: {
+    female: [
+      { id: 'cos-f-1', imageUri: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400', title: 'Ugg & Joggers', description: 'Ugg Classic Mini boots with oversized baggy sweatpants and cosy knit jumper' },
+      { id: 'cos-f-2', imageUri: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400', title: 'Weekend Comfort', description: 'Ugg Tasman slippers with boyfriend jeans and oversized hoodie' },
+      { id: 'cos-f-3', imageUri: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400', title: 'Cosy Chic', description: 'Ugg Ultra Mini boots with baggy joggers and teddy fleece jacket' },
+      { id: 'cos-f-4', imageUri: 'https://images.unsplash.com/photo-1485968579169-a6f4c5cb8365?w=400', title: 'Autumn Essential', description: 'Classic Ugg boots with boyfriend jeans and oversized cardigan' },
+    ],
+    male: [
+      { id: 'cos-m-1', imageUri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', title: 'Relaxed Weekend', description: 'Comfortable joggers with oversized hoodie and clean trainers' },
+      { id: 'cos-m-2', imageUri: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400', title: 'Home Comfort', description: 'Fleece-lined joggers with cosy knit jumper and slippers' },
+      { id: 'cos-m-3', imageUri: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400', title: 'Casual Comfort', description: 'Baggy sweatpants with teddy fleece jacket and slides' },
+      { id: 'cos-m-4', imageUri: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400', title: 'Lounge Ready', description: 'Oversized joggers with fleece hoodie and comfortable slippers' },
+    ],
+  },
 };
 
 const OUTFIT_GENERATION_PROMPTS: Record<string, string[]> = {
@@ -728,6 +745,12 @@ const OUTFIT_GENERATION_PROMPTS: Record<string, string[]> = {
     'Match day style featuring C.P. Company soft shell jacket with quality denim and clean sneakers',
     'Terrace-inspired outfit with Lyle & Scott polo, straight-leg jeans, and white trainers',
     'Premium casual look with designer jumper, selvedge denim, and box-fresh white trainers',
+  ],
+  cosy: [
+    'Ultimate comfort look with Ugg Classic Mini boots, oversized baggy sweatpants, and cosy knit jumper',
+    'Relaxed autumn style featuring Ugg Tasman slippers with boyfriend jeans and teddy fleece jacket',
+    'Weekend comfort outfit with Ugg boots, baggy joggers, and oversized hoodie in neutral tones',
+    'Effortless cosy chic with Ugg Ultra Mini boots, wide-leg sweatpants, and chunky knit cardigan',
   ],
 };
 
@@ -1077,6 +1100,12 @@ function detectStyleCategory(description: string): string {
       descLower.includes('cp company') || descLower.includes('lyle & scott') || descLower.includes('lyle and scott') ||
       descLower.includes('stadium') || descLower.includes('soccer') || descLower.includes('premier league')) {
     return 'terrace';
+  }
+  if (descLower.includes('ugg') || descLower.includes('cosy') || descLower.includes('cozy') || 
+      descLower.includes('comfort') || descLower.includes('slippers') || descLower.includes('baggy sweatpants') ||
+      descLower.includes('boyfriend jeans') || descLower.includes('loungewear') || descLower.includes('fleece') ||
+      descLower.includes('joggers') || descLower.includes('relaxed') || descLower.includes('oversized sweats')) {
+    return 'cosy';
   }
   
   return 'casual';
