@@ -210,26 +210,13 @@ const BUDGET_OPTIONS: { id: BudgetRange; name: string }[] = [
   { id: "Luxury", name: "Luxury" },
 ];
 
-const PRIMARY_COUNTRIES = [
-  "United States",
-  "United Kingdom",
-  "Canada",
-  "Australia",
-  "Germany",
-  "France",
-  "Japan",
-  "South Korea",
-  "Brazil",
-  "Mexico",
-  "Other",
-];
-
 const ALL_COUNTRIES = [
   "Albania",
   "Andorra",
   "Antigua and Barbuda",
   "Argentina",
   "Armenia",
+  "Australia",
   "Austria",
   "Azerbaijan",
   "Bahamas",
@@ -241,7 +228,9 @@ const ALL_COUNTRIES = [
   "Bolivia",
   "Bosnia and Herzegovina",
   "Botswana",
+  "Brazil",
   "Bulgaria",
+  "Canada",
   "Cayman Islands",
   "Chile",
   "China",
@@ -261,7 +250,9 @@ const ALL_COUNTRIES = [
   "Estonia",
   "Ethiopia",
   "Finland",
+  "France",
   "Georgia",
+  "Germany",
   "Ghana",
   "Greece",
   "Grenada",
@@ -277,6 +268,7 @@ const ALL_COUNTRIES = [
   "Israel",
   "Italy",
   "Jamaica",
+  "Japan",
   "Kazakhstan",
   "Kenya",
   "Kosovo",
@@ -287,6 +279,7 @@ const ALL_COUNTRIES = [
   "Malaysia",
   "Malta",
   "Mauritius",
+  "Mexico",
   "Moldova",
   "Monaco",
   "Montenegro",
@@ -318,6 +311,7 @@ const ALL_COUNTRIES = [
   "Slovakia",
   "Slovenia",
   "South Africa",
+  "South Korea",
   "Spain",
   "Suriname",
   "Sweden",
@@ -329,6 +323,8 @@ const ALL_COUNTRIES = [
   "Turks and Caicos Islands",
   "Ukraine",
   "United Arab Emirates",
+  "United Kingdom",
+  "United States",
   "Uruguay",
   "US Virgin Islands",
   "Vatican City",
@@ -344,7 +340,6 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
 
   const [step, setStep] = useState(0);
   const [country, setCountry] = useState("United States");
-  const [showAllCountries, setShowAllCountries] = useState(false);
   const [gender, setGender] = useState<Gender>(null);
   const [stylePreference, setStylePreference] = useState<StyleTheme>("luxury");
   const [sizeRange, setSizeRange] = useState<SizeRange>(null);
@@ -360,16 +355,11 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   };
 
   const handleCountrySelect = (c: string) => {
-    if (c === "Other") {
-      setShowAllCountries(true);
-    } else {
-      setCountry(c);
-    }
+    setCountry(c);
   };
 
   const handleNext = () => {
     if (step < totalSteps - 1) {
-      setShowAllCountries(false);
       setStep(step + 1);
     } else {
       handleComplete();
@@ -394,34 +384,17 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const renderStep = () => {
     switch (step) {
       case 0:
-        const countriesToShow = showAllCountries ? ALL_COUNTRIES : PRIMARY_COUNTRIES;
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
               Where are you located?
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              {showAllCountries 
-                ? "Select your country from the full list" 
-                : "This helps us show seasonal and regional content"}
+              This helps us show seasonal and regional content
             </ThemedText>
-            {showAllCountries ? (
-              <Pressable
-                onPress={() => setShowAllCountries(false)}
-                style={({ pressed }) => [
-                  styles.backButton,
-                  { opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <Feather name="arrow-left" size={16} color={theme.link} />
-                <ThemedText type="body" style={{ color: theme.link, marginLeft: Spacing.xs }}>
-                  Back
-                </ThemedText>
-              </Pressable>
-            ) : null}
             <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.optionsGrid}>
-                {countriesToShow.map((c) => (
+                {ALL_COUNTRIES.map((c) => (
                   <Pressable
                     key={c}
                     onPress={() => handleCountrySelect(c)}
