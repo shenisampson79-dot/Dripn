@@ -56,11 +56,14 @@ function FloatingPostButton({ onPress }: FloatingPostButtonProps) {
   );
 }
 
+import type { PortalMode } from "@/App";
+
 interface MainTabNavigatorProps {
   onCreatePost: () => void;
+  onOpenPortal?: (mode: PortalMode) => void;
 }
 
-export default function MainTabNavigator({ onCreatePost }: MainTabNavigatorProps) {
+export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTabNavigatorProps) {
   const { theme, isDark } = useTheme();
 
   return (
@@ -148,14 +151,15 @@ export default function MainTabNavigator({ onCreatePost }: MainTabNavigatorProps
         />
         <Tab.Screen
           name="ProfileTab"
-          component={ProfileStackNavigator}
           options={{
             title: "Profile",
             tabBarIcon: ({ color, size }) => (
               <Feather name="user" size={size} color={color} />
             ),
           }}
-        />
+        >
+          {() => <ProfileStackNavigator onOpenPortal={onOpenPortal} />}
+        </Tab.Screen>
       </Tab.Navigator>
       <FloatingPostButton onPress={onCreatePost} />
     </View>

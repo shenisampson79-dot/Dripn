@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 
 import MainTabNavigator from "@/navigation/MainTabNavigator";
 import AuthStackNavigator from "@/navigation/AuthStackNavigator";
+import StylistStackNavigator from "@/navigation/StylistStackNavigator";
 import CreatePostScreen from "@/screens/CreatePostScreen";
 import { AppTour } from "@/components/AppTour";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -16,14 +17,19 @@ import { PostsProvider } from "@/contexts/PostsContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { EventsFavoritesProvider } from "@/contexts/EventsFavoritesContext";
 import { OutfitFavoritesProvider } from "@/contexts/OutfitFavoritesContext";
+import { StylistAuthProvider, useStylistAuth } from "@/contexts/StylistAuthContext";
+import { AdminAuthProvider, useAdminAuth } from "@/contexts/AdminAuthContext";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
+
+export type PortalMode = 'stylist' | 'admin' | null;
 
 function AppContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { theme } = useTheme();
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const [portalMode, setPortalMode] = useState<PortalMode>(null);
 
   useEffect(() => {
     if (user && user.hasCompletedOnboarding && !user.hasSeenTour) {
@@ -49,7 +55,10 @@ function AppContent() {
 
   return (
     <>
-      <MainTabNavigator onCreatePost={() => setShowCreatePost(true)} />
+      <MainTabNavigator 
+        onCreatePost={() => setShowCreatePost(true)} 
+        onOpenPortal={setPortalMode}
+      />
       <Modal
         visible={showCreatePost}
         animationType="slide"
@@ -57,6 +66,19 @@ function AppContent() {
         onRequestClose={() => setShowCreatePost(false)}
       >
         <CreatePostScreen onClose={() => setShowCreatePost(false)} />
+      </Modal>
+      <Modal
+        visible={portalMode !== null}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setPortalMode(null)}
+      >
+        {portalMode ? (
+          <StylistStackNavigator 
+            mode={portalMode} 
+            onExit={() => setPortalMode(null)} 
+          />
+        ) : null}
       </Modal>
       <AppTour 
         visible={showTour} 
@@ -73,17 +95,21 @@ export default function App() {
         <GestureHandlerRootView style={styles.root}>
           <KeyboardProvider>
             <AuthProvider>
-              <SubscriptionProvider>
-                <EventsFavoritesProvider>
-                  <OutfitFavoritesProvider>
-                    <PostsProvider>
-                    <NavigationContainer>
-                      <AppContent />
-                    </NavigationContainer>
-                    </PostsProvider>
-                  </OutfitFavoritesProvider>
-                </EventsFavoritesProvider>
-              </SubscriptionProvider>
+              <StylistAuthProvider>
+                <AdminAuthProvider>
+                  <SubscriptionProvider>
+                    <EventsFavoritesProvider>
+                      <OutfitFavoritesProvider>
+                        <PostsProvider>
+                          <NavigationContainer>
+                            <AppContent />
+                          </NavigationContainer>
+                        </PostsProvider>
+                      </OutfitFavoritesProvider>
+                    </EventsFavoritesProvider>
+                  </SubscriptionProvider>
+                </AdminAuthProvider>
+              </StylistAuthProvider>
             </AuthProvider>
             <StatusBar style="auto" />
           </KeyboardProvider>

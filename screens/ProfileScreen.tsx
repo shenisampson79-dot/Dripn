@@ -15,6 +15,7 @@ import { useEventsFavorites } from "@/contexts/EventsFavoritesContext";
 import { useOutfitFavorites, LikedOutfit } from "@/contexts/OutfitFavoritesContext";
 import { getCategoryIcon } from "@/services/EventsService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import type { PortalMode } from "@/App";
 
 type RegionalModelType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
 
@@ -33,9 +34,10 @@ const getStyleOfTheDayImage = (region: string): ImageSourcePropType => {
 
 type ProfileScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "Profile">;
+  onOpenPortal?: (mode: PortalMode) => void;
 };
 
-export default function ProfileScreen({ navigation }: ProfileScreenProps) {
+export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScreenProps) {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { posts, votePost, voteComparison, thankPost } = usePosts();
@@ -157,6 +159,44 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
             {user?.subscriptionTier === "free" ? "Upgrade to Premium" : "Manage Subscription"}
           </ThemedText>
         </Pressable>
+
+        {onOpenPortal ? (
+          <View style={styles.staffPortalSection}>
+            <View style={styles.staffPortalDivider}>
+              <View style={[styles.staffDividerLine, { backgroundColor: theme.border }]} />
+              <ThemedText type="small" style={[styles.staffDividerText, { color: theme.tabIconDefault }]}>
+                Staff Portal
+              </ThemedText>
+              <View style={[styles.staffDividerLine, { backgroundColor: theme.border }]} />
+            </View>
+            <View style={styles.staffButtonsRow}>
+              <Pressable
+                onPress={() => onOpenPortal('stylist')}
+                style={({ pressed }) => [
+                  styles.staffButton,
+                  { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
+                ]}
+              >
+                <Feather name="scissors" size={18} color={theme.link} />
+                <ThemedText type="body" style={{ color: theme.link, fontWeight: "500" }}>
+                  Stylist Login
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={() => onOpenPortal('admin')}
+                style={({ pressed }) => [
+                  styles.staffButton,
+                  { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
+                ]}
+              >
+                <Feather name="shield" size={18} color={theme.link} />
+                <ThemedText type="body" style={{ color: theme.link, fontWeight: "500" }}>
+                  Admin Login
+                </ThemedText>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.tabsContainer}>
@@ -731,5 +771,37 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xs,
     marginBottom: Spacing.xs,
     alignSelf: 'flex-start',
+  },
+  staffPortalSection: {
+    marginTop: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  staffPortalDivider: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  staffDividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  staffDividerText: {
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  staffButtonsRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  staffButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
   },
 });

@@ -6,6 +6,7 @@ import SubscriptionScreen from "@/screens/SubscriptionScreen";
 import EditProfileScreen from "@/screens/EditProfileScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
+import type { PortalMode } from "@/App";
 
 export type ProfileStackParamList = {
   Profile: undefined;
@@ -16,18 +17,23 @@ export type ProfileStackParamList = {
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
-export default function ProfileStackNavigator() {
+interface ProfileStackNavigatorProps {
+  onOpenPortal?: (mode: PortalMode) => void;
+}
+
+export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavigatorProps) {
   const { theme, isDark } = useTheme();
 
   return (
     <Stack.Navigator screenOptions={getCommonScreenOptions({ theme, isDark })}>
       <Stack.Screen
         name="Profile"
-        component={ProfileScreen}
         options={{
           title: "Profile",
         }}
-      />
+      >
+        {(props) => <ProfileScreen {...props} onOpenPortal={onOpenPortal} />}
+      </Stack.Screen>
       <Stack.Screen
         name="Settings"
         component={SettingsScreen}

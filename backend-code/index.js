@@ -75,6 +75,43 @@ async function initDB() {
         advice TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS stylists (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255),
+        display_name VARCHAR(100) NOT NULL,
+        avatar_url TEXT,
+        bio TEXT,
+        specialties TEXT[],
+        years_experience INTEGER DEFAULT 0,
+        status VARCHAR(20) DEFAULT 'pending',
+        approved_by UUID,
+        approved_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS vip_sessions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        stylist_id UUID REFERENCES stylists(id) ON DELETE CASCADE,
+        vip_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        scheduled_at TIMESTAMP NOT NULL,
+        duration_minutes INTEGER DEFAULT 15,
+        status VARCHAR(20) DEFAULT 'scheduled',
+        notes TEXT,
+        session_notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        display_name VARCHAR(100),
+        role VARCHAR(20) DEFAULT 'admin',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
     `);
     console.log('Database tables initialized');
   } catch (error) {
@@ -82,7 +119,7 @@ async function initDB() {
   }
 }
 
-// Auth middleware
+// Auth middleware for regular users
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -93,6 +130,46 @@ function authMiddleware(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.userId = decoded.userId;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+// Auth middleware for stylists
+function stylistAuthMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== 'stylist') {
+      return res.status(403).json({ error: 'Stylist access required' });
+    }
+    req.stylistId = decoded.stylistId;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+// Auth middleware for admins
+function adminAuthMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    req.adminId = decoded.adminId;
     next();
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -480,6 +557,597 @@ Be positive, specific, and actionable.`;
   } catch (error) {
     console.error('AI advice error:', error);
     res.status(500).json({ error: 'Failed to get AI advice' });
+  }
+});
+
+// ============ ADMIN ROUTES ============
+
+// Admin login
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const result = await pool.query('SELECT * FROM admin_users WHERE email = $1', [email]);
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const admin = result.rows[0];
+    const validPassword = await bcrypt.compare(password, admin.password_hash);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const token = jwt.sign({ adminId: admin.id, role: 'admin' }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      token,
+      admin: {
+        id: admin.id,
+        email: admin.email,
+        displayName: admin.display_name,
+        role: admin.role
+      }
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Create admin (first admin setup - should be protected in production)
+app.post('/api/admin/setup', async (req, res) => {
+  try {
+    const { email, password, displayName, setupKey } = req.body;
+
+    // Simple setup key protection
+    if (setupKey !== process.env.ADMIN_SETUP_KEY && setupKey !== 'stylewise-admin-setup-2024') {
+      return res.status(403).json({ error: 'Invalid setup key' });
+    }
+
+    const existingAdmin = await pool.query('SELECT id FROM admin_users WHERE email = $1', [email]);
+    if (existingAdmin.rows.length > 0) {
+      return res.status(400).json({ error: 'Admin already exists' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      'INSERT INTO admin_users (email, password_hash, display_name) VALUES ($1, $2, $3) RETURNING id, email, display_name, role',
+      [email, passwordHash, displayName || 'Admin']
+    );
+
+    const admin = result.rows[0];
+    const token = jwt.sign({ adminId: admin.id, role: 'admin' }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      token,
+      admin: {
+        id: admin.id,
+        email: admin.email,
+        displayName: admin.display_name,
+        role: admin.role
+      }
+    });
+  } catch (error) {
+    console.error('Admin setup error:', error);
+    res.status(500).json({ error: 'Admin setup failed' });
+  }
+});
+
+// Register a new stylist (admin only)
+app.post('/api/admin/stylists', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { email, displayName, bio, specialties, yearsExperience } = req.body;
+
+    if (!email || !displayName) {
+      return res.status(400).json({ error: 'Email and display name required' });
+    }
+
+    const existingStylist = await pool.query('SELECT id FROM stylists WHERE email = $1', [email]);
+    if (existingStylist.rows.length > 0) {
+      return res.status(400).json({ error: 'Stylist with this email already exists' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO stylists (email, display_name, bio, specialties, years_experience, status) 
+       VALUES ($1, $2, $3, $4, $5, 'pending') 
+       RETURNING id, email, display_name, bio, specialties, years_experience, status, created_at`,
+      [email, displayName, bio || '', specialties || [], yearsExperience || 0]
+    );
+
+    const stylist = result.rows[0];
+    res.json({
+      id: stylist.id,
+      email: stylist.email,
+      displayName: stylist.display_name,
+      bio: stylist.bio,
+      specialties: stylist.specialties,
+      yearsExperience: stylist.years_experience,
+      status: stylist.status,
+      createdAt: stylist.created_at
+    });
+  } catch (error) {
+    console.error('Register stylist error:', error);
+    res.status(500).json({ error: 'Failed to register stylist' });
+  }
+});
+
+// Approve stylist and set password (admin only)
+app.post('/api/admin/stylists/:id/approve', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { password } = req.body;
+    const stylistId = req.params.id;
+
+    if (!password) {
+      return res.status(400).json({ error: 'Password required for approval' });
+    }
+
+    const stylistResult = await pool.query('SELECT * FROM stylists WHERE id = $1', [stylistId]);
+    if (stylistResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Stylist not found' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      `UPDATE stylists 
+       SET status = 'approved', password_hash = $1, approved_by = $2, approved_at = CURRENT_TIMESTAMP 
+       WHERE id = $3 
+       RETURNING id, email, display_name, status, approved_at`,
+      [passwordHash, req.adminId, stylistId]
+    );
+
+    const stylist = result.rows[0];
+    res.json({
+      id: stylist.id,
+      email: stylist.email,
+      displayName: stylist.display_name,
+      status: stylist.status,
+      approvedAt: stylist.approved_at,
+      message: 'Stylist approved and can now login'
+    });
+  } catch (error) {
+    console.error('Approve stylist error:', error);
+    res.status(500).json({ error: 'Failed to approve stylist' });
+  }
+});
+
+// Get all stylists (admin only)
+app.get('/api/admin/stylists', adminAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, email, display_name, bio, specialties, years_experience, status, approved_at, created_at 
+      FROM stylists 
+      ORDER BY created_at DESC
+    `);
+
+    const stylists = result.rows.map(s => ({
+      id: s.id,
+      email: s.email,
+      displayName: s.display_name,
+      bio: s.bio,
+      specialties: s.specialties,
+      yearsExperience: s.years_experience,
+      status: s.status,
+      approvedAt: s.approved_at,
+      createdAt: s.created_at
+    }));
+
+    res.json(stylists);
+  } catch (error) {
+    console.error('Get stylists error:', error);
+    res.status(500).json({ error: 'Failed to get stylists' });
+  }
+});
+
+// Revoke/suspend stylist (admin only)
+app.post('/api/admin/stylists/:id/revoke', adminAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE stylists SET status = 'suspended' WHERE id = $1 RETURNING id, email, status`,
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Stylist not found' });
+    }
+
+    res.json({ message: 'Stylist access revoked', stylist: result.rows[0] });
+  } catch (error) {
+    console.error('Revoke stylist error:', error);
+    res.status(500).json({ error: 'Failed to revoke stylist' });
+  }
+});
+
+// ============ STYLIST ROUTES ============
+
+// Stylist login
+app.post('/api/stylist/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const result = await pool.query('SELECT * FROM stylists WHERE email = $1', [email]);
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const stylist = result.rows[0];
+
+    if (stylist.status !== 'approved') {
+      return res.status(403).json({ error: 'Account not approved. Please contact administrator.' });
+    }
+
+    if (!stylist.password_hash) {
+      return res.status(403).json({ error: 'Account setup incomplete. Please contact administrator.' });
+    }
+
+    const validPassword = await bcrypt.compare(password, stylist.password_hash);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const token = jwt.sign({ stylistId: stylist.id, role: 'stylist' }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      token,
+      stylist: {
+        id: stylist.id,
+        email: stylist.email,
+        displayName: stylist.display_name,
+        avatarUrl: stylist.avatar_url,
+        bio: stylist.bio,
+        specialties: stylist.specialties,
+        yearsExperience: stylist.years_experience
+      }
+    });
+  } catch (error) {
+    console.error('Stylist login error:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Get stylist profile
+app.get('/api/stylist/profile', stylistAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, email, display_name, avatar_url, bio, specialties, years_experience FROM stylists WHERE id = $1',
+      [req.stylistId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Stylist not found' });
+    }
+
+    const stylist = result.rows[0];
+    res.json({
+      id: stylist.id,
+      email: stylist.email,
+      displayName: stylist.display_name,
+      avatarUrl: stylist.avatar_url,
+      bio: stylist.bio,
+      specialties: stylist.specialties,
+      yearsExperience: stylist.years_experience
+    });
+  } catch (error) {
+    console.error('Get stylist profile error:', error);
+    res.status(500).json({ error: 'Failed to get profile' });
+  }
+});
+
+// Update stylist profile
+app.put('/api/stylist/profile', stylistAuthMiddleware, async (req, res) => {
+  try {
+    const { displayName, bio, avatarUrl, specialties } = req.body;
+
+    const result = await pool.query(
+      `UPDATE stylists 
+       SET display_name = COALESCE($1, display_name), 
+           bio = COALESCE($2, bio), 
+           avatar_url = COALESCE($3, avatar_url),
+           specialties = COALESCE($4, specialties)
+       WHERE id = $5 
+       RETURNING id, email, display_name, avatar_url, bio, specialties`,
+      [displayName, bio, avatarUrl, specialties, req.stylistId]
+    );
+
+    const stylist = result.rows[0];
+    res.json({
+      id: stylist.id,
+      email: stylist.email,
+      displayName: stylist.display_name,
+      avatarUrl: stylist.avatar_url,
+      bio: stylist.bio,
+      specialties: stylist.specialties
+    });
+  } catch (error) {
+    console.error('Update stylist profile error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// ============ VIP SESSION ROUTES ============
+
+// Get stylist's sessions
+app.get('/api/stylist/sessions', stylistAuthMiddleware, async (req, res) => {
+  try {
+    const { status, upcoming } = req.query;
+    
+    let query = `
+      SELECT s.*, u.display_name as vip_name, u.avatar_url as vip_avatar, u.email as vip_email
+      FROM vip_sessions s
+      JOIN users u ON s.vip_user_id = u.id
+      WHERE s.stylist_id = $1
+    `;
+    const params = [req.stylistId];
+
+    if (status) {
+      query += ` AND s.status = $${params.length + 1}`;
+      params.push(status);
+    }
+
+    if (upcoming === 'true') {
+      query += ` AND s.scheduled_at > NOW()`;
+    }
+
+    query += ` ORDER BY s.scheduled_at ASC`;
+
+    const result = await pool.query(query, params);
+
+    const sessions = result.rows.map(s => ({
+      id: s.id,
+      scheduledAt: s.scheduled_at,
+      durationMinutes: s.duration_minutes,
+      status: s.status,
+      notes: s.notes,
+      sessionNotes: s.session_notes,
+      completedAt: s.completed_at,
+      vipUser: {
+        id: s.vip_user_id,
+        displayName: s.vip_name,
+        avatarUrl: s.vip_avatar,
+        email: s.vip_email
+      },
+      createdAt: s.created_at
+    }));
+
+    res.json(sessions);
+  } catch (error) {
+    console.error('Get sessions error:', error);
+    res.status(500).json({ error: 'Failed to get sessions' });
+  }
+});
+
+// Get single session details
+app.get('/api/stylist/sessions/:id', stylistAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT s.*, u.display_name as vip_name, u.avatar_url as vip_avatar, u.email as vip_email
+      FROM vip_sessions s
+      JOIN users u ON s.vip_user_id = u.id
+      WHERE s.id = $1 AND s.stylist_id = $2
+    `, [req.params.id, req.stylistId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const s = result.rows[0];
+    res.json({
+      id: s.id,
+      scheduledAt: s.scheduled_at,
+      durationMinutes: s.duration_minutes,
+      status: s.status,
+      notes: s.notes,
+      sessionNotes: s.session_notes,
+      completedAt: s.completed_at,
+      vipUser: {
+        id: s.vip_user_id,
+        displayName: s.vip_name,
+        avatarUrl: s.vip_avatar,
+        email: s.vip_email
+      },
+      createdAt: s.created_at
+    });
+  } catch (error) {
+    console.error('Get session error:', error);
+    res.status(500).json({ error: 'Failed to get session' });
+  }
+});
+
+// Update session (add notes, change status)
+app.put('/api/stylist/sessions/:id', stylistAuthMiddleware, async (req, res) => {
+  try {
+    const { sessionNotes, status } = req.body;
+
+    let query = 'UPDATE vip_sessions SET ';
+    const updates = [];
+    const params = [];
+
+    if (sessionNotes !== undefined) {
+      params.push(sessionNotes);
+      updates.push(`session_notes = $${params.length}`);
+    }
+
+    if (status) {
+      params.push(status);
+      updates.push(`status = $${params.length}`);
+      if (status === 'completed') {
+        updates.push('completed_at = CURRENT_TIMESTAMP');
+      }
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No updates provided' });
+    }
+
+    params.push(req.params.id);
+    params.push(req.stylistId);
+    query += updates.join(', ') + ` WHERE id = $${params.length - 1} AND stylist_id = $${params.length} RETURNING *`;
+
+    const result = await pool.query(query, params);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update session error:', error);
+    res.status(500).json({ error: 'Failed to update session' });
+  }
+});
+
+// Complete a session
+app.post('/api/stylist/sessions/:id/complete', stylistAuthMiddleware, async (req, res) => {
+  try {
+    const { sessionNotes } = req.body;
+
+    const result = await pool.query(
+      `UPDATE vip_sessions 
+       SET status = 'completed', session_notes = COALESCE($1, session_notes), completed_at = CURRENT_TIMESTAMP 
+       WHERE id = $2 AND stylist_id = $3 
+       RETURNING *`,
+      [sessionNotes, req.params.id, req.stylistId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    res.json({ message: 'Session completed', session: result.rows[0] });
+  } catch (error) {
+    console.error('Complete session error:', error);
+    res.status(500).json({ error: 'Failed to complete session' });
+  }
+});
+
+// Book a VIP session (for VIP users)
+app.post('/api/sessions/book', authMiddleware, async (req, res) => {
+  try {
+    const { stylistId, scheduledAt, notes } = req.body;
+
+    // Check if user is VIP
+    const userResult = await pool.query('SELECT subscription_tier FROM users WHERE id = $1', [req.userId]);
+    if (userResult.rows.length === 0 || userResult.rows[0].subscription_tier !== 'vip') {
+      return res.status(403).json({ error: 'VIP subscription required to book stylist sessions' });
+    }
+
+    // Check stylist availability (no overlapping sessions)
+    const conflictCheck = await pool.query(
+      `SELECT id FROM vip_sessions 
+       WHERE stylist_id = $1 
+       AND status != 'cancelled'
+       AND scheduled_at <= $2 
+       AND scheduled_at + (duration_minutes || ' minutes')::interval > $2`,
+      [stylistId, scheduledAt]
+    );
+
+    if (conflictCheck.rows.length > 0) {
+      return res.status(409).json({ error: 'Time slot not available' });
+    }
+
+    // Check monthly session limit (4 per month for VIP)
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const sessionCount = await pool.query(
+      `SELECT COUNT(*) FROM vip_sessions 
+       WHERE vip_user_id = $1 AND created_at >= $2 AND status != 'cancelled'`,
+      [req.userId, monthStart]
+    );
+
+    if (parseInt(sessionCount.rows[0].count) >= 4) {
+      return res.status(403).json({ error: 'Monthly session limit (4) reached' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO vip_sessions (stylist_id, vip_user_id, scheduled_at, notes) 
+       VALUES ($1, $2, $3, $4) 
+       RETURNING *`,
+      [stylistId, req.userId, scheduledAt, notes]
+    );
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Book session error:', error);
+    res.status(500).json({ error: 'Failed to book session' });
+  }
+});
+
+// Get available stylists (for VIP users)
+app.get('/api/stylists/available', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, display_name, avatar_url, bio, specialties, years_experience 
+      FROM stylists 
+      WHERE status = 'approved'
+      ORDER BY years_experience DESC
+    `);
+
+    const stylists = result.rows.map(s => ({
+      id: s.id,
+      displayName: s.display_name,
+      avatarUrl: s.avatar_url,
+      bio: s.bio,
+      specialties: s.specialties,
+      yearsExperience: s.years_experience
+    }));
+
+    res.json(stylists);
+  } catch (error) {
+    console.error('Get available stylists error:', error);
+    res.status(500).json({ error: 'Failed to get stylists' });
+  }
+});
+
+// Get user's booked sessions
+app.get('/api/sessions/my', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT s.*, st.display_name as stylist_name, st.avatar_url as stylist_avatar
+      FROM vip_sessions s
+      JOIN stylists st ON s.stylist_id = st.id
+      WHERE s.vip_user_id = $1
+      ORDER BY s.scheduled_at DESC
+    `, [req.userId]);
+
+    const sessions = result.rows.map(s => ({
+      id: s.id,
+      scheduledAt: s.scheduled_at,
+      durationMinutes: s.duration_minutes,
+      status: s.status,
+      notes: s.notes,
+      stylist: {
+        id: s.stylist_id,
+        displayName: s.stylist_name,
+        avatarUrl: s.stylist_avatar
+      },
+      createdAt: s.created_at
+    }));
+
+    res.json(sessions);
+  } catch (error) {
+    console.error('Get user sessions error:', error);
+    res.status(500).json({ error: 'Failed to get sessions' });
+  }
+});
+
+// Cancel a session
+app.post('/api/sessions/:id/cancel', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE vip_sessions SET status = 'cancelled' WHERE id = $1 AND vip_user_id = $2 RETURNING *`,
+      [req.params.id, req.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    res.json({ message: 'Session cancelled', session: result.rows[0] });
+  } catch (error) {
+    console.error('Cancel session error:', error);
+    res.status(500).json({ error: 'Failed to cancel session' });
   }
 });
 
