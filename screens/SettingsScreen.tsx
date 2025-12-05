@@ -76,7 +76,7 @@ const STYLE_NAMES: Record<StyleTheme, string> = {
   streetwear: "Streetwear",
   boho: "Boho",
   sporty: "Sporty",
-  romantic: "Romantic",
+  "smart-casual": "Smart Casual",
   business: "Business",
   edgy: "Edgy",
 };
@@ -149,7 +149,7 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
           { text: "Streetwear", onPress: () => updateProfile({ stylePreference: "streetwear" }) },
           { text: "Boho", onPress: () => updateProfile({ stylePreference: "boho" }) },
           { text: "Sporty", onPress: () => updateProfile({ stylePreference: "sporty" }) },
-          { text: "Romantic", onPress: () => updateProfile({ stylePreference: "romantic" }) },
+          { text: "Smart Casual", onPress: () => updateProfile({ stylePreference: "smart-casual" }) },
           { text: "Edgy", onPress: () => updateProfile({ stylePreference: "edgy" }) },
           { text: "Cancel", style: "cancel" as const },
         ];

@@ -30,8 +30,9 @@ The app is built with **Expo React Native** and **TypeScript**, utilizing **Reac
 ## Gender-Specific & Regional Image System
 The onboarding and style selection shows gender-appropriate and region-appropriate models:
 - **Image Structure**: `assets/images/styles/[category]/[gender]/[region].png`
-- **Supported Styles**: Boho, Sporty, Business (with full gender/region matrix)
+- **Supported Styles**: Boho, Sporty, Business, Smart Casual (with full gender/region matrix)
 - **Business Style (Men Only)**: Professional suits, dress shirts, ties, tuxedos, business casual (slacks, chinos, blazers)
+- **Smart Casual Style (Women Only)**: Polished yet relaxed looks - skinny jeans with tailored blazers and white trainers, refined casual elegance
 - **7 Regions**: African, Latin American, Asian, South Asian, Middle Eastern, Nordic, Multicultural
 - **2 Genders**: Male, Female (non-binary defaults to female representation)
 

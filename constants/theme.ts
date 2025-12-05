@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 // StyleWise Theme System
 // Dynamic theming based on user's fashion style preference
 
-export type StyleTheme = 'luxury' | 'streetwear' | 'boho' | 'sporty' | 'romantic' | 'business' | 'edgy';
+export type StyleTheme = 'luxury' | 'streetwear' | 'boho' | 'sporty' | 'smart-casual' | 'business' | 'edgy';
 
 // Theme-specific colors for each style
 export const StyleThemes = {
@@ -111,30 +111,30 @@ export const StyleThemes = {
       textTertiary: '#687888',
     },
   },
-  romantic: {
+  'smart-casual': {
     light: {
-      primary: '#E8A4B8',
-      secondary: '#B8A4D4',
-      accent: '#F5C6D0',
-      background: '#FFFAF9',
-      surface: '#FFF0EE',
-      surfaceSecondary: '#FFE5E0',
-      surfaceTertiary: '#FFD8D0',
-      text: '#3D2832',
-      textSecondary: '#5D4852',
-      textTertiary: '#8A7A82',
+      primary: '#5B7B8C',
+      secondary: '#8FA4AF',
+      accent: '#C9A96E',
+      background: '#FAFBFC',
+      surface: '#F2F4F6',
+      surfaceSecondary: '#E8EBEE',
+      surfaceTertiary: '#DCE0E4',
+      text: '#2C3E50',
+      textSecondary: '#4A5B6A',
+      textTertiary: '#7A8B9A',
     },
     dark: {
-      primary: '#D4899E',
-      secondary: '#9E89B8',
-      accent: '#E8B0BE',
-      background: '#1A1216',
-      surface: '#2A1E24',
-      surfaceSecondary: '#3A2A32',
-      surfaceTertiary: '#4A3840',
-      text: '#FFF0EE',
-      textSecondary: '#C5B0B8',
-      textTertiary: '#8A7880',
+      primary: '#7A9AAB',
+      secondary: '#5B7B8C',
+      accent: '#D4B87A',
+      background: '#0F1419',
+      surface: '#1A2129',
+      surfaceSecondary: '#252D38',
+      surfaceTertiary: '#303A48',
+      text: '#F2F4F6',
+      textSecondary: '#B0BEC5',
+      textTertiary: '#78909C',
     },
   },
   business: {
