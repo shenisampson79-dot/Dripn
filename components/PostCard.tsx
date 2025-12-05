@@ -17,6 +17,8 @@ interface PostCardProps {
   onVote: (postId: string, voteType: "up" | "down") => void;
   onComparisonVote: (postId: string, mediaId: string) => void;
   onThank: (postId: string) => void;
+  onSave?: (post: Post) => void;
+  isSaved?: boolean;
   compact?: boolean;
 }
 
@@ -26,6 +28,8 @@ export function PostCard({
   onVote,
   onComparisonVote,
   onThank,
+  onSave,
+  isSaved = false,
   compact = false,
 }: PostCardProps) {
   const { theme } = useTheme();
@@ -55,6 +59,13 @@ export function PostCard({
   const handleThank = async () => {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onThank(post.id);
+  };
+
+  const handleSave = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (onSave) {
+      onSave(post);
+    }
   };
 
   const mediaSize = compact ? 160 : width - Spacing.xl * 2;
@@ -201,7 +212,7 @@ export function PostCard({
             onPress={() => handleVote("down")}
             style={({ pressed }) => [styles.voteButton, { opacity: pressed ? 0.7 : 1 }]}
           >
-            <Feather name="x" size={20} color={theme.text} />
+            <Feather name="thumbs-down" size={20} color={theme.text} />
             <ThemedText type="small">{post.downvotes}</ThemedText>
           </Pressable>
           <View style={styles.commentCount}>
@@ -216,6 +227,18 @@ export function PostCard({
               {post.sharesCount || 0}
             </ThemedText>
           </View>
+          {onSave ? (
+            <Pressable
+              onPress={handleSave}
+              style={({ pressed }) => [styles.saveButton, { opacity: pressed ? 0.7 : 1 }]}
+            >
+              <Feather 
+                name={isSaved ? "bookmark" : "bookmark"} 
+                size={20} 
+                color={isSaved ? theme.link : theme.tabIconDefault} 
+              />
+            </Pressable>
+          ) : null}
         </View>
         <Pressable
           onPress={handleThank}
@@ -391,6 +414,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+  },
+  saveButton: {
+    padding: 4,
   },
   thankButton: {
     flexDirection: "row",

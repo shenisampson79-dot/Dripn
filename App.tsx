@@ -15,6 +15,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PostsProvider } from "@/contexts/PostsContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { EventsFavoritesProvider } from "@/contexts/EventsFavoritesContext";
+import { OutfitFavoritesProvider } from "@/contexts/OutfitFavoritesContext";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -74,11 +75,13 @@ export default function App() {
             <AuthProvider>
               <SubscriptionProvider>
                 <EventsFavoritesProvider>
-                  <PostsProvider>
+                  <OutfitFavoritesProvider>
+                    <PostsProvider>
                     <NavigationContainer>
                       <AppContent />
                     </NavigationContainer>
-                  </PostsProvider>
+                    </PostsProvider>
+                  </OutfitFavoritesProvider>
                 </EventsFavoritesProvider>
               </SubscriptionProvider>
             </AuthProvider>

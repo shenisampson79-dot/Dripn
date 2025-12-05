@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Pressable, Image, Alert, ScrollView, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Pressable, Image, Alert, ScrollView, ActivityIndicator, ImageSourcePropType } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
@@ -12,8 +12,24 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePosts } from "@/contexts/PostsContext";
 import { useEventsFavorites } from "@/contexts/EventsFavoritesContext";
+import { useOutfitFavorites, LikedOutfit } from "@/contexts/OutfitFavoritesContext";
 import { getCategoryIcon } from "@/services/EventsService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+
+type RegionalModelType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
+
+const REGIONAL_STYLE_IMAGES: Record<RegionalModelType, ImageSourcePropType> = {
+  'multicultural': require("../assets/images/models/multicultural.png"),
+  'asian': require("../assets/images/models/asian.png"),
+  'african': require("../assets/images/models/african.png"),
+  'middle-eastern': require("../assets/images/models/middle-eastern.png"),
+  'south-asian': require("../assets/images/models/south-asian.png"),
+  'latin-american': require("../assets/images/models/latin-american.png"),
+};
+
+const getStyleOfTheDayImage = (region: string): ImageSourcePropType => {
+  return REGIONAL_STYLE_IMAGES[region as RegionalModelType] || REGIONAL_STYLE_IMAGES['multicultural'];
+};
 
 type ProfileScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "Profile">;
@@ -24,10 +40,12 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   const { user } = useAuth();
   const { posts, votePost, voteComparison, thankPost } = usePosts();
   const { getLikedEvents, toggleLike, isLoading: eventsLoading } = useEventsFavorites();
-  const [activeTab, setActiveTab] = useState<"posts" | "advice" | "events">("posts");
+  const { getLikedOutfits, toggleOutfitLike, isOutfitLiked, isLoading: outfitsLoading } = useOutfitFavorites();
+  const [activeTab, setActiveTab] = useState<"posts" | "advice" | "outfits" | "events">("posts");
 
   const userPosts = posts.filter((p) => p.userId === user?.id);
   const likedEvents = getLikedEvents();
+  const likedOutfits = getLikedOutfits();
 
   const handleSettingsPress = () => {
     navigation.navigate("Settings");
@@ -191,6 +209,31 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
           </ThemedText>
         </Pressable>
         <Pressable
+          onPress={() => setActiveTab("outfits")}
+          style={[
+            styles.tab,
+            {
+              borderBottomColor: activeTab === "outfits" ? theme.link : "transparent",
+            },
+          ]}
+        >
+          <Feather
+            name="bookmark"
+            size={20}
+            color={activeTab === "outfits" ? theme.link : theme.tabIconDefault}
+          />
+          <ThemedText
+            type="body"
+            style={{
+              color: activeTab === "outfits" ? theme.link : theme.tabIconDefault,
+              fontWeight: activeTab === "outfits" ? "600" : "400",
+              fontSize: 13,
+            }}
+          >
+            Outfits
+          </ThemedText>
+        </Pressable>
+        <Pressable
           onPress={() => setActiveTab("events")}
           style={[
             styles.tab,
@@ -200,7 +243,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
           ]}
         >
           <Feather
-            name="heart"
+            name="calendar"
             size={20}
             color={activeTab === "events" ? theme.link : theme.tabIconDefault}
           />
@@ -209,6 +252,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
             style={{
               color: activeTab === "events" ? theme.link : theme.tabIconDefault,
               fontWeight: activeTab === "events" ? "600" : "400",
+              fontSize: 13,
             }}
           >
             Events
@@ -253,6 +297,98 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
               Help others with their style choices to build your reputation
             </ThemedText>
           </View>
+        ) : activeTab === "outfits" ? (
+          outfitsLoading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="large" color={theme.link} />
+              <ThemedText type="body" style={styles.emptySubtitle}>
+                Loading liked outfits...
+              </ThemedText>
+            </View>
+          ) : likedOutfits.length > 0 ? (
+            <View style={styles.outfitsContainer}>
+              {likedOutfits.map((outfit) => (
+                <Card key={outfit.id} style={styles.likedOutfitCard}>
+                  {outfit.type === 'style_of_the_day' ? (
+                    <>
+                      <View style={styles.likedOutfitHeader}>
+                        <View style={[styles.likedOutfitBadge, { backgroundColor: theme.link }]}>
+                          <Feather name="star" size={12} color="#FFFFFF" />
+                          <ThemedText type="caption" style={{ color: "#FFFFFF", fontWeight: "600" }}>
+                            Style of the Day
+                          </ThemedText>
+                        </View>
+                        <Pressable
+                          onPress={() => toggleOutfitLike(outfit)}
+                          style={({ pressed }) => [
+                            styles.unlikeButton,
+                            { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
+                          ]}
+                        >
+                          <Feather name="bookmark" size={16} color={theme.link} />
+                        </Pressable>
+                      </View>
+                      <Image 
+                        source={getStyleOfTheDayImage(outfit.region)} 
+                        style={styles.likedOutfitImage}
+                      />
+                      <ThemedText type="h3" style={styles.likedOutfitTitle}>
+                        {outfit.title}
+                      </ThemedText>
+                      <ThemedText type="small" style={styles.likedOutfitDesc} numberOfLines={2}>
+                        {outfit.description}
+                      </ThemedText>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.likedOutfitHeader}>
+                        <View style={styles.likedOutfitUser}>
+                          <View style={[styles.likedOutfitAvatar, { backgroundColor: theme.backgroundSecondary }]}>
+                            {(outfit as any).userAvatar ? (
+                              <Image source={{ uri: (outfit as any).userAvatar }} style={styles.likedOutfitAvatarImg} />
+                            ) : (
+                              <Feather name="user" size={14} color={theme.tabIconDefault} />
+                            )}
+                          </View>
+                          <ThemedText type="small" style={{ fontWeight: "600" }}>
+                            {(outfit as any).userName}
+                          </ThemedText>
+                        </View>
+                        <Pressable
+                          onPress={() => toggleOutfitLike(outfit)}
+                          style={({ pressed }) => [
+                            styles.unlikeButton,
+                            { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
+                          ]}
+                        >
+                          <Feather name="bookmark" size={16} color={theme.link} />
+                        </Pressable>
+                      </View>
+                      {(outfit as any).media?.[0]?.uri || (outfit as any).images?.[0]?.uri ? (
+                        <Image 
+                          source={{ uri: (outfit as any).media?.[0]?.uri || (outfit as any).images?.[0]?.uri }} 
+                          style={styles.likedOutfitImage}
+                        />
+                      ) : null}
+                      <ThemedText type="small" style={styles.likedOutfitDesc} numberOfLines={2}>
+                        {(outfit as any).description}
+                      </ThemedText>
+                    </>
+                  )}
+                </Card>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Feather name="bookmark" size={48} color={theme.tabIconDefault} />
+              <ThemedText type="h3" style={styles.emptyTitle}>
+                No liked outfits
+              </ThemedText>
+              <ThemedText type="body" style={styles.emptySubtitle}>
+                Save outfits from Style of the Day or community posts to view them here
+              </ThemedText>
+            </View>
+          )
         ) : eventsLoading ? (
           <View style={styles.emptyState}>
             <ActivityIndicator size="large" color={theme.link} />
@@ -499,5 +635,55 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: BorderRadius.sm,
     marginTop: Spacing.sm,
+  },
+  outfitsContainer: {
+    gap: Spacing.md,
+  },
+  likedOutfitCard: {
+    padding: Spacing.md,
+    overflow: "hidden",
+  },
+  likedOutfitHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Spacing.sm,
+  },
+  likedOutfitBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.xs,
+  },
+  likedOutfitUser: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  likedOutfitAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  likedOutfitAvatarImg: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  likedOutfitImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.sm,
+  },
+  likedOutfitTitle: {
+    marginBottom: 4,
+  },
+  likedOutfitDesc: {
+    opacity: 0.7,
   },
 });

@@ -15,6 +15,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { shareChallenge } from "@/services/SharingService";
 import { getInfluencerStyleGuide, TRENDING_STYLES_2024_2025 } from "@/services/AIAdviceService";
 import { MagazineInspirationService, MagazineInspiration } from "@/services/MagazineInspirationService";
+import { useOutfitFavorites, StyleOfTheDayOutfit } from "@/contexts/OutfitFavoritesContext";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
 
 type RegionalModelType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
@@ -879,6 +880,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const { user } = useAuth();
   const { tier } = useSubscription();
   const { posts, votePost, voteComparison, thankPost } = usePosts();
+  const { isOutfitLiked, toggleOutfitLike } = useOutfitFavorites();
   const [selectedCategory, setSelectedCategory] = useState("trending");
   const [selectedLook, setSelectedLook] = useState<CelebrityLook | null>(null);
 
@@ -900,6 +902,28 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
       ...REGIONAL_STYLE_TIPS[userRegion][userGender],
     };
   }, [userRegion, userGender]);
+
+  const styleOfTheDayId = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return `style-of-the-day-${userRegion}-${userGender}-${today}`;
+  }, [userRegion, userGender]);
+
+  const handleSaveStyleOfTheDay = async () => {
+    const styleOutfit: StyleOfTheDayOutfit = {
+      id: styleOfTheDayId,
+      type: 'style_of_the_day',
+      title: regionalStyleContent.title,
+      description: regionalStyleContent.description,
+      imageUri: '', 
+      region: userRegion,
+      savedAt: new Date().toISOString(),
+    };
+    await toggleOutfitLike(styleOutfit);
+  };
+
+  const handleSavePost = async (post: any) => {
+    await toggleOutfitLike(post);
+  };
 
   const countryBargains = useMemo(() => {
     const userCountry = user?.country || 'United States';
@@ -1019,11 +1043,32 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             style={styles.featuredImage}
           />
           <View style={styles.featuredOverlay}>
-            <View style={styles.featuredBadge}>
-              <Feather name="award" size={16} color="#FFD700" />
-              <ThemedText type="small" style={styles.featuredBadgeText}>
-                StyleWise AI Pick
-              </ThemedText>
+            <View style={styles.featuredBadgeRow}>
+              <View style={styles.featuredBadge}>
+                <Feather name="award" size={16} color="#FFD700" />
+                <ThemedText type="small" style={styles.featuredBadgeText}>
+                  StyleWise AI Pick
+                </ThemedText>
+              </View>
+              <Pressable
+                onPress={handleSaveStyleOfTheDay}
+                style={({ pressed }) => [
+                  styles.saveStyleButton,
+                  { 
+                    backgroundColor: isOutfitLiked(styleOfTheDayId) ? theme.link : "rgba(255,255,255,0.2)",
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <Feather 
+                  name="bookmark" 
+                  size={18} 
+                  color={isOutfitLiked(styleOfTheDayId) ? "#FFFFFF" : "#FFFFFF"} 
+                />
+                {isOutfitLiked(styleOfTheDayId) ? (
+                  <ThemedText type="small" style={styles.saveStyleText}>Saved</ThemedText>
+                ) : null}
+              </Pressable>
             </View>
             <ThemedText type="h3" style={styles.featuredTitle}>
               {regionalStyleContent.title}
@@ -1365,6 +1410,8 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
               onVote={votePost}
               onComparisonVote={voteComparison}
               onThank={thankPost}
+              onSave={handleSavePost}
+              isSaved={isOutfitLiked(post.id)}
               compact
             />
           ))}
@@ -1491,7 +1538,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.xs,
+  },
+  featuredBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: Spacing.sm,
+  },
+  saveStyleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.xs,
+  },
+  saveStyleText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
   featuredBadgeText: {
     color: "#FFD700",
