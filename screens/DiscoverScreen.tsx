@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { shareChallenge } from "@/services/SharingService";
 import { getInfluencerStyleGuide, TRENDING_STYLES_2024_2025 } from "@/services/AIAdviceService";
+import { MagazineInspirationService, MagazineInspiration } from "@/services/MagazineInspirationService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
 
 type RegionalModelType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
@@ -913,6 +914,13 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
     return getInfluencerStyleGuide(user?.country || 'United States', user?.gender || undefined);
   }, [user?.country, user?.gender]);
 
+  const magazineInspirations = useMemo(() => {
+    return MagazineInspirationService.getFilteredInspirations(
+      userGender,
+      tier || "free"
+    ).slice(0, 6);
+  }, [userGender, tier]);
+
   const trendingPosts = posts.slice(0, 5);
 
   const handlePostPress = (postId: string) => {
@@ -1111,6 +1119,75 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             ))}
           </View>
         </View>
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <ThemedText type="h2" style={styles.sectionTitle}>
+            Magazine Style Inspiration
+          </ThemedText>
+          <Pressable
+            onPress={() => {
+              Alert.alert(
+                "Magazine Inspiration",
+                "Style inspiration curated from top music and lifestyle magazines. Get outfit ideas from your favorite artists and celebrities."
+              );
+            }}
+          >
+            <Feather name="info" size={18} color={theme.tabIconDefault} />
+          </Pressable>
+        </View>
+        <ThemedText type="small" style={[styles.influencerSubtitle, { color: theme.tabIconDefault }]}>
+          Fresh looks from music and lifestyle magazines
+        </ThemedText>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.magazineContainer}
+        >
+          {magazineInspirations.map((inspiration) => (
+            <Pressable
+              key={inspiration.id}
+              onPress={() => {
+                Alert.alert(
+                  `${inspiration.featuredName} - ${inspiration.publication}`,
+                  `${inspiration.headline}\n\n${inspiration.styleHighlights.join("\n\n")}\n\nKey Pieces:\n${inspiration.keyPieces.join(", ")}\n\nBrands: ${inspiration.brands.join(", ")}`,
+                  [{ text: "Got it", style: "default" }]
+                );
+              }}
+              style={({ pressed }) => [
+                styles.magazineCard,
+                { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.9 : 1 },
+              ]}
+            >
+              <View style={[styles.magazineBadge, { backgroundColor: inspiration.publicationType === "music" ? "#9B59B6" : "#3498DB" }]}>
+                <Feather name={inspiration.publicationType === "music" ? "music" : "book-open"} size={10} color="#FFFFFF" />
+                <ThemedText type="small" style={styles.magazineBadgeText}>
+                  {inspiration.publication}
+                </ThemedText>
+              </View>
+              <View style={[styles.magazineIconContainer, { backgroundColor: theme.link + "15" }]}>
+                <Feather 
+                  name={inspiration.featuredType === "artist" ? "mic" : "star"} 
+                  size={28} 
+                  color={theme.link} 
+                />
+              </View>
+              <ThemedText type="h3" style={styles.magazineName} numberOfLines={1}>
+                {inspiration.featuredName}
+              </ThemedText>
+              <ThemedText type="small" style={styles.magazineHeadline} numberOfLines={2}>
+                {inspiration.headline}
+              </ThemedText>
+              <View style={styles.magazineMood}>
+                <Feather name="heart" size={12} color={theme.link} />
+                <ThemedText type="small" style={[styles.magazineMoodText, { color: theme.link }]}>
+                  {inspiration.mood}
+                </ThemedText>
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
       </View>
 
       <View style={styles.section}>
