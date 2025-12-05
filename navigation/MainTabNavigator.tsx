@@ -77,7 +77,7 @@ export default function MainTabNavigator({ onCreatePost }: MainTabNavigatorProps
             elevation: 0,
           },
           tabBarLabelStyle: {
-            fontSize: 10,
+            fontSize: 9,
           },
           headerShown: false,
         }}
