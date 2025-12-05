@@ -9,7 +9,17 @@ Do not make changes to the folder `Z`.
 Do not make changes to the file `Y`.
 
 ## System Architecture
-The app is built with **Expo React Native** and **TypeScript**, utilizing **React Navigation 7+** for navigation and **React Context API** for state management. Local persistence is handled by **AsyncStorage**. The UI adheres to an **iOS 26 Liquid Glass design system**, featuring 7 dynamic, fashion-inspired color themes with light/dark modes (Luxury, Streetwear, Boho, Sporty, Romantic/Business, Edgy). **Note:** Men see "Business" instead of "Romantic" - covering formal suits, tuxedos, business casual wear.
+The app is built with **Expo React Native** and **TypeScript**, utilizing **React Navigation 7+** for navigation and **React Context API** for state management. Local persistence is handled by **AsyncStorage**. The UI adheres to an **iOS 26 Liquid Glass design system**, featuring 7 dynamic, fashion-inspired color themes with light/dark modes (Luxury, Streetwear, Boho, Sporty, Business/Smart Casual, Edgy). **Note:** Men see "Business" instead of "Romantic" - covering formal suits, tuxedos, business casual wear.
+
+**2025/2026 Fashion Color Palette:**
+- **Mocha Mousse** (#4A3428) - Pantone 2025 Color of the Year
+- **Cloud Dancer** (#E8DDD3) - Pantone 2026 Color of the Year (airy white)
+- **Capri Blue** (#0077B6) - SS26 trending blue
+- **Berry Red** (#8B2F39) - Bold statement red
+- **Parma Violet** (#9B7EBD) - Trending purple
+- **Lemon Grass** (#A8C256) - Fresh green accent
+- **Brandied Melon** (#C87941) - Warm muted orange
+- **Lyons Blue** (#1E5B73) - Deep teal for business
 
 **Key Features:**
 - **Subscription Tiers**: Freemium model with Free, Basic, Plus, Premium, and Elite tiers, offering varying levels of uploads, AI advice requests, and advanced features like video posts and personal styling sessions.
