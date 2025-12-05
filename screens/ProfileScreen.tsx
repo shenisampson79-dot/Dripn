@@ -314,7 +314,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
                       <View style={styles.likedOutfitHeader}>
                         <View style={[styles.likedOutfitBadge, { backgroundColor: theme.link }]}>
                           <Feather name="star" size={12} color="#FFFFFF" />
-                          <ThemedText type="caption" style={{ color: "#FFFFFF", fontWeight: "600" }}>
+                          <ThemedText type="small" style={{ color: "#FFFFFF", fontWeight: "600" }}>
                             Style of the Day
                           </ThemedText>
                         </View>
@@ -338,6 +338,45 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
                       <ThemedText type="small" style={styles.likedOutfitDesc} numberOfLines={2}>
                         {outfit.description}
                       </ThemedText>
+                    </>
+                  ) : outfit.outfitType === 'similar_outfit' ? (
+                    <>
+                      <View style={styles.likedOutfitHeader}>
+                        <View style={[styles.likedOutfitBadge, { backgroundColor: theme.success || '#10B981' }]}>
+                          <Feather name="grid" size={12} color="#FFFFFF" />
+                          <ThemedText type="small" style={{ color: "#FFFFFF", fontWeight: "600" }}>
+                            Similar Outfit
+                          </ThemedText>
+                        </View>
+                        <Pressable
+                          onPress={() => toggleOutfitLike(outfit)}
+                          style={({ pressed }) => [
+                            styles.unlikeButton,
+                            { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
+                          ]}
+                        >
+                          <Feather name="bookmark" size={16} color={theme.link} />
+                        </Pressable>
+                      </View>
+                      {outfit.imageUri ? (
+                        <Image 
+                          source={{ uri: outfit.imageUri }} 
+                          style={styles.likedOutfitImage}
+                        />
+                      ) : null}
+                      <ThemedText type="h3" style={styles.likedOutfitTitle}>
+                        {outfit.title}
+                      </ThemedText>
+                      <View style={[styles.styleTag, { backgroundColor: theme.backgroundSecondary }]}>
+                        <ThemedText type="small" style={{ opacity: 0.8 }}>
+                          {outfit.style.charAt(0).toUpperCase() + outfit.style.slice(1)} Style
+                        </ThemedText>
+                      </View>
+                      {outfit.description ? (
+                        <ThemedText type="small" style={styles.likedOutfitDesc} numberOfLines={2}>
+                          {outfit.description}
+                        </ThemedText>
+                      ) : null}
                     </>
                   ) : (
                     <>
@@ -685,5 +724,12 @@ const styles = StyleSheet.create({
   },
   likedOutfitDesc: {
     opacity: 0.7,
+  },
+  styleTag: {
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.xs,
+    marginBottom: Spacing.xs,
+    alignSelf: 'flex-start',
   },
 });

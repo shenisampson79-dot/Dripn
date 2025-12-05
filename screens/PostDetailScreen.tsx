@@ -36,7 +36,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
   const { user } = useAuth();
   const { posts, getPostComments, addComment, votePost, thankPost, updatePost } = usePosts();
   const { tier, canRequestAIAdvice, incrementAIAdvice, canRecordVoice, incrementVoiceComment } = useSubscription();
-  const { likedOutfitIds, isOutfitLiked } = useOutfitFavorites();
+  const { likedOutfitIds, isOutfitLiked, toggleOutfitLike } = useOutfitFavorites();
 
   const [commentText, setCommentText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +44,6 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
   const [aiAdvice, setAiAdvice] = useState<AIAdviceResult | null>(null);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [savedSimilarOutfitIds, setSavedSimilarOutfitIds] = useState<string[]>([]);
 
   const post = posts.find((p) => p.id === postId);
   const comments = getPostComments(postId);
@@ -199,12 +198,14 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
     );
   };
 
-  const handleSaveSimilarOutfit = (outfit: SimilarOutfit) => {
-    setSavedSimilarOutfitIds(prev => {
-      if (prev.includes(outfit.id)) {
-        return prev.filter(id => id !== outfit.id);
-      }
-      return [...prev, outfit.id];
+  const handleSaveSimilarOutfit = async (outfit: SimilarOutfit) => {
+    await toggleOutfitLike({
+      id: outfit.id,
+      outfitType: 'similar_outfit',
+      title: outfit.title,
+      description: outfit.description,
+      imageUri: outfit.imageUri,
+      style: outfit.style,
     });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
@@ -460,7 +461,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
                   outfits={aiAdvice.similarOutfits}
                   onOutfitPress={handleSimilarOutfitPress}
                   onSaveOutfit={handleSaveSimilarOutfit}
-                  savedOutfitIds={savedSimilarOutfitIds}
+                  savedOutfitIds={likedOutfitIds}
                 />
               ) : null}
             </View>

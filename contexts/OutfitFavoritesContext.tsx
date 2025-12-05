@@ -18,12 +18,31 @@ export interface SavedPost extends Post {
   savedAt: string;
 }
 
-export type LikedOutfit = SavedPost | StyleOfTheDayOutfit;
+export interface SimilarOutfitSaved {
+  id: string;
+  outfitType: 'similar_outfit';
+  title: string;
+  description?: string;
+  imageUri: string;
+  style: string;
+  savedAt: string;
+}
+
+export type LikedOutfit = SavedPost | StyleOfTheDayOutfit | SimilarOutfitSaved;
+
+export interface SimilarOutfitInput {
+  id: string;
+  outfitType: 'similar_outfit';
+  title: string;
+  description?: string;
+  imageUri: string;
+  style: string;
+}
 
 interface OutfitFavoritesContextType {
   likedOutfitIds: string[];
   isOutfitLiked: (outfitId: string) => boolean;
-  toggleOutfitLike: (outfit: Post | StyleOfTheDayOutfit) => Promise<void>;
+  toggleOutfitLike: (outfit: Post | StyleOfTheDayOutfit | SimilarOutfitInput) => Promise<void>;
   getLikedOutfits: () => LikedOutfit[];
   isLoading: boolean;
 }
@@ -102,7 +121,7 @@ export function OutfitFavoritesProvider({ children }: OutfitFavoritesProviderPro
     return likedOutfitIds.includes(outfitId);
   }, [likedOutfitIds]);
 
-  const toggleOutfitLike = useCallback(async (outfit: Post | StyleOfTheDayOutfit): Promise<void> => {
+  const toggleOutfitLike = useCallback(async (outfit: Post | StyleOfTheDayOutfit | SimilarOutfitInput): Promise<void> => {
     const userId = user?.id;
     if (!userId) {
       console.log('[OutfitFavorites] No user ID, cannot save outfit');
@@ -130,6 +149,18 @@ export function OutfitFavoritesProvider({ children }: OutfitFavoritesProviderPro
           savedAt: new Date().toISOString(),
         };
         newData = [...likedOutfitsData, savedStyleOutfit];
+      } else if ('outfitType' in outfit && outfit.outfitType === 'similar_outfit') {
+        const similarOutfit = outfit as SimilarOutfitInput;
+        const savedSimilarOutfit: SimilarOutfitSaved = {
+          id: similarOutfit.id,
+          outfitType: 'similar_outfit',
+          title: similarOutfit.title,
+          description: similarOutfit.description,
+          imageUri: similarOutfit.imageUri,
+          style: similarOutfit.style,
+          savedAt: new Date().toISOString(),
+        };
+        newData = [...likedOutfitsData, savedSimilarOutfit];
       } else {
         const postOutfit = outfit as Post;
         const savedPostOutfit: SavedPost = {

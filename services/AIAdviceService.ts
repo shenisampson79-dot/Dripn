@@ -714,6 +714,7 @@ export interface SimilarOutfit {
   id: string;
   imageUri: string;
   title: string;
+  description?: string;
   style: string;
   isSaved?: boolean;
 }
@@ -1071,6 +1072,7 @@ function getSimilarOutfits(styleCategory: string, gender: 'male' | 'female', cou
     id: outfit.id,
     imageUri: outfit.imageUri,
     title: outfit.title,
+    description: outfit.description,
     style: styleCategory,
     isSaved: false,
   }));
