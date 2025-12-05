@@ -100,13 +100,40 @@ export default function EventsScreen() {
 
   const requestLocation = useCallback(async () => {
     try {
+      const currentPermission = await Location.getForegroundPermissionsAsync();
+      
+      if (currentPermission.status === "denied" && !currentPermission.canAskAgain) {
+        Alert.alert(
+          "Location Permission Required",
+          "Location access was previously denied. Please enable location in your device Settings to see events near you.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { 
+              text: "Open Settings", 
+              onPress: () => {
+                if (Platform.OS !== "web") {
+                  Linking.openSettings().catch(() => {});
+                }
+              }
+            }
+          ]
+        );
+        return;
+      }
+      
       const { status } = await Location.requestForegroundPermissionsAsync();
       setLocationEnabled(status === "granted");
       if (status === "granted") {
         await fetchLocationAndEvents();
+      } else {
+        Alert.alert(
+          "Location Not Enabled",
+          "Enable location access to see personalized events near you and get directions."
+        );
       }
     } catch (error) {
       console.log("Location permission error:", error);
+      Alert.alert("Error", "Could not request location permission. Please try again.");
     }
   }, [fetchLocationAndEvents]);
 
