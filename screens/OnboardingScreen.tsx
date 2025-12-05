@@ -302,12 +302,12 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
       setShowAllCountries(true);
     } else {
       setCountry(c);
-      setShowAllCountries(false);
     }
   };
 
   const handleNext = () => {
     if (step < totalSteps - 1) {
+      setShowAllCountries(false);
       setStep(step + 1);
     } else {
       handleComplete();
