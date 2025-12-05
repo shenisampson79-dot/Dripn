@@ -3,7 +3,7 @@
     "name": "StyleWise",
     "slug": "stylewise",
     "version": "1.0.0",
-    "description": "StyleWise is your personal fashion advisor powered by AI and a vibrant community. Get instant outfit advice, discover trending styles from top influencers worldwide, and receive daily style tips featuring exclusive bargains from luxury and household brands. Whether you love athleisure, preppy classics, or countryside chic, StyleWise delivers personalized recommendations, size-inclusive styling, voice comments, and shoppable content. Join millions of fashion enthusiasts sharing outfits, voting on looks, and elevating their style game every day.",
+    "description": "StyleWise is your personal fashion advisor powered by AI and a vibrant community. Get instant outfit advice, discover trending styles from top influencers worldwide, and receive daily style tips featuring exclusive bargains from luxury and household brands. Explore daily and weekly special offers from your favorite fashion retailers, and discover local events with personalized outfit suggestions for every occasion. Whether you love athleisure, preppy classics, or countryside chic, StyleWise delivers personalized recommendations, size-inclusive styling, voice comments, and shoppable content. Join millions of fashion enthusiasts sharing outfits, voting on looks, and elevating their style game every day.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "stylewise",

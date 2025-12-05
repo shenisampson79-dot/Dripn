@@ -35,6 +35,12 @@ Record voice notes to give detailed styling advice - sometimes words aren't enou
 **Trending Challenges**
 Join weekly style challenges, discover the outfit of the day, and see what's trending in the fashion community.
 
+**Daily & Weekly Offers**
+Never miss a deal! Browse exclusive daily and weekly special offers from your favorite fashion brands and retailers, all curated to match your style preferences.
+
+**Events Near You**
+Discover local events - from gallery openings to fitness classes - and get personalized outfit suggestions for every occasion. Look your best wherever you go!
+
 **Size-Inclusive**
 Fashion advice for every body type. Our recommendations consider your unique proportions to help you dress with confidence.
 

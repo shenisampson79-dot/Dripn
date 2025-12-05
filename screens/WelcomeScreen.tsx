@@ -52,6 +52,18 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
             description="Discover styles that match your personality"
             theme={theme}
           />
+          <FeatureItem
+            icon="tag"
+            title="Exclusive Offers"
+            description="Daily and weekly deals from top fashion brands"
+            theme={theme}
+          />
+          <FeatureItem
+            icon="calendar"
+            title="Events Near You"
+            description="Discover events and get outfit suggestions"
+            theme={theme}
+          />
         </View>
       </View>
 
