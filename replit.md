@@ -110,6 +110,19 @@ The AI advice service includes comprehensive coverage of fashion accessories, ke
 - **Women**: Cartier Tank/Panthère, Rolex Datejust 31, Chanel J12
 - **Men**: Rolex Submariner/Datejust, Omega Seamaster, Patek Philippe Nautilus, AP Royal Oak
 
+### Winter Accessories
+The AI advice system includes comprehensive winter accessory recommendations:
+- **Women**: Cashmere scarf, wool beanie, leather gloves, faux fur hat, chunky knit scarf, touch-screen gloves, beret, cable-knit mittens
+- **Men**: Wool scarf, cashmere beanie, leather gloves, flat cap, merino wool scarf, driving gloves, newsboy cap, tech-friendly gloves
+- **Style Tips**: Gender-specific advice for scarves, gloves, hats, and seasonal layering
+
+### Oversized Trend (2025)
+The current "it" look, especially popular for women:
+- **Women**: Oversized jumper, wide-leg trousers, boyfriend blazer, oversized t-shirt, baggy jeans, slouchy cardigan, oversized shirt dress, relaxed hoodie
+- **Men**: Oversized hoodie, wide-leg trousers, relaxed fit jeans, boxy t-shirt, oversized knit jumper, relaxed blazer
+- **Detection**: AI automatically detects oversized, baggy, relaxed, loose, boxy, slouchy keywords and provides tailored trend advice
+- **UK Trending Items for Women**: Oversized Blazer, Oversized Jumper, Wide-Leg Trousers, Oversized T-Shirt (all rated hotLevel 5)
+
 ## Fashion Trend Intelligence System
 
 StyleWise maintains cutting-edge fashion knowledge through an integrated Trend Intelligence System that curates data from fashion publications and influencers worldwide.

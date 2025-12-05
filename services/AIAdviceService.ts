@@ -210,6 +210,8 @@ const TRENDING_STYLES_2024_2025 = {
     athleisure: ["Gymshark Vital leggings", "Lululemon Align pants", "On Running Cloudmonster", "Hoka Bondi 8", "Sweaty Betty Power leggings", "Oner Active sets"],
     preppy: ["Pearl necklace", "Headband", "Loafers", "Tennis bracelet", "Quilted bag", "Cashmere sweater"],
     countryside: ["Barbour jacket", "Hunter boots", "Tweed blazer", "Wax cotton bag", "Flat cap", "Gilet/vest"],
+    winterAccessories: ["Cashmere scarf", "Leather gloves", "Wool beanie", "Faux fur hat", "Chunky knit scarf", "Touch-screen gloves", "Beret", "Merino wool mittens"],
+    oversizedTrend: ["Oversized jumper", "Wide-leg trousers", "Baggy jeans", "Boyfriend blazer", "Oversized t-shirt", "Slouchy cardigan", "Boxy hoodie", "Relaxed shirt dress"],
   },
   accessories: {
     luxuryBagsWomen: {
@@ -504,6 +506,27 @@ const STYLE_ADVICE_TEMPLATES = {
     "For men: David Yurman Spiritual Beads or Tom Wood rings add subtle sophistication without overdoing it.",
     "Jewelry tip: The rule of three - one statement piece plus two subtle ones creates the perfect balance.",
   ],
+  winterAccessories: [
+    "A cashmere scarf would be the perfect finishing touch for this winter look - luxurious warmth with style!",
+    "Add leather gloves to complete the sophisticated winter ensemble - both practical and chic.",
+    "A wool beanie would add cosy cool vibes! Cashmere or merino wool elevates the look instantly.",
+    "For women: A beret or faux fur hat would give this outfit Parisian winter chic vibes.",
+    "For men: A flat cap or newsboy cap would add dapper warmth - very British gentleman.",
+    "Don't forget your extremities! Quality gloves and a chunky knit scarf make winter dressing intentional, not accidental.",
+    "Touch-screen gloves are a must for the modern winter wardrobe - style meets functionality.",
+    "A silk-lined leather glove is the ultimate luxury winter accessory - warm, elegant, and timeless.",
+  ],
+  oversizedTrend: [
+    "Obsessed with this oversized silhouette! The relaxed fit is PEAK 2025 fashion - you're nailing the trend.",
+    "Oversized jumpers are having a major moment! Pair with fitted bottoms to balance the proportions perfectly.",
+    "Love the baggy jeans! Wide-leg and relaxed denim is dominating street style right now.",
+    "The oversized t-shirt look is effortlessly cool - tuck it into high-waisted trousers for definition.",
+    "For women: Boyfriend blazers and oversized shirts are the ultimate power move - comfort meets confidence.",
+    "The slouchy cardigan is giving major cosy-chic vibes! Layer over fitted basics for that perfect contrast.",
+    "Oversized hoodie styling tip: Keep it balanced with slim or tapered bottoms to avoid looking shapeless.",
+    "Wide-leg trousers are everywhere right now! The relaxed silhouette screams fashion-forward thinking.",
+    "For men: Boxy fits and relaxed silhouettes show you understand modern menswear - very fashion conscious.",
+  ],
 };
 
 const HASHTAG_SUGGESTIONS = [
@@ -519,6 +542,8 @@ const PRODUCT_SUGGESTIONS_FEMALE = [
   { category: "Shoes", items: ["White sneakers", "Block heels", "Ankle boots", "Loafers"] },
   { category: "Layers", items: ["Denim jacket", "Cardigan", "Blazer", "Trench coat"] },
   { category: "Basics", items: ["White t-shirt", "Black trousers", "Classic jeans", "Neutral sweater"] },
+  { category: "Oversized Trend", items: ["Oversized jumper", "Wide-leg trousers", "Boyfriend blazer", "Oversized t-shirt", "Baggy jeans", "Slouchy cardigan", "Oversized shirt dress", "Relaxed hoodie"] },
+  { category: "Winter Accessories", items: ["Cashmere scarf", "Wool beanie", "Leather gloves", "Faux fur hat", "Chunky knit scarf", "Touch-screen gloves", "Beret", "Cable-knit mittens"] },
   { category: "Athleisure", items: ["Lululemon Align leggings", "On Running sneakers", "Gymshark seamless set", "Oversized hoodie", "Hoka running shoes"] },
   { category: "Preppy", items: ["Pearl necklace", "Cable-knit sweater", "Penny loafers", "Tennis bracelet", "Quilted handbag", "Cashmere cardigan"] },
   { category: "Countryside", items: ["Barbour jacket", "Hunter boots", "Tweed blazer", "Wax cotton bag", "Quilted gilet"] },
@@ -534,6 +559,8 @@ const PRODUCT_SUGGESTIONS_MALE = [
   { category: "Shoes", items: ["White sneakers", "Leather loafers", "Chelsea boots", "Oxford shoes"] },
   { category: "Layers", items: ["Denim jacket", "Bomber jacket", "Blazer", "Trench coat"] },
   { category: "Basics", items: ["White t-shirt", "Tailored trousers", "Classic jeans", "Quality polo shirt"] },
+  { category: "Oversized Trend", items: ["Oversized hoodie", "Wide-leg trousers", "Relaxed fit jeans", "Boxy t-shirt", "Oversized knit jumper", "Relaxed blazer"] },
+  { category: "Winter Accessories", items: ["Wool scarf", "Cashmere beanie", "Leather gloves", "Flat cap", "Merino wool scarf", "Driving gloves", "Newsboy cap", "Tech-friendly gloves"] },
   { category: "Athleisure", items: ["Gymshark training shorts", "On Running sneakers", "Performance hoodie", "Hoka running shoes", "Nike Dri-Fit tee"] },
   { category: "Preppy", items: ["Cable-knit sweater", "Penny loafers", "Oxford shirt", "Cashmere cardigan", "Blazer with gold buttons"] },
   { category: "Countryside", items: ["Barbour jacket", "Hunter boots", "Tweed blazer", "Flat cap", "Quilted gilet"] },
@@ -697,8 +724,26 @@ function generateTrendingTip(description: string, userGender?: string): string {
   if (descLower.includes('brown') || descLower.includes('chocolate') || descLower.includes('caramel')) {
     return STYLE_ADVICE_TEMPLATES.trendingNow[3];
   }
-  if (descLower.includes('oversized') || descLower.includes('relaxed') || descLower.includes('loose')) {
-    return STYLE_ADVICE_TEMPLATES.trendingNow[4];
+  
+  if (descLower.includes('scarf') || descLower.includes('gloves') || descLower.includes('beanie') || 
+      descLower.includes('mittens') || descLower.includes('hat') || descLower.includes('beret')) {
+    const winterTips = STYLE_ADVICE_TEMPLATES.winterAccessories.filter(tip => {
+      const tipLower = tip.toLowerCase();
+      if (isMale) return tipLower.includes('men') || (!tipLower.includes('women') && !tipLower.includes('beret'));
+      return tipLower.includes('women') || !tipLower.includes('men');
+    });
+    return getRandomItem(winterTips.length > 0 ? winterTips : STYLE_ADVICE_TEMPLATES.winterAccessories);
+  }
+  
+  if (descLower.includes('oversized') || descLower.includes('baggy') || descLower.includes('relaxed') || 
+      descLower.includes('loose') || descLower.includes('boxy') || descLower.includes('slouchy') ||
+      descLower.includes('wide leg') || descLower.includes('boyfriend')) {
+    const oversizedTips = STYLE_ADVICE_TEMPLATES.oversizedTrend.filter(tip => {
+      const tipLower = tip.toLowerCase();
+      if (isMale) return tipLower.includes('men') || (!tipLower.includes('women') && !tipLower.includes('boyfriend'));
+      return tipLower.includes('women') || !tipLower.includes('men');
+    });
+    return getRandomItem(oversizedTips.length > 0 ? oversizedTips : STYLE_ADVICE_TEMPLATES.oversizedTrend);
   }
   
   const tips = STYLE_ADVICE_TEMPLATES.trendingNow.filter(tip => {
