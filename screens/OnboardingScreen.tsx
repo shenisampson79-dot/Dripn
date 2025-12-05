@@ -193,7 +193,7 @@ const STYLE_OPTIONS_FEMALE: { id: StyleTheme; name: string; description: string 
 ];
 
 const STYLE_OPTIONS_MALE: { id: StyleTheme; name: string; description: string }[] = [
-  { id: "smart-casual", name: "Smart Casual", description: "Blue blazer, white t-shirt, relaxed sophistication" },
+  { id: "smart-casual", name: "Smart Casual", description: "Polished yet relaxed, chinos with button-downs or knitwear, loafers" },
   { id: "streetwear", name: "Casual", description: "Relaxed, comfortable, everyday style" },
   { id: "boho", name: "Boho", description: "Earthy, relaxed, artistic" },
   { id: "sporty", name: "Sporty", description: "Active, dynamic, athletic" },
