@@ -9,7 +9,7 @@ Do not make changes to the folder `Z`.
 Do not make changes to the file `Y`.
 
 ## System Architecture
-The app is built with **Expo React Native** and **TypeScript**, utilizing **React Navigation 7+** for navigation and **React Context API** for state management. Local persistence is handled by **AsyncStorage**. The UI adheres to an **iOS 26 Liquid Glass design system**, featuring 6 dynamic, fashion-inspired color themes with light/dark modes (Luxury, Streetwear, Boho, Sporty, Romantic, Edgy).
+The app is built with **Expo React Native** and **TypeScript**, utilizing **React Navigation 7+** for navigation and **React Context API** for state management. Local persistence is handled by **AsyncStorage**. The UI adheres to an **iOS 26 Liquid Glass design system**, featuring 7 dynamic, fashion-inspired color themes with light/dark modes (Luxury, Streetwear, Boho, Sporty, Romantic/Business, Edgy). **Note:** Men see "Business" instead of "Romantic" - covering formal suits, tuxedos, business casual wear.
 
 **Key Features:**
 - **Subscription Tiers**: Freemium model with Free, Basic, Plus, Premium, and Elite tiers, offering varying levels of uploads, AI advice requests, and advanced features like video posts and personal styling sessions.
@@ -30,7 +30,8 @@ The app is built with **Expo React Native** and **TypeScript**, utilizing **Reac
 ## Gender-Specific & Regional Image System
 The onboarding and style selection shows gender-appropriate and region-appropriate models:
 - **Image Structure**: `assets/images/styles/[category]/[gender]/[region].png`
-- **Supported Styles**: Boho, Sporty (with full gender/region matrix)
+- **Supported Styles**: Boho, Sporty, Business (with full gender/region matrix)
+- **Business Style (Men Only)**: Professional suits, dress shirts, ties, tuxedos, business casual (slacks, chinos, blazers)
 - **7 Regions**: African, Latin American, Asian, South Asian, Middle Eastern, Nordic, Multicultural
 - **2 Genders**: Male, Female (non-binary defaults to female representation)
 

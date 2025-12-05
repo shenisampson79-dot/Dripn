@@ -77,6 +77,7 @@ const STYLE_NAMES: Record<StyleTheme, string> = {
   boho: "Boho",
   sporty: "Sporty",
   romantic: "Romantic",
+  business: "Business",
   edgy: "Edgy",
 };
 
@@ -132,18 +133,30 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
   };
 
   const handleChangeStyle = () => {
+    const isMale = user?.gender === 'man';
+    const styleOptions = isMale 
+      ? [
+          { text: "Luxury", onPress: () => updateProfile({ stylePreference: "luxury" }) },
+          { text: "Streetwear", onPress: () => updateProfile({ stylePreference: "streetwear" }) },
+          { text: "Boho", onPress: () => updateProfile({ stylePreference: "boho" }) },
+          { text: "Sporty", onPress: () => updateProfile({ stylePreference: "sporty" }) },
+          { text: "Business", onPress: () => updateProfile({ stylePreference: "business" }) },
+          { text: "Edgy", onPress: () => updateProfile({ stylePreference: "edgy" }) },
+          { text: "Cancel", style: "cancel" as const },
+        ]
+      : [
+          { text: "Luxury", onPress: () => updateProfile({ stylePreference: "luxury" }) },
+          { text: "Streetwear", onPress: () => updateProfile({ stylePreference: "streetwear" }) },
+          { text: "Boho", onPress: () => updateProfile({ stylePreference: "boho" }) },
+          { text: "Sporty", onPress: () => updateProfile({ stylePreference: "sporty" }) },
+          { text: "Romantic", onPress: () => updateProfile({ stylePreference: "romantic" }) },
+          { text: "Edgy", onPress: () => updateProfile({ stylePreference: "edgy" }) },
+          { text: "Cancel", style: "cancel" as const },
+        ];
     Alert.alert(
       "Change Style Theme",
       "Choose your preferred style:",
-      [
-        { text: "Luxury", onPress: () => updateProfile({ stylePreference: "luxury" }) },
-        { text: "Streetwear", onPress: () => updateProfile({ stylePreference: "streetwear" }) },
-        { text: "Boho", onPress: () => updateProfile({ stylePreference: "boho" }) },
-        { text: "Sporty", onPress: () => updateProfile({ stylePreference: "sporty" }) },
-        { text: "Romantic", onPress: () => updateProfile({ stylePreference: "romantic" }) },
-        { text: "Edgy", onPress: () => updateProfile({ stylePreference: "edgy" }) },
-        { text: "Cancel", style: "cancel" },
-      ]
+      styleOptions
     );
   };
 

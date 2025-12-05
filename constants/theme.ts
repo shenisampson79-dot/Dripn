@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 // StyleWise Theme System
 // Dynamic theming based on user's fashion style preference
 
-export type StyleTheme = 'luxury' | 'streetwear' | 'boho' | 'sporty' | 'romantic' | 'edgy';
+export type StyleTheme = 'luxury' | 'streetwear' | 'boho' | 'sporty' | 'romantic' | 'business' | 'edgy';
 
 // Theme-specific colors for each style
 export const StyleThemes = {
@@ -135,6 +135,32 @@ export const StyleThemes = {
       text: '#FFF0EE',
       textSecondary: '#C5B0B8',
       textTertiary: '#8A7880',
+    },
+  },
+  business: {
+    light: {
+      primary: '#1E3A5F',
+      secondary: '#4A6FA5',
+      accent: '#8B7355',
+      background: '#FAFBFC',
+      surface: '#F0F2F5',
+      surfaceSecondary: '#E4E8EC',
+      surfaceTertiary: '#D8DCE0',
+      text: '#1A1A2E',
+      textSecondary: '#3A3A4E',
+      textTertiary: '#6A6A7E',
+    },
+    dark: {
+      primary: '#4A6FA5',
+      secondary: '#1E3A5F',
+      accent: '#C4A77D',
+      background: '#0D0D12',
+      surface: '#1A1A24',
+      surfaceSecondary: '#262632',
+      surfaceTertiary: '#323240',
+      text: '#F0F2F5',
+      textSecondary: '#B0B8C5',
+      textTertiary: '#707888',
     },
   },
   edgy: {

@@ -35,7 +35,7 @@ const MEN_BODY_SHAPES: { id: BodyShape; name: string; description: string }[] = 
   { id: "Athletic", name: "Athletic", description: "Muscular build, defined physique" },
 ];
 
-const STYLE_IMAGES: Record<Exclude<StyleTheme, 'romantic' | 'boho' | 'sporty'>, ImageSourcePropType> = {
+const STYLE_IMAGES: Record<Exclude<StyleTheme, 'romantic' | 'boho' | 'sporty' | 'business'>, ImageSourcePropType> = {
   luxury: require("../assets/images/styles/luxury.png"),
   streetwear: require("../assets/images/styles/streetwear.png"),
   edgy: require("../assets/images/styles/edgy.png"),
@@ -93,6 +93,16 @@ const SPORTY_MALE_IMAGES: Record<RegionalType, ImageSourcePropType> = {
   'latin-american': require("../assets/images/styles/sporty/male/latin-american.png"),
 };
 
+const BUSINESS_MALE_IMAGES: Record<RegionalType, ImageSourcePropType> = {
+  'multicultural': require("../assets/images/styles/business/male/multicultural.png"),
+  'nordic': require("../assets/images/styles/business/male/nordic.png"),
+  'asian': require("../assets/images/styles/business/male/asian.png"),
+  'african': require("../assets/images/styles/business/male/african.png"),
+  'middle-eastern': require("../assets/images/styles/business/male/middle-eastern.png"),
+  'south-asian': require("../assets/images/styles/business/male/south-asian.png"),
+  'latin-american': require("../assets/images/styles/business/male/latin-american.png"),
+};
+
 const getGenderSpecificBohoImage = (region: RegionalType, gender: Gender): ImageSourcePropType => {
   if (gender === 'man') return BOHO_MALE_IMAGES[region];
   return BOHO_FEMALE_IMAGES[region];
@@ -101,6 +111,10 @@ const getGenderSpecificBohoImage = (region: RegionalType, gender: Gender): Image
 const getGenderSpecificSportyImage = (region: RegionalType, gender: Gender): ImageSourcePropType => {
   if (gender === 'man') return SPORTY_MALE_IMAGES[region];
   return SPORTY_FEMALE_IMAGES[region];
+};
+
+const getGenderSpecificBusinessImage = (region: RegionalType): ImageSourcePropType => {
+  return BUSINESS_MALE_IMAGES[region];
 };
 
 const getRegionFromCountry = (country: string): RegionalType => {
@@ -154,12 +168,21 @@ type OnboardingScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Onboarding">;
 };
 
-const STYLE_OPTIONS: { id: StyleTheme; name: string; description: string }[] = [
+const STYLE_OPTIONS_FEMALE: { id: StyleTheme; name: string; description: string }[] = [
   { id: "luxury", name: "Formal", description: "Elegant, refined, timeless pieces" },
   { id: "streetwear", name: "Casual", description: "Relaxed, comfortable, everyday style" },
   { id: "boho", name: "Boho", description: "Earthy, relaxed, artistic" },
   { id: "sporty", name: "Sporty", description: "Active, dynamic, athletic" },
   { id: "romantic", name: "Romantic", description: "Soft, feminine, delicate" },
+  { id: "edgy", name: "Edgy", description: "Bold, alternative, dramatic" },
+];
+
+const STYLE_OPTIONS_MALE: { id: StyleTheme; name: string; description: string }[] = [
+  { id: "luxury", name: "Formal", description: "Elegant, refined, timeless pieces" },
+  { id: "streetwear", name: "Casual", description: "Relaxed, comfortable, everyday style" },
+  { id: "boho", name: "Boho", description: "Earthy, relaxed, artistic" },
+  { id: "sporty", name: "Sporty", description: "Active, dynamic, athletic" },
+  { id: "business", name: "Business", description: "Professional suits, shirts, and formal wear" },
   { id: "edgy", name: "Edgy", description: "Bold, alternative, dramatic" },
 ];
 
@@ -439,6 +462,15 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
         );
 
       case 2:
+        const styleOptions = gender === 'man' ? STYLE_OPTIONS_MALE : STYLE_OPTIONS_FEMALE;
+        const getStyleImage = (styleId: StyleTheme): ImageSourcePropType => {
+          const region = getRegionFromCountry(country);
+          if (styleId === 'romantic') return ROMANTIC_REGIONAL_IMAGES[region];
+          if (styleId === 'boho') return getGenderSpecificBohoImage(region, gender);
+          if (styleId === 'sporty') return getGenderSpecificSportyImage(region, gender);
+          if (styleId === 'business') return getGenderSpecificBusinessImage(region);
+          return STYLE_IMAGES[styleId as keyof typeof STYLE_IMAGES];
+        };
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
@@ -449,7 +481,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
             </ThemedText>
             <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.styleOptions}>
-                {STYLE_OPTIONS.map((s) => (
+                {styleOptions.map((s) => (
                   <Pressable
                     key={s.id}
                     onPress={() => setStylePreference(s.id)}
@@ -465,15 +497,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                     ]}
                   >
                     <Image
-                      source={
-                        s.id === 'romantic' 
-                          ? ROMANTIC_REGIONAL_IMAGES[getRegionFromCountry(country)]
-                          : s.id === 'boho'
-                            ? getGenderSpecificBohoImage(getRegionFromCountry(country), gender)
-                            : s.id === 'sporty'
-                              ? getGenderSpecificSportyImage(getRegionFromCountry(country), gender)
-                              : STYLE_IMAGES[s.id as keyof typeof STYLE_IMAGES]
-                      }
+                      source={getStyleImage(s.id)}
                       style={styles.styleImagePreview}
                       resizeMode="cover"
                     />
