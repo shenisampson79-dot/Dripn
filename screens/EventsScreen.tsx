@@ -290,12 +290,10 @@ export default function EventsScreen() {
                   </ThemedText>
                 </View>
                 <View style={styles.detailItem}>
-                  <Feather 
-                    name={event.price.toLowerCase().includes("free") ? "check-circle" : "dollar-sign"} 
-                    size={14} 
-                    color={event.price.toLowerCase().includes("free") ? theme.link : theme.tabIconDefault} 
-                  />
-                  <ThemedText type="small" style={{ marginLeft: 4, opacity: 0.7 }}>
+                  {event.price.toLowerCase().includes("free") ? (
+                    <Feather name="check-circle" size={14} color={theme.link} />
+                  ) : null}
+                  <ThemedText type="small" style={{ marginLeft: event.price.toLowerCase().includes("free") ? 4 : 0, opacity: 0.7 }}>
                     {event.price.toLowerCase().includes("free") ? "Free Entry" : event.price}
                   </ThemedText>
                 </View>
