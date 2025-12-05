@@ -14,6 +14,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PostsProvider } from "@/contexts/PostsContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import { EventsFavoritesProvider } from "@/contexts/EventsFavoritesContext";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -72,11 +73,13 @@ export default function App() {
           <KeyboardProvider>
             <AuthProvider>
               <SubscriptionProvider>
-                <PostsProvider>
-                  <NavigationContainer>
-                    <AppContent />
-                  </NavigationContainer>
-                </PostsProvider>
+                <EventsFavoritesProvider>
+                  <PostsProvider>
+                    <NavigationContainer>
+                      <AppContent />
+                    </NavigationContainer>
+                  </PostsProvider>
+                </EventsFavoritesProvider>
               </SubscriptionProvider>
             </AuthProvider>
             <StatusBar style="auto" />
