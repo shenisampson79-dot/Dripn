@@ -35,11 +35,9 @@ const MEN_BODY_SHAPES: { id: BodyShape; name: string; description: string }[] = 
   { id: "Athletic", name: "Athletic", description: "Muscular build, defined physique" },
 ];
 
-const STYLE_IMAGES: Record<Exclude<StyleTheme, 'romantic'>, ImageSourcePropType> = {
+const STYLE_IMAGES: Record<Exclude<StyleTheme, 'romantic' | 'boho' | 'sporty'>, ImageSourcePropType> = {
   luxury: require("../assets/images/styles/luxury.png"),
   streetwear: require("../assets/images/styles/streetwear.png"),
-  boho: require("../assets/images/styles/boho.png"),
-  sporty: require("../assets/images/styles/sporty.png"),
   edgy: require("../assets/images/styles/edgy.png"),
 };
 
@@ -53,6 +51,26 @@ const ROMANTIC_REGIONAL_IMAGES: Record<RegionalType, ImageSourcePropType> = {
   'middle-eastern': require("../assets/images/styles/romantic/middle-eastern.png"),
   'south-asian': require("../assets/images/styles/romantic/south-asian.png"),
   'latin-american': require("../assets/images/styles/romantic/latin-american.png"),
+};
+
+const BOHO_REGIONAL_IMAGES: Record<RegionalType, ImageSourcePropType> = {
+  'multicultural': require("../assets/images/styles/boho/multicultural.png"),
+  'nordic': require("../assets/images/styles/boho/nordic.png"),
+  'asian': require("../assets/images/styles/boho/asian.png"),
+  'african': require("../assets/images/styles/boho/african.png"),
+  'middle-eastern': require("../assets/images/styles/boho/middle-eastern.png"),
+  'south-asian': require("../assets/images/styles/boho/south-asian.png"),
+  'latin-american': require("../assets/images/styles/boho/latin-american.png"),
+};
+
+const SPORTY_REGIONAL_IMAGES: Record<RegionalType, ImageSourcePropType> = {
+  'multicultural': require("../assets/images/styles/sporty/multicultural.png"),
+  'nordic': require("../assets/images/styles/sporty/nordic.png"),
+  'asian': require("../assets/images/styles/sporty/asian.png"),
+  'african': require("../assets/images/styles/sporty/african.png"),
+  'middle-eastern': require("../assets/images/styles/sporty/middle-eastern.png"),
+  'south-asian': require("../assets/images/styles/sporty/south-asian.png"),
+  'latin-american': require("../assets/images/styles/sporty/latin-american.png"),
 };
 
 const getRegionFromCountry = (country: string): RegionalType => {
@@ -417,9 +435,15 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                     ]}
                   >
                     <Image
-                      source={s.id === 'romantic' 
-                        ? ROMANTIC_REGIONAL_IMAGES[getRegionFromCountry(country)]
-                        : STYLE_IMAGES[s.id]}
+                      source={
+                        s.id === 'romantic' 
+                          ? ROMANTIC_REGIONAL_IMAGES[getRegionFromCountry(country)]
+                          : s.id === 'boho'
+                            ? BOHO_REGIONAL_IMAGES[getRegionFromCountry(country)]
+                            : s.id === 'sporty'
+                              ? SPORTY_REGIONAL_IMAGES[getRegionFromCountry(country)]
+                              : STYLE_IMAGES[s.id as keyof typeof STYLE_IMAGES]
+                      }
                       style={styles.styleImagePreview}
                       resizeMode="cover"
                     />
