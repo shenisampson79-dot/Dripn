@@ -21,6 +21,14 @@ The app is built with **Expo React Native** and **TypeScript**, utilizing **Reac
 - **Brandied Melon** (#C87941) - Warm muted orange
 - **Lyons Blue** (#1E5B73) - Deep teal for business
 
+**Hot Colors Rotation Policy:**
+- The app always features colors for the CURRENT YEAR and NEXT YEAR only
+- When a year ends (e.g., Dec 31 2025), remove that year's colors from the palette
+- Pantone typically announces next year's Color of the Year in early December
+- Update the color palette when new year colors are announced
+- Example: In January 2026, remove 2025 colors (Mocha Mousse), keep only 2026 colors until 2027 colors are announced
+- Theme colors in `constants/theme.ts` should be updated accordingly each year
+
 **Key Features:**
 - **Subscription Tiers**: Freemium model with Free, Basic, Plus, Premium, and Elite tiers, offering varying levels of uploads, AI advice requests, and advanced features like video posts and personal styling sessions.
 - **Content Creation**: Users can create standard outfit posts with photos/videos and comparison polls (A vs B voting).
