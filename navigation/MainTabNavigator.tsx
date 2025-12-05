@@ -71,7 +71,6 @@ export default function MainTabNavigator({ onCreatePost }: MainTabNavigatorProps
           tabBarActiveTintColor: theme.tabIconSelected,
           tabBarInactiveTintColor: theme.tabIconDefault,
           tabBarStyle: {
-            position: "absolute",
             backgroundColor: theme.backgroundRoot,
             borderTopWidth: StyleSheet.hairlineWidth,
             borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
