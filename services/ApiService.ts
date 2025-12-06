@@ -140,6 +140,43 @@ class ApiService {
   isConfigured() {
     return Boolean(API_URL);
   }
+
+  async getVIPMembers() {
+    return this.request<any[]>('/api/video/vip-members');
+  }
+
+  async initiateCall(calleeId: string) {
+    return this.request<{ callId: string; roomUrl: string; roomToken: string }>('/api/video/call', {
+      method: 'POST',
+      body: JSON.stringify({ calleeId }),
+    });
+  }
+
+  async acceptCall(callId: string) {
+    return this.request<{ roomUrl: string; roomToken: string }>(`/api/video/call/${callId}/accept`, {
+      method: 'POST',
+    });
+  }
+
+  async endCall(callId: string) {
+    return this.request<{ success: boolean }>(`/api/video/call/${callId}/end`, {
+      method: 'POST',
+    });
+  }
+
+  async getIncomingCalls() {
+    return this.request<any[]>('/api/video/incoming');
+  }
+
+  async getCallHistory() {
+    return this.request<any[]>('/api/video/history');
+  }
+
+  async startStylistVideoSession(sessionId: string) {
+    return this.request<{ roomUrl: string; roomToken: string }>(`/api/sessions/${sessionId}/start-video`, {
+      method: 'POST',
+    });
+  }
 }
 
 export const apiService = new ApiService();

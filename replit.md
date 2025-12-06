@@ -14,7 +14,7 @@ The app is built with Expo React Native and TypeScript, utilizing React Navigati
 The application incorporates a dynamic "Hot Colors Rotation Policy" that ensures the color palette in `constants/theme.ts` is updated annually based on Pantone's "Color of the Year" announcements, always featuring colors for the current and next year.
 
 Key Features include:
-- **Subscription Tiers**: Freemium model with Free, Basic, Premium, and VIP tiers offering varied access to uploads, AI advice requests, video posts, and personal stylist sessions.
+- **Subscription Tiers**: Freemium model with Free, Basic, Premium, and VIP ($4,999/month) tiers offering varied access to uploads, AI advice requests, video posts, personal stylist sessions, and VIP video calling.
 - **Content Creation**: Users can create outfit posts with photos/videos and comparison polls.
 - **AI Fashion Advice**: AI-driven advice incorporates color analysis, personalized recommendations, influencer trends, and culturally relevant insights, filtered by gender and region.
 - **Community Engagement**: Supports voice comments, content reporting, and viral sharing with auto-generated hashtags.
@@ -36,6 +36,38 @@ The app also includes a comprehensive **Fashion Accessories System** within the 
 A **Fashion Trend Intelligence System** curates global trend data from fashion publications and influencers. This system delivers regional/gender-specific trend data, trending items, influencer recommendations, color trends, style movements, and cultural notes, with access tiered by subscription level.
 
 A **Visual Outfit Inspiration System** provides a Pinterest-style feature with similar outfit ideas. It uses a curated outfit library organized by style category and gender, with future plans for AI-generated images via DALL-E integration.
+
+## VIP Video Calling System
+VIP members have exclusive access to video calling features hosted on the StyleWise platform:
+
+**VIP-to-VIP Calls**:
+- VIP members can browse other available VIP members in the VIP Members screen
+- Online status indicators show availability
+- Video calls are initiated and hosted within StyleWise (not external social media)
+- Call history and duration tracking
+
+**Stylist Video Sessions**:
+- 4x 60-minute video styling sessions per month for VIP members
+- Sessions with professional stylists conducted via video call
+- Session notes and completion tracking
+
+**Access Control**:
+- Video calling features only visible/accessible to VIP tier subscribers
+- Non-VIP users see upgrade prompts when attempting to access video features
+- Backend enforces VIP-only access via vipAuthMiddleware
+
+**Technical Implementation**:
+- Frontend screens: `screens/VIPMembersScreen.tsx`, `screens/VideoCallScreen.tsx`
+- API endpoints in `backend-code/index.js`:
+  - `GET /api/video/vip-members` - List VIP members for calling
+  - `POST /api/video/call` - Initiate VIP-to-VIP call
+  - `POST /api/video/call/:id/accept` - Accept incoming call
+  - `POST /api/video/call/:id/end` - End/decline call
+  - `GET /api/video/incoming` - Get pending incoming calls
+  - `GET /api/video/history` - Get call history
+  - `POST /api/sessions/:id/start-video` - Start stylist video session
+- Database tables: `vip_peer_calls`, `vip_sessions` (with room_url, room_token columns)
+- Navigation: Accessible from Profile screen for VIP users
 
 ## Admin Notification System
 The backend includes an admin notification system for VIP purchases:

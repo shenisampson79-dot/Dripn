@@ -25,6 +25,9 @@ export interface TierLimits {
   exclusiveContent: boolean;
   affiliateAccess: boolean;
   customThemes: boolean;
+  canMakeVideoCalls: boolean;
+  stylistSessionsPerMonth: number;
+  canCallVIPMembers: boolean;
 }
 
 export interface UsageStats {
@@ -79,6 +82,9 @@ const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     exclusiveContent: false,
     affiliateAccess: false,
     customThemes: false,
+    canMakeVideoCalls: false,
+    stylistSessionsPerMonth: 0,
+    canCallVIPMembers: false,
   },
   basic: {
     uploadsPerMonth: 20,
@@ -92,6 +98,9 @@ const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     exclusiveContent: false,
     affiliateAccess: false,
     customThemes: true,
+    canMakeVideoCalls: false,
+    stylistSessionsPerMonth: 0,
+    canCallVIPMembers: false,
   },
   premium: {
     uploadsPerMonth: 100,
@@ -105,6 +114,9 @@ const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     exclusiveContent: true,
     affiliateAccess: true,
     customThemes: true,
+    canMakeVideoCalls: false,
+    stylistSessionsPerMonth: 0,
+    canCallVIPMembers: false,
   },
   vip: {
     uploadsPerMonth: Infinity,
@@ -118,6 +130,9 @@ const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     exclusiveContent: true,
     affiliateAccess: true,
     customThemes: true,
+    canMakeVideoCalls: true,
+    stylistSessionsPerMonth: 4,
+    canCallVIPMembers: true,
   },
 };
 
@@ -174,11 +189,12 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: 'vip',
     tier: 'vip',
     name: 'VIP Influencer',
-    price: 1999,
+    price: 4999,
     interval: 'month',
     priceId: 'price_vip_monthly',
     features: [
-      '4x 60-min video call styling sessions/month',
+      '4x 60-min video styling sessions on StyleWise',
+      'Video calls with VIP members',
       'Unlimited posts',
       'Exclusive VIP badge',
       'Personal AI stylist',

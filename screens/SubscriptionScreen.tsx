@@ -86,11 +86,12 @@ const PLANS: Plan[] = [
   {
     id: "vip",
     name: "VIP",
-    price: "$1,999",
+    price: "$4,999",
     period: "/month",
     description: "The ultimate style experience",
     features: [
-      { text: "4x 60-min video call styling sessions/month", included: true, bold: true },
+      { text: "4x 60-min video styling sessions on StyleWise", included: true, bold: true },
+      { text: "Video calls with VIP members", included: true, bold: true },
       { text: "Unlimited posts", included: true },
       { text: "Exclusive VIP badge", included: true },
       { text: "Personal AI stylist", included: true },

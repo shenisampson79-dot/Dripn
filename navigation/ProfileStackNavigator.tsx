@@ -4,6 +4,8 @@ import ProfileScreen from "@/screens/ProfileScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
 import SubscriptionScreen from "@/screens/SubscriptionScreen";
 import EditProfileScreen from "@/screens/EditProfileScreen";
+import VIPMembersScreen from "@/screens/VIPMembersScreen";
+import VideoCallScreen from "@/screens/VideoCallScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -13,6 +15,16 @@ export type ProfileStackParamList = {
   Settings: undefined;
   Subscription: undefined;
   EditProfile: undefined;
+  VIPMembers: undefined;
+  VideoCall: {
+    callId?: string;
+    roomUrl: string;
+    roomToken?: string;
+    calleeId?: string;
+    calleeName?: string;
+    sessionId?: string;
+    isStylistSession?: boolean;
+  };
 };
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -55,6 +67,23 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={EditProfileScreen}
         options={{
           title: "Edit Profile",
+        }}
+      />
+      <Stack.Screen
+        name="VIPMembers"
+        component={VIPMembersScreen}
+        options={{
+          title: "VIP Members",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="VideoCall"
+        component={VideoCallScreen}
+        options={{
+          title: "Video Call",
+          headerShown: false,
+          presentation: "fullScreenModal",
         }}
       />
     </Stack.Navigator>

@@ -281,6 +281,22 @@ async function initDB() {
         role VARCHAR(20) DEFAULT 'admin',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS vip_peer_calls (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        caller_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        callee_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        room_url TEXT,
+        room_token TEXT,
+        status VARCHAR(20) DEFAULT 'pending',
+        started_at TIMESTAMP,
+        ended_at TIMESTAMP,
+        duration_seconds INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      ALTER TABLE vip_sessions ADD COLUMN IF NOT EXISTS room_url TEXT;
+      ALTER TABLE vip_sessions ADD COLUMN IF NOT EXISTS room_token TEXT;
     `);
     console.log('Database tables initialized');
   } catch (error) {
@@ -1317,6 +1333,297 @@ app.post('/api/sessions/:id/cancel', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Cancel session error:', error);
     res.status(500).json({ error: 'Failed to cancel session' });
+  }
+});
+
+// ============ VIP VIDEO CALLING ROUTES ============
+
+// VIP auth middleware - verifies user is VIP tier
+async function vipAuthMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.userId;
+    
+    const userResult = await pool.query('SELECT subscription_tier FROM users WHERE id = $1', [req.userId]);
+    if (userResult.rows.length === 0 || userResult.rows[0].subscription_tier !== 'vip') {
+      return res.status(403).json({ error: 'VIP subscription required for video calls' });
+    }
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+// Generate a unique room URL for video calls
+function generateRoomUrl() {
+  const roomId = uuidv4().substring(0, 8);
+  const baseUrl = process.env.REPLIT_DEV_DOMAIN || 'stylewise.replit.app';
+  return `https://${baseUrl}/video-room/${roomId}`;
+}
+
+// Get list of VIP members available for video calls
+app.get('/api/video/vip-members', vipAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, display_name, avatar_url, bio 
+      FROM users 
+      WHERE subscription_tier = 'vip' AND id != $1
+      ORDER BY display_name ASC
+    `, [req.userId]);
+
+    const members = result.rows.map(u => ({
+      id: u.id,
+      displayName: u.display_name,
+      avatarUrl: u.avatar_url,
+      bio: u.bio
+    }));
+
+    res.json(members);
+  } catch (error) {
+    console.error('Get VIP members error:', error);
+    res.status(500).json({ error: 'Failed to get VIP members' });
+  }
+});
+
+// Initiate a VIP-to-VIP video call
+app.post('/api/video/call', vipAuthMiddleware, async (req, res) => {
+  try {
+    const { calleeId } = req.body;
+
+    if (!calleeId) {
+      return res.status(400).json({ error: 'Callee ID required' });
+    }
+
+    // Verify callee is also VIP
+    const calleeResult = await pool.query('SELECT subscription_tier, display_name FROM users WHERE id = $1', [calleeId]);
+    if (calleeResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (calleeResult.rows[0].subscription_tier !== 'vip') {
+      return res.status(403).json({ error: 'Can only call VIP members' });
+    }
+
+    const roomUrl = generateRoomUrl();
+    const roomToken = uuidv4();
+
+    const result = await pool.query(
+      `INSERT INTO vip_peer_calls (caller_id, callee_id, room_url, room_token, status) 
+       VALUES ($1, $2, $3, $4, 'pending') 
+       RETURNING *`,
+      [req.userId, calleeId, roomUrl, roomToken]
+    );
+
+    res.json({
+      callId: result.rows[0].id,
+      roomUrl: result.rows[0].room_url,
+      roomToken: result.rows[0].room_token,
+      status: result.rows[0].status,
+      calleeName: calleeResult.rows[0].display_name
+    });
+  } catch (error) {
+    console.error('Initiate call error:', error);
+    res.status(500).json({ error: 'Failed to initiate call' });
+  }
+});
+
+// Accept a video call
+app.post('/api/video/call/:id/accept', vipAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE vip_peer_calls 
+       SET status = 'active', started_at = CURRENT_TIMESTAMP 
+       WHERE id = $1 AND callee_id = $2 AND status = 'pending'
+       RETURNING *`,
+      [req.params.id, req.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Call not found or already handled' });
+    }
+
+    res.json({
+      id: result.rows[0].id,
+      roomUrl: result.rows[0].room_url,
+      roomToken: result.rows[0].room_token,
+      status: result.rows[0].status
+    });
+  } catch (error) {
+    console.error('Accept call error:', error);
+    res.status(500).json({ error: 'Failed to accept call' });
+  }
+});
+
+// Decline or end a video call
+app.post('/api/video/call/:id/end', vipAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE vip_peer_calls 
+       SET status = 'ended', ended_at = CURRENT_TIMESTAMP,
+           duration_seconds = EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - COALESCE(started_at, created_at)))::INTEGER
+       WHERE id = $1 AND (caller_id = $2 OR callee_id = $2)
+       RETURNING *`,
+      [req.params.id, req.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Call not found' });
+    }
+
+    res.json({ message: 'Call ended', call: result.rows[0] });
+  } catch (error) {
+    console.error('End call error:', error);
+    res.status(500).json({ error: 'Failed to end call' });
+  }
+});
+
+// Get pending incoming calls
+app.get('/api/video/incoming', vipAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT c.*, u.display_name as caller_name, u.avatar_url as caller_avatar
+      FROM vip_peer_calls c
+      JOIN users u ON c.caller_id = u.id
+      WHERE c.callee_id = $1 AND c.status = 'pending'
+      AND c.created_at > NOW() - INTERVAL '2 minutes'
+      ORDER BY c.created_at DESC
+    `, [req.userId]);
+
+    const calls = result.rows.map(c => ({
+      id: c.id,
+      caller: {
+        id: c.caller_id,
+        displayName: c.caller_name,
+        avatarUrl: c.caller_avatar
+      },
+      roomUrl: c.room_url,
+      createdAt: c.created_at
+    }));
+
+    res.json(calls);
+  } catch (error) {
+    console.error('Get incoming calls error:', error);
+    res.status(500).json({ error: 'Failed to get incoming calls' });
+  }
+});
+
+// Get call history
+app.get('/api/video/history', vipAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT c.*, 
+             caller.display_name as caller_name, caller.avatar_url as caller_avatar,
+             callee.display_name as callee_name, callee.avatar_url as callee_avatar
+      FROM vip_peer_calls c
+      JOIN users caller ON c.caller_id = caller.id
+      JOIN users callee ON c.callee_id = callee.id
+      WHERE c.caller_id = $1 OR c.callee_id = $1
+      ORDER BY c.created_at DESC
+      LIMIT 50
+    `, [req.userId]);
+
+    const calls = result.rows.map(c => ({
+      id: c.id,
+      caller: {
+        id: c.caller_id,
+        displayName: c.caller_name,
+        avatarUrl: c.caller_avatar
+      },
+      callee: {
+        id: c.callee_id,
+        displayName: c.callee_name,
+        avatarUrl: c.callee_avatar
+      },
+      status: c.status,
+      durationSeconds: c.duration_seconds,
+      createdAt: c.created_at
+    }));
+
+    res.json(calls);
+  } catch (error) {
+    console.error('Get call history error:', error);
+    res.status(500).json({ error: 'Failed to get call history' });
+  }
+});
+
+// Start video session with stylist (VIP only)
+app.post('/api/sessions/:id/start-video', authMiddleware, async (req, res) => {
+  try {
+    // Check if user is VIP
+    const userResult = await pool.query('SELECT subscription_tier FROM users WHERE id = $1', [req.userId]);
+    if (userResult.rows.length === 0 || userResult.rows[0].subscription_tier !== 'vip') {
+      return res.status(403).json({ error: 'VIP subscription required for video sessions' });
+    }
+
+    // Check session belongs to user and is scheduled
+    const sessionResult = await pool.query(
+      `SELECT * FROM vip_sessions WHERE id = $1 AND vip_user_id = $2`,
+      [req.params.id, req.userId]
+    );
+
+    if (sessionResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const session = sessionResult.rows[0];
+    if (session.status === 'completed' || session.status === 'cancelled') {
+      return res.status(400).json({ error: 'Session is not available' });
+    }
+
+    const roomUrl = generateRoomUrl();
+    const roomToken = uuidv4();
+
+    const updateResult = await pool.query(
+      `UPDATE vip_sessions 
+       SET room_url = $1, room_token = $2, status = 'in_progress'
+       WHERE id = $3
+       RETURNING *`,
+      [roomUrl, roomToken, req.params.id]
+    );
+
+    res.json({
+      sessionId: updateResult.rows[0].id,
+      roomUrl: updateResult.rows[0].room_url,
+      roomToken: updateResult.rows[0].room_token,
+      status: updateResult.rows[0].status
+    });
+  } catch (error) {
+    console.error('Start video session error:', error);
+    res.status(500).json({ error: 'Failed to start video session' });
+  }
+});
+
+// Stylist joins video session
+app.post('/api/stylist/sessions/:id/join-video', stylistAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM vip_sessions WHERE id = $1 AND stylist_id = $2`,
+      [req.params.id, req.stylistId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const session = result.rows[0];
+    if (!session.room_url) {
+      return res.status(400).json({ error: 'Video session not started by VIP user yet' });
+    }
+
+    res.json({
+      sessionId: session.id,
+      roomUrl: session.room_url,
+      roomToken: session.room_token,
+      status: session.status
+    });
+  } catch (error) {
+    console.error('Stylist join video error:', error);
+    res.status(500).json({ error: 'Failed to join video session' });
   }
 });
 

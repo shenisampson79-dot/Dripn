@@ -11,6 +11,7 @@ import { Spacing, BorderRadius, SubscriptionColors, ContributorColors } from "@/
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePosts } from "@/contexts/PostsContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useEventsFavorites } from "@/contexts/EventsFavoritesContext";
 import { useOutfitFavorites, LikedOutfit } from "@/contexts/OutfitFavoritesContext";
 import { getCategoryIcon } from "@/services/EventsService";
@@ -41,6 +42,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const { theme } = useTheme();
   const { user } = useAuth();
   const { posts, votePost, voteComparison, thankPost } = usePosts();
+  const { limits } = useSubscription();
   const { getLikedEvents, toggleLike, isLoading: eventsLoading } = useEventsFavorites();
   const { getLikedOutfits, toggleOutfitLike, isOutfitLiked, isLoading: outfitsLoading } = useOutfitFavorites();
   const [activeTab, setActiveTab] = useState<"posts" | "advice" | "outfits" | "events">("posts");
@@ -59,6 +61,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
   const handleSubscriptionPress = () => {
     navigation.navigate("Subscription");
+  };
+
+  const handleVIPMembersPress = () => {
+    navigation.navigate("VIPMembers");
   };
 
   const getSubscriptionBadge = () => {
@@ -159,6 +165,21 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             {user?.subscriptionTier === "free" ? "Upgrade to Premium" : "Manage Subscription"}
           </ThemedText>
         </Pressable>
+
+        {limits.canMakeVideoCalls ? (
+          <Pressable
+            onPress={handleVIPMembersPress}
+            style={({ pressed }) => [
+              styles.vipCallButton,
+              { backgroundColor: '#F59E0B', opacity: pressed ? 0.9 : 1 },
+            ]}
+          >
+            <Feather name="video" size={18} color="#FFFFFF" />
+            <ThemedText type="body" style={styles.upgradeButtonText}>
+              VIP Video Calling
+            </ThemedText>
+          </Pressable>
+        ) : null}
 
       </View>
 
@@ -594,6 +615,15 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
     borderRadius: BorderRadius.full,
+  },
+  vipCallButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    marginTop: Spacing.sm,
   },
   upgradeButtonText: {
     color: "#FFFFFF",
