@@ -8,7 +8,7 @@ import { useTheme } from "@/hooks/useTheme";
 
 const logoIconWhite = require("../assets/images/dripn-logo-icon.png");
 const logoIconGold = require("../assets/images/dripn-logo-gold.png");
-const logoIconGoldCream = require("../assets/images/dripn-logo-gold-cream.png");
+const logoIconGoldCream = require("../assets/images/dripn-logo-gold-exact-cream.png");
 
 export default function LogoPreviewScreen() {
   const insets = useSafeAreaInsets();
