@@ -1775,6 +1775,204 @@ app.post('/api/newsletter/unsubscribe', async (req, res) => {
   }
 });
 
+// Get available newsletter templates (admin only)
+app.get('/api/newsletter/templates', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { getAllNewsletters } = require('./newsletterTemplates');
+    const templates = getAllNewsletters();
+    res.json({ templates });
+  } catch (error) {
+    console.error('Get newsletter templates error:', error);
+    res.status(500).json({ error: 'Failed to get newsletter templates' });
+  }
+});
+
+// Get a specific newsletter template (admin only)
+app.get('/api/newsletter/templates/:id', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { getNewsletter } = require('./newsletterTemplates');
+    const newsletter = getNewsletter(req.params.id);
+    
+    if (!newsletter) {
+      return res.status(404).json({ error: 'Newsletter template not found' });
+    }
+    
+    res.json({ newsletter });
+  } catch (error) {
+    console.error('Get newsletter template error:', error);
+    res.status(500).json({ error: 'Failed to get newsletter template' });
+  }
+});
+
+// Send newsletter to all active subscribers (admin only)
+app.post('/api/newsletter/send', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { templateId, testEmail } = req.body;
+    
+    if (!templateId) {
+      return res.status(400).json({ error: 'Template ID is required' });
+    }
+
+    const { getNewsletter } = require('./newsletterTemplates');
+    const newsletter = getNewsletter(templateId);
+    
+    if (!newsletter) {
+      return res.status(404).json({ error: 'Newsletter template not found' });
+    }
+
+    const sgMail = require('@sendgrid/mail');
+    
+    // Get SendGrid credentials
+    const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+    const xReplitToken = process.env.REPL_IDENTITY 
+      ? 'repl ' + process.env.REPL_IDENTITY 
+      : process.env.WEB_REPL_RENEWAL 
+      ? 'depl ' + process.env.WEB_REPL_RENEWAL 
+      : null;
+
+    if (!xReplitToken) {
+      return res.status(500).json({ error: 'SendGrid credentials not available' });
+    }
+
+    const response = await fetch(
+      'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=sendgrid',
+      {
+        headers: {
+          'Accept': 'application/json',
+          'X_REPLIT_TOKEN': xReplitToken
+        }
+      }
+    );
+
+    const data = await response.json();
+    const sendGridSettings = data.items?.[0];
+
+    if (!sendGridSettings || !sendGridSettings.settings.api_key || !sendGridSettings.settings.from_email) {
+      return res.status(500).json({ error: 'SendGrid not connected' });
+    }
+
+    sgMail.setApiKey(sendGridSettings.settings.api_key);
+    const fromEmail = sendGridSettings.settings.from_email;
+
+    // If test email provided, only send to that email
+    if (testEmail) {
+      await sgMail.send({
+        to: testEmail,
+        from: fromEmail,
+        subject: newsletter.subject,
+        text: newsletter.plainText,
+        html: newsletter.html,
+      });
+
+      return res.json({ 
+        success: true, 
+        message: `Test newsletter sent to ${testEmail}`,
+        sentCount: 1
+      });
+    }
+
+    // Get all active subscribers
+    const subscribersResult = await pool.query(
+      'SELECT email, name FROM newsletter_subscribers WHERE is_active = true'
+    );
+
+    if (subscribersResult.rows.length === 0) {
+      return res.json({ 
+        success: true, 
+        message: 'No active subscribers to send to',
+        sentCount: 0
+      });
+    }
+
+    // Send to all subscribers in batches of 100
+    const subscribers = subscribersResult.rows;
+    let sentCount = 0;
+    const batchSize = 100;
+
+    for (let i = 0; i < subscribers.length; i += batchSize) {
+      const batch = subscribers.slice(i, i + batchSize);
+      const messages = batch.map(sub => ({
+        to: sub.email,
+        from: fromEmail,
+        subject: newsletter.subject,
+        text: newsletter.plainText,
+        html: newsletter.html,
+      }));
+
+      try {
+        await Promise.all(messages.map(msg => sgMail.send(msg)));
+        sentCount += batch.length;
+      } catch (batchError) {
+        console.error(`Error sending batch ${i / batchSize + 1}:`, batchError.message);
+      }
+    }
+
+    // Log the send
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS newsletter_sends (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        template_id VARCHAR(100) NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        sent_count INTEGER DEFAULT 0,
+        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        sent_by VARCHAR(255)
+      )
+    `);
+
+    await pool.query(
+      'INSERT INTO newsletter_sends (template_id, subject, sent_count, sent_by) VALUES ($1, $2, $3, $4)',
+      [templateId, newsletter.subject, sentCount, req.admin?.email || 'admin']
+    );
+
+    res.json({ 
+      success: true, 
+      message: `Newsletter sent to ${sentCount} subscribers`,
+      sentCount,
+      templateId,
+      subject: newsletter.subject
+    });
+  } catch (error) {
+    console.error('Send newsletter error:', error);
+    res.status(500).json({ error: 'Failed to send newsletter' });
+  }
+});
+
+// Get newsletter send history (admin only)
+app.get('/api/newsletter/history', adminAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM newsletter_sends 
+      ORDER BY sent_at DESC 
+      LIMIT 50
+    `);
+    
+    res.json({ history: result.rows });
+  } catch (error) {
+    console.error('Get newsletter history error:', error);
+    res.json({ history: [] });
+  }
+});
+
+// Get subscriber count (admin only)
+app.get('/api/newsletter/stats', adminAuthMiddleware, async (req, res) => {
+  try {
+    const activeResult = await pool.query(
+      'SELECT COUNT(*) as count FROM newsletter_subscribers WHERE is_active = true'
+    );
+    const totalResult = await pool.query(
+      'SELECT COUNT(*) as count FROM newsletter_subscribers'
+    );
+    
+    res.json({ 
+      activeSubscribers: parseInt(activeResult.rows[0]?.count || 0),
+      totalSubscribers: parseInt(totalResult.rows[0]?.count || 0)
+    });
+  } catch (error) {
+    console.error('Get newsletter stats error:', error);
+    res.json({ activeSubscribers: 0, totalSubscribers: 0 });
+  }
+});
+
 // ============ REFERRAL TRACKING ============
 
 app.post('/api/referral/track', async (req, res) => {
