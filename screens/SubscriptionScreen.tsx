@@ -90,8 +90,8 @@ const PLANS: Plan[] = [
     period: "/month",
     description: "The ultimate style experience",
     features: [
-      { text: "4x 60-min video styling sessions on StyleWise", included: true, bold: true },
-      { text: "Video calls with VIP members", included: true, bold: true },
+      { text: "4 x 60 min video call styling session with a real-life pro stylist", included: true, bold: true },
+      { text: "Video calls with VIP members", included: true },
       { text: "Unlimited posts", included: true },
       { text: "Exclusive VIP badge", included: true },
       { text: "Personal AI stylist", included: true },
