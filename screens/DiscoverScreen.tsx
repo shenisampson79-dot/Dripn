@@ -1597,6 +1597,44 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
           </View>
         </View>
       </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h2" style={styles.sectionTitle}>
+          Fashion Insights
+        </ThemedText>
+        <Pressable
+          onPress={() => navigation.navigate("FashionBlog")}
+          style={({ pressed }) => [
+            styles.blogCard,
+            { opacity: pressed ? 0.9 : 1 },
+          ]}
+        >
+          <LinearGradient
+            colors={[theme.link, theme.link + "CC"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.blogGradient}
+          >
+            <View style={styles.blogIconContainer}>
+              <Feather name="book-open" size={28} color="#FFFFFF" />
+            </View>
+            <View style={styles.blogContent}>
+              <ThemedText type="h3" style={styles.blogTitle}>
+                Fashion Blog
+              </ThemedText>
+              <ThemedText type="body" style={styles.blogDescription}>
+                Weekly style tips, trend reports, and expert fashion advice curated by our AI stylists
+              </ThemedText>
+              <View style={styles.blogCta}>
+                <ThemedText type="small" style={styles.blogCtaText}>
+                  Read Latest Articles
+                </ThemedText>
+                <Feather name="arrow-right" size={16} color="#FFFFFF" />
+              </View>
+            </View>
+          </LinearGradient>
+        </Pressable>
+      </View>
     </ScreenScrollView>
   );
 }
@@ -2016,5 +2054,45 @@ const styles = StyleSheet.create({
   magazineMoodText: {
     fontSize: 11,
     fontWeight: "500",
+  },
+  blogCard: {
+    borderRadius: BorderRadius.lg,
+    overflow: "hidden",
+  },
+  blogGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.lg,
+    gap: Spacing.lg,
+  },
+  blogIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  blogContent: {
+    flex: 1,
+  },
+  blogTitle: {
+    color: "#FFFFFF",
+    marginBottom: Spacing.xs,
+  },
+  blogDescription: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: Spacing.sm,
+  },
+  blogCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  blogCtaText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
 });

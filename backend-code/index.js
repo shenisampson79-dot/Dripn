@@ -2023,6 +2023,238 @@ app.get('/api/referral/stats/:code', async (req, res) => {
   }
 });
 
+// ============ NEWSLETTER ENDPOINTS ============
+
+const { generateAINewsletter, generateNewsletterHTML, generateNewsletterPlainText, newsletterCategories, getCurrentSeason } = require('./aiNewsletterService');
+
+// Report newsletter issue (public)
+app.post('/api/newsletter/report', async (req, res) => {
+  try {
+    const { newsletterId, issueType, description, userEmail } = req.body;
+    
+    if (!issueType || !description) {
+      return res.status(400).json({ error: 'Issue type and description are required' });
+    }
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS newsletter_reports (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        newsletter_id VARCHAR(255),
+        issue_type VARCHAR(50) NOT NULL,
+        description TEXT NOT NULL,
+        user_email VARCHAR(255),
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        resolved_at TIMESTAMP
+      )
+    `);
+
+    const result = await pool.query(
+      'INSERT INTO newsletter_reports (newsletter_id, issue_type, description, user_email) VALUES ($1, $2, $3, $4) RETURNING id',
+      [newsletterId || null, issueType, description, userEmail || null]
+    );
+
+    res.json({ 
+      success: true, 
+      reportId: result.rows[0].id,
+      message: 'Thank you for your report. We will review it shortly.' 
+    });
+  } catch (error) {
+    console.error('Newsletter report error:', error);
+    res.status(500).json({ error: 'Failed to submit report' });
+  }
+});
+
+// Generate AI newsletter (admin only)
+app.post('/api/newsletter/generate', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { category, gender, region } = req.body;
+
+    const result = await generateAINewsletter({
+      category: category || undefined,
+      gender: gender || 'unisex',
+      region: region || 'UK',
+      season: getCurrentSeason()
+    });
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error || 'Failed to generate newsletter' });
+    }
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS published_newsletters (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        subject VARCHAR(255) NOT NULL,
+        headline VARCHAR(255) NOT NULL,
+        introduction TEXT,
+        tips JSONB,
+        closing_message TEXT,
+        category VARCHAR(100),
+        tags TEXT[],
+        gender VARCHAR(20),
+        season VARCHAR(20),
+        region VARCHAR(50),
+        html_content TEXT,
+        plain_text_content TEXT,
+        published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        views INTEGER DEFAULT 0
+      )
+    `);
+
+    const newsletterData = result.data;
+    const htmlContent = generateNewsletterHTML(newsletterData);
+    const plainTextContent = generateNewsletterPlainText(newsletterData);
+
+    const insertResult = await pool.query(
+      `INSERT INTO published_newsletters 
+       (subject, headline, introduction, tips, closing_message, category, tags, gender, season, region, html_content, plain_text_content) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+       RETURNING id, published_at`,
+      [
+        newsletterData.subject,
+        newsletterData.headline,
+        newsletterData.introduction,
+        JSON.stringify(newsletterData.tips),
+        newsletterData.closingMessage,
+        newsletterData.category,
+        newsletterData.tags || [],
+        newsletterData.gender,
+        newsletterData.season,
+        newsletterData.region,
+        htmlContent,
+        plainTextContent
+      ]
+    );
+
+    res.json({ 
+      success: true, 
+      newsletterId: insertResult.rows[0].id,
+      publishedAt: insertResult.rows[0].published_at,
+      data: newsletterData
+    });
+  } catch (error) {
+    console.error('Newsletter generation error:', error);
+    res.status(500).json({ error: 'Failed to generate newsletter' });
+  }
+});
+
+// Get published newsletters (public blog endpoint)
+app.get('/api/newsletter/published', async (req, res) => {
+  try {
+    const { limit = 20, offset = 0, category, gender } = req.query;
+
+    let query = `
+      SELECT id, subject, headline, introduction, tips, closing_message, category, tags, 
+             gender, season, region, published_at, views
+      FROM published_newsletters
+      WHERE 1=1
+    `;
+    const params = [];
+    let paramIndex = 1;
+
+    if (category) {
+      query += ` AND category = $${paramIndex}`;
+      params.push(category);
+      paramIndex++;
+    }
+
+    if (gender && gender !== 'unisex') {
+      query += ` AND (gender = $${paramIndex} OR gender = 'unisex')`;
+      params.push(gender);
+      paramIndex++;
+    }
+
+    query += ` ORDER BY published_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    params.push(parseInt(limit), parseInt(offset));
+
+    const result = await pool.query(query, params);
+
+    const newsletters = result.rows.map(row => {
+      let parsedTips = row.tips;
+      if (typeof parsedTips === 'string') {
+        try {
+          parsedTips = JSON.parse(parsedTips);
+        } catch (e) {
+          parsedTips = [];
+        }
+      }
+      return {
+        id: row.id,
+        subject: row.subject,
+        headline: row.headline,
+        introduction: row.introduction,
+        tips: parsedTips || [],
+        closingMessage: row.closing_message,
+        category: row.category,
+        tags: row.tags || [],
+        gender: row.gender,
+        season: row.season,
+        region: row.region,
+        publishedAt: row.published_at,
+        views: row.views
+      };
+    });
+
+    res.json({ newsletters, categories: newsletterCategories });
+  } catch (error) {
+    console.error('Get published newsletters error:', error);
+    res.json({ newsletters: [], categories: newsletterCategories });
+  }
+});
+
+// Get single newsletter by ID (public)
+app.get('/api/newsletter/:id', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, subject, headline, introduction, tips, closing_message, category, tags, 
+              gender, season, region, html_content, plain_text_content, published_at, views
+       FROM published_newsletters WHERE id = $1`,
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Newsletter not found' });
+    }
+
+    const row = result.rows[0];
+    
+    pool.query(
+      'UPDATE published_newsletters SET views = views + 1 WHERE id = $1',
+      [req.params.id]
+    ).catch(err => console.error('View increment error:', err));
+
+    let parsedTips = row.tips;
+    if (typeof parsedTips === 'string') {
+      try {
+        parsedTips = JSON.parse(parsedTips);
+      } catch (e) {
+        parsedTips = [];
+      }
+    }
+
+    res.json({
+      id: row.id,
+      subject: row.subject,
+      headline: row.headline,
+      introduction: row.introduction,
+      tips: parsedTips || [],
+      closingMessage: row.closing_message,
+      category: row.category,
+      tags: row.tags || [],
+      gender: row.gender,
+      season: row.season,
+      region: row.region,
+      htmlContent: row.html_content,
+      plainTextContent: row.plain_text_content,
+      publishedAt: row.published_at,
+      views: row.views + 1
+    });
+  } catch (error) {
+    console.error('Get newsletter error:', error);
+    res.status(500).json({ error: 'Failed to get newsletter' });
+  }
+});
+
 // ============ HEALTH CHECK ============
 
 app.get('/', (req, res) => {
