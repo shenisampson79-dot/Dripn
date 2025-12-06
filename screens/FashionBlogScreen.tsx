@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { StyleSheet, View, Pressable, RefreshControl, Alert, Linking } from "react-native";
+import { StyleSheet, View, Pressable, RefreshControl, Alert, ActivityIndicator } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ScreenFlatList } from "@/components/ScreenFlatList";
 import { ThemedText } from "@/components/ThemedText";
@@ -12,6 +13,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiService } from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
 
 type FashionBlogScreenProps = {
@@ -34,9 +36,11 @@ interface BlogPost {
   }>;
 }
 
-const MOCK_BLOG_POSTS: BlogPost[] = [
+const NEWSLETTER_SUBSCRIPTION_KEY = "@stylewise_newsletter_subscribed";
+
+const FALLBACK_BLOG_POSTS: BlogPost[] = [
   {
-    id: "1",
+    id: "fallback-1",
     subject: "StyleWise Weekly: 5 Winter Wardrobe Essentials",
     headline: "5 Winter Wardrobe Essentials You Need Right Now",
     previewText: "Build your perfect cold-weather capsule wardrobe",
@@ -51,7 +55,7 @@ const MOCK_BLOG_POSTS: BlogPost[] = [
     ]
   },
   {
-    id: "2",
+    id: "fallback-2",
     subject: "StyleWise Weekly: The Colour Confidence Guide",
     headline: "The Colour Confidence Guide - Find Your Perfect Palette",
     previewText: "Discover which colours make you look radiant",
@@ -66,7 +70,7 @@ const MOCK_BLOG_POSTS: BlogPost[] = [
     ]
   },
   {
-    id: "3",
+    id: "fallback-3",
     subject: "StyleWise Weekly: Smart Casual Decoded",
     headline: "Smart Casual Decoded - What It Actually Means",
     previewText: "Master effortlessly polished dressing",
@@ -85,14 +89,65 @@ const MOCK_BLOG_POSTS: BlogPost[] = [
 export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
-  const [posts, setPosts] = useState<BlogPost[]>(MOCK_BLOG_POSTS);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [reportingPostId, setReportingPostId] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadSubscriptionStatus();
+    fetchPosts();
+  }, []);
+
+  const loadSubscriptionStatus = async () => {
+    try {
+      const subscribed = await AsyncStorage.getItem(NEWSLETTER_SUBSCRIPTION_KEY);
+      setIsSubscribed(subscribed === "true");
+    } catch (error) {
+      console.log("Error loading subscription status:", error);
+    }
+  };
+
+  const fetchPosts = async () => {
+    try {
+      setLoading(true);
+      
+      if (!apiService.isConfigured()) {
+        setPosts(FALLBACK_BLOG_POSTS);
+        return;
+      }
+
+      const response = await apiService.getPublishedNewsletters({ limit: 20 });
+      
+      if (response.newsletters && response.newsletters.length > 0) {
+        const formattedPosts: BlogPost[] = response.newsletters.map(newsletter => ({
+          id: newsletter.id,
+          subject: newsletter.subject,
+          headline: newsletter.headline,
+          previewText: newsletter.introduction?.substring(0, 100) || "",
+          introduction: newsletter.introduction,
+          category: newsletter.category,
+          tags: newsletter.tags || [],
+          publishedAt: newsletter.publishedAt,
+          tips: newsletter.tips || []
+        }));
+        setPosts(formattedPosts);
+      } else {
+        setPosts(FALLBACK_BLOG_POSTS);
+      }
+    } catch (error) {
+      console.log("Error fetching newsletters, using fallback:", error);
+      setPosts(FALLBACK_BLOG_POSTS);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await fetchPosts();
     setRefreshing(false);
   }, []);
 
@@ -109,34 +164,72 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
 
   const handleSubscribe = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsSubscribed(true);
-    Alert.alert(
-      "Subscribed!",
-      "You'll receive our weekly fashion newsletter straight to your inbox.",
-      [{ text: "Great!" }]
-    );
+    
+    try {
+      if (apiService.isConfigured() && user?.email) {
+        await apiService.subscribeToNewsletter(user.email, user.displayName);
+      }
+      
+      await AsyncStorage.setItem(NEWSLETTER_SUBSCRIPTION_KEY, "true");
+      setIsSubscribed(true);
+      
+      Alert.alert(
+        "Subscribed!",
+        "You'll receive our weekly fashion newsletter straight to your inbox.",
+        [{ text: "Great!" }]
+      );
+    } catch (error) {
+      console.log("Error subscribing to newsletter:", error);
+      Alert.alert(
+        "Subscription Failed",
+        "We couldn't complete your subscription. Please try again later.",
+        [{ text: "OK" }]
+      );
+    }
   };
 
   const handleReport = (postId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setReportingPostId(postId);
+    
     Alert.alert(
       "Report Issue",
       "What would you like to report?",
       [
-        { text: "Typo or Error", onPress: () => submitReport(postId, "typo") },
-        { text: "Offensive Content", onPress: () => submitReport(postId, "offensive") },
-        { text: "Inaccurate Information", onPress: () => submitReport(postId, "inaccurate") },
-        { text: "Cancel", style: "cancel" }
+        { text: "Typo or Error", onPress: () => submitReport(postId, "typo", "Typo or grammatical error reported") },
+        { text: "Offensive Content", onPress: () => submitReport(postId, "offensive", "Content flagged as potentially offensive") },
+        { text: "Inaccurate Information", onPress: () => submitReport(postId, "inaccurate", "Information reported as potentially inaccurate") },
+        { text: "Cancel", style: "cancel", onPress: () => setReportingPostId(null) }
       ]
     );
   };
 
-  const submitReport = async (postId: string, type: string) => {
-    Alert.alert(
-      "Report Submitted",
-      "Thank you for your feedback. Our team will review this content.",
-      [{ text: "OK" }]
-    );
+  const submitReport = async (postId: string, issueType: string, description: string) => {
+    try {
+      if (apiService.isConfigured()) {
+        await apiService.reportNewsletterIssue({
+          newsletterId: postId,
+          issueType,
+          description,
+          userEmail: user?.email
+        });
+      }
+      
+      Alert.alert(
+        "Report Submitted",
+        "Thank you for your feedback. Our team will review this content.",
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.log("Error submitting report:", error);
+      Alert.alert(
+        "Report Failed",
+        "We couldn't submit your report. Please try again later.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setReportingPostId(null);
+    }
   };
 
   const toggleExpanded = (postId: string) => {
@@ -232,9 +325,16 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
                 <Pressable 
                   onPress={() => handleReport(item.id)}
                   style={styles.reportButton}
+                  disabled={reportingPostId === item.id}
                 >
-                  <Feather name="flag" size={14} color={theme.tabIconDefault} />
-                  <ThemedText type="caption" style={styles.reportText}>Report</ThemedText>
+                  {reportingPostId === item.id ? (
+                    <ActivityIndicator size="small" color={theme.tabIconDefault} />
+                  ) : (
+                    <>
+                      <Feather name="flag" size={14} color={theme.tabIconDefault} />
+                      <ThemedText type="caption" style={styles.reportText}>Report</ThemedText>
+                    </>
+                  )}
                 </Pressable>
               </View>
             </View>
@@ -255,12 +355,32 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
     );
   };
 
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <Feather name="book-open" size={48} color={theme.tabIconDefault} />
+      <ThemedText type="h3" style={styles.emptyTitle}>No Articles Yet</ThemedText>
+      <ThemedText type="body" style={styles.emptySubtitle}>
+        Check back soon for the latest fashion insights and styling tips.
+      </ThemedText>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <ThemedView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.link} />
+        <ThemedText type="body" style={styles.loadingText}>Loading articles...</ThemedText>
+      </ThemedView>
+    );
+  }
+
   return (
     <ScreenFlatList
       data={posts}
       renderItem={renderPost}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={renderHeader}
+      ListEmptyComponent={renderEmptyState}
       contentContainerStyle={styles.container}
       refreshControl={
         <RefreshControl
@@ -277,6 +397,15 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: Spacing.md,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  loadingText: {
+    opacity: 0.7,
   },
   headerContainer: {
     marginBottom: Spacing.xl,
@@ -395,5 +524,19 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginTop: Spacing.md,
     paddingTop: Spacing.sm,
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.xl * 2,
+    gap: Spacing.md,
+  },
+  emptyTitle: {
+    marginTop: Spacing.md,
+  },
+  emptySubtitle: {
+    opacity: 0.7,
+    textAlign: "center",
+    paddingHorizontal: Spacing.xl,
   },
 });

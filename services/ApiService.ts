@@ -202,6 +202,60 @@ class ApiService {
   async getReferralStats(code: string) {
     return this.request<{ referralCode: string; totalReferrals: number }>(`/api/referral/stats/${code}`);
   }
+
+  async getPublishedNewsletters(params?: { limit?: number; offset?: number; category?: string; gender?: string }) {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.set('limit', params.limit.toString());
+    if (params?.offset) queryParams.set('offset', params.offset.toString());
+    if (params?.category) queryParams.set('category', params.category);
+    if (params?.gender) queryParams.set('gender', params.gender);
+    const queryString = queryParams.toString();
+    return this.request<{ 
+      newsletters: Array<{
+        id: string;
+        subject: string;
+        headline: string;
+        introduction: string;
+        tips: Array<{ title: string; content: string; proTip: string }>;
+        closingMessage: string;
+        category: string;
+        tags: string[];
+        gender: string;
+        season: string;
+        region: string;
+        publishedAt: string;
+        views: number;
+      }>;
+      categories: string[];
+    }>(`/api/newsletter/published${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getNewsletter(id: string) {
+    return this.request<{
+      id: string;
+      subject: string;
+      headline: string;
+      introduction: string;
+      tips: Array<{ title: string; content: string; proTip: string }>;
+      closingMessage: string;
+      category: string;
+      tags: string[];
+      gender: string;
+      season: string;
+      region: string;
+      htmlContent: string;
+      plainTextContent: string;
+      publishedAt: string;
+      views: number;
+    }>(`/api/newsletter/${id}`);
+  }
+
+  async reportNewsletterIssue(data: { newsletterId?: string; issueType: string; description: string; userEmail?: string }) {
+    return this.request<{ success: boolean; reportId: string; message: string }>('/api/newsletter/report', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const apiService = new ApiService();
