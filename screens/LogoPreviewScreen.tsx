@@ -15,97 +15,106 @@ export default function LogoPreviewScreen() {
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top + Spacing.xl }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <ThemedText type="h2" style={styles.header}>Dripn Logo Variations</ThemedText>
+        <ThemedText type="h2" style={styles.header}>Dripn Logo - Color Variations</ThemedText>
+        <ThemedText type="small" style={styles.subheader}>Option 8 with Tagline in Different Colors</ThemedText>
         
-        {/* Option 1: Text Below - Bold Sans */}
+        {/* Option 8A: Gold/Champagne */}
         <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>Option 1: Text Below (Bold)</ThemedText>
-          <View style={[styles.logoPreview, { backgroundColor: '#000' }]}>
+          <ThemedText type="small" style={styles.label}>8A: Champagne Gold</ThemedText>
+          <View style={[styles.logoPreview, { backgroundColor: '#0D0B09' }]}>
             <Image source={logoIcon} style={styles.iconLarge} resizeMode="contain" />
-            <ThemedText style={[styles.logoTextBold, { color: '#FFF' }]}>Dripn</ThemedText>
+            <ThemedText style={[styles.logoTextBold, { color: '#C9A87C' }]}>Dripn</ThemedText>
+            <ThemedText style={[styles.tagline, { color: '#E8D5B7' }]}>Style that flows</ThemedText>
           </View>
         </View>
 
-        {/* Option 2: Text Below - Script Style */}
+        {/* Option 8B: Rose Pink */}
         <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>Option 2: Text Below (Elegant)</ThemedText>
-          <View style={[styles.logoPreview, { backgroundColor: '#000' }]}>
+          <ThemedText type="small" style={styles.label}>8B: Rose Pink</ThemedText>
+          <View style={[styles.logoPreview, { backgroundColor: '#0D0B09' }]}>
             <Image source={logoIcon} style={styles.iconLarge} resizeMode="contain" />
-            <ThemedText style={[styles.logoTextElegant, { color: '#C9A87C' }]}>Dripn</ThemedText>
+            <ThemedText style={[styles.logoTextBold, { color: '#E891B0' }]}>Dripn</ThemedText>
+            <ThemedText style={[styles.tagline, { color: '#F5C6D6' }]}>Style that flows</ThemedText>
           </View>
         </View>
 
-        {/* Option 3: Text Above */}
+        {/* Option 8C: Electric Blue */}
         <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>Option 3: Text Above (Bold)</ThemedText>
-          <View style={[styles.logoPreview, { backgroundColor: '#000' }]}>
-            <ThemedText style={[styles.logoTextBold, { color: '#FFF' }]}>Dripn</ThemedText>
+          <ThemedText type="small" style={styles.label}>8C: Electric Blue</ThemedText>
+          <View style={[styles.logoPreview, { backgroundColor: '#0D0B09' }]}>
             <Image source={logoIcon} style={styles.iconLarge} resizeMode="contain" />
+            <ThemedText style={[styles.logoTextBold, { color: '#4DA8FF' }]}>Dripn</ThemedText>
+            <ThemedText style={[styles.tagline, { color: '#8DC8FF' }]}>Style that flows</ThemedText>
           </View>
         </View>
 
-        {/* Option 4: Horizontal - Icon Left */}
+        {/* Option 8D: Mint Green */}
         <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>Option 4: Horizontal (Icon Left)</ThemedText>
-          <View style={[styles.logoPreviewHorizontal, { backgroundColor: '#000' }]}>
-            <Image source={logoIcon} style={styles.iconMedium} resizeMode="contain" />
-            <ThemedText style={[styles.logoTextHorizontal, { color: '#FFF' }]}>Dripn</ThemedText>
-          </View>
-        </View>
-
-        {/* Option 5: Horizontal - Icon Left (Gold Text) */}
-        <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>Option 5: Horizontal (Gold Text)</ThemedText>
-          <View style={[styles.logoPreviewHorizontal, { backgroundColor: '#000' }]}>
-            <Image source={logoIcon} style={styles.iconMedium} resizeMode="contain" />
-            <ThemedText style={[styles.logoTextHorizontalGold, { color: '#C9A87C' }]}>Dripn</ThemedText>
-          </View>
-        </View>
-
-        {/* Option 6: Compact Horizontal */}
-        <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>Option 6: Compact (App Header Style)</ThemedText>
-          <View style={[styles.logoPreviewHorizontal, { backgroundColor: '#000' }]}>
-            <Image source={logoIcon} style={styles.iconSmall} resizeMode="contain" />
-            <ThemedText style={[styles.logoTextCompact, { color: '#FFF' }]}>Dripn</ThemedText>
-          </View>
-        </View>
-
-        {/* Option 7: White Background Versions */}
-        <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>Option 7: Light Mode Version</ThemedText>
-          <View style={[styles.logoPreviewHorizontal, { backgroundColor: '#FFF' }]}>
-            <View style={styles.iconInverted}>
-              <Image source={logoIcon} style={[styles.iconMedium, { tintColor: '#000' }]} resizeMode="contain" />
-            </View>
-            <ThemedText style={[styles.logoTextHorizontal, { color: '#000' }]}>Dripn</ThemedText>
-          </View>
-        </View>
-
-        {/* Option 8: Stylized with tagline */}
-        <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>Option 8: With Tagline</ThemedText>
-          <View style={[styles.logoPreview, { backgroundColor: '#000' }]}>
+          <ThemedText type="small" style={styles.label}>8D: Mint Green</ThemedText>
+          <View style={[styles.logoPreview, { backgroundColor: '#0D0B09' }]}>
             <Image source={logoIcon} style={styles.iconLarge} resizeMode="contain" />
-            <ThemedText style={[styles.logoTextBold, { color: '#FFF' }]}>Dripn</ThemedText>
-            <ThemedText style={[styles.tagline, { color: '#C9A87C' }]}>Style that flows</ThemedText>
+            <ThemedText style={[styles.logoTextBold, { color: '#5CE5C5' }]}>Dripn</ThemedText>
+            <ThemedText style={[styles.tagline, { color: '#A8F0DC' }]}>Style that flows</ThemedText>
           </View>
         </View>
 
-        {/* Option 9: Uppercase Bold */}
+        {/* Option 8E: Lavender Purple */}
         <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>Option 9: Uppercase Bold</ThemedText>
-          <View style={[styles.logoPreviewHorizontal, { backgroundColor: '#000' }]}>
-            <Image source={logoIcon} style={styles.iconMedium} resizeMode="contain" />
-            <ThemedText style={[styles.logoTextUppercase, { color: '#FFF' }]}>DRIPN</ThemedText>
+          <ThemedText type="small" style={styles.label}>8E: Lavender Purple</ThemedText>
+          <View style={[styles.logoPreview, { backgroundColor: '#0D0B09' }]}>
+            <Image source={logoIcon} style={styles.iconLarge} resizeMode="contain" />
+            <ThemedText style={[styles.logoTextBold, { color: '#B89AE8' }]}>Dripn</ThemedText>
+            <ThemedText style={[styles.tagline, { color: '#D4C4F5' }]}>Style that flows</ThemedText>
           </View>
         </View>
 
-        {/* Option 10: Minimal Icon Only */}
+        {/* Option 8F: Coral Orange */}
         <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>Option 10: Icon Only (App Icon)</ThemedText>
-          <View style={[styles.logoPreview, { backgroundColor: '#000' }]}>
-            <Image source={logoIcon} style={styles.iconXLarge} resizeMode="contain" />
+          <ThemedText type="small" style={styles.label}>8F: Coral Orange</ThemedText>
+          <View style={[styles.logoPreview, { backgroundColor: '#0D0B09' }]}>
+            <Image source={logoIcon} style={styles.iconLarge} resizeMode="contain" />
+            <ThemedText style={[styles.logoTextBold, { color: '#FF7F6B' }]}>Dripn</ThemedText>
+            <ThemedText style={[styles.tagline, { color: '#FFB3A7' }]}>Style that flows</ThemedText>
+          </View>
+        </View>
+
+        {/* Option 8G: Silver Chrome */}
+        <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
+          <ThemedText type="small" style={styles.label}>8G: Silver Chrome</ThemedText>
+          <View style={[styles.logoPreview, { backgroundColor: '#0D0B09' }]}>
+            <Image source={logoIcon} style={styles.iconLarge} resizeMode="contain" />
+            <ThemedText style={[styles.logoTextBold, { color: '#C0C0C0' }]}>Dripn</ThemedText>
+            <ThemedText style={[styles.tagline, { color: '#E0E0E0' }]}>Style that flows</ThemedText>
+          </View>
+        </View>
+
+        {/* Option 8H: Burgundy Wine */}
+        <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
+          <ThemedText type="small" style={styles.label}>8H: Burgundy Wine</ThemedText>
+          <View style={[styles.logoPreview, { backgroundColor: '#0D0B09' }]}>
+            <Image source={logoIcon} style={styles.iconLarge} resizeMode="contain" />
+            <ThemedText style={[styles.logoTextBold, { color: '#9B3D5D' }]}>Dripn</ThemedText>
+            <ThemedText style={[styles.tagline, { color: '#C77A94' }]}>Style that flows</ThemedText>
+          </View>
+        </View>
+
+        {/* Option 8I: Teal */}
+        <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
+          <ThemedText type="small" style={styles.label}>8I: Ocean Teal</ThemedText>
+          <View style={[styles.logoPreview, { backgroundColor: '#0D0B09' }]}>
+            <Image source={logoIcon} style={styles.iconLarge} resizeMode="contain" />
+            <ThemedText style={[styles.logoTextBold, { color: '#2DB3A8' }]}>Dripn</ThemedText>
+            <ThemedText style={[styles.tagline, { color: '#7DD4CC' }]}>Style that flows</ThemedText>
+          </View>
+        </View>
+
+        {/* Option 8J: Sunset Gradient Look */}
+        <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
+          <ThemedText type="small" style={styles.label}>8J: Sunset Peach</ThemedText>
+          <View style={[styles.logoPreview, { backgroundColor: '#0D0B09' }]}>
+            <Image source={logoIcon} style={styles.iconLarge} resizeMode="contain" />
+            <ThemedText style={[styles.logoTextBold, { color: '#FFAB76' }]}>Dripn</ThemedText>
+            <ThemedText style={[styles.tagline, { color: '#FFCDB2' }]}>Style that flows</ThemedText>
           </View>
         </View>
 
@@ -124,7 +133,12 @@ const styles = StyleSheet.create({
   },
   header: {
     textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  subheader: {
+    textAlign: 'center',
     marginBottom: Spacing.xl,
+    opacity: 0.6,
   },
   logoCard: {
     borderRadius: 16,
@@ -142,65 +156,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     borderRadius: 12,
   },
-  logoPreviewHorizontal: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: 12,
-    gap: Spacing.md,
-  },
-  iconXLarge: {
-    width: 120,
-    height: 120,
-  },
   iconLarge: {
     width: 80,
     height: 80,
     marginBottom: Spacing.sm,
   },
-  iconMedium: {
-    width: 50,
-    height: 50,
-  },
-  iconSmall: {
-    width: 36,
-    height: 36,
-  },
-  iconInverted: {
-    backgroundColor: '#FFF',
-  },
   logoTextBold: {
     fontSize: 32,
     fontWeight: '800',
     letterSpacing: 2,
-  },
-  logoTextElegant: {
-    fontSize: 36,
-    fontWeight: '300',
-    letterSpacing: 6,
-    fontStyle: 'italic',
-  },
-  logoTextHorizontal: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-  logoTextHorizontalGold: {
-    fontSize: 28,
-    fontWeight: '600',
-    letterSpacing: 3,
-  },
-  logoTextCompact: {
-    fontSize: 22,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-  logoTextUppercase: {
-    fontSize: 28,
-    fontWeight: '900',
-    letterSpacing: 4,
   },
   tagline: {
     fontSize: 14,
