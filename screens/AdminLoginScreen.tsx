@@ -212,11 +212,12 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
           </View>
 
           <Button
-            title={isLoading ? (mode === 'login' ? "Signing In..." : "Setting Up...") : (mode === 'login' ? "Sign In" : "Create Admin Account")}
             onPress={mode === 'login' ? handleLogin : handleSetup}
             disabled={isLoading}
             style={[styles.button, { backgroundColor: '#EF4444' }]}
-          />
+          >
+            {isLoading ? (mode === 'login' ? "Signing In..." : "Setting Up...") : (mode === 'login' ? "Sign In" : "Create Admin Account")}
+          </Button>
 
           {isLoading ? (
             <ActivityIndicator size="small" color="#EF4444" style={styles.loader} />
@@ -325,7 +326,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   infoContainer: {
-    marginTop: Spacing.xxl,
+    marginTop: Spacing["2xl"],
   },
   infoBox: {
     flexDirection: "row",

@@ -188,7 +188,7 @@ const STYLE_OPTIONS_FEMALE: { id: StyleTheme; name: string; description: string 
   { id: "streetwear", name: "Casual", description: "Relaxed, comfortable, everyday style" },
   { id: "boho", name: "Boho", description: "Earthy, relaxed, artistic" },
   { id: "sporty", name: "Sporty", description: "Active, dynamic, athletic" },
-  { id: "smart-casual", name: "Smart Casual", description: "Refined yet relaxed, effortlessly put-together looks" },
+  { id: "smart-casual", name: "Smart Casual", description: "Polished yet relaxed, tailored pieces for office to after-work drinks" },
   { id: "edgy", name: "Edgy", description: "Bold, alternative, dramatic" },
 ];
 

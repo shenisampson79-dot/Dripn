@@ -190,31 +190,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   };
 
   const handleChangeStyle = () => {
-    const isMale = user?.gender === 'man';
-    const styleOptions = isMale 
-      ? [
-          { text: "Luxury", onPress: () => updateProfile({ stylePreference: "luxury" }) },
-          { text: "Streetwear", onPress: () => updateProfile({ stylePreference: "streetwear" }) },
-          { text: "Boho", onPress: () => updateProfile({ stylePreference: "boho" }) },
-          { text: "Sporty", onPress: () => updateProfile({ stylePreference: "sporty" }) },
-          { text: "Business", onPress: () => updateProfile({ stylePreference: "business" }) },
-          { text: "Edgy", onPress: () => updateProfile({ stylePreference: "edgy" }) },
-          { text: "Cancel", style: "cancel" as const },
-        ]
-      : [
-          { text: "Luxury", onPress: () => updateProfile({ stylePreference: "luxury" }) },
-          { text: "Streetwear", onPress: () => updateProfile({ stylePreference: "streetwear" }) },
-          { text: "Boho", onPress: () => updateProfile({ stylePreference: "boho" }) },
-          { text: "Sporty", onPress: () => updateProfile({ stylePreference: "sporty" }) },
-          { text: "Smart Casual", onPress: () => updateProfile({ stylePreference: "smart-casual" }) },
-          { text: "Edgy", onPress: () => updateProfile({ stylePreference: "edgy" }) },
-          { text: "Cancel", style: "cancel" as const },
-        ];
-    Alert.alert(
-      "Change Style Theme",
-      "Choose your preferred style:",
-      styleOptions
-    );
+    navigation.navigate("StyleExplorer");
   };
 
   const handleFeedPreference = () => {

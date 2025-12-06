@@ -133,11 +133,12 @@ export default function StylistLoginScreen({ navigation, onLoginSuccess, onExit 
           </View>
 
           <Button
-            title={isLoading ? "Signing In..." : "Sign In"}
             onPress={handleLogin}
             disabled={isLoading}
             style={[styles.button, { backgroundColor: theme.link }]}
-          />
+          >
+            {isLoading ? "Signing In..." : "Sign In"}
+          </Button>
 
           {isLoading ? (
             <ActivityIndicator size="small" color={theme.link} style={styles.loader} />
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   infoContainer: {
-    marginTop: Spacing.xxl,
+    marginTop: Spacing["2xl"],
   },
   infoBox: {
     flexDirection: "row",

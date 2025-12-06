@@ -358,11 +358,12 @@ export default function AdminStylistScreen({ navigation, onExit, onLogout }: Adm
             </View>
 
             <Button
-              title={isSubmitting ? "Registering..." : "Register Stylist"}
               onPress={handleAddStylist}
               disabled={isSubmitting}
               style={[styles.submitButton, { backgroundColor: theme.link }]}
-            />
+            >
+              {isSubmitting ? "Registering..." : "Register Stylist"}
+            </Button>
           </ScreenKeyboardAwareScrollView>
         </ThemedView>
       </Modal>
@@ -428,11 +429,12 @@ export default function AdminStylistScreen({ navigation, onExit, onLogout }: Adm
                 </View>
 
                 <Button
-                  title={isSubmitting ? "Approving..." : "Approve & Set Password"}
                   onPress={handleApproveStylist}
                   disabled={isSubmitting || !approvePassword}
                   style={[styles.submitButton, { backgroundColor: '#10B981' }]}
-                />
+                >
+                  {isSubmitting ? "Approving..." : "Approve & Set Password"}
+                </Button>
               </>
             ) : null}
           </ScreenKeyboardAwareScrollView>
@@ -489,11 +491,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   loadingContainer: {
-    paddingVertical: Spacing.xxl,
+    paddingVertical: Spacing["2xl"],
     alignItems: 'center',
   },
   emptyContainer: {
-    paddingVertical: Spacing.xxl * 2,
+    paddingVertical: Spacing["2xl"] * 2,
     alignItems: 'center',
   },
   stylistsList: {

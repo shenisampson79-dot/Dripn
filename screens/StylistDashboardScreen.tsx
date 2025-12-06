@@ -340,14 +340,14 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xxl,
+    paddingBottom: Spacing["2xl"],
   },
   loadingContainer: {
-    paddingVertical: Spacing.xxl * 2,
+    paddingVertical: Spacing["2xl"] * 2,
     alignItems: 'center',
   },
   emptyContainer: {
-    paddingVertical: Spacing.xxl * 2,
+    paddingVertical: Spacing["2xl"] * 2,
     alignItems: 'center',
   },
   emptyIcon: {

@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   loadingContainer: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: Spacing.xxl,
+    paddingVertical: Spacing["2xl"],
   },
   titleRow: {
     flexDirection: "row",
