@@ -1,13 +1,18 @@
-import React from "react";
-import { StyleSheet, View, Pressable, Alert, Linking, Platform } from "react-native";
+import React, { useState, useEffect } from "react";
+import { StyleSheet, View, Pressable, Alert, Linking, Platform, Switch } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius, StyleTheme } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useReferral } from "@/contexts/ReferralContext";
+import { apiService } from "@/services/ApiService";
+
+const NEWSLETTER_STATUS_KEY = "@stylewise_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
 
@@ -86,6 +91,56 @@ const STYLE_NAMES: Record<StyleTheme, string> = {
 export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScreenProps) {
   const { theme } = useTheme();
   const { user, logout, updateProfile } = useAuth();
+  const { referralCode, totalReferrals, bonusAIRequests, shareReferral } = useReferral();
+  const [isNewsletterSubscribed, setIsNewsletterSubscribed] = useState(false);
+  const [isNewsletterLoading, setIsNewsletterLoading] = useState(false);
+
+  useEffect(() => {
+    const loadNewsletterStatus = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(NEWSLETTER_STATUS_KEY);
+        if (stored !== null) {
+          setIsNewsletterSubscribed(stored === "true");
+        }
+      } catch (error) {
+        console.error("Error loading newsletter status:", error);
+      }
+    };
+    loadNewsletterStatus();
+  }, []);
+
+  const handleShareReferral = async () => {
+    const success = await shareReferral();
+    if (!success) {
+      Alert.alert("Sharing Failed", "Could not share your referral code. Please try again.");
+    }
+  };
+
+  const handleNewsletterToggle = async (value: boolean) => {
+    if (!user?.email) {
+      Alert.alert("Error", "Please add an email to your account first.");
+      return;
+    }
+
+    setIsNewsletterLoading(true);
+    try {
+      if (value) {
+        await apiService.subscribeToNewsletter(user.email, user.name);
+        setIsNewsletterSubscribed(true);
+        await AsyncStorage.setItem(NEWSLETTER_STATUS_KEY, "true");
+        Alert.alert("Subscribed", "You're now subscribed to StyleWise fashion updates!");
+      } else {
+        await apiService.unsubscribeFromNewsletter(user.email);
+        setIsNewsletterSubscribed(false);
+        await AsyncStorage.setItem(NEWSLETTER_STATUS_KEY, "false");
+        Alert.alert("Unsubscribed", "You've been unsubscribed from the newsletter.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Could not update newsletter subscription. Please try again.");
+    } finally {
+      setIsNewsletterLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -275,6 +330,69 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             onPress={() => {}}
             theme={theme}
           />
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h3" style={styles.sectionTitle}>
+          Invite Friends
+        </ThemedText>
+        <View style={styles.sectionContent}>
+          <Pressable
+            onPress={handleShareReferral}
+            style={({ pressed }) => [
+              styles.settingItem,
+              { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <View style={styles.settingIconContainer}>
+              <Feather name="gift" size={20} color={theme.link} />
+            </View>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={[styles.settingTitle, { color: theme.link }]}>
+                Share Your Code: {referralCode}
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                {totalReferrals > 0
+                  ? `${totalReferrals} friends joined - ${bonusAIRequests} bonus AI requests earned`
+                  : "Invite friends and earn free AI advice requests"}
+              </ThemedText>
+            </View>
+            <Feather name="share-2" size={20} color={theme.link} />
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h3" style={styles.sectionTitle}>
+          Newsletter
+        </ThemedText>
+        <View style={styles.sectionContent}>
+          <View
+            style={[
+              styles.settingItem,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
+            <View style={styles.settingIconContainer}>
+              <Feather name="mail" size={20} color={theme.text} />
+            </View>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                Fashion Updates
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                Get weekly style tips and trend alerts
+              </ThemedText>
+            </View>
+            <Switch
+              value={isNewsletterSubscribed}
+              onValueChange={handleNewsletterToggle}
+              disabled={isNewsletterLoading}
+              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              thumbColor={isNewsletterSubscribed ? "#FFFFFF" : "#F4F4F4"}
+            />
+          </View>
         </View>
       </View>
 

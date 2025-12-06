@@ -10,6 +10,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { usePosts, Post } from "@/contexts/PostsContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { sharePostWithBranding } from "@/services/SharingService";
 import type { HomeStackParamList } from "@/navigation/HomeStackNavigator";
 
 type HomeScreenProps = {
@@ -50,6 +51,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const handleThank = async (postId: string) => {
     await thankPost(postId);
+  };
+
+  const handleShare = async (post: Post) => {
+    await sharePostWithBranding(post);
   };
 
   const renderHeader = () => (
@@ -108,6 +113,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       onVote={handleVote}
       onComparisonVote={handleComparisonVote}
       onThank={handleThank}
+      onShare={() => handleShare(item)}
     />
   );
 

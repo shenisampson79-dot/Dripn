@@ -19,6 +19,7 @@ import { EventsFavoritesProvider } from "@/contexts/EventsFavoritesContext";
 import { OutfitFavoritesProvider } from "@/contexts/OutfitFavoritesContext";
 import { StylistAuthProvider, useStylistAuth } from "@/contexts/StylistAuthContext";
 import { AdminAuthProvider, useAdminAuth } from "@/contexts/AdminAuthContext";
+import { ReferralProvider } from "@/contexts/ReferralContext";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -101,9 +102,11 @@ export default function App() {
                     <EventsFavoritesProvider>
                       <OutfitFavoritesProvider>
                         <PostsProvider>
-                          <NavigationContainer>
-                            <AppContent />
-                          </NavigationContainer>
+                          <ReferralProvider>
+                            <NavigationContainer>
+                              <AppContent />
+                            </NavigationContainer>
+                          </ReferralProvider>
                         </PostsProvider>
                       </OutfitFavoritesProvider>
                     </EventsFavoritesProvider>
