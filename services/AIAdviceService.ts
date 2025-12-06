@@ -661,7 +661,7 @@ const CURATED_OUTFIT_LIBRARY: Record<string, Record<'female' | 'male', { id: str
       { id: 'bus-m-1', imageUri: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400', title: 'Executive Style', description: 'Charcoal suit with light blue shirt and leather shoes' },
       { id: 'bus-m-2', imageUri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400', title: 'Business Casual', description: 'Chinos with button-down and loafers' },
       { id: 'bus-m-3', imageUri: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400', title: 'Sharp Professional', description: 'Navy blazer with grey trousers and oxford shoes' },
-      { id: 'bus-m-4', imageUri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', title: 'Meeting Ready', description: 'Three-piece suit with pocket square and cufflinks' },
+      { id: 'bus-m-4', imageUri: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400', title: 'Meeting Ready', description: 'Three-piece suit with pocket square and cufflinks' },
     ],
   },
   edgy: {
