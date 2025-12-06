@@ -1,5 +1,18 @@
 import { Share, Platform } from "react-native";
+import * as StoreReview from "expo-store-review";
+import * as Linking from "expo-linking";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Post } from "@/contexts/PostsContext";
+
+const STYLEWISE_BRANDING = {
+  tagline: "Get personalized fashion advice from AI and real people",
+  downloadCTA: "Download StyleWise free",
+  appStoreUrl: "https://stylewise.app",
+  deepLinkScheme: "stylewise://",
+};
+
+const REVIEW_PROMPT_STORAGE_KEY = "@stylewise_review_prompt";
+const SHARE_COUNT_STORAGE_KEY = "@stylewise_share_count";
 
 const TRENDING_HASHTAGS = [
   "#StyleWise",
@@ -86,7 +99,7 @@ export function generateHashtags(
 export function generateShareContent(post: Post): ShareableContent {
   const hashtags = generateHashtags(
     post.description,
-    post.occasion,
+    undefined,
     undefined,
     5
   );
@@ -183,5 +196,198 @@ export async function shareStyleOfDay(
   } catch (error) {
     console.error("Error sharing style of day:", error);
     return false;
+  }
+}
+
+interface ReviewPromptData {
+  lastPromptedAt: string | null;
+  shareCount: number;
+  voteCount: number;
+  postCount: number;
+  hasReviewed: boolean;
+}
+
+async function getReviewPromptData(): Promise<ReviewPromptData> {
+  try {
+    const data = await AsyncStorage.getItem(REVIEW_PROMPT_STORAGE_KEY);
+    if (data) {
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error("Error getting review prompt data:", error);
+  }
+  return {
+    lastPromptedAt: null,
+    shareCount: 0,
+    voteCount: 0,
+    postCount: 0,
+    hasReviewed: false,
+  };
+}
+
+async function saveReviewPromptData(data: ReviewPromptData): Promise<void> {
+  try {
+    await AsyncStorage.setItem(REVIEW_PROMPT_STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error("Error saving review prompt data:", error);
+  }
+}
+
+export async function trackEngagement(action: "share" | "vote" | "post"): Promise<void> {
+  const data = await getReviewPromptData();
+  
+  if (action === "share") {
+    data.shareCount += 1;
+  } else if (action === "vote") {
+    data.voteCount += 1;
+  } else if (action === "post") {
+    data.postCount += 1;
+  }
+  
+  await saveReviewPromptData(data);
+  await checkAndPromptReview(data);
+}
+
+async function checkAndPromptReview(data: ReviewPromptData): Promise<void> {
+  if (data.hasReviewed) {
+    return;
+  }
+  
+  const SHARE_THRESHOLD = 3;
+  const VOTE_THRESHOLD = 10;
+  const POST_THRESHOLD = 2;
+  const MIN_DAYS_BETWEEN_PROMPTS = 7;
+  
+  const engagementScore = 
+    (data.shareCount >= SHARE_THRESHOLD ? 1 : 0) +
+    (data.voteCount >= VOTE_THRESHOLD ? 1 : 0) +
+    (data.postCount >= POST_THRESHOLD ? 1 : 0);
+  
+  if (engagementScore < 2) {
+    return;
+  }
+  
+  if (data.lastPromptedAt) {
+    const lastPrompted = new Date(data.lastPromptedAt);
+    const daysSincePrompt = (Date.now() - lastPrompted.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSincePrompt < MIN_DAYS_BETWEEN_PROMPTS) {
+      return;
+    }
+  }
+  
+  await promptForReview();
+}
+
+export async function promptForReview(): Promise<boolean> {
+  try {
+    const isAvailable = await StoreReview.isAvailableAsync();
+    if (!isAvailable) {
+      console.log("Store review not available on this platform");
+      return false;
+    }
+    
+    const hasAction = await StoreReview.hasAction();
+    if (hasAction) {
+      await StoreReview.requestReview();
+      
+      const data = await getReviewPromptData();
+      data.lastPromptedAt = new Date().toISOString();
+      data.hasReviewed = true;
+      await saveReviewPromptData(data);
+      
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("Error prompting for review:", error);
+    return false;
+  }
+}
+
+export function generateDeepLink(type: "post" | "invite" | "profile", id: string): string {
+  return `${STYLEWISE_BRANDING.deepLinkScheme}${type}/${id}`;
+}
+
+export function generateWebLink(type: "post" | "invite" | "profile", id: string): string {
+  return `${STYLEWISE_BRANDING.appStoreUrl}/${type}/${id}`;
+}
+
+export async function sharePostWithBranding(post: Post): Promise<boolean> {
+  try {
+    const hashtags = generateHashtags(post.description, undefined, undefined, 5);
+    const hashtagsStr = hashtags.join(" ");
+    const webUrl = generateWebLink("post", post.id);
+    
+    let title = "Check out this look on StyleWise";
+    if (post.type === "comparison") {
+      title = "Help me pick the best outfit";
+    }
+    
+    const brandedMessage = `${title}\n\n"${post.description.slice(0, 100)}${post.description.length > 100 ? "..." : ""}"\n\n${hashtagsStr}\n\n${STYLEWISE_BRANDING.downloadCTA}: ${webUrl}`;
+    
+    const result = await Share.share({
+      title,
+      message: brandedMessage,
+      url: Platform.OS === "ios" ? webUrl : undefined,
+    });
+    
+    if (result.action === Share.sharedAction) {
+      await trackEngagement("share");
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("Error sharing post with branding:", error);
+    return false;
+  }
+}
+
+export async function shareApp(): Promise<boolean> {
+  try {
+    const message = `${STYLEWISE_BRANDING.tagline}\n\nGet instant outfit advice, discover trending styles, and connect with a community of fashion lovers.\n\n${STYLEWISE_BRANDING.downloadCTA}: ${STYLEWISE_BRANDING.appStoreUrl}\n\n#StyleWise #FashionApp #OOTD`;
+    
+    const result = await Share.share({
+      title: "Check out StyleWise",
+      message,
+    });
+    
+    if (result.action === Share.sharedAction) {
+      await trackEngagement("share");
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("Error sharing app:", error);
+    return false;
+  }
+}
+
+export async function openDeepLink(url: string): Promise<boolean> {
+  try {
+    const canOpen = await Linking.canOpenURL(url);
+    if (canOpen) {
+      await Linking.openURL(url);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("Error opening deep link:", error);
+    return false;
+  }
+}
+
+export function parseDeepLink(url: string): { type: string; id: string } | null {
+  try {
+    if (url.startsWith(STYLEWISE_BRANDING.deepLinkScheme)) {
+      const path = url.replace(STYLEWISE_BRANDING.deepLinkScheme, "");
+      const [type, id] = path.split("/");
+      if (type && id) {
+        return { type, id };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Error parsing deep link:", error);
+    return null;
   }
 }

@@ -177,6 +177,31 @@ class ApiService {
       method: 'POST',
     });
   }
+
+  async subscribeToNewsletter(email: string, name?: string, preferences?: Record<string, boolean>) {
+    return this.request<{ success: boolean; message: string; alreadySubscribed?: boolean }>('/api/newsletter/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ email, name, preferences }),
+    });
+  }
+
+  async unsubscribeFromNewsletter(email: string) {
+    return this.request<{ success: boolean; message: string }>('/api/newsletter/unsubscribe', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async trackReferral(referralCode: string, newUserId: string, newUserEmail?: string) {
+    return this.request<{ success: boolean; message: string }>('/api/referral/track', {
+      method: 'POST',
+      body: JSON.stringify({ referralCode, newUserId, newUserEmail }),
+    });
+  }
+
+  async getReferralStats(code: string) {
+    return this.request<{ referralCode: string; totalReferrals: number }>(`/api/referral/stats/${code}`);
+  }
 }
 
 export const apiService = new ApiService();

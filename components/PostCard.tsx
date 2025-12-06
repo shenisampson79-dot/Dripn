@@ -17,6 +17,7 @@ interface PostCardProps {
   onVote: (postId: string, voteType: "up" | "down") => void;
   onComparisonVote: (postId: string, mediaId: string) => void;
   onThank: (postId: string) => void;
+  onShare?: (post: Post) => void;
   onSave?: (post: Post) => void;
   isSaved?: boolean;
   compact?: boolean;
@@ -28,6 +29,7 @@ export function PostCard({
   onVote,
   onComparisonVote,
   onThank,
+  onShare,
   onSave,
   isSaved = false,
   compact = false,
@@ -65,6 +67,13 @@ export function PostCard({
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (onSave) {
       onSave(post);
+    }
+  };
+
+  const handleShare = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (onShare) {
+      onShare(post);
     }
   };
 
@@ -221,12 +230,15 @@ export function PostCard({
               {post.commentsCount}
             </ThemedText>
           </View>
-          <View style={styles.shareCount}>
+          <Pressable
+            onPress={handleShare}
+            style={({ pressed }) => [styles.shareCount, { opacity: pressed ? 0.7 : 1 }]}
+          >
             <Feather name="share" size={18} color={theme.tabIconDefault} />
             <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
               {post.sharesCount || 0}
             </ThemedText>
-          </View>
+          </Pressable>
           {onSave ? (
             <Pressable
               onPress={handleSave}

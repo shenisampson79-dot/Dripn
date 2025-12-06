@@ -1656,6 +1656,175 @@ app.post('/api/admin/test-vip-notification', adminAuthMiddleware, async (req, re
   }
 });
 
+// ============ NEWSLETTER SIGNUP ============
+
+app.post('/api/newsletter/subscribe', async (req, res) => {
+  try {
+    const { email, name, preferences } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        name VARCHAR(100),
+        preferences JSONB DEFAULT '{}',
+        subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_active BOOLEAN DEFAULT true
+      )
+    `);
+
+    const existing = await pool.query(
+      'SELECT * FROM newsletter_subscribers WHERE email = $1',
+      [email.toLowerCase()]
+    );
+
+    if (existing.rows.length > 0) {
+      if (existing.rows[0].is_active) {
+        return res.json({ 
+          success: true, 
+          message: 'You are already subscribed to our newsletter',
+          alreadySubscribed: true 
+        });
+      } else {
+        await pool.query(
+          'UPDATE newsletter_subscribers SET is_active = true, subscribed_at = CURRENT_TIMESTAMP WHERE email = $1',
+          [email.toLowerCase()]
+        );
+        return res.json({ 
+          success: true, 
+          message: 'Welcome back! You have been resubscribed to our newsletter',
+          resubscribed: true 
+        });
+      }
+    }
+
+    await pool.query(
+      'INSERT INTO newsletter_subscribers (email, name, preferences) VALUES ($1, $2, $3)',
+      [email.toLowerCase(), name || null, preferences ? JSON.stringify(preferences) : '{}']
+    );
+
+    const sgMail = require('@sendgrid/mail');
+    const sendgridApiKey = process.env.SENDGRID_API_KEY;
+    
+    if (sendgridApiKey) {
+      sgMail.setApiKey(sendgridApiKey);
+      
+      try {
+        await sgMail.send({
+          to: email,
+          from: 'noreply@stylewise.app',
+          subject: 'Welcome to StyleWise Weekly Style Tips!',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h1 style="color: #4A3428;">Welcome to StyleWise!</h1>
+              <p>Hi${name ? ` ${name}` : ''},</p>
+              <p>Thank you for subscribing to our weekly style tips newsletter!</p>
+              <p>You'll receive:</p>
+              <ul>
+                <li>Weekly style inspiration and trending looks</li>
+                <li>Exclusive fashion tips from our AI stylist</li>
+                <li>Early access to new features and updates</li>
+                <li>Special deals and bargains from top brands</li>
+              </ul>
+              <p>Stay stylish!</p>
+              <p>The StyleWise Team</p>
+            </div>
+          `
+        });
+      } catch (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Successfully subscribed to StyleWise newsletter!' 
+    });
+  } catch (error) {
+    console.error('Newsletter subscription error:', error);
+    res.status(500).json({ error: 'Failed to subscribe to newsletter' });
+  }
+});
+
+app.post('/api/newsletter/unsubscribe', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    await pool.query(
+      'UPDATE newsletter_subscribers SET is_active = false WHERE email = $1',
+      [email.toLowerCase()]
+    );
+
+    res.json({ success: true, message: 'Successfully unsubscribed from newsletter' });
+  } catch (error) {
+    console.error('Newsletter unsubscribe error:', error);
+    res.status(500).json({ error: 'Failed to unsubscribe from newsletter' });
+  }
+});
+
+// ============ REFERRAL TRACKING ============
+
+app.post('/api/referral/track', async (req, res) => {
+  try {
+    const { referralCode, newUserId, newUserEmail } = req.body;
+    
+    if (!referralCode || !newUserId) {
+      return res.status(400).json({ error: 'Referral code and new user ID are required' });
+    }
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS referrals (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        referral_code VARCHAR(20) NOT NULL,
+        referred_user_id UUID NOT NULL,
+        referred_user_email VARCHAR(255),
+        referred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        reward_claimed BOOLEAN DEFAULT false
+      )
+    `);
+
+    await pool.query(
+      'INSERT INTO referrals (referral_code, referred_user_id, referred_user_email) VALUES ($1, $2, $3)',
+      [referralCode.toUpperCase(), newUserId, newUserEmail || null]
+    );
+
+    res.json({ success: true, message: 'Referral tracked successfully' });
+  } catch (error) {
+    console.error('Referral tracking error:', error);
+    res.status(500).json({ error: 'Failed to track referral' });
+  }
+});
+
+app.get('/api/referral/stats/:code', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT COUNT(*) as total_referrals FROM referrals WHERE referral_code = $1',
+      [req.params.code.toUpperCase()]
+    );
+
+    res.json({ 
+      referralCode: req.params.code.toUpperCase(),
+      totalReferrals: parseInt(result.rows[0]?.total_referrals || 0)
+    });
+  } catch (error) {
+    console.error('Referral stats error:', error);
+    res.status(500).json({ error: 'Failed to get referral stats' });
+  }
+});
+
 // ============ HEALTH CHECK ============
 
 app.get('/', (req, res) => {
