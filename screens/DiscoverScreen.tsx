@@ -20,13 +20,36 @@ import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator
 
 type RegionalModelType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
 
-const REGIONAL_STYLE_IMAGES: Record<RegionalModelType, ImageSourcePropType> = {
-  'multicultural': require("../assets/images/models/multicultural.png"),
-  'asian': require("../assets/images/models/asian.png"),
-  'african': require("../assets/images/models/african.png"),
-  'middle-eastern': require("../assets/images/models/middle-eastern.png"),
-  'south-asian': require("../assets/images/models/south-asian.png"),
-  'latin-american': require("../assets/images/models/latin-american.png"),
+type GenderImageSet = {
+  male: ImageSourcePropType;
+  female: ImageSourcePropType;
+};
+
+const REGIONAL_STYLE_IMAGES: Record<RegionalModelType, GenderImageSet> = {
+  'multicultural': {
+    female: require("../assets/images/models/multicultural.png"),
+    male: require("../assets/images/models/multicultural-male.png"),
+  },
+  'asian': {
+    female: require("../assets/images/models/asian.png"),
+    male: require("../assets/images/models/asian-male.png"),
+  },
+  'african': {
+    female: require("../assets/images/models/african.png"),
+    male: require("../assets/images/models/african-male.png"),
+  },
+  'middle-eastern': {
+    female: require("../assets/images/models/middle-eastern.png"),
+    male: require("../assets/images/models/middle-eastern-male.png"),
+  },
+  'south-asian': {
+    female: require("../assets/images/models/south-asian.png"),
+    male: require("../assets/images/models/south-asian-male.png"),
+  },
+  'latin-american': {
+    female: require("../assets/images/models/latin-american.png"),
+    male: require("../assets/images/models/latin-american-male.png"),
+  },
 };
 
 type GenderType = 'male' | 'female';
@@ -199,16 +222,18 @@ interface CelebrityLook {
   styleName: string;
   inspiration: string;
   image: ImageSourcePropType;
+  gender: 'male' | 'female';
   budgetItems: { name: string; price: number; store: string }[];
   luxuryItems: { name: string; price: number; store: string }[];
 }
 
 const CELEBRITY_LOOKS: CelebrityLook[] = [
   {
-    id: "look1",
+    id: "look1-female",
     styleName: "Street Style Chic",
     inspiration: "Off-duty model aesthetic",
     image: require("../assets/images/celebrity-looks/street_style_chic_outfit.png"),
+    gender: "female",
     budgetItems: [
       { name: "Oversized Cream Blazer", price: 59.99, store: "Zara" },
       { name: "High-Waisted Blue Jeans", price: 39.99, store: "H&M" },
@@ -223,10 +248,30 @@ const CELEBRITY_LOOKS: CelebrityLook[] = [
     ],
   },
   {
-    id: "look2",
+    id: "look1-male",
+    styleName: "Street Style Edge",
+    inspiration: "Off-duty model aesthetic",
+    image: require("../assets/images/celebrity-looks/street_style_chic_outfit_male.png"),
+    gender: "male",
+    budgetItems: [
+      { name: "Fitted Denim Jacket", price: 69.99, store: "Zara" },
+      { name: "Slim-Fit Dark Jeans", price: 49.99, store: "H&M" },
+      { name: "White Crew Neck Tee", price: 14.99, store: "Uniqlo" },
+      { name: "Clean White Leather Sneakers", price: 79.99, store: "ASOS" },
+    ],
+    luxuryItems: [
+      { name: "Premium Denim Jacket", price: 425, store: "APC" },
+      { name: "Japanese Selvedge Denim", price: 298, store: "Rag & Bone" },
+      { name: "Egyptian Cotton Tee", price: 125, store: "James Perse" },
+      { name: "Leather Low-Top Sneakers", price: 550, store: "Common Projects" },
+    ],
+  },
+  {
+    id: "look2-female",
     styleName: "Evening Elegance",
     inspiration: "Red carpet glamour",
     image: require("../assets/images/celebrity-looks/elegant_evening_slip_dress.png"),
+    gender: "female",
     budgetItems: [
       { name: "Emerald Satin Slip Dress", price: 49.99, store: "Mango" },
       { name: "Strappy Block Heels", price: 45.99, store: "Steve Madden" },
@@ -241,10 +286,30 @@ const CELEBRITY_LOOKS: CelebrityLook[] = [
     ],
   },
   {
-    id: "look3",
+    id: "look2-male",
+    styleName: "Evening Formal",
+    inspiration: "Red carpet elegance",
+    image: require("../assets/images/celebrity-looks/elegant_evening_formal_male.png"),
+    gender: "male",
+    budgetItems: [
+      { name: "Black Dinner Jacket", price: 149.99, store: "Zara" },
+      { name: "Crisp White Dress Shirt", price: 39.99, store: "Charles Tyrwhitt" },
+      { name: "Black Dress Trousers", price: 59.99, store: "H&M" },
+      { name: "Polished Oxford Shoes", price: 89.99, store: "Aldo" },
+    ],
+    luxuryItems: [
+      { name: "Tailored Tuxedo Jacket", price: 895, store: "Hugo Boss" },
+      { name: "French Cuff Dress Shirt", price: 225, store: "Turnbull & Asser" },
+      { name: "Wool Blend Trousers", price: 350, store: "Canali" },
+      { name: "Patent Leather Oxfords", price: 695, store: "Church's" },
+    ],
+  },
+  {
+    id: "look3-female",
     styleName: "Athleisure Vibes",
     inspiration: "Sporty wellness aesthetic",
     image: require("../assets/images/celebrity-looks/trendy_athleisure_look.png"),
+    gender: "female",
     budgetItems: [
       { name: "Sage Green Workout Set", price: 44.99, store: "Amazon Essentials" },
       { name: "Oversized Hoodie", price: 34.99, store: "Nike" },
@@ -256,6 +321,25 @@ const CELEBRITY_LOOKS: CelebrityLook[] = [
       { name: "Cashmere Hoodie", price: 395, store: "Naadam" },
       { name: "Leather Sneakers", price: 550, store: "Golden Goose" },
       { name: "Yoga Mat Bag", price: 158, store: "Lululemon" },
+    ],
+  },
+  {
+    id: "look3-male",
+    styleName: "Athleisure Edge",
+    inspiration: "Sporty wellness aesthetic",
+    image: require("../assets/images/celebrity-looks/trendy_athleisure_look_male.png"),
+    gender: "male",
+    budgetItems: [
+      { name: "Charcoal Performance Joggers", price: 49.99, store: "Nike" },
+      { name: "Navy Technical Hoodie", price: 54.99, store: "Under Armour" },
+      { name: "White Running Sneakers", price: 79.99, store: "New Balance" },
+      { name: "Sports Gym Bag", price: 39.99, store: "Adidas" },
+    ],
+    luxuryItems: [
+      { name: "Premium Tech Joggers", price: 198, store: "Lululemon" },
+      { name: "Performance Hoodie", price: 295, store: "Reigning Champ" },
+      { name: "Ultraboost Sneakers", price: 190, store: "Adidas" },
+      { name: "Leather Gym Duffle", price: 450, store: "Mismo" },
     ],
   },
 ];
@@ -898,7 +982,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
 
   const regionalStyleContent = useMemo(() => {
     return {
-      image: REGIONAL_STYLE_IMAGES[userRegion],
+      image: REGIONAL_STYLE_IMAGES[userRegion][userGender],
       ...REGIONAL_STYLE_TIPS[userRegion][userGender],
     };
   }, [userRegion, userGender]);
@@ -950,6 +1034,10 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
     if (!userGenderFilter) return posts.slice(0, 5);
     return posts.filter(post => !post.gender || post.gender === userGenderFilter || post.gender === 'unisex').slice(0, 5);
   }, [posts, user?.gender]);
+
+  const genderFilteredCelebrityLooks = useMemo(() => {
+    return CELEBRITY_LOOKS.filter(look => look.gender === userGender);
+  }, [userGender]);
 
   const handlePostPress = (postId: string) => {
     navigation.navigate("PostDetail", { postId });
@@ -1256,7 +1344,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.looksContainer}
         >
-          {CELEBRITY_LOOKS.map((look) => (
+          {genderFilteredCelebrityLooks.map((look) => (
             <Pressable
               key={look.id}
               onPress={() => handleGetTheLook(look)}
