@@ -37,7 +37,7 @@ const PLANS: Plan[] = [
   {
     id: "free",
     name: "Free",
-    price: "$0",
+    price: "£0",
     period: "forever",
     description: "Get started with basic features",
     features: [
@@ -53,7 +53,7 @@ const PLANS: Plan[] = [
   {
     id: "basic",
     name: "Basic",
-    price: "$4.99",
+    price: "£4.99",
     period: "/month",
     description: "Perfect for style enthusiasts",
     features: [
@@ -69,7 +69,7 @@ const PLANS: Plan[] = [
   {
     id: "premium",
     name: "Premium",
-    price: "$9.99",
+    price: "£9.99",
     period: "/month",
     description: "For the fashion-forward",
     popular: true,
@@ -86,7 +86,7 @@ const PLANS: Plan[] = [
   {
     id: "vip",
     name: "VIP",
-    price: "$4,999",
+    price: "£4,999",
     period: "/month",
     description: "The ultimate style experience",
     features: [

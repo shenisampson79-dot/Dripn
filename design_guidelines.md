@@ -1,4 +1,4 @@
-# StyleWise Design Guidelines
+# Dripn Design Guidelines
 
 ## Authentication & Onboarding
 
@@ -11,7 +11,7 @@
 - Privacy policy & terms links on auth screens
 
 **Onboarding Flow**:
-1. Welcome screen introducing StyleWise value proposition
+1. Welcome screen introducing Dripn value proposition
 2. Authentication screen
 3. Style profile setup (optional fields):
    - Country selection (required for seasonal content)
@@ -154,7 +154,7 @@
 ### **Home Feed Screen**
 - **Layout**: Scrollable feed (FlatList/FlashList)
 - **Header**: Transparent, scrolls with content
-  - Left: StyleWise logo
+  - Left: Dripn logo
   - Right: Filter icon (Global/Regional toggle)
 - **Safe Area Insets**: 
   - Top: headerHeight + Spacing.xl
@@ -307,6 +307,6 @@
 ## Key Assets to Generate
 
 1. **User avatars** (6 presets matching each style theme aesthetic)
-2. **App icon** (StyleWise logo, 1024x1024px)
+2. **App icon** (Dripn logo, 1024x1024px)
 3. **Splash screen** (matches selected theme)
 4. **Empty state illustrations** (style-appropriate, no photos to post yet, etc.)
