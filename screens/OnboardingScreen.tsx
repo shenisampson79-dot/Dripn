@@ -35,11 +35,15 @@ const MEN_BODY_SHAPES: { id: BodyShape; name: string; description: string }[] = 
   { id: "Athletic", name: "Athletic", description: "Muscular build, defined physique" },
 ];
 
-const STYLE_IMAGES: Record<Exclude<StyleTheme, 'smart-casual' | 'boho' | 'sporty' | 'business'>, ImageSourcePropType> = {
+const STYLE_IMAGES: Record<'luxury', ImageSourcePropType> = {
   luxury: require("../assets/images/styles/luxury.png"),
-  streetwear: require("../assets/images/styles/streetwear.png"),
-  edgy: require("../assets/images/styles/edgy.png"),
 };
+
+const EDGY_FEMALE_IMAGE: ImageSourcePropType = require("../assets/images/styles/edgy/female/default.png");
+const EDGY_MALE_IMAGE: ImageSourcePropType = require("../assets/images/styles/edgy/male/default.png");
+
+const STREETWEAR_FEMALE_IMAGE: ImageSourcePropType = require("../assets/images/styles/streetwear/female/default.png");
+const STREETWEAR_MALE_IMAGE: ImageSourcePropType = require("../assets/images/styles/streetwear/male/default.png");
 
 type RegionalType = 'multicultural' | 'nordic' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
 
@@ -481,6 +485,8 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
           if (styleId === 'boho') return getGenderSpecificBohoImage(region, gender);
           if (styleId === 'sporty') return getGenderSpecificSportyImage(region, gender);
           if (styleId === 'business') return getGenderSpecificBusinessImage(region);
+          if (styleId === 'edgy') return gender === 'man' ? EDGY_MALE_IMAGE : EDGY_FEMALE_IMAGE;
+          if (styleId === 'streetwear') return gender === 'man' ? STREETWEAR_MALE_IMAGE : STREETWEAR_FEMALE_IMAGE;
           return STYLE_IMAGES[styleId as keyof typeof STYLE_IMAGES];
         };
         return (
