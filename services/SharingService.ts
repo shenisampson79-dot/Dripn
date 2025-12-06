@@ -4,18 +4,28 @@ import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Post } from "@/contexts/PostsContext";
 
-const STYLEWISE_BRANDING = {
-  tagline: "Get personalized fashion advice from AI and real people",
-  downloadCTA: "Download StyleWise free",
-  appStoreUrl: "https://stylewise.app",
-  deepLinkScheme: "stylewise://",
+const DRIPN_BRANDING = {
+  tagline: "Style that flows - Get personalized fashion advice from AI and real people",
+  downloadCTA: "Download Dripn free",
+  appStoreUrl: "https://dripn.app",
+  deepLinkScheme: "dripn://",
 };
 
-const REVIEW_PROMPT_STORAGE_KEY = "@stylewise_review_prompt";
-const SHARE_COUNT_STORAGE_KEY = "@stylewise_share_count";
+export const WATERMARK_CONFIG = {
+  iconPath: require("../assets/images/dripn-logo-gold-exact-cream.png"),
+  smallIconSize: 40,
+  mediumIconSize: 60,
+  largeIconSize: 80,
+  opacity: 0.9,
+  position: "bottom-right" as const,
+  padding: 16,
+};
+
+const REVIEW_PROMPT_STORAGE_KEY = "@dripn_review_prompt";
+const SHARE_COUNT_STORAGE_KEY = "@dripn_share_count";
 
 const TRENDING_HASHTAGS = [
-  "#StyleWise",
+  "#Dripn",
   "#OOTD",
   "#FashionAdvice",
   "#StyleCheck",
@@ -59,7 +69,7 @@ export function generateHashtags(
 ): string[] {
   const tags: Set<string> = new Set();
   
-  tags.add("#StyleWise");
+  tags.add("#Dripn");
   
   if (occasion && OCCASION_HASHTAGS[occasion]) {
     OCCASION_HASHTAGS[occasion].slice(0, 2).forEach(tag => tags.add(tag));
@@ -106,10 +116,10 @@ export function generateShareContent(post: Post): ShareableContent {
   
   const hashtagsStr = hashtags.join(" ");
   
-  const deepLink = `stylewise://post/${post.id}`;
-  const webUrl = `https://stylewise.app/post/${post.id}`;
+  const deepLink = `dripn://post/${post.id}`;
+  const webUrl = `https://dripn.app/post/${post.id}`;
   
-  let title = "Check out this outfit on StyleWise";
+  let title = "Check out this outfit on Dripn";
   
   if (post.type === "comparison") {
     title = "Help me decide which outfit to wear";
@@ -149,11 +159,11 @@ export async function shareChallenge(
   challengeDescription: string
 ): Promise<boolean> {
   try {
-    const hashtag = `#StyleWise${challengeName.replace(/\s+/g, "")}`;
-    const message = `Join the "${challengeName}" challenge on StyleWise!\n\n${challengeDescription}\n\n${hashtag} #StyleWise #FashionChallenge\n\nhttps://stylewise.app/challenges`;
+    const hashtag = `#Dripn${challengeName.replace(/\s+/g, "")}`;
+    const message = `Join the "${challengeName}" challenge on Dripn!\n\n${challengeDescription}\n\n${hashtag} #Dripn #FashionChallenge\n\nhttps://dripn.app/challenges`;
     
     const result = await Share.share({
-      title: `StyleWise Challenge: ${challengeName}`,
+      title: `Dripn Challenge: ${challengeName}`,
       message,
     });
     
@@ -166,10 +176,10 @@ export async function shareChallenge(
 
 export async function shareReferralCode(code: string, bonusInfo: string): Promise<boolean> {
   try {
-    const message = `Get fashion advice from real people and AI on StyleWise!\n\nUse my referral code: ${code}\n${bonusInfo}\n\nDownload now: https://stylewise.app/invite/${code}`;
+    const message = `Get fashion advice from real people and AI on Dripn!\n\nUse my referral code: ${code}\n${bonusInfo}\n\nDownload now: https://dripn.app/invite/${code}`;
     
     const result = await Share.share({
-      title: "Join StyleWise",
+      title: "Join Dripn",
       message,
     });
     
@@ -185,10 +195,10 @@ export async function shareStyleOfDay(
   advice: string
 ): Promise<boolean> {
   try {
-    const message = `Today's Style Pick on StyleWise:\n\n"${description}"\n\nAI Tip: ${advice.slice(0, 150)}...\n\n#StyleOfTheDay #StyleWise #AIFashion\n\nhttps://stylewise.app/style-of-the-day`;
+    const message = `Today's Style Pick on Dripn:\n\n"${description}"\n\nAI Tip: ${advice.slice(0, 150)}...\n\n#StyleOfTheDay #Dripn #AIFashion\n\nhttps://dripn.app/style-of-the-day`;
     
     const result = await Share.share({
-      title: "StyleWise Style of the Day",
+      title: "Dripn Style of the Day",
       message,
     });
     
@@ -305,11 +315,11 @@ export async function promptForReview(): Promise<boolean> {
 }
 
 export function generateDeepLink(type: "post" | "invite" | "profile", id: string): string {
-  return `${STYLEWISE_BRANDING.deepLinkScheme}${type}/${id}`;
+  return `${DRIPN_BRANDING.deepLinkScheme}${type}/${id}`;
 }
 
 export function generateWebLink(type: "post" | "invite" | "profile", id: string): string {
-  return `${STYLEWISE_BRANDING.appStoreUrl}/${type}/${id}`;
+  return `${DRIPN_BRANDING.appStoreUrl}/${type}/${id}`;
 }
 
 export async function sharePostWithBranding(post: Post): Promise<boolean> {
@@ -318,12 +328,12 @@ export async function sharePostWithBranding(post: Post): Promise<boolean> {
     const hashtagsStr = hashtags.join(" ");
     const webUrl = generateWebLink("post", post.id);
     
-    let title = "Check out this look on StyleWise";
+    let title = "Check out this look on Dripn";
     if (post.type === "comparison") {
       title = "Help me pick the best outfit";
     }
     
-    const brandedMessage = `${title}\n\n"${post.description.slice(0, 100)}${post.description.length > 100 ? "..." : ""}"\n\n${hashtagsStr}\n\n${STYLEWISE_BRANDING.downloadCTA}: ${webUrl}`;
+    const brandedMessage = `${title}\n\n"${post.description.slice(0, 100)}${post.description.length > 100 ? "..." : ""}"\n\n${hashtagsStr}\n\n${DRIPN_BRANDING.downloadCTA}: ${webUrl}`;
     
     const result = await Share.share({
       title,
@@ -344,10 +354,10 @@ export async function sharePostWithBranding(post: Post): Promise<boolean> {
 
 export async function shareApp(): Promise<boolean> {
   try {
-    const message = `${STYLEWISE_BRANDING.tagline}\n\nGet instant outfit advice, discover trending styles, and connect with a community of fashion lovers.\n\n${STYLEWISE_BRANDING.downloadCTA}: ${STYLEWISE_BRANDING.appStoreUrl}\n\n#StyleWise #FashionApp #OOTD`;
+    const message = `${DRIPN_BRANDING.tagline}\n\nGet instant outfit advice, discover trending styles, and connect with a community of fashion lovers.\n\n${DRIPN_BRANDING.downloadCTA}: ${DRIPN_BRANDING.appStoreUrl}\n\n#Dripn #FashionApp #OOTD`;
     
     const result = await Share.share({
-      title: "Check out StyleWise",
+      title: "Check out Dripn",
       message,
     });
     
@@ -378,8 +388,8 @@ export async function openDeepLink(url: string): Promise<boolean> {
 
 export function parseDeepLink(url: string): { type: string; id: string } | null {
   try {
-    if (url.startsWith(STYLEWISE_BRANDING.deepLinkScheme)) {
-      const path = url.replace(STYLEWISE_BRANDING.deepLinkScheme, "");
+    if (url.startsWith(DRIPN_BRANDING.deepLinkScheme)) {
+      const path = url.replace(DRIPN_BRANDING.deepLinkScheme, "");
       const [type, id] = path.split("/");
       if (type && id) {
         return { type, id };
