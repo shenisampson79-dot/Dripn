@@ -5,6 +5,9 @@ const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 const { notifyVIPPurchase } = require('./notificationService');
+const { analyzeUserStyleProfile, generatePersonalizedStyleOfTheDay, generatePersonalizedEventRecommendations, generatePersonalizedOffers } = require('./styleProfileService');
+const { scanEmergingFashionTrends, scanViralFashionMoments, predictNextBigTrend, getRegionalTrendInsights } = require('./trendScannerService');
+const { sendPushNotification, sendBatchPushNotifications, processEventReminders } = require('./pushNotificationService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -297,6 +300,119 @@ async function initDB() {
 
       ALTER TABLE vip_sessions ADD COLUMN IF NOT EXISTS room_url TEXT;
       ALTER TABLE vip_sessions ADD COLUMN IF NOT EXISTS room_token TEXT;
+
+      -- Style Profile and Personalization Tables
+      CREATE TABLE IF NOT EXISTS user_style_profiles (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+        dominant_styles TEXT[],
+        color_preferences TEXT[],
+        fashion_interests TEXT[],
+        style_personality TEXT,
+        strength_areas TEXT[],
+        growth_areas TEXT[],
+        recommended_brands TEXT[],
+        style_influencer_type VARCHAR(100),
+        confidence_score DECIMAL(3,2) DEFAULT 0,
+        seasonal_styles JSONB,
+        data_points JSONB,
+        last_analyzed_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS user_interactions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        interaction_type VARCHAR(50) NOT NULL,
+        target_type VARCHAR(50) NOT NULL,
+        target_id VARCHAR(255),
+        target_data JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS post_dislikes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(post_id, user_id)
+      );
+
+      -- Trend Scanner Tables
+      CREATE TABLE IF NOT EXISTS trend_reports (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        report_type VARCHAR(50) NOT NULL,
+        region VARCHAR(100),
+        gender VARCHAR(20),
+        season VARCHAR(20),
+        trends JSONB,
+        color_forecast JSONB,
+        style_movement JSONB,
+        trend_alert JSONB,
+        sources TEXT[],
+        generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS viral_fashion_moments (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        moments JSONB,
+        trending_hashtags TEXT[],
+        must_follow JSONB,
+        scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS trend_predictions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        prediction JSONB,
+        confidence DECIMAL(3,2),
+        gender VARCHAR(20),
+        age_group VARCHAR(20),
+        predicted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Push Notification Tables
+      CREATE TABLE IF NOT EXISTS push_notification_tokens (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        token TEXT NOT NULL,
+        device_type VARCHAR(20),
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, token)
+      );
+
+      CREATE TABLE IF NOT EXISTS event_reminders (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        event_id VARCHAR(255) NOT NULL,
+        event_title VARCHAR(255) NOT NULL,
+        event_date DATE NOT NULL,
+        event_time VARCHAR(50),
+        event_data JSONB,
+        reminder_sent BOOLEAN DEFAULT false,
+        sent_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, event_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS notification_preferences (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+        event_reminders BOOLEAN DEFAULT true,
+        style_recommendations BOOLEAN DEFAULT true,
+        trend_alerts BOOLEAN DEFAULT true,
+        personalized_offers BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Add indexes for performance
+      CREATE INDEX IF NOT EXISTS idx_user_interactions_user ON user_interactions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_user_interactions_type ON user_interactions(interaction_type);
+      CREATE INDEX IF NOT EXISTS idx_event_reminders_date ON event_reminders(event_date);
+      CREATE INDEX IF NOT EXISTS idx_trend_reports_date ON trend_reports(generated_at);
     `);
     console.log('Database tables initialized');
   } catch (error) {
@@ -2255,17 +2371,714 @@ app.get('/api/newsletter/:id', async (req, res) => {
   }
 });
 
+// ============ STYLE PROFILE & PERSONALIZATION ============
+
+// Track user interaction (like, dislike, post, advice)
+app.post('/api/interactions', authMiddleware, async (req, res) => {
+  try {
+    const { interactionType, targetType, targetId, targetData } = req.body;
+    
+    await pool.query(
+      `INSERT INTO user_interactions (user_id, interaction_type, target_type, target_id, target_data) 
+       VALUES ($1, $2, $3, $4, $5)`,
+      [req.userId, interactionType, targetType, targetId, JSON.stringify(targetData || {})]
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Track interaction error:', error);
+    res.status(500).json({ error: 'Failed to track interaction' });
+  }
+});
+
+// Dislike post (thumbs down)
+app.post('/api/posts/:id/dislike', authMiddleware, async (req, res) => {
+  try {
+    const existing = await pool.query(
+      'SELECT id FROM post_dislikes WHERE post_id = $1 AND user_id = $2',
+      [req.params.id, req.userId]
+    );
+
+    if (existing.rows.length > 0) {
+      await pool.query('DELETE FROM post_dislikes WHERE post_id = $1 AND user_id = $2', [req.params.id, req.userId]);
+      res.json({ disliked: false });
+    } else {
+      await pool.query('INSERT INTO post_dislikes (post_id, user_id) VALUES ($1, $2)', [req.params.id, req.userId]);
+      
+      await pool.query(
+        `INSERT INTO user_interactions (user_id, interaction_type, target_type, target_id) 
+         VALUES ($1, 'dislike', 'post', $2)`,
+        [req.userId, req.params.id]
+      );
+      
+      res.json({ disliked: true });
+    }
+  } catch (error) {
+    console.error('Dislike error:', error);
+    res.status(500).json({ error: 'Failed to dislike post' });
+  }
+});
+
+// Get user's style profile
+app.get('/api/style-profile', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM user_style_profiles WHERE user_id = $1',
+      [req.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ hasProfile: false, message: 'No style profile yet' });
+    }
+
+    const profile = result.rows[0];
+    res.json({
+      hasProfile: true,
+      profile: {
+        dominantStyles: profile.dominant_styles || [],
+        colorPreferences: profile.color_preferences || [],
+        fashionInterests: profile.fashion_interests || [],
+        stylePersonality: profile.style_personality,
+        strengthAreas: profile.strength_areas || [],
+        growthAreas: profile.growth_areas || [],
+        recommendedBrands: profile.recommended_brands || [],
+        styleInfluencerType: profile.style_influencer_type,
+        confidenceScore: parseFloat(profile.confidence_score) || 0,
+        seasonalStyles: profile.seasonal_styles,
+        dataPoints: profile.data_points,
+        lastAnalyzedAt: profile.last_analyzed_at
+      }
+    });
+  } catch (error) {
+    console.error('Get style profile error:', error);
+    res.status(500).json({ error: 'Failed to get style profile' });
+  }
+});
+
+// Analyze and update style profile
+app.post('/api/style-profile/analyze', authMiddleware, async (req, res) => {
+  try {
+    const userResult = await pool.query(
+      'SELECT * FROM users WHERE id = $1',
+      [req.userId]
+    );
+    const user = userResult.rows[0];
+
+    const postsResult = await pool.query(
+      'SELECT caption, tags FROM posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50',
+      [req.userId]
+    );
+
+    const likesResult = await pool.query(
+      `SELECT p.caption, p.tags FROM likes l 
+       JOIN posts p ON l.post_id = p.id 
+       WHERE l.user_id = $1 ORDER BY l.created_at DESC LIMIT 50`,
+      [req.userId]
+    );
+
+    const dislikesResult = await pool.query(
+      `SELECT p.caption, p.tags FROM post_dislikes d 
+       JOIN posts p ON d.post_id = p.id 
+       WHERE d.user_id = $1 ORDER BY d.created_at DESC LIMIT 50`,
+      [req.userId]
+    );
+
+    const adviceResult = await pool.query(
+      'SELECT text FROM comments WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50',
+      [req.userId]
+    );
+
+    const analysisResult = await analyzeUserStyleProfile({
+      posts: postsResult.rows,
+      likes: likesResult.rows,
+      dislikes: dislikesResult.rows,
+      adviceGiven: adviceResult.rows,
+      userInfo: {
+        gender: user.gender || req.body.gender,
+        country: user.country || req.body.country,
+        region: req.body.region
+      }
+    });
+
+    if (!analysisResult.success) {
+      return res.status(500).json({ error: analysisResult.error || 'Analysis failed' });
+    }
+
+    const profile = analysisResult.profile;
+    
+    await pool.query(`
+      INSERT INTO user_style_profiles 
+      (user_id, dominant_styles, color_preferences, fashion_interests, style_personality, 
+       strength_areas, growth_areas, recommended_brands, style_influencer_type, 
+       confidence_score, seasonal_styles, data_points, last_analyzed_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ON CONFLICT (user_id) DO UPDATE SET
+        dominant_styles = EXCLUDED.dominant_styles,
+        color_preferences = EXCLUDED.color_preferences,
+        fashion_interests = EXCLUDED.fashion_interests,
+        style_personality = EXCLUDED.style_personality,
+        strength_areas = EXCLUDED.strength_areas,
+        growth_areas = EXCLUDED.growth_areas,
+        recommended_brands = EXCLUDED.recommended_brands,
+        style_influencer_type = EXCLUDED.style_influencer_type,
+        confidence_score = EXCLUDED.confidence_score,
+        seasonal_styles = EXCLUDED.seasonal_styles,
+        data_points = EXCLUDED.data_points,
+        last_analyzed_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    `, [
+      req.userId,
+      profile.dominantStyles || [],
+      profile.colorPreferences || [],
+      profile.fashionInterests || [],
+      profile.stylePersonality,
+      profile.strengthAreas || [],
+      profile.growthAreas || [],
+      profile.recommendedBrands || [],
+      profile.styleInfluencerType,
+      profile.confidenceScore || 0,
+      JSON.stringify(profile.seasonalStyle || {}),
+      JSON.stringify(profile.dataPoints || {})
+    ]);
+
+    res.json({ success: true, profile });
+  } catch (error) {
+    console.error('Analyze style profile error:', error);
+    res.status(500).json({ error: 'Failed to analyze style profile' });
+  }
+});
+
+// Get personalized Style of the Day
+app.get('/api/personalized/style-of-the-day', authMiddleware, async (req, res) => {
+  try {
+    const profileResult = await pool.query(
+      'SELECT * FROM user_style_profiles WHERE user_id = $1',
+      [req.userId]
+    );
+
+    const userResult = await pool.query(
+      'SELECT * FROM users WHERE id = $1',
+      [req.userId]
+    );
+    const user = userResult.rows[0];
+
+    let styleProfile = {};
+    if (profileResult.rows.length > 0) {
+      const p = profileResult.rows[0];
+      styleProfile = {
+        dominantStyles: p.dominant_styles,
+        colorPreferences: p.color_preferences,
+        fashionInterests: p.fashion_interests,
+        stylePersonality: p.style_personality,
+        recommendedBrands: p.recommended_brands
+      };
+    }
+
+    const result = await generatePersonalizedStyleOfTheDay(styleProfile, {
+      gender: user.gender || req.query.gender || 'unisex',
+      country: user.country || req.query.country || 'United Kingdom'
+    });
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error });
+    }
+
+    res.json(result.styleOfTheDay);
+  } catch (error) {
+    console.error('Personalized style error:', error);
+    res.status(500).json({ error: 'Failed to get personalized style' });
+  }
+});
+
+// Get personalized event recommendations
+app.post('/api/personalized/events', authMiddleware, async (req, res) => {
+  try {
+    const { events } = req.body;
+    
+    const profileResult = await pool.query(
+      'SELECT * FROM user_style_profiles WHERE user_id = $1',
+      [req.userId]
+    );
+
+    const userResult = await pool.query(
+      'SELECT * FROM users WHERE id = $1',
+      [req.userId]
+    );
+    const user = userResult.rows[0];
+
+    let styleProfile = {};
+    if (profileResult.rows.length > 0) {
+      const p = profileResult.rows[0];
+      styleProfile = {
+        dominantStyles: p.dominant_styles,
+        fashionInterests: p.fashion_interests,
+        stylePersonality: p.style_personality
+      };
+    }
+
+    const result = await generatePersonalizedEventRecommendations(styleProfile, events, {
+      gender: user.gender || req.body.gender || 'unisex',
+      country: user.country || req.body.country || 'United Kingdom'
+    });
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error });
+    }
+
+    res.json(result.eventRecommendations);
+  } catch (error) {
+    console.error('Personalized events error:', error);
+    res.status(500).json({ error: 'Failed to get personalized events' });
+  }
+});
+
+// Get personalized offers
+app.get('/api/personalized/offers', authMiddleware, async (req, res) => {
+  try {
+    const profileResult = await pool.query(
+      'SELECT * FROM user_style_profiles WHERE user_id = $1',
+      [req.userId]
+    );
+
+    const userResult = await pool.query(
+      'SELECT * FROM users WHERE id = $1',
+      [req.userId]
+    );
+    const user = userResult.rows[0];
+
+    let styleProfile = {};
+    if (profileResult.rows.length > 0) {
+      const p = profileResult.rows[0];
+      styleProfile = {
+        dominantStyles: p.dominant_styles,
+        colorPreferences: p.color_preferences,
+        fashionInterests: p.fashion_interests,
+        recommendedBrands: p.recommended_brands
+      };
+    }
+
+    const result = await generatePersonalizedOffers(styleProfile, {
+      gender: user.gender || req.query.gender || 'unisex',
+      country: user.country || req.query.country || 'United Kingdom',
+      subscriptionTier: user.subscription_tier || 'free'
+    });
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error });
+    }
+
+    res.json(result.personalizedOffers);
+  } catch (error) {
+    console.error('Personalized offers error:', error);
+    res.status(500).json({ error: 'Failed to get personalized offers' });
+  }
+});
+
+// ============ TREND SCANNER ============
+
+// Scan emerging fashion trends
+app.get('/api/trends/emerging', async (req, res) => {
+  try {
+    const { region, gender, forceRefresh } = req.query;
+    
+    if (!forceRefresh) {
+      const cachedResult = await pool.query(
+        `SELECT * FROM trend_reports 
+         WHERE report_type = 'emerging' 
+           AND (region = $1 OR region IS NULL)
+           AND (gender = $2 OR gender IS NULL)
+           AND generated_at > NOW() - INTERVAL '6 hours'
+         ORDER BY generated_at DESC LIMIT 1`,
+        [region || 'Global', gender || 'unisex']
+      );
+
+      if (cachedResult.rows.length > 0) {
+        const cached = cachedResult.rows[0];
+        return res.json({
+          fromCache: true,
+          emergingTrends: cached.trends,
+          colorForecast: cached.color_forecast,
+          styleMovement: cached.style_movement,
+          trendAlert: cached.trend_alert,
+          sources: cached.sources,
+          generatedAt: cached.generated_at
+        });
+      }
+    }
+
+    const result = await scanEmergingFashionTrends({
+      region: region || 'Global',
+      gender: gender || 'unisex'
+    });
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error });
+    }
+
+    await pool.query(
+      `INSERT INTO trend_reports (report_type, region, gender, season, trends, color_forecast, style_movement, trend_alert, sources)
+       VALUES ('emerging', $1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        result.trends.region,
+        result.trends.gender,
+        result.trends.season,
+        JSON.stringify(result.trends.emergingTrends),
+        JSON.stringify(result.trends.colorForecast),
+        JSON.stringify(result.trends.styleMovement),
+        JSON.stringify(result.trends.trendAlert),
+        result.trends.sources || []
+      ]
+    );
+
+    res.json({
+      fromCache: false,
+      ...result.trends
+    });
+  } catch (error) {
+    console.error('Emerging trends error:', error);
+    res.status(500).json({ error: 'Failed to scan emerging trends' });
+  }
+});
+
+// Scan viral fashion moments
+app.get('/api/trends/viral', async (req, res) => {
+  try {
+    const { forceRefresh } = req.query;
+    
+    if (!forceRefresh) {
+      const cachedResult = await pool.query(
+        `SELECT * FROM viral_fashion_moments 
+         WHERE scanned_at > NOW() - INTERVAL '2 hours'
+         ORDER BY scanned_at DESC LIMIT 1`
+      );
+
+      if (cachedResult.rows.length > 0) {
+        const cached = cachedResult.rows[0];
+        return res.json({
+          fromCache: true,
+          viralMoments: cached.moments,
+          trendingHashtags: cached.trending_hashtags,
+          mustFollow: cached.must_follow,
+          scannedAt: cached.scanned_at
+        });
+      }
+    }
+
+    const result = await scanViralFashionMoments();
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error });
+    }
+
+    await pool.query(
+      `INSERT INTO viral_fashion_moments (moments, trending_hashtags, must_follow)
+       VALUES ($1, $2, $3)`,
+      [
+        JSON.stringify(result.viralMoments.viralMoments),
+        result.viralMoments.trendingHashtags || [],
+        JSON.stringify(result.viralMoments.mustFollow || {})
+      ]
+    );
+
+    res.json({
+      fromCache: false,
+      ...result.viralMoments
+    });
+  } catch (error) {
+    console.error('Viral trends error:', error);
+    res.status(500).json({ error: 'Failed to scan viral moments' });
+  }
+});
+
+// Predict next big trend
+app.get('/api/trends/prediction', async (req, res) => {
+  try {
+    const { gender, ageGroup, forceRefresh } = req.query;
+    
+    if (!forceRefresh) {
+      const cachedResult = await pool.query(
+        `SELECT * FROM trend_predictions 
+         WHERE (gender = $1 OR gender IS NULL)
+           AND (age_group = $2 OR age_group IS NULL)
+           AND predicted_at > NOW() - INTERVAL '24 hours'
+         ORDER BY predicted_at DESC LIMIT 1`,
+        [gender || 'unisex', ageGroup || '25-34']
+      );
+
+      if (cachedResult.rows.length > 0) {
+        const cached = cachedResult.rows[0];
+        return res.json({
+          fromCache: true,
+          prediction: cached.prediction,
+          confidence: parseFloat(cached.confidence),
+          predictedAt: cached.predicted_at
+        });
+      }
+    }
+
+    const result = await predictNextBigTrend({
+      gender: gender || 'unisex',
+      ageGroup: ageGroup || '25-34'
+    });
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error });
+    }
+
+    await pool.query(
+      `INSERT INTO trend_predictions (prediction, confidence, gender, age_group)
+       VALUES ($1, $2, $3, $4)`,
+      [
+        JSON.stringify(result.nextBigTrend.prediction),
+        result.nextBigTrend.confidence || 0.7,
+        gender || 'unisex',
+        ageGroup || '25-34'
+      ]
+    );
+
+    res.json({
+      fromCache: false,
+      ...result.nextBigTrend
+    });
+  } catch (error) {
+    console.error('Trend prediction error:', error);
+    res.status(500).json({ error: 'Failed to predict trends' });
+  }
+});
+
+// Get regional trend insights
+app.get('/api/trends/regional/:country', async (req, res) => {
+  try {
+    const result = await getRegionalTrendInsights(req.params.country);
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error });
+    }
+
+    res.json(result.regionalInsights);
+  } catch (error) {
+    console.error('Regional trends error:', error);
+    res.status(500).json({ error: 'Failed to get regional insights' });
+  }
+});
+
+// ============ PUSH NOTIFICATIONS & EVENT REMINDERS ============
+
+// Register push notification token
+app.post('/api/notifications/register', authMiddleware, async (req, res) => {
+  try {
+    const { token, deviceType } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ error: 'Push token is required' });
+    }
+
+    await pool.query(`
+      INSERT INTO push_notification_tokens (user_id, token, device_type)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (user_id, token) DO UPDATE SET
+        is_active = true,
+        device_type = EXCLUDED.device_type,
+        updated_at = CURRENT_TIMESTAMP
+    `, [req.userId, token, deviceType || 'unknown']);
+
+    await pool.query(`
+      INSERT INTO notification_preferences (user_id)
+      VALUES ($1)
+      ON CONFLICT (user_id) DO NOTHING
+    `, [req.userId]);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Register push token error:', error);
+    res.status(500).json({ error: 'Failed to register push token' });
+  }
+});
+
+// Unregister push token
+app.post('/api/notifications/unregister', authMiddleware, async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    await pool.query(
+      'UPDATE push_notification_tokens SET is_active = false WHERE user_id = $1 AND token = $2',
+      [req.userId, token]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Unregister push token error:', error);
+    res.status(500).json({ error: 'Failed to unregister push token' });
+  }
+});
+
+// Get notification preferences
+app.get('/api/notifications/preferences', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM notification_preferences WHERE user_id = $1',
+      [req.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        eventReminders: true,
+        styleRecommendations: true,
+        trendAlerts: true,
+        personalizedOffers: true
+      });
+    }
+
+    const prefs = result.rows[0];
+    res.json({
+      eventReminders: prefs.event_reminders,
+      styleRecommendations: prefs.style_recommendations,
+      trendAlerts: prefs.trend_alerts,
+      personalizedOffers: prefs.personalized_offers
+    });
+  } catch (error) {
+    console.error('Get notification prefs error:', error);
+    res.status(500).json({ error: 'Failed to get notification preferences' });
+  }
+});
+
+// Update notification preferences
+app.put('/api/notifications/preferences', authMiddleware, async (req, res) => {
+  try {
+    const { eventReminders, styleRecommendations, trendAlerts, personalizedOffers } = req.body;
+    
+    await pool.query(`
+      INSERT INTO notification_preferences (user_id, event_reminders, style_recommendations, trend_alerts, personalized_offers)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (user_id) DO UPDATE SET
+        event_reminders = EXCLUDED.event_reminders,
+        style_recommendations = EXCLUDED.style_recommendations,
+        trend_alerts = EXCLUDED.trend_alerts,
+        personalized_offers = EXCLUDED.personalized_offers,
+        updated_at = CURRENT_TIMESTAMP
+    `, [req.userId, eventReminders, styleRecommendations, trendAlerts, personalizedOffers]);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Update notification prefs error:', error);
+    res.status(500).json({ error: 'Failed to update notification preferences' });
+  }
+});
+
+// Like event and set reminder
+app.post('/api/events/:eventId/like', authMiddleware, async (req, res) => {
+  try {
+    const { eventTitle, eventDate, eventTime, eventData } = req.body;
+    const eventId = req.params.eventId;
+    
+    const existing = await pool.query(
+      'SELECT id FROM event_reminders WHERE user_id = $1 AND event_id = $2',
+      [req.userId, eventId]
+    );
+
+    if (existing.rows.length > 0) {
+      await pool.query(
+        'DELETE FROM event_reminders WHERE user_id = $1 AND event_id = $2',
+        [req.userId, eventId]
+      );
+      return res.json({ liked: false, reminderSet: false });
+    }
+
+    await pool.query(`
+      INSERT INTO event_reminders (user_id, event_id, event_title, event_date, event_time, event_data)
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `, [req.userId, eventId, eventTitle, eventDate, eventTime, JSON.stringify(eventData || {})]);
+
+    await pool.query(
+      `INSERT INTO user_interactions (user_id, interaction_type, target_type, target_id, target_data) 
+       VALUES ($1, 'like', 'event', $2, $3)`,
+      [req.userId, eventId, JSON.stringify({ title: eventTitle, date: eventDate })]
+    );
+
+    res.json({ liked: true, reminderSet: true });
+  } catch (error) {
+    console.error('Like event error:', error);
+    res.status(500).json({ error: 'Failed to like event' });
+  }
+});
+
+// Get user's liked events with reminders
+app.get('/api/events/liked', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM event_reminders 
+       WHERE user_id = $1 
+       ORDER BY event_date ASC`,
+      [req.userId]
+    );
+
+    const events = result.rows.map(row => ({
+      eventId: row.event_id,
+      eventTitle: row.event_title,
+      eventDate: row.event_date,
+      eventTime: row.event_time,
+      eventData: row.event_data,
+      reminderSent: row.reminder_sent,
+      createdAt: row.created_at
+    }));
+
+    res.json({ events });
+  } catch (error) {
+    console.error('Get liked events error:', error);
+    res.status(500).json({ error: 'Failed to get liked events' });
+  }
+});
+
+// Process event reminders (called by cron or admin)
+app.post('/api/notifications/process-reminders', adminAuthMiddleware, async (req, res) => {
+  try {
+    const result = await processEventReminders(pool);
+    res.json(result);
+  } catch (error) {
+    console.error('Process reminders error:', error);
+    res.status(500).json({ error: 'Failed to process reminders' });
+  }
+});
+
+// Send test notification
+app.post('/api/notifications/test', authMiddleware, async (req, res) => {
+  try {
+    const tokenResult = await pool.query(
+      'SELECT token FROM push_notification_tokens WHERE user_id = $1 AND is_active = true',
+      [req.userId]
+    );
+
+    if (tokenResult.rows.length === 0) {
+      return res.status(400).json({ error: 'No active push token found' });
+    }
+
+    const result = await sendPushNotification(tokenResult.rows[0].token, {
+      title: 'StyleWise Test',
+      body: 'Your notifications are working perfectly!',
+      data: { type: 'test' }
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Test notification error:', error);
+    res.status(500).json({ error: 'Failed to send test notification' });
+  }
+});
+
 // ============ HEALTH CHECK ============
 
 app.get('/', (req, res) => {
   res.json({ 
     status: 'ok', 
     message: 'StyleWise API is running',
-    version: '1.0.0',
+    version: '1.1.0',
     features: {
       vipNotifications: true,
       emailAlerts: 'SendGrid',
-      smsAlerts: process.env.TWILIO_ACCOUNT_SID ? 'Twilio (configured)' : 'Twilio (not configured)'
+      smsAlerts: process.env.TWILIO_ACCOUNT_SID ? 'Twilio (configured)' : 'Twilio (not configured)',
+      stylePersonalization: true,
+      trendScanner: true,
+      eventReminders: true
     }
   });
 });
