@@ -92,6 +92,21 @@ const BUSINESS_MALE_IMAGES: Record<RegionalType, ImageSourcePropType> = {
   'latin-american': require("../assets/images/styles/business/male/latin-american.png"),
 };
 
+const STREETWEAR_MALE_IMAGES: Record<RegionalType, ImageSourcePropType> = {
+  'multicultural': require("../assets/images/styles/streetwear/male/multicultural.png"),
+  'nordic': require("../assets/images/styles/streetwear/male/nordic.png"),
+  'asian': require("../assets/images/styles/streetwear/male/asian.png"),
+  'african': require("../assets/images/styles/streetwear/male/african.png"),
+  'middle-eastern': require("../assets/images/styles/streetwear/male/middle-eastern.png"),
+  'south-asian': require("../assets/images/styles/streetwear/male/south-asian.png"),
+  'latin-american': require("../assets/images/styles/streetwear/male/latin-american.png"),
+};
+
+const getGenderSpecificStreetwearImage = (region: RegionalType, gender: Gender): ImageSourcePropType => {
+  if (gender === 'man') return STREETWEAR_MALE_IMAGES[region];
+  return STYLE_IMAGES.streetwear;
+};
+
 const getGenderSpecificBohoImage = (region: RegionalType, gender: Gender): ImageSourcePropType => {
   if (gender === 'man') return BOHO_MALE_IMAGES[region];
   return BOHO_FEMALE_IMAGES[region];
@@ -292,6 +307,7 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
     if (styleId === 'boho') return getGenderSpecificBohoImage(region, gender);
     if (styleId === 'sporty') return getGenderSpecificSportyImage(region, gender);
     if (styleId === 'business') return getGenderSpecificBusinessImage(region);
+    if (styleId === 'streetwear') return getGenderSpecificStreetwearImage(region, gender);
     return STYLE_IMAGES[styleId as keyof typeof STYLE_IMAGES];
   };
   

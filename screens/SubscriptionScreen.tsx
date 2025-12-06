@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Pressable, Alert } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -11,6 +11,7 @@ import { Spacing, BorderRadius, SubscriptionColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { currencyService } from "@/services/CurrencyService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 type SubscriptionScreenProps = {
@@ -33,73 +34,58 @@ interface Plan {
   popular?: boolean;
 }
 
-const PLANS: Plan[] = [
-  {
-    id: "free",
-    name: "Free",
-    price: "£0",
-    period: "forever",
-    description: "Get started with basic features",
-    features: [
-      { text: "3 posts per month", included: true },
-      { text: "Community voting", included: true },
-      { text: "Basic AI styling tips", included: true },
-      { text: "Standard feed", included: true },
-      { text: "Unlimited AI advice", included: false },
-      { text: "Priority support", included: false },
-      { text: "No ads", included: false },
-    ],
-  },
-  {
-    id: "basic",
-    name: "Basic",
-    price: "£4.99",
-    period: "/month",
-    description: "Perfect for style enthusiasts",
-    features: [
-      { text: "20 posts per month", included: true },
-      { text: "Community voting", included: true },
-      { text: "Full AI styling advice", included: true },
-      { text: "Regional feed filters", included: true },
-      { text: "Voice comments", included: true },
-      { text: "Ad-free experience", included: true },
-      { text: "Priority support", included: false },
-    ],
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    price: "£9.99",
-    period: "/month",
-    description: "For the fashion-forward",
-    popular: true,
-    features: [
-      { text: "100 posts per month", included: true },
-      { text: "Priority AI styling advice", included: true },
-      { text: "Exclusive style reports", included: true },
-      { text: "All feed filters + VIP events preview", included: true },
-      { text: "Unlimited voice comments", included: true },
-      { text: "Ad-free experience", included: true },
-      { text: "Priority support", included: true },
-    ],
-  },
-  {
-    id: "vip",
-    name: "VIP",
-    price: "£4,999",
-    period: "/month",
-    description: "The ultimate style experience",
-    features: [
-      { text: "4 x 60 min video call styling session with a real-life pro stylist", included: true, bold: true },
-      { text: "Video calls with VIP members", included: true },
-      { text: "Unlimited posts", included: true },
-      { text: "Exclusive VIP badge", included: true },
-      { text: "Personal AI stylist", included: true },
-      { text: "Early access to features", included: true },
-      { text: "Exclusive community events", included: true },
-      { text: "Completely ad-free", included: true },
-    ],
-  },
+const PLAN_FEATURES: Record<SubscriptionTier, PlanFeature[]> = {
+  free: [
+    { text: "3 posts per month", included: true },
+    { text: "Community voting", included: true },
+    { text: "Basic AI styling tips", included: true },
+    { text: "Standard feed", included: true },
+    { text: "Unlimited AI advice", included: false },
+    { text: "Priority support", included: false },
+    { text: "No ads", included: false },
+  ],
+  basic: [
+    { text: "20 posts per month", included: true },
+    { text: "Community voting", included: true },
+    { text: "Full AI styling advice", included: true },
+    { text: "Regional feed filters", included: true },
+    { text: "Voice comments", included: true },
+    { text: "Ad-free experience", included: true },
+    { text: "Priority support", included: false },
+  ],
+  premium: [
+    { text: "100 posts per month", included: true },
+    { text: "Priority AI styling advice", included: true },
+    { text: "Exclusive style reports", included: true },
+    { text: "All feed filters + VIP events preview", included: true },
+    { text: "Unlimited voice comments", included: true },
+    { text: "Ad-free experience", included: true },
+    { text: "Priority support", included: true },
+  ],
+  vip: [
+    { text: "4 x 60 min video call styling session with a real-life pro stylist", included: true, bold: true },
+    { text: "Video calls with VIP members", included: true },
+    { text: "Unlimited posts", included: true },
+    { text: "Exclusive VIP badge", included: true },
+    { text: "Personal AI stylist", included: true },
+    { text: "Early access to features", included: true },
+    { text: "Exclusive community events", included: true },
+    { text: "Completely ad-free", included: true },
+  ],
+};
+
+const PLAN_METADATA: Record<SubscriptionTier, { name: string; period: string; description: string; popular?: boolean }> = {
+  free: { name: "Free", period: "forever", description: "Get started with basic features" },
+  basic: { name: "Basic", period: "/month", description: "Perfect for style enthusiasts" },
+  premium: { name: "Premium", period: "/month", description: "For the fashion-forward", popular: true },
+  vip: { name: "VIP", period: "/month", description: "The ultimate style experience" },
+};
+
+const getLocalizedPlans = (prices: { free: string; basic: string; premium: string; vip: string }): Plan[] => [
+  { id: "free", ...PLAN_METADATA.free, price: prices.free, features: PLAN_FEATURES.free },
+  { id: "basic", ...PLAN_METADATA.basic, price: prices.basic, features: PLAN_FEATURES.basic },
+  { id: "premium", ...PLAN_METADATA.premium, price: prices.premium, features: PLAN_FEATURES.premium },
+  { id: "vip", ...PLAN_METADATA.vip, price: prices.vip, features: PLAN_FEATURES.vip },
 ];
 
 export default function SubscriptionScreen({ navigation }: SubscriptionScreenProps) {
@@ -122,6 +108,22 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     user?.subscriptionTier || "free"
   );
   const [isProcessing, setIsProcessing] = useState(false);
+  const [localizedPrices, setLocalizedPrices] = useState<{ free: string; basic: string; premium: string; vip: string }>({
+    free: "£0",
+    basic: "£4.99",
+    premium: "£9.99",
+    vip: "£4,999",
+  });
+
+  useEffect(() => {
+    const initCurrency = async () => {
+      await currencyService.initialize();
+      setLocalizedPrices(currencyService.getLocalizedPrices());
+    };
+    initCurrency();
+  }, []);
+
+  const PLANS = getLocalizedPlans(localizedPrices);
 
   const handleSelectPlan = async (planId: SubscriptionTier) => {
     if (planId === user?.subscriptionTier) return;
