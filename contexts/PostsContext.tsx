@@ -272,7 +272,20 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       ]);
 
       if (postsData) {
-        setPosts(JSON.parse(postsData));
+        const loadedPosts: Post[] = JSON.parse(postsData);
+        const postsWithGender = loadedPosts.map(post => {
+          if (post.gender) return post;
+          const samplePost = SAMPLE_POSTS.find(sp => sp.id === post.id);
+          if (samplePost) {
+            return { ...post, gender: samplePost.gender };
+          }
+          return post;
+        });
+        const needsUpdate = loadedPosts.some(p => !p.gender);
+        if (needsUpdate) {
+          await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(postsWithGender));
+        }
+        setPosts(postsWithGender);
       } else {
         setPosts(SAMPLE_POSTS);
         await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(SAMPLE_POSTS));

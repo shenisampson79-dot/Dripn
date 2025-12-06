@@ -892,7 +892,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
 
   const userGender: GenderType = useMemo(() => {
     const gender = user?.gender?.toLowerCase();
-    if (gender === 'male') return 'male';
+    if (gender === 'man' || gender === 'male') return 'male';
     return 'female';
   }, [user?.gender]);
 
@@ -1493,7 +1493,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
           <View style={styles.highlightContent}>
             <ThemedText type="h3">Top Contributor</ThemedText>
             <ThemedText type="body" style={styles.highlightDescription}>
-              Emma Style received 156 helpful votes this week
+              {userGender === 'male' ? 'Marcus Pro received 156 helpful votes this week' : 'Sophie Trendy received 156 helpful votes this week'}
             </ThemedText>
           </View>
         </View>
@@ -1504,7 +1504,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
           <View style={styles.highlightContent}>
             <ThemedText type="h3">Most Discussed</ThemedText>
             <ThemedText type="body" style={styles.highlightDescription}>
-              Wedding guest outfit poll received 92 comments
+              {userGender === 'male' ? 'Smart casual networking poll received 92 comments' : 'Wedding guest outfit poll received 92 comments'}
             </ThemedText>
           </View>
         </View>
