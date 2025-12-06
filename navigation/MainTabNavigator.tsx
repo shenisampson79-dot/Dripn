@@ -109,7 +109,7 @@ export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTab
           name="CommunityTab"
           component={CommunityStackNavigator}
           options={{
-            title: "Community",
+            title: "People",
             tabBarIcon: ({ color, size }) => (
               <Feather name="users" size={size} color={color} />
             ),
