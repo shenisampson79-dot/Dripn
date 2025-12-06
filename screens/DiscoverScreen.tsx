@@ -945,7 +945,11 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
     ).slice(0, 6);
   }, [userGender, tier]);
 
-  const trendingPosts = posts.slice(0, 5);
+  const trendingPosts = useMemo(() => {
+    const userGenderFilter = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : null;
+    if (!userGenderFilter) return posts.slice(0, 5);
+    return posts.filter(post => !post.gender || post.gender === userGenderFilter || post.gender === 'unisex').slice(0, 5);
+  }, [posts, user?.gender]);
 
   const handlePostPress = (postId: string) => {
     navigation.navigate("PostDetail", { postId });

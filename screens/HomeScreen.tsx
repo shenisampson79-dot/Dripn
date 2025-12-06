@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { StyleSheet, View, Image, Pressable, RefreshControl } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -9,6 +9,7 @@ import { PostCard } from "@/components/PostCard";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { usePosts, Post } from "@/contexts/PostsContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { HomeStackParamList } from "@/navigation/HomeStackNavigator";
 
 type HomeScreenProps = {
@@ -18,7 +19,15 @@ type HomeScreenProps = {
 export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { theme } = useTheme();
   const { posts, isLoading, refreshPosts, votePost, voteComparison, thankPost } = usePosts();
+  const { user } = useAuth();
   const [feedFilter, setFeedFilter] = useState<"global" | "regional">("global");
+
+  const filteredPosts = useMemo(() => {
+    if (!user?.gender) return posts;
+    const userGenderFilter = user.gender === 'man' ? 'male' : user.gender === 'woman' ? 'female' : null;
+    if (!userGenderFilter) return posts;
+    return posts.filter(post => !post.gender || post.gender === userGenderFilter || post.gender === 'unisex');
+  }, [posts, user?.gender]);
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -116,7 +125,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   return (
     <ScreenFlatList
-      data={posts}
+      data={filteredPosts}
       renderItem={renderItem}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={renderHeader}

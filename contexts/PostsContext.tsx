@@ -27,6 +27,8 @@ export interface Comment {
   isAI: boolean;
 }
 
+export type PostGender = 'male' | 'female' | 'unisex';
+
 export interface Post {
   id: string;
   userId: string;
@@ -48,6 +50,7 @@ export interface Post {
   country?: string;
   isViralBadge?: boolean;
   shareUnlockTip?: string;
+  gender?: PostGender;
 }
 
 interface PostsContextType {
@@ -80,8 +83,8 @@ const SAMPLE_POSTS: Post[] = [
     userAvatar: null,
     userSubscriptionTier: 'vip',
     type: 'standard',
-    media: [{ id: '1-1', uri: 'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600', type: 'image' }],
-    images: [{ id: '1-1', uri: 'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600', type: 'image' }],
+    media: [{ id: '1-1', uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600', type: 'image' }],
+    images: [{ id: '1-1', uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600', type: 'image' }],
     description: 'Style of the Day: Elegant minimalist look perfect for a business casual setting. Neutral tones paired with structured pieces create a sophisticated silhouette.',
     upvotes: 247,
     downvotes: 3,
@@ -91,6 +94,7 @@ const SAMPLE_POSTS: Post[] = [
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     isAIAdviceRequested: false,
     isViralBadge: true,
+    gender: 'male',
   },
   {
     id: '2',
@@ -116,16 +120,17 @@ const SAMPLE_POSTS: Post[] = [
     createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
     isAIAdviceRequested: true,
     aiAdvice: 'Both options are lovely! The first outfit has a more classic romantic vibe with its flowing silhouette, while the second is modern and chic. For a romantic dinner, I\'d lean towards the first - the soft lines are very flattering.',
+    gender: 'female',
   },
   {
     id: '3',
     userId: 'user-3',
-    userName: 'Alex Fashion',
+    userName: 'Marcus Pro',
     userAvatar: null,
     userSubscriptionTier: 'basic',
     type: 'standard',
-    media: [{ id: '3-1', uri: 'https://images.unsplash.com/photo-1507680434567-5739c80be1ac?w=600', type: 'image' }],
-    images: [{ id: '3-1', uri: 'https://images.unsplash.com/photo-1507680434567-5739c80be1ac?w=600', type: 'image' }],
+    media: [{ id: '3-1', uri: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600', type: 'image' }],
+    images: [{ id: '3-1', uri: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600', type: 'image' }],
     description: 'First day at new job outfit check! Going for professional but approachable. Thoughts?',
     upvotes: 89,
     downvotes: 2,
@@ -134,8 +139,9 @@ const SAMPLE_POSTS: Post[] = [
     sharesCount: 34,
     createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
     isAIAdviceRequested: true,
-    aiAdvice: 'Great choice for a first day! The neutral palette is perfect for making a professional impression. Consider adding a statement accessory to show personality while keeping it workplace-appropriate.',
+    aiAdvice: 'Great choice for a first day! The neutral palette is perfect for making a professional impression. Consider adding a quality watch or leather belt to show personality while keeping it workplace-appropriate.',
     country: 'United States',
+    gender: 'male',
   },
   {
     id: '4',
@@ -155,11 +161,12 @@ const SAMPLE_POSTS: Post[] = [
     createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
     isAIAdviceRequested: false,
     country: 'United Kingdom',
+    gender: 'male',
   },
   {
     id: '5',
     userId: 'user-5',
-    userName: 'Sam Trendy',
+    userName: 'Sophie Trendy',
     userAvatar: null,
     userSubscriptionTier: 'premium',
     type: 'comparison',
@@ -181,6 +188,34 @@ const SAMPLE_POSTS: Post[] = [
     isAIAdviceRequested: true,
     aiAdvice: 'For a garden wedding, Option A is the clear winner! The floral pattern and flowing fabric are perfect for the setting. Option B is stunning but might be better suited for an evening indoor event.',
     isViralBadge: true,
+    gender: 'female',
+  },
+  {
+    id: '6',
+    userId: 'user-6',
+    userName: 'David Streets',
+    userAvatar: null,
+    userSubscriptionTier: 'premium',
+    type: 'comparison',
+    media: [
+      { id: '6-1', uri: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600', type: 'image', votes: 198 },
+      { id: '6-2', uri: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600', type: 'image', votes: 156 },
+    ],
+    images: [
+      { id: '6-1', uri: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600', type: 'image', votes: 198 },
+      { id: '6-2', uri: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600', type: 'image', votes: 156 },
+    ],
+    description: 'Smart casual for a networking event - which blazer works better?',
+    upvotes: 278,
+    downvotes: 5,
+    thanksCount: 45,
+    commentsCount: 52,
+    sharesCount: 89,
+    createdAt: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
+    isAIAdviceRequested: true,
+    aiAdvice: 'Both are excellent choices! The first blazer has a more traditional cut thats perfect for formal networking. The second is more modern and relaxed - great for creative industry events.',
+    isViralBadge: false,
+    gender: 'male',
   },
 ];
 
