@@ -36,11 +36,12 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
       </Stack.Screen>
       <Stack.Screen
         name="Settings"
-        component={SettingsScreen}
         options={{
           title: "Settings",
         }}
-      />
+      >
+        {(props) => <SettingsScreen {...props} onOpenPortal={onOpenPortal} />}
+      </Stack.Screen>
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}

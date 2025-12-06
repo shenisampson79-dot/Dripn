@@ -9,9 +9,11 @@ import { Spacing, BorderRadius, StyleTheme } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import type { PortalMode } from "@/App";
 
 type SettingsScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "Settings">;
+  onOpenPortal?: (mode: PortalMode) => void;
 };
 
 interface SettingItemProps {
@@ -81,7 +83,7 @@ const STYLE_NAMES: Record<StyleTheme, string> = {
   edgy: "Edgy",
 };
 
-export default function SettingsScreen({ navigation }: SettingsScreenProps) {
+export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScreenProps) {
   const { theme } = useTheme();
   const { user, logout, updateProfile } = useAuth();
 
@@ -301,6 +303,30 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
           />
         </View>
       </View>
+
+      {onOpenPortal ? (
+        <View style={styles.section}>
+          <ThemedText type="h3" style={styles.sectionTitle}>
+            Staff Access
+          </ThemedText>
+          <View style={styles.sectionContent}>
+            <SettingItem
+              icon="scissors"
+              title="Stylist Portal"
+              subtitle="Access stylist dashboard"
+              onPress={() => onOpenPortal('stylist')}
+              theme={theme}
+            />
+            <SettingItem
+              icon="shield"
+              title="Admin Portal"
+              subtitle="Access admin dashboard"
+              onPress={() => onOpenPortal('admin')}
+              theme={theme}
+            />
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         <ThemedText type="h3" style={styles.sectionTitle}>
