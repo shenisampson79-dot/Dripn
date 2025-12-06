@@ -124,7 +124,7 @@ ensurePreviewReachable = "/status"
 
 [agent]
 stack = "EXPO"
-integrations = ["stripe:1.0.0"]
+integrations = ["stripe:1.0.0", "sendgrid:1.0.0"]
 
 [deployment]
 deploymentTarget = "static"
