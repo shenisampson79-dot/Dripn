@@ -589,7 +589,7 @@ const CURATED_OUTFIT_LIBRARY: Record<string, Record<'female' | 'male', { id: str
     ],
     male: [
       { id: 'cas-m-1', imageUri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', title: 'Smart Weekend', description: 'Chinos with polo shirt and leather loafers' },
-      { id: 'cas-m-2', imageUri: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400', title: 'Urban Casual', description: 'Dark jeans with crew neck sweater and clean sneakers' },
+      { id: 'cas-m-2', imageUri: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=400', title: 'Urban Casual', description: 'Dark jeans with crew neck sweater and clean sneakers' },
       { id: 'cas-m-3', imageUri: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400', title: 'Layered Look', description: 'Oxford shirt under lightweight knit with chinos' },
       { id: 'cas-m-4', imageUri: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400', title: 'Relaxed Modern', description: 'Relaxed fit jeans with quality t-shirt and bomber jacket' },
     ],
