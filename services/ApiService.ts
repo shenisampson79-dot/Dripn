@@ -256,6 +256,336 @@ class ApiService {
       body: JSON.stringify(data),
     });
   }
+
+  async trackInteraction(data: {
+    interactionType: 'like' | 'dislike' | 'view' | 'save' | 'share' | 'comment';
+    targetType: 'post' | 'outfit' | 'event' | 'offer';
+    targetId: string;
+    metadata?: Record<string, any>;
+  }) {
+    return this.request<{ success: boolean }>('/api/interactions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async dislikePost(id: string) {
+    return this.request<{ disliked: boolean }>(`/api/posts/${id}/dislike`, {
+      method: 'POST',
+    });
+  }
+
+  async getStyleProfile() {
+    return this.request<{
+      id: string;
+      userId: string;
+      dominantStyles: string[];
+      colorPreferences: string[];
+      fashionInterests: string[];
+      stylePersonality: string;
+      strengthAreas: string[];
+      growthAreas: string[];
+      recommendedBrands: string[];
+      styleInfluencerType: string;
+      confidenceScore: number;
+      seasonalStyle: {
+        spring: string;
+        summer: string;
+        autumn: string;
+        winter: string;
+      };
+      dataPoints: {
+        postsCount: number;
+        likesCount: number;
+        dislikesCount: number;
+        adviceCount: number;
+      };
+      analyzedAt: string;
+    } | null>('/api/style-profile');
+  }
+
+  async analyzeStyleProfile() {
+    return this.request<{
+      success: boolean;
+      profile: {
+        dominantStyles: string[];
+        colorPreferences: string[];
+        fashionInterests: string[];
+        stylePersonality: string;
+        strengthAreas: string[];
+        growthAreas: string[];
+        recommendedBrands: string[];
+        styleInfluencerType: string;
+        confidenceScore: number;
+        seasonalStyle: {
+          spring: string;
+          summer: string;
+          autumn: string;
+          winter: string;
+        };
+        dataPoints: {
+          postsCount: number;
+          likesCount: number;
+          dislikesCount: number;
+          adviceCount: number;
+        };
+        analyzedAt: string;
+      };
+    }>('/api/style-profile/analyze', {
+      method: 'POST',
+    });
+  }
+
+  async getPersonalizedStyleOfTheDay() {
+    return this.request<{
+      personalized: boolean;
+      styleOfTheDay: {
+        title: string;
+        description: string;
+        keyPieces: string[];
+        colorPalette: string[];
+        stylingTips: string;
+        occasion: string;
+        confidence: string;
+        whyThisWorks: string;
+        generatedAt: string;
+      };
+    }>('/api/personalized/style-of-the-day');
+  }
+
+  async getPersonalizedEventRankings(events: Array<{ id: string; title: string; category: string; date: string; time: string; description: string }>) {
+    return this.request<{
+      personalized: boolean;
+      eventRecommendations: {
+        rankedEvents: Array<{
+          eventTitle: string;
+          matchScore: number;
+          whyItSuits: string;
+          outfitSuggestion: string;
+        }>;
+        topPick: {
+          eventTitle: string;
+          reason: string;
+        };
+        generatedAt: string;
+      };
+    }>('/api/personalized/events', {
+      method: 'POST',
+      body: JSON.stringify({ events }),
+    });
+  }
+
+  async getPersonalizedOffers() {
+    return this.request<{
+      personalized: boolean;
+      personalizedOffers: {
+        personalizedPicks: Array<{
+          category: string;
+          item: string;
+          description: string;
+          suggestedBrands: string[];
+          priceRange: string;
+          matchScore: number;
+        }>;
+        seasonalMustHave: {
+          item: string;
+          reason: string;
+        };
+        investmentPiece: {
+          item: string;
+          reason: string;
+        };
+        generatedAt: string;
+      };
+    }>('/api/personalized/offers');
+  }
+
+  async getEmergingTrends(params?: { region?: string; gender?: string; categories?: string }) {
+    const queryParams = new URLSearchParams();
+    if (params?.region) queryParams.set('region', params.region);
+    if (params?.gender) queryParams.set('gender', params.gender);
+    if (params?.categories) queryParams.set('categories', params.categories);
+    const queryString = queryParams.toString();
+    return this.request<{
+      cached: boolean;
+      trends: {
+        scanDate: string;
+        emergingTrends: Array<{
+          name: string;
+          category: string;
+          description: string;
+          emergenceLevel: string;
+          mainstreamPrediction: string;
+          keyInfluencers: string[];
+          howToWear: string;
+          buyNowSuggestion: string;
+          confidenceScore: number;
+        }>;
+        colorForecast: {
+          emergingColors: string[];
+          fadingColors: string[];
+          colorOfTheMonth: string;
+        };
+        styleMovement: {
+          name: string;
+          description: string;
+          keyElements: string[];
+        };
+        trendAlert: {
+          hottest: string;
+          sleeper: string;
+          avoid: string;
+        };
+        sources: string[];
+        region: string;
+        gender: string;
+        season: string;
+        generatedAt: string;
+      };
+    }>(`/api/trends/emerging${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getViralFashionMoments() {
+    return this.request<{
+      cached: boolean;
+      viralMoments: {
+        viralMoments: Array<{
+          title: string;
+          description: string;
+          celebrity: string;
+          platform: string;
+          fashionItem: string;
+          shopTheLook: string;
+          viralScore: number;
+        }>;
+        trendingHashtags: string[];
+        mustFollow: {
+          account: string;
+          reason: string;
+        };
+        scannedAt: string;
+      };
+    }>('/api/trends/viral');
+  }
+
+  async getTrendPrediction(params?: { gender?: string; ageGroup?: string }) {
+    const queryParams = new URLSearchParams();
+    if (params?.gender) queryParams.set('gender', params.gender);
+    if (params?.ageGroup) queryParams.set('ageGroup', params.ageGroup);
+    const queryString = queryParams.toString();
+    return this.request<{
+      cached: boolean;
+      nextBigTrend: {
+        prediction: {
+          trendName: string;
+          tagline: string;
+          description: string;
+          timeline: string;
+          driverFactors: string[];
+          earlySignals: string[];
+          howToPrepare: string;
+          keyPieces: string[];
+          colorPalette: string[];
+          influencerTypes: string;
+        };
+        confidence: number;
+        disclaimer: string;
+        predictedAt: string;
+      };
+    }>(`/api/trends/prediction${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getRegionalTrends(country: string) {
+    return this.request<{
+      regionalInsights: {
+        country: string;
+        currentMood: string;
+        localTrends: Array<{
+          trend: string;
+          localTwist: string;
+          popularIn: string;
+        }>;
+        localInfluencers: string[];
+        upcomingEvents: string[];
+        localColors: string[];
+        shoppingAdvice: string;
+        culturalTip: string;
+        analyzedAt: string;
+      };
+    }>(`/api/trends/regional/${encodeURIComponent(country)}`);
+  }
+
+  async registerPushToken(token: string, platform: string) {
+    return this.request<{ success: boolean; message: string }>('/api/notifications/register', {
+      method: 'POST',
+      body: JSON.stringify({ token, platform }),
+    });
+  }
+
+  async unregisterPushToken(token: string) {
+    return this.request<{ success: boolean }>('/api/notifications/unregister', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async getNotificationPreferences() {
+    return this.request<{
+      eventReminders: boolean;
+      styleOfTheDay: boolean;
+      trendAlerts: boolean;
+      personalizedOffers: boolean;
+      weeklyDigest: boolean;
+    }>('/api/notifications/preferences');
+  }
+
+  async updateNotificationPreferences(preferences: {
+    eventReminders?: boolean;
+    styleOfTheDay?: boolean;
+    trendAlerts?: boolean;
+    personalizedOffers?: boolean;
+    weeklyDigest?: boolean;
+  }) {
+    return this.request<{ success: boolean }>('/api/notifications/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(preferences),
+    });
+  }
+
+  async likeEvent(eventId: string, eventData: {
+    title: string;
+    date: string;
+    time: string;
+    location?: string;
+    outfitSuggestion?: string;
+  }) {
+    return this.request<{ success: boolean; reminder: { id: string; eventId: string; liked: boolean } }>(`/api/events/${eventId}/like`, {
+      method: 'POST',
+      body: JSON.stringify(eventData),
+    });
+  }
+
+  async getLikedEvents() {
+    return this.request<{
+      likedEvents: Array<{
+        id: string;
+        eventId: string;
+        eventTitle: string;
+        eventDate: string;
+        eventTime: string;
+        eventLocation: string;
+        outfitSuggestion: string;
+        reminderSent: boolean;
+        likedAt: string;
+      }>;
+    }>('/api/events/liked');
+  }
+
+  async sendTestNotification() {
+    return this.request<{ success: boolean; message: string }>('/api/notifications/test', {
+      method: 'POST',
+    });
+  }
 }
 
 export const apiService = new ApiService();
