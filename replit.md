@@ -37,8 +37,33 @@ A **Fashion Trend Intelligence System** curates global trend data from fashion p
 
 A **Visual Outfit Inspiration System** provides a Pinterest-style feature with similar outfit ideas. It uses a curated outfit library organized by style category and gender, with future plans for AI-generated images via DALL-E integration.
 
+## Admin Notification System
+The backend includes an admin notification system for VIP purchases:
+
+**Email Notifications (SendGrid)**:
+- Sends to: shenisampson79@gmail.com, sheni_sampson@yahoo.co.uk
+- Triggered on VIP membership purchases
+
+**SMS Notifications (Twilio)** - To be configured:
+- Sends to: +447835913601
+- Requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER secrets
+
+**Stripe Webhook** (`/api/stripe/webhook`):
+- Detects VIP purchases via price ID (price_vip_monthly, price_vip_yearly) or metadata
+- Handles: checkout.session.completed, customer.subscription.created/updated, invoice.paid
+
+**Test Endpoint** (`POST /api/admin/test-vip-notification`):
+- Admin-only endpoint to test the notification system
+- Sends test emails and SMS to admin contacts
+
+Files:
+- `backend-code/notificationService.js` - Email and SMS notification logic
+- `backend-code/index.js` - Stripe webhook and test endpoint
+
 ## External Dependencies
 - **Stripe**: For subscription management and payment processing.
+- **SendGrid**: For transactional email notifications (VIP purchase alerts).
+- **Twilio**: For SMS text alerts (VIP purchase alerts) - to be configured.
 - **Expo-audio**: Used for voice comments functionality.
 - **OpenAI API**: Intended for real AI fashion advice (currently mocked).
 - **PostgreSQL**: Database solution for the backend.

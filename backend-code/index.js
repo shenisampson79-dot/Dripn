@@ -4,11 +4,180 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
+const { notifyVIPPurchase } = require('./notificationService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// VIP price IDs - used to detect VIP purchases
+const VIP_PRICE_IDS = ['price_vip_monthly', 'price_vip_yearly'];
+
+// Helper to get Stripe credentials from Replit connector (cached)
+let stripeCredentialsCache = null;
+let stripeCredentialsCacheTime = 0;
+const CACHE_TTL = 60000; // 1 minute cache
+
+async function getStripeCredentials() {
+  const now = Date.now();
+  if (stripeCredentialsCache && (now - stripeCredentialsCacheTime) < CACHE_TTL) {
+    return stripeCredentialsCache;
+  }
+
+  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+  const xReplitToken = process.env.REPL_IDENTITY 
+    ? 'repl ' + process.env.REPL_IDENTITY 
+    : process.env.WEB_REPL_RENEWAL 
+    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
+    : null;
+
+  if (!xReplitToken || !hostname) {
+    return null;
+  }
+
+  const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
+  const targetEnvironment = isProduction ? 'production' : 'development';
+
+  const url = new URL(`https://${hostname}/api/v2/connection`);
+  url.searchParams.set('include_secrets', 'true');
+  url.searchParams.set('connector_names', 'stripe');
+  url.searchParams.set('environment', targetEnvironment);
+
+  const connResponse = await fetch(url.toString(), {
+    headers: {
+      'Accept': 'application/json',
+      'X_REPLIT_TOKEN': xReplitToken
+    }
+  });
+
+  const connData = await connResponse.json();
+  const connectionSettings = connData.items?.[0];
+
+  if (connectionSettings?.settings) {
+    stripeCredentialsCache = connectionSettings.settings;
+    stripeCredentialsCacheTime = now;
+  }
+
+  return stripeCredentialsCache;
+}
+
+// Helper to check if a price ID is a VIP tier
+function isVIPPriceId(priceId) {
+  if (!priceId) return false;
+  return VIP_PRICE_IDS.includes(priceId) || 
+         priceId.toLowerCase().includes('vip') ||
+         priceId.toLowerCase().includes('price_vip');
+}
+
+// Stripe webhook endpoint - MUST be before express.json() middleware
+// This handles VIP purchase notifications
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const Stripe = require('stripe');
+  
+  try {
+    const credentials = await getStripeCredentials();
+
+    if (!credentials?.secret || !credentials?.webhook_secret) {
+      console.log('Stripe webhook: Missing Stripe credentials');
+      return res.status(200).json({ received: true });
+    }
+
+    const stripe = new Stripe(credentials.secret, {
+      apiVersion: '2024-11-20.acacia'
+    });
+
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        credentials.webhook_secret
+      );
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err.message);
+      return res.status(400).json({ error: 'Invalid signature' });
+    }
+
+    console.log('Stripe webhook received:', event.type);
+
+    // Handle checkout session completed
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      const customerEmail = session.customer_email || session.customer_details?.email;
+      const customerName = session.customer_details?.name;
+      
+      // Check metadata for VIP tier
+      const isVIP = session.metadata?.tier === 'vip' || 
+                    session.metadata?.planTier === 'vip';
+      
+      if (isVIP) {
+        console.log('VIP purchase detected via metadata for:', customerEmail);
+        const result = await notifyVIPPurchase(customerEmail, customerName, new Date().toISOString());
+        console.log('VIP notification result:', result);
+      }
+    }
+
+    // Handle subscription creation/update
+    if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
+      const subscription = event.data.object;
+      
+      // Check if any item has a VIP price
+      let hasVIPPrice = false;
+      if (subscription.items?.data) {
+        hasVIPPrice = subscription.items.data.some(item => isVIPPriceId(item.price?.id));
+      }
+      
+      // Also check metadata
+      const hasVIPMetadata = subscription.metadata?.tier === 'vip' || 
+                             subscription.metadata?.planTier === 'vip';
+      
+      if (hasVIPPrice || hasVIPMetadata) {
+        try {
+          const customer = await stripe.customers.retrieve(subscription.customer);
+          console.log('VIP subscription detected for:', customer.email);
+          
+          const result = await notifyVIPPurchase(
+            customer.email,
+            customer.name,
+            new Date(subscription.created * 1000).toISOString()
+          );
+          console.log('VIP notification result:', result);
+        } catch (err) {
+          console.error('Error retrieving customer:', err.message);
+        }
+      }
+    }
+
+    // Handle invoice.paid for subscription renewals
+    if (event.type === 'invoice.paid') {
+      const invoice = event.data.object;
+      
+      // Check if any line item has a VIP price
+      let hasVIPItem = false;
+      if (invoice.lines?.data) {
+        hasVIPItem = invoice.lines.data.some(line => isVIPPriceId(line.price?.id));
+      }
+      
+      if (hasVIPItem && invoice.billing_reason === 'subscription_create') {
+        console.log('VIP invoice paid for:', invoice.customer_email);
+        const result = await notifyVIPPurchase(
+          invoice.customer_email,
+          invoice.customer_name,
+          new Date(invoice.created * 1000).toISOString()
+        );
+        console.log('VIP notification result:', result);
+      }
+    }
+
+    res.status(200).json({ received: true });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(200).json({ received: true });
+  }
+});
+
+// Middleware - AFTER webhook route
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
@@ -1151,13 +1320,47 @@ app.post('/api/sessions/:id/cancel', authMiddleware, async (req, res) => {
   }
 });
 
+// ============ ADMIN NOTIFICATION TEST ============
+
+// Test endpoint to verify VIP purchase notifications (admin only)
+app.post('/api/admin/test-vip-notification', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { testEmail, testName } = req.body;
+    
+    const result = await notifyVIPPurchase(
+      testEmail || 'test@example.com',
+      testName || 'Test Customer',
+      new Date().toISOString()
+    );
+    
+    res.json({
+      message: 'VIP notification test completed',
+      emailSent: result.emailSent,
+      smsSent: result.smsSent,
+      details: {
+        emailRecipients: ['shenisampson79@gmail.com', 'sheni_sampson@yahoo.co.uk'],
+        smsRecipient: '+447835913601',
+        note: result.smsSent ? 'SMS sent successfully' : 'SMS skipped - Twilio not configured'
+      }
+    });
+  } catch (error) {
+    console.error('Test notification error:', error);
+    res.status(500).json({ error: 'Failed to send test notification', details: error.message });
+  }
+});
+
 // ============ HEALTH CHECK ============
 
 app.get('/', (req, res) => {
   res.json({ 
     status: 'ok', 
     message: 'StyleWise API is running',
-    version: '1.0.0'
+    version: '1.0.0',
+    features: {
+      vipNotifications: true,
+      emailAlerts: 'SendGrid',
+      smsAlerts: process.env.TWILIO_ACCOUNT_SID ? 'Twilio (configured)' : 'Twilio (not configured)'
+    }
   });
 });
 
