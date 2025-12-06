@@ -8,7 +8,7 @@ import { useTheme } from "@/hooks/useTheme";
 
 const logoIconWhite = require("../assets/images/dripn-logo-icon.png");
 const logoIconGold = require("../assets/images/dripn-logo-gold.png");
-const logoIconGoldTransparent = require("../assets/images/dripn-logo-gold-transparent.png");
+const logoIconGoldCream = require("../assets/images/dripn-logo-gold-cream.png");
 
 export default function LogoPreviewScreen() {
   const insets = useSafeAreaInsets();
@@ -18,33 +18,13 @@ export default function LogoPreviewScreen() {
     <ThemedView style={[styles.container, { paddingTop: insets.top + Spacing.xl }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <ThemedText type="h2" style={styles.header}>Dripn Logo Variations</ThemedText>
-        <ThemedText type="small" style={styles.subheader}>Gold Hanger on Cream - Your Choice</ThemedText>
+        <ThemedText type="small" style={styles.subheader}>Gold Hanger on Cream - Seamless</ThemedText>
         
-        {/* MAIN CHOICE: Gold Icon (transparent) + Black Text on Cream */}
+        {/* MAIN CHOICE: Gold Icon on Cream + Black Text on Cream */}
         <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>YOUR CHOICE: Cream Background (Clean)</ThemedText>
+          <ThemedText type="small" style={styles.label}>YOUR CHOICE: Seamless Cream</ThemedText>
           <View style={[styles.logoPreview, { backgroundColor: '#FFF9F0' }]}>
-            <Image source={logoIconGoldTransparent} style={styles.iconLarge} resizeMode="contain" />
-            <ThemedText style={[styles.logoTextBold, { color: '#000000' }]}>Dripn</ThemedText>
-            <ThemedText style={[styles.tagline, { color: '#C9A87C' }]}>Style that flows</ThemedText>
-          </View>
-        </View>
-
-        {/* Variation A: Same but on White */}
-        <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>Variation A: White Background</ThemedText>
-          <View style={[styles.logoPreview, { backgroundColor: '#FFFFFF' }]}>
-            <Image source={logoIconGoldTransparent} style={styles.iconLarge} resizeMode="contain" />
-            <ThemedText style={[styles.logoTextBold, { color: '#000000' }]}>Dripn</ThemedText>
-            <ThemedText style={[styles.tagline, { color: '#C9A87C' }]}>Style that flows</ThemedText>
-          </View>
-        </View>
-
-        {/* Variation B: Same but on Light Beige */}
-        <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>Variation B: Light Beige Background</ThemedText>
-          <View style={[styles.logoPreview, { backgroundColor: '#F5EDE0' }]}>
-            <Image source={logoIconGoldTransparent} style={styles.iconLarge} resizeMode="contain" />
+            <Image source={logoIconGoldCream} style={styles.iconLarge} resizeMode="contain" />
             <ThemedText style={[styles.logoTextBold, { color: '#000000' }]}>Dripn</ThemedText>
             <ThemedText style={[styles.tagline, { color: '#C9A87C' }]}>Style that flows</ThemedText>
           </View>
@@ -52,9 +32,9 @@ export default function LogoPreviewScreen() {
 
         {/* Horizontal Layout on Cream */}
         <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>Horizontal: Cream Background</ThemedText>
+          <ThemedText type="small" style={styles.label}>Horizontal Layout</ThemedText>
           <View style={[styles.logoPreviewHorizontal, { backgroundColor: '#FFF9F0' }]}>
-            <Image source={logoIconGoldTransparent} style={styles.iconMedium} resizeMode="contain" />
+            <Image source={logoIconGoldCream} style={styles.iconMedium} resizeMode="contain" />
             <ThemedText style={[styles.logoTextHorizontal, { color: '#000000' }]}>Dripn</ThemedText>
           </View>
         </View>
@@ -63,8 +43,16 @@ export default function LogoPreviewScreen() {
         <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
           <ThemedText type="small" style={styles.label}>App Header Style (Compact)</ThemedText>
           <View style={[styles.logoPreviewHorizontal, { backgroundColor: '#FFF9F0' }]}>
-            <Image source={logoIconGoldTransparent} style={styles.iconSmall} resizeMode="contain" />
+            <Image source={logoIconGoldCream} style={styles.iconSmall} resizeMode="contain" />
             <ThemedText style={[styles.logoTextCompact, { color: '#000000' }]}>Dripn</ThemedText>
+          </View>
+        </View>
+
+        {/* App Icon */}
+        <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
+          <ThemedText type="small" style={styles.label}>App Icon</ThemedText>
+          <View style={[styles.logoPreview, { backgroundColor: '#FFF9F0' }]}>
+            <Image source={logoIconGoldCream} style={styles.iconXLarge} resizeMode="contain" />
           </View>
         </View>
 
@@ -75,14 +63,6 @@ export default function LogoPreviewScreen() {
             <Image source={logoIconGold} style={styles.iconLarge} resizeMode="contain" />
             <ThemedText style={[styles.logoTextBold, { color: '#C9A87C' }]}>Dripn</ThemedText>
             <ThemedText style={[styles.tagline, { color: '#E8D5B7' }]}>Style that flows</ThemedText>
-          </View>
-        </View>
-
-        {/* App Icon */}
-        <View style={[styles.logoCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="small" style={styles.label}>App Icon (Cream Background)</ThemedText>
-          <View style={[styles.logoPreview, { backgroundColor: '#FFF9F0' }]}>
-            <Image source={logoIconGoldTransparent} style={styles.iconXLarge} resizeMode="contain" />
           </View>
         </View>
 
