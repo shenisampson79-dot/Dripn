@@ -12,6 +12,34 @@ export interface BargainDeal {
   imageUrl?: string;
   isVipOnly?: boolean;
   gender: 'male' | 'female' | 'unisex';
+  currencySymbol: string;
+  currencyCode: string;
+}
+
+export function getCurrencyForCountry(country: string): { symbol: string; code: string; rate: number } {
+  if (country === "United Kingdom") return { symbol: "£", code: "GBP", rate: 0.79 };
+  if (country === "Ireland") return { symbol: "€", code: "EUR", rate: 0.92 };
+  if (["Germany", "France", "Italy", "Spain", "Netherlands", "Belgium", "Austria", "Portugal", "Greece", "Finland"].includes(country)) {
+    return { symbol: "€", code: "EUR", rate: 0.92 };
+  }
+  if (country === "Australia") return { symbol: "A$", code: "AUD", rate: 1.53 };
+  if (country === "Canada") return { symbol: "C$", code: "CAD", rate: 1.36 };
+  if (country === "Japan") return { symbol: "¥", code: "JPY", rate: 149.5 };
+  if (country === "India") return { symbol: "₹", code: "INR", rate: 83.2 };
+  if (country === "Brazil") return { symbol: "R$", code: "BRL", rate: 4.97 };
+  if (country === "Mexico") return { symbol: "MX$", code: "MXN", rate: 17.15 };
+  if (country === "South Africa") return { symbol: "R", code: "ZAR", rate: 18.5 };
+  if (country === "China") return { symbol: "¥", code: "CNY", rate: 7.24 };
+  if (country === "South Korea") return { symbol: "₩", code: "KRW", rate: 1320 };
+  if (country === "Singapore") return { symbol: "S$", code: "SGD", rate: 1.34 };
+  if (country === "United Arab Emirates") return { symbol: "AED", code: "AED", rate: 3.67 };
+  if (country === "New Zealand") return { symbol: "NZ$", code: "NZD", rate: 1.63 };
+  if (country === "Switzerland") return { symbol: "CHF", code: "CHF", rate: 0.88 };
+  if (country === "Sweden") return { symbol: "kr", code: "SEK", rate: 10.42 };
+  if (country === "Norway") return { symbol: "kr", code: "NOK", rate: 10.65 };
+  if (country === "Denmark") return { symbol: "kr", code: "DKK", rate: 6.87 };
+  if (country === "Poland") return { symbol: "zł", code: "PLN", rate: 3.98 };
+  return { symbol: "$", code: "USD", rate: 1 };
 }
 
 export interface BargainCategory {
@@ -79,17 +107,24 @@ const DEAL_TEMPLATES: Array<{
   { brand: "Jack Wolfskin", title: "Stormy Point Jacket", originalPrice: 150, salePrice: 90, discount: "40% OFF", source: "Millets", category: "Outerwear", hoursToExpire: 6, gender: "female" },
   { brand: "Mackage", title: "Adali Down Coat", originalPrice: 890, salePrice: 623, discount: "30% OFF", source: "Selfridges", category: "Outerwear", hoursToExpire: 5, isVipOnly: true, gender: "female" },
   { brand: "Mackage", title: "Edward Down Jacket", originalPrice: 850, salePrice: 595, discount: "30% OFF", source: "Harrods", category: "Outerwear", hoursToExpire: 4, isVipOnly: true, gender: "male" },
+  { brand: "Tom Ford", title: "Slim-Fit Cotton Shirt", originalPrice: 590, salePrice: 354, discount: "40% OFF", source: "MrPorter.com", category: "Luxury", hoursToExpire: 8, gender: "male" },
+  { brand: "Loro Piana", title: "Cashmere Half-Zip Sweater", originalPrice: 1450, salePrice: 1015, discount: "30% OFF", source: "MrPorter.com", category: "Luxury", hoursToExpire: 6, isVipOnly: true, gender: "male" },
+  { brand: "Brunello Cucinelli", title: "Suede Bomber Jacket", originalPrice: 4250, salePrice: 2975, discount: "30% OFF", source: "MrPorter.com", category: "Luxury", hoursToExpire: 12, isVipOnly: true, gender: "male" },
+  { brand: "Common Projects", title: "Original Achilles Sneakers", originalPrice: 425, salePrice: 298, discount: "30% OFF", source: "MrPorter.com", category: "Footwear", hoursToExpire: 5, gender: "male" },
+  { brand: "AMI Paris", title: "De Coeur Logo Cardigan", originalPrice: 390, salePrice: 273, discount: "30% OFF", source: "MrPorter.com", category: "Casual", hoursToExpire: 7, gender: "male" },
 ];
 
 class BargainsServiceImpl {
   private deals: BargainDeal[] = [];
   private lastFetchTime: number = 0;
+  private lastCountry: string = "";
   private readonly CACHE_DURATION = 60 * 1000;
 
   async fetchDeals(userCountry?: string, userGender?: string): Promise<BargainDeal[]> {
     const now = Date.now();
+    const country = userCountry || "United States";
     
-    if (this.deals.length > 0 && now - this.lastFetchTime < this.CACHE_DURATION) {
+    if (this.deals.length > 0 && now - this.lastFetchTime < this.CACHE_DURATION && this.lastCountry === country) {
       return this.deals.filter(deal => deal.expiresAt > now);
     }
 
@@ -97,22 +132,37 @@ class BargainsServiceImpl {
 
     const shuffled = [...DEAL_TEMPLATES].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, 6 + Math.floor(Math.random() * 4));
+    const currencyInfo = getCurrencyForCountry(country);
 
-    this.deals = selected.map((template, index) => ({
-      id: `deal-${now}-${index}`,
-      brand: template.brand,
-      title: template.title,
-      originalPrice: template.originalPrice,
-      salePrice: template.salePrice,
-      discount: template.discount,
-      source: template.source,
-      category: template.category,
-      expiresAt: now + template.hoursToExpire * 60 * 60 * 1000 + Math.random() * 30 * 60 * 1000,
-      isVipOnly: template.isVipOnly,
-      gender: template.gender,
-    }));
+    this.deals = selected.map((template, index) => {
+      const convertedOriginal = template.originalPrice * currencyInfo.rate;
+      const convertedSale = template.salePrice * currencyInfo.rate;
+      const roundedOriginal = currencyInfo.code === "JPY" || currencyInfo.code === "KRW" 
+        ? Math.round(convertedOriginal) 
+        : Math.round(convertedOriginal * 100) / 100;
+      const roundedSale = currencyInfo.code === "JPY" || currencyInfo.code === "KRW" 
+        ? Math.round(convertedSale) 
+        : Math.round(convertedSale * 100) / 100;
+      
+      return {
+        id: `deal-${now}-${index}`,
+        brand: template.brand,
+        title: template.title,
+        originalPrice: roundedOriginal,
+        salePrice: roundedSale,
+        discount: template.discount,
+        source: template.source,
+        category: template.category,
+        expiresAt: now + template.hoursToExpire * 60 * 60 * 1000 + Math.random() * 30 * 60 * 1000,
+        isVipOnly: template.isVipOnly,
+        gender: template.gender,
+        currencySymbol: currencyInfo.symbol,
+        currencyCode: currencyInfo.code,
+      };
+    });
 
     this.lastFetchTime = now;
+    this.lastCountry = country;
     return this.deals;
   }
 

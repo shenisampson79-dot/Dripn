@@ -20,6 +20,7 @@ type SubscriptionScreenProps = {
 interface PlanFeature {
   text: string;
   included: boolean;
+  bold?: boolean;
 }
 
 interface Plan {
@@ -74,10 +75,10 @@ const PLANS: Plan[] = [
     popular: true,
     features: [
       { text: "100 posts per month", included: true },
-      { text: "Community voting", included: true },
-      { text: "Priority AI advice", included: true },
-      { text: "All feed filters", included: true },
-      { text: "Voice comments", included: true },
+      { text: "Priority AI styling advice", included: true },
+      { text: "Exclusive style reports", included: true },
+      { text: "All feed filters + VIP events preview", included: true },
+      { text: "Unlimited voice comments", included: true },
       { text: "Ad-free experience", included: true },
       { text: "Priority support", included: true },
     ],
@@ -89,12 +90,12 @@ const PLANS: Plan[] = [
     period: "/month",
     description: "The ultimate style experience",
     features: [
-      { text: "Everything in Premium", included: true },
+      { text: "4x 60-min video call styling sessions/month", included: true, bold: true },
+      { text: "Unlimited posts", included: true },
       { text: "Exclusive VIP badge", included: true },
       { text: "Personal AI stylist", included: true },
       { text: "Early access to features", included: true },
       { text: "Exclusive community events", included: true },
-      { text: "4x 15-min stylist sessions/month (text or call)", included: true },
       { text: "Completely ad-free", included: true },
     ],
   },
@@ -234,6 +235,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
                 style={[
                   styles.featureText,
                   !feature.included && styles.featureDisabled,
+                  feature.bold && styles.featureBold,
                 ]}
               >
                 {feature.text}
@@ -563,6 +565,9 @@ const styles = StyleSheet.create({
   featureDisabled: {
     opacity: 0.5,
     textDecorationLine: "line-through",
+  },
+  featureBold: {
+    fontWeight: "700",
   },
   selectedIndicator: {
     position: "absolute",

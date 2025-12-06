@@ -74,39 +74,39 @@ export default function EventsScreen() {
       
       setLocationData(locData);
       
-      const fetchedEvents = await EventsService.fetchEvents(locData);
+      const fetchedEvents = await EventsService.fetchEvents(locData, user?.country);
       setEvents(fetchedEvents);
     } catch (error) {
       console.log("Location/Events fetch error:", error);
-      const fetchedEvents = await EventsService.fetchEvents();
+      const fetchedEvents = await EventsService.fetchEvents(undefined, user?.country);
       setEvents(fetchedEvents);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.country]);
 
   const fetchEventsWithoutLocation = useCallback(async () => {
     try {
       setLoading(true);
-      const fetchedEvents = await EventsService.fetchEvents();
+      const fetchedEvents = await EventsService.fetchEvents(undefined, user?.country);
       setEvents(fetchedEvents);
     } catch (error) {
       console.log("Events fetch error:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.country]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       if (locationEnabled && locationData) {
-        const refreshedEvents = await EventsService.refreshEvents(locationData);
+        const refreshedEvents = await EventsService.refreshEvents(locationData, user?.country);
         setEvents(refreshedEvents);
       } else if (locationEnabled) {
         await fetchLocationAndEvents();
       } else {
-        const refreshedEvents = await EventsService.refreshEvents();
+        const refreshedEvents = await EventsService.refreshEvents(undefined, user?.country);
         setEvents(refreshedEvents);
       }
     } catch (error) {
@@ -114,7 +114,7 @@ export default function EventsScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, [locationEnabled, locationData, fetchLocationAndEvents]);
+  }, [locationEnabled, locationData, fetchLocationAndEvents, user?.country]);
 
   const requestLocation = useCallback(async () => {
     try {

@@ -72,15 +72,6 @@ export default function BargainsScreen() {
     }
   }, [user?.country]);
 
-  const getCurrencySymbol = () => {
-    const country = user?.country || "United States";
-    if (country === "United Kingdom" || country === "Ireland") return "£";
-    if (["Germany", "France", "Italy", "Spain", "Netherlands"].includes(country)) return "€";
-    return "$";
-  };
-
-  const currency = getCurrencySymbol();
-
   return (
     <ScreenScrollView
       refreshControl={
@@ -169,10 +160,14 @@ export default function BargainsScreen() {
                   type="body"
                   style={{ textDecorationLine: "line-through", opacity: 0.5 }}
                 >
-                  {currency}{deal.originalPrice}
+                  {deal.currencySymbol}{deal.currencyCode === "JPY" || deal.currencyCode === "KRW" 
+                    ? deal.originalPrice.toLocaleString() 
+                    : deal.originalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </ThemedText>
                 <ThemedText type="h2" style={{ color: theme.link, marginLeft: Spacing.sm }}>
-                  {currency}{deal.salePrice}
+                  {deal.currencySymbol}{deal.currencyCode === "JPY" || deal.currencyCode === "KRW" 
+                    ? deal.salePrice.toLocaleString() 
+                    : deal.salePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </ThemedText>
               </View>
 
