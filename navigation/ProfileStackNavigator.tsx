@@ -9,6 +9,7 @@ import VideoCallScreen from "@/screens/VideoCallScreen";
 import StyleExplorerScreen from "@/screens/StyleExplorerScreen";
 import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
 import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
+import LogoPreviewScreen from "@/screens/LogoPreviewScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -22,6 +23,7 @@ export type ProfileStackParamList = {
   StyleExplorer: undefined;
   PrivacyPolicy: undefined;
   TermsOfService: undefined;
+  LogoPreview: undefined;
   VideoCall: {
     callId?: string;
     roomUrl: string;
@@ -113,6 +115,14 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={TermsOfServiceScreen}
         options={{
           title: "Terms of Service",
+        }}
+      />
+      <Stack.Screen
+        name="LogoPreview"
+        component={LogoPreviewScreen}
+        options={{
+          title: "Logo Preview",
+          presentation: "modal",
         }}
       />
     </Stack.Navigator>

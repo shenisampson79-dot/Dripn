@@ -424,6 +424,21 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
 
       <View style={styles.section}>
         <ThemedText type="h3" style={styles.sectionTitle}>
+          Development
+        </ThemedText>
+        <View style={styles.sectionContent}>
+          <SettingItem
+            icon="image"
+            title="Logo Preview"
+            subtitle="View Dripn logo variations"
+            onPress={() => navigation.navigate("LogoPreview")}
+            theme={theme}
+          />
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h3" style={styles.sectionTitle}>
           Account Actions
         </ThemedText>
         <View style={styles.sectionContent}>
