@@ -9,6 +9,7 @@ import TrendInsightsService, {
 const REGIONAL_INFLUENCER_STYLES: Record<string, {
   influencers: { name: string; handle: string; signature: string; gender: 'female' | 'male' }[];
   styleTips: string[];
+  mensStyleTips?: string[];
   trendingPieces: string[];
   mensTrendingPieces?: string[];
 }> = {
@@ -29,8 +30,13 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "Statement belts are huge right now - add a vintage-style chain belt to elevate a simple dress, inspired by NYC street style.",
       "Layer a structured blazer over a relaxed outfit - it's the go-to formula for looking put-together without trying too hard.",
       "Athleisure is the new casual - Lululemon leggings with an oversized blazer and On Running sneakers is the ultimate rest day look that's shopping-ready.",
-      "For men: Take notes from LeBron and Russell Westbrook - NBA players are defining American menswear with bold designer choices and perfectly tailored suits.",
-      "For men: Timothée Chalamet proves slim-fit tailoring and vintage pieces work beautifully together - don't be afraid to mix eras.",
+    ],
+    mensStyleTips: [
+      "Take notes from LeBron and Russell Westbrook - NBA players are defining American menswear with bold designer choices and perfectly tailored suits.",
+      "Timothée Chalamet proves slim-fit tailoring and vintage pieces work beautifully together - don't be afraid to mix eras.",
+      "Michael B. Jordan's Coach collaborations show how to blend luxury brands with accessible streetwear for everyday elegance.",
+      "Odell Beckham Jr masters the art of mixing luxury pieces with athletic wear - try a designer jacket with premium sneakers.",
+      "The oversized blazer with slim trousers is the modern power look - it works for business and weekend brunch alike.",
     ],
     trendingPieces: ["Barrel-leg jeans", "Shearling Penny Lane coat", "Leopard print pieces", "Lululemon Align leggings", "On Running Cloudmonster", "Hoka Bondi 8"],
     mensTrendingPieces: ["Oversized blazer", "Cuban collar shirt", "Chunky sneakers", "Gold chain", "Slim-fit suit", "Statement sunglasses"],
@@ -54,8 +60,14 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "The Ugg trend is back stronger than ever - pair classic Ugg boots or Tasman slippers with oversized baggy sweatpants or boyfriend jeans for the ultimate cosy autumn/winter look.",
       "The North Face puffer jackets are the go-to for British winters - the Nuptse is iconic. For rain, their waterproof shells are essential.",
       "For premium outdoor style, Arc'teryx and Rab offer technical excellence that looks amazing. Mackage brings luxury to winter outerwear.",
-      "For men: David Beckham's country gentleman look - flat caps, tweed, and quality leather boots - is timeless British style.",
-      "For men: Hector Bellerin proves footballers can be fashion pioneers - embrace sustainable brands and avant-garde silhouettes.",
+    ],
+    mensStyleTips: [
+      "David Beckham's country gentleman look - flat caps, tweed, and quality leather boots - is timeless British style that works for any occasion.",
+      "Hector Bellerin proves footballers can be fashion pioneers - embrace sustainable brands and avant-garde silhouettes for a forward-thinking look.",
+      "Marcus Rashford's Burberry partnerships show how to blend British heritage with modern sportswear - think classic trenches with fresh trainers.",
+      "Stormzy's Burberry collaborations define modern British menswear - oversized puffers, tracksuits, and bold branding work together beautifully.",
+      "Stone Island and C.P. Company are essential UK football casual brands - invest in quality pieces that show heritage and style.",
+      "The North Face Nuptse is the ultimate British winter essential - pair with slim joggers and clean trainers for the perfect casual look.",
     ],
     trendingPieces: ["Trench coat", "Tailored wool coat", "Gymshark seamless sets", "Sweaty Betty leggings", "On Running sneakers", "Oner Active", "Ugg Classic Mini boots", "Ugg Tasman slippers", "Oversized baggy sweatpants", "Boyfriend jeans", "The North Face puffer jacket", "The North Face rain jacket", "Rab down jacket", "Arc'teryx shell jacket", "Jack Wolfskin waterproof", "Mackage wool coat"],
     mensTrendingPieces: ["Flat cap", "Tweed blazer", "Chelsea boots", "Burberry scarf", "Barbour jacket", "Quality knitwear", "Stone Island jumper", "C.P. Company jacket", "Lyle & Scott polo", "White trainers", "The North Face Nuptse", "The North Face rain jacket", "Rab Microlight jacket", "Arc'teryx Beta jacket", "Jack Wolfskin parka"],
@@ -77,8 +89,13 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "Master the art of looking undone yet polished - slightly tousled hair, minimal makeup, but impeccable tailoring.",
       "Invest in quality basics that serve as a canvas for rotating statement pieces - the European capsule wardrobe approach.",
       "Ugg boots with oversized sweatpants or boyfriend jeans is the go-to cosy look across Europe this autumn/winter - comfort meets effortless style.",
-      "For men: European footballers like Ronaldo and Mbappé set the global standard - sharp suits, designer collaborations, and impeccable grooming.",
-      "For men: Jude Bellingham's Gucci partnership shows how young players are becoming fashion icons - embrace bold designer pieces confidently.",
+    ],
+    mensStyleTips: [
+      "European footballers like Ronaldo and Mbappé set the global standard - sharp suits, designer collaborations, and impeccable grooming.",
+      "Jude Bellingham's Gucci partnership shows how young players are becoming fashion icons - embrace bold designer pieces confidently.",
+      "Erling Haaland proves Scandinavian minimalism works - clean lines, neutral colors, and quality fabrics create effortless sophistication.",
+      "Kylian Mbappé's Dior campaigns define modern French menswear - youthful streetwear meets luxury tailoring perfectly.",
+      "The double-breasted blazer is essential European style - pair with slim chinos and leather loafers for timeless elegance.",
     ],
     trendingPieces: ["Striped Breton top", "High-waisted tailored pants", "Ballet flats", "Silk scarf", "Classic handbag", "Ugg Classic boots", "Ugg Tasman slippers", "Oversized sweatpants", "Boyfriend jeans"],
     mensTrendingPieces: ["Double-breasted blazer", "Slim-fit chinos", "Leather loafers", "Designer sunglasses", "Quality polo shirt", "Luxury watch"],
@@ -96,7 +113,13 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "Invest in statement accessories - the right designer sunglasses or handbag can transform a simple outfit.",
       "Embrace rich fabrics and luxe textures - velvet, silk, and quality leather are staples in Middle Eastern fashion.",
       "Bold makeup pairs beautifully with understated outfits, or vice versa - master the balance like Huda Kattan.",
-      "For men: Mo Salah's understated luxury approach - quality basics with statement watches - defines modern Middle Eastern menswear.",
+    ],
+    mensStyleTips: [
+      "Mo Salah's understated luxury approach - quality basics with statement watches - defines modern Middle Eastern menswear.",
+      "Riyad Mahrez blends European fashion with Middle Eastern flair - sharp tailoring meets relaxed elegance perfectly.",
+      "Dubai's luxury menswear scene favors clean white sneakers with quality linen - perfect for hot weather sophistication.",
+      "Invest in designer sunglasses and a statement watch - these two accessories define Gulf menswear.",
+      "The linen shirt is essential for Middle Eastern style - pair with slim trousers for effortless elegance.",
     ],
     trendingPieces: ["Designer sunglasses", "Structured handbag", "Modest maxi dress", "Gold jewelry", "Statement heels"],
     mensTrendingPieces: ["Luxury watch", "White sneakers", "Linen shirt", "Designer sunglasses", "Quality leather belt"],
@@ -115,8 +138,13 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "Asian street style masters layering - try combining different textures and lengths for visual interest.",
       "Take inspiration from Heart Evangelista: elegance and artistry can coexist in everyday fashion.",
       "Don't underestimate the power of skincare and a polished appearance as part of your overall style presentation.",
-      "For men: G-Dragon pioneered the K-fashion movement - oversized silhouettes, bold accessories, and fearless color choices.",
-      "For men: Son Heung-min's clean-cut style shows how minimalism and sharp tailoring work beautifully together.",
+    ],
+    mensStyleTips: [
+      "G-Dragon pioneered the K-fashion movement - oversized silhouettes, bold accessories, and fearless color choices define the look.",
+      "Son Heung-min's clean-cut style shows how minimalism and sharp tailoring work beautifully together - Hugo Boss elegance.",
+      "Takumi Minamino embodies Japanese minimalism - quality basics in neutral tones create understated sophistication.",
+      "K-pop style embraces layering - try an oversized hoodie with wide-leg trousers and platform sneakers.",
+      "Bucket hats and layered chains are essential Asian streetwear accessories - subtle flex meets functionality.",
     ],
     trendingPieces: ["Oversized blazer", "Platform shoes", "Mini bag", "Statement earrings", "Cropped cardigan"],
     mensTrendingPieces: ["Oversized hoodie", "Wide-leg trousers", "Platform sneakers", "Bucket hat", "Layered chains"],
@@ -134,8 +162,13 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "Blend Western trends with traditional elements - a modern silhouette with ethnic jewelry creates unique fusion style.",
       "Masoom Minawala demonstrates that luxury and accessibility can coexist - invest strategically in statement pieces.",
       "Embrace maximalist accessorizing - layered jewelry and detailed embroidery celebrate South Asian fashion heritage.",
-      "For men: Ranveer Singh proves Indian men can embrace maximalist fashion - bold prints, bright colors, and dramatic silhouettes.",
-      "For men: Virat Kohli's evolution from sportswear to luxury fashion shows the power of a versatile wardrobe.",
+    ],
+    mensStyleTips: [
+      "Ranveer Singh proves Indian men can embrace maximalist fashion - bold prints, bright colors, and dramatic silhouettes make a statement.",
+      "Virat Kohli's evolution from sportswear to luxury fashion shows the power of a versatile wardrobe - invest in quality pieces.",
+      "The Nehru jacket is essential Indian menswear - pair with slim trousers and designer sneakers for modern fusion style.",
+      "Printed kurtas work beautifully for casual and festive occasions - embrace bold patterns and rich colors.",
+      "Aviator sunglasses and a statement watch complete any South Asian look - classic accessories never go out of style.",
     ],
     trendingPieces: ["Statement ethnic jewelry", "Fusion kurta sets", "Embroidered jacket", "Silk saree", "Juttis/kolhapuris"],
     mensTrendingPieces: ["Nehru jacket", "Printed kurta", "Designer sneakers", "Aviator sunglasses", "Statement watch"],
@@ -153,7 +186,13 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "Temi Otedola shows how to mix African designers with international luxury brands seamlessly.",
       "Statement jewelry with cultural significance elevates any outfit - gold and beadwork are timeless choices.",
       "Don't shy away from dramatic silhouettes - flowing sleeves, voluminous skirts, and sculptural shapes celebrate African aesthetics.",
-      "For men: African footballers like Sadio Mané show how cultural pride and international luxury can blend beautifully.",
+    ],
+    mensStyleTips: [
+      "Sadio Mané shows how cultural pride and international luxury blend beautifully - elegant simplicity with meaningful accessories.",
+      "Victor Osimhen's bold streetwear mixed with luxury pieces defines modern Nigerian menswear - don't be afraid to stand out.",
+      "Ankara print shirts are essential African menswear - pair with slim trousers and designer sneakers for contemporary style.",
+      "The Agbada is timeless elegance for special occasions - traditional craftsmanship meets sophisticated tailoring.",
+      "Gold chains and traditional caps add cultural significance to any outfit - heritage accessories that make a statement.",
     ],
     trendingPieces: ["Ankara print blazer", "Statement gold jewelry", "Head wrap/turban", "Flowing kaftan", "Beaded accessories"],
     mensTrendingPieces: ["Ankara print shirt", "Agbada", "Gold chain", "Designer sneakers", "Traditional cap"],
@@ -171,7 +210,13 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "Latin American fashion loves vibrant colors and playful prints - don't hold back on expressing joy through clothing.",
       "Sustainable fashion is growing in LATAM - Pamela Allier shows how eco-conscious choices can still be stylish.",
       "Mix high-end pieces with local artisan finds for authentic, culturally-rich style expression.",
-      "For men: Neymar's fearless approach to fashion - from bold hair to designer streetwear - inspires confidence in self-expression.",
+    ],
+    mensStyleTips: [
+      "Neymar's fearless approach to fashion - from bold hair to designer streetwear - inspires confidence in self-expression.",
+      "Vinicius Jr's youthful Brazilian swagger shows how luxury brands and streetwear create the perfect match.",
+      "Printed shirts are essential Latin American menswear - embrace bold patterns and vibrant colors for summer style.",
+      "Gold jewelry is a staple of Brazilian menswear - chains and bracelets add personality to any outfit.",
+      "Statement sneakers complete the look - invest in bold colorways that match your personality.",
     ],
     trendingPieces: ["Colorful maxi dress", "Artisan handmade accessories", "Linen separates", "Bold earrings", "Strappy sandals"],
     mensTrendingPieces: ["Printed shirt", "Slim-fit shorts", "Designer sandals", "Gold jewelry", "Statement sneakers"],
@@ -190,7 +235,13 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
       "Nicole Warne shows that travel and fashion go hand-in-hand - invest in versatile pieces that work across destinations.",
       "The Sydney street style formula: minimalist base + architectural accessory + natural textures.",
       "Sustainable and ethical fashion is central to Australian influencer culture - quality over fast fashion always.",
-      "For men: The Hemsworth brothers define Aussie masculinity - fitted basics, quality denim, and effortless grooming.",
+    ],
+    mensStyleTips: [
+      "The Hemsworth brothers define Aussie masculinity - fitted basics, quality denim, and effortless grooming.",
+      "Chris Hemsworth's fitness-forward style shows how gym wear transitions seamlessly to casual - invest in quality athleisure.",
+      "Liam Hemsworth's classic casual elegance proves simple works - a quality tee, fitted jeans, and leather boots are timeless.",
+      "Linen shirts are essential Australian menswear - perfect for the beach-to-bar lifestyle.",
+      "Aviator sunglasses complete the Aussie look - classic style that works from surf to city.",
     ],
     trendingPieces: ["Linen blazer", "Vintage denim", "Lululemon Define jacket", "On Running Cloud 5", "Hoka sneakers", "Woven bag"],
     mensTrendingPieces: ["Linen shirt", "Quality denim", "Leather boots", "Simple tee", "Aviator sunglasses"],
@@ -1216,10 +1267,13 @@ export function getInfluencerStyleGuide(country: string, userGender?: string): {
   const trendingPieces = userGender === 'man' && regionData.mensTrendingPieces 
     ? regionData.mensTrendingPieces 
     : regionData.trendingPieces;
+  const styleTips = userGender === 'man' && regionData.mensStyleTips 
+    ? regionData.mensStyleTips 
+    : regionData.styleTips;
   
   return {
     influencers: genderedInfluencers.length > 0 ? genderedInfluencers : regionData.influencers,
-    styleTips: regionData.styleTips,
+    styleTips,
     trendingPieces,
   };
 }
@@ -1240,10 +1294,13 @@ export function getStyleOfTheDayContent(country: string, userGender?: string): {
   const mustHavePieces = userGender === 'man' && regionData.mensTrendingPieces 
     ? regionData.mensTrendingPieces 
     : regionData.trendingPieces;
+  const styleTips = userGender === 'man' && regionData.mensStyleTips 
+    ? regionData.mensStyleTips 
+    : regionData.styleTips;
   
   return {
     title: `Today's Style Inspiration from ${region}`,
-    tip: getRandomItem(regionData.styleTips),
+    tip: getRandomItem(styleTips),
     influencerCredit: `Inspired by ${influencer.name} (${influencer.handle})`,
     trendingColors: TRENDING_STYLES_2024_2025.colors.hot.slice(0, 4),
     mustHavePieces,
