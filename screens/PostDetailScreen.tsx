@@ -434,25 +434,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
                   ))}
                 </View>
               ) : null}
-
-              {aiAdvice?.similarOutfits && aiAdvice.similarOutfits.length > 0 ? (
-                <SimilarOutfitsGrid
-                  outfits={aiAdvice.similarOutfits}
-                  onOutfitPress={handleSimilarOutfitPress}
-                  onSaveOutfit={handleSaveSimilarOutfit}
-                  savedOutfitIds={likedOutfitIds}
-                />
-              ) : null}
             </View>
-          ) : null}
-
-          {similarOutfits.length > 0 && !aiAdvice?.similarOutfits ? (
-            <SimilarOutfitsGrid
-              outfits={similarOutfits}
-              onOutfitPress={handleSimilarOutfitPress}
-              onSaveOutfit={handleSaveSimilarOutfit}
-              savedOutfitIds={likedOutfitIds}
-            />
           ) : null}
 
           <View style={styles.commentsSection}>
