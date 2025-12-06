@@ -177,9 +177,9 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                   { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
                 ]}
               >
-                <Feather name="scissors" size={18} color={theme.link} />
-                <ThemedText type="body" style={{ color: theme.link, fontWeight: "500" }}>
-                  Stylist Login
+                <Feather name="scissors" size={20} color={theme.link} />
+                <ThemedText type="small" style={{ color: theme.link, fontWeight: "600" }}>
+                  Stylist
                 </ThemedText>
               </Pressable>
               <Pressable
@@ -189,9 +189,9 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                   { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
                 ]}
               >
-                <Feather name="shield" size={18} color={theme.link} />
-                <ThemedText type="body" style={{ color: theme.link, fontWeight: "500" }}>
-                  Admin Login
+                <Feather name="shield" size={20} color={theme.link} />
+                <ThemedText type="small" style={{ color: theme.link, fontWeight: "600" }}>
+                  Admin
                 </ThemedText>
               </Pressable>
             </View>
@@ -792,16 +792,17 @@ const styles = StyleSheet.create({
   },
   staffButtonsRow: {
     flexDirection: "row",
-    gap: Spacing.sm,
+    gap: Spacing.md,
+    justifyContent: "center",
   },
   staffButton: {
-    flex: 1,
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    minWidth: 100,
   },
 });
