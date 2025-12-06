@@ -92,11 +92,46 @@ Files:
 - `backend-code/notificationService.js` - Email and SMS notification logic
 - `backend-code/index.js` - Stripe webhook and test endpoint
 
+## Marketing & Growth Features
+The app includes comprehensive marketing and growth features:
+
+**Social Sharing with Branding**:
+- Branded share messages with StyleWise hashtags (#StyleWise #FashionAdvice)
+- Deep link sharing for posts, profiles, and outfits
+- Platform-optimized sharing via expo-sharing
+- Service: `services/SharingService.ts`
+
+**Referral Program**:
+- Unique referral codes generated per user (format: SW + 6 alphanumeric chars)
+- Referral tracking and rewards system
+- 10% discount rewards for successful referrals
+- Context: `contexts/ReferralContext.tsx`
+- UI: Accessible from Settings screen "Invite Friends" section
+
+**App Store Review Prompts**:
+- Smart review prompting using expo-store-review
+- Triggered after positive user engagement
+- Integrated into post creation and sharing flows
+
+**Deep Link Sharing**:
+- Configured expo-linking for content deep links
+- Supports sharing specific posts, profiles, and outfits
+- URL scheme: stylewise://
+
+**Email Newsletter Signup**:
+- Fashion updates newsletter subscription
+- Toggle in Settings screen under "Newsletter" section
+- Backend integration via SendGrid for newsletter delivery
+- API: `services/ApiService.ts` newsletter methods
+
 ## External Dependencies
 - **Stripe**: For subscription management and payment processing.
-- **SendGrid**: For transactional email notifications (VIP purchase alerts).
+- **SendGrid**: For transactional email notifications (VIP purchase alerts, newsletters).
 - **Twilio**: For SMS text alerts (VIP purchase alerts) - to be configured.
 - **Expo-audio**: Used for voice comments functionality.
+- **Expo-sharing**: For branded social sharing functionality.
+- **Expo-store-review**: For App Store review prompts.
+- **Expo-linking**: For deep link sharing.
 - **OpenAI API**: Intended for real AI fashion advice (currently mocked).
 - **PostgreSQL**: Database solution for the backend.
 - **Affiliate APIs**: Planned for "Shop Now" functionality.
