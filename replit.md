@@ -1,7 +1,9 @@
-# StyleWise - Fashion Advice Mobile App
+# Dripn - Fashion Advice Mobile App
 
 ## Overview
-StyleWise is a mobile fashion advice app built with Expo React Native, designed to allow users to post outfit photos/videos and receive styling advice from both AI and community members. The app aims to provide size-inclusive recommendations, shoppable affiliate content, dynamic UI theming, and strong community engagement. It supports freemium subscriptions and offers a comprehensive platform for fashion enthusiasts with a vision for market potential in personalized fashion.
+Dripn is a mobile fashion advice app built with Expo React Native, designed to allow users to post outfit photos/videos and receive styling advice from AI, community members, and professional stylists via live video calls. The app aims to provide size-inclusive recommendations, shoppable affiliate content, dynamic UI theming, and strong community engagement. It supports freemium subscriptions and offers a comprehensive platform for fashion enthusiasts with a vision for market potential in personalized fashion.
+
+**Tagline:** Style that flows
 
 ## User Preferences
 I prefer detailed explanations.
@@ -38,12 +40,12 @@ A **Fashion Trend Intelligence System** curates global trend data from fashion p
 A **Visual Outfit Inspiration System** provides a Pinterest-style feature with similar outfit ideas. It uses a curated outfit library organized by style category and gender, with future plans for AI-generated images via DALL-E integration.
 
 ## VIP Video Calling System
-VIP members have exclusive access to video calling features hosted on the StyleWise platform:
+VIP members have exclusive access to video calling features hosted on the Dripn platform:
 
 **VIP-to-VIP Calls**:
 - VIP members can browse other available VIP members in the VIP Members screen
 - Online status indicators show availability
-- Video calls are initiated and hosted within StyleWise (not external social media)
+- Video calls are initiated and hosted within Dripn (not external social media)
 - Call history and duration tracking
 
 **Stylist Video Sessions**:
@@ -96,13 +98,13 @@ Files:
 The app includes comprehensive marketing and growth features:
 
 **Social Sharing with Branding**:
-- Branded share messages with StyleWise hashtags (#StyleWise #FashionAdvice)
+- Branded share messages with Dripn hashtags (#Dripn #FashionAdvice)
 - Deep link sharing for posts, profiles, and outfits
 - Platform-optimized sharing via expo-sharing
 - Service: `services/SharingService.ts`
 
 **Referral Program**:
-- Unique referral codes generated per user (format: SW + 6 alphanumeric chars)
+- Unique referral codes generated per user (format: DR + 6 alphanumeric chars)
 - Referral tracking and rewards system
 - 10% discount rewards for successful referrals
 - Context: `contexts/ReferralContext.tsx`
@@ -116,7 +118,7 @@ The app includes comprehensive marketing and growth features:
 **Deep Link Sharing**:
 - Configured expo-linking for content deep links
 - Supports sharing specific posts, profiles, and outfits
-- URL scheme: stylewise://
+- URL scheme: dripn://
 
 **Email Newsletter Signup**:
 - Fashion updates newsletter subscription
