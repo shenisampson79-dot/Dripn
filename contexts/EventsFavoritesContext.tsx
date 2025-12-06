@@ -2,13 +2,15 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Event } from '@/services/EventsService';
 import { useAuth } from '@/contexts/AuthContext';
+import apiService from '@/services/ApiService';
 
 interface EventsFavoritesContextType {
   likedEventIds: string[];
   isLiked: (eventId: string) => boolean;
-  toggleLike: (event: Event) => Promise<void>;
+  toggleLike: (event: Event, outfitSuggestion?: string) => Promise<void>;
   getLikedEvents: () => Event[];
   isLoading: boolean;
+  isSyncing: boolean;
 }
 
 const EventsFavoritesContext = createContext<EventsFavoritesContextType | null>(null);
@@ -27,6 +29,7 @@ export function EventsFavoritesProvider({ children }: EventsFavoritesProviderPro
   const [likedEventIds, setLikedEventIds] = useState<string[]>([]);
   const [likedEventsData, setLikedEventsData] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,6 +51,42 @@ export function EventsFavoritesProvider({ children }: EventsFavoritesProviderPro
   const loadLikedEvents = async (userId: string) => {
     try {
       setIsLoading(true);
+      
+      if (apiService.isConfigured()) {
+        try {
+          const backendResult = await apiService.getLikedEvents();
+          if (backendResult.likedEvents && backendResult.likedEvents.length > 0) {
+            const backendIds = backendResult.likedEvents.map(e => e.eventId);
+            const backendData: Event[] = backendResult.likedEvents.map(e => ({
+              id: e.eventId,
+              title: e.eventTitle,
+              date: e.eventDate,
+              time: e.eventTime,
+              location: e.eventLocation || '',
+              description: '',
+              category: '',
+              price: '',
+              source: 'liked',
+              sourceUrl: '',
+              imageUrl: '',
+            }));
+            
+            setLikedEventIds(backendIds);
+            setLikedEventsData(backendData);
+            
+            const { idsKey, dataKey } = getStorageKeys(userId);
+            await Promise.all([
+              AsyncStorage.setItem(idsKey, JSON.stringify(backendIds)),
+              AsyncStorage.setItem(dataKey, JSON.stringify(backendData)),
+            ]);
+            
+            return;
+          }
+        } catch (backendError) {
+          console.error('Failed to load from backend, falling back to local:', backendError);
+        }
+      }
+      
       const { idsKey, dataKey } = getStorageKeys(userId);
       const [idsJson, dataJson] = await Promise.all([
         AsyncStorage.getItem(idsKey),
@@ -85,14 +124,15 @@ export function EventsFavoritesProvider({ children }: EventsFavoritesProviderPro
     return likedEventIds.includes(eventId);
   }, [likedEventIds]);
 
-  const toggleLike = useCallback(async (event: Event): Promise<void> => {
+  const toggleLike = useCallback(async (event: Event, outfitSuggestion?: string): Promise<void> => {
     if (!currentUserId) return;
     
     const eventId = event.id;
     let newIds: string[];
     let newData: Event[];
+    const wasLiked = likedEventIds.includes(eventId);
 
-    if (likedEventIds.includes(eventId)) {
+    if (wasLiked) {
       newIds = likedEventIds.filter(id => id !== eventId);
       newData = likedEventsData.filter(e => e.id !== eventId);
     } else {
@@ -103,6 +143,23 @@ export function EventsFavoritesProvider({ children }: EventsFavoritesProviderPro
     setLikedEventIds(newIds);
     setLikedEventsData(newData);
     await saveLikedEvents(newIds, newData);
+
+    if (apiService.isConfigured() && !wasLiked) {
+      setIsSyncing(true);
+      try {
+        await apiService.likeEvent(eventId, {
+          title: event.title,
+          date: event.date,
+          time: event.time,
+          location: event.location,
+          outfitSuggestion: outfitSuggestion,
+        });
+      } catch (error) {
+        console.error('Failed to sync event like to backend:', error);
+      } finally {
+        setIsSyncing(false);
+      }
+    }
   }, [likedEventIds, likedEventsData, currentUserId]);
 
   const getLikedEvents = useCallback((): Event[] => {
@@ -115,6 +172,7 @@ export function EventsFavoritesProvider({ children }: EventsFavoritesProviderPro
     toggleLike,
     getLikedEvents,
     isLoading,
+    isSyncing,
   };
 
   return (

@@ -19,7 +19,9 @@ interface PostCardProps {
   onThank: (postId: string) => void;
   onShare?: (post: Post) => void;
   onSave?: (post: Post) => void;
+  onDislike?: (postId: string) => void;
   isSaved?: boolean;
+  isDisliked?: boolean;
   compact?: boolean;
 }
 
@@ -31,7 +33,9 @@ export function PostCard({
   onThank,
   onShare,
   onSave,
+  onDislike,
   isSaved = false,
+  isDisliked = false,
   compact = false,
 }: PostCardProps) {
   const { theme } = useTheme();
@@ -74,6 +78,13 @@ export function PostCard({
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (onShare) {
       onShare(post);
+    }
+  };
+
+  const handleDislike = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (onDislike) {
+      onDislike(post.id);
     }
   };
 
@@ -248,6 +259,18 @@ export function PostCard({
                 name={isSaved ? "bookmark" : "bookmark"} 
                 size={20} 
                 color={isSaved ? theme.link : theme.tabIconDefault} 
+              />
+            </Pressable>
+          ) : null}
+          {onDislike ? (
+            <Pressable
+              onPress={handleDislike}
+              style={({ pressed }) => [styles.dislikeButton, { opacity: pressed ? 0.7 : 1 }]}
+            >
+              <Feather 
+                name="x-circle" 
+                size={20} 
+                color={isDisliked ? "#FF6B6B" : theme.tabIconDefault} 
               />
             </Pressable>
           ) : null}
@@ -428,6 +451,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   saveButton: {
+    padding: 4,
+  },
+  dislikeButton: {
     padding: 4,
   },
   thankButton: {

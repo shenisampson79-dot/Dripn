@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { StyleSheet, View, Pressable, Image, ScrollView, Dimensions, Alert, ImageSourcePropType, Linking } from "react-native";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { StyleSheet, View, Pressable, Image, ScrollView, Dimensions, Alert, ImageSourcePropType, Linking, ActivityIndicator } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,6 +16,8 @@ import { shareChallenge } from "@/services/SharingService";
 import { getInfluencerStyleGuide, TRENDING_STYLES_2024_2025 } from "@/services/AIAdviceService";
 import { MagazineInspirationService, MagazineInspiration } from "@/services/MagazineInspirationService";
 import { useOutfitFavorites, StyleOfTheDayOutfit } from "@/contexts/OutfitFavoritesContext";
+import { useStyleProfile } from "@/contexts/StyleProfileContext";
+import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
 
 type RegionalModelType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
@@ -959,14 +961,29 @@ const getColorFromName = (colorName: string): string => {
   return colorMap[colorName] || '#888888';
 };
 
+interface EmergingTrend {
+  trendName: string;
+  description: string;
+  confidence: number;
+  category: string;
+  keyPieces: string[];
+  colorPalette: string[];
+  momentum: string;
+  targetAudience: string[];
+}
+
 export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { tier } = useSubscription();
   const { posts, votePost, voteComparison, thankPost } = usePosts();
   const { isOutfitLiked, toggleOutfitLike } = useOutfitFavorites();
+  const { hasStyleProfile, personalizedStyleOfTheDay, fetchPersonalizedStyleOfTheDay } = useStyleProfile();
   const [selectedCategory, setSelectedCategory] = useState("trending");
   const [selectedLook, setSelectedLook] = useState<CelebrityLook | null>(null);
+  const [dislikedPosts, setDislikedPosts] = useState<Set<string>>(new Set());
+  const [emergingTrends, setEmergingTrends] = useState<EmergingTrend[]>([]);
+  const [loadingTrends, setLoadingTrends] = useState(false);
 
   const isPremium = tier === "premium" || tier === "vip";
 
@@ -1008,6 +1025,55 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const handleSavePost = async (post: any) => {
     await toggleOutfitLike(post);
   };
+
+  const handleDislikePost = useCallback(async (postId: string) => {
+    setDislikedPosts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
+    
+    if (apiService.isConfigured()) {
+      try {
+        await apiService.dislikePost(postId);
+      } catch (error) {
+        console.error('Failed to sync dislike:', error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const loadEmergingTrends = async () => {
+      if (!apiService.isConfigured()) return;
+      
+      setLoadingTrends(true);
+      try {
+        const result = await apiService.getEmergingTrends({
+          region: user?.country,
+          gender: user?.gender,
+        });
+        if (result.trends) {
+          setEmergingTrends(result.trends);
+        }
+      } catch (error) {
+        console.error('Failed to load emerging trends:', error);
+      } finally {
+        setLoadingTrends(false);
+      }
+    };
+
+    loadEmergingTrends();
+  }, [user?.country, user?.gender]);
+
+  useEffect(() => {
+    if (hasStyleProfile) {
+      fetchPersonalizedStyleOfTheDay();
+    }
+  }, [hasStyleProfile, fetchPersonalizedStyleOfTheDay]);
 
   const countryBargains = useMemo(() => {
     const userCountry = user?.country || 'United States';
@@ -1121,9 +1187,17 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   return (
     <ScreenScrollView>
       <View style={styles.section}>
-        <ThemedText type="h2" style={styles.sectionTitle}>
-          Style of the Day
-        </ThemedText>
+        <View style={styles.sectionHeader}>
+          <ThemedText type="h2" style={styles.sectionTitle}>
+            Style of the Day
+          </ThemedText>
+          {hasStyleProfile ? (
+            <View style={[styles.personalizedBadge, { backgroundColor: theme.link }]}>
+              <Feather name="user" size={12} color="#FFFFFF" />
+              <ThemedText type="small" style={styles.personalizedBadgeText}>Personalized</ThemedText>
+            </View>
+          ) : null}
+        </View>
         <Pressable
           style={({ pressed }) => [
             styles.featuredCard,
@@ -1139,7 +1213,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
               <View style={styles.featuredBadge}>
                 <Feather name="award" size={16} color="#FFD700" />
                 <ThemedText type="small" style={styles.featuredBadgeText}>
-                  StyleWise AI Pick
+                  {hasStyleProfile && personalizedStyleOfTheDay?.personalized ? "Curated For You" : "StyleWise AI Pick"}
                 </ThemedText>
               </View>
               <Pressable
@@ -1163,14 +1237,109 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
               </Pressable>
             </View>
             <ThemedText type="h3" style={styles.featuredTitle}>
-              {regionalStyleContent.title}
+              {hasStyleProfile && personalizedStyleOfTheDay?.personalized 
+                ? personalizedStyleOfTheDay.styleOfTheDay.title 
+                : regionalStyleContent.title}
             </ThemedText>
             <ThemedText type="body" style={styles.featuredDescription} numberOfLines={3}>
-              {regionalStyleContent.description}
+              {hasStyleProfile && personalizedStyleOfTheDay?.personalized 
+                ? personalizedStyleOfTheDay.styleOfTheDay.description 
+                : regionalStyleContent.description}
             </ThemedText>
+            {hasStyleProfile && personalizedStyleOfTheDay?.personalized ? (
+              <View style={styles.personalizedDetails}>
+                <ThemedText type="small" style={[styles.personalizedReason, { color: theme.link }]}>
+                  {personalizedStyleOfTheDay.styleOfTheDay.whyThisWorks}
+                </ThemedText>
+                <View style={styles.keyPiecesContainer}>
+                  {personalizedStyleOfTheDay.styleOfTheDay.keyPieces.slice(0, 3).map((piece, index) => (
+                    <View key={index} style={[styles.keyPieceTag, { backgroundColor: theme.link + "20" }]}>
+                      <ThemedText type="small" style={{ color: theme.link }}>{piece}</ThemedText>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
           </View>
         </Pressable>
       </View>
+
+      {emergingTrends.length > 0 || loadingTrends ? (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="h2" style={styles.sectionTitle}>
+              Trend Scanner
+            </ThemedText>
+            <Pressable
+              onPress={() => {
+                Alert.alert(
+                  "Trend Scanner",
+                  "Our AI analyzes fashion trends from around the world to show you what's emerging right now. These trends are personalized based on your location and style preferences."
+                );
+              }}
+            >
+              <Feather name="info" size={18} color={theme.tabIconDefault} />
+            </Pressable>
+          </View>
+          <ThemedText type="small" style={[styles.trendScannerSubtitle, { color: theme.tabIconDefault }]}>
+            Emerging trends curated by AI based on your preferences
+          </ThemedText>
+          {loadingTrends ? (
+            <View style={styles.trendLoadingContainer}>
+              <ActivityIndicator size="small" color={theme.link} />
+              <ThemedText type="small" style={{ marginLeft: Spacing.sm, opacity: 0.7 }}>
+                Scanning trends...
+              </ThemedText>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.trendsContainer}
+            >
+              {emergingTrends.map((trend, index) => (
+                <Pressable
+                  key={index}
+                  onPress={() => {
+                    Alert.alert(
+                      trend.trendName,
+                      `${trend.description}\n\nCategory: ${trend.category}\nMomentum: ${trend.momentum}\n\nKey Pieces:\n${trend.keyPieces.join(", ")}\n\nColors: ${trend.colorPalette.join(", ")}`,
+                      [{ text: "Got it" }]
+                    );
+                  }}
+                  style={({ pressed }) => [
+                    styles.trendCard,
+                    { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.9 : 1 },
+                  ]}
+                >
+                  <View style={[styles.trendConfidenceBadge, { 
+                    backgroundColor: trend.confidence >= 0.8 ? "#27AE60" : trend.confidence >= 0.6 ? "#F39C12" : theme.link 
+                  }]}>
+                    <ThemedText type="small" style={styles.trendConfidenceText}>
+                      {Math.round(trend.confidence * 100)}%
+                    </ThemedText>
+                  </View>
+                  <View style={[styles.trendIconContainer, { backgroundColor: theme.link + "15" }]}>
+                    <Feather name="trending-up" size={24} color={theme.link} />
+                  </View>
+                  <ThemedText type="h3" style={styles.trendName} numberOfLines={2}>
+                    {trend.trendName}
+                  </ThemedText>
+                  <ThemedText type="small" style={styles.trendCategory}>
+                    {trend.category}
+                  </ThemedText>
+                  <View style={styles.trendMomentum}>
+                    <Feather name="activity" size={12} color={theme.link} />
+                    <ThemedText type="small" style={[styles.trendMomentumText, { color: theme.link }]}>
+                      {trend.momentum}
+                    </ThemedText>
+                  </View>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -1503,7 +1672,9 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
               onComparisonVote={voteComparison}
               onThank={thankPost}
               onSave={handleSavePost}
+              onDislike={handleDislikePost}
               isSaved={isOutfitLiked(post.id)}
+              isDisliked={dislikedPosts.has(post.id)}
               compact
             />
           ))}
@@ -2094,5 +2265,99 @@ const styles = StyleSheet.create({
   blogCtaText: {
     color: "#FFFFFF",
     fontWeight: "600",
+  },
+  personalizedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    gap: 4,
+  },
+  personalizedBadgeText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 11,
+  },
+  personalizedDetails: {
+    marginTop: Spacing.sm,
+  },
+  personalizedReason: {
+    fontStyle: "italic",
+    marginBottom: Spacing.sm,
+  },
+  keyPiecesContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.xs,
+  },
+  keyPieceTag: {
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  trendScannerSubtitle: {
+    marginBottom: Spacing.md,
+    marginTop: -Spacing.sm,
+  },
+  trendLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.lg,
+  },
+  trendsContainer: {
+    gap: Spacing.md,
+    paddingRight: Spacing.lg,
+  },
+  trendCard: {
+    width: 160,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    alignItems: "center",
+    position: "relative",
+  },
+  trendConfidenceBadge: {
+    position: "absolute",
+    top: Spacing.sm,
+    right: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+    zIndex: 1,
+  },
+  trendConfidenceText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 10,
+  },
+  trendIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  trendName: {
+    textAlign: "center",
+    marginTop: Spacing.xs,
+    fontWeight: "600",
+  },
+  trendCategory: {
+    opacity: 0.6,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  trendMomentum: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: Spacing.sm,
+    gap: 4,
+  },
+  trendMomentumText: {
+    fontSize: 11,
+    fontWeight: "500",
   },
 });

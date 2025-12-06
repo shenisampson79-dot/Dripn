@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { StyleSheet, View, Pressable, RefreshControl, Platform, ActivityIndicator, Linking, Alert, Share } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Location from "expo-location";
@@ -11,6 +11,8 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEventsFavorites } from "@/contexts/EventsFavoritesContext";
+import { useStyleProfile } from "@/contexts/StyleProfileContext";
+import apiService from "@/services/ApiService";
 import { 
   EventsService, 
   Event, 
@@ -20,18 +22,33 @@ import {
   getMapsUrl,
 } from "@/services/EventsService";
 
+interface PersonalizedEventRanking {
+  eventTitle: string;
+  matchScore: number;
+  whyItSuits: string;
+  outfitSuggestion: string;
+}
+
 export default function EventsScreen() {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { isLiked, toggleLike } = useEventsFavorites();
+  const { hasStyleProfile } = useStyleProfile();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [locationData, setLocationData] = useState<LocationData | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
+  const [personalizedRankings, setPersonalizedRankings] = useState<PersonalizedEventRanking[]>([]);
+  const [loadingPersonalization, setLoadingPersonalization] = useState(false);
+  const [topPick, setTopPick] = useState<{ eventTitle: string; reason: string } | null>(null);
 
   const isVip = user?.subscriptionTier === "vip";
+
+  const getEventRanking = useCallback((eventTitle: string): PersonalizedEventRanking | undefined => {
+    return personalizedRankings.find(r => r.eventTitle.toLowerCase() === eventTitle.toLowerCase());
+  }, [personalizedRankings]);
 
   const handleShareEvent = async (event: Event) => {
     try {
@@ -168,6 +185,40 @@ export default function EventsScreen() {
     initialize();
   }, [fetchLocationAndEvents, fetchEventsWithoutLocation]);
 
+  useEffect(() => {
+    const fetchPersonalizedRankings = async () => {
+      if (!hasStyleProfile || events.length === 0 || !apiService.isConfigured()) {
+        setPersonalizedRankings([]);
+        setTopPick(null);
+        return;
+      }
+
+      setLoadingPersonalization(true);
+      try {
+        const eventsForApi = events.slice(0, 10).map(e => ({
+          id: e.id,
+          title: e.title,
+          category: e.category,
+          date: e.date,
+          time: e.time,
+          description: e.description,
+        }));
+
+        const result = await apiService.getPersonalizedEventRankings(eventsForApi);
+        if (result.personalized && result.eventRecommendations) {
+          setPersonalizedRankings(result.eventRecommendations.rankedEvents);
+          setTopPick(result.eventRecommendations.topPick);
+        }
+      } catch (error) {
+        console.log("Failed to fetch personalized event rankings:", error);
+      } finally {
+        setLoadingPersonalization(false);
+      }
+    };
+
+    fetchPersonalizedRankings();
+  }, [hasStyleProfile, events]);
+
   return (
     <ScreenScrollView
       refreshControl={
@@ -219,6 +270,28 @@ export default function EventsScreen() {
           </Card>
         ) : null}
 
+        {!loading && hasStyleProfile && topPick ? (
+          <Card style={styles.topPickCard}>
+            <View style={styles.topPickHeader}>
+              <View style={[styles.topPickBadge, { backgroundColor: theme.link }]}>
+                <Feather name="award" size={14} color="#FFFFFF" />
+                <ThemedText type="small" style={{ color: "#FFFFFF", fontWeight: "700", marginLeft: 4 }}>
+                  Your Top Pick
+                </ThemedText>
+              </View>
+              {loadingPersonalization ? (
+                <ActivityIndicator size="small" color={theme.link} />
+              ) : null}
+            </View>
+            <ThemedText type="h3" style={{ marginTop: Spacing.sm }}>
+              {topPick.eventTitle}
+            </ThemedText>
+            <ThemedText type="small" style={{ opacity: 0.8, marginTop: Spacing.xs }}>
+              {topPick.reason}
+            </ThemedText>
+          </Card>
+        ) : null}
+
         {!loading ? (
           <View style={styles.categoriesContainer}>
             {categories.map((category) => (
@@ -244,8 +317,30 @@ export default function EventsScreen() {
         ) : null}
 
         <View style={styles.eventsContainer}>
-          {filteredEvents.map((event) => (
+          {filteredEvents.map((event) => {
+            const ranking = getEventRanking(event.title);
+            const isTopPick = topPick?.eventTitle.toLowerCase() === event.title.toLowerCase();
+            
+            return (
             <Card key={event.id} style={styles.eventCard}>
+              {isTopPick && hasStyleProfile ? (
+                <View style={[styles.topPickIndicator, { backgroundColor: theme.link }]}>
+                  <Feather name="award" size={12} color="#FFFFFF" />
+                  <ThemedText type="small" style={{ color: "#FFFFFF", fontWeight: "600", marginLeft: 4, fontSize: 11 }}>
+                    Top Pick For You
+                  </ThemedText>
+                </View>
+              ) : null}
+              
+              {ranking && !isTopPick ? (
+                <View style={[styles.matchScoreBadge, { backgroundColor: ranking.matchScore >= 80 ? "#27AE60" : ranking.matchScore >= 60 ? "#F39C12" : theme.backgroundSecondary }]}>
+                  <Feather name="target" size={12} color={ranking.matchScore >= 60 ? "#FFFFFF" : theme.text} />
+                  <ThemedText type="small" style={{ color: ranking.matchScore >= 60 ? "#FFFFFF" : theme.text, fontWeight: "600", marginLeft: 4, fontSize: 11 }}>
+                    {ranking.matchScore}% Match
+                  </ThemedText>
+                </View>
+              ) : null}
+              
               <View style={styles.eventHeader}>
                 <View style={[styles.categoryIcon, { backgroundColor: theme.backgroundSecondary }]}>
                   <Feather name={getCategoryIcon(event.category) as any} size={20} color={theme.link} />
@@ -342,12 +437,21 @@ export default function EventsScreen() {
                 </Pressable>
               ) : null}
 
-              <View style={[styles.outfitSuggestion, { backgroundColor: theme.backgroundSecondary }]}>
-                <Feather name="star" size={14} color={theme.link} />
-                <ThemedText type="small" style={{ marginLeft: Spacing.xs, flex: 1 }}>
-                  <ThemedText type="small" style={{ fontWeight: "600" }}>What to wear: </ThemedText>
-                  {event.outfitSuggestion}
-                </ThemedText>
+              <View style={[styles.outfitSuggestion, { backgroundColor: ranking ? theme.link + "15" : theme.backgroundSecondary }]}>
+                <Feather name={ranking ? "zap" : "star"} size={14} color={theme.link} />
+                <View style={{ marginLeft: Spacing.xs, flex: 1 }}>
+                  <ThemedText type="small">
+                    <ThemedText type="small" style={{ fontWeight: "600" }}>
+                      {ranking ? "Personalized outfit: " : "What to wear: "}
+                    </ThemedText>
+                    {ranking?.outfitSuggestion || event.outfitSuggestion}
+                  </ThemedText>
+                  {ranking?.whyItSuits ? (
+                    <ThemedText type="small" style={{ opacity: 0.7, marginTop: 4, fontStyle: "italic" }}>
+                      {ranking.whyItSuits}
+                    </ThemedText>
+                  ) : null}
+                </View>
               </View>
 
               <View style={styles.eventFooter}>
@@ -403,7 +507,8 @@ export default function EventsScreen() {
                 </View>
               </View>
             </Card>
-          ))}
+            );
+          })}
         </View>
 
         <Card style={styles.sourcesCard}>
@@ -567,5 +672,39 @@ const styles = StyleSheet.create({
   sourcesCard: {
     marginTop: Spacing.lg,
     padding: Spacing.md,
+  },
+  topPickCard: {
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  topPickHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  topPickBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  topPickIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.sm,
+  },
+  matchScoreBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.sm,
   },
 });
