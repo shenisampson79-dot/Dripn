@@ -7,6 +7,8 @@ import EditProfileScreen from "@/screens/EditProfileScreen";
 import VIPMembersScreen from "@/screens/VIPMembersScreen";
 import VideoCallScreen from "@/screens/VideoCallScreen";
 import StyleExplorerScreen from "@/screens/StyleExplorerScreen";
+import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
+import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -18,6 +20,8 @@ export type ProfileStackParamList = {
   EditProfile: undefined;
   VIPMembers: undefined;
   StyleExplorer: undefined;
+  PrivacyPolicy: undefined;
+  TermsOfService: undefined;
   VideoCall: {
     callId?: string;
     roomUrl: string;
@@ -95,6 +99,20 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
           title: "Explore Styles",
           headerShown: false,
           presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="PrivacyPolicy"
+        component={PrivacyPolicyScreen}
+        options={{
+          title: "Privacy Policy",
+        }}
+      />
+      <Stack.Screen
+        name="TermsOfService"
+        component={TermsOfServiceScreen}
+        options={{
+          title: "Terms of Service",
         }}
       />
     </Stack.Navigator>

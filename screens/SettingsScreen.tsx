@@ -224,11 +224,11 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   };
 
   const handlePrivacy = () => {
-    Linking.openURL("https://stylewise.app/privacy");
+    navigation.navigate("PrivacyPolicy");
   };
 
   const handleTerms = () => {
-    Linking.openURL("https://stylewise.app/terms");
+    navigation.navigate("TermsOfService");
   };
 
   const handleSupport = () => {
