@@ -10,14 +10,13 @@ import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { ReportModal } from "@/components/ReportModal";
-import { SimilarOutfitsGrid } from "@/components/SimilarOutfitsGrid";
 import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePosts, Post, Comment } from "@/contexts/PostsContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useOutfitFavorites } from "@/contexts/OutfitFavoritesContext";
-import { getAIFashionAdvice, getComparisonAdvice, getOutfitInspirationByStyle, AIAdviceResult, SimilarOutfit } from "@/services/AIAdviceService";
+import { getAIFashionAdvice, getComparisonAdvice, AIAdviceResult } from "@/services/AIAdviceService";
 import { sharePost, generateHashtags } from "@/services/SharingService";
 import { VoiceCommentInput, VoiceCommentPlayer } from "@/components/VoiceCommentInput";
 import type { HomeStackParamList } from "@/navigation/HomeStackNavigator";
@@ -28,34 +27,6 @@ type PostDetailScreenProps = {
 };
 
 const { width } = Dimensions.get("window");
-
-function detectStyleFromDescription(description: string): string {
-  const descLower = description.toLowerCase();
-  
-  if (descLower.includes('formal') || descLower.includes('suit') || descLower.includes('evening') || descLower.includes('cocktail') || descLower.includes('dinner')) {
-    return 'formal';
-  }
-  if (descLower.includes('street') || descLower.includes('urban') || descLower.includes('sneaker') || descLower.includes('hoodie')) {
-    return 'streetwear';
-  }
-  if (descLower.includes('boho') || descLower.includes('bohemian') || descLower.includes('flowy') || descLower.includes('maxi')) {
-    return 'boho';
-  }
-  if (descLower.includes('sport') || descLower.includes('gym') || descLower.includes('athletic') || descLower.includes('legging')) {
-    return 'sporty';
-  }
-  if (descLower.includes('business') || descLower.includes('office') || descLower.includes('professional') || descLower.includes('work')) {
-    return 'business';
-  }
-  if (descLower.includes('edgy') || descLower.includes('leather') || descLower.includes('punk') || descLower.includes('rock')) {
-    return 'edgy';
-  }
-  if (descLower.includes('date') || descLower.includes('romantic') || descLower.includes('night out')) {
-    return 'formal';
-  }
-  
-  return 'casual';
-}
 
 export default function PostDetailScreen({ navigation, route }: PostDetailScreenProps) {
   const { postId } = route.params;
@@ -72,18 +43,8 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
   const [aiAdvice, setAiAdvice] = useState<AIAdviceResult | null>(null);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [similarOutfits, setSimilarOutfits] = useState<SimilarOutfit[]>([]);
 
   const post = posts.find((p) => p.id === postId);
-
-  useEffect(() => {
-    if (post) {
-      const genderParam: 'male' | 'female' = user?.gender === 'man' ? 'male' : 'female';
-      const styleCategory = detectStyleFromDescription(post.description);
-      const outfits = getOutfitInspirationByStyle(styleCategory, genderParam, 4);
-      setSimilarOutfits(outfits);
-    }
-  }, [post?.id, user?.gender]);
   const comments = getPostComments(postId);
 
   if (!post) {
@@ -226,26 +187,6 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
     if (days > 0) return `${days}d ago`;
     if (hours > 0) return `${hours}h ago`;
     return "Just now";
-  };
-
-  const handleSimilarOutfitPress = (outfit: SimilarOutfit) => {
-    Alert.alert(
-      outfit.title,
-      `Style: ${outfit.style.charAt(0).toUpperCase() + outfit.style.slice(1)}\n\nThis outfit inspiration will be available to view in full detail in a future update.`,
-      [{ text: "OK" }]
-    );
-  };
-
-  const handleSaveSimilarOutfit = async (outfit: SimilarOutfit) => {
-    await toggleOutfitLike({
-      id: outfit.id,
-      outfitType: 'similar_outfit',
-      title: outfit.title,
-      description: outfit.description,
-      imageUri: outfit.imageUri,
-      style: outfit.style,
-    });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const renderComment = (comment: Comment) => (
