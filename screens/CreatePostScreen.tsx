@@ -11,7 +11,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePosts, PostType, PostMedia } from "@/contexts/PostsContext";
+import { usePosts, PostType, PostMedia, POLL_TIME_FRAMES } from "@/contexts/PostsContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 
 interface CreatePostScreenProps {
@@ -42,6 +42,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
   const [description, setDescription] = useState("");
   const [requestAIAdvice, setRequestAIAdvice] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTimeFrameIndex, setSelectedTimeFrameIndex] = useState(2);
 
   const maxMedia = postType === "comparison" ? limits.maxImagesPerPost : 1;
   const hasVideo = media.some(m => m.type === 'video');
@@ -227,6 +228,11 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
 
     setIsSubmitting(true);
     try {
+      const selectedTimeFrame = POLL_TIME_FRAMES[selectedTimeFrameIndex];
+      const pollExpiresAt = postType === "comparison"
+        ? new Date(Date.now() + selectedTimeFrame.minutes * 60 * 1000).toISOString()
+        : undefined;
+
       await createPost({
         userId: user.id,
         userName: user.name,
@@ -247,6 +253,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
           ? "Analyzing your outfit... Great style choice! The proportions work well together. Consider accessorizing with complementary pieces to elevate the look."
           : undefined,
         country: user.country,
+        pollExpiresAt,
       });
 
       await incrementUpload();
@@ -480,6 +487,71 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
             {description.length}/500
           </ThemedText>
         </View>
+
+        {postType === "comparison" ? (
+          <View style={styles.section}>
+            <ThemedText type="h3" style={styles.sectionTitle}>
+              Poll Duration
+            </ThemedText>
+            <ThemedText type="small" style={styles.timeFrameHint}>
+              Set how long the community can vote on your outfit options
+            </ThemedText>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.timeFrameScroll}
+              contentContainerStyle={styles.timeFrameContainer}
+            >
+              {POLL_TIME_FRAMES.map((timeFrame, index) => (
+                <Pressable
+                  key={timeFrame.minutes}
+                  onPress={() => {
+                    setSelectedTimeFrameIndex(index);
+                    Haptics.selectionAsync();
+                  }}
+                  style={[
+                    styles.timeFrameOption,
+                    {
+                      backgroundColor:
+                        selectedTimeFrameIndex === index ? theme.link : theme.backgroundDefault,
+                      borderColor:
+                        selectedTimeFrameIndex === index ? theme.link : theme.tabIconDefault,
+                    },
+                  ]}
+                >
+                  <Feather
+                    name="clock"
+                    size={14}
+                    color={selectedTimeFrameIndex === index ? "#FFFFFF" : theme.tabIconDefault}
+                  />
+                  <ThemedText
+                    type="small"
+                    style={{
+                      color: selectedTimeFrameIndex === index ? "#FFFFFF" : theme.text,
+                      fontWeight: selectedTimeFrameIndex === index ? "600" : "400",
+                    }}
+                  >
+                    {timeFrame.label}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <View style={[styles.urgencyIndicator, { backgroundColor: theme.backgroundDefault }]}>
+              <Feather 
+                name={selectedTimeFrameIndex <= 2 ? "zap" : selectedTimeFrameIndex <= 5 ? "clock" : "calendar"} 
+                size={16} 
+                color={selectedTimeFrameIndex <= 2 ? theme.error || "#FF3B30" : selectedTimeFrameIndex <= 5 ? theme.link : theme.tabIconDefault} 
+              />
+              <ThemedText type="small" style={styles.urgencyText}>
+                {selectedTimeFrameIndex <= 2
+                  ? "Quick decision - perfect for shopping!"
+                  : selectedTimeFrameIndex <= 5
+                    ? "Moderate timeframe for gathering opinions"
+                    : "Extended voting for future events"}
+              </ThemedText>
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <Pressable
@@ -715,5 +787,37 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     width: "100%",
+  },
+  timeFrameHint: {
+    opacity: 0.7,
+    marginBottom: Spacing.md,
+  },
+  timeFrameScroll: {
+    marginHorizontal: -Spacing.xl,
+  },
+  timeFrameContainer: {
+    paddingHorizontal: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  timeFrameOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  urgencyIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
+  },
+  urgencyText: {
+    flex: 1,
+    opacity: 0.8,
   },
 });

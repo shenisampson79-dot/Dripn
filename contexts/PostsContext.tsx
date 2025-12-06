@@ -51,7 +51,25 @@ export interface Post {
   isViralBadge?: boolean;
   shareUnlockTip?: string;
   gender?: PostGender;
+  pollExpiresAt?: string;
 }
+
+export type PollTimeFrame = {
+  label: string;
+  minutes: number;
+};
+
+export const POLL_TIME_FRAMES: PollTimeFrame[] = [
+  { label: '10 minutes', minutes: 10 },
+  { label: '30 minutes', minutes: 30 },
+  { label: '1 hour', minutes: 60 },
+  { label: '3 hours', minutes: 180 },
+  { label: '6 hours', minutes: 360 },
+  { label: '12 hours', minutes: 720 },
+  { label: '1 day', minutes: 1440 },
+  { label: '3 days', minutes: 4320 },
+  { label: '1 week', minutes: 10080 },
+];
 
 interface PostsContextType {
   posts: Post[];
@@ -374,6 +392,14 @@ export function PostsProvider({ children }: { children: ReactNode }) {
   };
 
   const voteComparison = async (postId: string, mediaId: string) => {
+    const targetPost = posts.find(p => p.id === postId);
+    if (targetPost?.pollExpiresAt) {
+      const expiresAt = new Date(targetPost.pollExpiresAt).getTime();
+      if (Date.now() >= expiresAt) {
+        return;
+      }
+    }
+
     const updatedPosts = posts.map(post => {
       if (post.id === postId && post.type === 'comparison') {
         return {

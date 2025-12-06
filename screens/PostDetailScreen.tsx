@@ -33,7 +33,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
-  const { posts, getPostComments, addComment, votePost, thankPost, updatePost } = usePosts();
+  const { posts, getPostComments, addComment, votePost, voteComparison, thankPost, updatePost } = usePosts();
   const { tier, canRequestAIAdvice, incrementAIAdvice, canRecordVoice, incrementVoiceComment } = useSubscription();
   const { likedOutfitIds, isOutfitLiked, toggleOutfitLike } = useOutfitFavorites();
 
@@ -43,9 +43,63 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
   const [aiAdvice, setAiAdvice] = useState<AIAdviceResult | null>(null);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [pollTimeRemaining, setPollTimeRemaining] = useState<string | null>(null);
+  const [isPollExpired, setIsPollExpired] = useState(false);
 
   const post = posts.find((p) => p.id === postId);
   const comments = getPostComments(postId);
+
+  useEffect(() => {
+    if (!post || post.type !== "comparison" || !post.pollExpiresAt) {
+      setPollTimeRemaining(null);
+      setIsPollExpired(false);
+      return;
+    }
+
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const expiresAt = new Date(post.pollExpiresAt!).getTime();
+      const diff = expiresAt - now;
+
+      if (diff <= 0) {
+        setIsPollExpired(true);
+        setPollTimeRemaining(null);
+        return true;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      let timeString = "";
+      if (days > 0) {
+        timeString = `${days}d ${hours}h remaining`;
+      } else if (hours > 0) {
+        timeString = `${hours}h ${minutes}m remaining`;
+      } else if (minutes > 0) {
+        timeString = `${minutes}m ${seconds}s remaining`;
+      } else {
+        timeString = `${seconds}s remaining`;
+      }
+
+      setPollTimeRemaining(timeString);
+      setIsPollExpired(false);
+      return false;
+    };
+
+    const isExpired = updateCountdown();
+    if (isExpired) return;
+
+    const interval = setInterval(() => {
+      const expired = updateCountdown();
+      if (expired) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [post?.id, post?.pollExpiresAt, post?.type]);
 
   if (!post) {
     return (
@@ -81,6 +135,15 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
 
   const handleThank = () => {
     thankPost(postId);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleComparisonVote = async (mediaId: string) => {
+    if (isPollExpired) {
+      Alert.alert("Poll Closed", "This poll has ended and voting is no longer available.");
+      return;
+    }
+    await voteComparison(postId, mediaId);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
@@ -277,14 +340,22 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
                 <Image source={{ uri: image.uri }} style={styles.postImage} />
                 {post.type === "comparison" ? (
                   <View style={styles.voteOverlay}>
-                    <Pressable
-                      style={[styles.voteButton, { backgroundColor: theme.link }]}
-                      onPress={() => {}}
-                    >
-                      <ThemedText type="body" style={styles.voteButtonText}>
-                        Vote ({image.votes || 0})
-                      </ThemedText>
-                    </Pressable>
+                    {isPollExpired ? (
+                      <View style={[styles.voteButton, { backgroundColor: theme.tabIconDefault }]}>
+                        <ThemedText type="body" style={styles.voteButtonText}>
+                          {image.votes || 0} votes
+                        </ThemedText>
+                      </View>
+                    ) : (
+                      <Pressable
+                        style={[styles.voteButton, { backgroundColor: theme.link }]}
+                        onPress={() => handleComparisonVote(image.id)}
+                      >
+                        <ThemedText type="body" style={styles.voteButtonText}>
+                          Vote ({image.votes || 0})
+                        </ThemedText>
+                      </Pressable>
+                    )}
                   </View>
                 ) : null}
                 {post.images.length > 1 ? (
@@ -297,6 +368,30 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
               </View>
             ))}
           </ScrollView>
+
+          {post.type === "comparison" && post.pollExpiresAt ? (
+            <View
+              style={[
+                styles.pollTimerBanner,
+                {
+                  backgroundColor: isPollExpired
+                    ? theme.tabIconDefault
+                    : pollTimeRemaining && pollTimeRemaining.includes("s remaining") && !pollTimeRemaining.includes("h")
+                      ? theme.error || "#FF3B30"
+                      : theme.link,
+                },
+              ]}
+            >
+              <Feather
+                name={isPollExpired ? "check-circle" : "clock"}
+                size={16}
+                color="#FFFFFF"
+              />
+              <ThemedText type="small" style={styles.pollTimerText}>
+                {isPollExpired ? "Poll closed - Voting has ended" : pollTimeRemaining}
+              </ThemedText>
+            </View>
+          ) : null}
 
           <View style={styles.engagementRow}>
             <View style={styles.voteButtons}>
@@ -779,5 +874,20 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+  },
+  pollTimerBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    marginHorizontal: Spacing.xl,
+    marginBottom: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  pollTimerText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
 });
