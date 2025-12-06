@@ -52,7 +52,7 @@ export default function EventsScreen() {
 
   const handleShareEvent = async (event: Event) => {
     try {
-      const message = `Check out this event on StyleWise!\n\n${event.title}\n${event.date} at ${event.time}\n${event.location}\n${event.price}\n\nWhat to wear: ${event.outfitSuggestion}`;
+      const message = `Check out this event on Dripn!\n\n${event.title}\n${event.date} at ${event.time}\n${event.location}\n${event.price}\n\nWhat to wear: ${event.outfitSuggestion}`;
       await Share.share({
         message,
         title: event.title,

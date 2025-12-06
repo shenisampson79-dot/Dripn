@@ -86,7 +86,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           </ThemedText>
           <ThemedText type="body" style={styles.subtitle}>
             {isSignup
-              ? "Join the StyleWise community"
+              ? "Join the Dripn community"
               : "Sign in to continue your style journey"}
           </ThemedText>
         </View>

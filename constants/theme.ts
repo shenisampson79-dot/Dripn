@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 
-// StyleWise Theme System
+// Dripn Theme System
 // Dynamic theming based on user's fashion style preference
 
 export type StyleTheme = 'luxury' | 'streetwear' | 'boho' | 'sporty' | 'smart-casual' | 'business' | 'edgy';

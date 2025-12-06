@@ -20,10 +20,10 @@ export default function PrivacyPolicyScreen() {
 
         <View style={styles.section}>
           <ThemedText type="body" style={styles.paragraph}>
-            Welcome to StyleWise. Your privacy is important to us. This Privacy Policy explains how StyleWise ("we," "us," or "our") collects, uses, discloses, and protects your personal information when you use our mobile application and related services (collectively, the "Service").
+            Welcome to Dripn. Your privacy is important to us. This Privacy Policy explains how Dripn ("we," "us," or "our") collects, uses, discloses, and protects your personal information when you use our mobile application and related services (collectively, the "Service").
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            By using StyleWise, you agree to the collection and use of information in accordance with this policy. If you do not agree with this policy, please do not use our Service.
+            By using Dripn, you agree to the collection and use of information in accordance with this policy. If you do not agree with this policy, please do not use our Service.
           </ThemedText>
         </View>
 
@@ -94,7 +94,7 @@ export default function PrivacyPolicyScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Provide, maintain, and improve the StyleWise Service
+              Provide, maintain, and improve the Dripn Service
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
               Personalize your experience with AI-powered fashion recommendations
@@ -125,7 +125,7 @@ export default function PrivacyPolicyScreen() {
             3. AI and Automated Processing
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            StyleWise uses artificial intelligence to provide personalized fashion advice. When you request AI recommendations:
+            Dripn uses artificial intelligence to provide personalized fashion advice. When you request AI recommendations:
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
@@ -217,7 +217,7 @@ export default function PrivacyPolicyScreen() {
             </ThemedText>
           </View>
           <ThemedText type="body" style={styles.paragraph}>
-            To exercise these rights, contact us at privacy@stylewise.app or use the in-app Settings.
+            To exercise these rights, contact us at privacy@dripn.app or use the in-app Settings.
           </ThemedText>
         </View>
 
@@ -261,7 +261,7 @@ export default function PrivacyPolicyScreen() {
             9. Children's Privacy
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            StyleWise is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If you believe we have collected such information, please contact us immediately, and we will delete it.
+            Dripn is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If you believe we have collected such information, please contact us immediately, and we will delete it.
           </ThemedText>
         </View>
 
@@ -292,10 +292,10 @@ export default function PrivacyPolicyScreen() {
           </ThemedText>
           <View style={styles.contactInfo}>
             <ThemedText type="body" style={styles.contactItem}>
-              Email: privacy@stylewise.app
+              Email: privacy@dripn.app
             </ThemedText>
             <ThemedText type="body" style={styles.contactItem}>
-              Support: support@stylewise.app
+              Support: support@dripn.app
             </ThemedText>
           </View>
         </View>
@@ -316,7 +316,7 @@ export default function PrivacyPolicyScreen() {
             For California Users (CCPA/CPRA)
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            California residents have the right to know what personal information is collected, request deletion, and opt-out of the sale of personal information. We do not sell personal information. To exercise your rights, email privacy@stylewise.app.
+            California residents have the right to know what personal information is collected, request deletion, and opt-out of the sale of personal information. We do not sell personal information. To exercise your rights, email privacy@dripn.app.
           </ThemedText>
 
           <ThemedText type="h4" style={styles.subsectionTitle}>
@@ -329,7 +329,7 @@ export default function PrivacyPolicyScreen() {
 
         <View style={styles.footer}>
           <ThemedText type="small" style={styles.footerText}>
-            StyleWise - Fashion Advice App
+            Dripn - Fashion Advice App
           </ThemedText>
           <ThemedText type="small" style={styles.footerText}>
             Version 1.0.0

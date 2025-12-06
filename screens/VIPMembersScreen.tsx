@@ -108,7 +108,7 @@ export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) 
       <View style={[styles.infoCard, { backgroundColor: theme.link + '15' }]}>
         <Feather name="info" size={16} color={theme.link} />
         <ThemedText type="small" style={{ flex: 1, marginLeft: Spacing.sm, opacity: 0.8 }}>
-          Start a video call with another VIP member. Calls are hosted exclusively on StyleWise.
+          Start a video call with another VIP member. Calls are hosted exclusively on Dripn.
         </ThemedText>
       </View>
     </>

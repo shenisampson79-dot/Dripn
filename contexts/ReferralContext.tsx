@@ -44,11 +44,11 @@ interface ReferralContextType {
 
 const ReferralContext = createContext<ReferralContextType | null>(null);
 
-const REFERRAL_STORAGE_KEY = '@stylewise_referral';
+const REFERRAL_STORAGE_KEY = '@dripn_referral';
 
 function generateReferralCode(userId: string): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = 'SW';
+  let code = 'DR';
   for (let i = 0; i < 6; i++) {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
   }

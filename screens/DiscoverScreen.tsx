@@ -1164,7 +1164,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
           onPress: () => {
             Alert.alert(
               "Opening Store",
-              `StyleWise may earn a small commission on purchases.\n\nYou'll be redirected to ${item.store} to complete your purchase.`,
+              `Dripn may earn a small commission on purchases.\n\nYou'll be redirected to ${item.store} to complete your purchase.`,
               [
                 { text: "Cancel", style: "cancel" },
                 { 
@@ -1213,7 +1213,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
               <View style={styles.featuredBadge}>
                 <Feather name="award" size={16} color="#FFD700" />
                 <ThemedText type="small" style={styles.featuredBadgeText}>
-                  {hasStyleProfile && personalizedStyleOfTheDay?.personalized ? "Curated For You" : "StyleWise AI Pick"}
+                  {hasStyleProfile && personalizedStyleOfTheDay?.personalized ? "Curated For You" : "Dripn AI Pick"}
                 </ThemedText>
               </View>
               <Pressable
@@ -1505,7 +1505,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         <View style={[styles.affiliateNotice, { backgroundColor: theme.backgroundDefault }]}>
           <Feather name="info" size={14} color={theme.tabIconDefault} />
           <ThemedText type="small" style={[styles.affiliateText, { color: theme.tabIconDefault }]}>
-            StyleWise may earn a commission if you shop through these links
+            Dripn may earn a commission if you shop through these links
           </ThemedText>
         </View>
         <ScrollView
@@ -1560,7 +1560,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         <View style={[styles.affiliateNotice, { backgroundColor: theme.backgroundDefault }]}>
           <Feather name="info" size={14} color={theme.tabIconDefault} />
           <ThemedText type="small" style={[styles.affiliateText, { color: theme.tabIconDefault }]}>
-            StyleWise may earn a commission if you shop through these links
+            Dripn may earn a commission if you shop through these links
           </ThemedText>
         </View>
         <ScrollView

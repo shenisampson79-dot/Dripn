@@ -20,7 +20,7 @@ export default function TermsOfServiceScreen() {
 
         <View style={styles.section}>
           <ThemedText type="body" style={styles.paragraph}>
-            Welcome to StyleWise. These Terms of Service ("Terms") govern your access to and use of the StyleWise mobile application and related services (collectively, the "Service"). By accessing or using StyleWise, you agree to be bound by these Terms.
+            Welcome to Dripn. These Terms of Service ("Terms") govern your access to and use of the Dripn mobile application and related services (collectively, the "Service"). By accessing or using Dripn, you agree to be bound by these Terms.
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
             Please read these Terms carefully before using our Service. If you do not agree to these Terms, you may not access or use the Service.
@@ -32,7 +32,7 @@ export default function TermsOfServiceScreen() {
             1. Acceptance of Terms
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            By creating an account or using StyleWise, you confirm that you:
+            By creating an account or using Dripn, you confirm that you:
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
@@ -55,7 +55,7 @@ export default function TermsOfServiceScreen() {
             2. Description of Service
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            StyleWise is a fashion advice platform that enables users to:
+            Dripn is a fashion advice platform that enables users to:
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
@@ -115,7 +115,7 @@ export default function TermsOfServiceScreen() {
             4.1 Subscription Tiers
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            StyleWise offers the following subscription tiers with varying features:
+            Dripn offers the following subscription tiers with varying features:
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
@@ -163,7 +163,7 @@ export default function TermsOfServiceScreen() {
             5.1 Your Content
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            You retain ownership of content you post ("User Content"). By posting content, you grant StyleWise a worldwide, non-exclusive, royalty-free license to use, display, reproduce, and distribute your content in connection with the Service.
+            You retain ownership of content you post ("User Content"). By posting content, you grant Dripn a worldwide, non-exclusive, royalty-free license to use, display, reproduce, and distribute your content in connection with the Service.
           </ThemedText>
 
           <ThemedText type="h4" style={styles.subsectionTitle}>
@@ -245,7 +245,7 @@ export default function TermsOfServiceScreen() {
             7.1 Our Intellectual Property
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            The StyleWise name, logo, design, features, and all related intellectual property are owned by StyleWise. You may not use, copy, or distribute our intellectual property without express written permission.
+            The Dripn name, logo, design, features, and all related intellectual property are owned by Dripn. You may not use, copy, or distribute our intellectual property without express written permission.
           </ThemedText>
 
           <ThemedText type="h4" style={styles.subsectionTitle}>
@@ -259,7 +259,7 @@ export default function TermsOfServiceScreen() {
             7.3 Copyright Claims
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            If you believe content on StyleWise infringes your copyright, please contact us at copyright@stylewise.app with the required information for a DMCA takedown notice.
+            If you believe content on Dripn infringes your copyright, please contact us at copyright@dripn.app with the required information for a DMCA takedown notice.
           </ThemedText>
         </View>
 
@@ -268,7 +268,7 @@ export default function TermsOfServiceScreen() {
             8. AI Fashion Advice
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            StyleWise provides AI-powered fashion recommendations as a guide. You acknowledge that:
+            Dripn provides AI-powered fashion recommendations as a guide. You acknowledge that:
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
@@ -315,7 +315,7 @@ export default function TermsOfServiceScreen() {
             TO THE MAXIMUM EXTENT PERMITTED BY LAW, STYLEWISE AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR GOODWILL, ARISING FROM YOUR USE OF THE SERVICE.
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            Our total liability for any claims arising from these Terms or your use of the Service shall not exceed the amount you paid to StyleWise in the twelve (12) months preceding the claim.
+            Our total liability for any claims arising from these Terms or your use of the Service shall not exceed the amount you paid to Dripn in the twelve (12) months preceding the claim.
           </ThemedText>
         </View>
 
@@ -324,7 +324,7 @@ export default function TermsOfServiceScreen() {
             12. Indemnification
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            You agree to indemnify, defend, and hold harmless StyleWise and its affiliates from any claims, damages, losses, or expenses (including reasonable legal fees) arising from your use of the Service, your content, or your violation of these Terms.
+            You agree to indemnify, defend, and hold harmless Dripn and its affiliates from any claims, damages, losses, or expenses (including reasonable legal fees) arising from your use of the Service, your content, or your violation of these Terms.
           </ThemedText>
         </View>
 
@@ -372,7 +372,7 @@ export default function TermsOfServiceScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Entire Agreement: These Terms, together with our Privacy Policy, constitute the entire agreement between you and StyleWise.
+              Entire Agreement: These Terms, together with our Privacy Policy, constitute the entire agreement between you and Dripn.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
               Severability: If any provision is found unenforceable, the remaining provisions remain in effect.
@@ -395,17 +395,17 @@ export default function TermsOfServiceScreen() {
           </ThemedText>
           <View style={styles.contactInfo}>
             <ThemedText type="body" style={styles.contactItem}>
-              Email: legal@stylewise.app
+              Email: legal@dripn.app
             </ThemedText>
             <ThemedText type="body" style={styles.contactItem}>
-              Support: support@stylewise.app
+              Support: support@dripn.app
             </ThemedText>
           </View>
         </View>
 
         <View style={styles.footer}>
           <ThemedText type="small" style={styles.footerText}>
-            StyleWise - Fashion Advice App
+            Dripn - Fashion Advice App
           </ThemedText>
           <ThemedText type="small" style={styles.footerText}>
             Version 1.0.0

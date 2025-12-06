@@ -16,8 +16,8 @@ interface EventsFavoritesContextType {
 const EventsFavoritesContext = createContext<EventsFavoritesContextType | null>(null);
 
 const getStorageKeys = (userId: string) => ({
-  idsKey: `@stylewise_liked_event_ids_${userId}`,
-  dataKey: `@stylewise_liked_events_data_${userId}`,
+  idsKey: `@dripn_liked_event_ids_${userId}`,
+  dataKey: `@dripn_liked_events_data_${userId}`,
 });
 
 interface EventsFavoritesProviderProps {

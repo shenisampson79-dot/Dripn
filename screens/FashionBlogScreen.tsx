@@ -36,12 +36,12 @@ interface BlogPost {
   }>;
 }
 
-const NEWSLETTER_SUBSCRIPTION_KEY = "@stylewise_newsletter_subscribed";
+const NEWSLETTER_SUBSCRIPTION_KEY = "@dripn_newsletter_subscribed";
 
 const FALLBACK_BLOG_POSTS: BlogPost[] = [
   {
     id: "fallback-1",
-    subject: "StyleWise Weekly: 5 Winter Wardrobe Essentials",
+    subject: "Dripn Weekly: 5 Winter Wardrobe Essentials",
     headline: "5 Winter Wardrobe Essentials You Need Right Now",
     previewText: "Build your perfect cold-weather capsule wardrobe",
     introduction: "Build your perfect cold-weather capsule with these versatile pieces that work for every occasion.",
@@ -56,7 +56,7 @@ const FALLBACK_BLOG_POSTS: BlogPost[] = [
   },
   {
     id: "fallback-2",
-    subject: "StyleWise Weekly: The Colour Confidence Guide",
+    subject: "Dripn Weekly: The Colour Confidence Guide",
     headline: "The Colour Confidence Guide - Find Your Perfect Palette",
     previewText: "Discover which colours make you look radiant",
     introduction: "Discover which colours make you look radiant and how to build a palette that works for you.",
@@ -71,7 +71,7 @@ const FALLBACK_BLOG_POSTS: BlogPost[] = [
   },
   {
     id: "fallback-3",
-    subject: "StyleWise Weekly: Smart Casual Decoded",
+    subject: "Dripn Weekly: Smart Casual Decoded",
     headline: "Smart Casual Decoded - What It Actually Means",
     previewText: "Master effortlessly polished dressing",
     introduction: "The dress code everyone gets wrong. Here's how to nail it every time.",

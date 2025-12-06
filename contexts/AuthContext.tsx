@@ -47,7 +47,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const STORAGE_KEY = '@stylewise_user';
+const STORAGE_KEY = '@dripn_user';
 
 const createDefaultUser = (email: string, name: string): UserProfile => ({
   id: Date.now().toString(),

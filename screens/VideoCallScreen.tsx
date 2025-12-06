@@ -128,7 +128,7 @@ export default function VideoCallScreen({ navigation, route }: VideoCallScreenPr
         <View style={[styles.infoContainer, { backgroundColor: theme.link + '15' }]}>
           <Feather name="info" size={16} color={theme.link} />
           <ThemedText type="small" style={{ flex: 1, marginLeft: Spacing.sm, opacity: 0.7 }}>
-            Video calls are hosted on StyleWise. Tap the button below to join the video room in your browser.
+            Video calls are hosted on Dripn. Tap the button below to join the video room in your browser.
           </ThemedText>
         </View>
 

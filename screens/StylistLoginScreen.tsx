@@ -93,7 +93,7 @@ export default function StylistLoginScreen({ navigation, onLoginSuccess, onExit 
               style={inputStyle}
               value={email}
               onChangeText={setEmail}
-              placeholder="stylist@stylewise.com"
+              placeholder="stylist@dripn.com"
               placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
               keyboardType="email-address"
               autoCapitalize="none"

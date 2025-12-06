@@ -122,7 +122,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
       await addComment(postId, {
         postId,
         userId: "ai-stylist",
-        userName: "StyleWise AI",
+        userName: "Dripn AI",
         content: advice.mainAdvice,
         isVoice: false,
         isAI: true,
@@ -378,7 +378,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
               <View style={styles.aiAdviceHeader}>
                 <Feather name="cpu" size={18} color={theme.link} />
                 <ThemedText type="h3" style={{ color: theme.link }}>
-                  StyleWise AI Advice
+                  Dripn AI Advice
                 </ThemedText>
               </View>
               <ThemedText type="body" style={styles.aiAdviceText}>

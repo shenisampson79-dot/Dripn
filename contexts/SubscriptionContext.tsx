@@ -66,8 +66,8 @@ interface SubscriptionContextType {
 
 const SubscriptionContext = createContext<SubscriptionContextType | null>(null);
 
-const USAGE_STORAGE_KEY = '@stylewise_usage';
-const TRIAL_STORAGE_KEY = '@stylewise_trial';
+const USAGE_STORAGE_KEY = '@dripn_usage';
+const TRIAL_STORAGE_KEY = '@dripn_trial';
 
 const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
   free: {
@@ -193,7 +193,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     interval: 'month',
     priceId: 'price_vip_monthly',
     features: [
-      '4x 60-min video styling sessions on StyleWise',
+      '4x 60-min video styling sessions on Dripn',
       'Video calls with VIP members',
       'Unlimited posts',
       'Exclusive VIP badge',

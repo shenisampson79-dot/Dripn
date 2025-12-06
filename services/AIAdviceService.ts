@@ -585,7 +585,7 @@ const STYLE_ADVICE_TEMPLATES = {
 };
 
 const HASHTAG_SUGGESTIONS = [
-  "#OOTD #StyleWise #FashionAdvice",
+  "#OOTD #Dripn #FashionAdvice",
   "#OutfitInspo #StyleTips #FashionCommunity",
   "#WhatIWore #FashionDiary #StreetStyle",
   "#StyleOfTheDay #OutfitGoals #FashionForward",

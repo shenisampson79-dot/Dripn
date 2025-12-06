@@ -44,8 +44,8 @@ interface StylistAuthContextType {
 
 const StylistAuthContext = createContext<StylistAuthContextType | null>(null);
 
-const STYLIST_STORAGE_KEY = '@stylewise_stylist';
-const STYLIST_TOKEN_KEY = '@stylewise_stylist_token';
+const STYLIST_STORAGE_KEY = '@dripn_stylist';
+const STYLIST_TOKEN_KEY = '@dripn_stylist_token';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 

@@ -42,8 +42,8 @@ interface AdminAuthContextType {
 
 const AdminAuthContext = createContext<AdminAuthContextType | null>(null);
 
-const ADMIN_STORAGE_KEY = '@stylewise_admin';
-const ADMIN_TOKEN_KEY = '@stylewise_admin_token';
+const ADMIN_STORAGE_KEY = '@dripn_admin';
+const ADMIN_TOKEN_KEY = '@dripn_admin_token';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 

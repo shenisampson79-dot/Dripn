@@ -44,7 +44,7 @@ export function ReportModal({ visible, onClose, contentType, contentId }: Report
     
     Alert.alert(
       "Report Submitted",
-      "Thank you for helping keep StyleWise safe. Our team will review this content.",
+      "Thank you for helping keep Dripn safe. Our team will review this content.",
       [{ text: "OK" }]
     );
   };

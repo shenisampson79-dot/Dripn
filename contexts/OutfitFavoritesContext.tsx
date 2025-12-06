@@ -50,8 +50,8 @@ interface OutfitFavoritesContextType {
 const OutfitFavoritesContext = createContext<OutfitFavoritesContextType | null>(null);
 
 const getStorageKeys = (userId: string) => ({
-  idsKey: `@stylewise_liked_outfit_ids_${userId}`,
-  dataKey: `@stylewise_liked_outfits_data_${userId}`,
+  idsKey: `@dripn_liked_outfit_ids_${userId}`,
+  dataKey: `@dripn_liked_outfits_data_${userId}`,
 });
 
 interface OutfitFavoritesProviderProps {

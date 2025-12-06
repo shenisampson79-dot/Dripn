@@ -172,7 +172,7 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
               style={inputStyle}
               value={email}
               onChangeText={setEmail}
-              placeholder="admin@stylewise.com"
+              placeholder="admin@dripn.com"
               placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
               keyboardType="email-address"
               autoCapitalize="none"

@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useReferral } from "@/contexts/ReferralContext";
 import { apiService } from "@/services/ApiService";
 
-const NEWSLETTER_STATUS_KEY = "@stylewise_newsletter_subscribed";
+const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
 
@@ -128,7 +128,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         await apiService.subscribeToNewsletter(user.email, user.name);
         setIsNewsletterSubscribed(true);
         await AsyncStorage.setItem(NEWSLETTER_STATUS_KEY, "true");
-        Alert.alert("Subscribed", "You're now subscribed to StyleWise fashion updates!");
+        Alert.alert("Subscribed", "You're now subscribed to Dripn fashion updates!");
       } else {
         await apiService.unsubscribeFromNewsletter(user.email);
         setIsNewsletterSubscribed(false);
@@ -232,7 +232,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   };
 
   const handleSupport = () => {
-    Linking.openURL("mailto:support@stylewise.app");
+    Linking.openURL("mailto:support@dripn.app");
   };
 
   return (
@@ -462,7 +462,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
 
       <View style={styles.footer}>
         <ThemedText type="small" style={styles.versionText}>
-          StyleWise v1.0.0
+          Dripn v1.0.0
         </ThemedText>
       </View>
     </ScreenScrollView>

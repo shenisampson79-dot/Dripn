@@ -72,14 +72,14 @@ interface PostsContextType {
 
 const PostsContext = createContext<PostsContextType | null>(null);
 
-const POSTS_STORAGE_KEY = '@stylewise_posts';
-const COMMENTS_STORAGE_KEY = '@stylewise_comments';
+const POSTS_STORAGE_KEY = '@dripn_posts';
+const COMMENTS_STORAGE_KEY = '@dripn_comments';
 
 const SAMPLE_POSTS: Post[] = [
   {
     id: '1',
     userId: 'ai-stylist',
-    userName: 'StyleWise AI',
+    userName: 'Dripn AI',
     userAvatar: null,
     userSubscriptionTier: 'vip',
     type: 'standard',
@@ -235,7 +235,7 @@ const SAMPLE_COMMENTS: Comment[] = [
     id: 'c2',
     postId: '2',
     userId: 'ai-stylist',
-    userName: 'StyleWise AI',
+    userName: 'Dripn AI',
     userAvatar: null,
     content: 'Based on the romantic dinner setting, the first outfit creates a softer, more approachable vibe. The draping is elegant and the silhouette is timeless.',
     isVoice: false,
