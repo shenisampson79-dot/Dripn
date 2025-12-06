@@ -85,7 +85,7 @@ const PLANS: Plan[] = [
   {
     id: "vip",
     name: "VIP",
-    price: "$49.99",
+    price: "$1,999",
     period: "/month",
     description: "The ultimate style experience",
     features: [

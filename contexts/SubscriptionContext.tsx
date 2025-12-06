@@ -174,7 +174,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: 'vip',
     tier: 'vip',
     name: 'VIP Influencer',
-    price: 49.99,
+    price: 1999,
     interval: 'month',
     priceId: 'price_vip_monthly',
     features: [
