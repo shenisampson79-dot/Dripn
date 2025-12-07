@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, View, TextInput, Pressable, Alert, Image } from "react-native";
+import { StyleSheet, View, TextInput, Pressable, Alert, Image, ScrollView, Modal } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -11,6 +11,28 @@ import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SizeRange, BodyShape, BudgetRange } from "@/contexts/AuthContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+
+const ALL_COUNTRIES = [
+  "Albania", "Andorra", "Antigua and Barbuda", "Argentina", "Armenia", "Australia",
+  "Austria", "Azerbaijan", "Bahamas", "Bangladesh", "Barbados", "Belarus", "Belgium",
+  "Belize", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Bulgaria",
+  "Canada", "Cayman Islands", "Chile", "China", "Colombia", "Costa Rica", "Croatia",
+  "Cuba", "Curacao", "Cyprus", "Czech Republic", "Denmark", "Dominica", "Dominican Republic",
+  "Ecuador", "Egypt", "El Salvador", "Estonia", "Ethiopia", "Finland", "France", "Georgia",
+  "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guyana", "Haiti", "Honduras",
+  "Hungary", "Iceland", "India", "Indonesia", "Ireland", "Israel", "Italy", "Jamaica",
+  "Japan", "Kazakhstan", "Kenya", "Kosovo", "Latvia", "Liechtenstein", "Lithuania",
+  "Luxembourg", "Malaysia", "Malta", "Mauritius", "Mexico", "Moldova", "Monaco",
+  "Montenegro", "Morocco", "Namibia", "Netherlands", "New Zealand", "Nicaragua", "Nigeria",
+  "North Macedonia", "Norway", "Pakistan", "Panama", "Paraguay", "Peru", "Philippines",
+  "Poland", "Portugal", "Puerto Rico", "Romania", "Russia", "Saint Kitts and Nevis",
+  "Saint Lucia", "Saint Vincent and the Grenadines", "San Marino", "Saudi Arabia", "Serbia",
+  "Singapore", "Slovakia", "Slovenia", "South Africa", "South Korea", "Spain", "Suriname",
+  "Sweden", "Switzerland", "Taiwan", "Thailand", "Trinidad and Tobago", "Turkey",
+  "Turks and Caicos Islands", "Ukraine", "United Arab Emirates", "United Kingdom",
+  "United States", "Uruguay", "US Virgin Islands", "Vatican City", "Venezuela", "Vietnam",
+  "Zimbabwe",
+];
 
 type EditProfileScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "EditProfile">;
@@ -39,10 +61,17 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
 
   const [name, setName] = useState(user?.name || "");
   const [avatar, setAvatar] = useState(user?.avatar || null);
+  const [country, setCountry] = useState(user?.country || "United States");
   const [sizeRange, setSizeRange] = useState<SizeRange>(user?.sizeRange || null);
   const [bodyShape, setBodyShape] = useState<BodyShape>(user?.bodyShape || null);
   const [budgetRange, setBudgetRange] = useState<BudgetRange>(user?.budgetRange || null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
+
+  const filteredCountries = ALL_COUNTRIES.filter(c =>
+    c.toLowerCase().includes(countrySearch.toLowerCase())
+  );
 
   const handlePickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -75,6 +104,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
       await updateProfile({
         name: name.trim(),
         avatar,
+        country,
         sizeRange,
         bodyShape,
         budgetRange,
@@ -85,6 +115,12 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSelectCountry = (selectedCountry: string) => {
+    setCountry(selectedCountry);
+    setShowCountryPicker(false);
+    setCountrySearch("");
   };
 
   const inputStyle = [
@@ -129,6 +165,89 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
           returnKeyType="done"
         />
       </View>
+
+      <View style={styles.fieldContainer}>
+        <ThemedText type="small" style={styles.label}>
+          Country
+        </ThemedText>
+        <ThemedText type="small" style={styles.sectionHint}>
+          Updates your regional content and style recommendations
+        </ThemedText>
+        <Pressable
+          onPress={() => setShowCountryPicker(true)}
+          style={({ pressed }) => [
+            styles.countrySelector,
+            {
+              backgroundColor: theme.backgroundDefault,
+              opacity: pressed ? 0.8 : 1,
+            },
+          ]}
+        >
+          <Feather name="map-pin" size={18} color={theme.tabIconDefault} />
+          <ThemedText type="body" style={styles.countryText}>
+            {country}
+          </ThemedText>
+          <Feather name="chevron-down" size={18} color={theme.tabIconDefault} />
+        </Pressable>
+      </View>
+
+      <Modal
+        visible={showCountryPicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowCountryPicker(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+          <View style={styles.modalHeader}>
+            <ThemedText type="h2">Select Country</ThemedText>
+            <Pressable
+              onPress={() => {
+                setShowCountryPicker(false);
+                setCountrySearch("");
+              }}
+              style={styles.closeButton}
+            >
+              <Feather name="x" size={24} color={theme.text} />
+            </Pressable>
+          </View>
+          <View style={styles.searchContainer}>
+            <Feather name="search" size={18} color={theme.tabIconDefault} style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
+              value={countrySearch}
+              onChangeText={setCountrySearch}
+              placeholder="Search countries..."
+              placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
+              autoCapitalize="none"
+            />
+          </View>
+          <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
+            {filteredCountries.map((c) => (
+              <Pressable
+                key={c}
+                onPress={() => handleSelectCountry(c)}
+                style={({ pressed }) => [
+                  styles.countryItem,
+                  {
+                    backgroundColor: country === c ? theme.link : theme.backgroundDefault,
+                    opacity: pressed ? 0.8 : 1,
+                  },
+                ]}
+              >
+                <ThemedText
+                  type="body"
+                  style={{ color: country === c ? "#FFFFFF" : theme.text }}
+                >
+                  {c}
+                </ThemedText>
+                {country === c ? (
+                  <Feather name="check" size={18} color="#FFFFFF" />
+                ) : null}
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
 
       <View style={styles.section}>
         <ThemedText type="h3" style={styles.sectionTitle}>
@@ -295,5 +414,62 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: Spacing.lg,
+  },
+  countrySelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: Spacing.inputHeight,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  countryText: {
+    flex: 1,
+  },
+  modalContainer: {
+    flex: 1,
+    paddingTop: Spacing.xl,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  closeButton: {
+    padding: Spacing.sm,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  searchIcon: {
+    position: "absolute",
+    left: Spacing.lg,
+    zIndex: 1,
+  },
+  searchInput: {
+    flex: 1,
+    height: Spacing.inputHeight,
+    borderRadius: BorderRadius.md,
+    paddingLeft: Spacing.xl + Spacing.lg,
+    paddingRight: Spacing.lg,
+    fontSize: Typography.body.fontSize,
+  },
+  countryList: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+  },
+  countryItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.xs,
   },
 });
