@@ -8,6 +8,9 @@ import AIStylistScreen from "@/screens/AIStylistScreen";
 import VisualSearchScreen from "@/screens/VisualSearchScreen";
 import GamificationScreen from "@/screens/GamificationScreen";
 import SmartNotificationsScreen from "@/screens/SmartNotificationsScreen";
+import StyleChallengesScreen from "@/screens/StyleChallengesScreen";
+import ChallengeDetailScreen from "@/screens/ChallengeDetailScreen";
+import ChallengeSubmissionScreen from "@/screens/ChallengeSubmissionScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -20,6 +23,9 @@ export type DiscoverStackParamList = {
   VisualSearch: undefined;
   Gamification: undefined;
   SmartNotifications: undefined;
+  StyleChallenges: undefined;
+  ChallengeDetail: { challengeId: string };
+  ChallengeSubmission: { challengeId: string };
 };
 
 const Stack = createNativeStackNavigator<DiscoverStackParamList>();
@@ -70,6 +76,21 @@ export default function DiscoverStackNavigator() {
         name="SmartNotifications"
         component={SmartNotificationsScreen}
         options={{ headerTitle: "Smart Notifications" }}
+      />
+      <Stack.Screen
+        name="StyleChallenges"
+        component={StyleChallengesScreen}
+        options={{ headerTitle: "Style Challenges" }}
+      />
+      <Stack.Screen
+        name="ChallengeDetail"
+        component={ChallengeDetailScreen}
+        options={{ headerTitle: "Challenge" }}
+      />
+      <Stack.Screen
+        name="ChallengeSubmission"
+        component={ChallengeSubmissionScreen}
+        options={{ headerTitle: "Submit Entry" }}
       />
     </Stack.Navigator>
   );

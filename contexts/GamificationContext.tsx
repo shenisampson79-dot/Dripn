@@ -66,6 +66,8 @@ export interface ChallengeSubmission {
   id: string;
   challengeId: string;
   userId: string;
+  userName: string;
+  userAvatar?: string;
   imageUri: string;
   caption: string;
   votes: number;
@@ -93,6 +95,8 @@ interface GamificationContextType {
   dailyRewards: DailyReward[];
   currentChallenge: StyleChallenge | null;
   challenges: StyleChallenge[];
+  challengeSubmissions: ChallengeSubmission[];
+  userVotes: string[];
   spinRewards: SpinReward[];
   lastSpinDate: string | null;
   canSpinToday: boolean;
@@ -106,6 +110,9 @@ interface GamificationContextType {
   joinChallenge: (challengeId: string) => Promise<void>;
   submitChallengeEntry: (challengeId: string, imageUri: string, caption: string) => Promise<ChallengeSubmission>;
   voteOnSubmission: (submissionId: string) => Promise<void>;
+  hasVotedOnSubmission: (submissionId: string) => boolean;
+  getChallengeSubmissions: (challengeId: string) => ChallengeSubmission[];
+  getChallengeLeaderboard: (challengeId: string) => ChallengeSubmission[];
   getUnlockedAchievements: () => Achievement[];
   getLockedAchievements: () => Achievement[];
   getAchievementProgress: (achievementId: string) => UserAchievement | undefined;
@@ -117,6 +124,7 @@ const GamificationContext = createContext<GamificationContextType | null>(null);
 const GAMIFICATION_STORAGE_KEY = '@dripn_gamification';
 const STREAK_STORAGE_KEY = '@dripn_streak';
 const SPIN_STORAGE_KEY = '@dripn_spin';
+const CHALLENGES_STORAGE_KEY = '@dripn_challenges';
 
 const LEVEL_THRESHOLDS = [
   { level: 1, minPoints: 0, maxPoints: 99, title: 'Style Novice' },
@@ -331,7 +339,7 @@ const SAMPLE_CHALLENGES: StyleChallenge[] = [
   {
     id: 'challenge_winter_2025',
     title: 'Winter Wonderland',
-    description: 'Show us your best cozy winter outfit',
+    description: 'Show us your best cozy winter outfit. Layer up and stay stylish!',
     theme: 'Winter Fashion',
     startDate: new Date().toISOString(),
     endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -343,7 +351,7 @@ const SAMPLE_CHALLENGES: StyleChallenge[] = [
   {
     id: 'challenge_office_chic',
     title: 'Office Chic',
-    description: 'Style your perfect work-from-anywhere outfit',
+    description: 'Style your perfect work-from-anywhere outfit that means business.',
     theme: 'Work Fashion',
     startDate: new Date().toISOString(),
     endDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
@@ -351,6 +359,111 @@ const SAMPLE_CHALLENGES: StyleChallenge[] = [
     participantsCount: 892,
     isActive: true,
     userParticipated: false,
+  },
+  {
+    id: 'challenge_monochrome',
+    title: 'Monochrome Magic',
+    description: 'Create a stunning single-color outfit from head to toe.',
+    theme: 'Monochrome',
+    startDate: new Date().toISOString(),
+    endDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+    rewardPoints: 450,
+    participantsCount: 678,
+    isActive: true,
+    userParticipated: false,
+  },
+  {
+    id: 'challenge_vintage',
+    title: 'Vintage Vibes',
+    description: 'Channel your inner retro style with vintage-inspired looks.',
+    theme: 'Vintage',
+    startDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    endDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    rewardPoints: 400,
+    participantsCount: 1532,
+    isActive: false,
+    userParticipated: false,
+  },
+  {
+    id: 'challenge_athleisure',
+    title: 'Athleisure Excellence',
+    description: 'Blend comfort and style with your best athleisure look.',
+    theme: 'Athletic',
+    startDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+    endDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    rewardPoints: 350,
+    participantsCount: 2145,
+    isActive: false,
+    userParticipated: false,
+  },
+];
+
+const SAMPLE_SUBMISSIONS: ChallengeSubmission[] = [
+  {
+    id: 'sub_1',
+    challengeId: 'challenge_winter_2025',
+    userId: 'user_1',
+    userName: 'StyleQueen',
+    imageUri: 'https://images.unsplash.com/photo-1544441893-675973e31985?w=400',
+    caption: 'Cozy layers for a winter stroll',
+    votes: 234,
+    rank: 1,
+    submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'sub_2',
+    challengeId: 'challenge_winter_2025',
+    userId: 'user_2',
+    userName: 'FashionForward',
+    imageUri: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400',
+    caption: 'My favorite winter coat look',
+    votes: 189,
+    rank: 2,
+    submittedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'sub_3',
+    challengeId: 'challenge_winter_2025',
+    userId: 'user_3',
+    userName: 'TrendSetter',
+    imageUri: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400',
+    caption: 'Warm and stylish',
+    votes: 156,
+    rank: 3,
+    submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'sub_4',
+    challengeId: 'challenge_office_chic',
+    userId: 'user_4',
+    userName: 'WorkStyle',
+    imageUri: 'https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?w=400',
+    caption: 'Power meeting ready',
+    votes: 145,
+    rank: 1,
+    submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'sub_5',
+    challengeId: 'challenge_office_chic',
+    userId: 'user_5',
+    userName: 'BossLady',
+    imageUri: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400',
+    caption: 'Sophisticated and comfortable',
+    votes: 132,
+    rank: 2,
+    submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'sub_6',
+    challengeId: 'challenge_monochrome',
+    userId: 'user_6',
+    userName: 'MinimalChic',
+    imageUri: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400',
+    caption: 'All black everything',
+    votes: 98,
+    rank: 1,
+    submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
@@ -387,6 +500,8 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([]);
   const [dailyRewards, setDailyRewards] = useState<DailyReward[]>(createDefaultDailyRewards());
   const [challenges, setChallenges] = useState<StyleChallenge[]>(SAMPLE_CHALLENGES);
+  const [challengeSubmissions, setChallengeSubmissions] = useState<ChallengeSubmission[]>(SAMPLE_SUBMISSIONS);
+  const [userVotes, setUserVotes] = useState<string[]>([]);
   const [lastSpinDate, setLastSpinDate] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -408,10 +523,11 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
   const loadGamificationData = async () => {
     setIsLoading(true);
     try {
-      const [gamificationData, streakData, spinData] = await Promise.all([
+      const [gamificationData, streakData, spinData, challengesData] = await Promise.all([
         AsyncStorage.getItem(`${GAMIFICATION_STORAGE_KEY}_${user?.id}`),
         AsyncStorage.getItem(`${STREAK_STORAGE_KEY}_${user?.id}`),
         AsyncStorage.getItem(`${SPIN_STORAGE_KEY}_${user?.id}`),
+        AsyncStorage.getItem(`${CHALLENGES_STORAGE_KEY}_${user?.id}`),
       ]);
 
       if (gamificationData) {
@@ -424,6 +540,23 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
       if (spinData) {
         const data = JSON.parse(spinData);
         setLastSpinDate(data.lastSpinDate);
+      }
+
+      if (challengesData) {
+        const data = JSON.parse(challengesData);
+        if (data.submissions && data.submissions.length > 0) {
+          setChallengeSubmissions([...SAMPLE_SUBMISSIONS, ...data.submissions]);
+        }
+        if (data.userVotes) {
+          setUserVotes(data.userVotes);
+        }
+        if (data.challenges) {
+          const mergedChallenges = SAMPLE_CHALLENGES.map(sc => {
+            const saved = data.challenges.find((c: StyleChallenge) => c.id === sc.id);
+            return saved ? { ...sc, ...saved } : sc;
+          });
+          setChallenges(mergedChallenges);
+        }
       }
 
       await checkAndUpdateStreak();
@@ -673,6 +806,35 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
     await updateAchievementProgress('challenge_first', 1);
   }, [challenges, updateAchievementProgress]);
 
+  const saveChallengesData = useCallback(async () => {
+    try {
+      const userSubmissions = challengeSubmissions.filter(
+        s => !SAMPLE_SUBMISSIONS.find(ss => ss.id === s.id)
+      );
+      const data = {
+        submissions: userSubmissions,
+        userVotes,
+        challenges: challenges.map(c => ({
+          id: c.id,
+          userParticipated: c.userParticipated,
+          userSubmissionId: c.userSubmissionId,
+        })),
+      };
+      await AsyncStorage.setItem(
+        `${CHALLENGES_STORAGE_KEY}_${user?.id}`,
+        JSON.stringify(data)
+      );
+    } catch (err) {
+      console.error('Failed to save challenges data:', err);
+    }
+  }, [challengeSubmissions, userVotes, challenges, user?.id]);
+
+  useEffect(() => {
+    if (user && !isLoading) {
+      saveChallengesData();
+    }
+  }, [challengeSubmissions, userVotes, challenges]);
+
   const submitChallengeEntry = useCallback(async (
     challengeId: string,
     imageUri: string,
@@ -682,25 +844,60 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
       id: `submission_${Date.now()}`,
       challengeId,
       userId: user?.id || '',
+      userName: user?.name || 'Anonymous',
+      userAvatar: user?.avatar || undefined,
       imageUri,
       caption,
       votes: 0,
       submittedAt: new Date().toISOString(),
     };
 
+    setChallengeSubmissions(prev => [...prev, submission]);
+
     const updatedChallenges = challenges.map(c =>
-      c.id === challengeId ? { ...c, userSubmissionId: submission.id } : c
+      c.id === challengeId 
+        ? { ...c, userSubmissionId: submission.id, userParticipated: true, participantsCount: c.participantsCount + 1 } 
+        : c
     );
     setChallenges(updatedChallenges);
 
     await addPoints(25, 'Challenge submission');
+    await updateAchievementProgress('challenge_first', 1);
 
     return submission;
-  }, [challenges, user?.id, addPoints]);
+  }, [challenges, user?.id, user?.name, user?.avatar, addPoints, updateAchievementProgress]);
 
   const voteOnSubmission = useCallback(async (submissionId: string) => {
-    console.log(`Voted on submission: ${submissionId}`);
-  }, []);
+    if (userVotes.includes(submissionId)) {
+      return;
+    }
+
+    setChallengeSubmissions(prev => 
+      prev.map(s => 
+        s.id === submissionId ? { ...s, votes: s.votes + 1 } : s
+      )
+    );
+
+    setUserVotes(prev => [...prev, submissionId]);
+    await addPoints(5, 'Voted on challenge entry');
+  }, [userVotes, addPoints]);
+
+  const hasVotedOnSubmission = useCallback((submissionId: string): boolean => {
+    return userVotes.includes(submissionId);
+  }, [userVotes]);
+
+  const getChallengeSubmissions = useCallback((challengeId: string): ChallengeSubmission[] => {
+    return challengeSubmissions
+      .filter(s => s.challengeId === challengeId)
+      .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+  }, [challengeSubmissions]);
+
+  const getChallengeLeaderboard = useCallback((challengeId: string): ChallengeSubmission[] => {
+    return challengeSubmissions
+      .filter(s => s.challengeId === challengeId)
+      .sort((a, b) => b.votes - a.votes)
+      .map((s, index) => ({ ...s, rank: index + 1 }));
+  }, [challengeSubmissions]);
 
   const getUnlockedAchievements = useCallback((): Achievement[] => {
     const unlockedIds = userAchievements
@@ -731,6 +928,8 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
     dailyRewards,
     currentChallenge,
     challenges,
+    challengeSubmissions,
+    userVotes,
     spinRewards: SPIN_REWARDS,
     lastSpinDate,
     canSpinToday,
@@ -744,6 +943,9 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
     joinChallenge,
     submitChallengeEntry,
     voteOnSubmission,
+    hasVotedOnSubmission,
+    getChallengeSubmissions,
+    getChallengeLeaderboard,
     getUnlockedAchievements,
     getLockedAchievements,
     getAchievementProgress,

@@ -1968,6 +1968,38 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             </View>
           </LinearGradient>
         </Pressable>
+        <Pressable
+          onPress={() => navigation.navigate("StyleChallenges")}
+          style={({ pressed }) => [
+            styles.blogCard,
+            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.md },
+          ]}
+        >
+          <LinearGradient
+            colors={["#E74C3C", "#C0392B"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.blogGradient}
+          >
+            <View style={styles.blogIconContainer}>
+              <Feather name="flag" size={28} color="#FFFFFF" />
+            </View>
+            <View style={styles.blogContent}>
+              <ThemedText type="h3" style={styles.blogTitle}>
+                Style Challenges
+              </ThemedText>
+              <ThemedText type="body" style={styles.blogDescription}>
+                Compete in weekly themed challenges, showcase your outfits, and win rewards
+              </ThemedText>
+              <View style={styles.blogCta}>
+                <ThemedText type="small" style={styles.blogCtaText}>
+                  Join Challenges
+                </ThemedText>
+                <Feather name="arrow-right" size={16} color="#FFFFFF" />
+              </View>
+            </View>
+          </LinearGradient>
+        </Pressable>
       </View>
 
       <View style={styles.section}>
