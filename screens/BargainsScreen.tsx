@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { StyleSheet, View, Pressable, RefreshControl, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Pressable, RefreshControl, ActivityIndicator, Modal, Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import * as Clipboard from "expo-clipboard";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
@@ -18,6 +20,7 @@ import {
   formatTimeRemaining, 
   isUrgent 
 } from "@/services/BargainsService";
+import { shareDeal, getDealShareMessage, DealShareInfo, ShareResult } from "@/services/SharingService";
 import type { BargainsStackParamList } from "@/navigation/BargainsStackNavigator";
 
 type BargainsScreenProps = {
@@ -35,6 +38,8 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
   const [deals, setDeals] = useState<BargainDeal[]>([]);
   const [, forceUpdate] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [selectedDealForShare, setSelectedDealForShare] = useState<BargainDeal | null>(null);
 
   const isVip = user?.subscriptionTier === "vip";
   const isPremium = user?.subscriptionTier === "premium" || isVip;
@@ -62,6 +67,56 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
       notifyAtTargetPrice: false,
       gender: (deal.genderCategory as 'male' | 'female' | 'unisex') || 'unisex',
     });
+  };
+
+  const openShareModal = (deal: BargainDeal) => {
+    setSelectedDealForShare(deal);
+    setShareModalVisible(true);
+  };
+
+  const getDealShareInfo = (deal: BargainDeal): DealShareInfo => ({
+    id: deal.id,
+    title: deal.title,
+    brand: deal.brand,
+    originalPrice: deal.originalPrice,
+    salePrice: deal.salePrice,
+    discount: deal.discount,
+    currencySymbol: deal.currencySymbol,
+    currencyCode: deal.currencyCode,
+    source: deal.source,
+  });
+
+  const handleShareToSocial = async () => {
+    if (!selectedDealForShare) return;
+    const shareInfo = getDealShareInfo(selectedDealForShare);
+    const result: ShareResult = await shareDeal(shareInfo);
+    setShareModalVisible(false);
+    setSelectedDealForShare(null);
+    if (result.success) {
+      Alert.alert("Shared", "Deal shared successfully!");
+    } else if (result.error) {
+      Alert.alert("Share Failed", result.error);
+    }
+  };
+
+  const handleShareToMembers = async () => {
+    if (!selectedDealForShare) return;
+    const shareInfo = getDealShareInfo(selectedDealForShare);
+    const message = getDealShareMessage(shareInfo);
+    
+    try {
+      await Clipboard.setStringAsync(message);
+      setShareModalVisible(false);
+      setSelectedDealForShare(null);
+      Alert.alert(
+        "Copied to Clipboard",
+        "Deal details copied! You can now paste this in any chat or message to share with other members.\n\nDirect messaging feature coming soon!"
+      );
+    } catch (error) {
+      setShareModalVisible(false);
+      setSelectedDealForShare(null);
+      Alert.alert("Error", "Failed to copy to clipboard. Please try again.");
+    }
   };
 
   const categories = BargainsService.getCategories(deals);
@@ -293,7 +348,7 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
                 <Pressable
                   onPress={() => handleAddToWishlist(deal)}
                   style={({ pressed }) => [
-                    styles.wishlistDealButton,
+                    styles.actionButton,
                     { 
                       backgroundColor: isItemInWishlist(deal.id) ? theme.link : theme.backgroundSecondary,
                       opacity: pressed ? 0.8 : 1 
@@ -301,10 +356,22 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
                   ]}
                 >
                   <Feather 
-                    name={isItemInWishlist(deal.id) ? "heart" : "heart"} 
+                    name="heart" 
                     size={18} 
                     color={isItemInWishlist(deal.id) ? "#FFFFFF" : theme.link} 
                   />
+                </Pressable>
+                <Pressable
+                  onPress={() => openShareModal(deal)}
+                  style={({ pressed }) => [
+                    styles.actionButton,
+                    { 
+                      backgroundColor: theme.backgroundSecondary,
+                      opacity: pressed ? 0.8 : 1 
+                    },
+                  ]}
+                >
+                  <Feather name="share-2" size={18} color={theme.link} />
                 </Pressable>
                 <Pressable
                   style={({ pressed }) => [
@@ -328,6 +395,86 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
           </ThemedText>
         </Card>
       </ThemedView>
+
+      <Modal
+        visible={shareModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShareModalVisible(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShareModalVisible(false)}
+        >
+          <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+          <Pressable 
+            style={[styles.shareModalContent, { backgroundColor: theme.backgroundDefault }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.shareModalHeader}>
+              <ThemedText type="h2">Share Deal</ThemedText>
+              <Pressable onPress={() => setShareModalVisible(false)}>
+                <Feather name="x" size={24} color={theme.text} />
+              </Pressable>
+            </View>
+            
+            {selectedDealForShare ? (
+              <View style={styles.shareModalDealInfo}>
+                <ThemedText type="body" style={{ fontWeight: "600" }}>
+                  {selectedDealForShare.brand}
+                </ThemedText>
+                <ThemedText type="small" style={{ opacity: 0.7 }}>
+                  {selectedDealForShare.title} - {selectedDealForShare.discount} OFF
+                </ThemedText>
+              </View>
+            ) : null}
+
+            <View style={styles.shareOptions}>
+              <Pressable
+                onPress={handleShareToSocial}
+                style={({ pressed }) => [
+                  styles.shareOption,
+                  { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
+                ]}
+              >
+                <View style={[styles.shareOptionIcon, { backgroundColor: theme.link }]}>
+                  <Feather name="share" size={24} color="#FFFFFF" />
+                </View>
+                <View style={styles.shareOptionText}>
+                  <ThemedText type="body" style={{ fontWeight: "600" }}>
+                    Share to Social Media
+                  </ThemedText>
+                  <ThemedText type="small" style={{ opacity: 0.7 }}>
+                    WhatsApp, Instagram, Twitter, etc.
+                  </ThemedText>
+                </View>
+                <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
+              </Pressable>
+
+              <Pressable
+                onPress={handleShareToMembers}
+                style={({ pressed }) => [
+                  styles.shareOption,
+                  { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
+                ]}
+              >
+                <View style={[styles.shareOptionIcon, { backgroundColor: theme.link }]}>
+                  <Feather name="copy" size={24} color="#FFFFFF" />
+                </View>
+                <View style={styles.shareOptionText}>
+                  <ThemedText type="body" style={{ fontWeight: "600" }}>
+                    Copy to Share
+                  </ThemedText>
+                  <ThemedText type="small" style={{ opacity: 0.7 }}>
+                    Copy deal details to clipboard
+                  </ThemedText>
+                </View>
+                <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScreenScrollView>
   );
 }
@@ -468,7 +615,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     alignItems: "center",
   },
-  wishlistDealButton: {
+  actionButton: {
     width: 44,
     height: 44,
     borderRadius: BorderRadius.md,
@@ -486,5 +633,49 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     flexDirection: "row",
     alignItems: "flex-start",
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  shareModalContent: {
+    width: "100%",
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    paddingBottom: Spacing["2xl"],
+  },
+  shareModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
+  shareModalDealInfo: {
+    marginBottom: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(128,128,128,0.2)",
+  },
+  shareOptions: {
+    gap: Spacing.sm,
+  },
+  shareOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.md,
+  },
+  shareOptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  shareOptionText: {
+    flex: 1,
   },
 });

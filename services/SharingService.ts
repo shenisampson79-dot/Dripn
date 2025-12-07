@@ -3,6 +3,7 @@ import * as StoreReview from "expo-store-review";
 import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Post } from "@/contexts/PostsContext";
+import { currencyService, CurrencyCode } from "@/services/CurrencyService";
 
 const DRIPN_BRANDING = {
   tagline: "Style that flows - Get personalized fashion advice from AI and real people",
@@ -400,4 +401,66 @@ export function parseDeepLink(url: string): { type: string; id: string } | null 
     console.error("Error parsing deep link:", error);
     return null;
   }
+}
+
+export interface DealShareInfo {
+  id: string;
+  title: string;
+  brand: string;
+  originalPrice: number;
+  salePrice: number;
+  discount: string;
+  currencySymbol: string;
+  currencyCode?: string;
+  source: string;
+}
+
+function formatDealPrice(amount: number, currencyCode?: string): string {
+  if (currencyCode) {
+    return currencyService.formatPrice(Math.round(amount * 100) / 100, currencyCode as CurrencyCode);
+  }
+  return currencyService.formatPrice(Math.round(amount * 100) / 100);
+}
+
+export interface ShareResult {
+  success: boolean;
+  error?: string;
+  dismissed?: boolean;
+}
+
+export async function shareDeal(deal: DealShareInfo): Promise<ShareResult> {
+  try {
+    const savings = deal.originalPrice - deal.salePrice;
+    const webUrl = `${DRIPN_BRANDING.appStoreUrl}/deals/${deal.id}`;
+    
+    const formattedSavings = formatDealPrice(savings, deal.currencyCode);
+    const formattedOriginal = formatDealPrice(deal.originalPrice, deal.currencyCode);
+    const formattedSale = formatDealPrice(deal.salePrice, deal.currencyCode);
+    
+    const message = `Check out this amazing deal on Dripn!\n\n${deal.brand} - ${deal.title}\n${deal.discount} OFF - Save ${formattedSavings}!\n\nWas: ${formattedOriginal}\nNow: ${formattedSale}\n\nFrom ${deal.source}\n\n#Dripn #FashionDeals #BargainHunting #StyleSavings\n\n${DRIPN_BRANDING.downloadCTA}: ${webUrl}`;
+    
+    const result = await Share.share({
+      title: `${deal.brand} ${deal.discount} Off - Dripn Deal`,
+      message,
+      url: Platform.OS === "ios" ? webUrl : undefined,
+    });
+    
+    if (result.action === Share.sharedAction) {
+      await trackEngagement("share");
+      return { success: true };
+    }
+    return { success: false, dismissed: true };
+  } catch (error) {
+    console.error("Error sharing deal:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Failed to share deal" };
+  }
+}
+
+export function getDealShareMessage(deal: DealShareInfo): string {
+  const savings = deal.originalPrice - deal.salePrice;
+  const formattedSavings = formatDealPrice(savings, deal.currencyCode);
+  const formattedOriginal = formatDealPrice(deal.originalPrice, deal.currencyCode);
+  const formattedSale = formatDealPrice(deal.salePrice, deal.currencyCode);
+  
+  return `${deal.brand} - ${deal.title}\n${deal.discount} OFF - Save ${formattedSavings}!\nNow: ${formattedSale} (was ${formattedOriginal})`;
 }
