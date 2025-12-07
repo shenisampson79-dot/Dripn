@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import DiscoverScreen from "@/screens/DiscoverScreen";
 import PostDetailScreen from "@/screens/PostDetailScreen";
 import FashionBlogScreen from "@/screens/FashionBlogScreen";
+import StyleShuffleScreen from "@/screens/StyleShuffleScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -10,6 +11,7 @@ export type DiscoverStackParamList = {
   Discover: undefined;
   PostDetail: { postId: string };
   FashionBlog: undefined;
+  StyleShuffle: undefined;
 };
 
 const Stack = createNativeStackNavigator<DiscoverStackParamList>();
@@ -35,6 +37,11 @@ export default function DiscoverStackNavigator() {
         name="FashionBlog"
         component={FashionBlogScreen}
         options={{ headerTitle: "Fashion Blog" }}
+      />
+      <Stack.Screen
+        name="StyleShuffle"
+        component={StyleShuffleScreen}
+        options={{ headerTitle: "Style Shuffle" }}
       />
     </Stack.Navigator>
   );

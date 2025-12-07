@@ -1806,6 +1806,44 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
 
       <View style={styles.section}>
         <ThemedText type="h2" style={styles.sectionTitle}>
+          Discover New Styles
+        </ThemedText>
+        <Pressable
+          onPress={() => navigation.navigate("StyleShuffle")}
+          style={({ pressed }) => [
+            styles.blogCard,
+            { opacity: pressed ? 0.9 : 1 },
+          ]}
+        >
+          <LinearGradient
+            colors={[theme.success, theme.success + "CC"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.blogGradient}
+          >
+            <View style={styles.blogIconContainer}>
+              <Feather name="shuffle" size={28} color="#FFFFFF" />
+            </View>
+            <View style={styles.blogContent}>
+              <ThemedText type="h3" style={styles.blogTitle}>
+                Style Shuffle
+              </ThemedText>
+              <ThemedText type="body" style={styles.blogDescription}>
+                Swipe through curated outfits to discover new styles that match your preferences
+              </ThemedText>
+              <View style={styles.blogCta}>
+                <ThemedText type="small" style={styles.blogCtaText}>
+                  Start Swiping
+                </ThemedText>
+                <Feather name="arrow-right" size={16} color="#FFFFFF" />
+              </View>
+            </View>
+          </LinearGradient>
+        </Pressable>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h2" style={styles.sectionTitle}>
           Fashion Insights
         </ThemedText>
         <Pressable
