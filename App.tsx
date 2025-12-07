@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PostsProvider } from "@/contexts/PostsContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { EventsFavoritesProvider } from "@/contexts/EventsFavoritesContext";
+import { EventsPreferencesProvider } from "@/contexts/EventsPreferencesContext";
 import { OutfitFavoritesProvider } from "@/contexts/OutfitFavoritesContext";
 import { StylistAuthProvider, useStylistAuth } from "@/contexts/StylistAuthContext";
 import { AdminAuthProvider, useAdminAuth } from "@/contexts/AdminAuthContext";
@@ -108,7 +109,8 @@ export default function App() {
                 <AdminAuthProvider>
                   <SubscriptionProvider>
                     <EventsFavoritesProvider>
-                      <OutfitFavoritesProvider>
+                      <EventsPreferencesProvider>
+                        <OutfitFavoritesProvider>
                         <PostsProvider>
                           <ReferralProvider>
                             <StyleProfileProvider>
@@ -133,6 +135,7 @@ export default function App() {
                           </ReferralProvider>
                         </PostsProvider>
                       </OutfitFavoritesProvider>
+                      </EventsPreferencesProvider>
                     </EventsFavoritesProvider>
                   </SubscriptionProvider>
                 </AdminAuthProvider>
