@@ -25,6 +25,8 @@ import { SmartNotificationsProvider } from "@/contexts/SmartNotificationsContext
 import { SocialProvider } from "@/contexts/SocialContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { SustainabilityProvider } from "@/contexts/SustainabilityContext";
+import { WardrobeProvider } from "@/contexts/WardrobeContext";
+import { GamificationProvider } from "@/contexts/GamificationContext";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -113,9 +115,13 @@ export default function App() {
                                 <SocialProvider>
                                   <WishlistProvider>
                                     <SustainabilityProvider>
-                                      <NavigationContainer>
-                                        <AppContent />
-                                      </NavigationContainer>
+                                      <WardrobeProvider>
+                                        <GamificationProvider>
+                                          <NavigationContainer>
+                                            <AppContent />
+                                          </NavigationContainer>
+                                        </GamificationProvider>
+                                      </WardrobeProvider>
                                     </SustainabilityProvider>
                                   </WishlistProvider>
                                 </SocialProvider>
