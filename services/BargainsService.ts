@@ -17,7 +17,9 @@ export interface BargainDeal {
 }
 
 export function getCurrencyForCountry(country: string): { symbol: string; code: string; rate: number } {
-  if (country === "United Kingdom") return { symbol: "£", code: "GBP", rate: 0.79 };
+  if (country === "United Kingdom" || country === "Isle of Man" || country === "Jersey" || country === "Guernsey" || country === "Gibraltar") {
+    return { symbol: "£", code: "GBP", rate: 0.79 };
+  }
   if (country === "Ireland") return { symbol: "€", code: "EUR", rate: 0.92 };
   if (["Germany", "France", "Italy", "Spain", "Netherlands", "Belgium", "Austria", "Portugal", "Greece", "Finland"].includes(country)) {
     return { symbol: "€", code: "EUR", rate: 0.92 };

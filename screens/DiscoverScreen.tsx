@@ -18,6 +18,7 @@ import { MagazineInspirationService, MagazineInspiration } from "@/services/Maga
 import { useOutfitFavorites, StyleOfTheDayOutfit } from "@/contexts/OutfitFavoritesContext";
 import { useStyleProfile } from "@/contexts/StyleProfileContext";
 import apiService from "@/services/ApiService";
+import { currencyService } from "@/services/CurrencyService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
 
 type RegionalModelType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
@@ -984,6 +985,11 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const [dislikedPosts, setDislikedPosts] = useState<Set<string>>(new Set());
   const [emergingTrends, setEmergingTrends] = useState<EmergingTrend[]>([]);
   const [loadingTrends, setLoadingTrends] = useState(false);
+  const [currencyInitialized, setCurrencyInitialized] = useState(false);
+
+  useEffect(() => {
+    currencyService.initialize().then(() => setCurrencyInitialized(true));
+  }, []);
 
   const isPremium = tier === "premium" || tier === "vip";
 
@@ -1128,10 +1134,11 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
     const items = isPremium ? look.luxuryItems : look.budgetItems;
     const priceLabel = isPremium ? "Luxury" : "Budget-Friendly";
     const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
+    const formatPrice = (price: number) => currencyService.formatPrice(currencyService.convertFromGBP(price));
     
     Alert.alert(
       `Get the ${look.styleName} Look`,
-      `${priceLabel} alternatives (Total: $${totalPrice.toFixed(2)}):\n\n${items.map(item => `${item.name}\n$${item.price.toFixed(2)} at ${item.store}`).join("\n\n")}`,
+      `${priceLabel} alternatives (Total: ${formatPrice(totalPrice)}):\n\n${items.map(item => `${item.name}\n${formatPrice(item.price)} at ${item.store}`).join("\n\n")}`,
       [
         { text: "Close", style: "cancel" },
         { 
@@ -1142,7 +1149,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             const altTotal = altItems.reduce((sum, item) => sum + item.price, 0);
             Alert.alert(
               `${altLabel} Alternatives`,
-              `Total: $${altTotal.toFixed(2)}\n\n${altItems.map(item => `${item.name}\n$${item.price.toFixed(2)} at ${item.store}`).join("\n\n")}`,
+              `Total: ${formatPrice(altTotal)}\n\n${altItems.map(item => `${item.name}\n${formatPrice(item.price)} at ${item.store}`).join("\n\n")}`,
               [{ text: "Close" }]
             );
           }
