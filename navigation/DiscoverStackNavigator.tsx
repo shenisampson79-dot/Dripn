@@ -4,6 +4,7 @@ import DiscoverScreen from "@/screens/DiscoverScreen";
 import PostDetailScreen from "@/screens/PostDetailScreen";
 import FashionBlogScreen from "@/screens/FashionBlogScreen";
 import StyleShuffleScreen from "@/screens/StyleShuffleScreen";
+import AIStylistScreen from "@/screens/AIStylistScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -12,6 +13,7 @@ export type DiscoverStackParamList = {
   PostDetail: { postId: string };
   FashionBlog: undefined;
   StyleShuffle: undefined;
+  AIStylist: undefined;
 };
 
 const Stack = createNativeStackNavigator<DiscoverStackParamList>();
@@ -42,6 +44,11 @@ export default function DiscoverStackNavigator() {
         name="StyleShuffle"
         component={StyleShuffleScreen}
         options={{ headerTitle: "Style Shuffle" }}
+      />
+      <Stack.Screen
+        name="AIStylist"
+        component={AIStylistScreen}
+        options={{ headerTitle: "AI Stylist" }}
       />
     </Stack.Navigator>
   );
