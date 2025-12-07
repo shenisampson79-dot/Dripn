@@ -641,6 +641,13 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             theme={theme}
           />
           <SettingItem
+            icon="cpu"
+            title="AI Feature Lab"
+            subtitle="View AI-generated feature suggestions"
+            onPress={() => navigation.navigate("FeatureSuggestions")}
+            theme={theme}
+          />
+          <SettingItem
             icon="file-text"
             title="Terms of Service"
             onPress={handleTerms}

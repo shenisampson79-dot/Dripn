@@ -15,6 +15,7 @@ import WardrobeScreen from "@/screens/WardrobeScreen";
 import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import SupportScreen from "@/screens/SupportScreen";
+import FeatureSuggestionsScreen from "@/screens/FeatureSuggestionsScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -34,6 +35,7 @@ export type ProfileStackParamList = {
   AddWardrobeItem: undefined;
   OutfitCalendar: undefined;
   Support: undefined;
+  FeatureSuggestions: undefined;
   VideoCall: {
     callId?: string;
     roomUrl: string;
@@ -174,6 +176,14 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={SupportScreen}
         options={{
           title: "Support",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="FeatureSuggestions"
+        component={FeatureSuggestionsScreen}
+        options={{
+          title: "Feature Suggestions",
           headerShown: false,
         }}
       />
