@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { StyleSheet, View, Pressable, RefreshControl, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedView } from "@/components/ThemedView";
@@ -9,16 +10,23 @@ import { Card } from "@/components/Card";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWishlist } from "@/contexts/WishlistContext";
 import { 
   BargainsService, 
   BargainDeal, 
   formatTimeRemaining, 
   isUrgent 
 } from "@/services/BargainsService";
+import type { BargainsStackParamList } from "@/navigation/BargainsStackNavigator";
 
-export default function BargainsScreen() {
+type BargainsScreenProps = {
+  navigation: NativeStackNavigationProp<BargainsStackParamList, 'Bargains'>;
+};
+
+export default function BargainsScreen({ navigation }: BargainsScreenProps) {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { addToWishlist, wishlistItems, unreadAlertsCount } = useWishlist();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -28,6 +36,31 @@ export default function BargainsScreen() {
 
   const isVip = user?.subscriptionTier === "vip";
   const isPremium = user?.subscriptionTier === "premium" || isVip;
+
+  const isItemInWishlist = (dealId: string) => {
+    return wishlistItems.some(item => item.dealId === dealId || item.productUrl === dealId);
+  };
+
+  const handleAddToWishlist = async (deal: BargainDeal) => {
+    if (isItemInWishlist(deal.id)) {
+      return;
+    }
+    await addToWishlist({
+      dealId: deal.id,
+      name: deal.title,
+      brand: deal.brand,
+      category: deal.category || 'Clothing',
+      currentPrice: deal.salePrice,
+      originalPrice: deal.originalPrice,
+      productUrl: undefined,
+      source: deal.source,
+      currencySymbol: deal.currencySymbol,
+      currencyCode: deal.currencyCode,
+      notifyOnSale: true,
+      notifyAtTargetPrice: false,
+      gender: (deal.genderCategory as 'male' | 'female' | 'unisex') || 'unisex',
+    });
+  };
 
   const categories = BargainsService.getCategories(deals);
 
@@ -80,11 +113,29 @@ export default function BargainsScreen() {
     >
       <ThemedView style={styles.container}>
         <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <Feather name="tag" size={24} color={theme.link} />
-            <ThemedText type="h1" style={styles.title}>
-              Bargains of the Day
-            </ThemedText>
+          <View style={styles.headerTopRow}>
+            <View style={styles.titleRow}>
+              <Feather name="tag" size={24} color={theme.link} />
+              <ThemedText type="h1" style={styles.title}>
+                Bargains of the Day
+              </ThemedText>
+            </View>
+            <Pressable
+              onPress={() => navigation.navigate('Wishlist')}
+              style={({ pressed }) => [
+                styles.wishlistButton,
+                { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
+              ]}
+            >
+              <Feather name="heart" size={20} color={theme.link} />
+              {unreadAlertsCount > 0 ? (
+                <View style={[styles.alertBadge, { backgroundColor: theme.link }]}>
+                  <ThemedText type="small" style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>
+                    {unreadAlertsCount > 9 ? '9+' : unreadAlertsCount}
+                  </ThemedText>
+                </View>
+              ) : null}
+            </Pressable>
           </View>
           <ThemedText type="body" style={styles.subtitle}>
             Exclusive deals on your favourite brands, updated daily
@@ -207,16 +258,34 @@ export default function BargainsScreen() {
                 </View>
               ) : null}
 
-              <Pressable
-                style={({ pressed }) => [
-                  styles.shopButton,
-                  { backgroundColor: theme.link, opacity: pressed ? 0.8 : 1 },
-                ]}
-              >
-                <ThemedText type="body" style={{ color: "#FFFFFF", fontWeight: "600" }}>
-                  Shop Now
-                </ThemedText>
-              </Pressable>
+              <View style={styles.dealActions}>
+                <Pressable
+                  onPress={() => handleAddToWishlist(deal)}
+                  style={({ pressed }) => [
+                    styles.wishlistDealButton,
+                    { 
+                      backgroundColor: isItemInWishlist(deal.id) ? theme.link : theme.backgroundSecondary,
+                      opacity: pressed ? 0.8 : 1 
+                    },
+                  ]}
+                >
+                  <Feather 
+                    name={isItemInWishlist(deal.id) ? "heart" : "heart"} 
+                    size={18} 
+                    color={isItemInWishlist(deal.id) ? "#FFFFFF" : theme.link} 
+                  />
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.shopButton,
+                    { backgroundColor: theme.link, opacity: pressed ? 0.8 : 1 },
+                  ]}
+                >
+                  <ThemedText type="body" style={{ color: "#FFFFFF", fontWeight: "600" }}>
+                    Shop Now
+                  </ThemedText>
+                </Pressable>
+              </View>
             </Card>
           ))}
         </View>
@@ -244,13 +313,38 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: Spacing["2xl"],
   },
+  headerTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
+    flex: 1,
   },
   title: {
     marginLeft: Spacing.xs,
+  },
+  wishlistButton: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.full,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  alertBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
   },
   subtitle: {
     marginTop: Spacing.xs,
@@ -323,7 +417,20 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
     marginBottom: Spacing.sm,
   },
+  dealActions: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    alignItems: "center",
+  },
+  wishlistDealButton: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   shopButton: {
+    flex: 1,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
     alignItems: "center",

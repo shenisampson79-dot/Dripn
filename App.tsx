@@ -23,6 +23,7 @@ import { ReferralProvider } from "@/contexts/ReferralContext";
 import { StyleProfileProvider } from "@/contexts/StyleProfileContext";
 import { SmartNotificationsProvider } from "@/contexts/SmartNotificationsContext";
 import { SocialProvider } from "@/contexts/SocialContext";
+import { WishlistProvider } from "@/contexts/WishlistContext";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -109,9 +110,11 @@ export default function App() {
                             <StyleProfileProvider>
                               <SmartNotificationsProvider>
                                 <SocialProvider>
-                                  <NavigationContainer>
-                                    <AppContent />
-                                  </NavigationContainer>
+                                  <WishlistProvider>
+                                    <NavigationContainer>
+                                      <AppContent />
+                                    </NavigationContainer>
+                                  </WishlistProvider>
                                 </SocialProvider>
                               </SmartNotificationsProvider>
                             </StyleProfileProvider>
