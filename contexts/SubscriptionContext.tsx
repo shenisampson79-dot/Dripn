@@ -28,6 +28,14 @@ export interface TierLimits {
   canMakeVideoCalls: boolean;
   stylistSessionsPerMonth: number;
   canCallVIPMembers: boolean;
+  styleShuffleSwipesPerDay: number;
+  visualSearchPerMonth: number;
+  wardrobeItemsLimit: number;
+  aiChatMessagesPerDay: number;
+  outfitSuggestionsPerDay: number;
+  canAccessChallenges: boolean;
+  canAccessOutfitCalendar: boolean;
+  canAccessSustainabilityFeatures: boolean;
 }
 
 export interface UsageStats {
@@ -85,6 +93,14 @@ const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     canMakeVideoCalls: false,
     stylistSessionsPerMonth: 0,
     canCallVIPMembers: false,
+    styleShuffleSwipesPerDay: 10,
+    visualSearchPerMonth: 3,
+    wardrobeItemsLimit: 20,
+    aiChatMessagesPerDay: 3,
+    outfitSuggestionsPerDay: 3,
+    canAccessChallenges: false,
+    canAccessOutfitCalendar: false,
+    canAccessSustainabilityFeatures: false,
   },
   basic: {
     uploadsPerMonth: 20,
@@ -101,6 +117,14 @@ const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     canMakeVideoCalls: false,
     stylistSessionsPerMonth: 0,
     canCallVIPMembers: false,
+    styleShuffleSwipesPerDay: 30,
+    visualSearchPerMonth: 10,
+    wardrobeItemsLimit: 100,
+    aiChatMessagesPerDay: 10,
+    outfitSuggestionsPerDay: 10,
+    canAccessChallenges: true,
+    canAccessOutfitCalendar: false,
+    canAccessSustainabilityFeatures: false,
   },
   premium: {
     uploadsPerMonth: 100,
@@ -117,6 +141,14 @@ const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     canMakeVideoCalls: false,
     stylistSessionsPerMonth: 0,
     canCallVIPMembers: false,
+    styleShuffleSwipesPerDay: 100,
+    visualSearchPerMonth: 50,
+    wardrobeItemsLimit: 500,
+    aiChatMessagesPerDay: 50,
+    outfitSuggestionsPerDay: 50,
+    canAccessChallenges: true,
+    canAccessOutfitCalendar: true,
+    canAccessSustainabilityFeatures: true,
   },
   vip: {
     uploadsPerMonth: Infinity,
@@ -133,6 +165,14 @@ const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     canMakeVideoCalls: true,
     stylistSessionsPerMonth: 4,
     canCallVIPMembers: true,
+    styleShuffleSwipesPerDay: Infinity,
+    visualSearchPerMonth: Infinity,
+    wardrobeItemsLimit: Infinity,
+    aiChatMessagesPerDay: Infinity,
+    outfitSuggestionsPerDay: Infinity,
+    canAccessChallenges: true,
+    canAccessOutfitCalendar: true,
+    canAccessSustainabilityFeatures: true,
   },
 };
 
