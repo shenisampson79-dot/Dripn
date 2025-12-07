@@ -10,6 +10,27 @@ export type BudgetRange = 'Budget' | 'Mid-Range' | 'Premium' | 'Luxury' | null;
 export type SubscriptionTier = 'free' | 'basic' | 'premium' | 'vip';
 export type ContributorTier = 'none' | 'styleContributor' | 'fashionAdvisor' | 'styleExpert' | 'fashionGuru';
 export type FeedPreference = 'global' | 'regional' | 'local';
+export type Lifestyle = 'casual' | 'professional' | 'active' | 'creative' | 'minimalist' | 'trendsetter' | null;
+export type ShoppingFrequency = 'weekly' | 'monthly' | 'seasonal' | 'rarely' | null;
+export type HeightUnit = 'cm' | 'ft';
+export type WeightUnit = 'kg' | 'lbs';
+
+export interface BodyMeasurements {
+  height: number | null;
+  heightUnit: HeightUnit;
+  weight: number | null;
+  weightUnit: WeightUnit;
+}
+
+export interface ExtendedPreferences {
+  lifestyle: Lifestyle;
+  favoriteBrands: string[];
+  colorPreferences: string[];
+  shoppingFrequency: ShoppingFrequency;
+  preferOnlineShopping: boolean;
+  sustainabilityImportant: boolean;
+  occasions: string[];
+}
 
 export interface UserProfile {
   id: string;
@@ -32,8 +53,11 @@ export interface UserProfile {
   thanksReceived: number;
   createdAt: string;
   hasCompletedOnboarding: boolean;
+  hasCompletedQuiz: boolean;
   hasSeenTour: boolean;
   hasDismissedTrialOffer: boolean;
+  bodyMeasurements: BodyMeasurements;
+  extendedPreferences: ExtendedPreferences;
 }
 
 type LocationPermissionStatus = 'unknown' | 'granted' | 'denied' | 'denied_forever';
@@ -51,6 +75,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   completeOnboarding: (profile: Partial<UserProfile>) => Promise<void>;
+  completeQuiz: (quizData: Partial<UserProfile>) => Promise<void>;
   switchBackToActualLocation: () => Promise<void>;
   detectActualLocation: () => Promise<void>;
 }
@@ -79,8 +104,24 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
   thanksReceived: 0,
   createdAt: new Date().toISOString(),
   hasCompletedOnboarding: false,
+  hasCompletedQuiz: false,
   hasSeenTour: false,
   hasDismissedTrialOffer: false,
+  bodyMeasurements: {
+    height: null,
+    heightUnit: 'cm',
+    weight: null,
+    weightUnit: 'kg',
+  },
+  extendedPreferences: {
+    lifestyle: null,
+    favoriteBrands: [],
+    colorPreferences: [],
+    shoppingFrequency: null,
+    preferOnlineShopping: true,
+    sustainabilityImportant: false,
+    occasions: [],
+  },
 });
 
 const COUNTRY_MAPPING: Record<string, string> = {
@@ -309,6 +350,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await saveUser(updatedUser);
   };
 
+  const completeQuiz = async (quizData: Partial<UserProfile>) => {
+    if (!user) return;
+    const updatedUser = { 
+      ...user, 
+      ...quizData, 
+      bodyMeasurements: {
+        ...user.bodyMeasurements,
+        ...(quizData.bodyMeasurements || {}),
+      },
+      extendedPreferences: {
+        ...user.extendedPreferences,
+        ...(quizData.extendedPreferences || {}),
+      },
+      hasCompletedQuiz: true 
+    };
+    await saveUser(updatedUser);
+  };
+
   const detectActualLocation = useCallback(async () => {
     await detectActualLocationInternal();
   }, []);
@@ -333,6 +392,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         updateProfile,
         completeOnboarding,
+        completeQuiz,
         switchBackToActualLocation,
         detectActualLocation,
       }}

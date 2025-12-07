@@ -10,6 +10,7 @@ import StyleExplorerScreen from "@/screens/StyleExplorerScreen";
 import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
 import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
 import LogoPreviewScreen from "@/screens/LogoPreviewScreen";
+import OnboardingQuizScreen from "@/screens/OnboardingQuizScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -24,6 +25,7 @@ export type ProfileStackParamList = {
   PrivacyPolicy: undefined;
   TermsOfService: undefined;
   LogoPreview: undefined;
+  OnboardingQuiz: undefined;
   VideoCall: {
     callId?: string;
     roomUrl: string;
@@ -122,6 +124,15 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={LogoPreviewScreen}
         options={{
           title: "Logo Preview",
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="OnboardingQuiz"
+        component={OnboardingQuizScreen}
+        options={{
+          title: "Style Quiz",
+          headerShown: false,
           presentation: "modal",
         }}
       />

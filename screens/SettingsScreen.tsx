@@ -334,6 +334,13 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             onPress={() => {}}
             theme={theme}
           />
+          <SettingItem
+            icon="clipboard"
+            title="Style Quiz"
+            subtitle={user?.hasCompletedQuiz ? "Retake quiz" : "Complete your style profile"}
+            onPress={() => navigation.navigate("OnboardingQuiz")}
+            theme={theme}
+          />
         </View>
       </View>
 
