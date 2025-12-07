@@ -1904,6 +1904,38 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             </View>
           </LinearGradient>
         </Pressable>
+        <Pressable
+          onPress={() => navigation.navigate("Gamification")}
+          style={({ pressed }) => [
+            styles.blogCard,
+            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.md },
+          ]}
+        >
+          <LinearGradient
+            colors={["#FFD700", "#FFA500"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.blogGradient}
+          >
+            <View style={styles.blogIconContainer}>
+              <Feather name="gift" size={28} color="#FFFFFF" />
+            </View>
+            <View style={styles.blogContent}>
+              <ThemedText type="h3" style={styles.blogTitle}>
+                Rewards Hub
+              </ThemedText>
+              <ThemedText type="body" style={styles.blogDescription}>
+                Earn points, unlock achievements, spin the wheel, and claim daily rewards
+              </ThemedText>
+              <View style={styles.blogCta}>
+                <ThemedText type="small" style={styles.blogCtaText}>
+                  Claim Rewards
+                </ThemedText>
+                <Feather name="arrow-right" size={16} color="#FFFFFF" />
+              </View>
+            </View>
+          </LinearGradient>
+        </Pressable>
       </View>
 
       <View style={styles.section}>

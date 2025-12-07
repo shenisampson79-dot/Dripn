@@ -6,6 +6,7 @@ import FashionBlogScreen from "@/screens/FashionBlogScreen";
 import StyleShuffleScreen from "@/screens/StyleShuffleScreen";
 import AIStylistScreen from "@/screens/AIStylistScreen";
 import VisualSearchScreen from "@/screens/VisualSearchScreen";
+import GamificationScreen from "@/screens/GamificationScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -16,6 +17,7 @@ export type DiscoverStackParamList = {
   StyleShuffle: undefined;
   AIStylist: undefined;
   VisualSearch: undefined;
+  Gamification: undefined;
 };
 
 const Stack = createNativeStackNavigator<DiscoverStackParamList>();
@@ -56,6 +58,11 @@ export default function DiscoverStackNavigator() {
         name="VisualSearch"
         component={VisualSearchScreen}
         options={{ headerTitle: "Visual Search" }}
+      />
+      <Stack.Screen
+        name="Gamification"
+        component={GamificationScreen}
+        options={{ headerTitle: "Rewards" }}
       />
     </Stack.Navigator>
   );

@@ -548,7 +548,6 @@ export default function VisualSearchScreen() {
         <Image
           source={{ uri: item.imageUrl }}
           style={[styles.resultImage, { backgroundColor: theme.backgroundTertiary }]}
-          defaultSource={require('../assets/images/placeholder.png')}
         />
         
         <View style={[styles.matchBadge, { backgroundColor: theme.success }]}>
