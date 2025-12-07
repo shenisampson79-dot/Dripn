@@ -11,6 +11,8 @@ import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
 import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
 import LogoPreviewScreen from "@/screens/LogoPreviewScreen";
 import OnboardingQuizScreen from "@/screens/OnboardingQuizScreen";
+import WardrobeScreen from "@/screens/WardrobeScreen";
+import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -26,6 +28,8 @@ export type ProfileStackParamList = {
   TermsOfService: undefined;
   LogoPreview: undefined;
   OnboardingQuiz: undefined;
+  Wardrobe: undefined;
+  AddWardrobeItem: undefined;
   VideoCall: {
     callId?: string;
     roomUrl: string;
@@ -132,6 +136,23 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={OnboardingQuizScreen}
         options={{
           title: "Style Quiz",
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="Wardrobe"
+        component={WardrobeScreen}
+        options={{
+          title: "My Wardrobe",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="AddWardrobeItem"
+        component={AddWardrobeItemScreen}
+        options={{
+          title: "Add Item",
           headerShown: false,
           presentation: "modal",
         }}

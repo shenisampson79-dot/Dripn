@@ -67,6 +67,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("VIPMembers");
   };
 
+  const handleWardrobePress = () => {
+    navigation.navigate("Wardrobe");
+  };
+
   const getSubscriptionBadge = () => {
     const tier = user?.subscriptionTier || "free";
     const colors = SubscriptionColors[tier];
@@ -180,6 +184,19 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             </ThemedText>
           </Pressable>
         ) : null}
+
+        <Pressable
+          onPress={handleWardrobePress}
+          style={({ pressed }) => [
+            styles.wardrobeButton,
+            { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.9 : 1 },
+          ]}
+        >
+          <Feather name="grid" size={18} color={theme.text} />
+          <ThemedText type="body" style={styles.wardrobeButtonText}>
+            My Wardrobe
+          </ThemedText>
+        </Pressable>
 
       </View>
 
@@ -625,8 +642,20 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     marginTop: Spacing.sm,
   },
+  wardrobeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    marginTop: Spacing.sm,
+  },
   upgradeButtonText: {
     color: "#FFFFFF",
+    fontWeight: "600",
+  },
+  wardrobeButtonText: {
     fontWeight: "600",
   },
   tabsContainer: {
