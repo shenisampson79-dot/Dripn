@@ -36,6 +36,8 @@ export interface UserProfile {
   hasDismissedTrialOffer: boolean;
 }
 
+type LocationPermissionStatus = 'unknown' | 'granted' | 'denied' | 'denied_forever';
+
 interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
@@ -43,6 +45,7 @@ interface AuthContextType {
   isExploringOtherCountry: boolean;
   explorationCountry: string | null;
   actualCountry: string | null;
+  locationPermissionStatus: LocationPermissionStatus;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -155,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [detectedCountry, setDetectedCountry] = useState<string | null>(null);
+  const [locationPermissionStatus, setLocationPermissionStatus] = useState<LocationPermissionStatus>('unknown');
 
   const actualCountry = detectedCountry || user?.actualCountry || null;
   const explorationCountry = user?.country || null;
@@ -171,32 +175,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user?.id, isLoading]);
 
   useEffect(() => {
-    if (user && detectedCountry && user.actualCountry !== detectedCountry) {
+    if (user && detectedCountry && !user.actualCountry) {
       saveUserWithActualCountry(detectedCountry);
     }
-  }, [detectedCountry, user?.id]);
+  }, [detectedCountry, user?.id, user?.actualCountry]);
 
   const saveUserWithActualCountry = async (country: string) => {
-    const userData = await AsyncStorage.getItem(STORAGE_KEY);
-    if (userData) {
-      const currentUser = JSON.parse(userData);
-      const updatedUser = { ...currentUser, actualCountry: country };
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
-      setUser(updatedUser);
-    }
+    if (!user) return;
+    const updatedUser = { ...user, actualCountry: country };
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    setUser(updatedUser);
   };
 
-  const detectActualLocationInternal = async () => {
+  const detectActualLocationInternal = async (): Promise<boolean> => {
     try {
-      let { status } = await Location.getForegroundPermissionsAsync();
+      const { status, canAskAgain } = await Location.getForegroundPermissionsAsync();
       
-      if (status !== 'granted') {
-        const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
-        status = newStatus;
-      }
-      
-      if (status !== 'granted') {
-        return;
+      if (status === 'granted') {
+        setLocationPermissionStatus('granted');
+      } else if (status === 'denied' && !canAskAgain) {
+        setLocationPermissionStatus('denied_forever');
+        return false;
+      } else if (status !== 'granted') {
+        const response = await Location.requestForegroundPermissionsAsync();
+        if (response.status === 'granted') {
+          setLocationPermissionStatus('granted');
+        } else if (!response.canAskAgain) {
+          setLocationPermissionStatus('denied_forever');
+          return false;
+        } else {
+          setLocationPermissionStatus('denied');
+          return false;
+        }
       }
       
       const location = await Location.getCurrentPositionAsync({
@@ -211,9 +221,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (reverseGeocode?.isoCountryCode) {
         const countryName = getCountryName(reverseGeocode.isoCountryCode);
         setDetectedCountry(countryName);
+        return true;
       }
+      return false;
     } catch (error) {
       console.log('Could not detect location:', error);
+      return false;
     }
   };
 
@@ -314,6 +327,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isExploringOtherCountry,
         explorationCountry,
         actualCountry,
+        locationPermissionStatus,
         login,
         signup,
         logout,
