@@ -1,5 +1,6 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { NavigationContainer, NavigationIndependentTree } from "@react-navigation/native";
 
 import StylistLoginScreen from "@/screens/StylistLoginScreen";
 import StylistDashboardScreen from "@/screens/StylistDashboardScreen";
@@ -27,11 +28,11 @@ type StylistStackNavigatorProps = {
 };
 
 export default function StylistStackNavigator({ mode, onExit }: StylistStackNavigatorProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { isAuthenticated: isStylistAuth, logout: stylistLogout } = useStylistAuth();
   const { isAuthenticated: isAdminAuth, logout: adminLogout } = useAdminAuth();
 
-  const commonOptions = getCommonScreenOptions(theme);
+  const commonOptions = getCommonScreenOptions({ theme, isDark });
 
   const handleStylistLogout = async () => {
     await stylistLogout();
@@ -45,56 +46,64 @@ export default function StylistStackNavigator({ mode, onExit }: StylistStackNavi
 
   if (mode === 'admin') {
     return (
-      <Stack.Navigator
-        screenOptions={{
-          ...commonOptions,
-          headerShown: false,
-        }}
-      >
-        {isAdminAuth ? (
-          <Stack.Screen
-            name="AdminDashboard"
+      <NavigationIndependentTree>
+        <NavigationContainer>
+          <Stack.Navigator
+            screenOptions={{
+              ...commonOptions,
+              headerShown: false,
+            }}
           >
-            {(props) => <AdminStylistScreen {...props} onExit={onExit} onLogout={handleAdminLogout} />}
-          </Stack.Screen>
-        ) : (
-          <Stack.Screen
-            name="AdminLogin"
-          >
-            {(props) => <AdminLoginScreen {...props} onExit={onExit} />}
-          </Stack.Screen>
-        )}
-      </Stack.Navigator>
+            {isAdminAuth ? (
+              <Stack.Screen
+                name="AdminDashboard"
+              >
+                {(props) => <AdminStylistScreen {...props} onExit={onExit} onLogout={handleAdminLogout} />}
+              </Stack.Screen>
+            ) : (
+              <Stack.Screen
+                name="AdminLogin"
+              >
+                {(props) => <AdminLoginScreen {...props} onExit={onExit} />}
+              </Stack.Screen>
+            )}
+          </Stack.Navigator>
+        </NavigationContainer>
+      </NavigationIndependentTree>
     );
   }
 
   return (
-    <Stack.Navigator
-      screenOptions={{
-        ...commonOptions,
-        headerShown: false,
-      }}
-    >
-      {isStylistAuth ? (
-        <>
-          <Stack.Screen
-            name="StylistDashboard"
-          >
-            {(props) => <StylistDashboardScreen {...props} onExit={onExit} onLogout={handleStylistLogout} />}
-          </Stack.Screen>
-          <Stack.Screen
-            name="SessionDetail"
-          >
-            {(props) => <SessionDetailScreen {...props} onExit={onExit} />}
-          </Stack.Screen>
-        </>
-      ) : (
-        <Stack.Screen
-          name="StylistLogin"
+    <NavigationIndependentTree>
+      <NavigationContainer>
+        <Stack.Navigator
+          screenOptions={{
+            ...commonOptions,
+            headerShown: false,
+          }}
         >
-          {(props) => <StylistLoginScreen {...props} onExit={onExit} />}
-        </Stack.Screen>
-      )}
-    </Stack.Navigator>
+          {isStylistAuth ? (
+            <>
+              <Stack.Screen
+                name="StylistDashboard"
+              >
+                {(props) => <StylistDashboardScreen {...props} onExit={onExit} onLogout={handleStylistLogout} />}
+              </Stack.Screen>
+              <Stack.Screen
+                name="SessionDetail"
+              >
+                {(props) => <SessionDetailScreen {...props} onExit={onExit} />}
+              </Stack.Screen>
+            </>
+          ) : (
+            <Stack.Screen
+              name="StylistLogin"
+            >
+              {(props) => <StylistLoginScreen {...props} onExit={onExit} />}
+            </Stack.Screen>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </NavigationIndependentTree>
   );
 }
