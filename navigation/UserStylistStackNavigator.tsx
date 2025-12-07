@@ -1,0 +1,48 @@
+import React from "react";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import AIStylistScreen from "@/screens/AIStylistScreen";
+import StyleShuffleScreen from "@/screens/StyleShuffleScreen";
+import VisualSearchScreen from "@/screens/VisualSearchScreen";
+import StylistHubScreen from "@/screens/StylistHubScreen";
+import { useTheme } from "@/hooks/useTheme";
+import { getCommonScreenOptions } from "@/navigation/screenOptions";
+
+export type UserStylistStackParamList = {
+  StylistHub: undefined;
+  AIStylist: undefined;
+  StyleShuffle: undefined;
+  VisualSearch: undefined;
+};
+
+const Stack = createNativeStackNavigator<UserStylistStackParamList>();
+
+export default function UserStylistStackNavigator() {
+  const { theme, isDark } = useTheme();
+
+  return (
+    <Stack.Navigator screenOptions={getCommonScreenOptions({ theme, isDark })}>
+      <Stack.Screen
+        name="StylistHub"
+        component={StylistHubScreen}
+        options={{
+          title: "Stylist",
+        }}
+      />
+      <Stack.Screen
+        name="AIStylist"
+        component={AIStylistScreen}
+        options={{ headerTitle: "Your Personal Stylist" }}
+      />
+      <Stack.Screen
+        name="StyleShuffle"
+        component={StyleShuffleScreen}
+        options={{ headerTitle: "Style Shuffle" }}
+      />
+      <Stack.Screen
+        name="VisualSearch"
+        component={VisualSearchScreen}
+        options={{ headerTitle: "Visual Search" }}
+      />
+    </Stack.Navigator>
+  );
+}

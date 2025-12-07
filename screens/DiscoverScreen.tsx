@@ -2000,6 +2000,38 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             </View>
           </LinearGradient>
         </Pressable>
+        <Pressable
+          onPress={() => navigation.navigate("Events")}
+          style={({ pressed }) => [
+            styles.blogCard,
+            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.md },
+          ]}
+        >
+          <LinearGradient
+            colors={["#1ABC9C", "#16A085"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.blogGradient}
+          >
+            <View style={styles.blogIconContainer}>
+              <Feather name="calendar" size={28} color="#FFFFFF" />
+            </View>
+            <View style={styles.blogContent}>
+              <ThemedText type="h3" style={styles.blogTitle}>
+                Events Near You
+              </ThemedText>
+              <ThemedText type="body" style={styles.blogDescription}>
+                Discover local fashion events, pop-ups, and style meetups with outfit suggestions
+              </ThemedText>
+              <View style={styles.blogCta}>
+                <ThemedText type="small" style={styles.blogCtaText}>
+                  Browse Events
+                </ThemedText>
+                <Feather name="arrow-right" size={16} color="#FFFFFF" />
+              </View>
+            </View>
+          </LinearGradient>
+        </Pressable>
       </View>
 
       <View style={styles.section}>

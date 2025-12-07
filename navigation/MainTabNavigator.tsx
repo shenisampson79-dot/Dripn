@@ -6,9 +6,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import HomeStackNavigator from "@/navigation/HomeStackNavigator";
 import DiscoverStackNavigator from "@/navigation/DiscoverStackNavigator";
+import UserStylistStackNavigator from "@/navigation/UserStylistStackNavigator";
 import CommunityStackNavigator from "@/navigation/CommunityStackNavigator";
 import BargainsStackNavigator from "@/navigation/BargainsStackNavigator";
-import EventsStackNavigator from "@/navigation/EventsStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -16,10 +16,10 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 export type MainTabParamList = {
   HomeTab: undefined;
   DiscoverTab: undefined;
+  StylistTab: undefined;
   CommunityTab: undefined;
   PostTab: undefined;
   BargainsTab: undefined;
-  EventsTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -106,6 +106,16 @@ export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTab
           }}
         />
         <Tab.Screen
+          name="StylistTab"
+          component={UserStylistStackNavigator}
+          options={{
+            title: "Stylist",
+            tabBarIcon: ({ color, size }) => (
+              <Feather name="scissors" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
           name="CommunityTab"
           component={CommunityStackNavigator}
           options={{
@@ -136,16 +146,6 @@ export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTab
             title: "Offers",
             tabBarIcon: ({ color, size }) => (
               <Feather name="tag" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="EventsTab"
-          component={EventsStackNavigator}
-          options={{
-            title: "Events",
-            tabBarIcon: ({ color, size }) => (
-              <Feather name="calendar" size={size} color={color} />
             ),
           }}
         />
