@@ -11,6 +11,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWishlist } from "@/contexts/WishlistContext";
+import { useSustainability, getEcoRatingColor } from "@/contexts/SustainabilityContext";
 import { 
   BargainsService, 
   BargainDeal, 
@@ -27,6 +28,7 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { addToWishlist, wishlistItems, unreadAlertsCount } = useWishlist();
+  const { getBrandEcoRating } = useSustainability();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -120,22 +122,33 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
                 Bargains of the Day
               </ThemedText>
             </View>
-            <Pressable
-              onPress={() => navigation.navigate('Wishlist')}
-              style={({ pressed }) => [
-                styles.wishlistButton,
-                { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
-              ]}
-            >
-              <Feather name="heart" size={20} color={theme.link} />
-              {unreadAlertsCount > 0 ? (
-                <View style={[styles.alertBadge, { backgroundColor: theme.link }]}>
-                  <ThemedText type="small" style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>
-                    {unreadAlertsCount > 9 ? '9+' : unreadAlertsCount}
-                  </ThemedText>
-                </View>
-              ) : null}
-            </Pressable>
+            <View style={styles.headerButtons}>
+              <Pressable
+                onPress={() => navigation.navigate('Sustainability')}
+                style={({ pressed }) => [
+                  styles.headerButton,
+                  { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
+                ]}
+              >
+                <Feather name="globe" size={20} color={theme.link} />
+              </Pressable>
+              <Pressable
+                onPress={() => navigation.navigate('Wishlist')}
+                style={({ pressed }) => [
+                  styles.headerButton,
+                  { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
+                ]}
+              >
+                <Feather name="heart" size={20} color={theme.link} />
+                {unreadAlertsCount > 0 ? (
+                  <View style={[styles.alertBadge, { backgroundColor: theme.link }]}>
+                    <ThemedText type="small" style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>
+                      {unreadAlertsCount > 9 ? '9+' : unreadAlertsCount}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </Pressable>
+            </View>
           </View>
           <ThemedText type="body" style={styles.subtitle}>
             Exclusive deals on your favourite brands, updated daily
@@ -249,14 +262,24 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
                 </View>
               </View>
 
-              {deal.isVipOnly ? (
-                <View style={[styles.vipBadge, { backgroundColor: theme.backgroundSecondary }]}>
-                  <Feather name="award" size={12} color={theme.link} />
-                  <ThemedText type="small" style={{ marginLeft: 4, color: theme.link }}>
-                    VIP Exclusive
-                  </ThemedText>
-                </View>
-              ) : null}
+              <View style={styles.badgesRow}>
+                {deal.isVipOnly ? (
+                  <View style={[styles.vipBadge, { backgroundColor: theme.backgroundSecondary }]}>
+                    <Feather name="award" size={12} color={theme.link} />
+                    <ThemedText type="small" style={{ marginLeft: 4, color: theme.link }}>
+                      VIP Exclusive
+                    </ThemedText>
+                  </View>
+                ) : null}
+                {getBrandEcoRating(deal.brand).ecoRating !== 'unknown' ? (
+                  <View style={[styles.ecoBadge, { backgroundColor: getEcoRatingColor(getBrandEcoRating(deal.brand).ecoRating) + '20' }]}>
+                    <Feather name="leaf" size={12} color={getEcoRatingColor(getBrandEcoRating(deal.brand).ecoRating)} />
+                    <ThemedText type="small" style={{ marginLeft: 4, color: getEcoRatingColor(getBrandEcoRating(deal.brand).ecoRating) }}>
+                      Eco: {getBrandEcoRating(deal.brand).ecoRating}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </View>
 
               <View style={styles.dealActions}>
                 <Pressable
@@ -327,7 +350,11 @@ const styles = StyleSheet.create({
   title: {
     marginLeft: Spacing.xs,
   },
-  wishlistButton: {
+  headerButtons: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  headerButton: {
     width: 40,
     height: 40,
     borderRadius: BorderRadius.full,
@@ -408,14 +435,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  badgesRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
   vipBadge: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: BorderRadius.sm,
-    marginBottom: Spacing.sm,
+  },
+  ecoBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: BorderRadius.sm,
   },
   dealActions: {
     flexDirection: "row",

@@ -24,6 +24,7 @@ import { StyleProfileProvider } from "@/contexts/StyleProfileContext";
 import { SmartNotificationsProvider } from "@/contexts/SmartNotificationsContext";
 import { SocialProvider } from "@/contexts/SocialContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
+import { SustainabilityProvider } from "@/contexts/SustainabilityContext";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -111,9 +112,11 @@ export default function App() {
                               <SmartNotificationsProvider>
                                 <SocialProvider>
                                   <WishlistProvider>
-                                    <NavigationContainer>
-                                      <AppContent />
-                                    </NavigationContainer>
+                                    <SustainabilityProvider>
+                                      <NavigationContainer>
+                                        <AppContent />
+                                      </NavigationContainer>
+                                    </SustainabilityProvider>
                                   </WishlistProvider>
                                 </SocialProvider>
                               </SmartNotificationsProvider>
