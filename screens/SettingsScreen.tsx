@@ -263,7 +263,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   };
 
   const handleSupport = () => {
-    Linking.openURL("mailto:support@dripn.app");
+    navigation.navigate("Support");
   };
 
   const handlePartnerWithUs = async () => {

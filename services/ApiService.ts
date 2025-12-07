@@ -586,6 +586,30 @@ class ApiService {
       method: 'POST',
     });
   }
+
+  async createSupportTicket(data: {
+    category: string;
+    description: string;
+    userName?: string;
+    userEmail?: string;
+  }) {
+    return this.request<{ success: boolean; ticketId: string }>('/api/support/ticket', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async sendSupportMessage(data: {
+    message: string;
+    chatHistory?: Array<{ role: string; content: string }>;
+    stylistName?: string;
+    stylistPersonality?: string;
+  }) {
+    return this.request<{ response: string }>('/api/support/chat', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const apiService = new ApiService();
