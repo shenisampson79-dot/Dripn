@@ -14,6 +14,15 @@ export type Lifestyle = 'casual' | 'professional' | 'active' | 'creative' | 'min
 export type ShoppingFrequency = 'weekly' | 'monthly' | 'seasonal' | 'rarely' | null;
 export type HeightUnit = 'cm' | 'ft';
 export type WeightUnit = 'kg' | 'lbs';
+export type StylistId = 'ruby' | 'max' | null;
+export type VoicePitch = 'low' | 'medium' | 'high';
+
+export interface StylistPreferences {
+  selectedStylistId: StylistId;
+  language: string;
+  accent: string;
+  voicePitch: VoicePitch;
+}
 
 export interface BodyMeasurements {
   height: number | null;
@@ -58,6 +67,7 @@ export interface UserProfile {
   hasDismissedTrialOffer: boolean;
   bodyMeasurements: BodyMeasurements;
   extendedPreferences: ExtendedPreferences;
+  stylistPreferences: StylistPreferences;
 }
 
 type LocationPermissionStatus = 'unknown' | 'granted' | 'denied' | 'denied_forever';
@@ -121,6 +131,12 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
     preferOnlineShopping: true,
     sustainabilityImportant: false,
     occasions: [],
+  },
+  stylistPreferences: {
+    selectedStylistId: null,
+    language: 'English',
+    accent: 'American',
+    voicePitch: 'medium',
   },
 });
 
@@ -344,7 +360,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     const updatedUser = { 
       ...user, 
-      ...profile, 
+      ...profile,
+      stylistPreferences: {
+        ...user.stylistPreferences,
+        ...(profile.stylistPreferences || {}),
+      },
       hasCompletedOnboarding: true 
     };
     await saveUser(updatedUser);

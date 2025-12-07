@@ -1,4 +1,4 @@
-import { Gender } from '@/contexts/AuthContext';
+import { Gender, StylistPreferences } from '@/contexts/AuthContext';
 
 export interface PersonalStylist {
   id: string;
@@ -12,6 +12,38 @@ export interface PersonalStylist {
   specialty: string;
   tagline: string;
 }
+
+export const STYLIST_LANGUAGES = [
+  'English',
+  'Spanish',
+  'French',
+  'German',
+  'Italian',
+  'Portuguese',
+  'Japanese',
+  'Korean',
+  'Chinese',
+  'Arabic',
+  'Hindi',
+  'Dutch',
+  'Russian',
+  'Swedish',
+] as const;
+
+export const STYLIST_ACCENTS = [
+  'American',
+  'British',
+  'Australian',
+  'Irish',
+  'Scottish',
+  'Canadian',
+  'South African',
+  'Indian',
+  'Caribbean',
+  'New Zealand',
+] as const;
+
+export const VOICE_PITCHES = ['low', 'medium', 'high'] as const;
 
 export const STYLISTS: Record<string, PersonalStylist> = {
   ruby: {
@@ -58,7 +90,13 @@ export const STYLISTS: Record<string, PersonalStylist> = {
   },
 };
 
-export function getStylistForUser(userGender: Gender): PersonalStylist {
+export function getStylistForUser(userGender: Gender, stylistPreferences?: StylistPreferences): PersonalStylist {
+  if (stylistPreferences?.selectedStylistId) {
+    const selectedStylist = STYLISTS[stylistPreferences.selectedStylistId];
+    if (selectedStylist) {
+      return selectedStylist;
+    }
+  }
   if (userGender === 'man') {
     return STYLISTS.max;
   }

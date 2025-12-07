@@ -9,8 +9,9 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, StyleTheme } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useAuth, SizeRange, BodyShape, BudgetRange, Gender } from "@/contexts/AuthContext";
+import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
+import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, VOICE_PITCHES, getAllStylists } from "@/services/PersonalStylistService";
 
 const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "woman", name: "Woman", icon: "user" },
@@ -349,8 +350,12 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const [sizeRange, setSizeRange] = useState<SizeRange>(null);
   const [bodyShape, setBodyShape] = useState<BodyShape>(null);
   const [budgetRange, setBudgetRange] = useState<BudgetRange>(null);
+  const [selectedStylistId, setSelectedStylistId] = useState<StylistId>(null);
+  const [stylistLanguage, setStylistLanguage] = useState<string>("English");
+  const [stylistAccent, setStylistAccent] = useState<string>("American");
+  const [voicePitch, setVoicePitch] = useState<VoicePitch>("medium");
 
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   const getBodyShapeOptions = () => {
     if (gender === "man") return MEN_BODY_SHAPES;
@@ -375,6 +380,12 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   };
 
   const handleComplete = async () => {
+    const stylistPreferences: StylistPreferences = {
+      selectedStylistId,
+      language: stylistLanguage,
+      accent: stylistAccent,
+      voicePitch,
+    };
     await completeOnboarding({
       country,
       gender,
@@ -382,6 +393,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
       sizeRange,
       bodyShape,
       budgetRange,
+      stylistPreferences,
     });
   };
 
@@ -478,6 +490,164 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
         );
 
       case 2:
+        const stylists = getAllStylists();
+        return (
+          <View style={styles.stepContent}>
+            <ThemedText type="h2" style={styles.stepTitle}>
+              Meet Your Personal Stylist
+            </ThemedText>
+            <ThemedText type="body" style={styles.stepSubtitle}>
+              Choose who will guide your fashion journey
+            </ThemedText>
+            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.stylistsContainer}>
+                {stylists.map((stylist) => (
+                  <Pressable
+                    key={stylist.id}
+                    onPress={() => setSelectedStylistId(stylist.id as StylistId)}
+                    style={({ pressed }) => [
+                      styles.stylistCard,
+                      {
+                        backgroundColor: selectedStylistId === stylist.id ? stylist.color : theme.backgroundDefault,
+                        borderColor: selectedStylistId === stylist.id ? stylist.color : theme.backgroundSecondary,
+                        opacity: pressed ? 0.8 : 1,
+                      },
+                    ]}
+                  >
+                    <View style={[styles.stylistIconContainer, { backgroundColor: selectedStylistId === stylist.id ? 'rgba(255,255,255,0.3)' : stylist.color }]}>
+                      <Feather
+                        name={stylist.icon}
+                        size={32}
+                        color="#FFFFFF"
+                      />
+                    </View>
+                    <View style={styles.stylistInfo}>
+                      <ThemedText
+                        type="h2"
+                        style={{ color: selectedStylistId === stylist.id ? "#FFFFFF" : theme.text }}
+                      >
+                        {stylist.name}
+                      </ThemedText>
+                      <ThemedText
+                        type="small"
+                        style={{ color: selectedStylistId === stylist.id ? "rgba(255,255,255,0.9)" : theme.tabIconDefault }}
+                      >
+                        {stylist.tagline}
+                      </ThemedText>
+                      <ThemedText
+                        type="small"
+                        style={{ color: selectedStylistId === stylist.id ? "rgba(255,255,255,0.8)" : theme.tabIconDefault, marginTop: Spacing.xs }}
+                      >
+                        {stylist.personality}
+                      </ThemedText>
+                    </View>
+                    {selectedStylistId === stylist.id ? (
+                      <View style={[styles.checkCircle, { backgroundColor: "rgba(255,255,255,0.3)" }]}>
+                        <Feather name="check" size={16} color="#FFFFFF" />
+                      </View>
+                    ) : null}
+                  </Pressable>
+                ))}
+              </View>
+
+              <View style={styles.voiceSettingsSection}>
+                <ThemedText type="h3" style={styles.sectionLabel}>
+                  Language
+                </ThemedText>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                  <View style={styles.horizontalOptionsRow}>
+                    {STYLIST_LANGUAGES.map((lang) => (
+                      <Pressable
+                        key={lang}
+                        onPress={() => setStylistLanguage(lang)}
+                        style={({ pressed }) => [
+                          styles.optionChip,
+                          {
+                            backgroundColor: stylistLanguage === lang ? theme.link : theme.backgroundDefault,
+                            opacity: pressed ? 0.8 : 1,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          type="body"
+                          style={{ color: stylistLanguage === lang ? "#FFFFFF" : theme.text }}
+                        >
+                          {lang}
+                        </ThemedText>
+                      </Pressable>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              <View style={styles.voiceSettingsSection}>
+                <ThemedText type="h3" style={styles.sectionLabel}>
+                  Accent
+                </ThemedText>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                  <View style={styles.horizontalOptionsRow}>
+                    {STYLIST_ACCENTS.map((accent) => (
+                      <Pressable
+                        key={accent}
+                        onPress={() => setStylistAccent(accent)}
+                        style={({ pressed }) => [
+                          styles.optionChip,
+                          {
+                            backgroundColor: stylistAccent === accent ? theme.link : theme.backgroundDefault,
+                            opacity: pressed ? 0.8 : 1,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          type="body"
+                          style={{ color: stylistAccent === accent ? "#FFFFFF" : theme.text }}
+                        >
+                          {accent}
+                        </ThemedText>
+                      </Pressable>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              <View style={styles.voiceSettingsSection}>
+                <ThemedText type="h3" style={styles.sectionLabel}>
+                  Voice Pitch
+                </ThemedText>
+                <View style={styles.pitchOptionsRow}>
+                  {VOICE_PITCHES.map((pitch) => (
+                    <Pressable
+                      key={pitch}
+                      onPress={() => setVoicePitch(pitch)}
+                      style={({ pressed }) => [
+                        styles.pitchOption,
+                        {
+                          backgroundColor: voicePitch === pitch ? theme.link : theme.backgroundDefault,
+                          borderColor: voicePitch === pitch ? theme.link : theme.backgroundSecondary,
+                          opacity: pressed ? 0.8 : 1,
+                        },
+                      ]}
+                    >
+                      <Feather
+                        name={pitch === 'low' ? 'volume' : pitch === 'medium' ? 'volume-1' : 'volume-2'}
+                        size={20}
+                        color={voicePitch === pitch ? "#FFFFFF" : theme.text}
+                      />
+                      <ThemedText
+                        type="body"
+                        style={{ color: voicePitch === pitch ? "#FFFFFF" : theme.text, textTransform: 'capitalize' }}
+                      >
+                        {pitch}
+                      </ThemedText>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        );
+
+      case 3:
         const styleOptions = gender === 'man' ? STYLE_OPTIONS_MALE : STYLE_OPTIONS_FEMALE;
         const getStyleImage = (styleId: StyleTheme): ImageSourcePropType => {
           const region = getRegionFromCountry(country);
@@ -542,7 +712,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
           </View>
         );
 
-      case 3:
+      case 4:
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
@@ -838,5 +1008,54 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     width: "100%",
+  },
+  stylistsContainer: {
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  stylistCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+    gap: Spacing.md,
+  },
+  stylistIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stylistInfo: {
+    flex: 1,
+  },
+  voiceSettingsSection: {
+    marginBottom: Spacing.xl,
+  },
+  horizontalScroll: {
+    marginLeft: -Spacing.xl,
+    marginRight: -Spacing.xl,
+    paddingLeft: Spacing.xl,
+  },
+  horizontalOptionsRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    paddingRight: Spacing.xl * 2,
+  },
+  pitchOptionsRow: {
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
+  pitchOption: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+    gap: Spacing.sm,
   },
 });
