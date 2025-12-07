@@ -986,6 +986,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const [emergingTrends, setEmergingTrends] = useState<EmergingTrend[]>([]);
   const [loadingTrends, setLoadingTrends] = useState(false);
   const [currencyInitialized, setCurrencyInitialized] = useState(false);
+  const [celebrityLooksGenderFilter, setCelebrityLooksGenderFilter] = useState<'user' | 'female' | 'male'>('user');
 
   useEffect(() => {
     currencyService.initialize().then(() => setCurrencyInitialized(true));
@@ -1108,8 +1109,9 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   }, [posts, user?.gender]);
 
   const genderFilteredCelebrityLooks = useMemo(() => {
-    return CELEBRITY_LOOKS.filter(look => look.gender === userGender);
-  }, [userGender]);
+    const targetGender = celebrityLooksGenderFilter === 'user' ? userGender : celebrityLooksGenderFilter;
+    return CELEBRITY_LOOKS.filter(look => look.gender === targetGender);
+  }, [userGender, celebrityLooksGenderFilter]);
 
   const handlePostPress = (postId: string) => {
     navigation.navigate("PostDetail", { postId });
@@ -1535,6 +1537,78 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         <View style={styles.sectionHeader}>
           <ThemedText type="h2" style={styles.sectionTitle}>
             Celebrity-Inspired Looks
+          </ThemedText>
+        </View>
+        <View style={styles.celebrityGenderToggleContainer}>
+          <ThemedText type="small" style={[styles.celebrityGenderToggleLabel, { color: theme.tabIconDefault }]}>
+            Browse looks for:
+          </ThemedText>
+          <View style={styles.celebrityGenderToggleRow}>
+            <Pressable
+              onPress={() => setCelebrityLooksGenderFilter('user')}
+              style={[
+                styles.celebrityGenderToggleButton,
+                {
+                  backgroundColor: celebrityLooksGenderFilter === 'user' ? theme.link : theme.backgroundDefault,
+                },
+              ]}
+            >
+              <Feather 
+                name="user" 
+                size={14} 
+                color={celebrityLooksGenderFilter === 'user' ? '#FFFFFF' : theme.text} 
+              />
+              <ThemedText
+                type="small"
+                style={[
+                  styles.celebrityGenderToggleText,
+                  { color: celebrityLooksGenderFilter === 'user' ? '#FFFFFF' : theme.text },
+                ]}
+              >
+                For Me
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={() => setCelebrityLooksGenderFilter('female')}
+              style={[
+                styles.celebrityGenderToggleButton,
+                {
+                  backgroundColor: celebrityLooksGenderFilter === 'female' ? theme.link : theme.backgroundDefault,
+                },
+              ]}
+            >
+              <ThemedText
+                type="small"
+                style={[
+                  styles.celebrityGenderToggleText,
+                  { color: celebrityLooksGenderFilter === 'female' ? '#FFFFFF' : theme.text },
+                ]}
+              >
+                Her
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={() => setCelebrityLooksGenderFilter('male')}
+              style={[
+                styles.celebrityGenderToggleButton,
+                {
+                  backgroundColor: celebrityLooksGenderFilter === 'male' ? theme.link : theme.backgroundDefault,
+                },
+              ]}
+            >
+              <ThemedText
+                type="small"
+                style={[
+                  styles.celebrityGenderToggleText,
+                  { color: celebrityLooksGenderFilter === 'male' ? '#FFFFFF' : theme.text },
+                ]}
+              >
+                Him
+              </ThemedText>
+            </Pressable>
+          </View>
+          <ThemedText type="small" style={[styles.celebrityGiftHint, { color: theme.tabIconDefault }]}>
+            Perfect for gift ideas
           </ThemedText>
         </View>
         <View style={[styles.affiliateNotice, { backgroundColor: theme.backgroundDefault }]}>
@@ -2653,5 +2727,34 @@ const styles = StyleSheet.create({
   trendMomentumText: {
     fontSize: 11,
     fontWeight: "500",
+  },
+  celebrityGenderToggleContainer: {
+    marginBottom: Spacing.md,
+    alignItems: "center",
+  },
+  celebrityGenderToggleLabel: {
+    marginBottom: Spacing.sm,
+    fontWeight: "500",
+  },
+  celebrityGenderToggleRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  celebrityGenderToggleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    gap: Spacing.xs,
+  },
+  celebrityGenderToggleText: {
+    fontWeight: "600",
+    fontSize: 13,
+  },
+  celebrityGiftHint: {
+    marginTop: Spacing.sm,
+    fontStyle: "italic",
+    fontSize: 12,
   },
 });

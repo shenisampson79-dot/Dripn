@@ -44,6 +44,8 @@ const ROTATION_RANGE = 15;
 const LIKED_OUTFITS_KEY = '@dripn_liked_shuffle_outfits';
 const DAILY_SWIPES_KEY = '@dripn_daily_swipes';
 
+type GenderFilter = 'all' | 'female' | 'male';
+
 interface ShuffleOutfit {
   id: string;
   image: ImageSourcePropType;
@@ -53,6 +55,7 @@ interface ShuffleOutfit {
   season: string;
   items: { name: string; category: string }[];
   matchScore: number;
+  gender: 'female' | 'male';
 }
 
 const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
@@ -69,6 +72,7 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
       { name: 'White Sneakers', category: 'Shoes' },
     ],
     matchScore: 92,
+    gender: 'female',
   },
   {
     id: 'outfit_2',
@@ -83,6 +87,7 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
       { name: 'Statement Earrings', category: 'Accessories' },
     ],
     matchScore: 88,
+    gender: 'female',
   },
   {
     id: 'outfit_3',
@@ -97,6 +102,7 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
       { name: 'Running Sneakers', category: 'Shoes' },
     ],
     matchScore: 95,
+    gender: 'female',
   },
   {
     id: 'outfit_4',
@@ -111,6 +117,7 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
       { name: 'Leather Sneakers', category: 'Shoes' },
     ],
     matchScore: 90,
+    gender: 'male',
   },
   {
     id: 'outfit_5',
@@ -125,6 +132,7 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
       { name: 'Oxford Shoes', category: 'Shoes' },
     ],
     matchScore: 87,
+    gender: 'male',
   },
   {
     id: 'outfit_6',
@@ -139,6 +147,7 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
       { name: 'Premium Sneakers', category: 'Shoes' },
     ],
     matchScore: 93,
+    gender: 'male',
   },
 ];
 
@@ -162,12 +171,26 @@ export default function StyleShuffleScreen() {
     );
   }, [navigation]);
 
-  const [outfits, setOutfits] = useState<ShuffleOutfit[]>([...SHUFFLE_OUTFITS]);
+  const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedOutfits, setLikedOutfits] = useState<string[]>([]);
   const [swipesToday, setSwipesToday] = useState(0);
   const [showMatchOverlay, setShowMatchOverlay] = useState(false);
   const [lastAction, setLastAction] = useState<'like' | 'pass' | null>(null);
+
+  const filteredOutfits = React.useMemo(() => {
+    if (genderFilter === 'all') {
+      return [...SHUFFLE_OUTFITS].sort(() => Math.random() - 0.5);
+    }
+    return SHUFFLE_OUTFITS.filter(outfit => outfit.gender === genderFilter).sort(() => Math.random() - 0.5);
+  }, [genderFilter]);
+
+  const [outfits, setOutfits] = useState<ShuffleOutfit[]>(filteredOutfits);
+
+  React.useEffect(() => {
+    setOutfits(filteredOutfits);
+    setCurrentIndex(0);
+  }, [genderFilter]);
 
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -350,7 +373,10 @@ export default function StyleShuffleScreen() {
 
   const resetDeck = () => {
     setCurrentIndex(0);
-    setOutfits([...SHUFFLE_OUTFITS].sort(() => Math.random() - 0.5));
+    const newOutfits = genderFilter === 'all' 
+      ? [...SHUFFLE_OUTFITS].sort(() => Math.random() - 0.5)
+      : SHUFFLE_OUTFITS.filter(outfit => outfit.gender === genderFilter).sort(() => Math.random() - 0.5);
+    setOutfits(newOutfits);
   };
 
   const currentOutfit = outfits[currentIndex];
@@ -396,6 +422,74 @@ export default function StyleShuffleScreen() {
             {remainingSwipes === Infinity ? 'Unlimited' : `${remainingSwipes} left`}
           </ThemedText>
         </View>
+      </View>
+
+      <View style={styles.genderToggleContainer}>
+        <ThemedText style={[styles.genderToggleLabel, { color: theme.tabIconDefault }]}>
+          Browse for:
+        </ThemedText>
+        <View style={[styles.genderToggleRow, { backgroundColor: theme.backgroundSecondary }]}>
+          <Pressable
+            onPress={() => setGenderFilter('all')}
+            style={[
+              styles.genderToggleButton,
+              genderFilter === 'all' && { backgroundColor: theme.link },
+            ]}
+          >
+            <Feather 
+              name="users" 
+              size={14} 
+              color={genderFilter === 'all' ? '#FFFFFF' : theme.tabIconDefault} 
+            />
+            <ThemedText style={[
+              styles.genderToggleText,
+              { color: genderFilter === 'all' ? '#FFFFFF' : theme.text }
+            ]}>
+              All
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            onPress={() => setGenderFilter('female')}
+            style={[
+              styles.genderToggleButton,
+              genderFilter === 'female' && { backgroundColor: theme.link },
+            ]}
+          >
+            <Feather 
+              name="user" 
+              size={14} 
+              color={genderFilter === 'female' ? '#FFFFFF' : theme.tabIconDefault} 
+            />
+            <ThemedText style={[
+              styles.genderToggleText,
+              { color: genderFilter === 'female' ? '#FFFFFF' : theme.text }
+            ]}>
+              Her
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            onPress={() => setGenderFilter('male')}
+            style={[
+              styles.genderToggleButton,
+              genderFilter === 'male' && { backgroundColor: theme.link },
+            ]}
+          >
+            <Feather 
+              name="user" 
+              size={14} 
+              color={genderFilter === 'male' ? '#FFFFFF' : theme.tabIconDefault} 
+            />
+            <ThemedText style={[
+              styles.genderToggleText,
+              { color: genderFilter === 'male' ? '#FFFFFF' : theme.text }
+            ]}>
+              Him
+            </ThemedText>
+          </Pressable>
+        </View>
+        <ThemedText style={[styles.giftHint, { color: theme.tabIconDefault }]}>
+          Perfect for gift ideas
+        </ThemedText>
       </View>
 
       <View style={styles.cardContainer}>
@@ -733,5 +827,37 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: '700',
+  },
+  genderToggleContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    gap: Spacing.xs,
+  },
+  genderToggleLabel: {
+    ...Typography.small,
+    marginBottom: Spacing.xs,
+  },
+  genderToggleRow: {
+    flexDirection: 'row',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xs,
+    gap: Spacing.xs,
+  },
+  genderToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  genderToggleText: {
+    ...Typography.small,
+    fontWeight: '600',
+  },
+  giftHint: {
+    ...Typography.caption,
+    fontStyle: 'italic',
+    marginTop: Spacing.xs,
   },
 });
