@@ -9,14 +9,24 @@ import {
   ActivityIndicator,
   Image,
   FlatList,
+  Alert,
+  Linking,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import { Audio } from 'expo-audio';
 import Animated, {
   FadeIn,
   FadeInUp,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  withSpring,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { KeyboardStickyView, KeyboardProvider } from 'react-native-keyboard-controller';
 
@@ -38,11 +48,17 @@ const INPUT_CONTAINER_HEIGHT = 80;
 const CHAT_STORAGE_KEY = '@dripn_ai_stylist_chat';
 const DAILY_MESSAGES_KEY = '@dripn_ai_daily_messages';
 
+interface VoiceMessage {
+  uri: string;
+  duration: number;
+}
+
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  voiceMessage?: VoiceMessage;
   outfitSuggestion?: {
     items: WardrobeItem[];
     occasion: string;
@@ -302,6 +318,25 @@ export default function AIStylistScreen() {
   const [messagesToday, setMessagesToday] = useState(0);
   const [showQuickPrompts, setShowQuickPrompts] = useState(true);
   
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [hasAudioPermission, setHasAudioPermission] = useState<boolean | null>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  const pulseScale = useSharedValue(1);
+  const waveformBars = [
+    useSharedValue(0.3),
+    useSharedValue(0.3),
+    useSharedValue(0.3),
+    useSharedValue(0.3),
+    useSharedValue(0.3),
+  ];
+  
+  const pulseAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+  }));
+
   const navigateToSubscription = useCallback(() => {
     navigation.dispatch(
       CommonActions.navigate({
@@ -327,6 +362,13 @@ export default function AIStylistScreen() {
   useEffect(() => {
     loadChatHistory();
     loadDailyMessageCount();
+    checkAudioPermission();
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      stopRecording(true);
+    };
   }, []);
   
   useEffect(() => {
@@ -341,7 +383,222 @@ export default function AIStylistScreen() {
       setMessages([greetingMessage]);
     }
   }, [stylist]);
-  
+
+  useEffect(() => {
+    if (isRecording) {
+      pulseScale.value = withRepeat(
+        withSequence(
+          withTiming(1.3, { duration: 500 }),
+          withTiming(1, { duration: 500 })
+        ),
+        -1,
+        true
+      );
+
+      waveformBars.forEach((bar, index) => {
+        bar.value = withRepeat(
+          withSequence(
+            withTiming(0.3 + Math.random() * 0.7, { duration: 200 + index * 50 }),
+            withTiming(0.3, { duration: 200 + index * 50 })
+          ),
+          -1,
+          true
+        );
+      });
+    } else {
+      cancelAnimation(pulseScale);
+      pulseScale.value = withSpring(1);
+      waveformBars.forEach((bar) => {
+        cancelAnimation(bar);
+        bar.value = withSpring(0.3);
+      });
+    }
+  }, [isRecording]);
+
+  const checkAudioPermission = async () => {
+    if (Platform.OS === 'web') {
+      setHasAudioPermission(false);
+      return;
+    }
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      setHasAudioPermission(status === 'granted');
+    } catch (error) {
+      setHasAudioPermission(false);
+    }
+  };
+
+  const formatRecordingDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const startRecording = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Not Available', 'Voice commands are available in Expo Go on your mobile device');
+      return;
+    }
+
+    if (!hasAudioPermission) {
+      const { status, canAskAgain } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        if (!canAskAgain && Platform.OS !== 'web') {
+          Alert.alert(
+            'Microphone Permission Required',
+            `${stylist.name} needs access to your microphone to hear your voice commands. Please enable it in Settings.`,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { 
+                text: 'Open Settings', 
+                onPress: async () => {
+                  try {
+                    await Linking.openSettings();
+                  } catch (error) {
+                    console.log('Could not open settings');
+                  }
+                }
+              },
+            ]
+          );
+        }
+        return;
+      }
+      setHasAudioPermission(true);
+    }
+
+    if (!canSendMessage()) {
+      Alert.alert('Daily Limit Reached', 'Upgrade to send more messages today');
+      return;
+    }
+
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+      });
+
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.startAsync();
+
+      recordingRef.current = recording;
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => {
+          if (prev >= 59) {
+            stopRecording(false);
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      Alert.alert('Recording Error', 'Could not start recording. Please try again.');
+    }
+  };
+
+  const stopRecording = async (cancelled: boolean) => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
+    if (!recordingRef.current) {
+      setIsRecording(false);
+      return;
+    }
+
+    try {
+      const recording = recordingRef.current;
+      recordingRef.current = null;
+
+      const status = await recording.getStatusAsync();
+      const actualDurationMs = status.isRecording ? status.durationMillis : (status.durationMillis || 0);
+      const actualDurationSec = Math.ceil(actualDurationMs / 1000);
+
+      await recording.stopAndUnloadAsync();
+      setIsRecording(false);
+
+      if (cancelled) {
+        return;
+      }
+
+      const uri = recording.getURI();
+      const minDurationMs = 300;
+
+      if (uri && actualDurationMs >= minDurationMs) {
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        handleVoiceMessage(uri, Math.max(actualDurationSec, 1));
+      } else if (uri && actualDurationMs < minDurationMs) {
+        Alert.alert('Recording Too Short', 'Please hold to record a longer message.');
+      }
+    } catch (error) {
+      console.error('Failed to stop recording:', error);
+      setIsRecording(false);
+    }
+  };
+
+  const handleVoiceMessage = async (uri: string, duration: number) => {
+    if (!canSendMessage()) return;
+
+    const userMessage: ChatMessage = {
+      id: `msg_${Date.now()}_user`,
+      role: 'user',
+      content: 'Voice message',
+      timestamp: new Date().toISOString(),
+      voiceMessage: { uri, duration },
+    };
+
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    setShowQuickPrompts(false);
+    setIsTyping(true);
+
+    await incrementDailyMessages();
+
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+
+    setTimeout(async () => {
+      const voiceResponses = [
+        `I heard your voice message! Based on what you shared, let me put together some outfit ideas for you. For a versatile look, I'd suggest mixing your favorite pieces with some statement accessories.`,
+        `Thanks for the voice message! I love that you're reaching out. Let me think about some combinations from your wardrobe that would work perfectly for you.`,
+        `Got your voice message! I'm analyzing your request. If you're looking for something specific, feel free to type out the details and I'll create a personalized outfit recommendation.`,
+        `Lovely to hear from you! I'm processing your style request. In the meantime, try our quick prompts below for instant outfit suggestions, or tell me more about what occasion you're dressing for.`,
+      ];
+
+      const responseContent = voiceResponses[Math.floor(Math.random() * voiceResponses.length)];
+
+      const assistantMessage: ChatMessage = {
+        id: `msg_${Date.now()}_assistant`,
+        role: 'assistant',
+        content: responseContent,
+        timestamp: new Date().toISOString(),
+      };
+
+      const finalMessages = [...updatedMessages, assistantMessage];
+      setMessages(finalMessages);
+      setIsTyping(false);
+
+      await saveChatHistory(finalMessages);
+
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }, 1500 + Math.random() * 1000);
+  };
+
   const loadChatHistory = async () => {
     try {
       const data = await AsyncStorage.getItem(CHAT_STORAGE_KEY);
@@ -662,68 +919,144 @@ export default function AIStylistScreen() {
     </>
   );
 
-  const renderInputBar = () => (
-    <View
-      style={[
-        styles.inputContainerWrapper,
-        { 
-          paddingBottom: insets.bottom + Spacing.sm,
-          backgroundColor: theme.backgroundDefault,
-        }
-      ]}
-    >
-      {limitReached ? (
-        <Animated.View 
-          entering={FadeIn.duration(300)}
+  const renderInputBar = () => {
+    if (isRecording) {
+      return (
+        <View
           style={[
-            styles.limitReachedBanner, 
-            { backgroundColor: theme.warning + '20' }
+            styles.inputContainerWrapper,
+            { 
+              paddingBottom: insets.bottom + Spacing.sm,
+              backgroundColor: theme.backgroundDefault,
+            }
           ]}
         >
-          <Feather name="alert-circle" size={16} color={theme.warning} />
-          <ThemedText style={[styles.limitReachedText, { color: theme.warning }]}>
-            Daily message limit reached
-          </ThemedText>
-          <Pressable onPress={navigateToSubscription}>
-            <ThemedText style={[styles.upgradeLink, { color: theme.link }]}>Upgrade</ThemedText>
+          <View style={[styles.recordingContainer, { backgroundColor: theme.backgroundSecondary }]}>
+            <Pressable
+              onPress={() => stopRecording(true)}
+              style={[styles.cancelRecordingButton, { backgroundColor: theme.backgroundTertiary }]}
+            >
+              <Feather name="x" size={20} color={theme.text} />
+            </Pressable>
+
+            <View style={styles.recordingInfo}>
+              <View style={styles.waveformContainer}>
+                {waveformBars.map((bar, index) => {
+                  const animatedStyle = useAnimatedStyle(() => ({
+                    height: 20 * bar.value,
+                  }));
+                  return (
+                    <Animated.View
+                      key={index}
+                      style={[
+                        styles.waveformBar,
+                        { backgroundColor: stylist.color },
+                        animatedStyle,
+                      ]}
+                    />
+                  );
+                })}
+              </View>
+              <ThemedText style={styles.recordingDuration}>
+                {formatRecordingDuration(recordingDuration)}
+              </ThemedText>
+            </View>
+
+            <Animated.View style={pulseAnimatedStyle}>
+              <Pressable
+                onPress={() => stopRecording(false)}
+                style={[styles.stopRecordingButton, { backgroundColor: '#EF4444' }]}
+              >
+                <View style={styles.stopIcon} />
+              </Pressable>
+            </Animated.View>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View
+        style={[
+          styles.inputContainerWrapper,
+          { 
+            paddingBottom: insets.bottom + Spacing.sm,
+            backgroundColor: theme.backgroundDefault,
+          }
+        ]}
+      >
+        {limitReached ? (
+          <Animated.View 
+            entering={FadeIn.duration(300)}
+            style={[
+              styles.limitReachedBanner, 
+              { backgroundColor: theme.warning + '20' }
+            ]}
+          >
+            <Feather name="alert-circle" size={16} color={theme.warning} />
+            <ThemedText style={[styles.limitReachedText, { color: theme.warning }]}>
+              Daily message limit reached
+            </ThemedText>
+            <Pressable onPress={navigateToSubscription}>
+              <ThemedText style={[styles.upgradeLink, { color: theme.link }]}>Upgrade</ThemedText>
+            </Pressable>
+          </Animated.View>
+        ) : null}
+        <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundSecondary }]}>
+          <Pressable
+            onPress={startRecording}
+            disabled={limitReached || isTyping}
+            style={({ pressed }) => [
+              styles.micButton,
+              {
+                backgroundColor: !limitReached && !isTyping
+                  ? stylist.color
+                  : theme.backgroundTertiary,
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <Feather
+              name="mic"
+              size={18}
+              color={!limitReached && !isTyping ? '#FFFFFF' : theme.tabIconDefault}
+            />
           </Pressable>
-        </Animated.View>
-      ) : null}
-      <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundSecondary }]}>
-        <TextInput
-          value={inputText}
-          onChangeText={setInputText}
-          placeholder={limitReached ? "Daily limit reached - upgrade for more" : "Ask for styling advice..."}
-          placeholderTextColor={theme.tabIconDefault}
-          style={[styles.textInput, { color: theme.text }]}
-          multiline
-          maxLength={500}
-          editable={!limitReached}
-          onSubmitEditing={() => sendMessage(inputText)}
-          returnKeyType="send"
-        />
-        <Pressable
-          onPress={() => sendMessage(inputText)}
-          disabled={!inputText.trim() || limitReached || isTyping}
-          style={({ pressed }) => [
-            styles.sendButton,
-            {
-              backgroundColor: inputText.trim() && !limitReached && !isTyping
-                ? theme.link
-                : theme.backgroundTertiary,
-              opacity: pressed ? 0.8 : 1,
-            },
-          ]}
-        >
-          <Feather
-            name="send"
-            size={18}
-            color={inputText.trim() && !limitReached && !isTyping ? '#FFFFFF' : theme.tabIconDefault}
+          <TextInput
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder={limitReached ? "Daily limit reached - upgrade for more" : "Ask for styling advice..."}
+            placeholderTextColor={theme.tabIconDefault}
+            style={[styles.textInput, { color: theme.text }]}
+            multiline
+            maxLength={500}
+            editable={!limitReached}
+            onSubmitEditing={() => sendMessage(inputText)}
+            returnKeyType="send"
           />
-        </Pressable>
+          <Pressable
+            onPress={() => sendMessage(inputText)}
+            disabled={!inputText.trim() || limitReached || isTyping}
+            style={({ pressed }) => [
+              styles.sendButton,
+              {
+                backgroundColor: inputText.trim() && !limitReached && !isTyping
+                  ? theme.link
+                  : theme.backgroundTertiary,
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <Feather
+              name="send"
+              size={18}
+              color={inputText.trim() && !limitReached && !isTyping ? '#FFFFFF' : theme.tabIconDefault}
+            />
+          </Pressable>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
   
   return (
     <KeyboardProvider>
@@ -999,5 +1332,89 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  micButton: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recordingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  cancelRecordingButton: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recordingInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+  },
+  waveformContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 24,
+  },
+  waveformBar: {
+    width: 4,
+    borderRadius: 2,
+  },
+  recordingDuration: {
+    ...Typography.body,
+    fontWeight: '600',
+    minWidth: 50,
+  },
+  stopRecordingButton: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stopIcon: {
+    width: 16,
+    height: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 2,
+  },
+  voiceMessageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  voicePlayButton: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceWaveformRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    flex: 1,
+  },
+  voiceWaveformBar: {
+    width: 3,
+    borderRadius: 1.5,
+  },
+  voiceDuration: {
+    ...Typography.caption,
+    marginLeft: Spacing.sm,
   },
 });
