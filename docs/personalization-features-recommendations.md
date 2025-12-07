@@ -426,7 +426,7 @@ Options if pursuing:
 
 New features can be gated by subscription tier:
 
-| Feature | Free | Basic (£4.99) | Premium (£9.99) | VIP (£4,999) |
+| Feature | Free | Basic (£4.99) | Premium (£9.99) | VIP (£9,999) |
 |---------|------|---------------|-----------------|--------------|
 | Weather Suggestions | No | Yes | Yes | Yes |
 | Mood-Based Styling | Basic | Full | Full | Full |

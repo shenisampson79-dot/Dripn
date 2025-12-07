@@ -54,13 +54,13 @@ const PLAN_FEATURES: Record<SubscriptionTier, PlanFeature[]> = {
     { text: "Priority support", included: false },
   ],
   premium: [
-    { text: "100 posts per month", included: true },
-    { text: "Priority styling advice", included: true },
-    { text: "Exclusive style reports", included: true },
-    { text: "All feed filters + VIP events preview", included: true },
+    { text: "Unlimited outfit posts", included: true },
+    { text: "Unlimited AI styling advice", included: true },
     { text: "Unlimited voice comments", included: true },
-    { text: "Ad-free experience", included: true },
-    { text: "Priority support", included: true },
+    { text: "3-minute video uploads", included: true },
+    { text: "Unlimited wardrobe items", included: true },
+    { text: "All feed filters + VIP events preview", included: true },
+    { text: "Priority support + Ad-free", included: true },
   ],
   vip: [
     { text: "4 x 60 min video call styling session with a real-life pro stylist", included: true, bold: true },
@@ -112,7 +112,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     free: "£0",
     basic: "£4.99",
     premium: "£9.99",
-    vip: "£4,999",
+    vip: "£9,999",
   });
 
   useEffect(() => {

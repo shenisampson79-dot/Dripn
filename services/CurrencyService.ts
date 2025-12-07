@@ -62,7 +62,7 @@ const BASE_PRICES_GBP = {
   free: 0,
   basic: 4.99,
   premium: 9.99,
-  vip: 4999,
+  vip: 9999,
 };
 
 const EXCHANGE_RATES: Record<CurrencyCode, number> = {

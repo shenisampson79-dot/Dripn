@@ -16,7 +16,7 @@ The app is built with Expo React Native and TypeScript, utilizing React Navigati
 The application incorporates a dynamic "Hot Colors Rotation Policy" that ensures the color palette in `constants/theme.ts` is updated annually based on Pantone's "Color of the Year" announcements, always featuring colors for the current and next year.
 
 Key Features include:
-- **Subscription Tiers**: Freemium model with Free, Basic, Premium, and VIP (£4,999/month) tiers offering varied access to uploads, AI advice requests, video posts, personal stylist sessions, and VIP video calling.
+- **Subscription Tiers**: Freemium model with Free, Basic, Premium, and VIP (£9,999/month) tiers offering varied access to uploads, AI advice requests, video posts, personal stylist sessions, and VIP video calling.
 - **Content Creation**: Users can create outfit posts with photos/videos and comparison polls.
 - **AI Fashion Advice**: AI-driven advice incorporates color analysis, personalized recommendations, influencer trends, and culturally relevant insights, filtered by gender and region.
 - **Community Engagement**: Supports voice comments, content reporting, and viral sharing with auto-generated hashtags.
