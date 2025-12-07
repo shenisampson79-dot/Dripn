@@ -199,6 +199,30 @@ export default function TermsOfServiceScreen() {
           <ThemedText type="body" style={styles.paragraph}>
             We reserve the right to remove any content that violates these Terms or is otherwise objectionable, at our sole discretion and without prior notice.
           </ThemedText>
+
+          <ThemedText type="h4" style={styles.subsectionTitle}>
+            5.4 Promotional Use of Content
+          </ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>
+            By posting photos or videos on Dripn, you grant Dripn the right to use your content in promotional materials, including but not limited to:
+          </ThemedText>
+          <View style={styles.bulletList}>
+            <ThemedText type="body" style={styles.bulletItem}>
+              Social media promotional reels and posts
+            </ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>
+              Marketing campaigns and advertisements
+            </ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>
+              App Store and Google Play Store promotional materials
+            </ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>
+              Website and blog content showcasing community style
+            </ThemedText>
+          </View>
+          <ThemedText type="body" style={styles.paragraph}>
+            Your content may be featured in curated style highlights, trend showcases, or "best of" compilations. We may overlay text, apply filters, or edit content for promotional purposes while maintaining the integrity of the original. You will be credited where reasonably practical. If you wish to opt out of promotional use, you may contact us at privacy@dripn.app to request removal from future promotional materials.
+          </ThemedText>
         </View>
 
         <View style={styles.section}>

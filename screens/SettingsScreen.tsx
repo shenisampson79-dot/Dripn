@@ -3,6 +3,7 @@ import { StyleSheet, View, Pressable, Alert, Linking, Platform, Switch, Activity
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as WebBrowser from "expo-web-browser";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -263,6 +264,14 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
 
   const handleSupport = () => {
     Linking.openURL("mailto:support@dripn.app");
+  };
+
+  const handlePartnerWithUs = async () => {
+    try {
+      await WebBrowser.openBrowserAsync("https://dripn.app/partner.html");
+    } catch (error) {
+      Linking.openURL("https://dripn.app/partner.html");
+    }
   };
 
   return (
@@ -641,6 +650,21 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             icon="shield"
             title="Privacy Policy"
             onPress={handlePrivacy}
+            theme={theme}
+          />
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h3" style={styles.sectionTitle}>
+          Company
+        </ThemedText>
+        <View style={styles.sectionContent}>
+          <SettingItem
+            icon="users"
+            title="Partner With Us"
+            subtitle="Stylists and brands enquiries"
+            onPress={handlePartnerWithUs}
             theme={theme}
           />
         </View>

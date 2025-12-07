@@ -242,18 +242,26 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
                     {deal.source}
                   </ThemedText>
                 </View>
-                <View style={styles.expiryRow}>
+                <View style={[
+                  styles.expiryRow,
+                  isUrgent(deal.expiresAt) && { 
+                    backgroundColor: theme.link, 
+                    paddingHorizontal: 8, 
+                    paddingVertical: 4, 
+                    borderRadius: 6 
+                  }
+                ]}>
                   <Feather 
                     name="clock" 
                     size={14} 
-                    color={isUrgent(deal.expiresAt) ? theme.link : theme.tabIconDefault} 
+                    color={isUrgent(deal.expiresAt) ? "#FFFFFF" : theme.tabIconDefault} 
                   />
                   <ThemedText 
                     type="small" 
                     style={{ 
                       marginLeft: 4, 
                       opacity: isUrgent(deal.expiresAt) ? 1 : 0.7,
-                      color: isUrgent(deal.expiresAt) ? theme.link : undefined,
+                      color: isUrgent(deal.expiresAt) ? "#FFFFFF" : undefined,
                       fontWeight: isUrgent(deal.expiresAt) ? "600" : "400",
                     }}
                   >
