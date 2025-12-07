@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Pressable, Alert, Linking, Platform, Switch } from "react-native";
+import { StyleSheet, View, Pressable, Alert, Linking, Platform, Switch, ActivityIndicator } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -8,9 +8,11 @@ import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius, StyleTheme } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useStyleTheme } from "@/hooks/useStyleTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useReferral } from "@/contexts/ReferralContext";
 import { apiService } from "@/services/ApiService";
+import colorTrendService from "@/services/ColorTrendService";
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -88,12 +90,22 @@ const STYLE_NAMES: Record<StyleTheme, string> = {
   edgy: "Edgy",
 };
 
+interface PantoneColor {
+  year: number;
+  name: string;
+  hex: string;
+  description?: string;
+}
+
 export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScreenProps) {
   const { theme } = useTheme();
+  const { hasTrendColors, trendInfo, isLoading: trendLoading, refreshTrends } = useStyleTheme();
   const { user, logout, updateProfile } = useAuth();
   const { referralCode, totalReferrals, bonusAIRequests, shareReferral } = useReferral();
   const [isNewsletterSubscribed, setIsNewsletterSubscribed] = useState(false);
   const [isNewsletterLoading, setIsNewsletterLoading] = useState(false);
+  const [pantoneColor, setPantoneColor] = useState<PantoneColor | null>(null);
+  const [pantoneLoading, setPantoneLoading] = useState(true);
 
   useEffect(() => {
     const loadNewsletterStatus = async () => {
@@ -107,6 +119,22 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       }
     };
     loadNewsletterStatus();
+  }, []);
+
+  useEffect(() => {
+    const loadPantoneColor = async () => {
+      try {
+        const data = await colorTrendService.getPantoneColorOfTheYear();
+        if (data) {
+          setPantoneColor(data);
+        }
+      } catch (error) {
+        console.error("Error loading Pantone color:", error);
+      } finally {
+        setPantoneLoading(false);
+      }
+    };
+    loadPantoneColor();
   }, []);
 
   const handleShareReferral = async () => {
@@ -310,6 +338,113 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       </View>
 
       <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <ThemedText type="h3" style={styles.sectionTitle}>
+            Trending Colors
+          </ThemedText>
+          {trendLoading || pantoneLoading ? (
+            <ActivityIndicator size="small" color={theme.tabIconDefault} />
+          ) : null}
+        </View>
+        <View style={[styles.sectionContent, { backgroundColor: theme.backgroundDefault }]}>
+          <View style={styles.trendingColorsContainer}>
+            {pantoneColor ? (
+              <View style={styles.pantoneSection}>
+                <ThemedText type="small" style={styles.trendLabel}>
+                  Pantone Color of the Year {pantoneColor.year}
+                </ThemedText>
+                <View style={styles.colorRow}>
+                  <View
+                    style={[
+                      styles.colorSwatch,
+                      { backgroundColor: pantoneColor.hex },
+                    ]}
+                  />
+                  <View style={styles.colorInfo}>
+                    <ThemedText type="body" style={styles.colorName}>
+                      {pantoneColor.name}
+                    </ThemedText>
+                    <ThemedText type="small" style={styles.colorHex}>
+                      {pantoneColor.hex}
+                    </ThemedText>
+                  </View>
+                </View>
+              </View>
+            ) : !pantoneLoading ? (
+              <ThemedText type="small" style={styles.noTrendText}>
+                Pantone Color of the Year not available
+              </ThemedText>
+            ) : null}
+
+            {hasTrendColors && trendInfo.colors ? (
+              <View style={styles.styleTrendsSection}>
+                <ThemedText type="small" style={styles.trendLabel}>
+                  Your Style Theme Colors ({STYLE_NAMES[user?.stylePreference || "luxury"]})
+                </ThemedText>
+                <View style={styles.trendColorsRow}>
+                  {trendInfo.colors.secondary ? (
+                    <View style={styles.trendColorItem}>
+                      <View
+                        style={[
+                          styles.colorSwatchSmall,
+                          { backgroundColor: trendInfo.colors.secondary.hex },
+                        ]}
+                      />
+                      <ThemedText type="caption" style={styles.colorLabel}>
+                        Secondary
+                      </ThemedText>
+                      <ThemedText type="caption" style={styles.colorHexSmall}>
+                        {trendInfo.colors.secondary.hex}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+                  {trendInfo.colors.accent ? (
+                    <View style={styles.trendColorItem}>
+                      <View
+                        style={[
+                          styles.colorSwatchSmall,
+                          { backgroundColor: trendInfo.colors.accent.hex },
+                        ]}
+                      />
+                      <ThemedText type="caption" style={styles.colorLabel}>
+                        Accent
+                      </ThemedText>
+                      <ThemedText type="caption" style={styles.colorHexSmall}>
+                        {trendInfo.colors.accent.hex}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+                </View>
+                {trendInfo.year && trendInfo.region ? (
+                  <ThemedText type="caption" style={styles.trendMeta}>
+                    {trendInfo.year} trends for {trendInfo.region}
+                  </ThemedText>
+                ) : null}
+              </View>
+            ) : !trendLoading ? (
+              <View style={styles.noTrendsContainer}>
+                <ThemedText type="small" style={styles.noTrendText}>
+                  Using base theme colors
+                </ThemedText>
+                <Pressable
+                  onPress={refreshTrends}
+                  style={({ pressed }) => [
+                    styles.refreshButton,
+                    { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
+                  ]}
+                >
+                  <Feather name="refresh-cw" size={14} color={theme.link} />
+                  <ThemedText type="small" style={{ color: theme.link }}>
+                    Check for trends
+                  </ThemedText>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
         <ThemedText type="h3" style={styles.sectionTitle}>
           Invite Friends
         </ThemedText>
@@ -508,5 +643,86 @@ const styles = StyleSheet.create({
   },
   versionText: {
     opacity: 0.5,
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Spacing.md,
+  },
+  trendingColorsContainer: {
+    padding: Spacing.lg,
+    gap: Spacing.lg,
+  },
+  pantoneSection: {
+    gap: Spacing.sm,
+  },
+  trendLabel: {
+    opacity: 0.7,
+    marginBottom: Spacing.xs,
+  },
+  colorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  colorSwatch: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.sm,
+  },
+  colorInfo: {
+    flex: 1,
+  },
+  colorName: {
+    fontWeight: "600",
+  },
+  colorHex: {
+    opacity: 0.6,
+  },
+  styleTrendsSection: {
+    gap: Spacing.sm,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(128, 128, 128, 0.2)",
+  },
+  trendColorsRow: {
+    flexDirection: "row",
+    gap: Spacing.lg,
+  },
+  trendColorItem: {
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  colorSwatchSmall: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.xs,
+  },
+  colorLabel: {
+    opacity: 0.7,
+  },
+  colorHexSmall: {
+    opacity: 0.5,
+  },
+  trendMeta: {
+    opacity: 0.5,
+    marginTop: Spacing.sm,
+  },
+  noTrendsContainer: {
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  noTrendText: {
+    opacity: 0.6,
+    textAlign: "center",
+  },
+  refreshButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
   },
 });
