@@ -7,6 +7,7 @@ import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius, ContributorColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useSocial } from "@/contexts/SocialContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
 
 type CommunityScreenProps = {
@@ -73,10 +74,15 @@ const TOP_CONTRIBUTORS: Contributor[] = [
 
 export default function CommunityScreen({ navigation }: CommunityScreenProps) {
   const { theme } = useTheme();
+  const { following, activityFeed } = useSocial();
   const [activeTab, setActiveTab] = useState<"top" | "rising" | "new">("top");
 
   const handleUserPress = (userId: string) => {
     navigation.navigate("UserProfile", { userId });
+  };
+
+  const handleActivityPress = () => {
+    navigation.navigate("FriendsActivity");
   };
 
   const renderContributorCard = (contributor: Contributor, index: number) => {
@@ -143,6 +149,27 @@ export default function CommunityScreen({ navigation }: CommunityScreenProps) {
           Connect with fashion enthusiasts and style experts from around the world
         </ThemedText>
       </View>
+
+      <Pressable
+        onPress={handleActivityPress}
+        style={({ pressed }) => [
+          styles.activityCard,
+          { backgroundColor: theme.link + '15', opacity: pressed ? 0.9 : 1 },
+        ]}
+      >
+        <View style={[styles.activityIconContainer, { backgroundColor: theme.link }]}>
+          <Feather name="activity" size={24} color="#FFFFFF" />
+        </View>
+        <View style={styles.activityContent}>
+          <ThemedText type="h3">Friends Activity</ThemedText>
+          <ThemedText type="small" style={styles.activitySubtitle}>
+            {following.length > 0
+              ? `${activityFeed.length} new updates from ${following.length} friend${following.length === 1 ? '' : 's'}`
+              : 'Follow people to see their activity'}
+          </ThemedText>
+        </View>
+        <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
+      </Pressable>
 
       <View style={styles.tabsContainer}>
         {(["top", "rising", "new"] as const).map((tab) => (
@@ -247,6 +274,28 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   headerSubtitle: {
+    opacity: 0.7,
+  },
+  activityCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.xl,
+    gap: Spacing.md,
+  },
+  activityIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activityContent: {
+    flex: 1,
+    gap: 2,
+  },
+  activitySubtitle: {
     opacity: 0.7,
   },
   tabsContainer: {

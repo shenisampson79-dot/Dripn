@@ -22,6 +22,7 @@ import { AdminAuthProvider, useAdminAuth } from "@/contexts/AdminAuthContext";
 import { ReferralProvider } from "@/contexts/ReferralContext";
 import { StyleProfileProvider } from "@/contexts/StyleProfileContext";
 import { SmartNotificationsProvider } from "@/contexts/SmartNotificationsContext";
+import { SocialProvider } from "@/contexts/SocialContext";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -107,9 +108,11 @@ export default function App() {
                           <ReferralProvider>
                             <StyleProfileProvider>
                               <SmartNotificationsProvider>
-                                <NavigationContainer>
-                                  <AppContent />
-                                </NavigationContainer>
+                                <SocialProvider>
+                                  <NavigationContainer>
+                                    <AppContent />
+                                  </NavigationContainer>
+                                </SocialProvider>
                               </SmartNotificationsProvider>
                             </StyleProfileProvider>
                           </ReferralProvider>

@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View, Image } from "react-native";
+import { StyleSheet, View, Image, Pressable } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
@@ -8,6 +8,8 @@ import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius, ContributorColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSocial } from "@/contexts/SocialContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
 
 type UserProfileScreenProps = {
@@ -15,22 +17,108 @@ type UserProfileScreenProps = {
   route: RouteProp<CommunityStackParamList, "UserProfile">;
 };
 
-export default function UserProfileScreen({ navigation, route }: UserProfileScreenProps) {
-  const { userId } = route.params;
-  const { theme } = useTheme();
-
-  const userData = {
-    id: userId,
-    name: "Emma Style",
+const MOCK_USERS: Record<string, {
+  name: string;
+  avatar: string | null;
+  tier: keyof typeof ContributorColors;
+  helpfulVotes: number;
+  thanksReceived: number;
+  postsCount: number;
+  bio: string;
+  followersCount: number;
+  followingCount: number;
+}> = {
+  '1': {
+    name: 'Emma Style',
     avatar: null,
-    tier: "fashionGuru" as keyof typeof ContributorColors,
+    tier: 'fashionGuru',
     helpfulVotes: 1245,
     thanksReceived: 456,
     postsCount: 89,
-    bio: "Fashion enthusiast and style consultant. Love helping others find their perfect look!",
+    bio: 'Fashion enthusiast and style consultant. Love helping others find their perfect look!',
+    followersCount: 2456,
+    followingCount: 342,
+  },
+  '2': {
+    name: 'Jordan Chic',
+    avatar: null,
+    tier: 'styleExpert',
+    helpfulVotes: 892,
+    thanksReceived: 234,
+    postsCount: 67,
+    bio: 'Streetwear lover and vintage collector. Always on the hunt for unique pieces.',
+    followersCount: 1823,
+    followingCount: 456,
+  },
+  '3': {
+    name: 'Sam Trendy',
+    avatar: null,
+    tier: 'fashionAdvisor',
+    helpfulVotes: 567,
+    thanksReceived: 189,
+    postsCount: 45,
+    bio: 'Minimalist style advocate. Less is more!',
+    followersCount: 987,
+    followingCount: 234,
+  },
+  '4': {
+    name: 'Alex Fashion',
+    avatar: null,
+    tier: 'styleContributor',
+    helpfulVotes: 234,
+    thanksReceived: 78,
+    postsCount: 23,
+    bio: 'Aspiring fashion designer. Love experimenting with bold colors.',
+    followersCount: 456,
+    followingCount: 567,
+  },
+  '5': {
+    name: 'Casey Vogue',
+    avatar: null,
+    tier: 'styleContributor',
+    helpfulVotes: 189,
+    thanksReceived: 56,
+    postsCount: 19,
+    bio: 'Work fashion expert. Helping professionals look their best.',
+    followersCount: 345,
+    followingCount: 123,
+  },
+};
+
+export default function UserProfileScreen({ navigation, route }: UserProfileScreenProps) {
+  const { userId } = route.params;
+  const { theme } = useTheme();
+  const { user } = useAuth();
+  const { isFollowing, followUser, unfollowUser, getFollowersCount, getFollowingCount } = useSocial();
+
+  const isOwnProfile = user?.id === userId;
+  const isFollowingUser = isFollowing(userId);
+
+  const mockUser = MOCK_USERS[userId];
+  const userData = mockUser || {
+    name: 'Fashion User',
+    avatar: null,
+    tier: 'none' as keyof typeof ContributorColors,
+    helpfulVotes: 0,
+    thanksReceived: 0,
+    postsCount: 0,
+    bio: 'New to Dripn',
+    followersCount: 0,
+    followingCount: 0,
   };
 
+  const displayFollowersCount = isOwnProfile ? getFollowersCount() : userData.followersCount;
+  const displayFollowingCount = isOwnProfile ? getFollowingCount() : userData.followingCount;
+
   const tierInfo = ContributorColors[userData.tier];
+
+  const handleFollowPress = async () => {
+    if (isFollowingUser) {
+      await unfollowUser(userId);
+    } else {
+      await followUser(userId);
+    }
+  };
 
   return (
     <ScreenScrollView>
@@ -47,16 +135,48 @@ export default function UserProfileScreen({ navigation, route }: UserProfileScre
           {userData.name}
         </ThemedText>
 
-        <View style={[styles.tierBadge, { backgroundColor: tierInfo.background }]}>
-          <Feather name="award" size={14} color={tierInfo.text} />
-          <ThemedText type="small" style={{ color: tierInfo.text, fontWeight: "600" }}>
-            {tierInfo.label}
-          </ThemedText>
-        </View>
+        {tierInfo ? (
+          <View style={[styles.tierBadge, { backgroundColor: tierInfo.background }]}>
+            <Feather name="award" size={14} color={tierInfo.text} />
+            <ThemedText type="small" style={{ color: tierInfo.text, fontWeight: "600" }}>
+              {tierInfo.label}
+            </ThemedText>
+          </View>
+        ) : null}
 
         <ThemedText type="body" style={styles.bio}>
           {userData.bio}
         </ThemedText>
+
+        {!isOwnProfile ? (
+          <Pressable
+            onPress={handleFollowPress}
+            style={({ pressed }) => [
+              styles.followButton,
+              {
+                backgroundColor: isFollowingUser ? theme.backgroundDefault : theme.link,
+                borderWidth: isFollowingUser ? 1 : 0,
+                borderColor: theme.link,
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <Feather
+              name={isFollowingUser ? "user-check" : "user-plus"}
+              size={16}
+              color={isFollowingUser ? theme.link : "#FFFFFF"}
+            />
+            <ThemedText
+              type="body"
+              style={{
+                color: isFollowingUser ? theme.link : "#FFFFFF",
+                fontWeight: "600",
+              }}
+            >
+              {isFollowingUser ? "Following" : "Follow"}
+            </ThemedText>
+          </Pressable>
+        ) : null}
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
@@ -67,15 +187,37 @@ export default function UserProfileScreen({ navigation, route }: UserProfileScre
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <ThemedText type="h3">{userData.helpfulVotes}</ThemedText>
+            <ThemedText type="h3">{displayFollowersCount}</ThemedText>
             <ThemedText type="small" style={styles.statLabel}>
-              Helpful
+              Followers
             </ThemedText>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <ThemedText type="h3">{userData.thanksReceived}</ThemedText>
+            <ThemedText type="h3">{displayFollowingCount}</ThemedText>
             <ThemedText type="small" style={styles.statLabel}>
+              Following
+            </ThemedText>
+          </View>
+        </View>
+
+        <View style={[styles.engagementRow, { backgroundColor: theme.backgroundDefault }]}>
+          <View style={styles.engagementItem}>
+            <Feather name="thumbs-up" size={16} color={theme.link} />
+            <ThemedText type="body" style={styles.engagementValue}>
+              {userData.helpfulVotes}
+            </ThemedText>
+            <ThemedText type="small" style={styles.engagementLabel}>
+              Helpful
+            </ThemedText>
+          </View>
+          <View style={styles.engagementDivider} />
+          <View style={styles.engagementItem}>
+            <Feather name="heart" size={16} color={theme.link} />
+            <ThemedText type="body" style={styles.engagementValue}>
+              {userData.thanksReceived}
+            </ThemedText>
+            <ThemedText type="small" style={styles.engagementLabel}>
               Thanks
             </ThemedText>
           </View>
@@ -133,9 +275,19 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     paddingHorizontal: Spacing.xl,
   },
+  followButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    marginBottom: Spacing.lg,
+  },
   statsRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: Spacing.lg,
   },
   statItem: {
     alignItems: "center",
@@ -148,6 +300,31 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 32,
+    backgroundColor: "rgba(128,128,128,0.2)",
+  },
+  engagementRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.sm,
+  },
+  engagementItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+  },
+  engagementValue: {
+    fontWeight: "600",
+  },
+  engagementLabel: {
+    opacity: 0.7,
+  },
+  engagementDivider: {
+    width: 1,
+    height: 24,
     backgroundColor: "rgba(128,128,128,0.2)",
   },
   section: {

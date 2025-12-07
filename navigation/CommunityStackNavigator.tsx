@@ -2,12 +2,14 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import CommunityScreen from "@/screens/CommunityScreen";
 import UserProfileScreen from "@/screens/UserProfileScreen";
+import FriendsActivityScreen from "@/screens/FriendsActivityScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
 export type CommunityStackParamList = {
   Community: undefined;
   UserProfile: { userId: string };
+  FriendsActivity: undefined;
 };
 
 const Stack = createNativeStackNavigator<CommunityStackParamList>();
@@ -28,6 +30,11 @@ export default function CommunityStackNavigator() {
         name="UserProfile"
         component={UserProfileScreen}
         options={{ headerTitle: "Profile" }}
+      />
+      <Stack.Screen
+        name="FriendsActivity"
+        component={FriendsActivityScreen}
+        options={{ headerTitle: "Friends Activity" }}
       />
     </Stack.Navigator>
   );
