@@ -57,8 +57,9 @@ function generateReferralCode(userId: string): string {
 
 const REFERRAL_REWARDS = {
   perReferral: {
-    aiRequests: 5,
-    description: '+5 AI advice requests',
+    aiRequests: 20,
+    discount: 10,
+    description: '+20 AI advice requests & 10% discount',
   },
   milestones: [
     { referrals: 3, reward: 'style_starter', description: 'Style Starter badge' },
@@ -157,14 +158,14 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
       ...referralData,
       referredByCode: code.toUpperCase(),
       hasClaimedWelcomeBonus: true,
-      bonusAIRequests: referralData.bonusAIRequests + 3,
+      bonusAIRequests: referralData.bonusAIRequests + 20,
       rewards: [
         ...referralData.rewards,
         {
           id: Date.now().toString(),
           type: 'ai_requests' as const,
-          value: 3,
-          description: 'Welcome bonus: +3 AI requests',
+          value: 20,
+          description: 'Welcome bonus: +20 AI requests & 10% discount',
           earnedAt: new Date().toISOString(),
         },
       ],
@@ -185,7 +186,7 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
   };
 
   const getReferralBonusInfo = (): string => {
-    return `Get ${REFERRAL_REWARDS.perReferral.aiRequests} free AI advice requests when you sign up!`;
+    return `You both get ${REFERRAL_REWARDS.perReferral.aiRequests} free AI advice requests & ${REFERRAL_REWARDS.perReferral.discount}% discount when your friend signs up!`;
   };
 
   const value: ReferralContextType = {

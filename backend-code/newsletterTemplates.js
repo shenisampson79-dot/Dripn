@@ -1,7 +1,7 @@
 const newsletters = [
   {
     id: 'week1-winter-wardrobe-essentials',
-    subject: 'StyleWise Weekly: 5 Winter Wardrobe Essentials You Need Right Now',
+    subject: 'Dripn Weekly: 5 Winter Wardrobe Essentials You Need Right Now',
     previewText: 'Build your perfect cold-weather capsule wardrobe with these must-haves',
     html: `
 <!DOCTYPE html>
@@ -9,7 +9,7 @@ const newsletters = [
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StyleWise Weekly</title>
+  <title>Dripn Weekly</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Helvetica Neue', Arial, sans-serif;">
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f5f5f5;">
@@ -20,7 +20,7 @@ const newsletters = [
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #2C1810 0%, #4A3428 100%); padding: 30px; text-align: center;">
-              <h1 style="color: #c9a961; margin: 0; font-size: 28px; font-weight: 300; letter-spacing: 2px;">STYLEWISE</h1>
+              <h1 style="color: #c9a961; margin: 0; font-size: 28px; font-weight: 300; letter-spacing: 2px;">DRIPN</h1>
               <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 12px; letter-spacing: 1px;">WEEKLY STYLE TIPS</p>
             </td>
           </tr>
@@ -99,19 +99,19 @@ const newsletters = [
           <tr>
             <td style="padding: 30px; background-color: #2C1810; text-align: center;">
               <p style="color: #ffffff; font-size: 16px; margin: 0 0 20px 0;">Get personalised recommendations for your style</p>
-              <a href="https://stylewise.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">OPEN STYLEWISE</a>
+              <a href="https://dripn.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">OPEN DRIPN</a>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
             <td style="padding: 30px; background-color: #f8f6f3; text-align: center;">
-              <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to StyleWise fashion updates.</p>
+              <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to Dripn fashion updates.</p>
               <p style="color: #999999; font-size: 12px; margin: 0;">
-                <a href="https://stylewise.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
-                <a href="https://stylewise.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
+                <a href="https://dripn.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
+                <a href="https://dripn.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
               </p>
-              <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">StyleWise - Your Personal Fashion Advisor</p>
+              <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">Dripn - Your Personal Fashion Advisor</p>
             </td>
           </tr>
 
@@ -123,7 +123,7 @@ const newsletters = [
 </html>
     `,
     plainText: `
-STYLEWISE WEEKLY STYLE TIPS
+DRIPN WEEKLY STYLE TIPS
 
 5 Winter Wardrobe Essentials You Need Right Now
 ==============================================
@@ -151,16 +151,16 @@ A slim-fit gilet, lightweight puffer, or classic cardigan that you can add or re
 Pro Tip: Match your layers in similar tones for an elevated, cohesive look.
 
 ---
-Get personalised recommendations: https://stylewise.app
+Get personalised recommendations: https://dripn.app
 
-You're receiving this because you subscribed to StyleWise fashion updates.
-Unsubscribe: https://stylewise.app/unsubscribe
+You're receiving this because you subscribed to Dripn fashion updates.
+Unsubscribe: https://dripn.app/unsubscribe
     `
   },
 
   {
     id: 'week2-colour-confidence',
-    subject: 'StyleWise Weekly: The Colour Confidence Guide - Find Your Perfect Palette',
+    subject: 'Dripn Weekly: The Colour Confidence Guide - Find Your Perfect Palette',
     previewText: 'Discover which colours make you look radiant and which to avoid',
     html: `
 <!DOCTYPE html>
@@ -168,7 +168,7 @@ Unsubscribe: https://stylewise.app/unsubscribe
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StyleWise Weekly</title>
+  <title>Dripn Weekly</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Helvetica Neue', Arial, sans-serif;">
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f5f5f5;">
@@ -179,7 +179,7 @@ Unsubscribe: https://stylewise.app/unsubscribe
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #2C1810 0%, #4A3428 100%); padding: 30px; text-align: center;">
-              <h1 style="color: #c9a961; margin: 0; font-size: 28px; font-weight: 300; letter-spacing: 2px;">STYLEWISE</h1>
+              <h1 style="color: #c9a961; margin: 0; font-size: 28px; font-weight: 300; letter-spacing: 2px;">DRIPN</h1>
               <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 12px; letter-spacing: 1px;">WEEKLY STYLE TIPS</p>
             </td>
           </tr>
@@ -263,19 +263,19 @@ Unsubscribe: https://stylewise.app/unsubscribe
           <tr>
             <td style="padding: 30px; background-color: #2C1810; text-align: center;">
               <p style="color: #ffffff; font-size: 16px; margin: 0 0 20px 0;">Get AI-powered colour analysis for your outfits</p>
-              <a href="https://stylewise.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">TRY STYLEWISE FREE</a>
+              <a href="https://dripn.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">TRY DRIPN FREE</a>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
             <td style="padding: 30px; background-color: #f8f6f3; text-align: center;">
-              <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to StyleWise fashion updates.</p>
+              <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to Dripn fashion updates.</p>
               <p style="color: #999999; font-size: 12px; margin: 0;">
-                <a href="https://stylewise.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
-                <a href="https://stylewise.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
+                <a href="https://dripn.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
+                <a href="https://dripn.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
               </p>
-              <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">StyleWise - Your Personal Fashion Advisor</p>
+              <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">Dripn - Your Personal Fashion Advisor</p>
             </td>
           </tr>
 
@@ -287,7 +287,7 @@ Unsubscribe: https://stylewise.app/unsubscribe
 </html>
     `,
     plainText: `
-STYLEWISE WEEKLY STYLE TIPS
+DRIPN WEEKLY STYLE TIPS
 
 The Colour Confidence Guide
 ===========================
@@ -318,15 +318,15 @@ QUICK TIPS
 - Your makeup should follow the same warm/cool rules
 
 ---
-Get AI-powered colour analysis: https://stylewise.app
+Get AI-powered colour analysis: https://dripn.app
 
-Unsubscribe: https://stylewise.app/unsubscribe
+Unsubscribe: https://dripn.app/unsubscribe
     `
   },
 
   {
     id: 'week3-smart-casual-decoded',
-    subject: 'StyleWise Weekly: Smart Casual Decoded - What It Actually Means',
+    subject: 'Dripn Weekly: Smart Casual Decoded - What It Actually Means',
     previewText: 'Master the art of effortlessly polished dressing for any occasion',
     html: `
 <!DOCTYPE html>
@@ -334,7 +334,7 @@ Unsubscribe: https://stylewise.app/unsubscribe
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StyleWise Weekly</title>
+  <title>Dripn Weekly</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Helvetica Neue', Arial, sans-serif;">
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f5f5f5;">
@@ -345,7 +345,7 @@ Unsubscribe: https://stylewise.app/unsubscribe
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #2C1810 0%, #4A3428 100%); padding: 30px; text-align: center;">
-              <h1 style="color: #c9a961; margin: 0; font-size: 28px; font-weight: 300; letter-spacing: 2px;">STYLEWISE</h1>
+              <h1 style="color: #c9a961; margin: 0; font-size: 28px; font-weight: 300; letter-spacing: 2px;">DRIPN</h1>
               <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 12px; letter-spacing: 1px;">WEEKLY STYLE TIPS</p>
             </td>
           </tr>
@@ -458,19 +458,19 @@ Unsubscribe: https://stylewise.app/unsubscribe
           <tr>
             <td style="padding: 30px; background-color: #2C1810; text-align: center;">
               <p style="color: #ffffff; font-size: 16px; margin: 0 0 20px 0;">Post your outfit and get instant feedback</p>
-              <a href="https://stylewise.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">GET STYLE ADVICE</a>
+              <a href="https://dripn.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">GET STYLE ADVICE</a>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
             <td style="padding: 30px; background-color: #f8f6f3; text-align: center;">
-              <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to StyleWise fashion updates.</p>
+              <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to Dripn fashion updates.</p>
               <p style="color: #999999; font-size: 12px; margin: 0;">
-                <a href="https://stylewise.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
-                <a href="https://stylewise.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
+                <a href="https://dripn.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
+                <a href="https://dripn.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
               </p>
-              <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">StyleWise - Your Personal Fashion Advisor</p>
+              <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">Dripn - Your Personal Fashion Advisor</p>
             </td>
           </tr>
 
@@ -482,7 +482,7 @@ Unsubscribe: https://stylewise.app/unsubscribe
 </html>
     `,
     plainText: `
-STYLEWISE WEEKLY STYLE TIPS
+DRIPN WEEKLY STYLE TIPS
 
 Smart Casual Decoded
 ====================
@@ -519,15 +519,15 @@ CONTEXT IS EVERYTHING
 THE SECRET: When in doubt, slightly overdress. It shows respect and you can always dress it down.
 
 ---
-Get style advice: https://stylewise.app
+Get style advice: https://dripn.app
 
-Unsubscribe: https://stylewise.app/unsubscribe
+Unsubscribe: https://dripn.app/unsubscribe
     `
   },
 
   {
     id: 'week4-wardrobe-refresh',
-    subject: 'StyleWise Weekly: The 15-Minute Wardrobe Refresh That Changes Everything',
+    subject: 'Dripn Weekly: The 15-Minute Wardrobe Refresh That Changes Everything',
     previewText: 'Simple strategies to make getting dressed effortless every day',
     html: `
 <!DOCTYPE html>
@@ -535,7 +535,7 @@ Unsubscribe: https://stylewise.app/unsubscribe
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StyleWise Weekly</title>
+  <title>Dripn Weekly</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Helvetica Neue', Arial, sans-serif;">
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f5f5f5;">
@@ -546,7 +546,7 @@ Unsubscribe: https://stylewise.app/unsubscribe
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #2C1810 0%, #4A3428 100%); padding: 30px; text-align: center;">
-              <h1 style="color: #c9a961; margin: 0; font-size: 28px; font-weight: 300; letter-spacing: 2px;">STYLEWISE</h1>
+              <h1 style="color: #c9a961; margin: 0; font-size: 28px; font-weight: 300; letter-spacing: 2px;">DRIPN</h1>
               <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 12px; letter-spacing: 1px;">WEEKLY STYLE TIPS</p>
             </td>
           </tr>
@@ -663,7 +663,7 @@ Unsubscribe: https://stylewise.app/unsubscribe
                 <tr>
                   <td style="padding: 20px; background-color: #f0f4f0; border-radius: 8px; border-left: 4px solid #4a7c59;">
                     <h3 style="color: #2C1810; margin: 0 0 10px 0; font-size: 16px;">This Week's Challenge</h3>
-                    <p style="color: #555555; font-size: 14px; line-height: 1.6; margin: 0;">Take 15 minutes this weekend to try just one of these techniques. Share your before/after on StyleWise - we'd love to see your wardrobe wins!</p>
+                    <p style="color: #555555; font-size: 14px; line-height: 1.6; margin: 0;">Take 15 minutes this weekend to try just one of these techniques. Share your before/after on Dripn - we'd love to see your wardrobe wins!</p>
                   </td>
                 </tr>
               </table>
@@ -675,19 +675,19 @@ Unsubscribe: https://stylewise.app/unsubscribe
           <tr>
             <td style="padding: 30px; background-color: #2C1810; text-align: center;">
               <p style="color: #ffffff; font-size: 16px; margin: 0 0 20px 0;">Share your wardrobe refresh and get community feedback</p>
-              <a href="https://stylewise.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">POST YOUR OUTFIT</a>
+              <a href="https://dripn.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">POST YOUR OUTFIT</a>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
             <td style="padding: 30px; background-color: #f8f6f3; text-align: center;">
-              <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to StyleWise fashion updates.</p>
+              <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to Dripn fashion updates.</p>
               <p style="color: #999999; font-size: 12px; margin: 0;">
-                <a href="https://stylewise.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
-                <a href="https://stylewise.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
+                <a href="https://dripn.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
+                <a href="https://dripn.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
               </p>
-              <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">StyleWise - Your Personal Fashion Advisor</p>
+              <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">Dripn - Your Personal Fashion Advisor</p>
             </td>
           </tr>
 
@@ -699,7 +699,7 @@ Unsubscribe: https://stylewise.app/unsubscribe
 </html>
     `,
     plainText: `
-STYLEWISE WEEKLY STYLE TIPS
+DRIPN WEEKLY STYLE TIPS
 
 The 15-Minute Wardrobe Refresh
 ==============================
@@ -724,12 +724,12 @@ BONUS: THE PHOTO TEST
 Before donating anything, take a photo wearing it. Often we see ourselves more clearly in photos than in mirrors. If you wouldn't post it, it might be time to let it go.
 
 THIS WEEK'S CHALLENGE
-Take 15 minutes this weekend to try just one of these techniques. Share your before/after on StyleWise!
+Take 15 minutes this weekend to try just one of these techniques. Share your before/after on Dripn!
 
 ---
-Share your outfit: https://stylewise.app
+Share your outfit: https://dripn.app
 
-Unsubscribe: https://stylewise.app/unsubscribe
+Unsubscribe: https://dripn.app/unsubscribe
     `
   }
 ];

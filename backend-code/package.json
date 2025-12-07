@@ -1,7 +1,7 @@
 {
-  "name": "stylewise-backend",
+  "name": "dripn-backend",
   "version": "1.0.0",
-  "description": "Backend API for StyleWise fashion app",
+  "description": "Backend API for Dripn fashion app",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

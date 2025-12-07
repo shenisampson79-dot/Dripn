@@ -191,7 +191,7 @@ const pool = new Pool({
 });
 
 // JWT Secret
-const JWT_SECRET = process.env.JWT_SECRET || 'stylewise-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'dripn-secret-key-change-in-production';
 
 // Initialize database tables
 async function initDB() {
@@ -902,7 +902,7 @@ app.post('/api/admin/setup', async (req, res) => {
     const { email, password, displayName, setupKey } = req.body;
 
     // Simple setup key protection
-    if (setupKey !== process.env.ADMIN_SETUP_KEY && setupKey !== 'stylewise-admin-setup-2024') {
+    if (setupKey !== process.env.ADMIN_SETUP_KEY && setupKey !== 'dripn-admin-setup-2024') {
       return res.status(403).json({ error: 'Invalid setup key' });
     }
 
@@ -1479,7 +1479,7 @@ async function vipAuthMiddleware(req, res, next) {
 // Generate a unique room URL for video calls
 function generateRoomUrl() {
   const roomId = uuidv4().substring(0, 8);
-  const baseUrl = process.env.REPLIT_DEV_DOMAIN || 'stylewise.replit.app';
+  const baseUrl = process.env.REPLIT_DEV_DOMAIN || 'dripn.replit.app';
   return `https://${baseUrl}/video-room/${roomId}`;
 }
 
@@ -1837,11 +1837,11 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
       try {
         await sgMail.send({
           to: email,
-          from: 'noreply@stylewise.app',
-          subject: 'Welcome to StyleWise Weekly Style Tips!',
+          from: 'noreply@dripn.app',
+          subject: 'Welcome to Dripn Weekly Style Tips!',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h1 style="color: #4A3428;">Welcome to StyleWise!</h1>
+              <h1 style="color: #4A3428;">Welcome to Dripn!</h1>
               <p>Hi${name ? ` ${name}` : ''},</p>
               <p>Thank you for subscribing to our weekly style tips newsletter!</p>
               <p>You'll receive:</p>
@@ -1852,7 +1852,7 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
                 <li>Special deals and bargains from top brands</li>
               </ul>
               <p>Stay stylish!</p>
-              <p>The StyleWise Team</p>
+              <p>The Dripn Team</p>
             </div>
           `
         });
@@ -1863,7 +1863,7 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: 'Successfully subscribed to StyleWise newsletter!' 
+      message: 'Successfully subscribed to Dripn newsletter!' 
     });
   } catch (error) {
     console.error('Newsletter subscription error:', error);
@@ -3053,7 +3053,7 @@ app.post('/api/notifications/test', authMiddleware, async (req, res) => {
     }
 
     const result = await sendPushNotification(tokenResult.rows[0].token, {
-      title: 'StyleWise Test',
+      title: 'Dripn Test',
       body: 'Your notifications are working perfectly!',
       data: { type: 'test' }
     });
@@ -3070,7 +3070,7 @@ app.post('/api/notifications/test', authMiddleware, async (req, res) => {
 app.get('/', (req, res) => {
   res.json({ 
     status: 'ok', 
-    message: 'StyleWise API is running',
+    message: 'Dripn API is running',
     version: '1.1.0',
     features: {
       vipNotifications: true,
@@ -3090,6 +3090,6 @@ app.get('/api/health', (req, res) => {
 // Start server
 initDB().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`StyleWise API running on port ${PORT}`);
+    console.log(`Dripn API running on port ${PORT}`);
   });
 });

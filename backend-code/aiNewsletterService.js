@@ -31,7 +31,7 @@ async function generateAINewsletter(options = {}) {
     region = 'UK'
   } = options;
 
-  const prompt = `You are a professional fashion editor writing for StyleWise, a luxury fashion advice app. 
+  const prompt = `You are a professional fashion editor writing for Dripn, a luxury fashion advice app. 
 Generate a complete weekly newsletter about "${category}" for the ${season} season.
 
 Target audience: Fashion-conscious ${gender === 'unisex' ? 'individuals' : gender} in the ${region}.
@@ -47,7 +47,7 @@ Requirements:
 
 Format your response as JSON with this structure:
 {
-  "subject": "StyleWise Weekly: [Catchy headline - max 60 characters]",
+  "subject": "Dripn Weekly: [Catchy headline - max 60 characters]",
   "previewText": "[2-sentence preview - max 150 characters]",
   "headline": "[Main article headline]",
   "introduction": "[2-3 sentences introducing the topic]",
@@ -131,7 +131,7 @@ function generateNewsletterHTML(data) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StyleWise Weekly</title>
+  <title>Dripn Weekly</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Helvetica Neue', Arial, sans-serif;">
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f5f5f5;">
@@ -142,7 +142,7 @@ function generateNewsletterHTML(data) {
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #2C1810 0%, #4A3428 100%); padding: 30px; text-align: center;">
-              <h1 style="color: #c9a961; margin: 0; font-size: 28px; font-weight: 300; letter-spacing: 2px;">STYLEWISE</h1>
+              <h1 style="color: #c9a961; margin: 0; font-size: 28px; font-weight: 300; letter-spacing: 2px;">DRIPN</h1>
               <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 12px; letter-spacing: 1px;">WEEKLY STYLE TIPS</p>
             </td>
           </tr>
@@ -173,7 +173,7 @@ function generateNewsletterHTML(data) {
           <tr>
             <td style="padding: 30px; background-color: #2C1810; text-align: center;">
               <p style="color: #ffffff; font-size: 16px; margin: 0 0 20px 0;">Get personalised recommendations for your style</p>
-              <a href="https://stylewise.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">OPEN STYLEWISE</a>
+              <a href="https://dripn.app" style="display: inline-block; background-color: #c9a961; color: #2C1810; padding: 14px 35px; text-decoration: none; font-weight: 600; border-radius: 25px; font-size: 14px;">OPEN DRIPN</a>
             </td>
           </tr>
 
@@ -181,7 +181,7 @@ function generateNewsletterHTML(data) {
           <tr>
             <td style="padding: 15px 30px; background-color: #faf9f7; text-align: center;">
               <p style="color: #999999; font-size: 11px; margin: 0;">
-                Found an issue? <a href="https://stylewise.app/newsletter/report" style="color: #c9a961; text-decoration: none;">Report a typo or concern</a>
+                Found an issue? <a href="https://dripn.app/newsletter/report" style="color: #c9a961; text-decoration: none;">Report a typo or concern</a>
               </p>
             </td>
           </tr>
@@ -189,12 +189,12 @@ function generateNewsletterHTML(data) {
           <!-- Footer -->
           <tr>
             <td style="padding: 30px; background-color: #f8f6f3; text-align: center;">
-              <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to StyleWise fashion updates.</p>
+              <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">You're receiving this because you subscribed to Dripn fashion updates.</p>
               <p style="color: #999999; font-size: 12px; margin: 0;">
-                <a href="https://stylewise.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
-                <a href="https://stylewise.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
+                <a href="https://dripn.app/unsubscribe" style="color: #c9a961; text-decoration: none;">Unsubscribe</a> | 
+                <a href="https://dripn.app/preferences" style="color: #c9a961; text-decoration: none;">Update Preferences</a>
               </p>
-              <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">StyleWise - Your Personal Fashion Advisor</p>
+              <p style="color: #cccccc; font-size: 11px; margin: 20px 0 0 0;">Dripn - Your Personal Fashion Advisor</p>
             </td>
           </tr>
 
@@ -215,7 +215,7 @@ Pro Tip: ${tip.proTip}
 `).join('\n');
 
   return `
-STYLEWISE WEEKLY STYLE TIPS
+DRIPN WEEKLY STYLE TIPS
 
 ${data.headline}
 ${'='.repeat(data.headline.length)}
@@ -227,12 +227,12 @@ ${tipsText}
 ${data.closingMessage}
 
 ---
-Get personalised recommendations: https://stylewise.app
+Get personalised recommendations: https://dripn.app
 
-Found an issue? Report it: https://stylewise.app/newsletter/report
+Found an issue? Report it: https://dripn.app/newsletter/report
 
-You're receiving this because you subscribed to StyleWise fashion updates.
-Unsubscribe: https://stylewise.app/unsubscribe
+You're receiving this because you subscribed to Dripn fashion updates.
+Unsubscribe: https://dripn.app/unsubscribe
   `.trim();
 }
 

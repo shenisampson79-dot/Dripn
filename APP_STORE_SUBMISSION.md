@@ -1,9 +1,9 @@
-# StyleWise - App Store Submission Guide
+# Dripn - App Store Submission Guide
 
 ## App Information
 
 ### App Name
-**StyleWise**
+**Dripn**
 
 ### Subtitle (30 characters max)
 Fashion Advice & Style Tips
@@ -19,7 +19,7 @@ Get personalized fashion advice from AI and a supportive style community.
 
 **Full Description:**
 
-StyleWise is your personal fashion advisor in your pocket. Whether you're getting ready for a big event, updating your wardrobe, or just want a second opinion on an outfit, StyleWise connects you with AI-powered styling advice and a supportive community of fashion enthusiasts.
+Dripn is your personal fashion advisor in your pocket. Whether you're getting ready for a big event, updating your wardrobe, or just want a second opinion on an outfit, Dripn connects you with AI-powered styling advice and a supportive community of fashion enthusiasts.
 
 **Key Features:**
 
@@ -50,7 +50,7 @@ Fashion advice for every body type. Our recommendations consider your unique pro
 - Fashion Forward ($24.99/month): Priority support, exclusive content, affiliate access
 - VIP Influencer ($49.99/month): Unlimited everything plus direct stylist chat
 
-Download StyleWise today and transform your wardrobe with confidence!
+Download Dripn today and transform your wardrobe with confidence!
 
 ---
 
@@ -97,11 +97,11 @@ Tablet: 1200x1920 minimum (if supporting)
 ## App Store Review Information
 
 ### Demo Account (if app requires login)
-Email: demo@stylewise.com
+Email: demo@dripn.com
 Password: (create a test account)
 
 ### Notes for Reviewers
-StyleWise is a fashion advice app that allows users to share outfit photos and receive styling suggestions from both AI and community members. The app includes in-app purchases for premium subscription tiers.
+Dripn is a fashion advice app that allows users to share outfit photos and receive styling suggestions from both AI and community members. The app includes in-app purchases for premium subscription tiers.
 
 ---
 
@@ -182,6 +182,6 @@ eas submit -p android
 
 - Apple requires all apps with subscriptions to clearly display pricing
 - Both stores require a privacy policy
-- Age rating: StyleWise should be rated 12+ (social features, user-generated content)
+- Age rating: Dripn should be rated 12+ (social features, user-generated content)
 - In-app purchases must be configured in App Store Connect and Play Console
 - Stripe payments work through the web; in-app subscriptions require platform billing

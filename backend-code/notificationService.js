@@ -105,7 +105,7 @@ async function notifyVIPPurchase(customerEmail, customerName, purchaseDate) {
     timeStyle: 'short'
   });
 
-  const subject = 'New VIP Membership Purchase - StyleWise';
+  const subject = 'New VIP Membership Purchase - Dripn';
   
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -134,12 +134,12 @@ async function notifyVIPPurchase(customerEmail, customerName, purchaseDate) {
       </table>
       <p style="margin-top: 20px; color: #666;">This VIP member now has access to unlimited posts and 4x 60-minute video styling sessions per month.</p>
       <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-      <p style="color: #999; font-size: 12px;">StyleWise Admin Notification System</p>
+      <p style="color: #999; font-size: 12px;">Dripn Admin Notification System</p>
     </div>
   `;
 
   const textContent = `
-New VIP Membership Purchase - StyleWise
+New VIP Membership Purchase - Dripn
 
 Customer: ${customerName || customerEmail}
 Email: ${customerEmail}
@@ -149,7 +149,7 @@ Tier: VIP
 This VIP member now has access to unlimited posts and 4x 60-minute video styling sessions per month.
   `;
 
-  const smsMessage = `StyleWise VIP Alert: ${customerName || customerEmail} just purchased a VIP membership!`;
+  const smsMessage = `Dripn VIP Alert: ${customerName || customerEmail} just purchased a VIP membership!`;
 
   const emailSent = await sendEmailNotification(subject, htmlContent, textContent);
   const smsSent = await sendSMSNotification(smsMessage);

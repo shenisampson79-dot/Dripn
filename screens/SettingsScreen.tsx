@@ -330,8 +330,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               </ThemedText>
               <ThemedText type="small" style={styles.settingSubtitle}>
                 {totalReferrals > 0
-                  ? `${totalReferrals} friends joined - ${bonusAIRequests} bonus AI requests earned`
-                  : "Invite friends and earn free AI advice requests"}
+                  ? `${totalReferrals} friends joined - ${bonusAIRequests} AI requests & 10% discount earned`
+                  : "Invite friends and you both get 20 AI requests & 10% discount"}
               </ThemedText>
             </View>
             <Feather name="share-2" size={20} color={theme.link} />

@@ -312,7 +312,7 @@ export default function TermsOfServiceScreen() {
             11. Limitation of Liability
           </ThemedText>
           <ThemedText type="body" style={[styles.paragraph, styles.uppercase]}>
-            TO THE MAXIMUM EXTENT PERMITTED BY LAW, STYLEWISE AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR GOODWILL, ARISING FROM YOUR USE OF THE SERVICE.
+            TO THE MAXIMUM EXTENT PERMITTED BY LAW, DRIPN AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR GOODWILL, ARISING FROM YOUR USE OF THE SERVICE.
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
             Our total liability for any claims arising from these Terms or your use of the Service shall not exceed the amount you paid to Dripn in the twelve (12) months preceding the claim.

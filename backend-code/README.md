@@ -1,13 +1,13 @@
-# StyleWise Backend API
+# Dripn Backend API
 
-Complete backend server for the StyleWise fashion app.
+Complete backend server for the Dripn fashion app.
 
 ## Quick Setup (5 minutes)
 
 ### Step 1: Create New Replit
 1. Go to [replit.com](https://replit.com) and click "Create Repl"
 2. Choose **Node.js** as the template
-3. Name it "stylewise-backend"
+3. Name it "dripn-backend"
 
 ### Step 2: Copy Files
 Copy all the files from this `backend-code` folder into your new Replit:
@@ -28,7 +28,7 @@ Copy all the files from this `backend-code` folder into your new Replit:
 ### Step 5: Run the Server
 1. Click the green "Run" button
 2. Your API will be live at your Replit URL (shown in the webview)
-3. Copy this URL - you'll need it for your StyleWise app!
+3. Copy this URL - you'll need it for your Dripn app!
 
 ## API Endpoints
 
@@ -47,9 +47,9 @@ Copy all the files from this `backend-code` folder into your new Replit:
 ### AI Advice
 - `POST /api/ai/advice` - Get AI fashion advice (requires token)
 
-## Connecting Your StyleWise App
+## Connecting Your Dripn App
 
-After your backend is running, update your StyleWise app:
+After your backend is running, update your Dripn app:
 1. Add your backend URL as an environment variable
 2. The app will automatically connect to your backend
 
