@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 import { StyleTheme } from '@/constants/theme';
 
 export type Gender = 'woman' | 'man' | 'non-binary' | 'prefer-not-to-say' | null;
@@ -16,6 +17,7 @@ export interface UserProfile {
   name: string;
   avatar: string | null;
   country: string;
+  actualCountry?: string;
   gender: Gender;
   stylePreference: StyleTheme;
   sizeRange: SizeRange;
@@ -38,11 +40,16 @@ interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isExploringOtherCountry: boolean;
+  explorationCountry: string | null;
+  actualCountry: string | null;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   completeOnboarding: (profile: Partial<UserProfile>) => Promise<void>;
+  switchBackToActualLocation: () => Promise<void>;
+  detectActualLocation: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -73,13 +80,142 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
   hasDismissedTrialOffer: false,
 });
 
+const COUNTRY_MAPPING: Record<string, string> = {
+  'US': 'United States',
+  'GB': 'United Kingdom',
+  'UK': 'United Kingdom',
+  'CA': 'Canada',
+  'AU': 'Australia',
+  'FR': 'France',
+  'DE': 'Germany',
+  'IT': 'Italy',
+  'ES': 'Spain',
+  'JP': 'Japan',
+  'KR': 'South Korea',
+  'CN': 'China',
+  'IN': 'India',
+  'BR': 'Brazil',
+  'MX': 'Mexico',
+  'AE': 'United Arab Emirates',
+  'SA': 'Saudi Arabia',
+  'ZA': 'South Africa',
+  'NG': 'Nigeria',
+  'NL': 'Netherlands',
+  'SE': 'Sweden',
+  'NO': 'Norway',
+  'DK': 'Denmark',
+  'FI': 'Finland',
+  'IE': 'Ireland',
+  'NZ': 'New Zealand',
+  'SG': 'Singapore',
+  'HK': 'Hong Kong',
+  'TW': 'Taiwan',
+  'TH': 'Thailand',
+  'MY': 'Malaysia',
+  'PH': 'Philippines',
+  'ID': 'Indonesia',
+  'VN': 'Vietnam',
+  'AR': 'Argentina',
+  'CL': 'Chile',
+  'CO': 'Colombia',
+  'PE': 'Peru',
+  'EG': 'Egypt',
+  'KE': 'Kenya',
+  'GH': 'Ghana',
+  'MA': 'Morocco',
+  'PK': 'Pakistan',
+  'BD': 'Bangladesh',
+  'AT': 'Austria',
+  'BE': 'Belgium',
+  'CH': 'Switzerland',
+  'PT': 'Portugal',
+  'GR': 'Greece',
+  'PL': 'Poland',
+  'CZ': 'Czech Republic',
+  'RO': 'Romania',
+  'HU': 'Hungary',
+  'TR': 'Turkey',
+  'RU': 'Russia',
+  'UA': 'Ukraine',
+  'IL': 'Israel',
+  'QA': 'Qatar',
+  'KW': 'Kuwait',
+  'BH': 'Bahrain',
+  'OM': 'Oman',
+  'JO': 'Jordan',
+  'LB': 'Lebanon',
+};
+
+function getCountryName(isoCode: string | null | undefined): string {
+  if (!isoCode) return 'United States';
+  return COUNTRY_MAPPING[isoCode.toUpperCase()] || isoCode;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [detectedCountry, setDetectedCountry] = useState<string | null>(null);
+
+  const actualCountry = detectedCountry || user?.actualCountry || null;
+  const explorationCountry = user?.country || null;
+  const isExploringOtherCountry = !!(actualCountry && explorationCountry && actualCountry !== explorationCountry);
 
   useEffect(() => {
     loadUser();
   }, []);
+
+  useEffect(() => {
+    if (user && !isLoading) {
+      detectActualLocationInternal();
+    }
+  }, [user?.id, isLoading]);
+
+  useEffect(() => {
+    if (user && detectedCountry && user.actualCountry !== detectedCountry) {
+      saveUserWithActualCountry(detectedCountry);
+    }
+  }, [detectedCountry, user?.id]);
+
+  const saveUserWithActualCountry = async (country: string) => {
+    const userData = await AsyncStorage.getItem(STORAGE_KEY);
+    if (userData) {
+      const currentUser = JSON.parse(userData);
+      const updatedUser = { ...currentUser, actualCountry: country };
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+      setUser(updatedUser);
+    }
+  };
+
+  const detectActualLocationInternal = async () => {
+    try {
+      let { status } = await Location.getForegroundPermissionsAsync();
+      
+      if (status !== 'granted') {
+        const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
+        status = newStatus;
+      }
+      
+      if (status !== 'granted') {
+        return;
+      }
+      
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Low,
+      });
+      
+      const [reverseGeocode] = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+      
+      if (reverseGeocode?.isoCountryCode) {
+        const countryName = getCountryName(reverseGeocode.isoCountryCode);
+        setDetectedCountry(countryName);
+      }
+    } catch (error) {
+      console.log('Could not detect location:', error);
+    }
+  };
 
   const loadUser = async () => {
     try {
@@ -160,17 +296,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await saveUser(updatedUser);
   };
 
+  const detectActualLocation = useCallback(async () => {
+    await detectActualLocationInternal();
+  }, []);
+
+  const switchBackToActualLocation = useCallback(async () => {
+    if (!user || !actualCountry) return;
+    await saveUser({ ...user, country: actualCountry });
+  }, [user, actualCountry]);
+
   return (
     <AuthContext.Provider
       value={{
         user,
         isLoading,
         isAuthenticated: !!user,
+        isExploringOtherCountry,
+        explorationCountry,
+        actualCountry,
         login,
         signup,
         logout,
         updateProfile,
         completeOnboarding,
+        switchBackToActualLocation,
+        detectActualLocation,
       }}
     >
       {children}

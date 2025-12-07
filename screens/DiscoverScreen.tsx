@@ -975,7 +975,7 @@ interface EmergingTrend {
 
 export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { user, isExploringOtherCountry, explorationCountry, actualCountry, switchBackToActualLocation } = useAuth();
   const { tier } = useSubscription();
   const { posts, votePost, voteComparison, thankPost } = usePosts();
   const { isOutfitLiked, toggleOutfitLike } = useOutfitFavorites();
@@ -1193,6 +1193,34 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
 
   return (
     <ScreenScrollView>
+      {isExploringOtherCountry && actualCountry ? (
+        <View style={[styles.explorationBanner, { backgroundColor: theme.link + "15" }]}>
+          <View style={styles.explorationBannerContent}>
+            <Feather name="globe" size={18} color={theme.link} />
+            <View style={styles.explorationBannerText}>
+              <ThemedText type="body" style={{ color: theme.link, fontWeight: "600" }}>
+                Exploring: {explorationCountry}
+              </ThemedText>
+              <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+                Discover fashion from {explorationCountry}
+              </ThemedText>
+            </View>
+          </View>
+          <Pressable
+            onPress={switchBackToActualLocation}
+            style={({ pressed }) => [
+              styles.switchBackButton,
+              { backgroundColor: theme.link, opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <Feather name="map-pin" size={14} color="#FFFFFF" />
+            <ThemedText type="small" style={styles.switchBackText}>
+              Back to {actualCountry}
+            </ThemedText>
+          </Pressable>
+        </View>
+      ) : null}
+
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <ThemedText type="h2" style={styles.sectionTitle}>
@@ -1818,6 +1846,35 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  explorationBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  explorationBannerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  explorationBannerText: {
+    flex: 1,
+  },
+  switchBackButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingVertical: 8,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.xs,
+  },
+  switchBackText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
   section: {
     marginBottom: Spacing["2xl"],
   },
