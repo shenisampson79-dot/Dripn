@@ -17,6 +17,10 @@ import Animated, {
   runOnJS,
   interpolate,
   Extrapolation,
+  Easing,
+  withSequence,
+  withDelay,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -38,8 +42,29 @@ import type { DiscoverStackParamList } from '@/navigation/DiscoverStackNavigator
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - Spacing['3xl'] * 2;
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.55;
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
-const ROTATION_RANGE = 15;
+const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
+const VELOCITY_THRESHOLD = 500;
+const ROTATION_RANGE = 12;
+
+const SPRING_CONFIG = {
+  damping: 20,
+  stiffness: 200,
+  mass: 0.8,
+  overshootClamping: false,
+  restDisplacementThreshold: 0.01,
+  restSpeedThreshold: 0.01,
+};
+
+const SNAP_BACK_SPRING = {
+  damping: 18,
+  stiffness: 180,
+  mass: 0.7,
+};
+
+const SWIPE_OUT_CONFIG = {
+  duration: 350,
+  easing: Easing.out(Easing.cubic),
+};
 
 const LIKED_OUTFITS_KEY = '@dripn_liked_shuffle_outfits';
 const DAILY_SWIPES_KEY = '@dripn_daily_swipes';
@@ -175,7 +200,6 @@ export default function StyleShuffleScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedOutfits, setLikedOutfits] = useState<string[]>([]);
   const [swipesToday, setSwipesToday] = useState(0);
-  const [showMatchOverlay, setShowMatchOverlay] = useState(false);
   const [lastAction, setLastAction] = useState<'like' | 'pass' | null>(null);
 
   const filteredOutfits = React.useMemo(() => {
@@ -195,6 +219,10 @@ export default function StyleShuffleScreen() {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const cardScale = useSharedValue(1);
+  const cardOpacity = useSharedValue(1);
+  const matchOverlayScale = useSharedValue(0);
+  const matchOverlayOpacity = useSharedValue(0);
+  const isAnimating = useSharedValue(false);
 
   const dailyLimit = limits.styleShuffleSwipesPerDay;
   const remainingSwipes = dailyLimit === Infinity ? Infinity : Math.max(0, dailyLimit - swipesToday);
@@ -254,6 +282,29 @@ export default function StyleShuffleScreen() {
     }
   };
 
+  const triggerMatchOverlay = useCallback(() => {
+    matchOverlayScale.value = withSequence(
+      withSpring(1.2, { damping: 12, stiffness: 300 }),
+      withSpring(1, { damping: 15, stiffness: 200 })
+    );
+    matchOverlayOpacity.value = withTiming(1, { duration: 200 });
+    
+    setTimeout(() => {
+      matchOverlayOpacity.value = withTiming(0, { duration: 300 });
+      matchOverlayScale.value = withTiming(0, { duration: 300 });
+    }, 700);
+  }, []);
+
+  const resetCardPosition = useCallback(() => {
+    cancelAnimation(translateX);
+    cancelAnimation(translateY);
+    cancelAnimation(cardOpacity);
+    translateX.value = 0;
+    translateY.value = 0;
+    cardOpacity.value = 1;
+    isAnimating.value = false;
+  }, []);
+
   const handleSwipeComplete = useCallback((direction: 'left' | 'right') => {
     if (currentIndex >= outfits.length) return;
 
@@ -262,9 +313,8 @@ export default function StyleShuffleScreen() {
     if (direction === 'right') {
       saveLikedOutfit(currentOutfit.id);
       setLastAction('like');
-      setShowMatchOverlay(true);
+      triggerMatchOverlay();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setTimeout(() => setShowMatchOverlay(false), 800);
     } else {
       setLastAction('pass');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -272,12 +322,13 @@ export default function StyleShuffleScreen() {
 
     incrementSwipeCount();
     setCurrentIndex((prev) => prev + 1);
-
-    translateX.value = 0;
-    translateY.value = 0;
-  }, [currentIndex, outfits, likedOutfits]);
+    
+    resetCardPosition();
+  }, [currentIndex, outfits, likedOutfits, triggerMatchOverlay, resetCardPosition]);
 
   const handleSwipe = useCallback((direction: 'left' | 'right') => {
+    if (isAnimating.value) return;
+    
     if (remainingSwipes === 0 && dailyLimit !== Infinity) {
       Alert.alert(
         'Daily Limit Reached',
@@ -290,44 +341,82 @@ export default function StyleShuffleScreen() {
       return;
     }
 
+    isAnimating.value = true;
     const targetX = direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
-    translateX.value = withTiming(targetX, { duration: 300 }, () => {
+    const targetY = direction === 'right' ? -50 : 50;
+    
+    translateX.value = withTiming(targetX, SWIPE_OUT_CONFIG, () => {
       runOnJS(handleSwipeComplete)(direction);
     });
+    translateY.value = withTiming(targetY, { duration: 350, easing: Easing.out(Easing.quad) });
+    cardOpacity.value = withTiming(0.8, { duration: 200 });
   }, [remainingSwipes, dailyLimit, handleSwipeComplete, navigateToSubscription]);
 
   const panGesture = Gesture.Pan()
+    .onStart(() => {
+      if (isAnimating.value) {
+        cancelAnimation(translateX);
+        cancelAnimation(translateY);
+        cancelAnimation(cardOpacity);
+        translateX.value = 0;
+        translateY.value = 0;
+        cardOpacity.value = 1;
+        isAnimating.value = false;
+      }
+    })
     .onUpdate((event) => {
+      if (isAnimating.value) return;
       translateX.value = event.translationX;
-      translateY.value = event.translationY * 0.3;
+      translateY.value = event.translationY * 0.25;
     })
     .onEnd((event) => {
-      if (Math.abs(event.translationX) > SWIPE_THRESHOLD) {
-        const direction = event.translationX > 0 ? 'right' : 'left';
+      if (isAnimating.value) return;
+      
+      const velocityX = event.velocityX;
+      const shouldSwipe = Math.abs(event.translationX) > SWIPE_THRESHOLD || Math.abs(velocityX) > VELOCITY_THRESHOLD;
+      
+      if (shouldSwipe) {
+        const direction = event.translationX > 0 || velocityX > VELOCITY_THRESHOLD ? 'right' : 'left';
+        
         if (remainingSwipes === 0 && dailyLimit !== Infinity) {
-          translateX.value = withSpring(0);
-          translateY.value = withSpring(0);
+          translateX.value = withSpring(0, SNAP_BACK_SPRING);
+          translateY.value = withSpring(0, SNAP_BACK_SPRING);
           runOnJS(Alert.alert)(
             'Daily Limit Reached',
             `You've used all ${dailyLimit} swipes for today.`
           );
         } else {
+          isAnimating.value = true;
           const targetX = direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
-          translateX.value = withTiming(targetX, { duration: 250 }, () => {
+          const velocityFactor = Math.min(Math.abs(velocityX) / 1000, 1);
+          const duration = Math.max(200, 350 - velocityFactor * 150);
+          
+          translateX.value = withTiming(targetX, { 
+            duration, 
+            easing: Easing.out(Easing.cubic) 
+          }, () => {
             runOnJS(handleSwipeComplete)(direction);
           });
+          translateY.value = withTiming(event.translationY * 0.5, { duration });
         }
       } else {
-        translateX.value = withSpring(0);
-        translateY.value = withSpring(0);
+        translateX.value = withSpring(0, SNAP_BACK_SPRING);
+        translateY.value = withSpring(0, SNAP_BACK_SPRING);
       }
     });
 
   const cardStyle = useAnimatedStyle(() => {
     const rotation = interpolate(
       translateX.value,
-      [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
+      [-SCREEN_WIDTH * 0.5, 0, SCREEN_WIDTH * 0.5],
       [-ROTATION_RANGE, 0, ROTATION_RANGE],
+      Extrapolation.CLAMP
+    );
+
+    const scale = interpolate(
+      Math.abs(translateX.value),
+      [0, SCREEN_WIDTH * 0.3],
+      [1, 0.98],
       Extrapolation.CLAMP
     );
 
@@ -336,39 +425,66 @@ export default function StyleShuffleScreen() {
         { translateX: translateX.value },
         { translateY: translateY.value },
         { rotate: `${rotation}deg` },
-        { scale: cardScale.value },
+        { scale: scale * cardScale.value },
       ],
+      opacity: cardOpacity.value,
     };
   });
 
   const likeOverlayStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
       translateX.value,
-      [0, SCREEN_WIDTH * 0.3],
-      [0, 1],
+      [0, SCREEN_WIDTH * 0.15, SCREEN_WIDTH * 0.35],
+      [0, 0.3, 1],
       Extrapolation.CLAMP
     );
-    return { opacity };
+    const scale = interpolate(
+      translateX.value,
+      [0, SCREEN_WIDTH * 0.35],
+      [0.8, 1],
+      Extrapolation.CLAMP
+    );
+    return { 
+      opacity,
+      transform: [{ scale }],
+    };
   });
 
   const passOverlayStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
       translateX.value,
-      [-SCREEN_WIDTH * 0.3, 0],
-      [1, 0],
+      [-SCREEN_WIDTH * 0.35, -SCREEN_WIDTH * 0.15, 0],
+      [1, 0.3, 0],
       Extrapolation.CLAMP
     );
-    return { opacity };
+    const scale = interpolate(
+      translateX.value,
+      [-SCREEN_WIDTH * 0.35, 0],
+      [1, 0.8],
+      Extrapolation.CLAMP
+    );
+    return { 
+      opacity,
+      transform: [{ scale }],
+    };
   });
 
   const nextCardStyle = useAnimatedStyle(() => {
-    const scale = interpolate(
-      Math.abs(translateX.value),
-      [0, SCREEN_WIDTH * 0.5],
-      [0.92, 1],
-      Extrapolation.CLAMP
-    );
-    return { transform: [{ scale }] };
+    const progress = Math.min(Math.abs(translateX.value) / (SCREEN_WIDTH * 0.5), 1);
+    const scale = 0.92 + progress * 0.08;
+    const opacity = 0.7 + progress * 0.3;
+    
+    return { 
+      transform: [{ scale }],
+      opacity,
+    };
+  });
+
+  const matchOverlayAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: matchOverlayOpacity.value,
+      transform: [{ scale: matchOverlayScale.value }],
+    };
   });
 
   const resetDeck = () => {
@@ -552,14 +668,30 @@ export default function StyleShuffleScreen() {
 
       <View style={styles.actionsRow}>
         <Pressable
-          style={[styles.actionButton, styles.passButton, { backgroundColor: theme.backgroundSecondary }]}
+          style={({ pressed }) => [
+            styles.actionButton, 
+            styles.passButton, 
+            { 
+              backgroundColor: theme.backgroundSecondary,
+              transform: [{ scale: pressed ? 0.9 : 1 }],
+              opacity: pressed ? 0.8 : 1,
+            }
+          ]}
           onPress={() => handleSwipe('left')}
         >
           <Feather name="x" size={32} color={theme.error || '#C94C5A'} />
         </Pressable>
 
         <Pressable
-          style={[styles.actionButton, styles.infoButton, { backgroundColor: theme.backgroundSecondary }]}
+          style={({ pressed }) => [
+            styles.actionButton, 
+            styles.infoButton, 
+            { 
+              backgroundColor: theme.backgroundSecondary,
+              transform: [{ scale: pressed ? 0.9 : 1 }],
+              opacity: pressed ? 0.8 : 1,
+            }
+          ]}
           onPress={() => {
             if (currentOutfit) {
               Alert.alert(
@@ -573,7 +705,15 @@ export default function StyleShuffleScreen() {
         </Pressable>
 
         <Pressable
-          style={[styles.actionButton, styles.likeButton, { backgroundColor: theme.link }]}
+          style={({ pressed }) => [
+            styles.actionButton, 
+            styles.likeButton, 
+            { 
+              backgroundColor: theme.link,
+              transform: [{ scale: pressed ? 0.9 : 1 }],
+              opacity: pressed ? 0.8 : 1,
+            }
+          ]}
           onPress={() => handleSwipe('right')}
         >
           <Feather name="heart" size={32} color="#FFFFFF" />
@@ -598,14 +738,12 @@ export default function StyleShuffleScreen() {
         ))}
       </View>
 
-      {showMatchOverlay ? (
-        <View style={styles.matchOverlay}>
-          <Animated.View style={styles.matchContent}>
-            <Feather name="heart" size={64} color="#FFFFFF" />
-            <ThemedText style={styles.matchText}>Added to Favorites!</ThemedText>
-          </Animated.View>
-        </View>
-      ) : null}
+      <View style={styles.matchOverlay} pointerEvents="none">
+        <Animated.View style={[styles.matchContent, matchOverlayAnimatedStyle]}>
+          <Feather name="heart" size={64} color="#FFFFFF" />
+          <ThemedText style={styles.matchText}>Added to Favorites!</ThemedText>
+        </Animated.View>
+      </View>
     </ThemedView>
   );
 }
