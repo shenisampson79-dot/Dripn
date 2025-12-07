@@ -4,6 +4,7 @@ import CommunityScreen from "@/screens/CommunityScreen";
 import UserProfileScreen from "@/screens/UserProfileScreen";
 import FriendsActivityScreen from "@/screens/FriendsActivityScreen";
 import FriendRequestsScreen from "@/screens/FriendRequestsScreen";
+import DiscoverPeopleScreen from "@/screens/DiscoverPeopleScreen";
 import MessagesScreen from "@/screens/MessagesScreen";
 import ConversationScreen from "@/screens/ConversationScreen";
 import { useTheme } from "@/hooks/useTheme";
@@ -14,6 +15,7 @@ export type CommunityStackParamList = {
   UserProfile: { userId: string };
   FriendsActivity: undefined;
   FriendRequests: undefined;
+  DiscoverPeople: undefined;
   Messages: undefined;
   Conversation: { conversationId: string; participantName: string };
 };
@@ -46,6 +48,11 @@ export default function CommunityStackNavigator() {
         name="FriendRequests"
         component={FriendRequestsScreen}
         options={{ headerTitle: "Friend Requests" }}
+      />
+      <Stack.Screen
+        name="DiscoverPeople"
+        component={DiscoverPeopleScreen}
+        options={{ headerTitle: "Discover People" }}
       />
       <Stack.Screen
         name="Messages"

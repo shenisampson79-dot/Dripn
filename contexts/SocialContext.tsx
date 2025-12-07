@@ -27,6 +27,11 @@ export interface UserSummary {
   name: string;
   avatar?: string;
   isFollowing?: boolean;
+  country?: string;
+  tier?: 'fashionGuru' | 'styleExpert' | 'fashionAdvisor' | 'styleContributor';
+  bio?: string;
+  followersCount?: number;
+  postsCount?: number;
 }
 
 export interface FriendRequest {
@@ -71,15 +76,42 @@ const SocialContext = createContext<SocialContextType | null>(null);
 const SOCIAL_STORAGE_KEY = '@dripn_social';
 
 export const SAMPLE_USERS: Record<string, UserSummary> = {
-  '1': { id: '1', name: 'Emma Style', avatar: undefined },
-  '2': { id: '2', name: 'Jordan Chic', avatar: undefined },
-  '3': { id: '3', name: 'Sam Trendy', avatar: undefined },
-  '4': { id: '4', name: 'Alex Fashion', avatar: undefined },
-  '5': { id: '5', name: 'Casey Vogue', avatar: undefined },
-  '6': { id: '6', name: 'Riley Street', avatar: undefined },
-  '7': { id: '7', name: 'Morgan Luxe', avatar: undefined },
-  '8': { id: '8', name: 'Taylor Edge', avatar: undefined },
+  '1': { id: '1', name: 'Emma Style', avatar: undefined, country: 'United Kingdom', tier: 'fashionGuru', bio: 'Style mentor and outfit creator', followersCount: 15600, postsCount: 89 },
+  '2': { id: '2', name: 'Jordan Chic', avatar: undefined, country: 'United States', tier: 'styleExpert', bio: 'Streetwear and urban fashion', followersCount: 12400, postsCount: 67 },
+  '3': { id: '3', name: 'Sam Trendy', avatar: undefined, country: 'Canada', tier: 'fashionAdvisor', bio: 'Trend forecaster and style blogger', followersCount: 9800, postsCount: 45 },
+  '4': { id: '4', name: 'Alex Fashion', avatar: undefined, country: 'Australia', tier: 'styleContributor', bio: 'Sustainable fashion advocate', followersCount: 7200, postsCount: 23 },
+  '5': { id: '5', name: 'Casey Vogue', avatar: undefined, country: 'France', tier: 'styleContributor', bio: 'Vintage fashion collector', followersCount: 5600, postsCount: 19 },
+  '6': { id: '6', name: 'Riley Street', avatar: undefined, country: 'United States', tier: 'fashionAdvisor', bio: 'West coast casual enthusiast', followersCount: 8900, postsCount: 34 },
+  '7': { id: '7', name: 'Morgan Luxe', avatar: undefined, country: 'Italy', tier: 'styleExpert', bio: 'Luxury brand enthusiast', followersCount: 11200, postsCount: 56 },
+  '8': { id: '8', name: 'Taylor Edge', avatar: undefined, country: 'United Kingdom', tier: 'fashionAdvisor', bio: 'Edgy street style curator', followersCount: 7800, postsCount: 41 },
+  'lb1': { id: 'lb1', name: 'Isabella Vogue', avatar: undefined, country: 'United States', tier: 'fashionGuru', bio: 'Fashion influencer and style curator', followersCount: 45200, postsCount: 234 },
+  'lb2': { id: 'lb2', name: 'Kenji Tanaka', avatar: undefined, country: 'Japan', tier: 'fashionGuru', bio: 'Tokyo street style photographer', followersCount: 42100, postsCount: 198 },
+  'lb3': { id: 'lb3', name: 'Priya Sharma', avatar: undefined, country: 'India', tier: 'styleExpert', bio: 'Fusion fashion enthusiast', followersCount: 38900, postsCount: 176 },
+  'lb4': { id: 'lb4', name: 'Marco Rossi', avatar: undefined, country: 'Italy', tier: 'styleExpert', bio: 'Milan-based fashion consultant', followersCount: 35600, postsCount: 154 },
+  'lb5': { id: 'lb5', name: 'Amara Okonkwo', avatar: undefined, country: 'Nigeria', tier: 'styleExpert', bio: 'African print specialist', followersCount: 32400, postsCount: 143 },
+  'lb6': { id: 'lb6', name: 'Sophie Dubois', avatar: undefined, country: 'France', tier: 'fashionAdvisor', bio: 'Parisian chic advocate', followersCount: 29800, postsCount: 132 },
+  'lb7': { id: 'lb7', name: 'Chen Wei', avatar: undefined, country: 'China', tier: 'fashionAdvisor', bio: 'Luxury brand enthusiast', followersCount: 27600, postsCount: 128 },
+  'lb8': { id: 'lb8', name: 'Emma Thompson', avatar: undefined, country: 'United Kingdom', tier: 'fashionAdvisor', bio: 'British heritage style lover', followersCount: 25400, postsCount: 119 },
+  'lb9': { id: 'lb9', name: 'Carlos Mendez', avatar: undefined, country: 'Mexico', tier: 'styleContributor', bio: 'Latin American fashion trends', followersCount: 23100, postsCount: 108 },
+  'lb10': { id: 'lb10', name: 'Fatima Al-Hassan', avatar: undefined, country: 'United Arab Emirates', tier: 'styleContributor', bio: 'Modest fashion innovator', followersCount: 21500, postsCount: 98 },
+  'lb11': { id: 'lb11', name: 'Olivia Brown', avatar: undefined, country: 'Australia', tier: 'styleContributor', bio: 'Coastal casual specialist', followersCount: 19800, postsCount: 92 },
+  'lb12': { id: 'lb12', name: 'Hans Mueller', avatar: undefined, country: 'Germany', tier: 'styleContributor', bio: 'Minimalist fashion advocate', followersCount: 18200, postsCount: 87 },
+  'kr1': { id: 'kr1', name: 'Min-ji Kim', avatar: undefined, country: 'South Korea', tier: 'fashionGuru', bio: 'K-fashion trendsetter', followersCount: 52300, postsCount: 267 },
+  'kr2': { id: 'kr2', name: 'Jae-won Park', avatar: undefined, country: 'South Korea', tier: 'styleExpert', bio: 'Seoul street style', followersCount: 31400, postsCount: 142 },
+  'br1': { id: 'br1', name: 'Lucas Silva', avatar: undefined, country: 'Brazil', tier: 'styleExpert', bio: 'Tropical fashion vibes', followersCount: 28900, postsCount: 145 },
+  'br2': { id: 'br2', name: 'Ana Oliveira', avatar: undefined, country: 'Brazil', tier: 'fashionAdvisor', bio: 'Beach to city style', followersCount: 19200, postsCount: 86 },
+  'es1': { id: 'es1', name: 'Maria Garcia', avatar: undefined, country: 'Spain', tier: 'fashionAdvisor', bio: 'Mediterranean elegance', followersCount: 17800, postsCount: 92 },
+  'nl1': { id: 'nl1', name: 'Lars van Berg', avatar: undefined, country: 'Netherlands', tier: 'styleContributor', bio: 'Sustainable Dutch design', followersCount: 14600, postsCount: 68 },
 };
+
+export function getAllDiscoverableUsers(): UserSummary[] {
+  return Object.values(SAMPLE_USERS);
+}
+
+export function getDiscoverableUserCountries(): string[] {
+  const countries = new Set(Object.values(SAMPLE_USERS).map(u => u.country).filter(Boolean) as string[]);
+  return Array.from(countries).sort();
+}
 
 const INITIAL_INCOMING_REQUESTS: FriendRequest[] = [
   {

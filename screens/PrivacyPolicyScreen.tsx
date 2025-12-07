@@ -12,10 +12,10 @@ export default function PrivacyPolicyScreen() {
           Privacy Policy
         </ThemedText>
         <ThemedText type="small" style={styles.effectiveDate}>
-          Effective Date: December 6, 2025
+          Effective Date: December 7, 2025
         </ThemedText>
         <ThemedText type="small" style={styles.lastUpdated}>
-          Last Updated: December 6, 2025
+          Last Updated: December 7, 2025
         </ThemedText>
 
         <View style={styles.section}>

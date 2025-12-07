@@ -140,7 +140,7 @@ export default function FriendsActivityScreen({ navigation }: FriendsActivityScr
       {following.length === 0 ? (
         <Pressable
           style={[styles.discoverButton, { backgroundColor: theme.link }]}
-          onPress={() => navigation.navigate('Community')}
+          onPress={() => navigation.navigate('DiscoverPeople')}
         >
           <ThemedText type="body" style={styles.discoverButtonText}>
             Discover People

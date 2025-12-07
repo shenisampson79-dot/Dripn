@@ -9,6 +9,7 @@ import DiscoverStackNavigator from "@/navigation/DiscoverStackNavigator";
 import UserStylistStackNavigator from "@/navigation/UserStylistStackNavigator";
 import CommunityStackNavigator from "@/navigation/CommunityStackNavigator";
 import BargainsStackNavigator from "@/navigation/BargainsStackNavigator";
+import EventsStackNavigator from "@/navigation/EventsStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -20,6 +21,7 @@ export type MainTabParamList = {
   CommunityTab: undefined;
   PostTab: undefined;
   BargainsTab: undefined;
+  EventsTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -78,9 +80,17 @@ export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTab
             borderTopWidth: StyleSheet.hairlineWidth,
             borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
             elevation: 0,
+            paddingHorizontal: 0,
           },
           tabBarLabelStyle: {
-            fontSize: 10,
+            fontSize: 9,
+            marginTop: -2,
+          },
+          tabBarIconStyle: {
+            marginBottom: -4,
+          },
+          tabBarItemStyle: {
+            paddingVertical: 4,
           },
           headerShown: false,
         }}
@@ -146,6 +156,16 @@ export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTab
             title: "Offers",
             tabBarIcon: ({ color, size }) => (
               <Feather name="tag" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="EventsTab"
+          component={EventsStackNavigator}
+          options={{
+            title: "Events",
+            tabBarIcon: ({ color, size }) => (
+              <Feather name="calendar" size={size} color={color} />
             ),
           }}
         />
