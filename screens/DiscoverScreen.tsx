@@ -1936,6 +1936,38 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             </View>
           </LinearGradient>
         </Pressable>
+        <Pressable
+          onPress={() => navigation.navigate("SmartNotifications")}
+          style={({ pressed }) => [
+            styles.blogCard,
+            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.md },
+          ]}
+        >
+          <LinearGradient
+            colors={["#9B59B6", "#8E44AD"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.blogGradient}
+          >
+            <View style={styles.blogIconContainer}>
+              <Feather name="bell" size={28} color="#FFFFFF" />
+            </View>
+            <View style={styles.blogContent}>
+              <ThemedText type="h3" style={styles.blogTitle}>
+                Smart Notifications
+              </ThemedText>
+              <ThemedText type="body" style={styles.blogDescription}>
+                Weather-based styling tips, price alerts, and personalized trend notifications
+              </ThemedText>
+              <View style={styles.blogCta}>
+                <ThemedText type="small" style={styles.blogCtaText}>
+                  View Alerts
+                </ThemedText>
+                <Feather name="arrow-right" size={16} color="#FFFFFF" />
+              </View>
+            </View>
+          </LinearGradient>
+        </Pressable>
       </View>
 
       <View style={styles.section}>

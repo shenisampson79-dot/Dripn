@@ -21,6 +21,7 @@ import { StylistAuthProvider, useStylistAuth } from "@/contexts/StylistAuthConte
 import { AdminAuthProvider, useAdminAuth } from "@/contexts/AdminAuthContext";
 import { ReferralProvider } from "@/contexts/ReferralContext";
 import { StyleProfileProvider } from "@/contexts/StyleProfileContext";
+import { SmartNotificationsProvider } from "@/contexts/SmartNotificationsContext";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -105,9 +106,11 @@ export default function App() {
                         <PostsProvider>
                           <ReferralProvider>
                             <StyleProfileProvider>
-                              <NavigationContainer>
-                                <AppContent />
-                              </NavigationContainer>
+                              <SmartNotificationsProvider>
+                                <NavigationContainer>
+                                  <AppContent />
+                                </NavigationContainer>
+                              </SmartNotificationsProvider>
                             </StyleProfileProvider>
                           </ReferralProvider>
                         </PostsProvider>

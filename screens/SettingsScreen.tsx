@@ -11,6 +11,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useStyleTheme } from "@/hooks/useStyleTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useReferral } from "@/contexts/ReferralContext";
+import { useSmartNotifications } from "@/contexts/SmartNotificationsContext";
 import { apiService } from "@/services/ApiService";
 import colorTrendService from "@/services/ColorTrendService";
 
@@ -102,6 +103,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const { hasTrendColors, trendInfo, isLoading: trendLoading, refreshTrends } = useStyleTheme();
   const { user, logout, updateProfile } = useAuth();
   const { referralCode, totalReferrals, bonusAIRequests, shareReferral } = useReferral();
+  const { preferences: notificationPrefs, updatePreferences } = useSmartNotifications();
   const [isNewsletterSubscribed, setIsNewsletterSubscribed] = useState(false);
   const [isNewsletterLoading, setIsNewsletterLoading] = useState(false);
   const [pantoneColor, setPantoneColor] = useState<PantoneColor | null>(null);
@@ -509,6 +511,110 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               disabled={isNewsletterLoading}
               trackColor={{ false: theme.tabIconDefault, true: theme.link }}
               thumbColor={isNewsletterSubscribed ? "#FFFFFF" : "#F4F4F4"}
+            />
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h3" style={styles.sectionTitle}>
+          Notifications
+        </ThemedText>
+        <View style={styles.sectionContent}>
+          <View
+            style={[
+              styles.settingItem,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
+            <View style={styles.settingIconContainer}>
+              <Feather name="cloud" size={20} color={theme.text} />
+            </View>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                Weather-Based Styling
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                Get outfit suggestions based on local weather
+              </ThemedText>
+            </View>
+            <Switch
+              value={notificationPrefs.weatherStyling}
+              onValueChange={(value) => updatePreferences({ weatherStyling: value })}
+              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              thumbColor={notificationPrefs.weatherStyling ? "#FFFFFF" : "#F4F4F4"}
+            />
+          </View>
+          <View
+            style={[
+              styles.settingItem,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
+            <View style={styles.settingIconContainer}>
+              <Feather name="tag" size={20} color={theme.text} />
+            </View>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                Price Alerts
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                Notify when tracked items drop in price
+              </ThemedText>
+            </View>
+            <Switch
+              value={notificationPrefs.priceAlerts}
+              onValueChange={(value) => updatePreferences({ priceAlerts: value })}
+              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              thumbColor={notificationPrefs.priceAlerts ? "#FFFFFF" : "#F4F4F4"}
+            />
+          </View>
+          <View
+            style={[
+              styles.settingItem,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
+            <View style={styles.settingIconContainer}>
+              <Feather name="trending-up" size={20} color={theme.text} />
+            </View>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                Trend Notifications
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                Stay updated on the latest fashion trends
+              </ThemedText>
+            </View>
+            <Switch
+              value={notificationPrefs.trendNotifications}
+              onValueChange={(value) => updatePreferences({ trendNotifications: value })}
+              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              thumbColor={notificationPrefs.trendNotifications ? "#FFFFFF" : "#F4F4F4"}
+            />
+          </View>
+          <View
+            style={[
+              styles.settingItem,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
+            <View style={styles.settingIconContainer}>
+              <Feather name="star" size={20} color={theme.text} />
+            </View>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                Style of the Day
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                Daily personalized outfit inspiration
+              </ThemedText>
+            </View>
+            <Switch
+              value={notificationPrefs.styleOfTheDay}
+              onValueChange={(value) => updatePreferences({ styleOfTheDay: value })}
+              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              thumbColor={notificationPrefs.styleOfTheDay ? "#FFFFFF" : "#F4F4F4"}
             />
           </View>
         </View>
