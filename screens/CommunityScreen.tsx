@@ -8,6 +8,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius, ContributorColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useSocial } from "@/contexts/SocialContext";
+import { useMessaging } from "@/contexts/MessagingContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
 
 type CommunityScreenProps = {
@@ -75,6 +76,7 @@ const TOP_CONTRIBUTORS: Contributor[] = [
 export default function CommunityScreen({ navigation }: CommunityScreenProps) {
   const { theme } = useTheme();
   const { following, activityFeed } = useSocial();
+  const { unreadCount } = useMessaging();
   const [activeTab, setActiveTab] = useState<"top" | "rising" | "new">("top");
 
   const handleUserPress = (userId: string) => {
@@ -83,6 +85,10 @@ export default function CommunityScreen({ navigation }: CommunityScreenProps) {
 
   const handleActivityPress = () => {
     navigation.navigate("FriendsActivity");
+  };
+
+  const handleMessagesPress = () => {
+    navigation.navigate("Messages");
   };
 
   const renderContributorCard = (contributor: Contributor, index: number) => {
@@ -149,6 +155,34 @@ export default function CommunityScreen({ navigation }: CommunityScreenProps) {
           Connect with fashion enthusiasts and style experts from around the world
         </ThemedText>
       </View>
+
+      <Pressable
+        onPress={handleMessagesPress}
+        style={({ pressed }) => [
+          styles.activityCard,
+          { backgroundColor: theme.link + '15', opacity: pressed ? 0.9 : 1 },
+        ]}
+      >
+        <View style={[styles.activityIconContainer, { backgroundColor: theme.link }]}>
+          <Feather name="message-circle" size={24} color="#FFFFFF" />
+        </View>
+        <View style={styles.activityContent}>
+          <ThemedText type="h3">Messages</ThemedText>
+          <ThemedText type="small" style={styles.activitySubtitle}>
+            {unreadCount > 0
+              ? `${unreadCount} unread message${unreadCount === 1 ? '' : 's'}`
+              : 'Chat with fashion enthusiasts'}
+          </ThemedText>
+        </View>
+        {unreadCount > 0 ? (
+          <View style={[styles.unreadBadge, { backgroundColor: theme.link }]}>
+            <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </ThemedText>
+          </View>
+        ) : null}
+        <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
+      </Pressable>
 
       <Pressable
         onPress={handleActivityPress}
@@ -393,5 +427,11 @@ const styles = StyleSheet.create({
   infoText: {
     opacity: 0.7,
     marginTop: Spacing.xs,
+  },
+  unreadBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+    marginRight: Spacing.sm,
   },
 });
