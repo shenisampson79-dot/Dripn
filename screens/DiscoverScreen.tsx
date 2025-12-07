@@ -1872,6 +1872,38 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             </View>
           </LinearGradient>
         </Pressable>
+        <Pressable
+          onPress={() => navigation.navigate("VisualSearch")}
+          style={({ pressed }) => [
+            styles.blogCard,
+            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.md },
+          ]}
+        >
+          <LinearGradient
+            colors={[theme.warning, theme.warning + "CC"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.blogGradient}
+          >
+            <View style={styles.blogIconContainer}>
+              <Feather name="search" size={28} color="#FFFFFF" />
+            </View>
+            <View style={styles.blogContent}>
+              <ThemedText type="h3" style={styles.blogTitle}>
+                Visual Search
+              </ThemedText>
+              <ThemedText type="body" style={styles.blogDescription}>
+                Upload a photo and find similar items from top retailers instantly
+              </ThemedText>
+              <View style={styles.blogCta}>
+                <ThemedText type="small" style={styles.blogCtaText}>
+                  Search Now
+                </ThemedText>
+                <Feather name="arrow-right" size={16} color="#FFFFFF" />
+              </View>
+            </View>
+          </LinearGradient>
+        </Pressable>
       </View>
 
       <View style={styles.section}>

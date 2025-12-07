@@ -5,6 +5,7 @@ import PostDetailScreen from "@/screens/PostDetailScreen";
 import FashionBlogScreen from "@/screens/FashionBlogScreen";
 import StyleShuffleScreen from "@/screens/StyleShuffleScreen";
 import AIStylistScreen from "@/screens/AIStylistScreen";
+import VisualSearchScreen from "@/screens/VisualSearchScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -14,6 +15,7 @@ export type DiscoverStackParamList = {
   FashionBlog: undefined;
   StyleShuffle: undefined;
   AIStylist: undefined;
+  VisualSearch: undefined;
 };
 
 const Stack = createNativeStackNavigator<DiscoverStackParamList>();
@@ -49,6 +51,11 @@ export default function DiscoverStackNavigator() {
         name="AIStylist"
         component={AIStylistScreen}
         options={{ headerTitle: "AI Stylist" }}
+      />
+      <Stack.Screen
+        name="VisualSearch"
+        component={VisualSearchScreen}
+        options={{ headerTitle: "Visual Search" }}
       />
     </Stack.Navigator>
   );
