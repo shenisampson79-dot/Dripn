@@ -153,7 +153,7 @@ const formatNumber = (num: number): string => {
 
 export default function CommunityScreen({ navigation }: CommunityScreenProps) {
   const { theme } = useTheme();
-  const { following, activityFeed } = useSocial();
+  const { following, activityFeed, getIncomingRequestsCount } = useSocial();
   const { unreadCount } = useMessaging();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"top" | "rising" | "new">("top");
@@ -181,6 +181,12 @@ export default function CommunityScreen({ navigation }: CommunityScreenProps) {
   const handleMessagesPress = () => {
     navigation.navigate("Messages");
   };
+
+  const handleFriendRequestsPress = () => {
+    navigation.navigate("FriendRequests");
+  };
+
+  const friendRequestsCount = getIncomingRequestsCount();
 
   const getRankBadgeStyle = (rank: number) => {
     if (rank === 1) return { backgroundColor: "#FFD700" };
@@ -350,6 +356,34 @@ export default function CommunityScreen({ navigation }: CommunityScreenProps) {
           <View style={[styles.unreadBadge, { backgroundColor: theme.link }]}>
             <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
               {unreadCount > 99 ? '99+' : unreadCount}
+            </ThemedText>
+          </View>
+        ) : null}
+        <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
+      </Pressable>
+
+      <Pressable
+        onPress={handleFriendRequestsPress}
+        style={({ pressed }) => [
+          styles.activityCard,
+          { backgroundColor: theme.link + '15', opacity: pressed ? 0.9 : 1 },
+        ]}
+      >
+        <View style={[styles.activityIconContainer, { backgroundColor: theme.link }]}>
+          <Feather name="user-plus" size={24} color="#FFFFFF" />
+        </View>
+        <View style={styles.activityContent}>
+          <ThemedText type="h3">Friend Requests</ThemedText>
+          <ThemedText type="small" style={styles.activitySubtitle}>
+            {friendRequestsCount > 0
+              ? `${friendRequestsCount} pending request${friendRequestsCount === 1 ? '' : 's'}`
+              : 'Manage your connections'}
+          </ThemedText>
+        </View>
+        {friendRequestsCount > 0 ? (
+          <View style={[styles.unreadBadge, { backgroundColor: theme.link }]}>
+            <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+              {friendRequestsCount > 99 ? '99+' : friendRequestsCount}
             </ThemedText>
           </View>
         ) : null}

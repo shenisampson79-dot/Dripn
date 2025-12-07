@@ -89,10 +89,24 @@ export default function UserProfileScreen({ navigation, route }: UserProfileScre
   const { userId } = route.params;
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { isFollowing, followUser, unfollowUser, getFollowersCount, getFollowingCount } = useSocial();
+  const { 
+    isFollowing, 
+    followUser, 
+    unfollowUser, 
+    getFollowersCount, 
+    getFollowingCount,
+    isFriend,
+    sendFriendRequest,
+    hasPendingRequestTo,
+    hasPendingRequestFrom,
+    getFriendsCount,
+  } = useSocial();
 
   const isOwnProfile = user?.id === userId;
   const isFollowingUser = isFollowing(userId);
+  const isFriendWithUser = isFriend(userId);
+  const hasSentRequest = hasPendingRequestTo(userId);
+  const hasReceivedRequest = hasPendingRequestFrom(userId);
 
   const mockUser = MOCK_USERS[userId];
   const userData = mockUser || {
@@ -119,6 +133,27 @@ export default function UserProfileScreen({ navigation, route }: UserProfileScre
       await followUser(userId);
     }
   };
+
+  const handleFriendPress = async () => {
+    if (!isFriendWithUser && !hasSentRequest) {
+      await sendFriendRequest(userId, userData.name);
+    }
+  };
+
+  const getFriendButtonState = () => {
+    if (isFriendWithUser) {
+      return { icon: 'users' as const, label: 'Friends', disabled: true };
+    }
+    if (hasSentRequest) {
+      return { icon: 'clock' as const, label: 'Pending', disabled: true };
+    }
+    if (hasReceivedRequest) {
+      return { icon: 'user-check' as const, label: 'Accept Request', disabled: false };
+    }
+    return { icon: 'user-plus' as const, label: 'Add Friend', disabled: false };
+  };
+
+  const friendButtonState = getFriendButtonState();
 
   return (
     <ScreenScrollView>
@@ -149,33 +184,68 @@ export default function UserProfileScreen({ navigation, route }: UserProfileScre
         </ThemedText>
 
         {!isOwnProfile ? (
-          <Pressable
-            onPress={handleFollowPress}
-            style={({ pressed }) => [
-              styles.followButton,
-              {
-                backgroundColor: isFollowingUser ? theme.backgroundDefault : theme.link,
-                borderWidth: isFollowingUser ? 1 : 0,
-                borderColor: theme.link,
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            <Feather
-              name={isFollowingUser ? "user-check" : "user-plus"}
-              size={16}
-              color={isFollowingUser ? theme.link : "#FFFFFF"}
-            />
-            <ThemedText
-              type="body"
-              style={{
-                color: isFollowingUser ? theme.link : "#FFFFFF",
-                fontWeight: "600",
-              }}
+          <View style={styles.actionButtonsRow}>
+            <Pressable
+              onPress={handleFollowPress}
+              style={({ pressed }) => [
+                styles.followButton,
+                {
+                  backgroundColor: isFollowingUser ? theme.backgroundDefault : theme.link,
+                  borderWidth: isFollowingUser ? 1 : 0,
+                  borderColor: theme.link,
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
             >
-              {isFollowingUser ? "Following" : "Follow"}
-            </ThemedText>
-          </Pressable>
+              <Feather
+                name={isFollowingUser ? "user-check" : "user-plus"}
+                size={16}
+                color={isFollowingUser ? theme.link : "#FFFFFF"}
+              />
+              <ThemedText
+                type="body"
+                style={{
+                  color: isFollowingUser ? theme.link : "#FFFFFF",
+                  fontWeight: "600",
+                }}
+              >
+                {isFollowingUser ? "Following" : "Follow"}
+              </ThemedText>
+            </Pressable>
+
+            <Pressable
+              onPress={handleFriendPress}
+              disabled={friendButtonState.disabled}
+              style={({ pressed }) => [
+                styles.friendButton,
+                {
+                  backgroundColor: isFriendWithUser 
+                    ? theme.backgroundSecondary 
+                    : hasSentRequest 
+                      ? theme.backgroundDefault 
+                      : theme.link,
+                  borderWidth: hasSentRequest || isFriendWithUser ? 1 : 0,
+                  borderColor: theme.link,
+                  opacity: pressed && !friendButtonState.disabled ? 0.8 : friendButtonState.disabled ? 0.6 : 1,
+                },
+              ]}
+            >
+              <Feather
+                name={friendButtonState.icon}
+                size={16}
+                color={isFriendWithUser || hasSentRequest ? theme.link : "#FFFFFF"}
+              />
+              <ThemedText
+                type="body"
+                style={{
+                  color: isFriendWithUser || hasSentRequest ? theme.link : "#FFFFFF",
+                  fontWeight: "600",
+                }}
+              >
+                {friendButtonState.label}
+              </ThemedText>
+            </Pressable>
+          </View>
         ) : null}
 
         <View style={styles.statsRow}>
@@ -275,14 +345,30 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     paddingHorizontal: Spacing.xl,
   },
+  actionButtonsRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
   followButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: Spacing.sm,
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.full,
-    marginBottom: Spacing.lg,
+  },
+  friendButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
   },
   statsRow: {
     flexDirection: "row",

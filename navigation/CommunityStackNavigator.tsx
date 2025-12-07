@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import CommunityScreen from "@/screens/CommunityScreen";
 import UserProfileScreen from "@/screens/UserProfileScreen";
 import FriendsActivityScreen from "@/screens/FriendsActivityScreen";
+import FriendRequestsScreen from "@/screens/FriendRequestsScreen";
 import MessagesScreen from "@/screens/MessagesScreen";
 import ConversationScreen from "@/screens/ConversationScreen";
 import { useTheme } from "@/hooks/useTheme";
@@ -12,6 +13,7 @@ export type CommunityStackParamList = {
   Community: undefined;
   UserProfile: { userId: string };
   FriendsActivity: undefined;
+  FriendRequests: undefined;
   Messages: undefined;
   Conversation: { conversationId: string; participantName: string };
 };
@@ -39,6 +41,11 @@ export default function CommunityStackNavigator() {
         name="FriendsActivity"
         component={FriendsActivityScreen}
         options={{ headerTitle: "Friends Activity" }}
+      />
+      <Stack.Screen
+        name="FriendRequests"
+        component={FriendRequestsScreen}
+        options={{ headerTitle: "Friend Requests" }}
       />
       <Stack.Screen
         name="Messages"
