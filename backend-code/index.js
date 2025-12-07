@@ -8,6 +8,7 @@ const { notifyVIPPurchase } = require('./notificationService');
 const { analyzeUserStyleProfile, generatePersonalizedStyleOfTheDay, generatePersonalizedEventRecommendations, generatePersonalizedOffers } = require('./styleProfileService');
 const { scanEmergingFashionTrends, scanViralFashionMoments, predictNextBigTrend, getRegionalTrendInsights } = require('./trendScannerService');
 const { sendPushNotification, sendBatchPushNotifications, processEventReminders } = require('./pushNotificationService');
+const colorTrendService = require('./colorTrendService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -408,11 +409,43 @@ async function initDB() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      -- Color Trend Intelligence Tables
+      CREATE TABLE IF NOT EXISTS trend_color_palettes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        year INTEGER NOT NULL,
+        region VARCHAR(50) NOT NULL,
+        style_theme VARCHAR(50) NOT NULL,
+        color_role VARCHAR(50) NOT NULL,
+        color_value VARCHAR(7) NOT NULL,
+        color_name VARCHAR(100),
+        source VARCHAR(100),
+        mood_tags TEXT[],
+        is_active BOOLEAN DEFAULT false,
+        approved_by UUID,
+        approved_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS color_trend_scans (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        year INTEGER NOT NULL,
+        scan_type VARCHAR(50) NOT NULL,
+        regions TEXT[],
+        pantone_data JSONB,
+        style_themes_data JSONB,
+        regional_palettes_data JSONB,
+        status VARCHAR(20) DEFAULT 'pending',
+        errors JSONB,
+        scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       -- Add indexes for performance
       CREATE INDEX IF NOT EXISTS idx_user_interactions_user ON user_interactions(user_id);
       CREATE INDEX IF NOT EXISTS idx_user_interactions_type ON user_interactions(interaction_type);
       CREATE INDEX IF NOT EXISTS idx_event_reminders_date ON event_reminders(event_date);
       CREATE INDEX IF NOT EXISTS idx_trend_reports_date ON trend_reports(generated_at);
+      CREATE INDEX IF NOT EXISTS idx_trend_color_palettes_active ON trend_color_palettes(is_active, year, region);
+      CREATE INDEX IF NOT EXISTS idx_trend_color_palettes_style ON trend_color_palettes(style_theme, color_role);
     `);
     console.log('Database tables initialized');
   } catch (error) {
@@ -1769,6 +1802,332 @@ app.post('/api/admin/test-vip-notification', adminAuthMiddleware, async (req, re
   } catch (error) {
     console.error('Test notification error:', error);
     res.status(500).json({ error: 'Failed to send test notification', details: error.message });
+  }
+});
+
+// ============ COLOR TREND INTELLIGENCE ============
+
+app.post('/api/admin/color-trends/scan', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { year, regions } = req.body;
+    const targetYear = year || new Date().getFullYear();
+    const targetRegions = regions || ['Global'];
+
+    const scanResult = await colorTrendService.generateFullColorUpdate(targetYear, targetRegions);
+
+    const insertResult = await pool.query(
+      `INSERT INTO color_trend_scans (year, scan_type, regions, pantone_data, style_themes_data, regional_palettes_data, status, errors)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+      [
+        targetYear,
+        'annual',
+        targetRegions,
+        JSON.stringify(scanResult.colorUpdate.pantone),
+        JSON.stringify(scanResult.colorUpdate.styleThemes),
+        JSON.stringify(scanResult.colorUpdate.regionalPalettes),
+        scanResult.success ? 'completed' : (scanResult.partialSuccess ? 'partial' : 'failed'),
+        JSON.stringify(scanResult.colorUpdate.errors)
+      ]
+    );
+
+    if (scanResult.success || scanResult.partialSuccess) {
+      for (const region of Object.keys(scanResult.colorUpdate.styleThemes)) {
+        const regionData = scanResult.colorUpdate.styleThemes[region];
+        if (regionData?.trendingPalettes) {
+          for (const palette of regionData.trendingPalettes) {
+            if (palette.secondary?.hex) {
+              await pool.query(
+                `INSERT INTO trend_color_palettes (year, region, style_theme, color_role, color_value, color_name, source, mood_tags)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                 ON CONFLICT DO NOTHING`,
+                [
+                  targetYear,
+                  region,
+                  palette.styleTheme,
+                  'secondary',
+                  palette.secondary.hex,
+                  palette.secondary.name,
+                  'AI-Pantone-Analysis',
+                  palette.secondary.mood ? [palette.secondary.mood] : []
+                ]
+              );
+            }
+            if (palette.accent?.hex) {
+              await pool.query(
+                `INSERT INTO trend_color_palettes (year, region, style_theme, color_role, color_value, color_name, source, mood_tags)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                 ON CONFLICT DO NOTHING`,
+                [
+                  targetYear,
+                  region,
+                  palette.styleTheme,
+                  'accent',
+                  palette.accent.hex,
+                  palette.accent.name,
+                  'AI-Pantone-Analysis',
+                  palette.accent.mood ? [palette.accent.mood] : []
+                ]
+              );
+            }
+          }
+        }
+      }
+    }
+
+    res.json({
+      success: scanResult.success || scanResult.partialSuccess,
+      scanId: insertResult.rows[0].id,
+      year: targetYear,
+      regions: targetRegions,
+      pantoneAnalyzed: !!scanResult.colorUpdate.pantone,
+      stylesScanned: Object.keys(scanResult.colorUpdate.styleThemes).length,
+      regionsScanned: Object.keys(scanResult.colorUpdate.regionalPalettes).length,
+      errors: scanResult.colorUpdate.errors
+    });
+  } catch (error) {
+    console.error('Color trend scan error:', error);
+    res.status(500).json({ error: 'Failed to scan color trends', details: error.message });
+  }
+});
+
+app.get('/api/admin/color-trends/scans', adminAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, year, scan_type, regions, status, errors, scanned_at 
+       FROM color_trend_scans 
+       ORDER BY scanned_at DESC 
+       LIMIT 20`
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get color scans error:', error);
+    res.status(500).json({ error: 'Failed to get color scans' });
+  }
+});
+
+app.get('/api/admin/color-trends/scan/:id', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM color_trend_scans WHERE id = $1',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Scan not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Get color scan error:', error);
+    res.status(500).json({ error: 'Failed to get color scan' });
+  }
+});
+
+app.get('/api/admin/color-trends/pending', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { year, region } = req.query;
+    let query = `SELECT * FROM trend_color_palettes WHERE is_active = false`;
+    const params = [];
+    
+    if (year) {
+      params.push(parseInt(year));
+      query += ` AND year = $${params.length}`;
+    }
+    if (region) {
+      params.push(region);
+      query += ` AND region = $${params.length}`;
+    }
+    
+    query += ` ORDER BY created_at DESC`;
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get pending palettes error:', error);
+    res.status(500).json({ error: 'Failed to get pending palettes' });
+  }
+});
+
+app.post('/api/admin/color-trends/:id/approve', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const existing = await pool.query('SELECT * FROM trend_color_palettes WHERE id = $1', [id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Color palette not found' });
+    }
+    
+    const palette = existing.rows[0];
+    
+    await pool.query(
+      `UPDATE trend_color_palettes 
+       SET is_active = false 
+       WHERE style_theme = $1 AND color_role = $2 AND region = $3 AND is_active = true`,
+      [palette.style_theme, palette.color_role, palette.region]
+    );
+    
+    const result = await pool.query(
+      `UPDATE trend_color_palettes 
+       SET is_active = true, approved_by = $1, approved_at = CURRENT_TIMESTAMP 
+       WHERE id = $2 
+       RETURNING *`,
+      [req.adminId, id]
+    );
+    
+    res.json({
+      success: true,
+      message: 'Color palette approved and activated',
+      palette: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Approve palette error:', error);
+    res.status(500).json({ error: 'Failed to approve palette' });
+  }
+});
+
+app.post('/api/admin/color-trends/:id/reject', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await pool.query(
+      'DELETE FROM trend_color_palettes WHERE id = $1 RETURNING id',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Color palette not found' });
+    }
+    
+    res.json({ success: true, message: 'Color palette rejected and removed' });
+  } catch (error) {
+    console.error('Reject palette error:', error);
+    res.status(500).json({ error: 'Failed to reject palette' });
+  }
+});
+
+app.get('/api/admin/color-trends/active', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { year, region, styleTheme } = req.query;
+    let query = `SELECT * FROM trend_color_palettes WHERE is_active = true`;
+    const params = [];
+    
+    if (year) {
+      params.push(parseInt(year));
+      query += ` AND year = $${params.length}`;
+    }
+    if (region) {
+      params.push(region);
+      query += ` AND region = $${params.length}`;
+    }
+    if (styleTheme) {
+      params.push(styleTheme);
+      query += ` AND style_theme = $${params.length}`;
+    }
+    
+    query += ` ORDER BY style_theme, color_role`;
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get active palettes error:', error);
+    res.status(500).json({ error: 'Failed to get active palettes' });
+  }
+});
+
+app.get('/api/color-trends/active', async (req, res) => {
+  try {
+    const { year, region, styleTheme } = req.query;
+    const currentYear = year || new Date().getFullYear();
+    const targetRegion = region || 'Global';
+    
+    let query = `SELECT style_theme, color_role, color_value, color_name, mood_tags
+                 FROM trend_color_palettes 
+                 WHERE is_active = true AND year = $1 AND (region = $2 OR region = 'Global')`;
+    const params = [currentYear, targetRegion];
+    
+    if (styleTheme) {
+      params.push(styleTheme);
+      query += ` AND style_theme = $${params.length}`;
+    }
+    
+    query += ` ORDER BY style_theme, color_role`;
+    
+    const result = await pool.query(query, params);
+    
+    const grouped = {};
+    for (const row of result.rows) {
+      if (!grouped[row.style_theme]) {
+        grouped[row.style_theme] = {};
+      }
+      grouped[row.style_theme][row.color_role] = {
+        hex: row.color_value,
+        name: row.color_name,
+        mood: row.mood_tags?.[0] || null
+      };
+    }
+    
+    res.json({
+      year: currentYear,
+      region: targetRegion,
+      palettes: grouped
+    });
+  } catch (error) {
+    console.error('Get public active palettes error:', error);
+    res.status(500).json({ error: 'Failed to get color trends' });
+  }
+});
+
+app.post('/api/admin/color-trends/validate', adminAuthMiddleware, async (req, res) => {
+  try {
+    const { hexColor, usage } = req.body;
+    
+    if (!hexColor || !/^#[0-9A-Fa-f]{6}$/.test(hexColor)) {
+      return res.status(400).json({ error: 'Invalid hex color format' });
+    }
+    
+    const validation = await colorTrendService.validateColorForPremiumUse(hexColor, usage || 'accent');
+    
+    const saturationCheck = colorTrendService.checkSaturationLimit(hexColor);
+    const contrastOnWhite = colorTrendService.checkAccessibility(hexColor, '#FFFFFF');
+    const contrastOnBlack = colorTrendService.checkAccessibility(hexColor, '#000000');
+    
+    res.json({
+      ...validation,
+      technicalChecks: {
+        saturation: saturationCheck,
+        contrastOnWhite,
+        contrastOnBlack
+      }
+    });
+  } catch (error) {
+    console.error('Color validation error:', error);
+    res.status(500).json({ error: 'Failed to validate color' });
+  }
+});
+
+app.get('/api/color-trends/pantone/:year', async (req, res) => {
+  try {
+    const { year } = req.params;
+    
+    const scanResult = await pool.query(
+      `SELECT pantone_data FROM color_trend_scans 
+       WHERE year = $1 AND pantone_data IS NOT NULL 
+       ORDER BY scanned_at DESC LIMIT 1`,
+      [parseInt(year)]
+    );
+    
+    if (scanResult.rows.length > 0 && scanResult.rows[0].pantone_data) {
+      return res.json(scanResult.rows[0].pantone_data);
+    }
+    
+    const freshScan = await colorTrendService.scanPantoneColorOfTheYear(parseInt(year));
+    if (freshScan.success) {
+      res.json(freshScan.pantone);
+    } else {
+      res.status(500).json({ error: 'Failed to get Pantone data' });
+    }
+  } catch (error) {
+    console.error('Get Pantone error:', error);
+    res.status(500).json({ error: 'Failed to get Pantone data' });
   }
 });
 
