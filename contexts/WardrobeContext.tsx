@@ -92,6 +92,8 @@ export interface OutfitSuggestion {
   generatedAt: string;
 }
 
+export type PlannedEventType = 'work' | 'date-night' | 'wedding' | 'casual' | 'party' | 'workout' | 'travel' | 'formal' | 'everyday';
+
 export interface PlannedOutfit {
   id: string;
   userId: string;
@@ -99,6 +101,7 @@ export interface PlannedOutfit {
   outfitId?: string;
   itemIds: string[];
   eventName?: string;
+  eventType?: PlannedEventType;
   notes?: string;
   wasWorn: boolean;
   createdAt: string;

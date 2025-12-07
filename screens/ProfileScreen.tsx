@@ -71,6 +71,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("Wardrobe");
   };
 
+  const handleCalendarPress = () => {
+    navigation.navigate("OutfitCalendar");
+  };
+
   const getSubscriptionBadge = () => {
     const tier = user?.subscriptionTier || "free";
     const colors = SubscriptionColors[tier];
@@ -195,6 +199,19 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           <Feather name="grid" size={18} color={theme.text} />
           <ThemedText type="body" style={styles.wardrobeButtonText}>
             My Wardrobe
+          </ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={handleCalendarPress}
+          style={({ pressed }) => [
+            styles.wardrobeButton,
+            { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
+          ]}
+        >
+          <Feather name="calendar" size={18} color={theme.text} />
+          <ThemedText type="body" style={styles.wardrobeButtonText}>
+            Outfit Calendar
           </ThemedText>
         </Pressable>
 

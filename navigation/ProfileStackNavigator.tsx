@@ -13,6 +13,7 @@ import LogoPreviewScreen from "@/screens/LogoPreviewScreen";
 import OnboardingQuizScreen from "@/screens/OnboardingQuizScreen";
 import WardrobeScreen from "@/screens/WardrobeScreen";
 import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
+import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -30,6 +31,7 @@ export type ProfileStackParamList = {
   OnboardingQuiz: undefined;
   Wardrobe: undefined;
   AddWardrobeItem: undefined;
+  OutfitCalendar: undefined;
   VideoCall: {
     callId?: string;
     roomUrl: string;
@@ -155,6 +157,14 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
           title: "Add Item",
           headerShown: false,
           presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="OutfitCalendar"
+        component={OutfitCalendarScreen}
+        options={{
+          title: "Outfit Calendar",
+          headerShown: false,
         }}
       />
     </Stack.Navigator>
