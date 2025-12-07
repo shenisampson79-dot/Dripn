@@ -240,13 +240,13 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const handleAISuggestions = () => {
     const isEnabled = user?.aiSuggestionsEnabled !== false;
     Alert.alert(
-      "AI Style Suggestions",
+      "Style Suggestions",
       isEnabled 
-        ? "AI suggestions are currently ON. Would you like to turn them off and only receive feedback from the community?"
-        : "AI suggestions are currently OFF. Would you like to turn them on to receive AI-powered style advice?",
+        ? "Style suggestions from your personal stylist are currently ON. Would you like to turn them off and only receive feedback from the community?"
+        : "Style suggestions are currently OFF. Would you like to turn them on to receive personalized styling advice?",
       [
         { 
-          text: isEnabled ? "Turn Off AI" : "Turn On AI", 
+          text: isEnabled ? "Turn Off" : "Turn On", 
           onPress: () => updateProfile({ aiSuggestionsEnabled: !isEnabled }) 
         },
         { text: "Cancel", style: "cancel" },
@@ -333,8 +333,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="cpu"
-            title="AI Style Suggestions"
-            subtitle={user?.aiSuggestionsEnabled !== false ? "On - Get AI advice" : "Off - Community only"}
+            title="Style Suggestions"
+            subtitle={user?.aiSuggestionsEnabled !== false ? "On - Get stylist advice" : "Off - Community only"}
             onPress={handleAISuggestions}
             theme={theme}
           />

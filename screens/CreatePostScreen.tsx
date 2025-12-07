@@ -211,10 +211,10 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
 
     if (requestAIAdvice && !canRequestAIAdvice()) {
       Alert.alert(
-        "AI Advice Limit Reached", 
-        `You've used all ${limits.aiAdvicePerMonth} AI advice requests this month.`,
+        "Stylist Advice Limit Reached", 
+        `You've used all ${limits.aiAdvicePerMonth} stylist advice requests this month.`,
         [
-          { text: "Post Without AI", onPress: () => setRequestAIAdvice(false) },
+          { text: "Post Anyway", onPress: () => setRequestAIAdvice(false) },
           { text: "Upgrade", onPress: () => onClose() },
         ]
       );
@@ -297,9 +297,9 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
           </ThemedText>
         </View>
         <View style={styles.usageItem}>
-          <Feather name="cpu" size={14} color={theme.tabIconDefault} />
+          <Feather name="star" size={14} color={theme.tabIconDefault} />
           <ThemedText type="caption">
-            {remainingAI === Infinity ? "Unlimited" : `${remainingAI} AI`}
+            {remainingAI === Infinity ? "Unlimited" : `${remainingAI} advice`}
           </ThemedText>
         </View>
         {postType === "comparison" ? (
@@ -562,16 +562,16 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
             style={styles.aiToggle}
           >
             <View style={styles.aiToggleContent}>
-              <Feather name="cpu" size={20} color={theme.link} />
+              <Feather name="star" size={20} color={theme.link} />
               <View style={styles.aiToggleText}>
                 <ThemedText type="body" style={styles.aiToggleTitle}>
-                  Get AI Styling Advice
+                  Get Stylist Advice
                 </ThemedText>
                 <ThemedText type="small" style={styles.aiToggleSubtitle}>
                   {remainingAI === 0 
-                    ? "No AI requests remaining this month" 
+                    ? "No stylist requests remaining this month" 
                     : remainingAI === Infinity 
-                      ? "Unlimited AI advice" 
+                      ? "Unlimited stylist advice" 
                       : `${remainingAI} requests remaining`}
                 </ThemedText>
               </View>

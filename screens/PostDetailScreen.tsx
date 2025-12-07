@@ -152,8 +152,8 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
 
     if (!canRequestAIAdvice()) {
       Alert.alert(
-        "AI Advice Limit Reached",
-        "You've used all your AI advice requests this month. Upgrade your plan for unlimited AI styling advice.",
+        "Stylist Advice Limit Reached",
+        "You've used all your stylist advice requests this month. Upgrade your plan for unlimited styling advice.",
         [
           { text: "Maybe Later", style: "cancel" },
           { text: "View Plans", onPress: () => navigation.navigate("Subscription") },
@@ -184,8 +184,9 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
 
       await addComment(postId, {
         postId,
-        userId: "ai-stylist",
-        userName: "Dripn AI",
+        userId: "stylist",
+        userName: "Dripn Stylist",
+        userAvatar: null,
         content: advice.mainAdvice,
         isVoice: false,
         isAI: true,
@@ -193,7 +194,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      Alert.alert("Error", "Could not get AI advice. Please try again.");
+      Alert.alert("Error", "Could not get styling advice. Please try again.");
     } finally {
       setIsRequestingAI(false);
     }
@@ -258,7 +259,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
         {comment.userAvatar ? (
           <Image source={{ uri: comment.userAvatar }} style={styles.commentAvatarImage} />
         ) : comment.isAI ? (
-          <Feather name="cpu" size={16} color={theme.link} />
+          <Feather name="star" size={16} color={theme.link} />
         ) : comment.isVoice ? (
           <Feather name="mic" size={16} color={theme.link} />
         ) : (
@@ -273,7 +274,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
           {comment.isAI ? (
             <View style={[styles.aiBadge, { backgroundColor: theme.link }]}>
               <ThemedText type="caption" style={styles.aiBadgeText}>
-                AI
+                Stylist
               </ThemedText>
             </View>
           ) : null}
@@ -457,9 +458,9 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
                 { backgroundColor: theme.link, opacity: isRequestingAI ? 0.6 : pressed ? 0.8 : 1 },
               ]}
             >
-              <Feather name="cpu" size={20} color="#FFFFFF" />
+              <Feather name="star" size={20} color="#FFFFFF" />
               <ThemedText type="body" style={styles.aiRequestButtonText}>
-                {isRequestingAI ? "Getting AI Advice..." : "Get AI Style Advice"}
+                {isRequestingAI ? "Getting Stylist Advice..." : "Get Stylist Advice"}
               </ThemedText>
             </Pressable>
           ) : null}
@@ -471,9 +472,9 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
           {post.aiAdvice || aiAdvice ? (
             <View style={[styles.aiAdviceCard, { backgroundColor: theme.backgroundDefault }]}>
               <View style={styles.aiAdviceHeader}>
-                <Feather name="cpu" size={18} color={theme.link} />
+                <Feather name="star" size={18} color={theme.link} />
                 <ThemedText type="h3" style={{ color: theme.link }}>
-                  Dripn AI Advice
+                  Stylist Advice
                 </ThemedText>
               </View>
               <ThemedText type="body" style={styles.aiAdviceText}>

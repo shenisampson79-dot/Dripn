@@ -175,8 +175,8 @@ export function PostCard({
         <View style={[styles.avatar, { backgroundColor: theme.backgroundSecondary }]}>
           {post.userAvatar ? (
             <Image source={{ uri: post.userAvatar }} style={styles.avatarImage} />
-          ) : post.userId === "ai-stylist" ? (
-            <Feather name="cpu" size={18} color={theme.link} />
+          ) : post.userId === "stylist" ? (
+            <Feather name="star" size={18} color={theme.link} />
           ) : (
             <Feather name="user" size={18} color={theme.tabIconDefault} />
           )}
@@ -299,9 +299,9 @@ export function PostCard({
       {post.aiAdvice && !compact ? (
         <View style={[styles.aiAdvice, { backgroundColor: theme.backgroundSecondary }]}>
           <View style={styles.aiAdviceHeader}>
-            <Feather name="cpu" size={14} color={theme.link} />
+            <Feather name="star" size={14} color={theme.link} />
             <ThemedText type="small" style={{ color: theme.link, fontWeight: "600" }}>
-              AI Advice
+              Style Advice
             </ThemedText>
           </View>
           <ThemedText type="small" numberOfLines={2} style={styles.aiAdviceText}>

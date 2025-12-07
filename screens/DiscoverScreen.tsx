@@ -1858,10 +1858,10 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             </View>
             <View style={styles.blogContent}>
               <ThemedText type="h3" style={styles.blogTitle}>
-                AI Stylist
+                Personal Stylist
               </ThemedText>
               <ThemedText type="body" style={styles.blogDescription}>
-                Chat with your personal AI stylist for outfit suggestions from your wardrobe
+                Chat with Ruby or Max, your personal stylist, for outfit suggestions from your wardrobe
               </ThemedText>
               <View style={styles.blogCta}>
                 <ThemedText type="small" style={styles.blogCtaText}>
@@ -2059,7 +2059,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
                 Fashion Blog
               </ThemedText>
               <ThemedText type="body" style={styles.blogDescription}>
-                Weekly style tips, trend reports, and expert fashion advice curated by our AI stylists
+                Weekly style tips, trend reports, and expert fashion advice curated by our style experts
               </ThemedText>
               <View style={styles.blogCta}>
                 <ThemedText type="small" style={styles.blogCtaText}>

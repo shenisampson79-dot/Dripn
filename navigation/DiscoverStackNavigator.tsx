@@ -62,7 +62,7 @@ export default function DiscoverStackNavigator() {
       <Stack.Screen
         name="AIStylist"
         component={AIStylistScreen}
-        options={{ headerTitle: "AI Stylist" }}
+        options={{ headerTitle: "Personal Stylist" }}
       />
       <Stack.Screen
         name="VisualSearch"

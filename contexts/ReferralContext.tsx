@@ -59,7 +59,7 @@ const REFERRAL_REWARDS = {
   perReferral: {
     aiRequests: 20,
     discount: 10,
-    description: '+20 AI advice requests & 10% discount',
+    description: '+20 styling advice requests & 10% discount',
   },
   milestones: [
     { referrals: 3, reward: 'style_starter', description: 'Style Starter badge' },
@@ -165,7 +165,7 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
           id: Date.now().toString(),
           type: 'ai_requests' as const,
           value: 20,
-          description: 'Welcome bonus: +20 AI requests & 10% discount',
+          description: 'Welcome bonus: +20 styling requests & 10% discount',
           earnedAt: new Date().toISOString(),
         },
       ],
@@ -186,7 +186,7 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
   };
 
   const getReferralBonusInfo = (): string => {
-    return `You both get ${REFERRAL_REWARDS.perReferral.aiRequests} free AI advice requests & ${REFERRAL_REWARDS.perReferral.discount}% discount when your friend signs up!`;
+    return `You both get ${REFERRAL_REWARDS.perReferral.aiRequests} free styling advice requests & ${REFERRAL_REWARDS.perReferral.discount}% discount when your friend signs up!`;
   };
 
   const value: ReferralContextType = {

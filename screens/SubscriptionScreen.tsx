@@ -38,16 +38,16 @@ const PLAN_FEATURES: Record<SubscriptionTier, PlanFeature[]> = {
   free: [
     { text: "3 posts per month", included: true },
     { text: "Community voting", included: true },
-    { text: "Basic AI styling tips", included: true },
+    { text: "Basic styling tips", included: true },
     { text: "Standard feed", included: true },
-    { text: "Unlimited AI advice", included: false },
+    { text: "Unlimited stylist advice", included: false },
     { text: "Priority support", included: false },
     { text: "No ads", included: false },
   ],
   basic: [
     { text: "20 posts per month", included: true },
     { text: "Community voting", included: true },
-    { text: "Full AI styling advice", included: true },
+    { text: "Full styling advice", included: true },
     { text: "Regional feed filters", included: true },
     { text: "Voice comments", included: true },
     { text: "Ad-free experience", included: true },
@@ -55,7 +55,7 @@ const PLAN_FEATURES: Record<SubscriptionTier, PlanFeature[]> = {
   ],
   premium: [
     { text: "100 posts per month", included: true },
-    { text: "Priority AI styling advice", included: true },
+    { text: "Priority styling advice", included: true },
     { text: "Exclusive style reports", included: true },
     { text: "All feed filters + VIP events preview", included: true },
     { text: "Unlimited voice comments", included: true },
@@ -67,7 +67,7 @@ const PLAN_FEATURES: Record<SubscriptionTier, PlanFeature[]> = {
     { text: "Video calls with VIP members", included: true },
     { text: "Unlimited posts", included: true },
     { text: "Exclusive VIP badge", included: true },
-    { text: "Personal AI stylist", included: true },
+    { text: "Personal stylist (Ruby/Max)", included: true },
     { text: "Early access to features", included: true },
     { text: "Exclusive community events", included: true },
     { text: "Completely ad-free", included: true },
@@ -294,8 +294,8 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
           </View>
           <View style={styles.usageItem}>
             <View style={styles.usageHeader}>
-              <Feather name="cpu" size={16} color={theme.link} />
-              <ThemedText type="small">AI Advice</ThemedText>
+              <Feather name="star" size={16} color={theme.link} />
+              <ThemedText type="small">Style Advice</ThemedText>
             </View>
             <View style={[styles.usageBar, { backgroundColor: theme.backgroundSecondary }]}>
               <View 

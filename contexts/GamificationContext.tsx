@@ -170,7 +170,7 @@ const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'first_advice',
     name: 'Advice Seeker',
-    description: 'Get your first AI styling advice',
+    description: 'Get your first styling advice',
     category: 'styling',
     iconName: 'message-circle',
     requiredProgress: 1,
@@ -179,7 +179,7 @@ const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'advice_20',
     name: 'Style Student',
-    description: 'Get 20 AI styling advice sessions',
+    description: 'Get 20 styling advice sessions',
     category: 'styling',
     iconName: 'book-open',
     requiredProgress: 20,
@@ -331,7 +331,7 @@ const SPIN_REWARDS: SpinReward[] = [
   { id: 'points_250', name: '250 Points', type: 'points', value: 250, probability: 0.02, color: '#9B59B6' },
   { id: 'discount_10', name: '10% Off', type: 'discount', value: '10%', probability: 0.10, color: '#E67E22' },
   { id: 'discount_20', name: '20% Off', type: 'discount', value: '20%', probability: 0.05, color: '#E74C3C' },
-  { id: 'extra_advice', name: 'Extra AI Advice', type: 'feature', value: '+1 AI Advice', probability: 0.10, color: '#3498DB' },
+  { id: 'extra_advice', name: 'Extra Style Advice', type: 'feature', value: '+1 Style Advice', probability: 0.10, color: '#3498DB' },
   { id: 'nothing', name: 'Try Again', type: 'nothing', value: 0, probability: 0.05, color: '#95A5A6' },
 ];
 

@@ -30,7 +30,7 @@ const STYLIST_FEATURES: StylistFeature[] = [
   {
     id: "ai-stylist",
     title: "Personal Stylist",
-    description: "Chat with your AI stylist for personalized outfit recommendations based on your wardrobe",
+    description: "Chat with your personal stylist for outfit recommendations based on your wardrobe",
     icon: "message-circle",
     screen: "AIStylist",
     gradientColors: ["#667eea", "#764ba2"] as const,

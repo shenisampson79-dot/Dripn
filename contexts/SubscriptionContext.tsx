@@ -185,7 +185,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     interval: 'month',
     features: [
       '5 outfit posts per month',
-      '3 AI styling advice requests',
+      '3 styling advice requests',
       '2 comparison polls',
       'Community feedback',
     ],
@@ -199,7 +199,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     priceId: 'price_basic_monthly',
     features: [
       '20 outfit posts per month',
-      '15 AI styling advice requests',
+      '15 styling advice requests',
       '10 voice comments',
       '30 second videos',
       'Custom themes',
@@ -216,7 +216,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     popular: true,
     features: [
       '100 outfit posts per month',
-      '50 AI styling advice requests',
+      '50 styling advice requests',
       '50 voice comments',
       '60 second videos',
       'Priority support',
@@ -237,7 +237,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Video calls with VIP members',
       'Unlimited posts',
       'Exclusive VIP badge',
-      'Personal AI stylist',
+      'Personal stylist chat',
       'Early access to features',
       'Exclusive community events',
       'Completely ad-free',

@@ -34,10 +34,10 @@ const TOUR_STEPS: TourStep[] = [
     highlight: "You're not alone on your style journey",
   },
   {
-    icon: "cpu",
-    title: "AI Suggestions Are Optional",
-    description: "By default, you'll receive AI-powered style advice alongside community feedback. But you can turn off AI suggestions anytime in Settings if you prefer advice only from real community members.",
-    highlight: "Settings > AI Style Suggestions",
+    icon: "star",
+    title: "Personal Stylist Included",
+    description: "By default, you'll receive personalized style advice from your personal stylist (Ruby or Max) alongside community feedback. You can turn off style suggestions anytime in Settings if you prefer advice only from real community members.",
+    highlight: "Settings > Style Suggestions",
   },
   {
     icon: "camera",

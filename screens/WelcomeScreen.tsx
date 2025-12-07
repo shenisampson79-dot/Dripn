@@ -29,7 +29,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
             resizeMode="contain"
           />
           <ThemedText type="body" style={styles.tagline}>
-            Your personal AI stylist and global fashion community
+            Your personal stylist and global fashion community
           </ThemedText>
         </View>
 
@@ -43,7 +43,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           <FeatureItem
             icon="message-circle"
             title="Expert Advice"
-            description="AI styling tips and community support"
+            description="Personal styling tips and community support"
             theme={theme}
           />
           <FeatureItem

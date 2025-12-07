@@ -30,6 +30,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
+import { getStylistForUser, getStylistGreeting, PersonalStylist } from '@/services/PersonalStylistService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const INPUT_CONTAINER_HEIGHT = 80;
@@ -65,11 +66,6 @@ const QUICK_PROMPTS: QuickPrompt[] = [
   { id: 'color', label: 'Color Advice', prompt: 'What colors go well together from my wardrobe?', icon: 'droplet' },
 ];
 
-const AI_GREETINGS = [
-  "Hello! I'm your personal AI stylist. I've looked through your wardrobe and I'm ready to help you create amazing outfits. What occasion are you dressing for?",
-  "Welcome! I'm here to help you look your best. I've analyzed your wardrobe and can suggest outfits tailored to your style. What's on your schedule today?",
-  "Hi there! As your AI stylist, I have access to your wardrobe and can help you put together the perfect look. What are we styling for today?",
-];
 
 function generateAIResponse(
   userMessage: string,
@@ -298,6 +294,8 @@ export default function AIStylistScreen() {
   const navigation = useNavigation();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
   
+  const stylist = getStylistForUser(user?.gender || null);
+  
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -333,7 +331,7 @@ export default function AIStylistScreen() {
   
   useEffect(() => {
     if (messages.length === 0) {
-      const greeting = AI_GREETINGS[Math.floor(Math.random() * AI_GREETINGS.length)];
+      const greeting = getStylistGreeting(stylist);
       const greetingMessage: ChatMessage = {
         id: `msg_${Date.now()}`,
         role: 'assistant',
@@ -342,7 +340,7 @@ export default function AIStylistScreen() {
       };
       setMessages([greetingMessage]);
     }
-  }, []);
+  }, [stylist]);
   
   const loadChatHistory = async () => {
     try {
@@ -468,7 +466,7 @@ export default function AIStylistScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
     
-    const greeting = AI_GREETINGS[Math.floor(Math.random() * AI_GREETINGS.length)];
+    const greeting = getStylistGreeting(stylist);
     const greetingMessage: ChatMessage = {
       id: `msg_${Date.now()}`,
       role: 'assistant',
@@ -493,8 +491,8 @@ export default function AIStylistScreen() {
         ]}
       >
         {!isUser ? (
-          <View style={[styles.avatarContainer, { backgroundColor: theme.link }]}>
-            <Feather name="zap" size={16} color="#FFFFFF" />
+          <View style={[styles.avatarContainer, { backgroundColor: stylist.color }]}>
+            <Feather name={stylist.icon} size={16} color="#FFFFFF" />
           </View>
         ) : null}
         
@@ -589,17 +587,17 @@ export default function AIStylistScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <LinearGradient
-            colors={[theme.link, theme.success]}
+            colors={stylist.id === 'ruby' ? ['#E91E63', '#FF4081'] : [theme.link, theme.success]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.stylistIcon}
           >
-            <Feather name="zap" size={20} color="#FFFFFF" />
+            <Feather name={stylist.icon} size={20} color="#FFFFFF" />
           </LinearGradient>
           <View>
-            <ThemedText style={styles.headerTitle}>AI Stylist</ThemedText>
+            <ThemedText style={styles.headerTitle}>{stylist.name}</ThemedText>
             <ThemedText style={[styles.headerSubtitle, { color: theme.tabIconDefault }]}>
-              {wardrobeItems.length} items in wardrobe
+              Your Personal Stylist
             </ThemedText>
           </View>
         </View>
@@ -648,13 +646,13 @@ export default function AIStylistScreen() {
     <>
       {isTyping ? (
         <View style={styles.typingContainer}>
-          <View style={[styles.avatarContainer, { backgroundColor: theme.link }]}>
-            <Feather name="zap" size={16} color="#FFFFFF" />
+          <View style={[styles.avatarContainer, { backgroundColor: stylist.id === 'ruby' ? '#E91E63' : theme.link }]}>
+            <Feather name={stylist.icon} size={16} color="#FFFFFF" />
           </View>
           <View style={[styles.typingBubble, { backgroundColor: theme.backgroundSecondary }]}>
-            <ActivityIndicator size="small" color={theme.link} />
+            <ActivityIndicator size="small" color={stylist.id === 'ruby' ? '#E91E63' : theme.link} />
             <ThemedText style={[styles.typingText, { color: theme.tabIconDefault }]}>
-              Styling...
+              {stylist.name} is styling...
             </ThemedText>
           </View>
         </View>
