@@ -1154,106 +1154,10 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
           Discover New Styles
         </ThemedText>
         <Pressable
-          onPress={() => navigation.navigate("StyleShuffle")}
-          style={({ pressed }) => [
-            styles.blogCard,
-            { opacity: pressed ? 0.9 : 1 },
-          ]}
-        >
-          <LinearGradient
-            colors={[theme.success, theme.success + "CC"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.blogGradient}
-          >
-            <View style={styles.blogIconContainer}>
-              <Feather name="shuffle" size={28} color="#FFFFFF" />
-            </View>
-            <View style={styles.blogContent}>
-              <ThemedText type="h3" style={styles.blogTitle}>
-                Style Shuffle
-              </ThemedText>
-              <ThemedText type="body" style={styles.blogDescription}>
-                Swipe through curated outfits to discover new styles that match your preferences
-              </ThemedText>
-              <View style={styles.blogCta}>
-                <ThemedText type="small" style={styles.blogCtaText}>
-                  Start Swiping
-                </ThemedText>
-                <Feather name="arrow-right" size={16} color="#FFFFFF" />
-              </View>
-            </View>
-          </LinearGradient>
-        </Pressable>
-        <Pressable
-          onPress={() => navigation.navigate("AIStylist")}
-          style={({ pressed }) => [
-            styles.blogCard,
-            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.md },
-          ]}
-        >
-          <LinearGradient
-            colors={[theme.info, theme.info + "CC"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.blogGradient}
-          >
-            <View style={styles.blogIconContainer}>
-              <Feather name="zap" size={28} color="#FFFFFF" />
-            </View>
-            <View style={styles.blogContent}>
-              <ThemedText type="h3" style={styles.blogTitle}>
-                Personal Stylist
-              </ThemedText>
-              <ThemedText type="body" style={styles.blogDescription}>
-                Chat with Ruby or Max, your personal stylist, for outfit suggestions from your wardrobe
-              </ThemedText>
-              <View style={styles.blogCta}>
-                <ThemedText type="small" style={styles.blogCtaText}>
-                  Start Chat
-                </ThemedText>
-                <Feather name="arrow-right" size={16} color="#FFFFFF" />
-              </View>
-            </View>
-          </LinearGradient>
-        </Pressable>
-        <Pressable
-          onPress={() => navigation.navigate("VisualSearch")}
-          style={({ pressed }) => [
-            styles.blogCard,
-            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.md },
-          ]}
-        >
-          <LinearGradient
-            colors={[theme.warning, theme.warning + "CC"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.blogGradient}
-          >
-            <View style={styles.blogIconContainer}>
-              <Feather name="search" size={28} color="#FFFFFF" />
-            </View>
-            <View style={styles.blogContent}>
-              <ThemedText type="h3" style={styles.blogTitle}>
-                Visual Search
-              </ThemedText>
-              <ThemedText type="body" style={styles.blogDescription}>
-                Upload a photo and find similar items from top retailers instantly
-              </ThemedText>
-              <View style={styles.blogCta}>
-                <ThemedText type="small" style={styles.blogCtaText}>
-                  Search Now
-                </ThemedText>
-                <Feather name="arrow-right" size={16} color="#FFFFFF" />
-              </View>
-            </View>
-          </LinearGradient>
-        </Pressable>
-        <Pressable
           onPress={() => navigation.navigate("Gamification")}
           style={({ pressed }) => [
             styles.blogCard,
-            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.md },
+            { opacity: pressed ? 0.9 : 1 },
           ]}
         >
           <LinearGradient
