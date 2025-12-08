@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -202,6 +202,8 @@ export default function StyleShuffleScreen() {
   const [swipesToday, setSwipesToday] = useState(0);
   const [lastAction, setLastAction] = useState<'like' | 'pass' | null>(null);
   const [showMatchOverlay, setShowMatchOverlay] = useState(false);
+  const overlayTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const overlayHideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const filteredOutfits = React.useMemo(() => {
     if (genderFilter === 'all') {
@@ -230,6 +232,21 @@ export default function StyleShuffleScreen() {
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  useEffect(() => {
+    matchOverlayOpacity.value = 0;
+    matchOverlayScale.value = 0;
+    setShowMatchOverlay(false);
+    
+    return () => {
+      if (overlayTimerRef.current) {
+        clearTimeout(overlayTimerRef.current);
+      }
+      if (overlayHideTimerRef.current) {
+        clearTimeout(overlayHideTimerRef.current);
+      }
+    };
   }, []);
 
   const loadData = async () => {
@@ -283,7 +300,20 @@ export default function StyleShuffleScreen() {
     }
   };
 
+  const hideOverlay = useCallback(() => {
+    matchOverlayOpacity.value = 0;
+    matchOverlayScale.value = 0;
+    setShowMatchOverlay(false);
+  }, []);
+
   const triggerMatchOverlay = useCallback(() => {
+    if (overlayTimerRef.current) {
+      clearTimeout(overlayTimerRef.current);
+    }
+    if (overlayHideTimerRef.current) {
+      clearTimeout(overlayHideTimerRef.current);
+    }
+    
     setShowMatchOverlay(true);
     matchOverlayScale.value = withSequence(
       withSpring(1.2, { damping: 12, stiffness: 300 }),
@@ -291,14 +321,14 @@ export default function StyleShuffleScreen() {
     );
     matchOverlayOpacity.value = withTiming(1, { duration: 200 });
     
-    setTimeout(() => {
+    overlayTimerRef.current = setTimeout(() => {
       matchOverlayOpacity.value = withTiming(0, { duration: 300 });
       matchOverlayScale.value = withTiming(0, { duration: 300 });
-      setTimeout(() => {
-        setShowMatchOverlay(false);
+      overlayHideTimerRef.current = setTimeout(() => {
+        hideOverlay();
       }, 350);
     }, 700);
-  }, []);
+  }, [hideOverlay]);
 
   const resetCardPosition = useCallback(() => {
     cancelAnimation(translateX);
