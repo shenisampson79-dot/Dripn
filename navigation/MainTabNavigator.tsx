@@ -219,7 +219,8 @@ const styles = StyleSheet.create({
   centerButtonContainer: {
     alignItems: "center",
     justifyContent: "flex-end",
-    marginHorizontal: Spacing.xs,
+    marginLeft: Spacing.md,
+    marginRight: Spacing.xs,
     paddingBottom: 4,
   },
   centerButton: {
