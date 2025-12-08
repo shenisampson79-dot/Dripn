@@ -109,9 +109,104 @@ const MOOD_CONFIG: Record<string, MoodInfo> = {
 function generateAIResponse(
   userMessage: string,
   wardrobeItems: WardrobeItem[],
-  userGender: string
+  userGender: string,
+  stylistName: string = 'your stylist'
 ): { content: string; outfitSuggestion?: ChatMessage['outfitSuggestion'] } {
   const lowerMessage = userMessage.toLowerCase();
+  
+  const greetingPatterns = [
+    'hey', 'hello', 'hi', 'howdy', 'hiya', 'yo', 'sup', "what's up", 'whats up',
+    'good morning', 'good afternoon', 'good evening', 'how are you', 'how r u',
+    'how do you do', "how's it going", 'hows it going', 'nice to meet',
+  ];
+  
+  const thanksPatterns = [
+    'thank', 'thanks', 'thx', 'appreciate', 'grateful', 'cheers',
+  ];
+  
+  const byePatterns = [
+    'bye', 'goodbye', 'see you', 'see ya', 'later', 'gotta go', 'got to go', 'cya',
+  ];
+  
+  const aboutYouPatterns = [
+    'who are you', 'what are you', 'tell me about yourself', 'your name',
+    'what can you do', 'what do you do', 'how can you help',
+  ];
+  
+  const outfitIntentPatterns = [
+    'outfit', 'wear', 'suggest', 'recommend', 'style', 'look',
+    'dress', 'clothes', 'wardrobe', 'party', 'date', 'casual', 'formal',
+    'wedding', 'gym', 'vacation', 'color', 'colour', 'match', 'pair', 'capsule',
+    'essentials', 'what should i', 'pick out', 'put together',
+  ];
+  
+  const isGreeting = greetingPatterns.some(p => lowerMessage.includes(p));
+  const isThanks = thanksPatterns.some(p => lowerMessage.includes(p));
+  const isBye = byePatterns.some(p => lowerMessage.includes(p));
+  const isAboutYou = aboutYouPatterns.some(p => lowerMessage.includes(p));
+  const hasOutfitIntent = outfitIntentPatterns.some(p => lowerMessage.includes(p));
+  
+  const isMaleStylist = stylistName.toLowerCase() === 'max';
+  
+  if (isGreeting && !hasOutfitIntent) {
+    const greetingResponses = isMaleStylist ? [
+      "Hey! I'm doing great, thanks for asking! Ready to help you look sharp. What's on your mind today - need some outfit ideas or style advice?",
+      "What's up! I'm here and ready to level up your style game. So what are we working with today?",
+      "Hey there! Good to hear from you. I'm pumped to help you put together some killer looks. What's the occasion?",
+      "Yo! I'm all set to help you out. Whether it's a casual day or something special, I've got you covered. What do you need?",
+    ] : [
+      "Hey! I'm doing wonderful, thank you for asking! So lovely to chat with you. What can I help you with today - outfit ideas, style tips, or just a fashion chat?",
+      "Hello there! I'm fabulous, thanks! I'm so excited to help you create some stunning looks. What's the occasion?",
+      "Hi! I'm great, thanks for checking in! Ready to make you look absolutely amazing. What are we styling for today?",
+      "Hey lovely! I'm here and ready to help you shine. Tell me what you're looking for and let's create some magic together!",
+    ];
+    return {
+      content: greetingResponses[Math.floor(Math.random() * greetingResponses.length)],
+    };
+  }
+  
+  if (isThanks && !hasOutfitIntent) {
+    const thanksResponses = isMaleStylist ? [
+      "No problem at all! That's what I'm here for. Hit me up anytime you need style advice!",
+      "You got it! Always happy to help you look your best. Come back anytime!",
+      "Anytime! Helping you nail your style is what I do. Let me know if you need anything else!",
+    ] : [
+      "You're so welcome! It's my absolute pleasure to help you look fabulous. Come back anytime!",
+      "Aww, you're welcome! Helping you shine is what I love doing. Don't hesitate to reach out whenever you need me!",
+      "Of course! I'm always here for you. Styling you is such a joy - come back soon!",
+    ];
+    return {
+      content: thanksResponses[Math.floor(Math.random() * thanksResponses.length)],
+    };
+  }
+  
+  if (isBye && !hasOutfitIntent) {
+    const byeResponses = isMaleStylist ? [
+      "Catch you later! Go out there and own your look. You've got this!",
+      "Take care! Remember, confidence is the best accessory. See you soon!",
+      "Later! Come back anytime you need to level up your style game!",
+    ] : [
+      "Goodbye for now! Go out there and absolutely slay. You're going to look amazing!",
+      "See you soon! Remember, you're beautiful inside and out. Take care!",
+      "Bye for now, lovely! Come back anytime you need some style magic!",
+    ];
+    return {
+      content: byeResponses[Math.floor(Math.random() * byeResponses.length)],
+    };
+  }
+  
+  if (isAboutYou && !hasOutfitIntent) {
+    const aboutResponses = isMaleStylist ? [
+      "I'm Max, your personal AI stylist! I'm here to help you put together outfits, give you style advice, and make sure you always look your best. Add clothes to your digital wardrobe and I can create personalized outfit recommendations based on the occasion. What would you like help with?",
+      "The name's Max! I'm your go-to guy for all things style. I can help you pick outfits, give fashion tips, and work with whatever's in your wardrobe. Think of me as your style wingman. What do you need?",
+    ] : [
+      "I'm Ruby, your personal AI stylist! I'm here to help you create beautiful outfits, offer style advice, and make sure you always feel confident and fabulous. Add clothes to your digital wardrobe and I'll create personalized recommendations just for you. What can I help you with today?",
+      "I'm Ruby! Think of me as your personal style bestie. I'm here to help you look and feel amazing - from outfit suggestions to fashion tips. Together, we'll create looks you'll absolutely love. What would you like to work on?",
+    ];
+    return {
+      content: aboutResponses[Math.floor(Math.random() * aboutResponses.length)],
+    };
+  }
   
   const emotionalKeywords = [
     'sad', 'upset', 'angry', 'frustrated', 'stressed', 'anxious', 'worried', 'tired',
@@ -133,7 +228,7 @@ function generateAIResponse(
   const hasPositiveContent = positiveKeywords.some(keyword => lowerMessage.includes(keyword));
   const seemsNegative = hasEmotionalContent && !hasPositiveContent;
   
-  if (seemsNegative) {
+  if (seemsNegative && !hasOutfitIntent) {
     const supportiveResponses = [
       "I'm really sorry to hear you're going through this. That sounds incredibly tough. I'm here for you - sometimes just having someone to talk to can help. Would you like to chat about what's on your mind, or would you prefer a distraction? I'm happy to help with either.",
       "Oh, I can hear that you're hurting right now. Please know that your feelings are completely valid. I'm here to listen if you want to share more. Sometimes when we're going through difficult times, a little self-care goes a long way. Is there anything I can do to help you feel a bit better?",
@@ -155,8 +250,15 @@ function generateAIResponse(
   const hasWardrobe = wardrobeItems.length > 0;
   
   if (!hasWardrobe) {
+    const emptyWardrobeResponses = isMaleStylist ? [
+      "I notice your digital wardrobe is empty! To give you personalized outfit suggestions, add some items to your wardrobe first. Snap some photos of your clothes and I'll help you create awesome outfits with them.",
+      "Looks like your wardrobe is waiting to be filled! Add some pieces by taking photos of your clothes, and I'll start putting together some solid looks for you.",
+    ] : [
+      "I notice your digital wardrobe is empty! To give you personalized outfit suggestions, please add some items to your wardrobe first. You can photograph your clothes and I'll help you create amazing outfits with them!",
+      "Your wardrobe is looking a bit empty, lovely! Let's fix that - take some photos of your clothes and add them here. Once you do, I'll create gorgeous outfit combinations just for you!",
+    ];
     return {
-      content: "I notice your digital wardrobe is empty! To give you personalized outfit suggestions, please add some items to your wardrobe first. You can photograph your clothes and I'll help you create amazing outfits with them.",
+      content: emptyWardrobeResponses[Math.floor(Math.random() * emptyWardrobeResponses.length)],
     };
   }
   
@@ -211,8 +313,7 @@ function generateAIResponse(
     return { content: colorAdvice };
   }
   
-  if (lowerMessage.includes('today') || lowerMessage.includes('suggest') || lowerMessage.includes('outfit') || 
-      lowerMessage.includes('wear') || lowerMessage.includes('help') || lowerMessage.includes('recommend')) {
+  if (hasOutfitIntent) {
     
     const selectedItems: WardrobeItem[] = [];
     let responseContent = '';
@@ -1019,7 +1120,7 @@ export default function AIStylistScreen() {
       }, 100);
     } catch (error) {
       console.log('API call failed, using fallback:', error);
-      const response = generateAIResponse(text, wardrobeItems, user?.gender || 'unspecified');
+      const response = generateAIResponse(text, wardrobeItems, user?.gender || 'unspecified', stylist.name);
       
       const assistantMessage: ChatMessage = {
         id: `msg_${Date.now()}_assistant`,
