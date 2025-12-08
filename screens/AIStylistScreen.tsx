@@ -41,6 +41,7 @@ import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { getStylistForUser, getStylistGreeting, PersonalStylist } from '@/services/PersonalStylistService';
+import { apiService } from '@/services/ApiService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const INPUT_CONTAINER_HEIGHT = 80;
@@ -81,6 +82,26 @@ const QUICK_PROMPTS: QuickPrompt[] = [
   { id: 'party', label: 'Party Style', prompt: 'I need an outfit for a party tonight', icon: 'star' },
   { id: 'color', label: 'Color Advice', prompt: 'What colors go well together from my wardrobe?', icon: 'droplet' },
 ];
+
+interface MoodInfo {
+  icon: keyof typeof Feather.glyphMap;
+  color: string;
+  label: string;
+  typingMessage: string;
+}
+
+const MOOD_CONFIG: Record<string, MoodInfo> = {
+  happy: { icon: 'smile', color: '#10B981', label: 'Feeling great', typingMessage: 'is excited to help...' },
+  excited: { icon: 'star', color: '#F59E0B', label: 'Excited', typingMessage: 'is buzzing with ideas...' },
+  neutral: { icon: 'meh', color: '#6B7280', label: 'Focused', typingMessage: 'is styling...' },
+  stressed: { icon: 'cloud', color: '#EF4444', label: 'Here for you', typingMessage: 'is here to help...' },
+  sad: { icon: 'heart', color: '#8B5CF6', label: 'Caring for you', typingMessage: 'is sending love...' },
+  angry: { icon: 'shield', color: '#F97316', label: 'Understanding', typingMessage: 'is listening...' },
+  anxious: { icon: 'feather', color: '#06B6D4', label: 'Calming', typingMessage: 'is here for you...' },
+  frustrated: { icon: 'anchor', color: '#EC4899', label: 'Patient', typingMessage: 'understands...' },
+  tired: { icon: 'moon', color: '#6366F1', label: 'Gentle mode', typingMessage: 'is taking it easy...' },
+  grateful: { icon: 'gift', color: '#22C55E', label: 'Grateful', typingMessage: 'appreciates you...' },
+};
 
 
 function generateAIResponse(
@@ -321,6 +342,7 @@ export default function AIStylistScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [hasAudioPermission, setHasAudioPermission] = useState<boolean | null>(null);
+  const [detectedMood, setDetectedMood] = useState<string | null>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
@@ -551,6 +573,8 @@ export default function AIStylistScreen() {
   const handleVoiceMessage = async (uri: string, duration: number) => {
     if (!canSendMessage()) return;
 
+    const voiceMessageText = 'I just sent you a voice message about my style needs. Please help me with outfit suggestions.';
+
     const userMessage: ChatMessage = {
       id: `msg_${Date.now()}_user`,
       role: 'user',
@@ -570,7 +594,50 @@ export default function AIStylistScreen() {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
 
-    setTimeout(async () => {
+    try {
+      const wardrobeContext = wardrobeItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        color: item.color,
+        category: item.category,
+      }));
+      
+      const chatHistory = updatedMessages.slice(-10).map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+      
+      const response = await apiService.sendStylistMessage({
+        stylistId: stylist.id,
+        messages: chatHistory,
+        userMessage: voiceMessageText,
+        wardrobeItems: wardrobeContext,
+        userGender: user?.gender || 'unspecified',
+        subscriptionTier: tier,
+      });
+      
+      if (response.mood) {
+        setDetectedMood(response.mood.mood);
+      }
+
+      const assistantMessage: ChatMessage = {
+        id: `msg_${Date.now()}_assistant`,
+        role: 'assistant',
+        content: response.content,
+        timestamp: new Date().toISOString(),
+      };
+
+      const finalMessages = [...updatedMessages, assistantMessage];
+      setMessages(finalMessages);
+      setIsTyping(false);
+
+      await saveChatHistory(finalMessages);
+
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    } catch (error) {
+      console.log('API call failed for voice, using fallback:', error);
       const voiceResponses = [
         `I heard your voice message! Based on what you shared, let me put together some outfit ideas for you. For a versatile look, I'd suggest mixing your favorite pieces with some statement accessories.`,
         `Thanks for the voice message! I love that you're reaching out. Let me think about some combinations from your wardrobe that would work perfectly for you.`,
@@ -596,7 +663,7 @@ export default function AIStylistScreen() {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-    }, 1500 + Math.random() * 1000);
+    }
   };
 
   const loadChatHistory = async () => {
@@ -691,7 +758,50 @@ export default function AIStylistScreen() {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
     
-    setTimeout(async () => {
+    try {
+      const wardrobeContext = wardrobeItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        color: item.color,
+        category: item.category,
+      }));
+      
+      const chatHistory = updatedMessages.slice(-10).map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+      
+      const response = await apiService.sendStylistMessage({
+        stylistId: stylist.id,
+        messages: chatHistory,
+        userMessage: text.trim(),
+        wardrobeItems: wardrobeContext,
+        userGender: user?.gender || 'unspecified',
+        subscriptionTier: tier,
+      });
+      
+      if (response.mood) {
+        setDetectedMood(response.mood.mood);
+      }
+      
+      const assistantMessage: ChatMessage = {
+        id: `msg_${Date.now()}_assistant`,
+        role: 'assistant',
+        content: response.content,
+        timestamp: new Date().toISOString(),
+      };
+      
+      const finalMessages = [...updatedMessages, assistantMessage];
+      setMessages(finalMessages);
+      setIsTyping(false);
+      
+      await saveChatHistory(finalMessages);
+      
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    } catch (error) {
+      console.log('API call failed, using fallback:', error);
       const response = generateAIResponse(text, wardrobeItems, user?.gender || 'unspecified');
       
       const assistantMessage: ChatMessage = {
@@ -711,7 +821,7 @@ export default function AIStylistScreen() {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-    }, 1500 + Math.random() * 1000);
+    }
   };
   
   const handleQuickPrompt = (prompt: string) => {
@@ -839,6 +949,13 @@ export default function AIStylistScreen() {
   const showLimitWarning = remainingMessages !== Infinity && remainingMessages <= 3;
   const limitReached = !canSendMessage();
   
+  const getMoodInfo = (): MoodInfo | null => {
+    if (!detectedMood) return null;
+    return MOOD_CONFIG[detectedMood] || null;
+  };
+
+  const moodInfo = getMoodInfo();
+
   const renderHeader = () => (
     <View style={styles.headerContent}>
       <View style={styles.header}>
@@ -852,7 +969,20 @@ export default function AIStylistScreen() {
             <Feather name={stylist.icon} size={20} color="#FFFFFF" />
           </LinearGradient>
           <View>
-            <ThemedText style={styles.headerTitle}>{stylist.name}</ThemedText>
+            <View style={styles.headerTitleRow}>
+              <ThemedText style={styles.headerTitle}>{stylist.name}</ThemedText>
+              {moodInfo ? (
+                <Animated.View 
+                  entering={FadeIn.duration(300)}
+                  style={[styles.moodBadge, { backgroundColor: moodInfo.color + '20' }]}
+                >
+                  <Feather name={moodInfo.icon} size={10} color={moodInfo.color} />
+                  <ThemedText style={[styles.moodBadgeText, { color: moodInfo.color }]}>
+                    {moodInfo.label}
+                  </ThemedText>
+                </Animated.View>
+              ) : null}
+            </View>
             <ThemedText style={[styles.headerSubtitle, { color: theme.tabIconDefault }]}>
               Your Personal Stylist
             </ThemedText>
@@ -899,17 +1029,24 @@ export default function AIStylistScreen() {
     </View>
   );
   
+  const getTypingMessage = () => {
+    if (moodInfo) {
+      return `${stylist.name} ${moodInfo.typingMessage}`;
+    }
+    return `${stylist.name} is styling...`;
+  };
+
   const renderFooter = () => (
     <>
       {isTyping ? (
         <View style={styles.typingContainer}>
-          <View style={[styles.avatarContainer, { backgroundColor: stylist.id === 'ruby' ? '#E91E63' : theme.link }]}>
-            <Feather name={stylist.icon} size={16} color="#FFFFFF" />
+          <View style={[styles.avatarContainer, { backgroundColor: moodInfo ? moodInfo.color : (stylist.id === 'ruby' ? '#E91E63' : theme.link) }]}>
+            <Feather name={moodInfo ? moodInfo.icon : stylist.icon} size={16} color="#FFFFFF" />
           </View>
           <View style={[styles.typingBubble, { backgroundColor: theme.backgroundSecondary }]}>
-            <ActivityIndicator size="small" color={stylist.id === 'ruby' ? '#E91E63' : theme.link} />
+            <ActivityIndicator size="small" color={moodInfo ? moodInfo.color : (stylist.id === 'ruby' ? '#E91E63' : theme.link)} />
             <ThemedText style={[styles.typingText, { color: theme.tabIconDefault }]}>
-              {stylist.name} is styling...
+              {getTypingMessage()}
             </ThemedText>
           </View>
         </View>
@@ -1114,6 +1251,23 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...Typography.h3,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  moodBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+  },
+  moodBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   headerSubtitle: {
     ...Typography.caption,

@@ -610,6 +610,42 @@ class ApiService {
       body: JSON.stringify(data),
     });
   }
+
+  async sendStylistMessage(data: {
+    stylistId: string;
+    messages: Array<{ role: string; content: string }>;
+    userMessage: string;
+    wardrobeItems?: Array<{ id: string; name: string; color: string; category: string }>;
+    userGender?: string;
+    subscriptionTier?: string;
+  }) {
+    return this.request<{
+      content: string;
+      mood: {
+        mood: string;
+        confidence: number;
+        needsSupport: boolean;
+        topicType: string;
+      };
+      stylistId: string;
+      error?: string;
+    }>('/api/stylist/chat', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async detectMood(message: string) {
+    return this.request<{
+      mood: string;
+      confidence: number;
+      needsSupport: boolean;
+      topicType: string;
+    }>('/api/stylist/detect-mood', {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+  }
 }
 
 export const apiService = new ApiService();
