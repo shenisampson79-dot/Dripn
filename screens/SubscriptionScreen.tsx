@@ -228,7 +228,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
           <View
             style={[
               styles.planBadge,
-              { backgroundColor: colors.backgroundStart || colors.background },
+              { backgroundColor: 'backgroundStart' in colors ? colors.backgroundStart : colors.background },
             ]}
           >
             <ThemedText type="small" style={{ color: colors.text, fontWeight: "600" }}>
