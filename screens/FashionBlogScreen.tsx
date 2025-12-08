@@ -310,6 +310,166 @@ const FALLBACK_BLOG_POSTS: BlogPost[] = [
       { title: "Underwear Foundation", content: "Great outfits start with great foundations. Well-fitting, comfortable undergarments that support without digging make everything look better.", proTip: "Invest in professional bra fittings and quality shapewear if you like it - but never as a requirement, only if it makes you feel good." },
       { title: "Confidence is the Best Accessory", content: "The most impactful style element isn't what you wear - it's how you wear it. Stand tall, move with purpose, and own your look completely.", proTip: "Visit Fashion Therapy for confidence rituals and body positivity affirmations that help you step out with pride." }
     ]
+  },
+  {
+    id: "fallback-18",
+    subject: "Dripn Weekly: Discover Your Seasonal Colour Palette",
+    headline: "Spring, Summer, Autumn or Winter? Find Your Perfect Colour Season",
+    previewText: "The complete guide to seasonal colour analysis",
+    introduction: "Seasonal colour analysis has been used by stylists for decades to help people find the colours that make them glow. Understanding your season unlocks a whole new level of wardrobe coordination.",
+    category: "Colour Analysis",
+    tags: ["colour-season", "colour-analysis", "undertones", "palette"],
+    publishedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
+    tips: [
+      { title: "Spring Palette", content: "Warm undertones with clear, bright colouring. You suit coral, peach, warm greens, turquoise, and creamy whites. Think fresh, light, and warm.", proTip: "Springs look washed out in black - try warm navy or chocolate brown instead." },
+      { title: "Summer Palette", content: "Cool undertones with soft, muted colouring. Dusty rose, lavender, soft navy, powder blue, and cool greys enhance your natural beauty.", proTip: "Summers glow in pastels and muted tones - avoid bright neons that overwhelm." },
+      { title: "Autumn Palette", content: "Warm undertones with rich, muted colouring. Terracotta, olive, mustard, burgundy, and warm browns bring out your warmth.", proTip: "Autumns look stunning in earth tones - embrace rust, burnt orange, and forest green." },
+      { title: "Winter Palette", content: "Cool undertones with high contrast. True black, pure white, jewel tones like emerald and sapphire, and bold berry shades suit you perfectly.", proTip: "Winters can wear black beautifully - it enhances your natural drama and contrast." }
+    ]
+  },
+  {
+    id: "fallback-19",
+    subject: "Dripn Weekly: Master the Art of Colour Blocking",
+    headline: "Colour Blocking: Bold, Beautiful, and Easier Than You Think",
+    previewText: "Create striking outfits with confident colour combinations",
+    introduction: "Colour blocking is one of fashion's most impactful techniques. It looks complex but follows simple rules that anyone can master. Here's how to create bold, harmonious colour combinations.",
+    category: "Colour Styling",
+    tags: ["colour-blocking", "bold-style", "colour-combinations", "statement"],
+    publishedAt: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000).toISOString(),
+    tips: [
+      { title: "Complementary Colours", content: "Opposite colours on the colour wheel create maximum impact: orange and blue, purple and yellow, red and green. These combinations vibrate with energy.", proTip: "Start with one statement piece and let the complementary colour be your accessory." },
+      { title: "Analogous Harmony", content: "Colours next to each other on the wheel create sophisticated flow: blue to green, orange to red, purple to pink. These combinations feel cohesive and elegant.", proTip: "This is the easiest colour blocking technique for beginners - it's almost impossible to get wrong." },
+      { title: "Triadic Power", content: "Three colours evenly spaced on the wheel create dynamic energy: red, yellow, blue or orange, green, purple. Bold but balanced.", proTip: "Let one colour dominate at 60%, second at 30%, third at 10% for perfect balance." },
+      { title: "Neutral Anchoring", content: "Ground bold colours with neutrals. Black, white, navy, or camel can calm an outfit and make statement pieces pop even more.", proTip: "When in doubt, add a neutral bag and shoes to let your colour blocking shine without chaos." }
+    ]
+  },
+  {
+    id: "fallback-20",
+    subject: "Dripn Weekly: The Art of Pattern Mixing",
+    headline: "Pattern Mixing Made Easy: Rules the Pros Actually Follow",
+    previewText: "Combine prints like a fashion editor",
+    introduction: "Pattern mixing intimidates many, but it's actually governed by simple principles. Once you understand the rules, you can break them creatively and confidently.",
+    category: "Styling Techniques",
+    tags: ["patterns", "prints", "mixing", "styling"],
+    publishedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    tips: [
+      { title: "Vary the Scale", content: "Mix large prints with small prints. A bold floral top works beautifully with a fine stripe trouser. Same-size patterns compete for attention.", proTip: "If one pattern is large and dominant, make the other subtle and supporting." },
+      { title: "Share a Common Colour", content: "The easiest way to mix patterns is ensuring they share at least one colour. This creates visual cohesion even with very different prints.", proTip: "Pull the secondary colour from one pattern as the dominant colour in the other." },
+      { title: "Mix Pattern Types", content: "Combine different pattern families: geometric with organic, structured with flowing. Stripes with florals, animal print with polka dots.", proTip: "Avoid mixing two busy organic prints - it can feel chaotic rather than intentional." },
+      { title: "Use a Neutral Separator", content: "Break up bold patterns with a solid neutral between them. A white shirt between a plaid jacket and leopard skirt creates breathing room.", proTip: "Your belt, bag, and shoes can be the neutral mediators that tie mixed patterns together." }
+    ]
+  },
+  {
+    id: "fallback-21",
+    subject: "Dripn Weekly: The Ultimate Fabric Guide",
+    headline: "Know Your Fabrics: A Complete Guide to Textile Quality",
+    previewText: "How to identify quality fabrics and care for them properly",
+    introduction: "Understanding fabric is the key to building a quality wardrobe. Learn to identify superior textiles, understand their properties, and care for them to extend their life.",
+    category: "Fabric Education",
+    tags: ["fabrics", "quality", "textiles", "care"],
+    publishedAt: new Date(Date.now() - 17 * 24 * 60 * 60 * 1000).toISOString(),
+    tips: [
+      { title: "Natural Fibres", content: "Cotton, linen, silk, and wool are breathable, comfortable, and age beautifully. They're generally worth investing in for everyday pieces.", proTip: "Check thread count for cotton sheets and shirts - higher usually means softer and more durable." },
+      { title: "Luxury Materials", content: "Cashmere, merino wool, mulberry silk, and Egyptian cotton are premium for good reason. They feel superior and last longer with proper care.", proTip: "Cashmere should feel light and soft, not heavy. Heavy cashmere often indicates lower quality." },
+      { title: "Quality Synthetics", content: "Not all synthetics are bad. Quality viscose, modal, and tencel drape beautifully. Look for high-quality blends that combine benefits.", proTip: "Polyester in linings and performance wear makes sense - avoid it in pieces meant to breathe." },
+      { title: "The Scrunch Test", content: "Scrunch fabric in your hand for 5 seconds. Quality fabric bounces back with minimal wrinkling. Cheap fabric stays creased.", proTip: "Also check the inside seams - finished seams indicate quality construction." }
+    ]
+  },
+  {
+    id: "fallback-22",
+    subject: "Dripn Weekly: Complete Shoe Styling Guide",
+    headline: "The Complete Shoe Guide: From Trainers to Stilettos",
+    previewText: "Master the art of footwear selection",
+    introduction: "Shoes make or break an outfit. They signal formality, personality, and attention to detail. Here's how to choose the right footwear for every occasion and style them with confidence.",
+    category: "Footwear",
+    tags: ["shoes", "footwear", "styling", "accessories"],
+    publishedAt: new Date(Date.now() - 19 * 24 * 60 * 60 * 1000).toISOString(),
+    tips: [
+      { title: "The Formality Ladder", content: "Trainers sit at casual, loafers bridge to smart-casual, brogues and heels signal business, while Oxfords and stilettos represent formal.", proTip: "When unsure, err slightly more formal than the occasion - it's better to be slightly overdressed in shoes." },
+      { title: "Colour Coordination", content: "Nude shoes elongate legs. Black is formal and grounding. White trainers add freshness. Metallic works as a neutral.", proTip: "Match your shoes to your bag for classic polish, or deliberately mismatch for modern edge." },
+      { title: "Heel Heights", content: "Kitten heels (1-2 inches) are comfortable and elegant. Mid-heels (2-3 inches) balance height and walkability. High heels (3+ inches) make a statement.", proTip: "Block heels and platform soles add height while maintaining comfort and stability." },
+      { title: "The Foundation Five", content: "Every wardrobe needs: white trainers, black heels or smart shoes, nude or tan sandals, ankle boots, and comfortable loafers.", proTip: "Invest in quality for shoes you wear daily - cost per wear makes them economical over time." }
+    ]
+  },
+  {
+    id: "fallback-23",
+    subject: "Dripn Weekly: Jewellery Styling Secrets",
+    headline: "Jewellery Styling: Less, More, and Everything In Between",
+    previewText: "The complete guide to accessorising with jewellery",
+    introduction: "Jewellery is the finishing touch that makes an outfit personal. Whether you prefer minimalist or maximalist, understanding the principles helps you shine.",
+    category: "Jewellery",
+    tags: ["jewellery", "accessories", "styling", "gold-silver"],
+    publishedAt: new Date(Date.now() - 22 * 24 * 60 * 60 * 1000).toISOString(),
+    tips: [
+      { title: "Face Shape Earrings", content: "Round faces suit long, angular earrings. Square faces are softened by round or curved styles. Oval faces can wear most shapes.", proTip: "Statement earrings look best with hair up or tucked back to let them shine." },
+      { title: "Neckline Necklaces", content: "V-necks suit pendant necklaces. Crew necks work with shorter chains or chokers. Strapless calls for statement collars.", proTip: "Leave 2-3 inches between the neckline and where your necklace falls for perfect placement." },
+      { title: "The Stacking Trend", content: "Layered necklaces, stacked rings, and mixed bracelets create personal style. Mix thicknesses and textures for interest.", proTip: "Odd numbers look best - three necklaces, five rings, seven bracelets create pleasing visual rhythm." },
+      { title: "Metal Mixing Done Right", content: "Modern style embraces mixed metals. The key is intentionality - wear gold and silver together with confidence, not accidentally.", proTip: "A two-tone watch or multi-metal statement piece ties mixed metals together seamlessly." }
+    ]
+  },
+  {
+    id: "fallback-24",
+    subject: "Dripn Weekly: The Handbag Hierarchy",
+    headline: "Handbag Guide: Styles, Sizes, and When to Use Each",
+    previewText: "Build the perfect bag collection",
+    introduction: "Your bag says a lot about your style and practical needs. Understanding bag categories helps you build a collection that covers every occasion without redundancy.",
+    category: "Bags",
+    tags: ["handbags", "bags", "accessories", "investment"],
+    publishedAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
+    tips: [
+      { title: "The Everyday Tote", content: "Large enough for essentials plus extras. Should have internal organisation and comfortable straps. This is your workhorse bag.", proTip: "Choose structured over slouchy for a more polished look - it holds its shape better over time." },
+      { title: "The Crossbody", content: "Hands-free convenience for busy days. Size should fit phone, cards, keys, and lipstick comfortably. Perfect for weekends and travel.", proTip: "Adjustable straps let you wear high for energy or low for elegance." },
+      { title: "The Clutch", content: "Evening essential that forces you to edit down to lipstick, phone, and cards. Statement piece that elevates any outfit.", proTip: "Choose a clutch with a hidden chain strap for versatility - hands-free when needed." },
+      { title: "Investment vs Statement", content: "Invest in classic shapes in neutral colours for everyday. Make statement bags the affordable, trendy pieces you can cycle through.", proTip: "A quality black or tan bag will outlast dozens of fast-fashion purchases - calculate cost per use." }
+    ]
+  },
+  {
+    id: "fallback-25",
+    subject: "Dripn Weekly: Wardrobe Organisation Secrets",
+    headline: "The Organised Wardrobe: Systems That Actually Work",
+    previewText: "Transform your closet into a personal boutique",
+    introduction: "An organised wardrobe saves time, reduces stress, and helps you see what you actually own. These professional techniques make getting dressed a joy, not a chore.",
+    category: "Wardrobe Organisation",
+    tags: ["organisation", "closet", "declutter", "systems"],
+    publishedAt: new Date(Date.now() - 27 * 24 * 60 * 60 * 1000).toISOString(),
+    tips: [
+      { title: "The Edit Process", content: "Remove everything. Only return items you love, that fit, and that you've worn in the past year. Be ruthless - clutter obscures your best pieces.", proTip: "Turn all hangers backwards. After wearing, hang correctly. After 6 months, donate unworn items." },
+      { title: "Category Organisation", content: "Group by type (all tops together), then by colour within each category. This makes outfit building visual and intuitive.", proTip: "Arrange colours in rainbow order for visual appeal and easy matching." },
+      { title: "The Prime Zone", content: "Keep your most-worn items at eye level and easy reach. Store seasonal and special occasion pieces higher or in storage boxes.", proTip: "Reserve your 'prime real estate' for pieces you reach for weekly." },
+      { title: "Maintenance Habits", content: "Spend 5 minutes weekly returning items to their homes. Do a mini edit each season. This prevents closet chaos from rebuilding.", proTip: "The one-in-one-out rule prevents wardrobe creep - donate something each time you buy something new." }
+    ]
+  },
+  {
+    id: "fallback-26",
+    subject: "Dripn Weekly: Dressing for Your Life Stage",
+    headline: "Style Evolution: Dressing Confidently at Every Age",
+    previewText: "Timeless style principles that grow with you",
+    introduction: "Your style should evolve as you do. There are no age-appropriate rules - only choices that make you feel confident, current, and authentically you.",
+    category: "Timeless Style",
+    tags: ["ageless-style", "evolution", "confidence", "timeless"],
+    publishedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    tips: [
+      { title: "Quality Over Quantity", content: "As you age, investing in fewer, better pieces becomes more satisfying. A capsule wardrobe of excellent items beats a closet of fast fashion.", proTip: "Calculate cost-per-wear: a expensive coat worn 200 times costs less than a cheap one worn 20 times." },
+      { title: "Fit is Everything", content: "Nothing ages you like ill-fitting clothes. Too tight looks uncomfortable; too loose looks sloppy. Perfect fit looks expensive at any price point.", proTip: "Build a relationship with a good tailor - alterations transform average pieces into perfect ones." },
+      { title: "Embrace Colour", content: "Many people become more neutral with age when the opposite serves better. Colour near your face brings vibrancy and youthfulness.", proTip: "Find your perfect shade of pink, coral, or blue - these colours brighten most faces." },
+      { title: "Modern Details", content: "Stay current through details rather than trends. A classic blazer in a current fabric, or timeless jeans in a modern cut keeps your look fresh.", proTip: "Update accessories seasonally - they're the easiest way to look current without wardrobe overhaul." }
+    ]
+  },
+  {
+    id: "fallback-27",
+    subject: "Dripn Weekly: Workwear Revolution",
+    headline: "Modern Workwear: Professional Style for the New Era",
+    previewText: "Navigate hybrid dress codes with confidence",
+    introduction: "Workwear has evolved dramatically. Whether you're in the office, working from home, or switching between both, here's how to dress professionally while staying comfortable and stylish.",
+    category: "Professional Style",
+    tags: ["workwear", "office", "professional", "hybrid"],
+    publishedAt: new Date(Date.now() - 33 * 24 * 60 * 60 * 1000).toISOString(),
+    tips: [
+      { title: "The Zoom-Ready Top Half", content: "Video calls only show your upper body. Invest in structured tops, quality knitwear, and pieces with interesting necklines that photograph well.", proTip: "Avoid tiny patterns and stripes on camera - they create distracting visual buzzing." },
+      { title: "Comfortable Professionalism", content: "Stretchy tailoring, soft blazers, and dressy joggers allow comfort without sacrificing polish. Look for pieces that move with you.", proTip: "Pull-on trousers with an elasticated waist can look just as smart as button-fly when styled correctly." },
+      { title: "The Transition Wardrobe", content: "Choose pieces that work for multiple contexts: a silk blouse for meetings that works for dinner, trainers smart enough for casual Fridays.", proTip: "Invest in versatile pieces that transition seamlessly from desk to drinks." },
+      { title: "Authority Dressing", content: "When you need to command respect, choose structured silhouettes, quality fabrics, and confident colours. Dress for the meeting, not the commute.", proTip: "Navy and charcoal convey authority without the severity of black - perfect for leadership moments." }
+    ]
   }
 ];
 
