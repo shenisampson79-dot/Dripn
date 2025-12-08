@@ -3,6 +3,7 @@ import { StyleSheet, View, Pressable, Alert } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as WebBrowser from "expo-web-browser";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -10,8 +11,9 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, SubscriptionColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
-import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useSubscription, SUBSCRIPTION_PLANS } from "@/contexts/SubscriptionContext";
 import { currencyService } from "@/services/CurrencyService";
+import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 type SubscriptionScreenProps = {
@@ -130,17 +132,47 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsProcessing(true);
+    
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      await updateProfile({ subscriptionTier: planId });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        "Success",
-        `You've successfully ${planId === "free" ? "downgraded to" : "upgraded to"} the ${planId} plan!`,
-        [{ text: "OK", onPress: () => navigation.goBack() }]
-      );
+      if (planId === "free") {
+        await updateProfile({ subscriptionTier: planId });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          "Success",
+          "You've successfully downgraded to the Free plan!",
+          [{ text: "OK", onPress: () => navigation.goBack() }]
+        );
+      } else {
+        const subscriptionPlan = SUBSCRIPTION_PLANS.find(p => p.tier === planId);
+        if (!subscriptionPlan?.priceId) {
+          throw new Error("Price ID not found for this plan");
+        }
+
+        const response = await apiService.createCheckoutSession(
+          subscriptionPlan.priceId,
+          planId
+        );
+
+        if (response.url) {
+          const result = await WebBrowser.openBrowserAsync(response.url);
+          
+          if (result.type === "cancel") {
+            Alert.alert(
+              "Checkout Cancelled",
+              "You can complete your subscription upgrade at any time.",
+              [{ text: "OK" }]
+            );
+          }
+        } else {
+          throw new Error("No checkout URL received");
+        }
+      }
     } catch (error) {
-      Alert.alert("Error", "Failed to update subscription. Please try again.");
+      console.error("Subscription error:", error);
+      Alert.alert(
+        "Error",
+        "Failed to process subscription. Please try again."
+      );
     } finally {
       setIsProcessing(false);
     }
