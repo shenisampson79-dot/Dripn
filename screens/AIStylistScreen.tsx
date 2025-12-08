@@ -111,6 +111,38 @@ function generateAIResponse(
 ): { content: string; outfitSuggestion?: ChatMessage['outfitSuggestion'] } {
   const lowerMessage = userMessage.toLowerCase();
   
+  const emotionalKeywords = [
+    'sad', 'upset', 'angry', 'frustrated', 'stressed', 'anxious', 'worried', 'tired',
+    'depressed', 'lonely', 'hurt', 'bad day', 'terrible', 'awful', 'horrible',
+    'broke up', 'breakup', 'break up', 'dumped', 'heartbroken', 'heartbreak',
+    'crying', 'cried', 'tears', 'miss', 'lost', 'died', 'death', 'grief',
+    'hate', 'angry', 'mad', 'furious', 'annoyed', 'irritated',
+    'scared', 'afraid', 'nervous', 'panic', 'overwhelmed',
+    'failed', 'failure', 'rejected', 'fired', 'laid off',
+    'girlfriend', 'boyfriend', 'partner', 'relationship', 'marriage', 'divorce'
+  ];
+  
+  const positiveKeywords = [
+    'happy', 'excited', 'great', 'amazing', 'wonderful', 'fantastic', 'love',
+    'grateful', 'thankful', 'blessed', 'lucky', 'awesome', 'brilliant'
+  ];
+  
+  const hasEmotionalContent = emotionalKeywords.some(keyword => lowerMessage.includes(keyword));
+  const hasPositiveContent = positiveKeywords.some(keyword => lowerMessage.includes(keyword));
+  const seemsNegative = hasEmotionalContent && !hasPositiveContent;
+  
+  if (seemsNegative) {
+    const supportiveResponses = [
+      "I'm really sorry to hear you're going through this. That sounds incredibly tough. I'm here for you - sometimes just having someone to talk to can help. Would you like to chat about what's on your mind, or would you prefer a distraction? I'm happy to help with either.",
+      "Oh, I can hear that you're hurting right now. Please know that your feelings are completely valid. I'm here to listen if you want to share more. Sometimes when we're going through difficult times, a little self-care goes a long way. Is there anything I can do to help you feel a bit better?",
+      "That sounds really difficult, and I'm so sorry you're dealing with this. Please be gentle with yourself - it's okay to not be okay sometimes. I'm here if you want to talk, or if you'd like a distraction, I could suggest something to brighten your day.",
+      "I hear you, and I want you to know I'm here for you. Going through tough times is never easy, but you don't have to face it alone. Take all the time you need. When you're ready, I'm here - whether you want to talk about what's happening or just need a friendly chat.",
+    ];
+    return {
+      content: supportiveResponses[Math.floor(Math.random() * supportiveResponses.length)],
+    };
+  }
+  
   const tops = wardrobeItems.filter(item => item.category === 'tops');
   const bottoms = wardrobeItems.filter(item => item.category === 'bottoms');
   const dresses = wardrobeItems.filter(item => item.category === 'dresses');

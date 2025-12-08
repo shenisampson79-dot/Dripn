@@ -738,12 +738,19 @@ export default function StyleShuffleScreen() {
         ))}
       </View>
 
-      <View style={styles.matchOverlay} pointerEvents="none">
-        <Animated.View style={[styles.matchContent, matchOverlayAnimatedStyle]}>
+      <Animated.View 
+        style={[
+          styles.matchOverlay, 
+          { backgroundColor: theme.link + 'E6' },
+          matchOverlayAnimatedStyle
+        ]} 
+        pointerEvents="none"
+      >
+        <View style={styles.matchContent}>
           <Feather name="heart" size={64} color="#FFFFFF" />
           <ThemedText style={styles.matchText}>Added to Favorites!</ThemedText>
-        </Animated.View>
-      </View>
+        </View>
+      </Animated.View>
     </ThemedView>
   );
 }
@@ -953,7 +960,6 @@ const styles = StyleSheet.create({
   },
   matchOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 217, 165, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },

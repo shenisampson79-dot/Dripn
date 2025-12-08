@@ -80,21 +80,20 @@ export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTab
             borderTopWidth: StyleSheet.hairlineWidth,
             borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
             elevation: 0,
-            paddingHorizontal: Spacing.xs,
+            height: 60,
+            paddingBottom: 8,
+            paddingTop: 8,
           },
           tabBarLabelStyle: {
             fontSize: 10,
             fontWeight: '500',
-            marginTop: 2,
-            marginBottom: 2,
           },
           tabBarIconStyle: {
-            marginTop: 4,
+            marginBottom: 0,
           },
           tabBarItemStyle: {
-            flex: 1,
-            paddingVertical: 6,
-            minWidth: 50,
+            justifyContent: 'center',
+            alignItems: 'center',
           },
           headerShown: false,
         }}
