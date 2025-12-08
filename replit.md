@@ -27,7 +27,7 @@ Key Features include:
 
 Technical Implementations:
 - **Dynamic Theming**: Six style themes with light/dark modes.
-- **AI Integration**: Mock service in place, ready for OpenAI integration, providing gender and region-specific advice.
+- **AI Stylist Integration**: Full OpenAI integration with automatic model selection (prefers gpt-4.5-preview → gpt-4o → gpt-4-turbo → gpt-4 → gpt-3.5-turbo). Features Ruby (women's stylist) and Max (men's stylist) personas with 8 fashion knowledge domains, 15-message conversation memory, and gender/region-specific advice.
 - **Gender-Specific Experience**: UI and content (models, advice, influencers) are tailored based on user's gender.
 - **Region-Specific Images**: Style previews (Boho, Sporty, Business, Smart Casual) use regional models based on the user's country across 7 regions.
 - **Stripe Integration**: Client-side ready for subscription payments.
@@ -134,7 +134,7 @@ The app includes comprehensive marketing and growth features:
 - **Expo-sharing**: For branded social sharing functionality.
 - **Expo-store-review**: For App Store review prompts.
 - **Expo-linking**: For deep link sharing.
-- **OpenAI API**: Intended for real AI fashion advice (currently mocked).
+- **OpenAI API**: Powers the AI Stylist feature with automatic model selection and enhanced fashion knowledge.
 - **PostgreSQL**: Database solution for the backend.
 - **Affiliate APIs**: Planned for "Shop Now" functionality.
 - **Event APIs**: Timeout, TodayTix, Eventbrite, Meetup, ClassPass (for "Events Near You").
