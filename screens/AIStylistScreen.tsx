@@ -1032,7 +1032,30 @@ export default function AIStylistScreen() {
   
   const remainingMessages = getRemainingMessages();
   const showLimitWarning = remainingMessages !== Infinity && remainingMessages <= 3;
+  const showUpgradeTeaser = remainingMessages !== Infinity && remainingMessages <= 10 && (tier === 'free' || tier === 'basic');
   const limitReached = !canSendMessage();
+  
+  const getUpgradeTeaserMessage = () => {
+    if (remainingMessages === 0) {
+      return {
+        title: "Don't leave the conversation here!",
+        message: `${stylist.name} has so much more to share with you. Upgrade now for unlimited styling sessions.`,
+        icon: 'heart' as const,
+      };
+    }
+    if (remainingMessages <= 3) {
+      return {
+        title: `Only ${remainingMessages} message${remainingMessages === 1 ? '' : 's'} left today`,
+        message: `Loving your chat with ${stylist.name}? Upgrade to keep the style advice flowing.`,
+        icon: 'zap' as const,
+      };
+    }
+    return {
+      title: `${remainingMessages} messages remaining today`,
+      message: `Unlock unlimited conversations with ${stylist.name} and never miss a styling moment.`,
+      icon: 'star' as const,
+    };
+  };
   
   const getMoodInfo = (): MoodInfo | null => {
     if (!detectedMood) return null;
@@ -1087,6 +1110,40 @@ export default function AIStylistScreen() {
           </Pressable>
         </View>
       </View>
+      
+      {showUpgradeTeaser ? (
+        <Animated.View 
+          entering={FadeIn.duration(400)}
+          style={[styles.upgradeTeaserCard]}
+        >
+          <LinearGradient
+            colors={stylist.id === 'ruby' ? ['#E91E63', '#FF4081'] : [theme.link, '#4ECDC4']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.upgradeTeaserGradient}
+          >
+            <View style={styles.upgradeTeaserContent}>
+              <View style={styles.upgradeTeaserIconContainer}>
+                <Feather name={getUpgradeTeaserMessage().icon} size={24} color="#FFFFFF" />
+              </View>
+              <View style={styles.upgradeTeaserTextContainer}>
+                <ThemedText style={styles.upgradeTeaserTitle}>{getUpgradeTeaserMessage().title}</ThemedText>
+                <ThemedText style={styles.upgradeTeaserMessage}>{getUpgradeTeaserMessage().message}</ThemedText>
+              </View>
+            </View>
+            <Pressable 
+              onPress={navigateToSubscription}
+              style={({ pressed }) => [
+                styles.upgradeTeaserButton,
+                { opacity: pressed ? 0.9 : 1 },
+              ]}
+            >
+              <ThemedText style={styles.upgradeTeaserButtonText}>Upgrade Now</ThemedText>
+              <Feather name="arrow-right" size={16} color={stylist.id === 'ruby' ? '#E91E63' : theme.link} />
+            </Pressable>
+          </LinearGradient>
+        </Animated.View>
+      ) : null}
       
       {wardrobeItems.length === 0 ? (
         <Card elevation={2} style={styles.emptyWardrobeCard}>
@@ -1655,5 +1712,55 @@ const styles = StyleSheet.create({
   voiceDuration: {
     ...Typography.caption,
     marginLeft: Spacing.sm,
+  },
+  upgradeTeaserCard: {
+    marginBottom: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+  },
+  upgradeTeaserGradient: {
+    padding: Spacing.lg,
+  },
+  upgradeTeaserContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  upgradeTeaserIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upgradeTeaserTextContainer: {
+    flex: 1,
+  },
+  upgradeTeaserTitle: {
+    ...Typography.h4,
+    color: '#FFFFFF',
+    marginBottom: Spacing.xs,
+  },
+  upgradeTeaserMessage: {
+    ...Typography.small,
+    color: 'rgba(255,255,255,0.9)',
+    lineHeight: 20,
+  },
+  upgradeTeaserButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+  },
+  upgradeTeaserButtonText: {
+    ...Typography.body,
+    fontWeight: '700',
+    color: '#E91E63',
   },
 });
