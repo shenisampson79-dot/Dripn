@@ -1071,6 +1071,31 @@ export default function StyleShuffleScreen() {
           <Animated.View style={[styles.cardWrapper, styles.nextCard, nextCardStyle]}>
             <Card style={styles.outfitCard} elevation={2}>
               <Image source={nextOutfit.image} style={styles.outfitImage} resizeMode="cover" />
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.8)']}
+                style={styles.cardGradient}
+              >
+                <View style={styles.cardInfo}>
+                  <View style={styles.matchBadge}>
+                    <ThemedText style={styles.matchScore}>{nextOutfit.matchScore}% Match</ThemedText>
+                  </View>
+                  <ThemedText style={styles.outfitName}>{nextOutfit.name}</ThemedText>
+                  <View style={styles.tagRow}>
+                    <View style={styles.tag}>
+                      <Feather name="tag" size={12} color="#FFFFFF" />
+                      <ThemedText style={styles.tagText}>{nextOutfit.style}</ThemedText>
+                    </View>
+                    <View style={styles.tag}>
+                      <Feather name="calendar" size={12} color="#FFFFFF" />
+                      <ThemedText style={styles.tagText}>{nextOutfit.occasion}</ThemedText>
+                    </View>
+                    <View style={styles.tag}>
+                      <Feather name="sun" size={12} color="#FFFFFF" />
+                      <ThemedText style={styles.tagText}>{nextOutfit.season}</ThemedText>
+                    </View>
+                  </View>
+                </View>
+              </LinearGradient>
             </Card>
           </Animated.View>
         ) : null}
