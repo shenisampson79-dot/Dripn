@@ -24,7 +24,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
       <View style={[styles.content, { paddingTop: insets.top + Spacing["3xl"] }]}>
         <View style={styles.logoContainer}>
           <Image
-            source={require("../assets/images/icon.png")}
+            source={require("../assets/images/dripn-logo-icon.png")}
             style={styles.logo}
             resizeMode="contain"
           />

@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "description": "Dripn is your personal fashion advisor powered by AI and real professional stylists. Get instant outfit advice, book live video styling sessions with certified stylists, and connect with a vibrant fashion community. Discover trending styles from top influencers worldwide, receive daily style tips featuring exclusive bargains from luxury and household brands, and explore local events with personalized outfit suggestions. Whether you love luxury, streetwear, boho, or smart casual, Dripn delivers personalized recommendations, size-inclusive styling, voice comments, and shoppable content. Join millions of fashion enthusiasts sharing outfits, voting on looks, and elevating their style game every day. Style that flows.",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/dripn-logo-icon.png",
     "scheme": "dripn",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -48,7 +48,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/dripn-logo-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#FFF9F0",
