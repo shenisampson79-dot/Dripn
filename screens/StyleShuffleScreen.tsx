@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useContext } from 'react';
 import {
   StyleSheet,
   View,
@@ -25,7 +25,10 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -41,7 +44,7 @@ import type { DiscoverStackParamList } from '@/navigation/DiscoverStackNavigator
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - Spacing['3xl'] * 2;
-const CARD_HEIGHT = SCREEN_HEIGHT * 0.55;
+const CARD_HEIGHT = SCREEN_HEIGHT * 0.48;
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
 const VELOCITY_THRESHOLD = 500;
 const ROTATION_RANGE = 12;
@@ -187,6 +190,8 @@ export default function StyleShuffleScreen() {
   const { user } = useAuth();
   const screenInsets = useScreenInsets();
   const navigation = useNavigation<NavigationProp>();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useContext(BottomTabBarHeightContext) ?? 0;
 
   const navigateToSubscription = useCallback(() => {
     navigation.dispatch(
@@ -753,77 +758,86 @@ export default function StyleShuffleScreen() {
         ) : null}
       </View>
 
-      <View style={styles.actionsRow}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.actionButton, 
-            styles.passButton, 
-            { 
-              backgroundColor: theme.backgroundSecondary,
-              transform: [{ scale: pressed ? 0.9 : 1 }],
-              opacity: pressed ? 0.8 : 1,
-            }
-          ]}
-          onPress={() => handleSwipe('left')}
-        >
-          <Feather name="x" size={32} color={theme.error || '#C94C5A'} />
-        </Pressable>
+      <BlurView
+        intensity={80}
+        tint={isDark ? 'dark' : 'light'}
+        style={[
+          styles.floatingActionBar,
+          { bottom: tabBarHeight + Spacing.md }
+        ]}
+      >
+        <View style={styles.progressRow}>
+          {outfits.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.progressDot,
+                {
+                  backgroundColor: index < currentIndex
+                    ? theme.link
+                    : index === currentIndex
+                    ? theme.tabIconDefault
+                    : theme.backgroundSecondary,
+                },
+              ]}
+            />
+          ))}
+        </View>
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.actionButton, 
-            styles.infoButton, 
-            { 
-              backgroundColor: theme.backgroundSecondary,
-              transform: [{ scale: pressed ? 0.9 : 1 }],
-              opacity: pressed ? 0.8 : 1,
-            }
-          ]}
-          onPress={() => {
-            if (currentOutfit) {
-              Alert.alert(
-                currentOutfit.name,
-                `Style: ${currentOutfit.style}\nOccasion: ${currentOutfit.occasion}\nSeason: ${currentOutfit.season}\n\nItems:\n${currentOutfit.items.map(i => `- ${i.name} (${i.category})`).join('\n')}`
-              );
-            }
-          }}
-        >
-          <Feather name="info" size={24} color={theme.link} />
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.actionButton, 
-            styles.likeButton, 
-            { 
-              backgroundColor: theme.link,
-              transform: [{ scale: pressed ? 0.9 : 1 }],
-              opacity: pressed ? 0.8 : 1,
-            }
-          ]}
-          onPress={() => handleSwipe('right')}
-        >
-          <Feather name="heart" size={32} color="#FFFFFF" />
-        </Pressable>
-      </View>
-
-      <View style={styles.progressRow}>
-        {outfits.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.progressDot,
-              {
-                backgroundColor: index < currentIndex
-                  ? theme.link
-                  : index === currentIndex
-                  ? theme.tabIconDefault
-                  : theme.backgroundSecondary,
-              },
+        <View style={styles.actionsRow}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton, 
+              styles.passButton, 
+              { 
+                backgroundColor: theme.backgroundSecondary,
+                transform: [{ scale: pressed ? 0.9 : 1 }],
+                opacity: pressed ? 0.8 : 1,
+              }
             ]}
-          />
-        ))}
-      </View>
+            onPress={() => handleSwipe('left')}
+          >
+            <Feather name="x" size={32} color={theme.error || '#C94C5A'} />
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton, 
+              styles.infoButton, 
+              { 
+                backgroundColor: theme.backgroundSecondary,
+                transform: [{ scale: pressed ? 0.9 : 1 }],
+                opacity: pressed ? 0.8 : 1,
+              }
+            ]}
+            onPress={() => {
+              if (currentOutfit) {
+                Alert.alert(
+                  currentOutfit.name,
+                  `Style: ${currentOutfit.style}\nOccasion: ${currentOutfit.occasion}\nSeason: ${currentOutfit.season}\n\nItems:\n${currentOutfit.items.map(i => `- ${i.name} (${i.category})`).join('\n')}`
+                );
+              }
+            }}
+          >
+            <Feather name="info" size={24} color={theme.link} />
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton, 
+              styles.likeButton, 
+              { 
+                backgroundColor: theme.link,
+                transform: [{ scale: pressed ? 0.9 : 1 }],
+                opacity: pressed ? 0.8 : 1,
+              }
+            ]}
+            onPress={() => handleSwipe('right')}
+          >
+            <Feather name="heart" size={32} color="#FFFFFF" />
+          </Pressable>
+        </View>
+      </BlurView>
 
       {showMatchOverlay ? (
         <Animated.View 
@@ -875,10 +889,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cardContainer: {
-    height: CARD_HEIGHT,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.lg,
+  },
+  floatingActionBar: {
+    position: 'absolute',
+    left: Spacing.xl,
+    right: Spacing.xl,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    overflow: 'hidden',
   },
   cardWrapper: {
     position: 'absolute',
@@ -981,7 +1003,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.xl,
-    paddingVertical: Spacing.xl,
+    paddingVertical: Spacing.sm,
   },
   actionButton: {
     justifyContent: 'center',
@@ -1004,7 +1026,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: Spacing.xs,
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing.sm,
   },
   progressDot: {
     width: 8,
