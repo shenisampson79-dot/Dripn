@@ -162,6 +162,17 @@ function generateAIResponse(
     'capital of', 'population of', 'how far', 'distance to',
   ];
   
+  const capabilityRequestPatterns = [
+    'search the internet', 'search online', 'look up online', 'look it up', 'find online',
+    'google it', 'google that', 'google for', 'browse the web', 'browse online',
+    'check online', 'search for me', 'find for me', 'look up for me',
+    'can you search', 'can you look up', 'can you find', 'can you google',
+    'search the web', 'go online', 'check the internet', 'look on the internet',
+    'make a call', 'call someone', 'send a text', 'send an email', 'book a reservation',
+    'order food', 'buy something', 'purchase', 'place an order', 'make a booking',
+    'set a reminder', 'set an alarm', 'control my', 'turn on', 'turn off',
+  ];
+  
   const isGreeting = greetingPatterns.some(p => lowerMessage.includes(p));
   const isThanks = thanksPatterns.some(p => lowerMessage.includes(p));
   const isBye = byePatterns.some(p => lowerMessage.includes(p));
@@ -169,8 +180,24 @@ function generateAIResponse(
   const hasOutfitIntent = outfitIntentPatterns.some(p => lowerMessage.includes(p));
   const hasInspirationIntent = inspirationPatterns.some(p => lowerMessage.includes(p));
   const isOffTopic = offTopicPatterns.some(p => lowerMessage.includes(p));
+  const isCapabilityRequest = capabilityRequestPatterns.some(p => lowerMessage.includes(p));
   
   const isMaleStylist = stylistName.toLowerCase() === 'max';
+  
+  if (isCapabilityRequest) {
+    const capabilityResponses = isMaleStylist ? [
+      "Ah mate, I wish I could do that for you, but I don't actually have the ability to search the internet or access live information. I'm an AI stylist without web access, so I can't look things up online. What I CAN do is help you with fashion advice, outfit ideas, and styling tips based on what you tell me. Is there something style-related I can help with instead?",
+      "I'd love to help with that, but just to be upfront - I can't actually browse the internet, make calls, or do things outside our chat here. I'm your style advisor, not a virtual assistant with web access. But hey, if you need outfit advice, wardrobe help, or fashion tips, I'm your guy! What can I do for you in that department?",
+      "Good question, but I've got to be honest with you - I don't have internet access or the ability to search for live information. I'm Max, your fashion stylist, and my world is all about helping you look great. I can't Google things or check websites, but I can definitely help you nail your style. Anything fashion-related I can help with?",
+    ] : [
+      "Oh darling, I appreciate you asking, but I have to be honest with you - I can't actually search the internet or access any live information. I'm an AI fashion stylist, and I don't have the ability to browse websites or look things up online. What I CAN do is give you amazing style advice, outfit suggestions, and fashion guidance! Is there something in that realm I can help with, gorgeous?",
+      "I wish I could help with that, beautiful, but I don't have the ability to search online, make calls, or access external information. I'm Ruby, your personal stylist, and my expertise is all about making you look and feel fabulous! I can't browse the web, but I'm all yours for fashion advice. What style question can I help you with instead, love?",
+      "Oh sweetheart, I'd love to do that for you, but I need to be transparent - I can't actually access the internet, look things up online, or do tasks outside of our conversation here. I'm your AI fashion advisor, and while I can't Google things, I CAN help you create stunning outfits and give you style tips! Would you like some fashion help instead, darling?",
+    ];
+    return {
+      content: capabilityResponses[Math.floor(Math.random() * capabilityResponses.length)],
+    };
+  }
   
   if (isGreeting && !hasOutfitIntent) {
     const greetingResponses = isMaleStylist ? [
