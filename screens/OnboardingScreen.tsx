@@ -1,9 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as Speech from "expo-speech";
+import { AudioModule } from "expo-audio";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -365,6 +366,20 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const totalSteps = 5;
 
   useEffect(() => {
+    const setupAudio = async () => {
+      if (Platform.OS === 'ios') {
+        try {
+          await AudioModule.setAudioModeAsync({
+            playsInSilentMode: true,
+          });
+          console.log('Audio mode configured for iOS');
+        } catch (error) {
+          console.log('Failed to configure audio mode:', error);
+        }
+      }
+    };
+    setupAudio();
+    
     return () => {
       Speech.stop();
     };
