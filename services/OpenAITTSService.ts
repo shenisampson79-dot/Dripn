@@ -33,6 +33,80 @@ const LANGUAGE_CODES: Record<string, string> = {
   Turkish: 'tr-TR',
 };
 
+const LANGUAGE_CODE_ALTERNATIVES: Record<string, string[]> = {
+  French: ['fr-FR', 'fr-CA', 'fr-BE', 'fr-CH', 'fr'],
+  Spanish: ['es-ES', 'es-MX', 'es-US', 'es-AR', 'es-CO', 'es'],
+  German: ['de-DE', 'de-AT', 'de-CH', 'de'],
+  Italian: ['it-IT', 'it-CH', 'it'],
+  Portuguese: ['pt-BR', 'pt-PT', 'pt'],
+  Japanese: ['ja-JP', 'ja'],
+  Korean: ['ko-KR', 'ko'],
+  Chinese: ['zh-CN', 'zh-TW', 'zh-HK', 'zh'],
+  Arabic: ['ar-SA', 'ar-AE', 'ar-EG', 'ar'],
+  Hindi: ['hi-IN', 'hi'],
+  Russian: ['ru-RU', 'ru'],
+  Dutch: ['nl-NL', 'nl-BE', 'nl'],
+  Swedish: ['sv-SE', 'sv'],
+  Polish: ['pl-PL', 'pl'],
+  Turkish: ['tr-TR', 'tr'],
+  English: ['en-US', 'en-GB', 'en-AU', 'en-IE', 'en-IN', 'en'],
+};
+
+let cachedVoices: Speech.Voice[] = [];
+let voicesCacheTime = 0;
+const VOICE_CACHE_TTL = 60000;
+
+const getAvailableVoices = async (): Promise<Speech.Voice[]> => {
+  const now = Date.now();
+  if (cachedVoices.length > 0 && (now - voicesCacheTime) < VOICE_CACHE_TTL) {
+    return cachedVoices;
+  }
+  
+  try {
+    cachedVoices = await Speech.getAvailableVoicesAsync();
+    voicesCacheTime = now;
+    return cachedVoices;
+  } catch (error) {
+    console.log('Failed to get available voices:', error);
+    return [];
+  }
+};
+
+const findBestVoiceForLanguage = async (language: string): Promise<{ voiceId?: string; langCode: string } | null> => {
+  const alternatives = LANGUAGE_CODE_ALTERNATIVES[language] || [LANGUAGE_CODES[language] || 'en-US'];
+  const voices = await getAvailableVoices();
+  
+  if (voices.length === 0) {
+    return { langCode: alternatives[0] };
+  }
+  
+  for (const langCode of alternatives) {
+    const matchingVoice = voices.find(v => {
+      const voiceLang = v.language?.toLowerCase() || '';
+      const targetLang = langCode.toLowerCase();
+      return voiceLang === targetLang || 
+             voiceLang.startsWith(targetLang.split('-')[0] + '-') ||
+             voiceLang === targetLang.split('-')[0];
+    });
+    
+    if (matchingVoice) {
+      return { voiceId: matchingVoice.identifier, langCode: matchingVoice.language || langCode };
+    }
+  }
+  
+  const langPrefix = alternatives[0].split('-')[0].toLowerCase();
+  const fallbackVoice = voices.find(v => {
+    const voiceLang = v.language?.toLowerCase() || '';
+    return voiceLang.startsWith(langPrefix);
+  });
+  
+  if (fallbackVoice) {
+    return { voiceId: fallbackVoice.identifier, langCode: fallbackVoice.language || alternatives[0] };
+  }
+  
+  return null;
+};
+
 const VOICE_PREVIEW_PHRASES: Record<string, Record<string, string>> = {
   ruby: {
     English: "Hi there! I'm Ruby, your personal stylist. I'm warm, encouraging, and I love helping you discover your best style. Let me guide your fashion journey!",
@@ -92,14 +166,35 @@ const playWithFallbackSpeech = async (
   language: string,
   voiceRange?: string
 ): Promise<void> => {
-  const text = getVoicePreviewPhrase(stylistId, language);
+  let text = getVoicePreviewPhrase(stylistId, language);
   if (!text) {
     throw new Error('No preview phrase available');
   }
 
   await Speech.stop();
 
-  const langCode = LANGUAGE_CODES[language] || 'en-US';
+  const voiceInfo = await findBestVoiceForLanguage(language);
+  
+  let langCode = LANGUAGE_CODES[language] || 'en-US';
+  let voiceId: string | undefined;
+  let useEnglishFallback = false;
+  
+  if (voiceInfo) {
+    langCode = voiceInfo.langCode;
+    voiceId = voiceInfo.voiceId;
+    console.log(`Found voice for ${language}: ${voiceId || 'default'} (${langCode})`);
+  } else {
+    console.log(`No voice found for ${language}, falling back to English`);
+    useEnglishFallback = true;
+    const englishVoice = await findBestVoiceForLanguage('English');
+    if (englishVoice) {
+      langCode = englishVoice.langCode;
+      voiceId = englishVoice.voiceId;
+    } else {
+      langCode = 'en-US';
+    }
+    text = getVoicePreviewPhrase(stylistId, 'English');
+  }
   
   let pitch = 1.0;
   let rate = 1.0;
@@ -131,13 +226,28 @@ const playWithFallbackSpeech = async (
   }
 
   return new Promise((resolve, reject) => {
-    Speech.speak(text, {
+    const speechOptions: Speech.SpeechOptions = {
       language: langCode,
       pitch,
       rate,
-      onDone: () => resolve(),
-      onError: (error) => reject(error),
-    });
+      onDone: () => {
+        console.log(`Speech completed for ${language}${useEnglishFallback ? ' (English fallback)' : ''}`);
+        resolve();
+      },
+      onError: (error) => {
+        console.log(`Speech error for ${language}:`, error);
+        reject(error);
+      },
+      onStart: () => {
+        console.log(`Speech started for ${language} with voice: ${voiceId || 'system default'}`);
+      },
+    };
+    
+    if (voiceId && Platform.OS !== 'web') {
+      (speechOptions as any).voice = voiceId;
+    }
+    
+    Speech.speak(text, speechOptions);
   });
 };
 
@@ -224,6 +334,25 @@ export const getVoicePreviewPhrase = (stylistId: string, language: string): stri
   return phrases[language] || phrases['English'];
 };
 
+export const checkLanguageVoiceAvailability = async (language: string): Promise<boolean> => {
+  const voiceInfo = await findBestVoiceForLanguage(language);
+  return voiceInfo !== null;
+};
+
+export const getAvailableLanguagesWithVoices = async (): Promise<string[]> => {
+  const allLanguages = getSupportedLanguages();
+  const availableLanguages: string[] = [];
+  
+  for (const lang of allLanguages) {
+    const voiceInfo = await findBestVoiceForLanguage(lang);
+    if (voiceInfo) {
+      availableLanguages.push(lang);
+    }
+  }
+  
+  return availableLanguages;
+};
+
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
@@ -244,4 +373,6 @@ export default {
   isPlaying,
   getSupportedLanguages,
   getVoicePreviewPhrase,
+  checkLanguageVoiceAvailability,
+  getAvailableLanguagesWithVoices,
 };
