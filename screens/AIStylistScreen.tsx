@@ -1347,26 +1347,36 @@ export default function AIStylistScreen() {
   
   return (
     <KeyboardProvider>
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={renderHeader}
-        ListFooterComponent={renderFooter}
-        contentContainerStyle={[
-          styles.listContent,
-          { paddingTop: headerHeight + Spacing.md }
-        ]}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-        automaticallyAdjustKeyboardInsets
-        style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
-      />
-      <KeyboardStickyView offset={{ closed: tabBarHeight, opened: 0 }}>
-        {renderInputBar()}
-      </KeyboardStickyView>
+      <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={renderHeader}
+          ListFooterComponent={renderFooter}
+          contentContainerStyle={[
+            styles.listContent,
+            { 
+              paddingTop: headerHeight + Spacing.md,
+              paddingBottom: INPUT_CONTAINER_HEIGHT + (tabBarHeight > 0 ? tabBarHeight : insets.bottom) + Spacing.md
+            }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+          style={styles.flatList}
+        />
+        <View 
+          style={[
+            styles.inputBarAbsolute,
+            { bottom: tabBarHeight > 0 ? tabBarHeight : insets.bottom }
+          ]}
+        >
+          {renderInputBar()}
+        </View>
+      </View>
     </KeyboardProvider>
   );
 }
@@ -1374,6 +1384,14 @@ export default function AIStylistScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  flatList: {
+    flex: 1,
+  },
+  inputBarAbsolute: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
   },
   listContent: {
     paddingHorizontal: 0,
