@@ -1018,7 +1018,7 @@ export default function StyleShuffleScreen() {
               All
             </ThemedText>
           </Pressable>
-          {user?.gender !== 'woman' ? (
+          {user?.gender !== 'woman' && (
             <Pressable
               onPress={() => setGenderFilter('female')}
               style={[
@@ -1038,8 +1038,8 @@ export default function StyleShuffleScreen() {
                 Her
               </ThemedText>
             </Pressable>
-          ) : null}
-          {user?.gender !== 'man' ? (
+          )}
+          {user?.gender !== 'man' && (
             <Pressable
               onPress={() => setGenderFilter('male')}
               style={[
@@ -1059,7 +1059,7 @@ export default function StyleShuffleScreen() {
                 Him
               </ThemedText>
             </Pressable>
-          ) : null}
+          )}
         </View>
         <ThemedText style={[styles.giftHint, { color: theme.tabIconDefault }]}>
           {genderFilter === 'forme' ? 'Personalized for your style' : 'Perfect for gift ideas'}
