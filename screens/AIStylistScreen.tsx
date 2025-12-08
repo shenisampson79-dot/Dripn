@@ -145,12 +145,27 @@ function generateAIResponse(
     'similar', 'like this', 'recreate', 'copy', 'dupe', 'alternative',
   ];
   
+  const offTopicPatterns = [
+    'premier league', 'football score', 'soccer score', 'match score', 'game score',
+    'politics', 'political', 'election', 'president', 'prime minister', 'government',
+    'stock', 'bitcoin', 'crypto', 'investment', 'trading',
+    'weather', 'forecast', 'temperature',
+    'news', 'headlines', 'breaking',
+    'war', 'conflict', 'military', 'attack',
+    'venezuela', 'russia', 'ukraine', 'china', 'america attacking', 'usa attacking',
+    'calculate', 'math', 'equation', 'solve',
+    'recipe', 'cook', 'cooking instructions',
+    'medical', 'diagnosis', 'symptoms', 'treatment',
+    'legal advice', 'lawyer', 'sue',
+  ];
+  
   const isGreeting = greetingPatterns.some(p => lowerMessage.includes(p));
   const isThanks = thanksPatterns.some(p => lowerMessage.includes(p));
   const isBye = byePatterns.some(p => lowerMessage.includes(p));
   const isAboutYou = aboutYouPatterns.some(p => lowerMessage.includes(p));
   const hasOutfitIntent = outfitIntentPatterns.some(p => lowerMessage.includes(p));
   const hasInspirationIntent = inspirationPatterns.some(p => lowerMessage.includes(p));
+  const isOffTopic = offTopicPatterns.some(p => lowerMessage.includes(p));
   
   const isMaleStylist = stylistName.toLowerCase() === 'max';
   
@@ -211,6 +226,23 @@ function generateAIResponse(
     ];
     return {
       content: aboutResponses[Math.floor(Math.random() * aboutResponses.length)],
+    };
+  }
+  
+  if (isOffTopic && !hasOutfitIntent) {
+    const offTopicResponses = isMaleStylist ? [
+      "Oh, the Premier League? I don't have live scores on me, mate, but it's been quite a season! Are you watching any matches this weekend? If you're heading out to catch the game, I could help you put together a solid casual look!",
+      "I've been following bits about that situation - it's definitely been in the headlines. What's on your mind about it? Happy to chat, and of course if you ever need style advice, that's my main thing!",
+      "That's an interesting topic! I'm not an expert on that specifically, but I'm always happy to chat about whatever's on your mind. My specialty is fashion, but I'm here for the conversation too. What's got you thinking about this?",
+      "Great question! I might not have all the details on that, but I'm curious to hear your thoughts. And hey, whenever you need style advice, I've got you covered there for sure!",
+    ] : [
+      "Oh, that's interesting! I don't have the latest updates on that specifically, darling, but I'd love to hear what you think about it. And of course, whenever you need fashion advice, that's my forte!",
+      "I've heard a bit about what's happening there - quite a situation, isn't it? What's got you thinking about it, gorgeous? I'm here to chat about anything, though fashion is where I really shine!",
+      "That's a great topic to discuss! I may not be an expert on that particular area, but I'm always happy to have a conversation, love. My main specialty is helping you look fabulous, but I'm here for you regardless!",
+      "Interesting question, beautiful! I might not have all the specifics, but I'm curious about your take on it. And whenever you want to switch to style talk, you know I'm right here for that!",
+    ];
+    return {
+      content: offTopicResponses[Math.floor(Math.random() * offTopicResponses.length)],
     };
   }
   
