@@ -395,7 +395,8 @@ export default function AIStylistScreen() {
   
   useEffect(() => {
     if (messages.length === 0) {
-      const greeting = getStylistGreeting(stylist);
+      const userName = user?.name ? user.name.split(' ')[0] : null;
+      const greeting = getStylistGreeting(stylist, userName);
       const greetingMessage: ChatMessage = {
         id: `msg_${Date.now()}`,
         role: 'assistant',
@@ -404,7 +405,7 @@ export default function AIStylistScreen() {
       };
       setMessages([greetingMessage]);
     }
-  }, [stylist]);
+  }, [stylist, user?.name]);
 
   useEffect(() => {
     if (isRecording) {

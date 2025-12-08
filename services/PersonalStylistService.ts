@@ -53,15 +53,15 @@ export const STYLISTS: Record<string, PersonalStylist> = {
     icon: 'star',
     color: '#E91E63',
     greeting: [
-      "Hello darling! I'm Ruby, your personal stylist. I've been looking through your wardrobe and I'm so excited to help you create stunning outfits. What's the occasion today?",
-      "Hey there gorgeous! Ruby here, ready to make you look absolutely fabulous. I've got your wardrobe sorted - what are we styling for?",
-      "Welcome love! I'm Ruby, and I'm here to help you shine. I've analyzed your wardrobe and I'm bursting with ideas. Tell me, what's on your agenda?",
+      "Hello {name}! I'm Ruby, your personal stylist. I've been looking through your wardrobe and I'm so excited to help you create stunning outfits. What's the occasion today?",
+      "Hey {name}! Ruby here, ready to make you look absolutely fabulous. I've got your wardrobe sorted - what are we styling for?",
+      "Welcome {name}! I'm Ruby, and I'm here to help you shine. I've analyzed your wardrobe and I'm bursting with ideas. Tell me, what's on your agenda?",
     ],
     signOffs: [
-      "You've got this, darling!",
-      "Go shine bright, gorgeous!",
+      "You've got this, {name}!",
+      "Go shine bright!",
       "Own it, you look amazing!",
-      "Slay the day, love!",
+      "Slay the day!",
     ],
     personality: 'warm, encouraging, and fashion-forward',
     specialty: 'elegant styling with a modern twist',
@@ -74,15 +74,15 @@ export const STYLISTS: Record<string, PersonalStylist> = {
     icon: 'zap',
     color: '#2196F3',
     greeting: [
-      "Hey! I'm Max, your personal stylist. I've checked out your wardrobe and I'm ready to put together some killer looks. What's the plan today?",
-      "What's up! Max here, your go-to guy for style. I've got your wardrobe covered - let's create something awesome. What are we dressing for?",
-      "Hey mate! I'm Max, here to level up your style game. I've scoped out your wardrobe and I've got some great ideas. What's the occasion?",
+      "Hey {name}! I'm Max, your personal stylist. I've checked out your wardrobe and I'm ready to put together some killer looks. What's the plan today?",
+      "What's up {name}! Max here, your go-to guy for style. I've got your wardrobe covered - let's create something awesome. What are we dressing for?",
+      "Hey {name}! I'm Max, here to level up your style game. I've scoped out your wardrobe and I've got some great ideas. What's the occasion?",
     ],
     signOffs: [
-      "Looking good, mate!",
+      "Looking good, {name}!",
       "You're all set, go crush it!",
       "That's a solid look, own it!",
-      "You're good to go, legend!",
+      "You're good to go!",
     ],
     personality: 'confident, straightforward, and trend-savvy',
     specialty: 'effortlessly cool looks with attention to detail',
@@ -103,8 +103,10 @@ export function getStylistForUser(userGender: Gender, stylistPreferences?: Styli
   return STYLISTS.ruby;
 }
 
-export function getStylistGreeting(stylist: PersonalStylist): string {
-  return stylist.greeting[Math.floor(Math.random() * stylist.greeting.length)];
+export function getStylistGreeting(stylist: PersonalStylist, userName?: string | null): string {
+  const greeting = stylist.greeting[Math.floor(Math.random() * stylist.greeting.length)];
+  const displayName = userName || 'there';
+  return greeting.replace(/{name}/g, displayName);
 }
 
 export function getStylistById(id: string): PersonalStylist | null {
@@ -119,8 +121,10 @@ export function formatStylistMessage(stylist: PersonalStylist, message: string):
   return message;
 }
 
-export function getStylistSignOff(stylist: PersonalStylist): string {
-  return stylist.signOffs[Math.floor(Math.random() * stylist.signOffs.length)];
+export function getStylistSignOff(stylist: PersonalStylist, userName?: string | null): string {
+  const signOff = stylist.signOffs[Math.floor(Math.random() * stylist.signOffs.length)];
+  const displayName = userName || 'there';
+  return signOff.replace(/{name}/g, displayName);
 }
 
 export default {
