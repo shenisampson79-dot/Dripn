@@ -213,7 +213,7 @@ export default function StyleShuffleScreen() {
       return [...SHUFFLE_OUTFITS].sort(() => Math.random() - 0.5);
     }
     if (genderFilter === 'forme') {
-      const userGender = user?.gender === 'male' ? 'male' : user?.gender === 'female' ? 'female' : null;
+      const userGender = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : null;
       if (userGender) {
         return SHUFFLE_OUTFITS.filter(outfit => outfit.gender === userGender).sort(() => Math.random() - 0.5);
       }
@@ -350,6 +350,15 @@ export default function StyleShuffleScreen() {
     isAnimating.value = false;
   }, []);
 
+  const prevIndexRef = useRef(currentIndex);
+  
+  useEffect(() => {
+    if (prevIndexRef.current !== currentIndex) {
+      resetCardPosition();
+      prevIndexRef.current = currentIndex;
+    }
+  }, [currentIndex, resetCardPosition]);
+
   const handleSwipeComplete = useCallback((direction: 'left' | 'right') => {
     if (currentIndex >= outfits.length) return;
 
@@ -367,9 +376,7 @@ export default function StyleShuffleScreen() {
 
     incrementSwipeCount();
     setCurrentIndex((prev) => prev + 1);
-    
-    resetCardPosition();
-  }, [currentIndex, outfits, likedOutfits, triggerMatchOverlay, resetCardPosition]);
+  }, [currentIndex, outfits, likedOutfits, triggerMatchOverlay]);
 
   const handleSwipe = useCallback((direction: 'left' | 'right') => {
     if (isAnimating.value) return;
@@ -544,7 +551,7 @@ export default function StyleShuffleScreen() {
     if (genderFilter === 'all') {
       newOutfits = [...SHUFFLE_OUTFITS].sort(() => Math.random() - 0.5);
     } else if (genderFilter === 'forme') {
-      const userGender = user?.gender === 'male' ? 'male' : user?.gender === 'female' ? 'female' : null;
+      const userGender = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : null;
       if (userGender) {
         newOutfits = SHUFFLE_OUTFITS.filter(outfit => outfit.gender === userGender).sort(() => Math.random() - 0.5);
       } else {
@@ -868,9 +875,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cardContainer: {
-    flex: 1,
+    height: CARD_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: Spacing.lg,
   },
   cardWrapper: {
     position: 'absolute',
