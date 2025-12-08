@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { StyleSheet, View, Pressable, Image, ScrollView, Dimensions, Alert, ImageSourcePropType, Linking, ActivityIndicator } from "react-native";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { StyleSheet, View, Pressable, Image, ScrollView, Dimensions, Alert, ImageSourcePropType, Linking, ActivityIndicator, LayoutChangeEvent } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -167,13 +167,15 @@ type DiscoverScreenProps = {
 
 const { width } = Dimensions.get("window");
 
-const CATEGORIES = [
-  { id: "trending", name: "Trending", icon: "trending-up" as const },
-  { id: "casual", name: "Casual", icon: "sun" as const },
-  { id: "formal", name: "Formal", icon: "briefcase" as const },
-  { id: "date", name: "Date Night", icon: "heart" as const },
-  { id: "work", name: "Workwear", icon: "coffee" as const },
-  { id: "weekend", name: "Weekend", icon: "smile" as const },
+const SECTION_NAV = [
+  { id: "styleOfTheDay", name: "Style of Day", icon: "award" as const },
+  { id: "trendScanner", name: "Trends", icon: "trending-up" as const },
+  { id: "influencer", name: "Influencers", icon: "users" as const },
+  { id: "magazine", name: "Magazines", icon: "book-open" as const },
+  { id: "celebrity", name: "Celebrity", icon: "star" as const },
+  { id: "challenges", name: "Challenges", icon: "flag" as const },
+  { id: "highlights", name: "Highlights", icon: "zap" as const },
+  { id: "discover", name: "Discover", icon: "compass" as const },
 ];
 
 interface Challenge {
@@ -383,7 +385,9 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const { posts, votePost, voteComparison, thankPost } = usePosts();
   const { isOutfitLiked, toggleOutfitLike } = useOutfitFavorites();
   const { hasStyleProfile, personalizedStyleOfTheDay, fetchPersonalizedStyleOfTheDay } = useStyleProfile();
-  const [selectedCategory, setSelectedCategory] = useState("trending");
+  const [activeSection, setActiveSection] = useState("styleOfTheDay");
+  const scrollViewRef = useRef<ScrollView>(null);
+  const sectionPositions = useRef<Record<string, number>>({});
   const [selectedLook, setSelectedLook] = useState<CelebrityLook | null>(null);
   const [dislikedPosts, setDislikedPosts] = useState<Set<string>>(new Set());
   const [emergingTrends, setEmergingTrends] = useState<EmergingTrend[]>([]);
@@ -554,8 +558,62 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
     );
   };
 
+  const handleSectionLayout = (sectionId: string, event: LayoutChangeEvent) => {
+    sectionPositions.current[sectionId] = event.nativeEvent.layout.y;
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    setActiveSection(sectionId);
+    const position = sectionPositions.current[sectionId];
+    if (position !== undefined && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: position - 10, animated: true });
+    }
+  };
+
   return (
-    <ScreenScrollView>
+    <ScreenScrollView ref={scrollViewRef}>
+      {/* Quick Section Navigation */}
+      <View style={styles.sectionNavContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.sectionNavScroll}
+        >
+          {SECTION_NAV.map((section) => (
+            <Pressable
+              key={section.id}
+              onPress={() => scrollToSection(section.id)}
+              style={({ pressed }) => [
+                styles.sectionNavItem,
+                {
+                  backgroundColor:
+                    activeSection === section.id
+                      ? theme.link
+                      : theme.backgroundDefault,
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
+            >
+              <Feather
+                name={section.icon}
+                size={18}
+                color={activeSection === section.id ? "#FFFFFF" : theme.text}
+              />
+              <ThemedText
+                type="small"
+                style={{
+                  color: activeSection === section.id ? "#FFFFFF" : theme.text,
+                  fontWeight: "600",
+                  marginLeft: Spacing.xs,
+                }}
+              >
+                {section.name}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
       {isExploringOtherCountry && actualCountry ? (
         <View style={[styles.explorationBanner, { backgroundColor: theme.link + "15" }]}>
           <View style={styles.explorationBannerContent}>
@@ -584,7 +642,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         </View>
       ) : null}
 
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => handleSectionLayout('styleOfTheDay', e)}>
         <View style={styles.sectionHeader}>
           <ThemedText type="h2" style={styles.sectionTitle}>
             Style of the Day
@@ -663,7 +721,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
       </View>
 
       {emergingTrends.length > 0 || loadingTrends ? (
-        <View style={styles.section}>
+        <View style={styles.section} onLayout={(e) => handleSectionLayout('trendScanner', e)}>
           <View style={styles.sectionHeader}>
             <ThemedText type="h2" style={styles.sectionTitle}>
               Trend Scanner
@@ -739,7 +797,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         </View>
       ) : null}
 
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => handleSectionLayout('influencer', e)}>
         <View style={styles.sectionHeader}>
           <ThemedText type="h2" style={styles.sectionTitle}>
             Influencer Inspiration
@@ -825,7 +883,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         </View>
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => handleSectionLayout('magazine', e)}>
         <View style={styles.sectionHeader}>
           <ThemedText type="h2" style={styles.sectionTitle}>
             Magazine Style Inspiration
@@ -894,7 +952,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         </ScrollView>
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => handleSectionLayout('celebrity', e)}>
         <View style={styles.sectionHeader}>
           <ThemedText type="h2" style={styles.sectionTitle}>
             Celebrity-Inspired Looks
@@ -1018,50 +1076,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         </ScrollView>
       </View>
 
-      <View style={styles.section}>
-        <ThemedText type="h2" style={styles.sectionTitle}>
-          Browse by Category
-        </ThemedText>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContainer}
-        >
-          {CATEGORIES.map((category) => (
-            <Pressable
-              key={category.id}
-              onPress={() => setSelectedCategory(category.id)}
-              style={({ pressed }) => [
-                styles.categoryCard,
-                {
-                  backgroundColor:
-                    selectedCategory === category.id
-                      ? theme.link
-                      : theme.backgroundDefault,
-                  opacity: pressed ? 0.8 : 1,
-                },
-              ]}
-            >
-              <Feather
-                name={category.icon}
-                size={24}
-                color={selectedCategory === category.id ? "#FFFFFF" : theme.text}
-              />
-              <ThemedText
-                type="small"
-                style={{
-                  color: selectedCategory === category.id ? "#FFFFFF" : theme.text,
-                  fontWeight: "600",
-                }}
-              >
-                {category.name}
-              </ThemedText>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
-
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => handleSectionLayout('challenges', e)}>
         <View style={styles.sectionHeader}>
           <ThemedText type="h2" style={styles.sectionTitle}>
             Trending Challenges
@@ -1121,7 +1136,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         </ScrollView>
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => handleSectionLayout('highlights', e)}>
         <ThemedText type="h2" style={styles.sectionTitle}>
           Weekly Highlights
         </ThemedText>
@@ -1149,7 +1164,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         </View>
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => handleSectionLayout('discover', e)}>
         <ThemedText type="h2" style={styles.sectionTitle}>
           Discover New Styles
         </ThemedText>
@@ -1325,6 +1340,22 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  sectionNavContainer: {
+    marginBottom: Spacing.lg,
+    marginHorizontal: -Spacing.xl,
+    paddingHorizontal: Spacing.xl,
+  },
+  sectionNavScroll: {
+    paddingVertical: Spacing.xs,
+    gap: Spacing.sm,
+  },
+  sectionNavItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
   explorationBanner: {
     flexDirection: "row",
     alignItems: "center",
