@@ -116,7 +116,7 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
       {TabBarBackground}
       <View style={[styles.borderTop, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
       <View style={styles.tabBarContent}>
-        <View style={styles.tabGroup}>
+        <View style={styles.leftTabGroup}>
           {leftTabs.map((tab, i) => renderTabItem(tab, i))}
         </View>
 
@@ -136,7 +136,7 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
           </Pressable>
         </View>
 
-        <View style={styles.tabGroup}>
+        <View style={styles.rightTabGroup}>
           {rightTabs.map((tab, i) => renderTabItem(tab, i + 4))}
         </View>
       </View>
@@ -195,20 +195,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     height: 56,
   },
-  tabGroup: {
+  leftTabGroup: {
     flexDirection: "row",
-    flex: 1,
+    flex: 4,
     justifyContent: "space-evenly",
     alignItems: "center",
     height: "100%",
-    paddingHorizontal: Spacing.xs,
+  },
+  rightTabGroup: {
+    flexDirection: "row",
+    flex: 3,
+    justifyContent: "space-evenly",
+    alignItems: "center",
+    height: "100%",
   },
   tabItem: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.xs,
-    minWidth: 48,
+    minWidth: 44,
   },
   tabLabel: {
     fontSize: 9,
@@ -217,10 +222,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   centerButtonContainer: {
+    width: 60,
     alignItems: "center",
     justifyContent: "flex-end",
-    marginLeft: Spacing.md,
-    marginRight: Spacing.xs,
     paddingBottom: 4,
   },
   centerButton: {
