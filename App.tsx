@@ -29,6 +29,7 @@ import { SustainabilityProvider } from "@/contexts/SustainabilityContext";
 import { WardrobeProvider } from "@/contexts/WardrobeContext";
 import { GamificationProvider } from "@/contexts/GamificationContext";
 import { MessagingProvider } from "@/contexts/MessagingContext";
+import { VoiceSettingsProvider } from "@/contexts/VoiceSettingsContext";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -121,10 +122,12 @@ export default function App() {
                                       <WardrobeProvider>
                                         <GamificationProvider>
                                           <MessagingProvider>
-                                            <NavigationContainer>
-                                              <AppContent />
-                                            </NavigationContainer>
-                                          </MessagingProvider>
+                                              <VoiceSettingsProvider>
+                                                <NavigationContainer>
+                                                  <AppContent />
+                                                </NavigationContainer>
+                                              </VoiceSettingsProvider>
+                                            </MessagingProvider>
                                         </GamificationProvider>
                                       </WardrobeProvider>
                                     </SustainabilityProvider>

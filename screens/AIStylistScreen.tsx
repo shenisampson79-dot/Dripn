@@ -42,6 +42,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { getStylistForUser, getStylistGreeting, PersonalStylist } from '@/services/PersonalStylistService';
 import { apiService } from '@/services/ApiService';
+import { useVoiceSettings, VoiceId } from '@/contexts/VoiceSettingsContext';
+import * as FileSystem from 'expo-file-system';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const INPUT_CONTAINER_HEIGHT = 80;
@@ -358,6 +360,7 @@ export default function AIStylistScreen() {
   const { limits, tier } = useSubscription();
   const { items: wardrobeItems } = useWardrobe();
   const { user } = useAuth();
+  const { settings: voiceSettings, getVoiceForStylist } = useVoiceSettings();
   const insets = useSafeAreaInsets();
   const screenInsets = useScreenInsets();
   const tabBarHeightContext = React.useContext(
@@ -383,7 +386,11 @@ export default function AIStylistScreen() {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [hasAudioPermission, setHasAudioPermission] = useState<boolean | null>(null);
   const [detectedMood, setDetectedMood] = useState<string | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isPlayingTTS, setIsPlayingTTS] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(true);
   const recordingRef = useRef<Audio.Recording | null>(null);
+  const ttsPlayerRef = useRef<Audio.Sound | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   const pulseScale = useSharedValue(1);
@@ -430,6 +437,7 @@ export default function AIStylistScreen() {
         clearInterval(recordingTimerRef.current);
       }
       stopRecording(true);
+      stopTTSPlayback();
     };
   }, []);
   
@@ -488,6 +496,81 @@ export default function AIStylistScreen() {
       setHasAudioPermission(status === 'granted');
     } catch (error) {
       setHasAudioPermission(false);
+    }
+  };
+
+  const playTTSAudio = async (text: string) => {
+    if (!ttsEnabled || !voiceSettings.ttsEnabled || Platform.OS === 'web') return;
+    
+    try {
+      setIsPlayingTTS(true);
+      
+      if (ttsPlayerRef.current) {
+        await ttsPlayerRef.current.stopAsync();
+        await ttsPlayerRef.current.unloadAsync();
+        ttsPlayerRef.current = null;
+      }
+
+      const voiceId = getVoiceForStylist(stylist.id as 'ruby' | 'max');
+      
+      const response = await apiService.createVoiceResponse({
+        textResponse: text,
+        stylistId: stylist.id,
+        speed: voiceSettings.voiceSpeed,
+      });
+
+      if (response.success && response.audio?.audioBuffer) {
+        await Audio.setAudioModeAsync({
+          allowsRecording: false,
+          playsInSilentMode: true,
+        });
+
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: `data:audio/mp3;base64,${response.audio.audioBuffer}` },
+          { shouldPlay: true }
+        );
+        ttsPlayerRef.current = sound;
+
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && status.didJustFinish) {
+            setIsPlayingTTS(false);
+            sound.unloadAsync();
+            ttsPlayerRef.current = null;
+          }
+        });
+      } else {
+        setIsPlayingTTS(false);
+      }
+    } catch (error) {
+      console.log('TTS playback failed:', error);
+      setIsPlayingTTS(false);
+    }
+  };
+
+  const stopTTSPlayback = async () => {
+    try {
+      if (ttsPlayerRef.current) {
+        await ttsPlayerRef.current.stopAsync();
+        await ttsPlayerRef.current.unloadAsync();
+        ttsPlayerRef.current = null;
+      }
+      setIsPlayingTTS(false);
+    } catch (error) {
+      console.log('Error stopping TTS:', error);
+      setIsPlayingTTS(false);
+    }
+  };
+
+  const convertAudioToBase64 = async (uri: string): Promise<string | null> => {
+    try {
+      if (Platform.OS === 'web') return null;
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      return base64;
+    } catch (error) {
+      console.error('Failed to convert audio to base64:', error);
+      return null;
     }
   };
 
@@ -614,12 +697,35 @@ export default function AIStylistScreen() {
   const handleVoiceMessage = async (uri: string, duration: number) => {
     if (!canSendMessage()) return;
 
-    const voiceMessageText = 'I just sent you a voice message about my style needs. Please help me with outfit suggestions.';
+    setIsTranscribing(true);
+    let transcribedText = '';
+
+    try {
+      const audioBase64 = await convertAudioToBase64(uri);
+      
+      if (audioBase64) {
+        const transcribeResponse = await apiService.transcribeAudio(
+          audioBase64,
+          voiceSettings.preferredLanguage
+        );
+        
+        if (transcribeResponse.success && transcribeResponse.text) {
+          transcribedText = transcribeResponse.text;
+        }
+      }
+    } catch (error) {
+      console.log('Transcription failed, using fallback:', error);
+    } finally {
+      setIsTranscribing(false);
+    }
+
+    const displayText = transcribedText || 'Voice message';
+    const messageToSend = transcribedText || 'I just sent you a voice message about my style needs. Please help me with outfit suggestions.';
 
     const userMessage: ChatMessage = {
       id: `msg_${Date.now()}_user`,
       role: 'user',
-      content: 'Voice message',
+      content: displayText,
       timestamp: new Date().toISOString(),
       voiceMessage: { uri, duration },
     };
@@ -651,7 +757,7 @@ export default function AIStylistScreen() {
       const response = await apiService.sendStylistMessage({
         stylistId: stylist.id,
         messages: chatHistory,
-        userMessage: voiceMessageText,
+        userMessage: messageToSend,
         wardrobeItems: wardrobeContext,
         userGender: user?.gender || 'unspecified',
         subscriptionTier: tier,
@@ -673,6 +779,10 @@ export default function AIStylistScreen() {
       setIsTyping(false);
 
       await saveChatHistory(finalMessages);
+
+      if (voiceSettings.autoPlayResponses) {
+        playTTSAudio(response.content);
+      }
 
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -700,6 +810,10 @@ export default function AIStylistScreen() {
       setIsTyping(false);
 
       await saveChatHistory(finalMessages);
+
+      if (voiceSettings.autoPlayResponses) {
+        playTTSAudio(responseContent);
+      }
 
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -844,6 +958,10 @@ export default function AIStylistScreen() {
       
       await saveChatHistory(finalMessages);
       
+      if (voiceSettings.autoPlayResponses && ttsEnabled) {
+        playTTSAudio(supportiveResponse);
+      }
+      
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -890,6 +1008,10 @@ export default function AIStylistScreen() {
       
       await saveChatHistory(finalMessages);
       
+      if (voiceSettings.autoPlayResponses && ttsEnabled) {
+        playTTSAudio(response.content);
+      }
+      
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -910,6 +1032,10 @@ export default function AIStylistScreen() {
       setIsTyping(false);
       
       await saveChatHistory(finalMessages);
+      
+      if (voiceSettings.autoPlayResponses && ttsEnabled) {
+        playTTSAudio(response.content);
+      }
       
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -1113,6 +1239,25 @@ export default function AIStylistScreen() {
               </ThemedText>
             </View>
           ) : null}
+          {isPlayingTTS ? (
+            <Pressable 
+              onPress={stopTTSPlayback} 
+              style={[styles.ttsButton, { backgroundColor: theme.link + '20' }]}
+            >
+              <ActivityIndicator size="small" color={theme.link} />
+            </Pressable>
+          ) : (
+            <Pressable 
+              onPress={() => setTtsEnabled(!ttsEnabled)} 
+              style={styles.ttsButton}
+            >
+              <Feather 
+                name={ttsEnabled ? "volume-2" : "volume-x"} 
+                size={20} 
+                color={ttsEnabled ? theme.link : theme.tabIconDefault} 
+              />
+            </Pressable>
+          )}
           <Pressable onPress={clearChat} style={styles.clearButton}>
             <Feather name="refresh-cw" size={20} color={theme.tabIconDefault} />
           </Pressable>
@@ -1257,6 +1402,27 @@ export default function AIStylistScreen() {
                 <View style={styles.stopIcon} />
               </Pressable>
             </Animated.View>
+          </View>
+        </View>
+      );
+    }
+
+    if (isTranscribing) {
+      return (
+        <View
+          style={[
+            styles.inputContainerWrapper,
+            { 
+              paddingBottom: Spacing.sm,
+              backgroundColor: theme.backgroundDefault,
+            }
+          ]}
+        >
+          <View style={[styles.transcribingContainer, { backgroundColor: theme.backgroundSecondary }]}>
+            <ActivityIndicator size="small" color={stylist.color} />
+            <ThemedText style={[styles.transcribingText, { color: theme.tabIconDefault }]}>
+              Transcribing your message...
+            </ThemedText>
           </View>
         </View>
       );
@@ -1455,6 +1621,23 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: Spacing.sm,
+  },
+  ttsButton: {
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  transcribingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    marginHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+  },
+  transcribingText: {
+    ...Typography.body,
   },
   emptyWardrobeCard: {
     marginBottom: Spacing.lg,
