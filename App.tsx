@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, Modal, ActivityIndicator, View } from "react-native";
+import { StyleSheet, Modal } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -12,6 +12,7 @@ import StylistStackNavigator from "@/navigation/StylistStackNavigator";
 import CreatePostScreen from "@/screens/CreatePostScreen";
 import { AppTour } from "@/components/AppTour";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PostsProvider } from "@/contexts/PostsContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
@@ -30,14 +31,11 @@ import { WardrobeProvider } from "@/contexts/WardrobeContext";
 import { GamificationProvider } from "@/contexts/GamificationContext";
 import { MessagingProvider } from "@/contexts/MessagingContext";
 import { VoiceSettingsProvider } from "@/contexts/VoiceSettingsContext";
-import { ThemedView } from "@/components/ThemedView";
-import { useTheme } from "@/hooks/useTheme";
 
 export type PortalMode = 'stylist' | 'admin' | null;
 
 function AppContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const { theme } = useTheme();
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [portalMode, setPortalMode] = useState<PortalMode>(null);
@@ -49,11 +47,7 @@ function AppContent() {
   }, [user?.hasCompletedOnboarding, user?.hasSeenTour]);
 
   if (isLoading) {
-    return (
-      <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.link} />
-      </ThemedView>
-    );
+    return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {
@@ -155,10 +149,5 @@ export default function App() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
   },
 });
