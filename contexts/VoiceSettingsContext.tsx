@@ -124,11 +124,8 @@ export function VoiceSettingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getVoiceForStylist = useCallback((stylistId: 'ruby' | 'max'): VoiceId => {
-    if (stylistId === 'ruby') {
-      return 'nova';
-    } else if (stylistId === 'max') {
-      return 'onyx';
-    }
+    // Always honor user's preferred voice setting
+    // The preferredVoice in settings takes priority
     return settings.preferredVoice;
   }, [settings.preferredVoice]);
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Pressable, Alert, Linking, Platform, Switch, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Pressable, Alert, Linking, Platform, Switch, ActivityIndicator, Modal, ScrollView } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -13,6 +13,7 @@ import { useStyleTheme } from "@/hooks/useStyleTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useReferral } from "@/contexts/ReferralContext";
 import { useSmartNotifications } from "@/contexts/SmartNotificationsContext";
+import { useVoiceSettings, SUPPORTED_LANGUAGES, SPEED_OPTIONS } from "@/contexts/VoiceSettingsContext";
 import { apiService } from "@/services/ApiService";
 import colorTrendService from "@/services/ColorTrendService";
 
@@ -164,7 +165,9 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const { user, logout, updateProfile } = useAuth();
   const { referralCode, totalReferrals, bonusAIRequests, shareReferral } = useReferral();
   const { preferences: notificationPrefs, updatePreferences } = useSmartNotifications();
+  const { settings: voiceSettings, updateSettings: updateVoiceSettings } = useVoiceSettings();
   const [isNewsletterSubscribed, setIsNewsletterSubscribed] = useState(false);
+  const [pickerModal, setPickerModal] = useState<{ type: 'language' | 'speed' | null; visible: boolean }>({ type: null, visible: false });
   const [isNewsletterLoading, setIsNewsletterLoading] = useState(false);
   const [pantoneColor, setPantoneColor] = useState<PantoneColor | null>(null);
   const [pantoneLoading, setPantoneLoading] = useState(true);
@@ -331,6 +334,18 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     } catch (error) {
       Linking.openURL("https://dripn.app/partner.html");
     }
+  };
+
+  const handleLanguageSelect = () => {
+    setPickerModal({ type: 'language', visible: true });
+  };
+
+  const handleSpeedSelect = () => {
+    setPickerModal({ type: 'speed', visible: true });
+  };
+
+  const closePickerModal = () => {
+    setPickerModal({ type: null, visible: false });
   };
 
   return (
@@ -690,6 +705,100 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
 
       <View style={styles.section}>
         <ThemedText type="h3" style={styles.sectionTitle}>
+          Voice & Language
+        </ThemedText>
+        <View style={styles.sectionContent}>
+          <View
+            style={[
+              styles.settingItem,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
+            <View style={styles.settingIconContainer}>
+              <Feather name="volume-2" size={20} color={theme.text} />
+            </View>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                Voice Responses
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                Hear Max & Ruby speak their advice
+              </ThemedText>
+            </View>
+            <Switch
+              value={voiceSettings.ttsEnabled}
+              onValueChange={(value) => updateVoiceSettings({ ttsEnabled: value })}
+              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              thumbColor={voiceSettings.ttsEnabled ? "#FFFFFF" : "#F4F4F4"}
+            />
+          </View>
+          <SettingItem
+            icon="globe"
+            title="Language"
+            subtitle={SUPPORTED_LANGUAGES.find(l => l.code === voiceSettings.preferredLanguage)?.name || "English"}
+            onPress={handleLanguageSelect}
+            theme={theme}
+          />
+          <SettingItem
+            icon="fast-forward"
+            title="Voice Speed"
+            subtitle={SPEED_OPTIONS.find(s => s.value === voiceSettings.voiceSpeed)?.label || "Normal"}
+            onPress={handleSpeedSelect}
+            theme={theme}
+          />
+          <View
+            style={[
+              styles.settingItem,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
+            <View style={styles.settingIconContainer}>
+              <Feather name="play-circle" size={20} color={theme.text} />
+            </View>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                Auto-Play Responses
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                Automatically play voice when stylist responds
+              </ThemedText>
+            </View>
+            <Switch
+              value={voiceSettings.autoPlayResponses}
+              onValueChange={(value) => updateVoiceSettings({ autoPlayResponses: value })}
+              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              thumbColor={voiceSettings.autoPlayResponses ? "#FFFFFF" : "#F4F4F4"}
+            />
+          </View>
+          <View
+            style={[
+              styles.settingItem,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
+            <View style={styles.settingIconContainer}>
+              <Feather name="file-text" size={20} color={theme.text} />
+            </View>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                Show Transcriptions
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                Display text version of voice messages
+              </ThemedText>
+            </View>
+            <Switch
+              value={voiceSettings.showTranscriptions}
+              onValueChange={(value) => updateVoiceSettings({ showTranscriptions: value })}
+              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              thumbColor={voiceSettings.showTranscriptions ? "#FFFFFF" : "#F4F4F4"}
+            />
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h3" style={styles.sectionTitle}>
           Support
         </ThemedText>
         <View style={styles.sectionContent}>
@@ -808,6 +917,79 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           Dripn v1.0.0
         </ThemedText>
       </View>
+
+      <Modal
+        visible={pickerModal.visible}
+        transparent
+        animationType="slide"
+        onRequestClose={closePickerModal}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={closePickerModal}
+        >
+          <View style={[styles.modalContent, { backgroundColor: theme.backgroundSecondary }]}>
+            <View style={styles.modalHeader}>
+              <ThemedText type="h3" style={styles.modalTitle}>
+                {pickerModal.type === 'language' ? 'Select Language' : 'Voice Speed'}
+              </ThemedText>
+              <Pressable onPress={closePickerModal} style={styles.modalCloseButton}>
+                <Feather name="x" size={24} color={theme.text} />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+              {pickerModal.type === 'language' ? (
+                SUPPORTED_LANGUAGES.map((lang) => (
+                  <Pressable
+                    key={lang.code}
+                    style={({ pressed }) => [
+                      styles.modalOption,
+                      { backgroundColor: pressed ? theme.backgroundDefault : 'transparent' },
+                      voiceSettings.preferredLanguage === lang.code && { backgroundColor: theme.link + '20' },
+                    ]}
+                    onPress={() => {
+                      updateVoiceSettings({ preferredLanguage: lang.code });
+                      closePickerModal();
+                    }}
+                  >
+                    <ThemedText type="body" style={styles.modalOptionText}>
+                      {lang.name}
+                    </ThemedText>
+                    <ThemedText type="small" style={styles.modalOptionSubtext}>
+                      {lang.nativeName}
+                    </ThemedText>
+                    {voiceSettings.preferredLanguage === lang.code ? (
+                      <Feather name="check" size={20} color={theme.link} />
+                    ) : null}
+                  </Pressable>
+                ))
+              ) : (
+                SPEED_OPTIONS.map((speed) => (
+                  <Pressable
+                    key={speed.value}
+                    style={({ pressed }) => [
+                      styles.modalOption,
+                      { backgroundColor: pressed ? theme.backgroundDefault : 'transparent' },
+                      voiceSettings.voiceSpeed === speed.value && { backgroundColor: theme.link + '20' },
+                    ]}
+                    onPress={() => {
+                      updateVoiceSettings({ voiceSpeed: speed.value });
+                      closePickerModal();
+                    }}
+                  >
+                    <ThemedText type="body" style={styles.modalOptionText}>
+                      {speed.label}
+                    </ThemedText>
+                    {voiceSettings.voiceSpeed === speed.value ? (
+                      <Feather name="check" size={20} color={theme.link} />
+                    ) : null}
+                  </Pressable>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
     </ScreenScrollView>
   );
 }
@@ -932,5 +1114,47 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.sm,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: BorderRadius.lg,
+    borderTopRightRadius: BorderRadius.lg,
+    maxHeight: '70%',
+    paddingBottom: Spacing.xl,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(128, 128, 128, 0.2)',
+  },
+  modalTitle: {
+    flex: 1,
+  },
+  modalCloseButton: {
+    padding: Spacing.sm,
+  },
+  modalScrollView: {
+    paddingHorizontal: Spacing.md,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.sm,
+    marginVertical: 2,
+  },
+  modalOptionText: {
+    flex: 1,
+  },
+  modalOptionSubtext: {
+    opacity: 0.6,
+    marginRight: Spacing.md,
   },
 });

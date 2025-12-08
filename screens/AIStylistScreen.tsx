@@ -517,6 +517,8 @@ export default function AIStylistScreen() {
         textResponse: text,
         stylistId: stylist.id,
         speed: voiceSettings.voiceSpeed,
+        voice: voiceId,
+        language: voiceSettings.preferredLanguage,
       });
 
       if (response.success && response.audio?.audioBuffer) {

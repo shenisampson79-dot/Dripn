@@ -855,7 +855,13 @@ class ApiService {
     });
   }
 
-  async createVoiceResponse(data: { textResponse: string; stylistId?: string; speed?: number }) {
+  async createVoiceResponse(data: { 
+    textResponse: string; 
+    stylistId?: string; 
+    speed?: number;
+    voice?: string;
+    language?: string;
+  }) {
     return this.request<{
       success: boolean;
       audio: {
