@@ -23,12 +23,18 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
     <ThemedView style={styles.container}>
       <View style={[styles.content, { paddingTop: insets.top + Spacing["3xl"] }]}>
         <View style={styles.logoContainer}>
+          <ThemedText type="h1" style={styles.brandName}>
+            Dripn
+          </ThemedText>
           <Image
             source={require("../assets/images/dripn-logo-icon.png")}
             style={styles.logo}
             resizeMode="contain"
           />
-          <ThemedText type="body" style={styles.tagline}>
+          <ThemedText type="body" style={styles.taglineBelow}>
+            style that flows
+          </ThemedText>
+          <ThemedText type="small" style={styles.tagline}>
             Your personal stylist and global fashion community
           </ThemedText>
         </View>
@@ -132,16 +138,31 @@ const styles = StyleSheet.create({
     marginBottom: Spacing["3xl"],
     marginTop: Spacing["2xl"],
   },
+  brandName: {
+    fontSize: 48,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: Spacing.md,
+    letterSpacing: 2,
+  },
   logo: {
-    width: 180,
-    height: 180,
+    width: 120,
+    height: 120,
     borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.sm,
+  },
+  taglineBelow: {
+    textAlign: "center",
+    fontStyle: "italic",
+    opacity: 0.8,
+    marginBottom: Spacing.lg,
+    letterSpacing: 1,
   },
   tagline: {
     textAlign: "center",
-    opacity: 0.7,
+    opacity: 0.6,
     paddingHorizontal: Spacing.xl,
+    fontSize: 14,
   },
   featuresContainer: {
     gap: Spacing.lg,
