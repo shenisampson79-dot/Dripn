@@ -359,7 +359,15 @@ export default function AIStylistScreen() {
   const { items: wardrobeItems } = useWardrobe();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const { headerHeight } = useScreenInsets();
+  const screenInsets = useScreenInsets();
+  const tabBarHeightContext = React.useContext(
+    require('@react-navigation/bottom-tabs').BottomTabBarHeightContext
+  );
+  const tabBarHeight: number = typeof tabBarHeightContext === 'number' ? tabBarHeightContext : 0;
+  const headerHeightContext = React.useContext(
+    require('@react-navigation/elements').HeaderHeightContext
+  );
+  const headerHeight: number = typeof headerHeightContext === 'number' ? headerHeightContext : 0;
   const navigation = useNavigation();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
   
@@ -1205,7 +1213,7 @@ export default function AIStylistScreen() {
           style={[
             styles.inputContainerWrapper,
             { 
-              paddingBottom: insets.bottom + Spacing.sm,
+              paddingBottom: Spacing.sm,
               backgroundColor: theme.backgroundDefault,
             }
           ]}
@@ -1259,7 +1267,7 @@ export default function AIStylistScreen() {
         style={[
           styles.inputContainerWrapper,
           { 
-            paddingBottom: insets.bottom + Spacing.sm,
+            paddingBottom: Spacing.sm,
             backgroundColor: theme.backgroundDefault,
           }
         ]}
@@ -1356,7 +1364,7 @@ export default function AIStylistScreen() {
         automaticallyAdjustKeyboardInsets
         style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       />
-      <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
+      <KeyboardStickyView offset={{ closed: tabBarHeight, opened: 0 }}>
         {renderInputBar()}
       </KeyboardStickyView>
     </KeyboardProvider>
