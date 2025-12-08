@@ -99,6 +99,65 @@ interface PantoneColor {
   description?: string;
 }
 
+interface VIPTestModeItemProps {
+  user: any;
+  updateProfile: (data: any) => Promise<void>;
+  theme: any;
+}
+
+function VIPTestModeItem({ user, updateProfile, theme }: VIPTestModeItemProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const isVIP = user?.subscriptionTier === 'vip';
+
+  const handlePress = async () => {
+    if (isVIP) {
+      Alert.alert("VIP Mode", "You already have VIP access. To downgrade, visit the Subscription screen.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await updateProfile({ subscriptionTier: 'vip' });
+      Alert.alert("VIP Enabled", "You now have VIP access for testing. Enjoy the personal stylist chat and all premium features!");
+    } catch (error) {
+      Alert.alert("Error", "Failed to enable VIP mode. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      disabled={isLoading}
+      style={({ pressed }) => [
+        styles.settingItem,
+        { backgroundColor: theme.backgroundDefault, opacity: pressed || isLoading ? 0.7 : 1 },
+      ]}
+    >
+      <View style={styles.settingIconContainer}>
+        {isLoading ? (
+          <ActivityIndicator size="small" color={theme.link} />
+        ) : (
+          <Feather name="award" size={20} color={isVIP ? theme.link : theme.text} />
+        )}
+      </View>
+      <View style={styles.settingContent}>
+        <ThemedText
+          type="body"
+          style={[styles.settingTitle, isVIP && { color: theme.link }]}
+        >
+          {isVIP ? "VIP Mode Active" : "Enable VIP Test Mode"}
+        </ThemedText>
+        <ThemedText type="small" style={styles.settingSubtitle}>
+          {isVIP ? "You have full VIP access" : "Unlock all VIP features for testing"}
+        </ThemedText>
+      </View>
+      <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
+    </Pressable>
+  );
+}
+
 export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScreenProps) {
   const { theme } = useTheme();
   const { hasTrendColors, trendInfo, isLoading: trendLoading, refreshTrends } = useStyleTheme();
@@ -711,6 +770,11 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             title="Logo Preview"
             subtitle="View Dripn logo variations"
             onPress={() => navigation.navigate("LogoPreview")}
+            theme={theme}
+          />
+          <VIPTestModeItem
+            user={user}
+            updateProfile={updateProfile}
             theme={theme}
           />
         </View>

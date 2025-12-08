@@ -1,8 +1,9 @@
 import React from "react";
-import { View, StyleSheet, Pressable } from "react-native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { View, StyleSheet, Pressable, Platform } from "react-native";
+import { createBottomTabNavigator, BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
 
 import HomeStackNavigator from "@/navigation/HomeStackNavigator";
 import DiscoverStackNavigator from "@/navigation/DiscoverStackNavigator";
@@ -12,6 +13,7 @@ import BargainsStackNavigator from "@/navigation/BargainsStackNavigator";
 import EventsStackNavigator from "@/navigation/EventsStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
 import { useTheme } from "@/hooks/useTheme";
+import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
 
 export type MainTabParamList = {
@@ -19,7 +21,6 @@ export type MainTabParamList = {
   DiscoverTab: undefined;
   StylistTab: undefined;
   CommunityTab: undefined;
-  PostTab: undefined;
   BargainsTab: undefined;
   EventsTab: undefined;
   ProfileTab: undefined;
@@ -27,33 +28,118 @@ export type MainTabParamList = {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-function EmptyScreen() {
-  return null;
+const TAB_CONFIG: { name: keyof MainTabParamList; icon: string; label: string }[] = [
+  { name: "HomeTab", icon: "home", label: "Home" },
+  { name: "DiscoverTab", icon: "compass", label: "Discover" },
+  { name: "StylistTab", icon: "scissors", label: "Stylist" },
+  { name: "CommunityTab", icon: "users", label: "People" },
+  { name: "BargainsTab", icon: "tag", label: "Offers" },
+  { name: "EventsTab", icon: "calendar", label: "Events" },
+  { name: "ProfileTab", icon: "user", label: "Profile" },
+];
+
+interface CustomTabBarProps extends BottomTabBarProps {
+  onCreatePost: () => void;
 }
 
-interface FloatingPostButtonProps {
-  onPress: () => void;
-}
-
-function FloatingPostButton({ onPress }: FloatingPostButtonProps) {
-  const { theme } = useTheme();
+function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTabBarProps) {
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  return (
-    <View style={[styles.fabContainer, { bottom: 49 + insets.bottom + 8 }]}>
+  const leftTabs = TAB_CONFIG.slice(0, 4);
+  const rightTabs = TAB_CONFIG.slice(4);
+
+  const renderTabItem = (tabConfig: typeof TAB_CONFIG[0], index: number) => {
+    const routeIndex = state.routes.findIndex(r => r.name === tabConfig.name);
+    const route = state.routes[routeIndex];
+    const isFocused = state.index === routeIndex;
+
+    const onPress = () => {
+      const event = navigation.emit({
+        type: "tabPress",
+        target: route.key,
+        canPreventDefault: true,
+      });
+
+      if (!isFocused && !event.defaultPrevented) {
+        navigation.navigate(route.name);
+      }
+    };
+
+    const onLongPress = () => {
+      navigation.emit({
+        type: "tabLongPress",
+        target: route.key,
+      });
+    };
+
+    return (
       <Pressable
+        key={tabConfig.name}
+        accessibilityRole="button"
+        accessibilityState={isFocused ? { selected: true } : {}}
         onPress={onPress}
-        style={({ pressed }) => [
-          styles.fab,
-          { 
-            backgroundColor: theme.link,
-            transform: [{ scale: pressed ? 0.95 : 1 }],
-            opacity: pressed ? 0.9 : 1,
-          },
-        ]}
+        onLongPress={onLongPress}
+        style={styles.tabItem}
       >
-        <Feather name="plus" size={28} color="#FFFFFF" />
+        <Feather
+          name={tabConfig.icon as any}
+          size={22}
+          color={isFocused ? theme.tabIconSelected : theme.tabIconDefault}
+        />
+        <ThemedText
+          type="caption"
+          style={[
+            styles.tabLabel,
+            { color: isFocused ? theme.tabIconSelected : theme.tabIconDefault },
+          ]}
+          numberOfLines={1}
+        >
+          {tabConfig.label}
+        </ThemedText>
       </Pressable>
+    );
+  };
+
+  const TabBarBackground = Platform.OS === "ios" ? (
+    <BlurView
+      intensity={80}
+      tint={isDark ? "dark" : "light"}
+      style={StyleSheet.absoluteFill}
+    />
+  ) : (
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.backgroundRoot }]} />
+  );
+
+  return (
+    <View style={[styles.tabBarContainer, { paddingBottom: insets.bottom }]}>
+      {TabBarBackground}
+      <View style={[styles.borderTop, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
+      <View style={styles.tabBarContent}>
+        <View style={styles.tabGroup}>
+          {leftTabs.map((tab, i) => renderTabItem(tab, i))}
+        </View>
+
+        <View style={styles.centerButtonContainer}>
+          <Pressable
+            onPress={onCreatePost}
+            style={({ pressed }) => [
+              styles.centerButton,
+              {
+                backgroundColor: theme.link,
+                transform: [{ scale: pressed ? 0.92 : 1 }],
+                opacity: pressed ? 0.9 : 1,
+              },
+            ]}
+          >
+            <Feather name="plus" size={28} color="#FFFFFF" />
+          </Pressable>
+        </View>
+
+        <View style={styles.tabGroup}>
+          {rightTabs.map((tab, i) => renderTabItem(tab, i + 4))}
+        </View>
+      </View>
     </View>
   );
 }
@@ -66,140 +152,79 @@ interface MainTabNavigatorProps {
 }
 
 export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTabNavigatorProps) {
-  const { theme, isDark } = useTheme();
-
   return (
-    <View style={{ flex: 1 }}>
-      <Tab.Navigator
-        initialRouteName="HomeTab"
-        screenOptions={{
-          tabBarActiveTintColor: theme.tabIconSelected,
-          tabBarInactiveTintColor: theme.tabIconDefault,
-          tabBarStyle: {
-            backgroundColor: theme.backgroundRoot,
-            borderTopWidth: StyleSheet.hairlineWidth,
-            borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-            elevation: 0,
-            height: 60,
-            paddingBottom: 8,
-            paddingTop: 8,
-          },
-          tabBarLabelStyle: {
-            fontSize: 10,
-            fontWeight: '500',
-          },
-          tabBarIconStyle: {
-            marginBottom: 0,
-          },
-          tabBarItemStyle: {
-            justifyContent: 'center',
-            alignItems: 'center',
-          },
-          headerShown: false,
-        }}
-      >
-        <Tab.Screen
-          name="HomeTab"
-          component={HomeStackNavigator}
-          options={{
-            title: "Home",
-            tabBarIcon: ({ color, size }) => (
-              <Feather name="home" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="DiscoverTab"
-          component={DiscoverStackNavigator}
-          options={{
-            title: "Discover",
-            tabBarIcon: ({ color, size }) => (
-              <Feather name="compass" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="StylistTab"
-          component={UserStylistStackNavigator}
-          options={{
-            title: "Stylist",
-            tabBarIcon: ({ color, size }) => (
-              <Feather name="scissors" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="CommunityTab"
-          component={CommunityStackNavigator}
-          options={{
-            title: "People",
-            tabBarIcon: ({ color, size }) => (
-              <Feather name="users" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="PostTab"
-          component={EmptyScreen}
-          options={{
-            title: "Post",
-            tabBarIcon: () => null,
-            tabBarButton: () => null,
-          }}
-          listeners={{
-            tabPress: (e) => {
-              e.preventDefault();
-            },
-          }}
-        />
-        <Tab.Screen
-          name="BargainsTab"
-          component={BargainsStackNavigator}
-          options={{
-            title: "Offers",
-            tabBarIcon: ({ color, size }) => (
-              <Feather name="tag" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="EventsTab"
-          component={EventsStackNavigator}
-          options={{
-            title: "Events",
-            tabBarIcon: ({ color, size }) => (
-              <Feather name="calendar" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="ProfileTab"
-          options={{
-            title: "Profile",
-            tabBarIcon: ({ color, size }) => (
-              <Feather name="user" size={size} color={color} />
-            ),
-          }}
-        >
-          {() => <ProfileStackNavigator onOpenPortal={onOpenPortal} />}
-        </Tab.Screen>
-      </Tab.Navigator>
-      <FloatingPostButton onPress={onCreatePost} />
-    </View>
+    <Tab.Navigator
+      initialRouteName="HomeTab"
+      tabBar={(props) => <CustomTabBar {...props} onCreatePost={onCreatePost} />}
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Tab.Screen name="HomeTab" component={HomeStackNavigator} />
+      <Tab.Screen name="DiscoverTab" component={DiscoverStackNavigator} />
+      <Tab.Screen name="StylistTab" component={UserStylistStackNavigator} />
+      <Tab.Screen name="CommunityTab" component={CommunityStackNavigator} />
+      <Tab.Screen name="BargainsTab" component={BargainsStackNavigator} />
+      <Tab.Screen name="EventsTab" component={EventsStackNavigator} />
+      <Tab.Screen name="ProfileTab">
+        {() => <ProfileStackNavigator onOpenPortal={onOpenPortal} />}
+      </Tab.Screen>
+    </Tab.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
-  fabContainer: {
+  tabBarContainer: {
     position: "absolute",
+    bottom: 0,
     left: 0,
     right: 0,
-    alignItems: "center",
-    pointerEvents: "box-none",
+    backgroundColor: Platform.OS === "ios" ? "transparent" : undefined,
   },
-  fab: {
-    width: 56,
+  borderTop: {
+    height: StyleSheet.hairlineWidth,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  tabBarContent: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.md,
     height: 56,
+  },
+  tabGroup: {
+    flexDirection: "row",
+    flex: 1,
+    justifyContent: "space-evenly",
+    alignItems: "center",
+    height: "100%",
+    paddingHorizontal: Spacing.xs,
+  },
+  tabItem: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    minWidth: 48,
+  },
+  tabLabel: {
+    fontSize: 9,
+    fontWeight: "500",
+    marginTop: 2,
+    textAlign: "center",
+  },
+  centerButtonContainer: {
+    alignItems: "center",
+    justifyContent: "flex-end",
+    marginHorizontal: Spacing.xs,
+    paddingBottom: 4,
+  },
+  centerButton: {
+    width: 52,
+    height: 52,
     borderRadius: BorderRadius.full,
     alignItems: "center",
     justifyContent: "center",
@@ -208,5 +233,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+    marginBottom: 2,
   },
 });
