@@ -175,7 +175,7 @@ const SECTION_NAV = [
   { id: "celebrity", name: "Celebrity", icon: "star" as const },
   { id: "challenges", name: "Challenges", icon: "flag" as const },
   { id: "highlights", name: "Highlights", icon: "zap" as const },
-  { id: "discover", name: "Discover", icon: "compass" as const },
+  { id: "blog", name: "Blog", icon: "edit-3" as const },
 ];
 
 interface Challenge {
@@ -1164,7 +1164,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         </View>
       </View>
 
-      <View style={styles.section} onLayout={(e) => handleSectionLayout('discover', e)}>
+      <View style={styles.section} onLayout={(e) => handleSectionLayout('blog', e)}>
         <ThemedText type="h2" style={styles.sectionTitle}>
           Discover New Styles
         </ThemedText>
