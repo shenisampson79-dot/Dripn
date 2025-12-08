@@ -640,6 +640,122 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
   }
 });
 
+// ============ STRIPE CHECKOUT ROUTES ============
+
+// Create Stripe checkout session for subscriptions
+app.post('/api/checkout/create-session', authMiddleware, async (req, res) => {
+  try {
+    const { priceId, planTier } = req.body;
+    
+    if (!priceId) {
+      return res.status(400).json({ error: 'Price ID is required' });
+    }
+
+    const credentials = await getStripeCredentials();
+    if (!credentials?.secret) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+
+    const Stripe = require('stripe');
+    const stripe = new Stripe(credentials.secret, {
+      apiVersion: '2024-11-20.acacia'
+    });
+
+    // Get user email
+    const userResult = await pool.query('SELECT email, display_name FROM users WHERE id = $1', [req.userId]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const user = userResult.rows[0];
+
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      customer_email: user.email,
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        userId: req.userId,
+        planTier: planTier || 'unknown',
+        tier: planTier || 'unknown',
+      },
+      success_url: `${req.protocol}://${req.get('host')}/api/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.protocol}://${req.get('host')}/api/checkout/cancel`,
+    });
+
+    res.json({ 
+      url: session.url,
+      sessionId: session.id 
+    });
+  } catch (error) {
+    console.error('Checkout session error:', error);
+    res.status(500).json({ error: error.message || 'Failed to create checkout session' });
+  }
+});
+
+// Checkout success - update user subscription
+app.get('/api/checkout/success', async (req, res) => {
+  try {
+    const { session_id } = req.query;
+    
+    if (!session_id) {
+      return res.redirect('dripn://subscription?status=error');
+    }
+
+    const credentials = await getStripeCredentials();
+    if (!credentials?.secret) {
+      return res.redirect('dripn://subscription?status=error');
+    }
+
+    const Stripe = require('stripe');
+    const stripe = new Stripe(credentials.secret, {
+      apiVersion: '2024-11-20.acacia'
+    });
+
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+    
+    if (session.payment_status === 'paid' && session.metadata?.userId) {
+      // Update user subscription tier
+      const planTier = session.metadata.planTier || session.metadata.tier || 'premium';
+      await pool.query(
+        'UPDATE users SET subscription_tier = $1 WHERE id = $2',
+        [planTier, session.metadata.userId]
+      );
+      console.log(`Updated user ${session.metadata.userId} to ${planTier} tier`);
+    }
+
+    // Redirect to app with success status
+    res.redirect('dripn://subscription?status=success');
+  } catch (error) {
+    console.error('Checkout success error:', error);
+    res.redirect('dripn://subscription?status=error');
+  }
+});
+
+// Checkout cancel
+app.get('/api/checkout/cancel', (req, res) => {
+  res.redirect('dripn://subscription?status=cancelled');
+});
+
+// Get Stripe publishable key for client
+app.get('/api/stripe/config', async (req, res) => {
+  try {
+    const credentials = await getStripeCredentials();
+    if (!credentials?.publishable) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+    res.json({ publishableKey: credentials.publishable });
+  } catch (error) {
+    console.error('Stripe config error:', error);
+    res.status(500).json({ error: 'Failed to get Stripe config' });
+  }
+});
+
 // ============ POSTS ROUTES ============
 
 // Get all posts

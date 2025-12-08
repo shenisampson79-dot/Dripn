@@ -646,6 +646,17 @@ class ApiService {
       body: JSON.stringify({ message }),
     });
   }
+
+  async createCheckoutSession(priceId: string, planTier: string) {
+    return this.request<{ url: string; sessionId: string }>('/api/checkout/create-session', {
+      method: 'POST',
+      body: JSON.stringify({ priceId, planTier }),
+    });
+  }
+
+  async getStripeConfig() {
+    return this.request<{ publishableKey: string }>('/api/stripe/config');
+  }
 }
 
 export const apiService = new ApiService();
