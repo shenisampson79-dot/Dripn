@@ -386,13 +386,33 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
     const pitchValue = voicePitch === 'low' ? 0.8 : voicePitch === 'high' ? 1.3 : 1.0;
     const rateValue = stylistId === 'ruby' ? 0.95 : 1.0;
 
-    Speech.speak(phrase, {
-      pitch: pitchValue,
-      rate: rateValue,
-      onDone: () => setIsPlayingVoice(null),
-      onError: () => setIsPlayingVoice(null),
-      onStopped: () => setIsPlayingVoice(null),
-    });
+    try {
+      const isAvailable = await Speech.isSpeakingAsync();
+      
+      Speech.speak(phrase, {
+        language: 'en-US',
+        pitch: pitchValue,
+        rate: rateValue,
+        onStart: () => {
+          console.log('Voice preview started for', stylistId);
+        },
+        onDone: () => {
+          console.log('Voice preview finished for', stylistId);
+          setIsPlayingVoice(null);
+        },
+        onError: (error) => {
+          console.log('Voice preview error:', error);
+          setIsPlayingVoice(null);
+        },
+        onStopped: () => {
+          console.log('Voice preview stopped for', stylistId);
+          setIsPlayingVoice(null);
+        },
+      });
+    } catch (error) {
+      console.log('Speech error:', error);
+      setIsPlayingVoice(null);
+    }
   }, [voicePitch, isPlayingVoice]);
 
   const handleStylistSelect = useCallback((stylistId: StylistId) => {
