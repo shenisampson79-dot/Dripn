@@ -47,29 +47,32 @@ const VELOCITY_THRESHOLD = 500;
 const ROTATION_RANGE = 12;
 
 const SPRING_CONFIG = {
-  damping: 20,
-  stiffness: 200,
-  mass: 0.8,
-  overshootClamping: false,
+  damping: 25,
+  stiffness: 250,
+  mass: 0.6,
+  overshootClamping: true,
   restDisplacementThreshold: 0.01,
   restSpeedThreshold: 0.01,
 };
 
 const SNAP_BACK_SPRING = {
-  damping: 18,
-  stiffness: 180,
-  mass: 0.7,
+  damping: 22,
+  stiffness: 200,
+  mass: 0.5,
+  overshootClamping: false,
 };
 
-const SWIPE_OUT_CONFIG = {
-  duration: 350,
-  easing: Easing.out(Easing.cubic),
+const SWIPE_OUT_SPRING = {
+  damping: 30,
+  stiffness: 300,
+  mass: 0.5,
+  overshootClamping: true,
 };
 
 const LIKED_OUTFITS_KEY = '@dripn_liked_shuffle_outfits';
 const DAILY_SWIPES_KEY = '@dripn_daily_swipes';
 
-type GenderFilter = 'all' | 'female' | 'male';
+type GenderFilter = 'all' | 'female' | 'male' | 'forme';
 
 interface ShuffleOutfit {
   id: string;
@@ -196,7 +199,7 @@ export default function StyleShuffleScreen() {
     );
   }, [navigation]);
 
-  const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
+  const [genderFilter, setGenderFilter] = useState<GenderFilter>('forme');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedOutfits, setLikedOutfits] = useState<string[]>([]);
   const [swipesToday, setSwipesToday] = useState(0);
@@ -209,15 +212,22 @@ export default function StyleShuffleScreen() {
     if (genderFilter === 'all') {
       return [...SHUFFLE_OUTFITS].sort(() => Math.random() - 0.5);
     }
+    if (genderFilter === 'forme') {
+      const userGender = user?.gender === 'male' ? 'male' : user?.gender === 'female' ? 'female' : null;
+      if (userGender) {
+        return SHUFFLE_OUTFITS.filter(outfit => outfit.gender === userGender).sort(() => Math.random() - 0.5);
+      }
+      return [...SHUFFLE_OUTFITS].sort(() => Math.random() - 0.5);
+    }
     return SHUFFLE_OUTFITS.filter(outfit => outfit.gender === genderFilter).sort(() => Math.random() - 0.5);
-  }, [genderFilter]);
+  }, [genderFilter, user?.gender]);
 
   const [outfits, setOutfits] = useState<ShuffleOutfit[]>(filteredOutfits);
 
   React.useEffect(() => {
     setOutfits(filteredOutfits);
     setCurrentIndex(0);
-  }, [genderFilter]);
+  }, [filteredOutfits]);
 
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -378,13 +388,14 @@ export default function StyleShuffleScreen() {
 
     isAnimating.value = true;
     const targetX = direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
-    const targetY = direction === 'right' ? -50 : 50;
+    const targetY = direction === 'right' ? -30 : 30;
     
-    translateX.value = withTiming(targetX, SWIPE_OUT_CONFIG, () => {
-      runOnJS(handleSwipeComplete)(direction);
+    translateX.value = withSpring(targetX, SWIPE_OUT_SPRING, (finished) => {
+      if (finished) {
+        runOnJS(handleSwipeComplete)(direction);
+      }
     });
-    translateY.value = withTiming(targetY, { duration: 350, easing: Easing.out(Easing.quad) });
-    cardOpacity.value = withTiming(0.8, { duration: 200 });
+    translateY.value = withSpring(targetY, { ...SWIPE_OUT_SPRING, damping: 35 });
   }, [remainingSwipes, dailyLimit, handleSwipeComplete, navigateToSubscription]);
 
   const panGesture = Gesture.Pan()
@@ -423,16 +434,21 @@ export default function StyleShuffleScreen() {
         } else {
           isAnimating.value = true;
           const targetX = direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
-          const velocityFactor = Math.min(Math.abs(velocityX) / 1000, 1);
-          const duration = Math.max(200, 350 - velocityFactor * 150);
+          const velocityBoost = Math.min(Math.abs(velocityX) / 500, 2);
           
-          translateX.value = withTiming(targetX, { 
-            duration, 
-            easing: Easing.out(Easing.cubic) 
-          }, () => {
-            runOnJS(handleSwipeComplete)(direction);
+          translateX.value = withSpring(targetX, {
+            ...SWIPE_OUT_SPRING,
+            velocity: velocityX * velocityBoost,
+          }, (finished) => {
+            if (finished) {
+              runOnJS(handleSwipeComplete)(direction);
+            }
           });
-          translateY.value = withTiming(event.translationY * 0.5, { duration });
+          translateY.value = withSpring(event.translationY * 0.3, {
+            ...SWIPE_OUT_SPRING,
+            damping: 35,
+            velocity: event.velocityY * 0.3,
+          });
         }
       } else {
         translateX.value = withSpring(0, SNAP_BACK_SPRING);
@@ -524,9 +540,19 @@ export default function StyleShuffleScreen() {
 
   const resetDeck = () => {
     setCurrentIndex(0);
-    const newOutfits = genderFilter === 'all' 
-      ? [...SHUFFLE_OUTFITS].sort(() => Math.random() - 0.5)
-      : SHUFFLE_OUTFITS.filter(outfit => outfit.gender === genderFilter).sort(() => Math.random() - 0.5);
+    let newOutfits: ShuffleOutfit[];
+    if (genderFilter === 'all') {
+      newOutfits = [...SHUFFLE_OUTFITS].sort(() => Math.random() - 0.5);
+    } else if (genderFilter === 'forme') {
+      const userGender = user?.gender === 'male' ? 'male' : user?.gender === 'female' ? 'female' : null;
+      if (userGender) {
+        newOutfits = SHUFFLE_OUTFITS.filter(outfit => outfit.gender === userGender).sort(() => Math.random() - 0.5);
+      } else {
+        newOutfits = [...SHUFFLE_OUTFITS].sort(() => Math.random() - 0.5);
+      }
+    } else {
+      newOutfits = SHUFFLE_OUTFITS.filter(outfit => outfit.gender === genderFilter).sort(() => Math.random() - 0.5);
+    }
     setOutfits(newOutfits);
   };
 
@@ -580,6 +606,25 @@ export default function StyleShuffleScreen() {
           Browse for:
         </ThemedText>
         <View style={[styles.genderToggleRow, { backgroundColor: theme.backgroundSecondary }]}>
+          <Pressable
+            onPress={() => setGenderFilter('forme')}
+            style={[
+              styles.genderToggleButton,
+              genderFilter === 'forme' && { backgroundColor: theme.link },
+            ]}
+          >
+            <Feather 
+              name="star" 
+              size={14} 
+              color={genderFilter === 'forme' ? '#FFFFFF' : theme.tabIconDefault} 
+            />
+            <ThemedText style={[
+              styles.genderToggleText,
+              { color: genderFilter === 'forme' ? '#FFFFFF' : theme.text }
+            ]}>
+              For Me
+            </ThemedText>
+          </Pressable>
           <Pressable
             onPress={() => setGenderFilter('all')}
             style={[
@@ -639,7 +684,7 @@ export default function StyleShuffleScreen() {
           </Pressable>
         </View>
         <ThemedText style={[styles.giftHint, { color: theme.tabIconDefault }]}>
-          Perfect for gift ideas
+          {genderFilter === 'forme' ? 'Personalized for your style' : 'Perfect for gift ideas'}
         </ThemedText>
       </View>
 
