@@ -797,7 +797,7 @@ export default function StyleShuffleScreen() {
             ]}
             onPress={() => handleSwipe('left')}
           >
-            <Feather name="x" size={32} color={theme.error || '#C94C5A'} />
+            <Feather name="x" size={24} color={theme.error || '#C94C5A'} />
           </Pressable>
 
           <Pressable
@@ -819,7 +819,7 @@ export default function StyleShuffleScreen() {
               }
             }}
           >
-            <Feather name="info" size={24} color={theme.link} />
+            <Feather name="info" size={18} color={theme.link} />
           </Pressable>
 
           <Pressable
@@ -834,7 +834,7 @@ export default function StyleShuffleScreen() {
             ]}
             onPress={() => handleSwipe('right')}
           >
-            <Feather name="heart" size={32} color="#FFFFFF" />
+            <Feather name="heart" size={24} color="#FFFFFF" />
           </Pressable>
         </View>
       </BlurView>
@@ -867,7 +867,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xs,
   },
   title: {
     ...Typography.h2,
@@ -895,11 +895,11 @@ const styles = StyleSheet.create({
   },
   floatingActionBar: {
     position: 'absolute',
-    left: Spacing.xl,
-    right: Spacing.xl,
-    borderRadius: BorderRadius.xl,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    left: Spacing['2xl'],
+    right: Spacing['2xl'],
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     overflow: 'hidden',
   },
   cardWrapper: {
@@ -1002,8 +1002,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.xl,
-    paddingVertical: Spacing.sm,
+    gap: Spacing.lg,
+    paddingVertical: Spacing.xs,
   },
   actionButton: {
     justifyContent: 'center',
@@ -1011,22 +1011,22 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   passButton: {
-    width: 60,
-    height: 60,
-  },
-  infoButton: {
     width: 48,
     height: 48,
   },
+  infoButton: {
+    width: 40,
+    height: 40,
+  },
   likeButton: {
-    width: 60,
-    height: 60,
+    width: 48,
+    height: 48,
   },
   progressRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: Spacing.xs,
-    paddingBottom: Spacing.sm,
+    paddingBottom: Spacing.xs,
   },
   progressDot: {
     width: 8,
@@ -1086,12 +1086,12 @@ const styles = StyleSheet.create({
   },
   genderToggleContainer: {
     alignItems: 'center',
-    marginBottom: Spacing.md,
-    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+    gap: 2,
   },
   genderToggleLabel: {
     ...Typography.small,
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
   genderToggleRow: {
     flexDirection: 'row',
