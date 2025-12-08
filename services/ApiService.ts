@@ -657,6 +657,146 @@ class ApiService {
   async getStripeConfig() {
     return this.request<{ publishableKey: string }>('/api/stripe/config');
   }
+
+  async getLifestyleAffirmation() {
+    return this.request<{ affirmation: string }>('/api/ai/lifestyle/affirmation');
+  }
+
+  async getMoodOutfit(data: { mood: string; gender?: string; style?: string }) {
+    return this.request<{
+      success: boolean;
+      data: {
+        moodAnalysis?: {
+          currentState?: string;
+          styleNeed?: string;
+          colorPrescription?: string;
+        };
+        outfit?: {
+          pieces?: Array<{ item: string; reason: string }>;
+          colorPalette?: string[];
+          overallEffect?: string;
+        };
+        affirmation?: string;
+        selfCareTip?: string;
+        avoidToday?: string;
+      };
+      modelUsed?: string;
+    }>('/api/ai/lifestyle/mood-outfit', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getBodyPositivity(data: { bodyType?: string; concerns?: string[]; gender?: string }) {
+    return this.request<{
+      success: boolean;
+      data: {
+        affirmations?: string[];
+        celebrateFeatures?: Array<{ feature: string; howToStyle: string }>;
+        mindsetShift?: {
+          oldThinking?: string;
+          newPerspective?: string;
+        };
+        signatureStyleElements?: string[];
+        confidenceOutfit?: {
+          description?: string;
+          pieces?: string[];
+          whyItWorks?: string;
+        };
+        dailyPractice?: string;
+      };
+      modelUsed?: string;
+    }>('/api/ai/lifestyle/body-positivity', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getConfidenceRitual(data: { occasion?: string; style?: string; gender?: string }) {
+    return this.request<{
+      success: boolean;
+      data: {
+        occasionAnalysis?: {
+          whatToExpect?: string;
+          energyNeeded?: string;
+        };
+        powerOutfit?: {
+          pieces?: Array<{ item: string; reason: string }>;
+          colorMeaning?: string;
+          silhouettePower?: string;
+        };
+        preEventRitual?: {
+          morningOf?: string;
+          gettingDressed?: string;
+          finalCheck?: string;
+        };
+        powerPose?: string;
+        mantra?: string;
+        contingencyPlan?: string;
+        celebrationPlan?: string;
+      };
+      modelUsed?: string;
+    }>('/api/ai/lifestyle/confidence-ritual', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getWellnessOutfit(data: { activity: string; gender?: string; style?: string }) {
+    return this.request<{
+      success: boolean;
+      data: {
+        wellnessAssessment?: {
+          physicalNeeds?: string;
+          mentalNeeds?: string;
+          energyOptimization?: string;
+        };
+        outfit?: {
+          pieces?: Array<{ item: string; wellnessBenefit: string }>;
+          fabricConsiderations?: string;
+          movementFriendly?: boolean;
+        };
+        layeringStrategy?: string;
+        colorWellness?: string;
+        selfCareReminders?: string[];
+        eveningTransition?: string;
+      };
+      modelUsed?: string;
+    }>('/api/ai/lifestyle/wellness-outfit', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getCapsuleWardrobe(data: { lifestyle?: string; climate?: string; gender?: string; style?: string }) {
+    return this.request<{
+      success: boolean;
+      data: {
+        currentAnalysis?: {
+          totalItems?: number;
+          categoryBreakdown?: Record<string, number>;
+          colorPalette?: string[];
+          versatilityScore?: number;
+          gapsIdentified?: string[];
+        };
+        capsulePlan?: {
+          targetSize?: string;
+          coreColors?: string[];
+          accentColors?: string[];
+          essentials?: Array<{ category: string; quantity: number; purpose: string }>;
+        };
+        keepItems?: Array<{ item: string; reason: string }>;
+        considerRemoving?: Array<{ item: string; reason: string }>;
+        shoppingList?: Array<{ item: string; priority: string; reason: string }>;
+        outfitFormulas?: string[];
+        mindfulnessTask?: string;
+      };
+      modelUsed?: string;
+    }>('/api/ai/lifestyle/capsule-wardrobe', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const apiService = new ApiService();

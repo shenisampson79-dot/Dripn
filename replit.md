@@ -39,6 +39,60 @@ A **Fashion Trend Intelligence System** curates global trend data from fashion p
 
 A **Visual Outfit Inspiration System** provides a Pinterest-style feature with similar outfit ideas. It uses a curated outfit library organized by style category and gender, with future plans for AI-generated images via DALL-E integration.
 
+## Advanced AI Capabilities (OpenAI Integration)
+
+The backend includes comprehensive AI services leveraging multiple OpenAI models:
+
+### Model Lifecycle System (`backend-code/modelLifecycleService.js`)
+- Automatic model upgrade detection and A/B testing
+- Model priority: gpt-4.5-preview → gpt-4o → gpt-4-turbo → gpt-4 → gpt-3.5-turbo
+- Daily health checks and performance monitoring
+- API endpoints: `/api/ai/model-status`, `/api/ai/refresh-models`, `/api/ai/health-check`, `/api/ai/check-upgrades`
+
+### Vision-Powered Outfit Analysis (`backend-code/visionAnalysisService.js`)
+- GPT-4o Vision integration for analyzing outfit photos
+- Features: color extraction, style detection, fit analysis, occasion matching
+- Multi-image outfit comparison
+- API endpoints: `/api/ai/analyze-photo`, `/api/ai/compare-outfits`, `/api/ai/extract-colors`
+
+### Voice Services (`backend-code/voiceService.js`)
+- Whisper integration for speech-to-text transcription
+- TTS-1-HD for natural AI voice responses
+- Voice personas: Ruby (women's stylist) and Max (men's stylist)
+- API endpoints: `/api/ai/transcribe`, `/api/ai/speak`, `/api/ai/voices`, `/api/ai/voice-message`, `/api/ai/voice-response`
+
+### Fashion Therapy & Wellness (`backend-code/lifestyleStylistService.js`)
+- Mood-based outfit recommendations
+- Body positivity affirmations and styling tips
+- Capsule wardrobe planning
+- Confidence ritual generation
+- Wellness activity outfit suggestions
+- Daily fashion affirmations
+- API endpoints: `/api/ai/lifestyle/mood-outfit`, `/api/ai/lifestyle/body-positivity`, `/api/ai/lifestyle/capsule-wardrobe`, `/api/ai/lifestyle/confidence-ritual`, `/api/ai/lifestyle/wellness-outfit`, `/api/ai/lifestyle/affirmation`
+
+### Semantic Style Search (`backend-code/styleEmbeddingService.js`)
+- text-embedding-3-large for semantic outfit matching
+- Style preference understanding
+- Complementary piece suggestions
+- API endpoints: `/api/ai/semantic-search`, `/api/ai/complementary-pieces`, `/api/ai/embedding-stats`
+
+### AI Image Generation (`backend-code/imageGenerationService.js`)
+- DALL-E 3 integration for outfit inspiration images
+- Moodboard generation
+- Style guide visualization
+- Similar outfit generation
+- API endpoints: `/api/ai/generate-inspiration`, `/api/ai/generate-moodboard`, `/api/ai/generate-similar`, `/api/ai/generate-variations`, `/api/ai/generate-style-guide`, `/api/ai/available-styles`, `/api/ai/available-moods`
+
+### Fashion Therapy Screen (`screens/FashionTherapyScreen.tsx`)
+- Mood selector with 8 emotional states (happy, confident, calm, anxious, tired, stressed, sad, motivated)
+- Mood-based outfit recommendations
+- Body positivity section with personalized affirmations
+- Confidence ritual generator
+- Wellness wardrobe for activities (yoga, meditation, workout, nature walk, self-care, journaling)
+- Capsule wardrobe planner
+- Daily affirmation display
+- Navigation: Accessible from Profile screen via "Fashion Therapy" button
+
 ## VIP Video Calling System
 VIP members have exclusive access to video calling features hosted on the Dripn platform:
 

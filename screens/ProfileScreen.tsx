@@ -75,6 +75,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("OutfitCalendar");
   };
 
+  const handleFashionTherapyPress = () => {
+    navigation.navigate("FashionTherapy");
+  };
+
   const getSubscriptionBadge = () => {
     const tier = user?.subscriptionTier || "free";
     const colors = SubscriptionColors[tier];
@@ -212,6 +216,19 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           <Feather name="calendar" size={18} color={theme.text} />
           <ThemedText type="body" style={styles.wardrobeButtonText}>
             Outfit Calendar
+          </ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={handleFashionTherapyPress}
+          style={({ pressed }) => [
+            styles.therapyButton,
+            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
+          ]}
+        >
+          <Feather name="heart" size={18} color="#FFFFFF" />
+          <ThemedText type="body" style={styles.upgradeButtonText}>
+            Fashion Therapy
           </ThemedText>
         </Pressable>
 
@@ -667,6 +684,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     borderRadius: BorderRadius.full,
     marginTop: Spacing.sm,
+  },
+  therapyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    backgroundColor: "#EC4899",
   },
   upgradeButtonText: {
     color: "#FFFFFF",

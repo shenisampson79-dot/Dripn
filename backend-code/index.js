@@ -10,6 +10,12 @@ const { scanEmergingFashionTrends, scanViralFashionMoments, predictNextBigTrend,
 const { sendPushNotification, sendBatchPushNotifications, processEventReminders } = require('./pushNotificationService');
 const colorTrendService = require('./colorTrendService');
 const { generateStylistResponse, detectMood } = require('./aiStylistService');
+const { getBestModel, getModelStatus, refreshAllModels, performHealthCheck, checkForNewModels } = require('./modelLifecycleService');
+const { analyzeOutfitPhoto, compareOutfits, extractColorsFromPhoto } = require('./visionAnalysisService');
+const { transcribeAudio, synthesizeSpeech, processVoiceMessage, createVoiceResponse, getAllVoices } = require('./voiceService');
+const { getMoodBasedOutfit, getBodyPositivityAdvice, getCapsuleWardrobePlan, getConfidenceRitual, getWellnessOutfit, getDailyAffirmation } = require('./lifestyleStylistService');
+const { semanticStyleSearch, findComplementaryPieces, generateEmbedding, getCacheStats } = require('./styleEmbeddingService');
+const { generateOutfitInspiration, generateMoodBoard, generateSimilarLook, generateOutfitVariations, generateStyleGuide, getAvailableStyles, getAvailableMoods } = require('./imageGenerationService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -3601,13 +3607,526 @@ app.post('/api/stylist/detect-mood', async (req, res) => {
   }
 });
 
+// ============ AI MODEL LIFECYCLE ============
+
+app.get('/api/ai/model-status', async (req, res) => {
+  try {
+    const status = await getModelStatus();
+    res.json({ success: true, ...status });
+  } catch (error) {
+    console.error('Model status error:', error);
+    res.status(500).json({ error: 'Failed to get model status' });
+  }
+});
+
+app.post('/api/ai/refresh-models', authMiddleware, async (req, res) => {
+  try {
+    const result = await refreshAllModels();
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('Refresh models error:', error);
+    res.status(500).json({ error: 'Failed to refresh models' });
+  }
+});
+
+app.post('/api/ai/health-check', async (req, res) => {
+  try {
+    const health = await performHealthCheck();
+    res.json({ success: true, ...health });
+  } catch (error) {
+    console.error('AI health check error:', error);
+    res.status(500).json({ error: 'Failed to perform health check' });
+  }
+});
+
+app.post('/api/ai/check-upgrades', authMiddleware, async (req, res) => {
+  try {
+    const result = await checkForNewModels();
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('Check upgrades error:', error);
+    res.status(500).json({ error: 'Failed to check for upgrades' });
+  }
+});
+
+// ============ AI VISION ANALYSIS ============
+
+app.post('/api/ai/analyze-photo', authMiddleware, async (req, res) => {
+  try {
+    const { imageBase64, imageUrl, userGender, analysisType } = req.body;
+
+    if (!imageBase64 && !imageUrl) {
+      return res.status(400).json({ error: 'imageBase64 or imageUrl is required' });
+    }
+
+    const analysis = await analyzeOutfitPhoto({
+      imageBase64,
+      imageUrl,
+      userGender: userGender || 'not specified',
+      analysisType: analysisType || 'full'
+    });
+
+    res.json({ success: true, analysis });
+  } catch (error) {
+    console.error('Photo analysis error:', error);
+    res.status(500).json({ error: 'Failed to analyze photo' });
+  }
+});
+
+app.post('/api/ai/compare-outfits', authMiddleware, async (req, res) => {
+  try {
+    const { images, userGender, occasion } = req.body;
+
+    if (!images || !Array.isArray(images) || images.length < 2) {
+      return res.status(400).json({ error: 'At least 2 images are required for comparison' });
+    }
+
+    const comparison = await compareOutfits({
+      images,
+      userGender: userGender || 'not specified',
+      occasion: occasion || 'general'
+    });
+
+    res.json({ success: true, comparison });
+  } catch (error) {
+    console.error('Outfit comparison error:', error);
+    res.status(500).json({ error: 'Failed to compare outfits' });
+  }
+});
+
+app.post('/api/ai/extract-colors', authMiddleware, async (req, res) => {
+  try {
+    const { imageBase64, imageUrl } = req.body;
+
+    if (!imageBase64 && !imageUrl) {
+      return res.status(400).json({ error: 'imageBase64 or imageUrl is required' });
+    }
+
+    const colors = await extractColorsFromPhoto({ imageBase64, imageUrl });
+    res.json({ success: true, colors });
+  } catch (error) {
+    console.error('Color extraction error:', error);
+    res.status(500).json({ error: 'Failed to extract colors' });
+  }
+});
+
+// ============ AI VOICE SERVICES ============
+
+app.post('/api/ai/transcribe', authMiddleware, async (req, res) => {
+  try {
+    const { audioBase64, audioUrl, language } = req.body;
+
+    if (!audioBase64 && !audioUrl) {
+      return res.status(400).json({ error: 'audioBase64 or audioUrl is required' });
+    }
+
+    const transcription = await transcribeAudio({
+      audioBase64,
+      audioUrl,
+      language: language || 'en'
+    });
+
+    res.json({ success: true, transcription });
+  } catch (error) {
+    console.error('Transcription error:', error);
+    res.status(500).json({ error: 'Failed to transcribe audio' });
+  }
+});
+
+app.post('/api/ai/speak', authMiddleware, async (req, res) => {
+  try {
+    const { text, voice, stylistId, speed } = req.body;
+
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({ error: 'text is required' });
+    }
+
+    const audio = await synthesizeSpeech({
+      text,
+      voice,
+      stylistId,
+      speed: speed || 1.0
+    });
+
+    res.json({ success: true, audio });
+  } catch (error) {
+    console.error('Speech synthesis error:', error);
+    res.status(500).json({ error: 'Failed to synthesize speech' });
+  }
+});
+
+app.get('/api/ai/voices', async (req, res) => {
+  try {
+    const voices = getAllVoices();
+    res.json({ success: true, voices });
+  } catch (error) {
+    console.error('Get voices error:', error);
+    res.status(500).json({ error: 'Failed to get available voices' });
+  }
+});
+
+app.post('/api/ai/voice-message', authMiddleware, async (req, res) => {
+  try {
+    const { audioBase64, audioUrl, stylistId, userGender, conversationHistory } = req.body;
+
+    if (!audioBase64 && !audioUrl) {
+      return res.status(400).json({ error: 'audioBase64 or audioUrl is required' });
+    }
+
+    const response = await processVoiceMessage({
+      audioBase64,
+      audioUrl,
+      stylistId: stylistId || 'ruby',
+      userGender: userGender || 'not specified',
+      conversationHistory: conversationHistory || []
+    });
+
+    res.json({ success: true, ...response });
+  } catch (error) {
+    console.error('Voice message error:', error);
+    res.status(500).json({ error: 'Failed to process voice message' });
+  }
+});
+
+app.post('/api/ai/voice-response', authMiddleware, async (req, res) => {
+  try {
+    const { textResponse, stylistId, speed } = req.body;
+
+    if (!textResponse || typeof textResponse !== 'string') {
+      return res.status(400).json({ error: 'textResponse is required' });
+    }
+
+    const audio = await createVoiceResponse({
+      textResponse,
+      stylistId: stylistId || 'ruby',
+      speed: speed || 1.0
+    });
+
+    res.json({ success: true, audio });
+  } catch (error) {
+    console.error('Voice response error:', error);
+    res.status(500).json({ error: 'Failed to create voice response' });
+  }
+});
+
+// ============ AI LIFESTYLE & THERAPY ============
+
+app.post('/api/ai/lifestyle/mood-outfit', authMiddleware, async (req, res) => {
+  try {
+    const { mood, userGender, occasion, wardrobeItems, preferences } = req.body;
+
+    if (!mood || typeof mood !== 'string') {
+      return res.status(400).json({ error: 'mood is required' });
+    }
+
+    const outfit = await getMoodBasedOutfit({
+      mood,
+      userGender: userGender || 'not specified',
+      occasion: occasion || 'casual',
+      wardrobeItems: wardrobeItems || [],
+      preferences: preferences || {}
+    });
+
+    res.json({ success: true, outfit });
+  } catch (error) {
+    console.error('Mood outfit error:', error);
+    res.status(500).json({ error: 'Failed to generate mood-based outfit' });
+  }
+});
+
+app.post('/api/ai/lifestyle/body-positivity', authMiddleware, async (req, res) => {
+  try {
+    const { concerns, bodyType, userGender, styleGoals } = req.body;
+
+    const advice = await getBodyPositivityAdvice({
+      concerns: concerns || [],
+      bodyType: bodyType || 'not specified',
+      userGender: userGender || 'not specified',
+      styleGoals: styleGoals || []
+    });
+
+    res.json({ success: true, advice });
+  } catch (error) {
+    console.error('Body positivity error:', error);
+    res.status(500).json({ error: 'Failed to generate body positivity advice' });
+  }
+});
+
+app.post('/api/ai/lifestyle/capsule-wardrobe', authMiddleware, async (req, res) => {
+  try {
+    const { lifestyle, budget, userGender, season, colorPreferences, existingItems } = req.body;
+
+    const plan = await getCapsuleWardrobePlan({
+      lifestyle: lifestyle || 'balanced',
+      budget: budget || 'medium',
+      userGender: userGender || 'not specified',
+      season: season || 'all-season',
+      colorPreferences: colorPreferences || [],
+      existingItems: existingItems || []
+    });
+
+    res.json({ success: true, plan });
+  } catch (error) {
+    console.error('Capsule wardrobe error:', error);
+    res.status(500).json({ error: 'Failed to generate capsule wardrobe plan' });
+  }
+});
+
+app.post('/api/ai/lifestyle/confidence-ritual', authMiddleware, async (req, res) => {
+  try {
+    const { upcomingEvent, concerns, userGender, stylePersonality } = req.body;
+
+    const ritual = await getConfidenceRitual({
+      upcomingEvent: upcomingEvent || 'general day',
+      concerns: concerns || [],
+      userGender: userGender || 'not specified',
+      stylePersonality: stylePersonality || 'classic'
+    });
+
+    res.json({ success: true, ritual });
+  } catch (error) {
+    console.error('Confidence ritual error:', error);
+    res.status(500).json({ error: 'Failed to generate confidence ritual' });
+  }
+});
+
+app.post('/api/ai/lifestyle/wellness-outfit', authMiddleware, async (req, res) => {
+  try {
+    const { wellnessGoal, activity, userGender, preferences } = req.body;
+
+    if (!wellnessGoal || typeof wellnessGoal !== 'string') {
+      return res.status(400).json({ error: 'wellnessGoal is required' });
+    }
+
+    const outfit = await getWellnessOutfit({
+      wellnessGoal,
+      activity: activity || 'general wellness',
+      userGender: userGender || 'not specified',
+      preferences: preferences || {}
+    });
+
+    res.json({ success: true, outfit });
+  } catch (error) {
+    console.error('Wellness outfit error:', error);
+    res.status(500).json({ error: 'Failed to generate wellness outfit' });
+  }
+});
+
+app.get('/api/ai/lifestyle/affirmation', authMiddleware, async (req, res) => {
+  try {
+    const { userGender, focusArea } = req.query;
+
+    const affirmation = await getDailyAffirmation({
+      userGender: userGender || 'not specified',
+      focusArea: focusArea || 'style confidence'
+    });
+
+    res.json({ success: true, affirmation });
+  } catch (error) {
+    console.error('Affirmation error:', error);
+    res.status(500).json({ error: 'Failed to generate affirmation' });
+  }
+});
+
+// ============ AI SEMANTIC SEARCH & EMBEDDINGS ============
+
+app.post('/api/ai/semantic-search', authMiddleware, async (req, res) => {
+  try {
+    const { query, styleCategory, userGender, limit, filters } = req.body;
+
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ error: 'query is required' });
+    }
+
+    const results = await semanticStyleSearch({
+      query,
+      styleCategory: styleCategory || 'all',
+      userGender: userGender || 'not specified',
+      limit: limit || 10,
+      filters: filters || {}
+    });
+
+    res.json({ success: true, results });
+  } catch (error) {
+    console.error('Semantic search error:', error);
+    res.status(500).json({ error: 'Failed to perform semantic search' });
+  }
+});
+
+app.post('/api/ai/complementary-pieces', authMiddleware, async (req, res) => {
+  try {
+    const { itemDescription, wardrobeItems, userGender, occasion, budget } = req.body;
+
+    if (!itemDescription || typeof itemDescription !== 'string') {
+      return res.status(400).json({ error: 'itemDescription is required' });
+    }
+
+    const pieces = await findComplementaryPieces({
+      itemDescription,
+      wardrobeItems: wardrobeItems || [],
+      userGender: userGender || 'not specified',
+      occasion: occasion || 'casual',
+      budget: budget || 'medium'
+    });
+
+    res.json({ success: true, pieces });
+  } catch (error) {
+    console.error('Complementary pieces error:', error);
+    res.status(500).json({ error: 'Failed to find complementary pieces' });
+  }
+});
+
+app.get('/api/ai/embedding-stats', authMiddleware, async (req, res) => {
+  try {
+    const stats = getCacheStats();
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Embedding stats error:', error);
+    res.status(500).json({ error: 'Failed to get embedding stats' });
+  }
+});
+
+// ============ AI IMAGE GENERATION ============
+
+app.post('/api/ai/generate-inspiration', authMiddleware, async (req, res) => {
+  try {
+    const { styleDescription, userGender, occasion, colorScheme, mood } = req.body;
+
+    if (!styleDescription || typeof styleDescription !== 'string') {
+      return res.status(400).json({ error: 'styleDescription is required' });
+    }
+
+    const inspiration = await generateOutfitInspiration({
+      styleDescription,
+      userGender: userGender || 'not specified',
+      occasion: occasion || 'casual',
+      colorScheme: colorScheme || 'neutral',
+      mood: mood || 'confident'
+    });
+
+    res.json({ success: true, inspiration });
+  } catch (error) {
+    console.error('Generate inspiration error:', error);
+    res.status(500).json({ error: 'Failed to generate outfit inspiration' });
+  }
+});
+
+app.post('/api/ai/generate-moodboard', authMiddleware, async (req, res) => {
+  try {
+    const { theme, colors, styleElements, userGender } = req.body;
+
+    if (!theme || typeof theme !== 'string') {
+      return res.status(400).json({ error: 'theme is required' });
+    }
+
+    const moodboard = await generateMoodBoard({
+      theme,
+      colors: colors || [],
+      styleElements: styleElements || [],
+      userGender: userGender || 'not specified'
+    });
+
+    res.json({ success: true, moodboard });
+  } catch (error) {
+    console.error('Generate moodboard error:', error);
+    res.status(500).json({ error: 'Failed to generate mood board' });
+  }
+});
+
+app.post('/api/ai/generate-similar', authMiddleware, async (req, res) => {
+  try {
+    const { outfitDescription, imageUrl, userGender, budget } = req.body;
+
+    if (!outfitDescription && !imageUrl) {
+      return res.status(400).json({ error: 'outfitDescription or imageUrl is required' });
+    }
+
+    const similar = await generateSimilarLook({
+      outfitDescription,
+      imageUrl,
+      userGender: userGender || 'not specified',
+      budget: budget || 'medium'
+    });
+
+    res.json({ success: true, similar });
+  } catch (error) {
+    console.error('Generate similar look error:', error);
+    res.status(500).json({ error: 'Failed to generate similar look' });
+  }
+});
+
+app.post('/api/ai/generate-variations', authMiddleware, async (req, res) => {
+  try {
+    const { baseOutfit, variationType, count, userGender } = req.body;
+
+    if (!baseOutfit || typeof baseOutfit !== 'string') {
+      return res.status(400).json({ error: 'baseOutfit is required' });
+    }
+
+    const variations = await generateOutfitVariations({
+      baseOutfit,
+      variationType: variationType || 'casual-to-formal',
+      count: Math.min(count || 3, 5),
+      userGender: userGender || 'not specified'
+    });
+
+    res.json({ success: true, variations });
+  } catch (error) {
+    console.error('Generate variations error:', error);
+    res.status(500).json({ error: 'Failed to generate outfit variations' });
+  }
+});
+
+app.post('/api/ai/generate-style-guide', authMiddleware, async (req, res) => {
+  try {
+    const { stylePersonality, userGender, season, colorPreferences } = req.body;
+
+    if (!stylePersonality || typeof stylePersonality !== 'string') {
+      return res.status(400).json({ error: 'stylePersonality is required' });
+    }
+
+    const guide = await generateStyleGuide({
+      stylePersonality,
+      userGender: userGender || 'not specified',
+      season: season || 'all-season',
+      colorPreferences: colorPreferences || []
+    });
+
+    res.json({ success: true, guide });
+  } catch (error) {
+    console.error('Generate style guide error:', error);
+    res.status(500).json({ error: 'Failed to generate style guide' });
+  }
+});
+
+app.get('/api/ai/available-styles', async (req, res) => {
+  try {
+    const styles = getAvailableStyles();
+    res.json({ success: true, styles });
+  } catch (error) {
+    console.error('Get styles error:', error);
+    res.status(500).json({ error: 'Failed to get available styles' });
+  }
+});
+
+app.get('/api/ai/available-moods', async (req, res) => {
+  try {
+    const moods = getAvailableMoods();
+    res.json({ success: true, moods });
+  } catch (error) {
+    console.error('Get moods error:', error);
+    res.status(500).json({ error: 'Failed to get available moods' });
+  }
+});
+
 // ============ HEALTH CHECK ============
 
 app.get('/', (req, res) => {
+  const openaiConfigured = !!process.env.OPENAI_API_KEY;
   res.json({ 
     status: 'ok', 
     message: 'Dripn API is running',
-    version: '1.1.0',
+    version: '1.2.0',
     features: {
       vipNotifications: true,
       emailAlerts: 'SendGrid',
@@ -3615,7 +4134,13 @@ app.get('/', (req, res) => {
       stylePersonalization: true,
       trendScanner: true,
       eventReminders: true,
-      aiStylistChat: process.env.OPENAI_API_KEY ? 'OpenAI GPT-4 (configured)' : 'OpenAI (not configured)'
+      aiStylistChat: openaiConfigured ? 'OpenAI GPT-4 (configured)' : 'OpenAI (not configured)',
+      aiVisionAnalysis: openaiConfigured ? 'GPT-4o Vision (configured)' : 'GPT-4o Vision (not configured)',
+      aiVoiceServices: openaiConfigured ? 'Whisper STT + TTS-1-HD (configured)' : 'Voice Services (not configured)',
+      aiLifestyleTherapy: openaiConfigured ? 'Fashion Therapy AI (configured)' : 'Fashion Therapy (not configured)',
+      aiSemanticSearch: openaiConfigured ? 'text-embedding-3-large (configured)' : 'Embeddings (not configured)',
+      aiImageGeneration: openaiConfigured ? 'DALL-E 3 (configured)' : 'DALL-E 3 (not configured)',
+      aiModelLifecycle: 'Auto-upgrade with A/B testing'
     }
   });
 });
