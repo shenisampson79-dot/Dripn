@@ -146,17 +146,20 @@ function generateAIResponse(
   ];
   
   const offTopicPatterns = [
-    'premier league', 'football score', 'soccer score', 'match score', 'game score',
-    'politics', 'political', 'election', 'president', 'prime minister', 'government',
-    'stock', 'bitcoin', 'crypto', 'investment', 'trading',
-    'weather', 'forecast', 'temperature',
-    'news', 'headlines', 'breaking',
-    'war', 'conflict', 'military', 'attack',
-    'venezuela', 'russia', 'ukraine', 'china', 'america attacking', 'usa attacking',
-    'calculate', 'math', 'equation', 'solve',
-    'recipe', 'cook', 'cooking instructions',
-    'medical', 'diagnosis', 'symptoms', 'treatment',
-    'legal advice', 'lawyer', 'sue',
+    'premier league', 'football', 'soccer', 'basketball', 'baseball', 'cricket', 'rugby', 'tennis',
+    'score', 'match', 'game', 'played', 'won', 'lost', 'championship', 'league', 'cup final',
+    'liverpool', 'manchester', 'chelsea', 'arsenal', 'tottenham', 'leeds', 'united',
+    'politics', 'political', 'election', 'president', 'prime minister', 'government', 'parliament',
+    'stock', 'bitcoin', 'crypto', 'investment', 'trading', 'market',
+    'weather', 'forecast', 'temperature', 'rain', 'sunny',
+    'news', 'headlines', 'breaking', 'latest',
+    'war', 'conflict', 'military', 'attack', 'invasion',
+    'venezuela', 'russia', 'ukraine', 'china', 'israel', 'gaza', 'iran', 'north korea',
+    'calculate', 'math', 'equation', 'solve', 'algebra',
+    'recipe', 'cook', 'cooking instructions', 'bake',
+    'medical', 'diagnosis', 'symptoms', 'treatment', 'doctor', 'medicine',
+    'legal advice', 'lawyer', 'sue', 'court',
+    'capital of', 'population of', 'how far', 'distance to',
   ];
   
   const isGreeting = greetingPatterns.some(p => lowerMessage.includes(p));
