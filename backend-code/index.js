@@ -12,7 +12,7 @@ const colorTrendService = require('./colorTrendService');
 const { generateStylistResponse, detectMood } = require('./aiStylistService');
 const { getBestModel, getModelStatus, refreshAllModels, performHealthCheck, checkForNewModels } = require('./modelLifecycleService');
 const { analyzeOutfitPhoto, compareOutfits, extractColorsFromPhoto } = require('./visionAnalysisService');
-const { transcribeAudio, synthesizeSpeech, processVoiceMessage, createVoiceResponse, getAllVoices } = require('./voiceService');
+const { transcribeAudio, synthesizeSpeech, processVoiceMessage, createVoiceResponse, getAllVoices, generateVoicePreview, getSupportedLanguages } = require('./voiceService');
 const { getMoodBasedOutfit, getBodyPositivityAdvice, getCapsuleWardrobePlan, getConfidenceRitual, getWellnessOutfit, getDailyAffirmation } = require('./lifestyleStylistService');
 const { semanticStyleSearch, findComplementaryPieces, generateEmbedding, getCacheStats } = require('./styleEmbeddingService');
 const { generateOutfitInspiration, generateMoodBoard, generateSimilarLook, generateOutfitVariations, generateStyleGuide, getAvailableStyles, getAvailableMoods } = require('./imageGenerationService');
@@ -3762,6 +3762,48 @@ app.get('/api/ai/voices', async (req, res) => {
   } catch (error) {
     console.error('Get voices error:', error);
     res.status(500).json({ error: 'Failed to get available voices' });
+  }
+});
+
+app.post('/api/ai/voice-preview', async (req, res) => {
+  try {
+    const { stylistId, language, voiceRange } = req.body;
+
+    if (!stylistId || !['ruby', 'max'].includes(stylistId)) {
+      return res.status(400).json({ error: 'Valid stylistId (ruby or max) is required' });
+    }
+
+    const result = await generateVoicePreview(
+      stylistId,
+      language || 'English',
+      voiceRange || null
+    );
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error || 'Failed to generate voice preview' });
+    }
+
+    const audioBase64 = result.audioBuffer.toString('base64');
+    
+    res.json({
+      success: true,
+      audioBase64,
+      voice: result.voice,
+      format: result.format,
+    });
+  } catch (error) {
+    console.error('Voice preview error:', error);
+    res.status(500).json({ error: 'Failed to generate voice preview' });
+  }
+});
+
+app.get('/api/ai/voice-languages', async (req, res) => {
+  try {
+    const languages = getSupportedLanguages();
+    res.json({ success: true, languages });
+  } catch (error) {
+    console.error('Get voice languages error:', error);
+    res.status(500).json({ error: 'Failed to get supported languages' });
   }
 });
 
