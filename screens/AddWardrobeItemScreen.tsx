@@ -9,6 +9,7 @@ import {
   Dimensions,
   Linking,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Image } from "expo-image";
@@ -28,12 +29,15 @@ import {
   ClothingColor,
   ClothingSeason,
   ClothingOccasion,
+  ItemOrigin,
   CATEGORY_LABELS,
   COLOR_LABELS,
   SEASON_LABELS,
   OCCASION_LABELS,
+  ORIGIN_LABELS,
 } from "@/contexts/WardrobeContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import { analyzeGarmentImage } from "@/services/VisionAnalysisService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -79,7 +83,51 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   const [occasions, setOccasions] = useState<ClothingOccasion[]>([]);
   const [brand, setBrand] = useState("");
   const [notes, setNotes] = useState("");
+  const [origin, setOrigin] = useState<ItemOrigin>('owned');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiAnalyzed, setAiAnalyzed] = useState(false);
+
+  const handleAIScan = async () => {
+    if (!imageUri) return;
+    
+    setIsAnalyzing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    try {
+      const result = await analyzeGarmentImage(imageUri);
+      
+      if (result.success) {
+        setCategory(result.category);
+        setColor(result.color);
+        setName(result.suggestedName);
+        setSeasons(result.seasons.length > 0 ? result.seasons : ['all-season']);
+        setOccasions(result.occasions.length > 0 ? result.occasions : ['everyday']);
+        if (result.brand) setBrand(result.brand);
+        if (result.description) setNotes(result.description);
+        setAiAnalyzed(true);
+        
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          "AI Analysis Complete",
+          `Detected: ${result.suggestedName}\n\nFeel free to adjust any details before saving.`,
+          [{ text: "Got it", style: "default" }]
+        );
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        Alert.alert(
+          "Analysis Issue",
+          result.error || "Could not analyze image. Please fill in the details manually.",
+          [{ text: "OK", style: "default" }]
+        );
+      }
+    } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Error", "Failed to analyze image. Please try again or fill in details manually.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const openSettings = async () => {
     if (Platform.OS !== "web") {
@@ -210,6 +258,8 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         occasions,
         brand: brand.trim() || undefined,
         notes: notes.trim() || undefined,
+        origin,
+        aiAnalyzed,
         isFavorite: false,
       });
 
@@ -262,16 +312,52 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>Photo</ThemedText>
           {imageUri ? (
-            <Pressable onPress={handlePickImage} style={styles.imageContainer}>
-              <Image
-                source={{ uri: imageUri }}
-                style={styles.selectedImage}
-                contentFit="cover"
-              />
-              <View style={[styles.changeImageBadge, { backgroundColor: theme.backgroundDefault }]}>
-                <Feather name="edit-2" size={16} color={theme.text} />
-              </View>
-            </Pressable>
+            <View>
+              <Pressable onPress={handlePickImage} style={styles.imageContainer}>
+                <Image
+                  source={{ uri: imageUri }}
+                  style={styles.selectedImage}
+                  contentFit="cover"
+                />
+                <View style={[styles.changeImageBadge, { backgroundColor: theme.backgroundDefault }]}>
+                  <Feather name="edit-2" size={16} color={theme.text} />
+                </View>
+                {aiAnalyzed ? (
+                  <View style={[styles.aiAnalyzedBadge, { backgroundColor: theme.link }]}>
+                    <Feather name="zap" size={14} color="#FFFFFF" />
+                    <ThemedText type="caption" style={{ color: "#FFFFFF", marginLeft: 4 }}>
+                      AI Analyzed
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </Pressable>
+              <Pressable
+                onPress={handleAIScan}
+                disabled={isAnalyzing}
+                style={[
+                  styles.aiScanButton,
+                  {
+                    backgroundColor: isAnalyzing ? theme.backgroundDefault : theme.link,
+                    opacity: isAnalyzing ? 0.7 : 1,
+                  },
+                ]}
+              >
+                {isAnalyzing ? (
+                  <ActivityIndicator size="small" color={theme.text} />
+                ) : (
+                  <Feather name="zap" size={20} color="#FFFFFF" />
+                )}
+                <ThemedText
+                  type="body"
+                  style={{ color: isAnalyzing ? theme.text : "#FFFFFF", marginLeft: Spacing.sm }}
+                >
+                  {isAnalyzing ? "Analyzing..." : "Scan with AI"}
+                </ThemedText>
+              </Pressable>
+              <ThemedText type="caption" style={[styles.aiHintText, { color: theme.tabIconDefault }]}>
+                AI will auto-fill item details from screenshots or photos
+              </ThemedText>
+            </View>
           ) : (
             <View style={styles.imagePickerRow}>
               <Pressable
@@ -299,6 +385,57 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
               )}
             </View>
           )}
+        </View>
+
+        <View style={styles.section}>
+          <ThemedText type="h4" style={styles.sectionTitle}>Item Type</ThemedText>
+          <View style={styles.originSelector}>
+            {(['owned', 'inspiration', 'wishlist'] as ItemOrigin[]).map((originOption) => {
+              const isSelected = origin === originOption;
+              const iconMap: Record<ItemOrigin, keyof typeof Feather.glyphMap> = {
+                owned: 'check-circle',
+                inspiration: 'eye',
+                wishlist: 'heart',
+              };
+              return (
+                <Pressable
+                  key={originOption}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setOrigin(originOption);
+                  }}
+                  style={[
+                    styles.originOption,
+                    {
+                      backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
+                      borderColor: isSelected ? theme.link : theme.backgroundDefault,
+                    },
+                  ]}
+                >
+                  <Feather
+                    name={iconMap[originOption]}
+                    size={18}
+                    color={isSelected ? "#FFFFFF" : theme.tabIconDefault}
+                  />
+                  <ThemedText
+                    type="body"
+                    style={{
+                      color: isSelected ? "#FFFFFF" : theme.text,
+                      marginLeft: Spacing.xs,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {ORIGIN_LABELS[originOption]}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+          <ThemedText type="caption" style={[styles.originHintText, { color: theme.tabIconDefault }]}>
+            {origin === 'owned' && "Items you own and can wear"}
+            {origin === 'inspiration' && "Style inspiration from screenshots or online finds"}
+            {origin === 'wishlist' && "Items you want to purchase"}
+          </ThemedText>
         </View>
 
         <View style={styles.section}>
@@ -617,5 +754,46 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
+  },
+  aiScanButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
+  },
+  aiHintText: {
+    marginTop: Spacing.sm,
+    textAlign: "center",
+  },
+  aiAnalyzedBadge: {
+    position: "absolute",
+    top: Spacing.md,
+    left: Spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  originSelector: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  originOption: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+  },
+  originHintText: {
+    marginTop: Spacing.sm,
+    textAlign: "center",
   },
 });

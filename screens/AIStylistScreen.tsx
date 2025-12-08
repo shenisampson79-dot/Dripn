@@ -140,11 +140,17 @@ function generateAIResponse(
     'essentials', 'what should i', 'pick out', 'put together',
   ];
   
+  const inspirationPatterns = [
+    'inspiration', 'inspired', 'screenshot', 'saved', 'wishlist', 'want to buy',
+    'similar', 'like this', 'recreate', 'copy', 'dupe', 'alternative',
+  ];
+  
   const isGreeting = greetingPatterns.some(p => lowerMessage.includes(p));
   const isThanks = thanksPatterns.some(p => lowerMessage.includes(p));
   const isBye = byePatterns.some(p => lowerMessage.includes(p));
   const isAboutYou = aboutYouPatterns.some(p => lowerMessage.includes(p));
   const hasOutfitIntent = outfitIntentPatterns.some(p => lowerMessage.includes(p));
+  const hasInspirationIntent = inspirationPatterns.some(p => lowerMessage.includes(p));
   
   const isMaleStylist = stylistName.toLowerCase() === 'max';
   
@@ -240,14 +246,28 @@ function generateAIResponse(
     };
   }
   
-  const tops = wardrobeItems.filter(item => item.category === 'tops');
-  const bottoms = wardrobeItems.filter(item => item.category === 'bottoms');
-  const dresses = wardrobeItems.filter(item => item.category === 'dresses');
-  const outerwear = wardrobeItems.filter(item => item.category === 'outerwear');
-  const shoes = wardrobeItems.filter(item => item.category === 'shoes');
-  const accessories = wardrobeItems.filter(item => item.category === 'accessories');
+  const ownedItems = wardrobeItems.filter(item => !item.origin || item.origin === 'owned');
+  const inspirationItems = wardrobeItems.filter(item => item.origin === 'inspiration');
+  const wishlistItems = wardrobeItems.filter(item => item.origin === 'wishlist');
+  
+  const tops = ownedItems.filter(item => item.category === 'tops');
+  const bottoms = ownedItems.filter(item => item.category === 'bottoms');
+  const dresses = ownedItems.filter(item => item.category === 'dresses');
+  const outerwear = ownedItems.filter(item => item.category === 'outerwear');
+  const shoes = ownedItems.filter(item => item.category === 'shoes');
+  const accessories = ownedItems.filter(item => item.category === 'accessories');
   
   const hasWardrobe = wardrobeItems.length > 0;
+  const hasOwnedItems = ownedItems.length > 0;
+  const hasInspirationItems = inspirationItems.length > 0;
+  const hasWishlistItems = wishlistItems.length > 0;
+  
+  if (!hasOwnedItems && (hasInspirationItems || hasWishlistItems)) {
+    const inspirationOnlyResponse = isMaleStylist ? 
+      `I see you've saved ${inspirationItems.length + wishlistItems.length} inspiration/wishlist pieces! To create outfit suggestions, add some items you actually own. Then I can help you recreate those saved looks with pieces from your closet.` :
+      `I see you have ${inspirationItems.length + wishlistItems.length} beautiful inspiration pieces saved! Once you add items you own, I can help you create outfits that bring those inspirations to life with your actual wardrobe.`;
+    return { content: inspirationOnlyResponse };
+  }
   
   if (!hasWardrobe) {
     const emptyWardrobeResponses = isMaleStylist ? [
@@ -260,6 +280,52 @@ function generateAIResponse(
     return {
       content: emptyWardrobeResponses[Math.floor(Math.random() * emptyWardrobeResponses.length)],
     };
+  }
+  
+  if (hasInspirationIntent && hasInspirationItems) {
+    let inspirationResponse = `I see you have ${inspirationItems.length} inspiration piece${inspirationItems.length > 1 ? 's' : ''} saved! `;
+    
+    if (hasOwnedItems) {
+      const randomInspiration = inspirationItems[Math.floor(Math.random() * inspirationItems.length)];
+      const matchingOwned = ownedItems.filter(item => 
+        item.color === randomInspiration.color || 
+        item.occasions.some(o => randomInspiration.occasions.includes(o))
+      );
+      
+      if (matchingOwned.length > 0) {
+        inspirationResponse += `\n\nLet's work with your "${randomInspiration.name}" inspiration:\n\n`;
+        inspirationResponse += `From your owned items, I can see some great pairing opportunities:\n`;
+        matchingOwned.slice(0, 3).forEach((item, index) => {
+          inspirationResponse += `${index + 1}. Your ${item.name} would complement this style beautifully\n`;
+        });
+        inspirationResponse += `\nWant me to create a full outfit inspired by this look using pieces you already own?`;
+      } else {
+        inspirationResponse += `\n\nYour "${randomInspiration.name}" is gorgeous inspiration! While I couldn't find exact matches in your owned items, consider shopping for similar pieces or adding more items to build toward this look.\n\nWould you like suggestions for what types of pieces would help recreate this style?`;
+      }
+    } else {
+      inspirationResponse += `These saved looks are great for building your style vision! Once you add items you own, I can help you recreate these looks or find similar outfit combinations.\n\nTip: Use the AI scan feature to quickly add screenshots of items you find online!`;
+    }
+    
+    return { content: inspirationResponse };
+  }
+  
+  if (hasInspirationIntent && hasWishlistItems) {
+    let wishlistResponse = `You have ${wishlistItems.length} item${wishlistItems.length > 1 ? 's' : ''} on your wishlist! `;
+    
+    if (hasOwnedItems) {
+      wishlistResponse += `Let me see how these would work with what you already own:\n\n`;
+      wishlistItems.slice(0, 3).forEach((item, index) => {
+        const complementaryOwned = ownedItems.filter(o => 
+          o.occasions.some(occ => item.occasions.includes(occ))
+        );
+        wishlistResponse += `${index + 1}. "${item.name}" would pair well with ${complementaryOwned.length} of your current pieces\n`;
+      });
+      wishlistResponse += `\nThese additions would expand your outfit possibilities nicely!`;
+    } else {
+      wishlistResponse += `Great picks for building your wardrobe! Add some items you currently own and I can show you how these wishlist pieces would complement your existing style.`;
+    }
+    
+    return { content: wishlistResponse };
   }
   
   let occasion: ClothingOccasion = 'casual';

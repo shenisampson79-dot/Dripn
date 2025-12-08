@@ -43,6 +43,14 @@ export type ClothingOccasion =
   | 'party' 
   | 'everyday';
 
+export type ItemOrigin = 'owned' | 'inspiration' | 'wishlist';
+
+export const ORIGIN_LABELS: Record<ItemOrigin, string> = {
+  owned: 'I Own This',
+  inspiration: 'Style Inspiration',
+  wishlist: 'Wishlist',
+};
+
 export interface WardrobeItem {
   id: string;
   userId: string;
@@ -62,6 +70,9 @@ export interface WardrobeItem {
   isFavorite: boolean;
   sustainabilityScore?: number;
   notes?: string;
+  origin?: ItemOrigin;
+  sourceUrl?: string;
+  aiAnalyzed?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -141,6 +152,9 @@ interface WardrobeContextType {
   getItemsByCategory: (category: ClothingCategory) => WardrobeItem[];
   getItemsByOccasion: (occasion: ClothingOccasion) => WardrobeItem[];
   getItemsBySeason: (season: ClothingSeason) => WardrobeItem[];
+  getItemsByOrigin: (origin: ItemOrigin) => WardrobeItem[];
+  getOwnedItems: () => WardrobeItem[];
+  getInspirationItems: () => WardrobeItem[];
   shuffleOutfit: (occasion?: ClothingOccasion) => OutfitSuggestion | null;
   refreshStats: () => void;
   searchItems: (query: string) => WardrobeItem[];
@@ -308,6 +322,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       ...itemData,
       id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       userId: user.id,
+      origin: itemData.origin || 'owned',
       timesWorn: 0,
       createdAt: now,
       updatedAt: now,
@@ -452,6 +467,18 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     return items.filter(item => 
       item.seasons.includes(season) || item.seasons.includes('all-season')
     );
+  }, [items]);
+
+  const getItemsByOrigin = useCallback((origin: ItemOrigin): WardrobeItem[] => {
+    return items.filter(item => (item.origin || 'owned') === origin);
+  }, [items]);
+
+  const getOwnedItems = useCallback((): WardrobeItem[] => {
+    return items.filter(item => !item.origin || item.origin === 'owned');
+  }, [items]);
+
+  const getInspirationItems = useCallback((): WardrobeItem[] => {
+    return items.filter(item => item.origin === 'inspiration' || item.origin === 'wishlist');
   }, [items]);
 
   const searchItems = useCallback((query: string): WardrobeItem[] => {
@@ -654,6 +681,9 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     getItemsByCategory,
     getItemsByOccasion,
     getItemsBySeason,
+    getItemsByOrigin,
+    getOwnedItems,
+    getInspirationItems,
     shuffleOutfit,
     refreshStats,
     searchItems,

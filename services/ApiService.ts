@@ -137,6 +137,48 @@ class ApiService {
     });
   }
 
+  async analyzeGarmentPhoto(imageBase64: string, options?: { detailed?: boolean }) {
+    return this.request<{
+      success: boolean;
+      analysis: {
+        category: string;
+        color: string;
+        secondaryColor?: string;
+        style: string;
+        suggestedName: string;
+        brand?: string;
+        seasons: string[];
+        occasions: string[];
+        description: string;
+        confidence: number;
+      };
+      modelUsed: string;
+    }>('/api/ai/analyze-garment', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        imageBase64, 
+        detailed: options?.detailed ?? true,
+        analysisType: 'garment'
+      }),
+    });
+  }
+
+  async analyzeOutfitPhoto(imageBase64: string, options?: { detailed?: boolean; wardrobeItems?: any[] }) {
+    return this.request<{
+      success: boolean;
+      analysis: any;
+      modelUsed: string;
+    }>('/api/ai/analyze-photo', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        imageBase64, 
+        detailed: options?.detailed ?? true,
+        includeWardrobe: Boolean(options?.wardrobeItems?.length),
+        wardrobeItems: options?.wardrobeItems,
+      }),
+    });
+  }
+
   isConfigured() {
     return Boolean(API_URL);
   }
