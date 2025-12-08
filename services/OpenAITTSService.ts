@@ -1,6 +1,7 @@
 import { AudioModule, AudioPlayer } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
+import * as Speech from 'expo-speech';
 
 export type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
 export type TTSModel = 'tts-1' | 'tts-1-hd';
@@ -12,6 +13,25 @@ export interface TTSOptions {
 }
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
+
+const LANGUAGE_CODES: Record<string, string> = {
+  English: 'en-US',
+  French: 'fr-FR',
+  Spanish: 'es-ES',
+  German: 'de-DE',
+  Italian: 'it-IT',
+  Portuguese: 'pt-BR',
+  Japanese: 'ja-JP',
+  Korean: 'ko-KR',
+  Chinese: 'zh-CN',
+  Arabic: 'ar-SA',
+  Hindi: 'hi-IN',
+  Russian: 'ru-RU',
+  Dutch: 'nl-NL',
+  Swedish: 'sv-SE',
+  Polish: 'pl-PL',
+  Turkish: 'tr-TR',
+};
 
 const VOICE_PREVIEW_PHRASES: Record<string, Record<string, string>> = {
   ruby: {
@@ -55,6 +75,8 @@ const VOICE_PREVIEW_PHRASES: Record<string, Record<string, string>> = {
 let currentPlayer: AudioPlayer | null = null;
 
 export const stopAudio = async (): Promise<void> => {
+  await Speech.stop();
+  
   if (currentPlayer) {
     try {
       await currentPlayer.remove();
@@ -65,17 +87,71 @@ export const stopAudio = async (): Promise<void> => {
   }
 };
 
+const playWithFallbackSpeech = async (
+  stylistId: string,
+  language: string,
+  voiceRange?: string
+): Promise<void> => {
+  const text = getVoicePreviewPhrase(stylistId, language);
+  if (!text) {
+    throw new Error('No preview phrase available');
+  }
+
+  await Speech.stop();
+
+  const langCode = LANGUAGE_CODES[language] || 'en-US';
+  
+  let pitch = 1.0;
+  let rate = 1.0;
+  
+  if (stylistId === 'ruby') {
+    pitch = 1.1;
+    if (voiceRange === 'soprano') {
+      pitch = 1.2;
+      rate = 1.05;
+    } else if (voiceRange === 'mezzo-soprano') {
+      pitch = 1.1;
+      rate = 0.95;
+    } else if (voiceRange === 'contralto') {
+      pitch = 0.95;
+      rate = 0.88;
+    }
+  } else if (stylistId === 'max') {
+    pitch = 0.85;
+    if (voiceRange === 'tenor') {
+      pitch = 1.0;
+      rate = 1.1;
+    } else if (voiceRange === 'baritone') {
+      pitch = 0.85;
+      rate = 1.0;
+    } else if (voiceRange === 'bass') {
+      pitch = 0.7;
+      rate = 0.9;
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    Speech.speak(text, {
+      language: langCode,
+      pitch,
+      rate,
+      onDone: () => resolve(),
+      onError: (error) => reject(error),
+    });
+  });
+};
+
 export const playVoicePreview = async (
   stylistId: string,
   language: string = 'English',
   voiceRange?: string
 ): Promise<void> => {
-  if (!API_URL) {
-    console.error('Backend API URL not configured');
-    throw new Error('Backend API URL not configured. Voice preview requires the backend server.');
-  }
-
   await stopAudio();
+
+  if (!API_URL) {
+    console.log('Backend API URL not configured, using device speech synthesis');
+    return playWithFallbackSpeech(stylistId, language, voiceRange);
+  }
 
   try {
     if (Platform.OS === 'ios') {
@@ -97,15 +173,15 @@ export const playVoicePreview = async (
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-      console.error('Voice preview API error:', response.status, errorData);
-      throw new Error(errorData.error || `Voice preview failed: ${response.status}`);
+      console.log('Backend voice preview failed, falling back to device speech');
+      return playWithFallbackSpeech(stylistId, language, voiceRange);
     }
 
     const data = await response.json();
     
     if (!data.success || !data.audioBase64) {
-      throw new Error('Invalid response from voice preview API');
+      console.log('Invalid backend response, falling back to device speech');
+      return playWithFallbackSpeech(stylistId, language, voiceRange);
     }
 
     const fileName = `voice_preview_${Date.now()}.mp3`;
@@ -129,8 +205,8 @@ export const playVoicePreview = async (
     }
 
   } catch (error) {
-    console.error('Voice preview error:', error);
-    throw error;
+    console.log('Voice preview error, falling back to device speech:', error);
+    return playWithFallbackSpeech(stylistId, language, voiceRange);
   }
 };
 
