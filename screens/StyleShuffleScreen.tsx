@@ -201,6 +201,7 @@ export default function StyleShuffleScreen() {
   const [likedOutfits, setLikedOutfits] = useState<string[]>([]);
   const [swipesToday, setSwipesToday] = useState(0);
   const [lastAction, setLastAction] = useState<'like' | 'pass' | null>(null);
+  const [showMatchOverlay, setShowMatchOverlay] = useState(false);
 
   const filteredOutfits = React.useMemo(() => {
     if (genderFilter === 'all') {
@@ -283,6 +284,7 @@ export default function StyleShuffleScreen() {
   };
 
   const triggerMatchOverlay = useCallback(() => {
+    setShowMatchOverlay(true);
     matchOverlayScale.value = withSequence(
       withSpring(1.2, { damping: 12, stiffness: 300 }),
       withSpring(1, { damping: 15, stiffness: 200 })
@@ -292,6 +294,9 @@ export default function StyleShuffleScreen() {
     setTimeout(() => {
       matchOverlayOpacity.value = withTiming(0, { duration: 300 });
       matchOverlayScale.value = withTiming(0, { duration: 300 });
+      setTimeout(() => {
+        setShowMatchOverlay(false);
+      }, 350);
     }, 700);
   }, []);
 
@@ -738,19 +743,21 @@ export default function StyleShuffleScreen() {
         ))}
       </View>
 
-      <Animated.View 
-        style={[
-          styles.matchOverlay, 
-          { backgroundColor: theme.link + 'E6' },
-          matchOverlayAnimatedStyle
-        ]} 
-        pointerEvents="none"
-      >
-        <View style={styles.matchContent}>
-          <Feather name="heart" size={64} color="#FFFFFF" />
-          <ThemedText style={styles.matchText}>Added to Favorites!</ThemedText>
-        </View>
-      </Animated.View>
+      {showMatchOverlay ? (
+        <Animated.View 
+          style={[
+            styles.matchOverlay, 
+            { backgroundColor: theme.link + 'E6' },
+            matchOverlayAnimatedStyle
+          ]} 
+          pointerEvents="none"
+        >
+          <View style={styles.matchContent}>
+            <Feather name="heart" size={64} color="#FFFFFF" />
+            <ThemedText style={styles.matchText}>Added to Favorites!</ThemedText>
+          </View>
+        </Animated.View>
+      ) : null}
     </ThemedView>
   );
 }
