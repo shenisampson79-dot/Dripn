@@ -56,9 +56,23 @@ const STYLIST_VOICES: Record<string, TTSVoice> = {
   max: 'onyx',
 };
 
-const STYLIST_SPEEDS: Record<string, number> = {
-  ruby: 0.88,
-  max: 1.0,
+const RUBY_VOICE_SPEEDS: Record<string, number> = {
+  'soprano': 1.05,
+  'mezzo-soprano': 0.95,
+  'contralto': 0.88,
+};
+
+const MAX_VOICE_SPEEDS: Record<string, number> = {
+  'tenor': 1.1,
+  'baritone': 1.0,
+  'bass': 0.9,
+};
+
+const getSpeedForVoice = (stylistId: string, voicePitch?: string): number => {
+  if (stylistId === 'max') {
+    return MAX_VOICE_SPEEDS[voicePitch || 'baritone'] || 1.0;
+  }
+  return RUBY_VOICE_SPEEDS[voicePitch || 'contralto'] || 0.88;
 };
 
 let currentPlayer: AudioPlayer | null = null;
@@ -165,7 +179,8 @@ export const generateAndPlayTTS = async (
 
 export const playVoicePreview = async (
   stylistId: string,
-  language: string = 'English'
+  language: string = 'English',
+  voicePitch?: string
 ): Promise<void> => {
   const phrases = VOICE_PREVIEW_PHRASES[stylistId];
   if (!phrases) {
@@ -175,7 +190,7 @@ export const playVoicePreview = async (
 
   const phrase = phrases[language] || phrases['English'];
   const voice = STYLIST_VOICES[stylistId] || 'shimmer';
-  const speed = STYLIST_SPEEDS[stylistId] || 0.88;
+  const speed = getSpeedForVoice(stylistId, voicePitch);
 
   await generateAndPlayTTS(phrase, {
     voice,

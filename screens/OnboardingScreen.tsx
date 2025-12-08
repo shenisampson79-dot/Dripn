@@ -3,7 +3,6 @@ import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, Ac
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
-import * as Speech from "expo-speech";
 import { AudioModule } from "expo-audio";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -13,12 +12,8 @@ import { Spacing, BorderRadius, StyleTheme } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
-import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, VOICE_PITCHES, getAllStylists } from "@/services/PersonalStylistService";
-
-const VOICE_PREVIEW_PHRASES: Record<string, string> = {
-  ruby: "Hi there! I'm Ruby, your personal stylist. I'm warm, encouraging, and I love helping you discover your best style. Let me guide your fashion journey!",
-  max: "Hey! I'm Max, your go-to guy for style. I keep it real and help you look effortlessly cool. Ready to level up your wardrobe?",
-};
+import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getVoiceOptionsForStylist, getDefaultVoiceForStylist } from "@/services/PersonalStylistService";
+import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
 
 const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "woman", name: "Woman", icon: "user" },
@@ -360,7 +355,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const [selectedStylistId, setSelectedStylistId] = useState<StylistId>(null);
   const [stylistLanguage, setStylistLanguage] = useState<string>("English");
   const [stylistAccent, setStylistAccent] = useState<string>("American");
-  const [voicePitch, setVoicePitch] = useState<VoicePitch>("medium");
+  const [voicePitch, setVoicePitch] = useState<VoicePitch>("contralto");
   const [isPlayingVoice, setIsPlayingVoice] = useState<string | null>(null);
 
   const totalSteps = 5;
@@ -381,58 +376,34 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
     setupAudio();
     
     return () => {
-      Speech.stop();
+      stopAudio();
     };
   }, []);
 
   const playVoicePreview = useCallback(async (stylistId: string) => {
-    const phrase = VOICE_PREVIEW_PHRASES[stylistId];
-    if (!phrase) return;
-
     if (isPlayingVoice === stylistId) {
-      await Speech.stop();
+      await stopAudio();
       setIsPlayingVoice(null);
       return;
     }
 
-    await Speech.stop();
+    await stopAudio();
     setIsPlayingVoice(stylistId);
 
-    const pitchValue = voicePitch === 'low' ? 0.8 : voicePitch === 'high' ? 1.3 : 1.0;
-    const rateValue = stylistId === 'ruby' ? 0.95 : 1.0;
-
     try {
-      const isAvailable = await Speech.isSpeakingAsync();
-      
-      Speech.speak(phrase, {
-        language: 'en-US',
-        pitch: pitchValue,
-        rate: rateValue,
-        onStart: () => {
-          console.log('Voice preview started for', stylistId);
-        },
-        onDone: () => {
-          console.log('Voice preview finished for', stylistId);
-          setIsPlayingVoice(null);
-        },
-        onError: (error) => {
-          console.log('Voice preview error:', error);
-          setIsPlayingVoice(null);
-        },
-        onStopped: () => {
-          console.log('Voice preview stopped for', stylistId);
-          setIsPlayingVoice(null);
-        },
-      });
+      await playOpenAIVoice(stylistId, stylistLanguage, voicePitch);
+      setIsPlayingVoice(null);
     } catch (error) {
-      console.log('Speech error:', error);
+      console.log('Voice preview error:', error);
       setIsPlayingVoice(null);
     }
-  }, [voicePitch, isPlayingVoice]);
+  }, [stylistLanguage, voicePitch, isPlayingVoice]);
 
   const handleStylistSelect = useCallback((stylistId: StylistId) => {
     setSelectedStylistId(stylistId);
     if (stylistId) {
+      const defaultVoice = getDefaultVoiceForStylist(stylistId);
+      setVoicePitch(defaultVoice as VoicePitch);
       playVoicePreview(stylistId);
     }
   }, [playVoicePreview]);
@@ -726,35 +697,46 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
 
               <View style={styles.voiceSettingsSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>
-                  Voice Pitch
+                  {selectedStylistId === 'max' ? 'Voice Range' : 'Voice Type'}
                 </ThemedText>
                 <View style={styles.pitchOptionsRow}>
-                  {VOICE_PITCHES.map((pitch) => (
-                    <Pressable
-                      key={pitch}
-                      onPress={() => setVoicePitch(pitch)}
-                      style={({ pressed }) => [
-                        styles.pitchOption,
-                        {
-                          backgroundColor: voicePitch === pitch ? theme.link : theme.backgroundDefault,
-                          borderColor: voicePitch === pitch ? theme.link : theme.backgroundSecondary,
-                          opacity: pressed ? 0.8 : 1,
-                        },
-                      ]}
-                    >
-                      <Feather
-                        name={pitch === 'low' ? 'volume' : pitch === 'medium' ? 'volume-1' : 'volume-2'}
-                        size={20}
-                        color={voicePitch === pitch ? "#FFFFFF" : theme.text}
-                      />
-                      <ThemedText
-                        type="body"
-                        style={{ color: voicePitch === pitch ? "#FFFFFF" : theme.text, textTransform: 'capitalize' }}
+                  {(selectedStylistId ? getVoiceOptionsForStylist(selectedStylistId) : getVoiceOptionsForStylist('ruby')).map((pitch) => {
+                    const getVoiceIcon = (voiceType: string): keyof typeof Feather.glyphMap => {
+                      if (voiceType === 'soprano' || voiceType === 'tenor') return 'volume-2';
+                      if (voiceType === 'mezzo-soprano' || voiceType === 'baritone') return 'volume-1';
+                      return 'volume';
+                    };
+                    const formatVoiceLabel = (voiceType: string): string => {
+                      if (voiceType === 'mezzo-soprano') return 'Mezzo';
+                      return voiceType.charAt(0).toUpperCase() + voiceType.slice(1);
+                    };
+                    return (
+                      <Pressable
+                        key={pitch}
+                        onPress={() => setVoicePitch(pitch as VoicePitch)}
+                        style={({ pressed }) => [
+                          styles.pitchOption,
+                          {
+                            backgroundColor: voicePitch === pitch ? theme.link : theme.backgroundDefault,
+                            borderColor: voicePitch === pitch ? theme.link : theme.backgroundSecondary,
+                            opacity: pressed ? 0.8 : 1,
+                          },
+                        ]}
                       >
-                        {pitch}
-                      </ThemedText>
-                    </Pressable>
-                  ))}
+                        <Feather
+                          name={getVoiceIcon(pitch)}
+                          size={20}
+                          color={voicePitch === pitch ? "#FFFFFF" : theme.text}
+                        />
+                        <ThemedText
+                          type="body"
+                          style={{ color: voicePitch === pitch ? "#FFFFFF" : theme.text }}
+                        >
+                          {formatVoiceLabel(pitch)}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
                 </View>
               </View>
             </ScrollView>

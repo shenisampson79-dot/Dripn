@@ -43,7 +43,23 @@ export const STYLIST_ACCENTS = [
   'New Zealand',
 ] as const;
 
-export const VOICE_PITCHES = ['low', 'medium', 'high'] as const;
+export const RUBY_VOICE_PITCHES = ['soprano', 'mezzo-soprano', 'contralto'] as const;
+export const MAX_VOICE_RANGES = ['tenor', 'baritone', 'bass'] as const;
+export const VOICE_PITCHES = ['soprano', 'mezzo-soprano', 'contralto', 'tenor', 'baritone', 'bass'] as const;
+
+export function getVoiceOptionsForStylist(stylistId: string): readonly string[] {
+  if (stylistId === 'max') {
+    return MAX_VOICE_RANGES;
+  }
+  return RUBY_VOICE_PITCHES;
+}
+
+export function getDefaultVoiceForStylist(stylistId: string): string {
+  if (stylistId === 'max') {
+    return 'baritone';
+  }
+  return 'contralto';
+}
 
 export const STYLISTS: Record<string, PersonalStylist> = {
   ruby: {

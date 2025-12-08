@@ -15,7 +15,9 @@ export type ShoppingFrequency = 'weekly' | 'monthly' | 'seasonal' | 'rarely' | n
 export type HeightUnit = 'cm' | 'ft';
 export type WeightUnit = 'kg' | 'lbs';
 export type StylistId = 'ruby' | 'max' | null;
-export type VoicePitch = 'low' | 'medium' | 'high';
+export type RubyVoicePitch = 'soprano' | 'mezzo-soprano' | 'contralto';
+export type MaxVoiceRange = 'tenor' | 'baritone' | 'bass';
+export type VoicePitch = RubyVoicePitch | MaxVoiceRange;
 
 export interface StylistPreferences {
   selectedStylistId: StylistId;
@@ -136,7 +138,7 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
     selectedStylistId: null,
     language: 'English',
     accent: 'American',
-    voicePitch: 'medium',
+    voicePitch: 'contralto',
   },
 });
 
