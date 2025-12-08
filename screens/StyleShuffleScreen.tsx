@@ -180,6 +180,366 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
     matchScore: 93,
     gender: 'male',
   },
+  {
+    id: 'outfit_7',
+    image: require('../assets/images/styles/boho/female/african.png'),
+    name: 'Bohemian Spirit',
+    style: 'Boho',
+    occasion: 'Festival',
+    season: 'Summer',
+    items: [
+      { name: 'Flowing Maxi Dress', category: 'Dresses' },
+      { name: 'Layered Necklaces', category: 'Accessories' },
+      { name: 'Strappy Sandals', category: 'Shoes' },
+    ],
+    matchScore: 89,
+    gender: 'female',
+  },
+  {
+    id: 'outfit_8',
+    image: require('../assets/images/styles/boho/female/asian.png'),
+    name: 'Free Spirit Look',
+    style: 'Boho',
+    occasion: 'Brunch',
+    season: 'Spring',
+    items: [
+      { name: 'Embroidered Top', category: 'Tops' },
+      { name: 'Wide-Leg Pants', category: 'Bottoms' },
+      { name: 'Woven Bag', category: 'Accessories' },
+    ],
+    matchScore: 91,
+    gender: 'female',
+  },
+  {
+    id: 'outfit_9',
+    image: require('../assets/images/styles/boho/female/latin-american.png'),
+    name: 'Sunset Boho',
+    style: 'Boho',
+    occasion: 'Beach',
+    season: 'Summer',
+    items: [
+      { name: 'Crochet Cover-Up', category: 'Tops' },
+      { name: 'Flowy Skirt', category: 'Bottoms' },
+      { name: 'Espadrilles', category: 'Shoes' },
+    ],
+    matchScore: 86,
+    gender: 'female',
+  },
+  {
+    id: 'outfit_10',
+    image: require('../assets/images/styles/boho/female/south-asian.png'),
+    name: 'Earthy Bohemian',
+    style: 'Boho',
+    occasion: 'Casual',
+    season: 'Autumn',
+    items: [
+      { name: 'Printed Kimono', category: 'Outerwear' },
+      { name: 'Linen Pants', category: 'Bottoms' },
+      { name: 'Ankle Boots', category: 'Shoes' },
+    ],
+    matchScore: 88,
+    gender: 'female',
+  },
+  {
+    id: 'outfit_11',
+    image: require('../assets/images/styles/boho/male/african.png'),
+    name: 'Relaxed Boho',
+    style: 'Boho',
+    occasion: 'Casual',
+    season: 'Summer',
+    items: [
+      { name: 'Linen Shirt', category: 'Tops' },
+      { name: 'Loose Trousers', category: 'Bottoms' },
+      { name: 'Leather Sandals', category: 'Shoes' },
+    ],
+    matchScore: 87,
+    gender: 'male',
+  },
+  {
+    id: 'outfit_12',
+    image: require('../assets/images/styles/boho/male/asian.png'),
+    name: 'Coastal Casual',
+    style: 'Boho',
+    occasion: 'Beach',
+    season: 'Summer',
+    items: [
+      { name: 'Open Weave Shirt', category: 'Tops' },
+      { name: 'Drawstring Pants', category: 'Bottoms' },
+      { name: 'Woven Belt', category: 'Accessories' },
+    ],
+    matchScore: 85,
+    gender: 'male',
+  },
+  {
+    id: 'outfit_13',
+    image: require('../assets/images/styles/smart-casual/female/african.png'),
+    name: 'Polished Ease',
+    style: 'Smart Casual',
+    occasion: 'Office',
+    season: 'All Season',
+    items: [
+      { name: 'Tailored Blouse', category: 'Tops' },
+      { name: 'Ankle Pants', category: 'Bottoms' },
+      { name: 'Pointed Flats', category: 'Shoes' },
+    ],
+    matchScore: 94,
+    gender: 'female',
+  },
+  {
+    id: 'outfit_14',
+    image: require('../assets/images/styles/smart-casual/female/asian.png'),
+    name: 'Chic Professional',
+    style: 'Smart Casual',
+    occasion: 'Meeting',
+    season: 'Spring',
+    items: [
+      { name: 'Structured Blazer', category: 'Outerwear' },
+      { name: 'Silk Camisole', category: 'Tops' },
+      { name: 'Slim Trousers', category: 'Bottoms' },
+    ],
+    matchScore: 92,
+    gender: 'female',
+  },
+  {
+    id: 'outfit_15',
+    image: require('../assets/images/styles/smart-casual/female/middle-eastern.png'),
+    name: 'Effortless Elegance',
+    style: 'Smart Casual',
+    occasion: 'Dinner',
+    season: 'Autumn',
+    items: [
+      { name: 'Wrap Dress', category: 'Dresses' },
+      { name: 'Statement Belt', category: 'Accessories' },
+      { name: 'Block Heels', category: 'Shoes' },
+    ],
+    matchScore: 90,
+    gender: 'female',
+  },
+  {
+    id: 'outfit_16',
+    image: require('../assets/images/styles/smart-casual/male/african.png'),
+    name: 'Modern Gentleman',
+    style: 'Smart Casual',
+    occasion: 'Office',
+    season: 'All Season',
+    items: [
+      { name: 'Button-Down Shirt', category: 'Tops' },
+      { name: 'Chinos', category: 'Bottoms' },
+      { name: 'Leather Loafers', category: 'Shoes' },
+    ],
+    matchScore: 91,
+    gender: 'male',
+  },
+  {
+    id: 'outfit_17',
+    image: require('../assets/images/styles/smart-casual/male/asian.png'),
+    name: 'Refined Casual',
+    style: 'Smart Casual',
+    occasion: 'Brunch',
+    season: 'Spring',
+    items: [
+      { name: 'Polo Shirt', category: 'Tops' },
+      { name: 'Tailored Shorts', category: 'Bottoms' },
+      { name: 'White Sneakers', category: 'Shoes' },
+    ],
+    matchScore: 88,
+    gender: 'male',
+  },
+  {
+    id: 'outfit_18',
+    image: require('../assets/images/styles/smart-casual/male/middle-eastern.png'),
+    name: 'Urban Professional',
+    style: 'Smart Casual',
+    occasion: 'Meeting',
+    season: 'Autumn',
+    items: [
+      { name: 'Knit Sweater', category: 'Tops' },
+      { name: 'Dark Jeans', category: 'Bottoms' },
+      { name: 'Chelsea Boots', category: 'Shoes' },
+    ],
+    matchScore: 89,
+    gender: 'male',
+  },
+  {
+    id: 'outfit_19',
+    image: require('../assets/images/styles/sporty/female/african.png'),
+    name: 'Fitness Chic',
+    style: 'Sporty',
+    occasion: 'Gym',
+    season: 'All Season',
+    items: [
+      { name: 'Sports Bra', category: 'Tops' },
+      { name: 'High-Waist Leggings', category: 'Bottoms' },
+      { name: 'Training Shoes', category: 'Shoes' },
+    ],
+    matchScore: 96,
+    gender: 'female',
+  },
+  {
+    id: 'outfit_20',
+    image: require('../assets/images/styles/sporty/female/latin-american.png'),
+    name: 'Active Glow',
+    style: 'Sporty',
+    occasion: 'Running',
+    season: 'Summer',
+    items: [
+      { name: 'Crop Tank', category: 'Tops' },
+      { name: 'Running Shorts', category: 'Bottoms' },
+      { name: 'Performance Sneakers', category: 'Shoes' },
+    ],
+    matchScore: 94,
+    gender: 'female',
+  },
+  {
+    id: 'outfit_21',
+    image: require('../assets/images/styles/sporty/female/nordic.png'),
+    name: 'Weekend Active',
+    style: 'Sporty',
+    occasion: 'Casual',
+    season: 'Spring',
+    items: [
+      { name: 'Zip-Up Jacket', category: 'Outerwear' },
+      { name: 'Joggers', category: 'Bottoms' },
+      { name: 'Chunky Trainers', category: 'Shoes' },
+    ],
+    matchScore: 91,
+    gender: 'female',
+  },
+  {
+    id: 'outfit_22',
+    image: require('../assets/images/styles/sporty/male/african.png'),
+    name: 'Gym Ready',
+    style: 'Sporty',
+    occasion: 'Workout',
+    season: 'All Season',
+    items: [
+      { name: 'Performance Tee', category: 'Tops' },
+      { name: 'Athletic Shorts', category: 'Bottoms' },
+      { name: 'Cross Trainers', category: 'Shoes' },
+    ],
+    matchScore: 93,
+    gender: 'male',
+  },
+  {
+    id: 'outfit_23',
+    image: require('../assets/images/styles/sporty/male/latin-american.png'),
+    name: 'Street Athletics',
+    style: 'Sporty',
+    occasion: 'Casual',
+    season: 'Summer',
+    items: [
+      { name: 'Tank Top', category: 'Tops' },
+      { name: 'Track Pants', category: 'Bottoms' },
+      { name: 'Retro Sneakers', category: 'Shoes' },
+    ],
+    matchScore: 90,
+    gender: 'male',
+  },
+  {
+    id: 'outfit_24',
+    image: require('../assets/images/styles/sporty/male/nordic.png'),
+    name: 'Active Lifestyle',
+    style: 'Sporty',
+    occasion: 'Weekend',
+    season: 'Spring',
+    items: [
+      { name: 'Windbreaker', category: 'Outerwear' },
+      { name: 'Compression Tights', category: 'Bottoms' },
+      { name: 'Running Shoes', category: 'Shoes' },
+    ],
+    matchScore: 88,
+    gender: 'male',
+  },
+  {
+    id: 'outfit_25',
+    image: require('../assets/images/styles/streetwear/male/african.png'),
+    name: 'Urban Culture',
+    style: 'Streetwear',
+    occasion: 'Casual',
+    season: 'Autumn',
+    items: [
+      { name: 'Graphic Hoodie', category: 'Tops' },
+      { name: 'Cargo Pants', category: 'Bottoms' },
+      { name: 'High-Top Sneakers', category: 'Shoes' },
+    ],
+    matchScore: 92,
+    gender: 'male',
+  },
+  {
+    id: 'outfit_26',
+    image: require('../assets/images/styles/streetwear/male/asian.png'),
+    name: 'Tokyo Street',
+    style: 'Streetwear',
+    occasion: 'Weekend',
+    season: 'Spring',
+    items: [
+      { name: 'Oversized Tee', category: 'Tops' },
+      { name: 'Wide Leg Jeans', category: 'Bottoms' },
+      { name: 'Platform Sneakers', category: 'Shoes' },
+    ],
+    matchScore: 94,
+    gender: 'male',
+  },
+  {
+    id: 'outfit_27',
+    image: require('../assets/images/styles/streetwear/male/multicultural.png'),
+    name: 'City Vibes',
+    style: 'Streetwear',
+    occasion: 'Concert',
+    season: 'Summer',
+    items: [
+      { name: 'Bomber Jacket', category: 'Outerwear' },
+      { name: 'Distressed Denim', category: 'Bottoms' },
+      { name: 'Designer Sneakers', category: 'Shoes' },
+    ],
+    matchScore: 91,
+    gender: 'male',
+  },
+  {
+    id: 'outfit_28',
+    image: require('../assets/images/styles/business/male/african.png'),
+    name: 'Executive Style',
+    style: 'Business',
+    occasion: 'Office',
+    season: 'All Season',
+    items: [
+      { name: 'Slim Fit Suit', category: 'Outerwear' },
+      { name: 'Crisp White Shirt', category: 'Tops' },
+      { name: 'Leather Oxfords', category: 'Shoes' },
+    ],
+    matchScore: 95,
+    gender: 'male',
+  },
+  {
+    id: 'outfit_29',
+    image: require('../assets/images/styles/business/male/asian.png'),
+    name: 'Power Meeting',
+    style: 'Business',
+    occasion: 'Formal',
+    season: 'Winter',
+    items: [
+      { name: 'Double-Breasted Blazer', category: 'Outerwear' },
+      { name: 'Silk Tie', category: 'Accessories' },
+      { name: 'Dress Shoes', category: 'Shoes' },
+    ],
+    matchScore: 93,
+    gender: 'male',
+  },
+  {
+    id: 'outfit_30',
+    image: require('../assets/images/styles/business/male/middle-eastern.png'),
+    name: 'Corporate Elegance',
+    style: 'Business',
+    occasion: 'Presentation',
+    season: 'Autumn',
+    items: [
+      { name: 'Three-Piece Suit', category: 'Outerwear' },
+      { name: 'Pocket Square', category: 'Accessories' },
+      { name: 'Monk Strap Shoes', category: 'Shoes' },
+    ],
+    matchScore: 94,
+    gender: 'male',
+  },
 ];
 
 type NavigationProp = NativeStackNavigationProp<DiscoverStackParamList>;
@@ -658,44 +1018,48 @@ export default function StyleShuffleScreen() {
               All
             </ThemedText>
           </Pressable>
-          <Pressable
-            onPress={() => setGenderFilter('female')}
-            style={[
-              styles.genderToggleButton,
-              genderFilter === 'female' && { backgroundColor: theme.link },
-            ]}
-          >
-            <Feather 
-              name="user" 
-              size={14} 
-              color={genderFilter === 'female' ? '#FFFFFF' : theme.tabIconDefault} 
-            />
-            <ThemedText style={[
-              styles.genderToggleText,
-              { color: genderFilter === 'female' ? '#FFFFFF' : theme.text }
-            ]}>
-              Her
-            </ThemedText>
-          </Pressable>
-          <Pressable
-            onPress={() => setGenderFilter('male')}
-            style={[
-              styles.genderToggleButton,
-              genderFilter === 'male' && { backgroundColor: theme.link },
-            ]}
-          >
-            <Feather 
-              name="user" 
-              size={14} 
-              color={genderFilter === 'male' ? '#FFFFFF' : theme.tabIconDefault} 
-            />
-            <ThemedText style={[
-              styles.genderToggleText,
-              { color: genderFilter === 'male' ? '#FFFFFF' : theme.text }
-            ]}>
-              Him
-            </ThemedText>
-          </Pressable>
+          {user?.gender !== 'woman' ? (
+            <Pressable
+              onPress={() => setGenderFilter('female')}
+              style={[
+                styles.genderToggleButton,
+                genderFilter === 'female' && { backgroundColor: theme.link },
+              ]}
+            >
+              <Feather 
+                name="user" 
+                size={14} 
+                color={genderFilter === 'female' ? '#FFFFFF' : theme.tabIconDefault} 
+              />
+              <ThemedText style={[
+                styles.genderToggleText,
+                { color: genderFilter === 'female' ? '#FFFFFF' : theme.text }
+              ]}>
+                Her
+              </ThemedText>
+            </Pressable>
+          ) : null}
+          {user?.gender !== 'man' ? (
+            <Pressable
+              onPress={() => setGenderFilter('male')}
+              style={[
+                styles.genderToggleButton,
+                genderFilter === 'male' && { backgroundColor: theme.link },
+              ]}
+            >
+              <Feather 
+                name="user" 
+                size={14} 
+                color={genderFilter === 'male' ? '#FFFFFF' : theme.tabIconDefault} 
+              />
+              <ThemedText style={[
+                styles.genderToggleText,
+                { color: genderFilter === 'male' ? '#FFFFFF' : theme.text }
+              ]}>
+                Him
+              </ThemedText>
+            </Pressable>
+          ) : null}
         </View>
         <ThemedText style={[styles.giftHint, { color: theme.tabIconDefault }]}>
           {genderFilter === 'forme' ? 'Personalized for your style' : 'Perfect for gift ideas'}
