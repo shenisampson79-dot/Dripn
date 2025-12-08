@@ -224,12 +224,12 @@ const styles = StyleSheet.create({
   centerButtonContainer: {
     width: 60,
     alignItems: "center",
-    justifyContent: "flex-end",
-    paddingBottom: 4,
+    justifyContent: "center",
+    height: "100%",
   },
   centerButton: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     borderRadius: BorderRadius.full,
     alignItems: "center",
     justifyContent: "center",
@@ -238,6 +238,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    marginBottom: 2,
   },
 });
