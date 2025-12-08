@@ -797,6 +797,77 @@ class ApiService {
       body: JSON.stringify(data),
     });
   }
+
+  async transcribeAudio(audioBase64: string, language?: string) {
+    return this.request<{
+      success: boolean;
+      text: string;
+      language?: string;
+      duration?: number;
+      modelUsed?: string;
+    }>('/api/ai/transcribe', {
+      method: 'POST',
+      body: JSON.stringify({ audioBase64, language }),
+    });
+  }
+
+  async synthesizeSpeech(text: string, options?: { voice?: string; stylistId?: string; speed?: number }) {
+    return this.request<{
+      success: boolean;
+      audio: {
+        audioBuffer?: string;
+        voice?: string;
+        format?: string;
+        modelUsed?: string;
+      };
+    }>('/api/ai/speak', {
+      method: 'POST',
+      body: JSON.stringify({ text, ...options }),
+    });
+  }
+
+  async getAvailableVoices() {
+    return this.request<{
+      success: boolean;
+      voices: Array<{
+        id: string;
+        description: string;
+        isStylistVoice: boolean;
+      }>;
+    }>('/api/ai/voices');
+  }
+
+  async processVoiceMessage(data: {
+    audioBase64: string;
+    stylistId?: string;
+    userGender?: string;
+    conversationHistory?: Array<{ role: string; content: string }>;
+  }) {
+    return this.request<{
+      success: boolean;
+      transcribedText?: string;
+      language?: string;
+      duration?: number;
+      stylistId?: string;
+    }>('/api/ai/voice-message', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createVoiceResponse(data: { textResponse: string; stylistId?: string; speed?: number }) {
+    return this.request<{
+      success: boolean;
+      audio: {
+        audioBuffer?: string;
+        voice?: string;
+        format?: string;
+      };
+    }>('/api/ai/voice-response', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const apiService = new ApiService();
