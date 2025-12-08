@@ -596,8 +596,10 @@ export default function StyleShuffleScreen() {
     );
   }
 
+  const floatingBarHeight = 100;
+
   return (
-    <ThemedView style={[styles.container, { paddingTop: screenInsets.paddingTop, paddingBottom: screenInsets.paddingBottom }]}>
+    <ThemedView style={[styles.container, { paddingTop: screenInsets.paddingTop, paddingBottom: tabBarHeight + floatingBarHeight + Spacing.md }]}>
       <View style={styles.header}>
         <View>
           <ThemedText style={[styles.title, { color: theme.text }]}>Style Shuffle</ThemedText>
