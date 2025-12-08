@@ -1,8 +1,9 @@
-import React, { useState } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType } from "react-native";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import * as Speech from "expo-speech";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -12,6 +13,11 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, VOICE_PITCHES, getAllStylists } from "@/services/PersonalStylistService";
+
+const VOICE_PREVIEW_PHRASES: Record<string, string> = {
+  ruby: "Hi there! I'm Ruby, your personal stylist. I'm warm, encouraging, and I love helping you discover your best style. Let me guide your fashion journey!",
+  max: "Hey! I'm Max, your go-to guy for style. I keep it real and help you look effortlessly cool. Ready to level up your wardrobe?",
+};
 
 const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "woman", name: "Woman", icon: "user" },
@@ -354,8 +360,47 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const [stylistLanguage, setStylistLanguage] = useState<string>("English");
   const [stylistAccent, setStylistAccent] = useState<string>("American");
   const [voicePitch, setVoicePitch] = useState<VoicePitch>("medium");
+  const [isPlayingVoice, setIsPlayingVoice] = useState<string | null>(null);
 
   const totalSteps = 5;
+
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+    };
+  }, []);
+
+  const playVoicePreview = useCallback(async (stylistId: string) => {
+    const phrase = VOICE_PREVIEW_PHRASES[stylistId];
+    if (!phrase) return;
+
+    if (isPlayingVoice === stylistId) {
+      await Speech.stop();
+      setIsPlayingVoice(null);
+      return;
+    }
+
+    await Speech.stop();
+    setIsPlayingVoice(stylistId);
+
+    const pitchValue = voicePitch === 'low' ? 0.8 : voicePitch === 'high' ? 1.3 : 1.0;
+    const rateValue = stylistId === 'ruby' ? 0.95 : 1.0;
+
+    Speech.speak(phrase, {
+      pitch: pitchValue,
+      rate: rateValue,
+      onDone: () => setIsPlayingVoice(null),
+      onError: () => setIsPlayingVoice(null),
+      onStopped: () => setIsPlayingVoice(null),
+    });
+  }, [voicePitch, isPlayingVoice]);
+
+  const handleStylistSelect = useCallback((stylistId: StylistId) => {
+    setSelectedStylistId(stylistId);
+    if (stylistId) {
+      playVoicePreview(stylistId);
+    }
+  }, [playVoicePreview]);
 
   const getBodyShapeOptions = () => {
     if (gender === "man") return MEN_BODY_SHAPES;
@@ -501,53 +546,87 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
             </ThemedText>
             <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.stylistsContainer}>
-                {stylists.map((stylist) => (
-                  <Pressable
-                    key={stylist.id}
-                    onPress={() => setSelectedStylistId(stylist.id as StylistId)}
-                    style={({ pressed }) => [
-                      styles.stylistCard,
-                      {
-                        backgroundColor: selectedStylistId === stylist.id ? stylist.color : theme.backgroundDefault,
-                        borderColor: selectedStylistId === stylist.id ? stylist.color : theme.backgroundSecondary,
-                        opacity: pressed ? 0.8 : 1,
-                      },
-                    ]}
-                  >
-                    <View style={[styles.stylistIconContainer, { backgroundColor: selectedStylistId === stylist.id ? 'rgba(255,255,255,0.3)' : stylist.color }]}>
-                      <Feather
-                        name={stylist.icon}
-                        size={32}
-                        color="#FFFFFF"
-                      />
-                    </View>
-                    <View style={styles.stylistInfo}>
-                      <ThemedText
-                        type="h2"
-                        style={{ color: selectedStylistId === stylist.id ? "#FFFFFF" : theme.text }}
-                      >
-                        {stylist.name}
-                      </ThemedText>
-                      <ThemedText
-                        type="small"
-                        style={{ color: selectedStylistId === stylist.id ? "rgba(255,255,255,0.9)" : theme.tabIconDefault }}
-                      >
-                        {stylist.tagline}
-                      </ThemedText>
-                      <ThemedText
-                        type="small"
-                        style={{ color: selectedStylistId === stylist.id ? "rgba(255,255,255,0.8)" : theme.tabIconDefault, marginTop: Spacing.xs }}
-                      >
-                        {stylist.personality}
-                      </ThemedText>
-                    </View>
-                    {selectedStylistId === stylist.id ? (
-                      <View style={[styles.checkCircle, { backgroundColor: "rgba(255,255,255,0.3)" }]}>
-                        <Feather name="check" size={16} color="#FFFFFF" />
+                {stylists.map((stylist) => {
+                  const isSelected = selectedStylistId === stylist.id;
+                  const isPlaying = isPlayingVoice === stylist.id;
+                  return (
+                    <Pressable
+                      key={stylist.id}
+                      onPress={() => handleStylistSelect(stylist.id as StylistId)}
+                      style={({ pressed }) => [
+                        styles.stylistCard,
+                        {
+                          backgroundColor: isSelected ? stylist.color : theme.backgroundDefault,
+                          borderColor: isSelected ? stylist.color : theme.backgroundSecondary,
+                          opacity: pressed ? 0.8 : 1,
+                        },
+                      ]}
+                    >
+                      <View style={[styles.stylistIconContainer, { backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : stylist.color }]}>
+                        {isPlaying ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <Feather
+                            name={stylist.icon}
+                            size={32}
+                            color="#FFFFFF"
+                          />
+                        )}
                       </View>
-                    ) : null}
-                  </Pressable>
-                ))}
+                      <View style={styles.stylistInfo}>
+                        <View style={styles.stylistNameRow}>
+                          <ThemedText
+                            type="h2"
+                            style={{ color: isSelected ? "#FFFFFF" : theme.text }}
+                          >
+                            {stylist.name}
+                          </ThemedText>
+                          <Pressable
+                            onPress={() => playVoicePreview(stylist.id)}
+                            style={[styles.voicePreviewButton, { backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : theme.backgroundSecondary }]}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          >
+                            <Feather
+                              name={isPlaying ? "pause" : "volume-2"}
+                              size={16}
+                              color={isSelected ? "#FFFFFF" : theme.link}
+                            />
+                          </Pressable>
+                        </View>
+                        <ThemedText
+                          type="small"
+                          style={{ color: isSelected ? "rgba(255,255,255,0.9)" : theme.tabIconDefault }}
+                        >
+                          {stylist.tagline}
+                        </ThemedText>
+                        <ThemedText
+                          type="small"
+                          style={{ color: isSelected ? "rgba(255,255,255,0.8)" : theme.tabIconDefault, marginTop: Spacing.xs }}
+                        >
+                          {stylist.personality}
+                        </ThemedText>
+                        {isPlaying ? (
+                          <View style={styles.playingIndicator}>
+                            <View style={[styles.soundBar, { backgroundColor: isSelected ? 'rgba(255,255,255,0.6)' : theme.link }]} />
+                            <View style={[styles.soundBar, styles.soundBarTall, { backgroundColor: isSelected ? 'rgba(255,255,255,0.8)' : theme.link }]} />
+                            <View style={[styles.soundBar, { backgroundColor: isSelected ? 'rgba(255,255,255,0.6)' : theme.link }]} />
+                            <ThemedText
+                              type="small"
+                              style={{ color: isSelected ? "rgba(255,255,255,0.9)" : theme.link, marginLeft: Spacing.xs }}
+                            >
+                              Playing voice preview...
+                            </ThemedText>
+                          </View>
+                        ) : null}
+                      </View>
+                      {isSelected ? (
+                        <View style={[styles.checkCircle, { backgroundColor: "rgba(255,255,255,0.3)" }]}>
+                          <Feather name="check" size={16} color="#FFFFFF" />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
               </View>
 
               <View style={styles.voiceSettingsSection}>
@@ -1030,6 +1109,33 @@ const styles = StyleSheet.create({
   },
   stylistInfo: {
     flex: 1,
+  },
+  stylistNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Spacing.xs,
+  },
+  voicePreviewButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  playingIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: Spacing.sm,
+  },
+  soundBar: {
+    width: 3,
+    height: 8,
+    borderRadius: 1.5,
+    marginRight: 2,
+  },
+  soundBarTall: {
+    height: 12,
   },
   voiceSettingsSection: {
     marginBottom: Spacing.xl,
