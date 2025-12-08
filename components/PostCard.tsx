@@ -9,7 +9,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { Post, PostMedia } from "@/contexts/PostsContext";
 
-const { width } = Dimensions.get("window");
+const { width: screenWidth } = Dimensions.get("window");
 
 interface PostCardProps {
   post: Post;
@@ -88,15 +88,18 @@ export function PostCard({
     }
   };
 
-  const mediaSize = compact ? 160 : width - Spacing.xl * 2;
-  const mediaList = post.media?.length > 0 ? post.media : post.images;
+  const cardWidth = screenWidth - Spacing.xl * 2;
+  const mediaSize = compact ? 160 : cardWidth;
+  const comparisonAvailableWidth = cardWidth - (Spacing.md * 2);
+  const comparisonItemWidth = (comparisonAvailableWidth - Spacing.xs) / 2;
+  const mediaList = post.media?.length > 0 ? post.media : (post.images || []);
 
-  const renderMedia = (item: PostMedia, index: number) => {
+  const renderRegularMedia = (item: PostMedia, index: number) => {
     const isVideo = item.type === 'video';
     
     if (isVideo) {
       return (
-        <View key={item.id} style={{ width: post.type === "comparison" ? mediaSize : undefined }}>
+        <View key={item.id}>
           <Image
             source={{ uri: item.thumbnail || item.uri }}
             style={[styles.postMedia, { width: mediaSize, height: compact ? mediaSize * 0.75 : mediaSize }]}
@@ -113,52 +116,60 @@ export function PostCard({
               </ThemedText>
             </View>
           ) : null}
-          {post.type === "comparison" ? (
-            <>
-              <Pressable
-                onPress={() => handleComparisonVote(item.id)}
-                style={[styles.voteOverlay, { backgroundColor: theme.link }]}
-              >
-                <Feather name="check" size={16} color="#FFFFFF" />
-                <ThemedText type="small" style={styles.voteText}>
-                  Vote ({item.votes || 0})
-                </ThemedText>
-              </Pressable>
-              <View style={styles.optionBadge}>
-                <ThemedText type="caption" style={styles.optionText}>
-                  Option {index + 1}
-                </ThemedText>
-              </View>
-            </>
-          ) : null}
         </View>
       );
     }
 
     return (
-      <View key={item.id} style={{ width: post.type === "comparison" ? mediaSize : undefined }}>
+      <View key={item.id}>
         <Image
           source={{ uri: item.uri }}
           style={[styles.postMedia, { width: mediaSize, height: compact ? mediaSize * 0.75 : mediaSize }]}
         />
-        {post.type === "comparison" ? (
-          <>
-            <Pressable
-              onPress={() => handleComparisonVote(item.id)}
-              style={[styles.voteOverlay, { backgroundColor: theme.link }]}
-            >
-              <Feather name="check" size={16} color="#FFFFFF" />
-              <ThemedText type="small" style={styles.voteText}>
-                Vote ({item.votes || 0})
-              </ThemedText>
-            </Pressable>
-            <View style={styles.optionBadge}>
-              <ThemedText type="caption" style={styles.optionText}>
-                Option {index + 1}
-              </ThemedText>
+      </View>
+    );
+  };
+
+  const renderComparisonMedia = () => {
+    if (!mediaList || mediaList.length < 2) return null;
+    
+    const itemHeight = comparisonItemWidth * 1.3;
+    
+    return (
+      <View style={styles.comparisonContainer}>
+        {mediaList.slice(0, 2).map((item, index) => {
+          const isVideo = item.type === 'video';
+          
+          return (
+            <View key={item.id} style={[styles.comparisonItem, { width: comparisonItemWidth }]}>
+              <Image
+                source={{ uri: isVideo ? (item.thumbnail || item.uri) : item.uri }}
+                style={[styles.comparisonImage, { width: comparisonItemWidth, height: itemHeight }]}
+              />
+              {isVideo ? (
+                <View style={styles.videoOverlay}>
+                  <View style={[styles.playButton, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
+                    <Feather name="play" size={24} color="#FFFFFF" />
+                  </View>
+                </View>
+              ) : null}
+              <View style={styles.optionBadge}>
+                <ThemedText type="caption" style={styles.optionText}>
+                  Option {index + 1}
+                </ThemedText>
+              </View>
+              <Pressable
+                onPress={() => handleComparisonVote(item.id)}
+                style={[styles.voteOverlay, { backgroundColor: theme.link }]}
+              >
+                <Feather name="check" size={14} color="#FFFFFF" />
+                <ThemedText type="small" style={styles.voteText}>
+                  Vote ({item.votes || 0})
+                </ThemedText>
+              </Pressable>
             </View>
-          </>
-        ) : null}
+          );
+        })}
       </View>
     );
   };
@@ -206,16 +217,9 @@ export function PostCard({
 
       <View style={styles.mediaContainer}>
         {post.type === "comparison" ? (
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            style={styles.comparisonScroll}
-          >
-            {mediaList.map((item, index) => renderMedia(item, index))}
-          </ScrollView>
+          renderComparisonMedia()
         ) : (
-          mediaList[0] ? renderMedia(mediaList[0], 0) : null
+          mediaList[0] ? renderRegularMedia(mediaList[0], 0) : null
         )}
       </View>
 
@@ -367,8 +371,20 @@ const styles = StyleSheet.create({
   mediaContainer: {
     width: "100%",
   },
-  comparisonScroll: {
+  comparisonContainer: {
+    flexDirection: "row",
     width: "100%",
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+  },
+  comparisonItem: {
+    position: "relative",
+    borderRadius: BorderRadius.sm,
+    overflow: "hidden",
+  },
+  comparisonImage: {
+    resizeMode: "cover",
+    borderRadius: BorderRadius.sm,
   },
   postMedia: {
     resizeMode: "cover",
@@ -400,30 +416,32 @@ const styles = StyleSheet.create({
   },
   voteOverlay: {
     position: "absolute",
-    bottom: Spacing.md,
-    left: Spacing.md,
+    bottom: Spacing.sm,
+    left: Spacing.sm,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.full,
   },
   voteText: {
     color: "#FFFFFF",
     fontWeight: "600",
+    fontSize: 12,
   },
   optionBadge: {
     position: "absolute",
-    top: Spacing.md,
-    left: Spacing.md,
+    top: Spacing.sm,
+    left: Spacing.sm,
     backgroundColor: "rgba(0,0,0,0.6)",
-    paddingVertical: 4,
-    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    paddingHorizontal: Spacing.xs,
     borderRadius: BorderRadius.xs,
   },
   optionText: {
     color: "#FFFFFF",
+    fontSize: 11,
   },
   engagementRow: {
     flexDirection: "row",

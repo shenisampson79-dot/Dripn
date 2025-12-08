@@ -1765,34 +1765,6 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <ThemedText type="h2" style={styles.sectionTitle}>
-            Trending Now
-          </ThemedText>
-          <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
-            <ThemedText type="link">See All</ThemedText>
-          </Pressable>
-        </View>
-        <View style={styles.postsContainer}>
-          {trendingPosts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onPress={() => handlePostPress(post.id)}
-              onVote={votePost}
-              onComparisonVote={voteComparison}
-              onThank={thankPost}
-              onSave={handleSavePost}
-              onDislike={handleDislikePost}
-              isSaved={isOutfitLiked(post.id)}
-              isDisliked={dislikedPosts.has(post.id)}
-              compact
-            />
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <ThemedText type="h2" style={styles.sectionTitle}>
             Trending Challenges
           </ThemedText>
           <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
