@@ -9,6 +9,7 @@ const { analyzeUserStyleProfile, generatePersonalizedStyleOfTheDay, generatePers
 const { scanEmergingFashionTrends, scanViralFashionMoments, predictNextBigTrend, getRegionalTrendInsights } = require('./trendScannerService');
 const { sendPushNotification, sendBatchPushNotifications, processEventReminders } = require('./pushNotificationService');
 const colorTrendService = require('./colorTrendService');
+const { generateStylistResponse, detectMood } = require('./aiStylistService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -3424,6 +3425,66 @@ app.post('/api/notifications/test', authMiddleware, async (req, res) => {
   }
 });
 
+// ============ AI STYLIST CHAT ============
+
+// AI Stylist Chat - Main conversation endpoint
+app.post('/api/stylist/chat', async (req, res) => {
+  try {
+    const { stylistId, messages, userMessage, wardrobeItems, userGender, subscriptionTier } = req.body;
+
+    if (!userMessage || typeof userMessage !== 'string') {
+      return res.status(400).json({ error: 'userMessage is required' });
+    }
+
+    if (!stylistId || !['ruby', 'max'].includes(stylistId)) {
+      return res.status(400).json({ error: 'Valid stylistId (ruby or max) is required' });
+    }
+
+    const response = await generateStylistResponse({
+      stylistId,
+      messages: messages || [],
+      userMessage,
+      wardrobeItems: wardrobeItems || [],
+      userGender: userGender || 'not specified',
+      subscriptionTier: subscriptionTier || 'free',
+    });
+
+    res.json({
+      success: true,
+      content: response.content,
+      mood: response.mood,
+      stylistId: response.stylistId,
+    });
+  } catch (error) {
+    console.error('AI Stylist chat error:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate response',
+      fallback: true,
+      content: "I'm having a moment, darling! Could you try again? I'm here for you!"
+    });
+  }
+});
+
+// AI Stylist - Mood detection only (lightweight)
+app.post('/api/stylist/detect-mood', async (req, res) => {
+  try {
+    const { message } = req.body;
+
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ error: 'message is required' });
+    }
+
+    const mood = await detectMood(message);
+    res.json({ success: true, mood });
+  } catch (error) {
+    console.error('Mood detection error:', error);
+    res.status(500).json({ 
+      error: 'Failed to detect mood',
+      mood: { mood: 'neutral', confidence: 0.5, needsSupport: false, topicType: 'casual' }
+    });
+  }
+});
+
 // ============ HEALTH CHECK ============
 
 app.get('/', (req, res) => {
@@ -3437,7 +3498,8 @@ app.get('/', (req, res) => {
       smsAlerts: process.env.TWILIO_ACCOUNT_SID ? 'Twilio (configured)' : 'Twilio (not configured)',
       stylePersonalization: true,
       trendScanner: true,
-      eventReminders: true
+      eventReminders: true,
+      aiStylistChat: process.env.OPENAI_API_KEY ? 'OpenAI GPT-4 (configured)' : 'OpenAI (not configured)'
     }
   });
 });
