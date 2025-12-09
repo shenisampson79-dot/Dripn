@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, Alert } from "react-native";
+import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, Alert, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -23,14 +23,30 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const { mode } = route.params;
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
-  const { login, signup, isLoading } = useAuth();
+  const { login, signup, socialLogin, isLoading } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
 
   const isSignup = mode === "signup";
+
+  const handleSocialAuth = async (provider: 'google' | 'facebook' | 'apple') => {
+    setSocialLoading(provider);
+    try {
+      await socialLogin(provider);
+      navigation.replace("Onboarding");
+    } catch (error) {
+      Alert.alert(
+        "Sign In Failed", 
+        `Could not sign in with ${provider.charAt(0).toUpperCase() + provider.slice(1)}. Please try again.`
+      );
+    } finally {
+      setSocialLoading(null);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!email || !password) {
@@ -89,6 +105,86 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
               ? "Join the Dripn community"
               : "Sign in to continue your style journey"}
           </ThemedText>
+        </View>
+
+        <View style={styles.socialButtonsContainer}>
+          <Pressable
+            onPress={() => handleSocialAuth('google')}
+            disabled={socialLoading !== null || isLoading}
+            style={({ pressed }) => [
+              styles.socialButton,
+              { 
+                backgroundColor: '#FFFFFF',
+                borderColor: theme.border,
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            {socialLoading === 'google' ? (
+              <ActivityIndicator color="#DB4437" size="small" />
+            ) : (
+              <>
+                <FontAwesome name="google" size={20} color="#DB4437" />
+                <ThemedText style={[styles.socialButtonText, { color: '#333333' }]}>
+                  Continue with Google
+                </ThemedText>
+              </>
+            )}
+          </Pressable>
+
+          <Pressable
+            onPress={() => handleSocialAuth('facebook')}
+            disabled={socialLoading !== null || isLoading}
+            style={({ pressed }) => [
+              styles.socialButton,
+              { 
+                backgroundColor: '#1877F2',
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            {socialLoading === 'facebook' ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <FontAwesome name="facebook" size={20} color="#FFFFFF" />
+                <ThemedText style={[styles.socialButtonText, { color: '#FFFFFF' }]}>
+                  Continue with Facebook
+                </ThemedText>
+              </>
+            )}
+          </Pressable>
+
+          {Platform.OS === 'ios' ? (
+            <Pressable
+              onPress={() => handleSocialAuth('apple')}
+              disabled={socialLoading !== null || isLoading}
+              style={({ pressed }) => [
+                styles.socialButton,
+                { 
+                  backgroundColor: isDark ? '#FFFFFF' : '#000000',
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
+            >
+              {socialLoading === 'apple' ? (
+                <ActivityIndicator color={isDark ? '#000000' : '#FFFFFF'} size="small" />
+              ) : (
+                <>
+                  <FontAwesome name="apple" size={22} color={isDark ? '#000000' : '#FFFFFF'} />
+                  <ThemedText style={[styles.socialButtonText, { color: isDark ? '#000000' : '#FFFFFF' }]}>
+                    Continue with Apple
+                  </ThemedText>
+                </>
+              )}
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View style={styles.dividerContainer}>
+          <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+          <ThemedText type="small" style={styles.dividerText}>or</ThemedText>
+          <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
         </View>
 
         <View style={styles.form}>
@@ -218,7 +314,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   titleContainer: {
-    marginBottom: Spacing["3xl"],
+    marginBottom: Spacing.xl,
+  },
+  socialButtonsContainer: {
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  socialButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.md,
+    height: Spacing.inputHeight,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  socialButtonText: {
+    fontSize: Typography.body.fontSize,
+    fontWeight: "600",
+  },
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.lg,
+    gap: Spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    opacity: 0.6,
   },
   title: {
     marginBottom: Spacing.sm,

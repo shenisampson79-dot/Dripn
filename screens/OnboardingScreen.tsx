@@ -446,6 +446,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
       budgetRange,
       stylistPreferences,
     });
+    navigation.replace("SuggestedFollows");
   };
 
   const renderStep = () => {

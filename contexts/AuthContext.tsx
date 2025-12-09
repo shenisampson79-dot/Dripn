@@ -89,6 +89,7 @@ interface AuthContextType {
   locationPermissionStatus: LocationPermissionStatus;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
+  socialLogin: (provider: 'google' | 'facebook' | 'apple') => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   completeOnboarding: (profile: Partial<UserProfile>) => Promise<void>;
@@ -347,6 +348,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const socialLogin = async (provider: 'google' | 'facebook' | 'apple') => {
+    setIsLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+      const mockEmail = `${provider}_user_${Date.now()}@${provider}.com`;
+      const mockName = `${providerName} User`;
+      const newUser = createDefaultUser(mockEmail, mockName);
+      await saveUser(newUser);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
@@ -416,6 +431,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         locationPermissionStatus,
         login,
         signup,
+        socialLogin,
         logout,
         updateProfile,
         completeOnboarding,
