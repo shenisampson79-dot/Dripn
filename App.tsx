@@ -1,3 +1,18 @@
+/**
+ * Dripn - AI-Powered Fashion Advice Platform
+ * 
+ * Copyright (c) 2025 Dripn. All rights reserved.
+ * 
+ * This source code is proprietary and confidential. Unauthorized copying,
+ * modification, distribution, or use of this software, via any medium,
+ * is strictly prohibited without express written permission from Dripn.
+ * 
+ * Dripn, the Dripn logo, "Style that flows", Ruby AI Stylist, and Max AI Stylist
+ * are trademarks of Dripn.
+ * 
+ * For licensing inquiries: legal@dripn.app
+ */
+
 import React, { useState, useEffect } from "react";
 import { StyleSheet, Modal } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";

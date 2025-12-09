@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2025 Dripn. All rights reserved.
+ * Ruby and Max AI Stylist personas are proprietary to Dripn.
+ */
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   StyleSheet,

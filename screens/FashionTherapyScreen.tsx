@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2025 Dripn. All rights reserved.
+ * Fashion Therapy system is proprietary to Dripn.
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,

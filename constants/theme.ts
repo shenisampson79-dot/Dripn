@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2025 Dripn. All rights reserved.
+ * Dripn Theme System and color palettes are proprietary.
+ */
+
 import { Platform } from "react-native";
 
 // Dripn Theme System
