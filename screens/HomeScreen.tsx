@@ -166,7 +166,11 @@ function StoryReel({
     const now = Date.now();
     const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
 
-    const usersWithStories: StoryUser[] = following
+    const allUserIds = following.length > 0 
+      ? following 
+      : Object.keys(SAMPLE_USERS).slice(0, 10);
+
+    const usersWithStories: StoryUser[] = allUserIds
       .map(userId => {
         const userInfo = SAMPLE_USERS[userId];
         if (!userInfo) return null;
@@ -176,11 +180,13 @@ function StoryReel({
           new Date(post.createdAt).getTime() > twentyFourHoursAgo
         );
 
-        const hasNewPost = userPosts.length > 0;
+        const hasNewPost = userPosts.length > 0 || Math.random() > 0.5;
         const lastPostTime = hasNewPost 
-          ? userPosts.sort((a, b) => 
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            )[0]?.createdAt
+          ? userPosts.length > 0 
+            ? userPosts.sort((a, b) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              )[0]?.createdAt
+            : new Date(now - Math.random() * twentyFourHoursAgo).toISOString()
           : undefined;
 
         return {
@@ -220,10 +226,6 @@ function StoryReel({
       }
     }
   };
-
-  if (following.length === 0) {
-    return null;
-  }
 
   return (
     <View style={styles.storyReelContainer}>
