@@ -287,39 +287,75 @@ Provide a comprehensive, well-structured analysis. Use headers, bullet points, a
     const reasoningModel = await getBestReasoningModel();
     console.log(`Using reasoning model: ${reasoningModel} for complex analysis`);
     
-    // o1 models don't support system messages in the same way, so we combine them
+    // Check if this is an o1 reasoning model
     const isO1Model = reasoningModel.startsWith('o1');
     
-    let messages;
-    if (isO1Model) {
-      // For o1 models, include system context in the user message
-      messages = [
-        { 
-          role: 'user', 
-          content: `${systemMessage}\n\nUSER REQUEST:\n${userMessage}` 
-        },
-      ];
-    } else {
-      messages = [
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: userMessage },
-      ];
-    }
-
-    const requestParams = {
-      model: reasoningModel,
-      messages,
-    };
-
-    // o1 models don't support temperature parameter
-    if (!isO1Model) {
-      requestParams.temperature = 0.7;
-      requestParams.max_tokens = 4000;
-    } else {
-      requestParams.max_completion_tokens = 4000;
-    }
+    let response;
     
-    const response = await openai.chat.completions.create(requestParams);
+    if (isO1Model) {
+      // o1 models use the responses API with specific parameters
+      // They support 'developer' role for system-like instructions (o1 and later)
+      // or require system content in user message (o1-preview, o1-mini)
+      const isLegacyO1 = reasoningModel.includes('preview') || reasoningModel.includes('mini');
+      
+      console.log(`Using o1 model: ${reasoningModel}, legacy mode: ${isLegacyO1}`);
+      
+      let messages;
+      if (isLegacyO1) {
+        // Legacy o1 models: combine system + user into single user message
+        messages = [
+          { 
+            role: 'user', 
+            content: `${systemMessage}\n\n---\n\nUSER REQUEST:\n${userMessage}` 
+          },
+        ];
+      } else {
+        // Modern o1 models support developer role for system instructions
+        messages = [
+          { role: 'developer', content: systemMessage },
+          { role: 'user', content: userMessage },
+        ];
+      }
+
+      try {
+        response = await openai.chat.completions.create({
+          model: reasoningModel,
+          messages,
+          max_completion_tokens: 16000,
+        });
+      } catch (o1Error) {
+        console.error(`o1 model (${reasoningModel}) failed:`, o1Error.message);
+        console.error('o1 error details:', o1Error.status, o1Error.code);
+        
+        // If developer role fails, try with combined user message
+        if (!isLegacyO1 && o1Error.message?.includes('developer')) {
+          console.log('Retrying o1 with user-only message format...');
+          response = await openai.chat.completions.create({
+            model: reasoningModel,
+            messages: [
+              { 
+                role: 'user', 
+                content: `${systemMessage}\n\n---\n\nUSER REQUEST:\n${userMessage}` 
+              },
+            ],
+            max_completion_tokens: 16000,
+          });
+        } else {
+          throw o1Error;
+        }
+      }
+    } else {
+      // Standard GPT models use chat.completions with system messages
+      response = await openai.chat.completions.create({
+        model: reasoningModel,
+        messages: [
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: userMessage },
+        ],
+        temperature: 0.7,
+        max_tokens: 4000,
+      });
+    }
 
     const analysisContent = response.choices[0]?.message?.content?.trim();
 
@@ -327,20 +363,24 @@ Provide a comprehensive, well-structured analysis. Use headers, bullet points, a
       throw new Error('Empty response from OpenAI');
     }
 
+    console.log(`Complex analysis completed successfully with ${reasoningModel}`);
+    
     return {
       content: analysisContent,
       analysisType,
       stylistId: stylist.name.toLowerCase(),
       modelUsed: reasoningModel,
       isComplexAnalysis: true,
+      reasoningTokens: response.usage?.completion_tokens_details?.reasoning_tokens || null,
     };
   } catch (error) {
-    console.error('Complex analysis error:', error.message);
+    console.error('Complex analysis primary error:', error.message);
+    console.error('Error type:', error.constructor.name, 'Status:', error.status, 'Code:', error.code);
     
     // Fallback to regular model if reasoning model fails
     try {
       const fallbackModel = await getBestAvailableModel(false);
-      console.log(`Falling back to ${fallbackModel} for complex analysis`);
+      console.log(`Falling back to ${fallbackModel} for complex analysis after o1 failure`);
       
       const response = await openai.chat.completions.create({
         model: fallbackModel,
@@ -361,6 +401,8 @@ Provide a comprehensive, well-structured analysis. Use headers, bullet points, a
         modelUsed: fallbackModel,
         isComplexAnalysis: true,
         usedFallback: true,
+        fallbackReason: `Primary reasoning model failed: ${error.message}`,
+        reasoningTokens: null,
       };
     } catch (fallbackError) {
       console.error('Fallback analysis also failed:', fallbackError.message);
@@ -374,6 +416,9 @@ Provide a comprehensive, well-structured analysis. Use headers, bullet points, a
         modelUsed: 'fallback',
         isComplexAnalysis: false,
         error: 'Analysis temporarily unavailable',
+        usedFallback: true,
+        fallbackReason: `Both reasoning and fallback models failed. Primary: ${error.message}. Fallback: ${fallbackError.message}`,
+        reasoningTokens: null,
       };
     }
   }

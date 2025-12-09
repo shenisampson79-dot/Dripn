@@ -83,6 +83,28 @@ The backend includes comprehensive AI services leveraging multiple OpenAI models
 - Similar outfit generation
 - API endpoints: `/api/ai/generate-inspiration`, `/api/ai/generate-moodboard`, `/api/ai/generate-similar`, `/api/ai/generate-variations`, `/api/ai/generate-style-guide`, `/api/ai/available-styles`, `/api/ai/available-moods`
 
+### Complex Analysis with o1 Reasoning Models (`backend-code/aiStylistService.js`)
+- Deep fashion analysis using OpenAI's o1 reasoning models for Premium/VIP subscribers
+- Automatic model selection: o1 → o1-preview → o1-mini → gpt-4.1 → gpt-4.5-preview → gpt-4o
+- 8 specialized analysis types:
+  - `wardrobe_audit`: Comprehensive wardrobe composition, versatility scoring, gap analysis
+  - `personal_style_profile`: Core aesthetic identification, style personality typing, signature elements
+  - `color_analysis`: Seasonal color typing, best colors by context, color combination formulas
+  - `capsule_wardrobe`: Optimized piece lists, color schemes, outfit combination matrices
+  - `outfit_planning`: Daily formulas, occasion templates, accessory rotation systems
+  - `style_transformation`: Phased transformation roadmaps with timelines and milestones
+  - `shopping_strategy`: Investment prioritization, budget allocation, cost-per-wear projections
+  - `trend_adaptation`: Personal trend alignment, longevity predictions, adoption strategies
+- Handles o1 model-specific requirements (developer role for modern o1, combined user messages for legacy o1-preview/mini)
+- Graceful fallback to GPT-4o if reasoning models unavailable
+- Returns reasoning token usage metrics
+- API endpoints:
+  - `GET /api/ai/analysis-types` - List available analysis types
+  - `POST /api/ai/complex-analysis` - Main complex analysis endpoint (Premium/VIP only)
+  - `POST /api/ai/wardrobe-audit` - Quick wardrobe audit
+  - `POST /api/ai/style-profile` - Personal style profile creation
+  - `GET /api/ai/reasoning-model` - Get current reasoning model info
+
 ### Fashion Therapy Screen (`screens/FashionTherapyScreen.tsx`)
 - Mood selector with 8 emotional states (happy, confident, calm, anxious, tired, stressed, sad, motivated)
 - Mood-based outfit recommendations
