@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2025 Dripn. All rights reserved.
+ * Proprietary and confidential.
+ */
+
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { StyleSheet, View, Pressable, Image, ScrollView, Dimensions, Alert, ImageSourcePropType, Linking, ActivityIndicator, LayoutChangeEvent } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";

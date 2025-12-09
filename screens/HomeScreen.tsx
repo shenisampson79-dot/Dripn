@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2025 Dripn. All rights reserved.
+ * Proprietary and confidential.
+ */
+
 import React, { useState, useCallback, useMemo } from "react";
 import { StyleSheet, View, Image, Pressable, RefreshControl } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2025 Dripn. All rights reserved.
+ * Proprietary and confidential.
+ */
+
 export interface FashionInfluencer {
   name: string;
   handle: string;

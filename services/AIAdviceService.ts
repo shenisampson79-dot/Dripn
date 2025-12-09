@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2025 Dripn. All rights reserved.
+ * Proprietary and confidential.
+ * 
+ * AI Fashion Advice Service - Powers Ruby and Max AI stylists
+ */
+
 import TrendInsightsService, { 
   TrendingItem, 
   FashionInfluencer, 

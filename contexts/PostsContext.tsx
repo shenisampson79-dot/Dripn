@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2025 Dripn. All rights reserved.
+ * Proprietary and confidential.
+ */
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

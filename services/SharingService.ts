@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2025 Dripn. All rights reserved.
+ * Proprietary and confidential.
+ */
+
 import { Share, Platform } from "react-native";
 import * as StoreReview from "expo-store-review";
 import * as Linking from "expo-linking";
