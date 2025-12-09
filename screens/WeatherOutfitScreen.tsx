@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
+  Linking,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,32 +51,38 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
   const [weather, setWeather] = useState<WeatherCondition | null>(null);
   const [recommendation, setRecommendation] = useState<WeatherOutfitRecommendation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permissionStatus, setPermissionStatus] = useState<'loading' | 'granted' | 'denied' | 'canAsk'>('loading');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchWeather = useCallback(async () => {
+  const checkPermissionAndFetch = useCallback(async () => {
     setIsLoading(true);
     
-    const { status } = await Location.getForegroundPermissionsAsync();
-    setHasPermission(status === 'granted');
+    const permStatus = await weatherService.checkPermissionStatus();
     
-    const weatherData = await weatherService.getCurrentWeather();
-    if (weatherData) {
-      setWeather(weatherData);
-      const rec = weatherService.getOutfitRecommendation(weatherData, user?.gender || 'unspecified');
-      setRecommendation(rec);
+    if (permStatus.granted) {
+      setPermissionStatus('granted');
+      const weatherData = await weatherService.getCurrentWeather();
+      if (weatherData) {
+        setWeather(weatherData);
+        const rec = weatherService.getOutfitRecommendation(weatherData, user?.gender || 'unspecified');
+        setRecommendation(rec);
+      }
+    } else if (permStatus.canAskAgain) {
+      setPermissionStatus('canAsk');
+    } else {
+      setPermissionStatus('denied');
     }
     
     setIsLoading(false);
   }, [user?.gender]);
 
   useEffect(() => {
-    fetchWeather();
-  }, [fetchWeather]);
+    checkPermissionAndFetch();
+  }, [checkPermissionAndFetch]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchWeather();
+    await checkPermissionAndFetch();
     setIsRefreshing(false);
   };
 
@@ -83,10 +90,20 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    setHasPermission(status === 'granted');
-    if (status === 'granted') {
-      await fetchWeather();
+    const granted = await weatherService.requestPermission();
+    if (granted) {
+      setPermissionStatus('granted');
+      setIsLoading(true);
+      const weatherData = await weatherService.getCurrentWeather();
+      if (weatherData) {
+        setWeather(weatherData);
+        const rec = weatherService.getOutfitRecommendation(weatherData, user?.gender || 'unspecified');
+        setRecommendation(rec);
+      }
+      setIsLoading(false);
+    } else {
+      const permStatus = await weatherService.checkPermissionStatus();
+      setPermissionStatus(permStatus.canAskAgain ? 'canAsk' : 'denied');
     }
   };
 
@@ -103,7 +120,7 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
 
   const wardrobeMatches = getWardrobeMatches();
 
-  if (isLoading) {
+  if (isLoading || permissionStatus === 'loading') {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.backgroundRoot }]}>
         <ActivityIndicator size="large" color={theme.link} />
@@ -114,7 +131,16 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
     );
   }
 
-  if (hasPermission === false) {
+  if (permissionStatus === 'canAsk' || permissionStatus === 'denied') {
+    const openSettings = async () => {
+      if (Platform.OS !== 'web') {
+        try {
+          await Linking.openSettings();
+        } catch {
+        }
+      }
+    };
+
     return (
       <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
         <View style={styles.header}>
@@ -138,15 +164,31 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
           <ThemedText type="body" style={styles.permissionText}>
             To provide weather-based outfit recommendations, we need access to your location.
           </ThemedText>
-          <Pressable
-            onPress={requestPermission}
-            style={[styles.permissionButton, { backgroundColor: theme.link }]}
-          >
-            <Feather name="map-pin" size={20} color="#FFFFFF" />
-            <ThemedText type="body" style={styles.permissionButtonText}>
-              Enable Location
+          {permissionStatus === 'canAsk' ? (
+            <Pressable
+              onPress={requestPermission}
+              style={[styles.permissionButton, { backgroundColor: theme.link }]}
+            >
+              <Feather name="map-pin" size={20} color="#FFFFFF" />
+              <ThemedText type="body" style={styles.permissionButtonText}>
+                Enable Location
+              </ThemedText>
+            </Pressable>
+          ) : Platform.OS !== 'web' ? (
+            <Pressable
+              onPress={openSettings}
+              style={[styles.permissionButton, { backgroundColor: theme.link }]}
+            >
+              <Feather name="settings" size={20} color="#FFFFFF" />
+              <ThemedText type="body" style={styles.permissionButtonText}>
+                Open Settings
+              </ThemedText>
+            </Pressable>
+          ) : (
+            <ThemedText type="body" style={{ textAlign: 'center', opacity: 0.7 }}>
+              Run in Expo Go to use this feature
             </ThemedText>
-          </Pressable>
+          )}
         </View>
       </View>
     );

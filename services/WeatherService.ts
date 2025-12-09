@@ -38,16 +38,17 @@ interface CachedWeather {
 class WeatherService {
   private apiKey: string | null = null;
 
-  async getCurrentWeather(): Promise<WeatherCondition | null> {
+  async getCurrentWeather(skipPermissionCheck: boolean = false): Promise<WeatherCondition | null> {
     try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      
+      if (status !== 'granted') {
+        return null;
+      }
+
       const cached = await this.getCachedWeather();
       if (cached) {
         return cached;
-      }
-
-      const { status } = await Location.getForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        return this.getDefaultWeather();
       }
 
       const location = await Location.getCurrentPositionAsync({
@@ -66,8 +67,21 @@ class WeatherService {
       return weather;
     } catch (error) {
       console.error('Failed to get weather:', error);
-      return this.getDefaultWeather();
+      return null;
     }
+  }
+
+  async checkPermissionStatus(): Promise<{ granted: boolean; canAskAgain: boolean }> {
+    const { status, canAskAgain } = await Location.getForegroundPermissionsAsync();
+    return {
+      granted: status === 'granted',
+      canAskAgain: canAskAgain !== false,
+    };
+  }
+
+  async requestPermission(): Promise<boolean> {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    return status === 'granted';
   }
 
   private async fetchWeatherByCoords(lat: number, lon: number): Promise<WeatherCondition | null> {
