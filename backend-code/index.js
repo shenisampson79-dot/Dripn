@@ -9,7 +9,7 @@ const { analyzeUserStyleProfile, generatePersonalizedStyleOfTheDay, generatePers
 const { scanEmergingFashionTrends, scanViralFashionMoments, predictNextBigTrend, getRegionalTrendInsights } = require('./trendScannerService');
 const { sendPushNotification, sendBatchPushNotifications, processEventReminders } = require('./pushNotificationService');
 const colorTrendService = require('./colorTrendService');
-const { generateStylistResponse, detectMood } = require('./aiStylistService');
+const { generateStylistResponse, detectMood, performComplexAnalysis, getAvailableAnalysisTypes, getBestReasoningModel } = require('./aiStylistService');
 const { getBestModel, getModelStatus, refreshAllModels, performHealthCheck, checkForNewModels } = require('./modelLifecycleService');
 const { analyzeOutfitPhoto, compareOutfits, extractColorsFromPhoto } = require('./visionAnalysisService');
 const { transcribeAudio, synthesizeSpeech, processVoiceMessage, createVoiceResponse, getAllVoices, generateVoicePreview, getSupportedLanguages } = require('./voiceService');
@@ -4161,6 +4161,172 @@ app.get('/api/ai/available-moods', async (req, res) => {
   }
 });
 
+// ============ COMPLEX ANALYSIS ENDPOINTS ============
+
+// Get available analysis types
+app.get('/api/ai/analysis-types', async (req, res) => {
+  try {
+    const analysisTypes = getAvailableAnalysisTypes();
+    res.json({ success: true, analysisTypes });
+  } catch (error) {
+    console.error('Get analysis types error:', error);
+    res.status(500).json({ error: 'Failed to get analysis types' });
+  }
+});
+
+// Perform complex analysis using o1 reasoning models
+app.post('/api/ai/complex-analysis', authMiddleware, async (req, res) => {
+  try {
+    const { 
+      stylistId = 'ruby', 
+      analysisType = 'wardrobe_audit', 
+      message,
+      wardrobeItems = [],
+      userProfile = null
+    } = req.body;
+    
+    const userId = req.userId;
+    
+    // Get user info for context
+    const userResult = await pool.query(
+      'SELECT gender, subscription_tier FROM users WHERE id = $1',
+      [userId]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = userResult.rows[0];
+    
+    // Check subscription tier - complex analysis is premium feature
+    const allowedTiers = ['premium', 'vip'];
+    if (!allowedTiers.includes(user.subscription_tier)) {
+      return res.status(403).json({ 
+        error: 'Complex analysis requires Premium or VIP subscription',
+        requiredTier: 'premium'
+      });
+    }
+    
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ error: 'Message is required for analysis' });
+    }
+    
+    const analysis = await performComplexAnalysis({
+      stylistId,
+      analysisType,
+      userMessage: message,
+      wardrobeItems,
+      userGender: user.gender,
+      userProfile,
+      subscriptionTier: user.subscription_tier,
+    });
+    
+    res.json({ 
+      success: true, 
+      analysis,
+      modelInfo: {
+        usedReasoningModel: analysis.modelUsed?.startsWith('o1') || false,
+        model: analysis.modelUsed
+      }
+    });
+  } catch (error) {
+    console.error('Complex analysis error:', error);
+    res.status(500).json({ error: 'Failed to perform complex analysis' });
+  }
+});
+
+// Quick wardrobe audit endpoint
+app.post('/api/ai/wardrobe-audit', authMiddleware, async (req, res) => {
+  try {
+    const { stylistId = 'ruby', wardrobeItems = [], specificFocus = null } = req.body;
+    
+    const userId = req.userId;
+    const userResult = await pool.query(
+      'SELECT gender, subscription_tier FROM users WHERE id = $1',
+      [userId]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = userResult.rows[0];
+    
+    const message = specificFocus 
+      ? `Please analyze my wardrobe with a specific focus on: ${specificFocus}`
+      : 'Please perform a comprehensive audit of my wardrobe.';
+    
+    const analysis = await performComplexAnalysis({
+      stylistId,
+      analysisType: 'wardrobe_audit',
+      userMessage: message,
+      wardrobeItems,
+      userGender: user.gender,
+      subscriptionTier: user.subscription_tier,
+    });
+    
+    res.json({ success: true, analysis });
+  } catch (error) {
+    console.error('Wardrobe audit error:', error);
+    res.status(500).json({ error: 'Failed to perform wardrobe audit' });
+  }
+});
+
+// Style profile endpoint
+app.post('/api/ai/style-profile', authMiddleware, async (req, res) => {
+  try {
+    const { stylistId = 'ruby', wardrobeItems = [], userProfile = null } = req.body;
+    
+    const userId = req.userId;
+    const userResult = await pool.query(
+      'SELECT gender, subscription_tier FROM users WHERE id = $1',
+      [userId]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = userResult.rows[0];
+    
+    const analysis = await performComplexAnalysis({
+      stylistId,
+      analysisType: 'personal_style_profile',
+      userMessage: 'Please create a comprehensive personal style profile for me based on my wardrobe and preferences.',
+      wardrobeItems,
+      userGender: user.gender,
+      userProfile,
+      subscriptionTier: user.subscription_tier,
+    });
+    
+    res.json({ success: true, analysis });
+  } catch (error) {
+    console.error('Style profile error:', error);
+    res.status(500).json({ error: 'Failed to create style profile' });
+  }
+});
+
+// Get current reasoning model info
+app.get('/api/ai/reasoning-model', async (req, res) => {
+  try {
+    const reasoningModel = await getBestReasoningModel();
+    const isO1 = reasoningModel.startsWith('o1');
+    
+    res.json({ 
+      success: true, 
+      model: reasoningModel,
+      isReasoningModel: isO1,
+      capabilities: isO1 
+        ? ['deep-reasoning', 'complex-analysis', 'multi-step-planning', 'comprehensive-evaluation']
+        : ['standard-analysis', 'conversational-ai']
+    });
+  } catch (error) {
+    console.error('Get reasoning model error:', error);
+    res.status(500).json({ error: 'Failed to get reasoning model info' });
+  }
+});
+
 // ============ HEALTH CHECK ============
 
 app.get('/', (req, res) => {
@@ -4182,7 +4348,8 @@ app.get('/', (req, res) => {
       aiLifestyleTherapy: openaiConfigured ? 'Fashion Therapy AI (configured)' : 'Fashion Therapy (not configured)',
       aiSemanticSearch: openaiConfigured ? 'text-embedding-3-large (configured)' : 'Embeddings (not configured)',
       aiImageGeneration: openaiConfigured ? 'DALL-E 3 (configured)' : 'DALL-E 3 (not configured)',
-      aiModelLifecycle: 'Auto-upgrade with A/B testing'
+      aiModelLifecycle: 'Auto-upgrade with A/B testing',
+      aiComplexAnalysis: openaiConfigured ? 'o1 Reasoning Models (configured)' : 'Complex Analysis (not configured)'
     }
   });
 });

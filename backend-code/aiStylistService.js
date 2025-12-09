@@ -5,7 +5,10 @@ const openai = new OpenAI({
 });
 
 const MODEL_PREFERENCE_ORDER = [
+  'o1',
+  'gpt-4.1',
   'gpt-4.5-preview',
+  'gpt-4o-2024-11-20',
   'gpt-4o',
   'gpt-4-turbo',
   'gpt-4',
@@ -13,15 +16,31 @@ const MODEL_PREFERENCE_ORDER = [
 ];
 
 const MINI_MODEL_PREFERENCE_ORDER = [
+  'gpt-4o-mini-2024-07-18',
   'gpt-4o-mini',
   'gpt-4-turbo',
   'gpt-3.5-turbo',
 ];
 
+// Reasoning models for complex analysis tasks - o1 excels at deep reasoning
+const REASONING_MODEL_PREFERENCE_ORDER = [
+  'o1',
+  'o1-2024-12-17',
+  'o1-preview',
+  'o1-preview-2024-09-12',
+  'o1-mini',
+  'o1-mini-2024-09-12',
+  'gpt-4.1',
+  'gpt-4.5-preview',
+  'gpt-4o',
+];
+
 let cachedBestModel = null;
 let cachedMiniModel = null;
+let cachedReasoningModel = null;
 let bestModelCacheTimestamp = null;
 let miniModelCacheTimestamp = null;
+let reasoningModelCacheTimestamp = null;
 const MODEL_CACHE_DURATION_MS = 24 * 60 * 60 * 1000;
 
 let cachedAvailableModels = null;
@@ -93,6 +112,271 @@ async function getBestAvailableModel(forMoodDetection = false) {
   const fallback = forMoodDetection ? 'gpt-4o-mini' : 'gpt-4o';
   console.log(`No preferred model found, falling back to ${fallback}`);
   return fallback;
+}
+
+async function getBestReasoningModel() {
+  const now = Date.now();
+
+  if (cachedReasoningModel && reasoningModelCacheTimestamp && now - reasoningModelCacheTimestamp < MODEL_CACHE_DURATION_MS) {
+    return cachedReasoningModel;
+  }
+
+  const availableModels = await getAvailableModels();
+
+  if (availableModels.length === 0) {
+    console.log('Could not fetch models, using gpt-4o for reasoning');
+    return 'gpt-4o';
+  }
+
+  for (const preferredModel of REASONING_MODEL_PREFERENCE_ORDER) {
+    const matchingModel = availableModels.find(
+      (modelId) => modelId === preferredModel || modelId.startsWith(preferredModel)
+    );
+    if (matchingModel) {
+      console.log(`Auto-selected reasoning model: ${matchingModel}`);
+      cachedReasoningModel = matchingModel;
+      reasoningModelCacheTimestamp = now;
+      return matchingModel;
+    }
+  }
+
+  console.log('No reasoning model found, falling back to gpt-4o');
+  return 'gpt-4o';
+}
+
+const COMPLEX_ANALYSIS_PROMPT = `You are performing a deep, comprehensive fashion analysis. Use your advanced reasoning capabilities to provide thorough, insightful analysis that goes beyond surface-level observations.
+
+ANALYSIS CAPABILITIES:
+1. WARDROBE ANALYSIS: Analyze entire wardrobes for gaps, redundancies, versatility, and optimization opportunities
+2. STYLE PROFILING: Create detailed personal style profiles based on preferences, body type, lifestyle, and aspirations
+3. COLOR HARMONY: Perform deep color analysis including seasonal color typing, undertones, and optimal palettes
+4. OUTFIT ENGINEERING: Build complete outfit systems with interchangeable pieces for maximum versatility
+5. TREND FORECASTING: Analyze how current trends apply to individual style profiles
+6. CAPSULE PLANNING: Design optimized capsule wardrobes with precise piece counts and combinations
+7. INVESTMENT ANALYSIS: Evaluate cost-per-wear, quality assessment, and purchase prioritization
+8. STYLE EVOLUTION: Map style journey and recommend gradual transformations
+9. OCCASION MAPPING: Create comprehensive outfit plans for all life occasions
+10. SUSTAINABLE STYLING: Analyze wardrobe sustainability and circular fashion opportunities
+
+Provide structured, detailed analysis with specific, actionable insights. Be thorough but organized.`;
+
+async function performComplexAnalysis({
+  stylistId,
+  analysisType,
+  userMessage,
+  wardrobeItems,
+  userGender,
+  userProfile,
+  subscriptionTier,
+}) {
+  const stylist = STYLIST_PERSONALITIES[stylistId] || STYLIST_PERSONALITIES.ruby;
+  
+  const analysisPrompts = {
+    wardrobe_audit: `Perform a comprehensive wardrobe audit. Analyze:
+- Overall wardrobe composition and balance
+- Style coherence and versatility score
+- Missing essential pieces
+- Redundant items that could be decluttered
+- Color palette analysis
+- Outfit combination potential
+- Seasonal coverage
+- Investment piece recommendations`,
+
+    personal_style_profile: `Create a detailed personal style profile. Analyze:
+- Core style aesthetic identification
+- Style personality type (Classic, Romantic, Natural, Dramatic, etc.)
+- Signature elements and patterns
+- Lifestyle-style alignment
+- Style evolution opportunities
+- Confidence zones and stretch opportunities
+- Celebrity/influencer style matches`,
+
+    color_analysis: `Perform comprehensive color analysis. Analyze:
+- Seasonal color type (Spring, Summer, Autumn, Winter with subtype)
+- Best colors for different contexts (work, casual, evening)
+- Colors to avoid or wear strategically
+- Neutral palette recommendations
+- Statement color suggestions
+- Color combination formulas
+- Makeup and accessory color coordination`,
+
+    capsule_wardrobe: `Design an optimized capsule wardrobe. Include:
+- Core pieces list with exact quantities
+- Color scheme with primary, secondary, and accent colors
+- Outfit combination matrix
+- Gap analysis from current wardrobe
+- Shopping priority list with price ranges
+- Seasonal rotation strategy
+- Mix-and-match formula`,
+
+    outfit_planning: `Create a comprehensive outfit planning system. Provide:
+- Daily outfit formulas for different contexts
+- Special occasion outfit templates
+- Weather/season adaptation strategies
+- Accessory rotation system
+- Getting-ready efficiency tips
+- Outfit documentation recommendations
+- Style emergency kit essentials`,
+
+    style_transformation: `Design a style transformation roadmap. Include:
+- Current style assessment
+- Desired style vision
+- Phased transformation plan
+- Key pieces to acquire first
+- Pieces to phase out gradually
+- Mindset shifts for style confidence
+- Timeline with milestones
+- Budget allocation strategy`,
+
+    shopping_strategy: `Create a strategic shopping analysis. Provide:
+- Immediate needs vs wants prioritization
+- Investment pieces to save for
+- Budget allocation by category
+- Best timing for purchases (sales, seasons)
+- Quality markers to look for
+- Brands matching style and budget
+- Sustainable shopping considerations
+- Cost-per-wear projections`,
+
+    trend_adaptation: `Analyze current trends for personal application. Include:
+- Trends that align with personal style
+- Trends to skip with explanation
+- Budget-friendly trend adoption strategies
+- Trend longevity predictions
+- How to incorporate trends without losing signature style
+- Age/lifestyle-appropriate trend modifications
+- Trend investment vs. fast fashion decisions`,
+  };
+
+  const specificPrompt = analysisPrompts[analysisType] || analysisPrompts.wardrobe_audit;
+  
+  const wardrobeContext = buildWardrobeContext(wardrobeItems);
+  
+  const profileContext = userProfile ? `
+USER PROFILE:
+- Age: ${userProfile.age || 'not specified'}
+- Body Type: ${userProfile.bodyType || 'not specified'}
+- Lifestyle: ${userProfile.lifestyle || 'not specified'}
+- Style Goals: ${userProfile.styleGoals || 'not specified'}
+- Budget: ${userProfile.budget || 'not specified'}
+- Preferences: ${userProfile.preferences || 'not specified'}
+` : '';
+
+  const systemMessage = `${COMPLEX_ANALYSIS_PROMPT}
+
+You are ${stylist.name}, performing an expert-level fashion analysis. Maintain your personality while delivering comprehensive, structured insights.
+
+${stylist.name === 'Ruby' ? 
+  'As Ruby, deliver this analysis with warmth and encouragement while being thorough and actionable.' : 
+  'As Max, deliver this analysis with cool confidence and practical wisdom while being detailed and useful.'}
+
+ANALYSIS TYPE: ${analysisType}
+
+${specificPrompt}
+
+${wardrobeContext}
+${profileContext}
+
+USER CONTEXT:
+- Gender: ${userGender || 'not specified'}
+- Subscription: ${subscriptionTier || 'free'} tier
+
+Provide a comprehensive, well-structured analysis. Use headers, bullet points, and clear organization. Be specific with recommendations - name colors, styles, and when possible, suggest specific types of pieces or brands.`;
+
+  try {
+    const reasoningModel = await getBestReasoningModel();
+    console.log(`Using reasoning model: ${reasoningModel} for complex analysis`);
+    
+    // o1 models don't support system messages in the same way, so we combine them
+    const isO1Model = reasoningModel.startsWith('o1');
+    
+    let messages;
+    if (isO1Model) {
+      // For o1 models, include system context in the user message
+      messages = [
+        { 
+          role: 'user', 
+          content: `${systemMessage}\n\nUSER REQUEST:\n${userMessage}` 
+        },
+      ];
+    } else {
+      messages = [
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: userMessage },
+      ];
+    }
+
+    const requestParams = {
+      model: reasoningModel,
+      messages,
+    };
+
+    // o1 models don't support temperature parameter
+    if (!isO1Model) {
+      requestParams.temperature = 0.7;
+      requestParams.max_tokens = 4000;
+    } else {
+      requestParams.max_completion_tokens = 4000;
+    }
+    
+    const response = await openai.chat.completions.create(requestParams);
+
+    const analysisContent = response.choices[0]?.message?.content?.trim();
+
+    if (!analysisContent) {
+      throw new Error('Empty response from OpenAI');
+    }
+
+    return {
+      content: analysisContent,
+      analysisType,
+      stylistId: stylist.name.toLowerCase(),
+      modelUsed: reasoningModel,
+      isComplexAnalysis: true,
+    };
+  } catch (error) {
+    console.error('Complex analysis error:', error.message);
+    
+    // Fallback to regular model if reasoning model fails
+    try {
+      const fallbackModel = await getBestAvailableModel(false);
+      console.log(`Falling back to ${fallbackModel} for complex analysis`);
+      
+      const response = await openai.chat.completions.create({
+        model: fallbackModel,
+        messages: [
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: userMessage },
+        ],
+        temperature: 0.7,
+        max_tokens: 4000,
+      });
+
+      const analysisContent = response.choices[0]?.message?.content?.trim();
+
+      return {
+        content: analysisContent || 'I apologize, but I was unable to complete the analysis. Please try again.',
+        analysisType,
+        stylistId: stylist.name.toLowerCase(),
+        modelUsed: fallbackModel,
+        isComplexAnalysis: true,
+        usedFallback: true,
+      };
+    } catch (fallbackError) {
+      console.error('Fallback analysis also failed:', fallbackError.message);
+      
+      return {
+        content: stylist.name === 'Ruby' 
+          ? "Oh darling, I'm having a bit of trouble with my deep analysis right now. Let me give you some immediate thoughts while I sort this out - could you tell me more about what specific aspect you'd like me to focus on?"
+          : "Hey mate, my deep analysis engine is having a moment. Let's break this down another way - what's the main thing you want me to focus on here?",
+        analysisType,
+        stylistId: stylist.name.toLowerCase(),
+        modelUsed: 'fallback',
+        isComplexAnalysis: false,
+        error: 'Analysis temporarily unavailable',
+      };
+    }
+  }
 }
 
 const MASTER_KNOWLEDGE_BASE = `
@@ -621,22 +905,42 @@ async function analyzeFashionRequest(userMessage, wardrobeItems) {
 async function refreshModelCache() {
   cachedBestModel = null;
   cachedMiniModel = null;
+  cachedReasoningModel = null;
   bestModelCacheTimestamp = null;
   miniModelCacheTimestamp = null;
+  reasoningModelCacheTimestamp = null;
   cachedAvailableModels = null;
   availableModelsCacheTimestamp = null;
   
   const bestModel = await getBestAvailableModel(false);
   const miniModel = await getBestAvailableModel(true);
+  const reasoningModel = await getBestReasoningModel();
   
-  return { bestModel, miniModel };
+  return { bestModel, miniModel, reasoningModel };
+}
+
+// Get list of available complex analysis types
+function getAvailableAnalysisTypes() {
+  return [
+    { id: 'wardrobe_audit', name: 'Wardrobe Audit', description: 'Comprehensive analysis of your entire wardrobe' },
+    { id: 'personal_style_profile', name: 'Personal Style Profile', description: 'Deep dive into your unique style identity' },
+    { id: 'color_analysis', name: 'Color Analysis', description: 'Seasonal color typing and optimal palette discovery' },
+    { id: 'capsule_wardrobe', name: 'Capsule Wardrobe Design', description: 'Optimized minimal wardrobe planning' },
+    { id: 'outfit_planning', name: 'Outfit Planning System', description: 'Complete outfit formulas for all occasions' },
+    { id: 'style_transformation', name: 'Style Transformation', description: 'Roadmap for evolving your personal style' },
+    { id: 'shopping_strategy', name: 'Shopping Strategy', description: 'Strategic purchasing and investment planning' },
+    { id: 'trend_adaptation', name: 'Trend Adaptation', description: 'How current trends apply to your style' },
+  ];
 }
 
 module.exports = {
   generateStylistResponse,
   detectMood,
   analyzeFashionRequest,
+  performComplexAnalysis,
+  getAvailableAnalysisTypes,
   STYLIST_PERSONALITIES,
   getBestAvailableModel,
+  getBestReasoningModel,
   refreshModelCache,
 };
