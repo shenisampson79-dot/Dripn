@@ -92,6 +92,14 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("CostPerWear");
   };
 
+  const handleStyleDNAPress = () => {
+    navigation.navigate("StyleDNA");
+  };
+
+  const handleVirtualTryOnPress = () => {
+    navigation.navigate("VirtualTryOn");
+  };
+
   const getSubscriptionBadge = () => {
     const tier = user?.subscriptionTier || "free";
     const colors = SubscriptionColors[tier];
@@ -268,6 +276,32 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           <Feather name="pie-chart" size={18} color="#FFFFFF" />
           <ThemedText type="body" style={styles.upgradeButtonText}>
             Cost-per-Wear
+          </ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={handleStyleDNAPress}
+          style={({ pressed }) => [
+            styles.styleDNAButton,
+            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
+          ]}
+        >
+          <Feather name="git-branch" size={18} color="#FFFFFF" />
+          <ThemedText type="body" style={styles.upgradeButtonText}>
+            Style DNA
+          </ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={handleVirtualTryOnPress}
+          style={({ pressed }) => [
+            styles.tryOnButton,
+            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
+          ]}
+        >
+          <Feather name="camera" size={18} color="#FFFFFF" />
+          <ThemedText type="body" style={styles.upgradeButtonText}>
+            Virtual Try-On
           </ThemedText>
         </Pressable>
 
@@ -743,6 +777,24 @@ const styles = StyleSheet.create({
     backgroundColor: "#3B82F6",
   },
   analyticsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    backgroundColor: "#8B5CF6",
+  },
+  styleDNAButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    backgroundColor: "#10B981",
+  },
+  tryOnButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,

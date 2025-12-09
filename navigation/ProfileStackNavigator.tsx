@@ -19,6 +19,8 @@ import FeatureSuggestionsScreen from "@/screens/FeatureSuggestionsScreen";
 import FashionTherapyScreen from "@/screens/FashionTherapyScreen";
 import WeatherOutfitScreen from "@/screens/WeatherOutfitScreen";
 import CostPerWearScreen from "@/screens/CostPerWearScreen";
+import StyleDNAScreen from "@/screens/StyleDNAScreen";
+import VirtualTryOnScreen from "@/screens/VirtualTryOnScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -42,6 +44,8 @@ export type ProfileStackParamList = {
   FashionTherapy: undefined;
   WeatherOutfit: undefined;
   CostPerWear: undefined;
+  StyleDNA: undefined;
+  VirtualTryOn: undefined;
   VideoCall: {
     callId?: string;
     roomUrl: string;
@@ -215,6 +219,23 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         options={{
           title: "Cost-per-Wear",
           headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="StyleDNA"
+        component={StyleDNAScreen}
+        options={{
+          title: "Style DNA",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="VirtualTryOn"
+        component={VirtualTryOnScreen}
+        options={{
+          title: "Virtual Try-On",
+          headerShown: false,
+          presentation: "fullScreenModal",
         }}
       />
     </Stack.Navigator>
