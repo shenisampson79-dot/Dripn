@@ -84,6 +84,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("FashionTherapy");
   };
 
+  const handleWeatherOutfitPress = () => {
+    navigation.navigate("WeatherOutfit");
+  };
+
   const getSubscriptionBadge = () => {
     const tier = user?.subscriptionTier || "free";
     const colors = SubscriptionColors[tier];
@@ -234,6 +238,19 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           <Feather name="heart" size={18} color="#FFFFFF" />
           <ThemedText type="body" style={styles.upgradeButtonText}>
             Fashion Therapy
+          </ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={handleWeatherOutfitPress}
+          style={({ pressed }) => [
+            styles.weatherButton,
+            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
+          ]}
+        >
+          <Feather name="cloud" size={18} color="#FFFFFF" />
+          <ThemedText type="body" style={styles.upgradeButtonText}>
+            Weather Outfits
           </ThemedText>
         </Pressable>
 
@@ -698,6 +715,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     borderRadius: BorderRadius.full,
     backgroundColor: "#EC4899",
+  },
+  weatherButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    backgroundColor: "#3B82F6",
   },
   upgradeButtonText: {
     color: "#FFFFFF",
