@@ -191,13 +191,17 @@ function generateAIResponse(
   
   if (isCapabilityRequest) {
     const capabilityResponses = isMaleStylist ? [
-      "Ah mate, I wish I could do that for you, but I don't actually have the ability to search the internet or access live information. I'm an AI stylist without web access, so I can't look things up online. What I CAN do is help you with fashion advice, outfit ideas, and styling tips based on what you tell me. Is there something style-related I can help with instead?",
-      "I'd love to help with that, but just to be upfront - I can't actually browse the internet, make calls, or do things outside our chat here. I'm your style advisor, not a virtual assistant with web access. But hey, if you need outfit advice, wardrobe help, or fashion tips, I'm your guy! What can I do for you in that department?",
-      "Good question, but I've got to be honest with you - I don't have internet access or the ability to search for live information. I'm Max, your fashion stylist, and my world is all about helping you look great. I can't Google things or check websites, but I can definitely help you nail your style. Anything fashion-related I can help with?",
+      "I really appreciate you thinking of me for that! I have to be upfront with you though - I'm not able to search the internet or access live information. But here's what I can do: I'm genuinely great at helping you with style advice, putting together outfits, and making sure you feel confident in what you wear. Would you like to explore that together?",
+      "That's a totally fair ask, and I wish I could help with that. The thing is, I'm focused specifically on fashion and style - I don't have the ability to browse the web or access external information. But when it comes to helping you look and feel your best? That's absolutely my wheelhouse. What style challenge can I help you tackle?",
+      "I'd honestly love to help with that if I could! Unfortunately, internet searches and external tasks aren't something I'm able to do. My specialty is really about understanding your style and helping you create looks that work for you. Is there something in that area I could help with instead?",
+      "Great question, and I appreciate you asking. While I'm not able to browse the internet or do tasks outside our conversation, I'm genuinely passionate about helping with fashion and style. If you've got any outfit dilemmas or want to explore your wardrobe together, I'm right here for that.",
+      "I hear you, and that's a reasonable thing to ask for. I should be honest though - my abilities are focused on fashion advice rather than web searches or external tasks. The good news? When it comes to style, I'm genuinely here to help. What would you like to work on together?",
     ] : [
-      "Oh darling, I appreciate you asking, but I have to be honest with you - I can't actually search the internet or access any live information. I'm an AI fashion stylist, and I don't have the ability to browse websites or look things up online. What I CAN do is give you amazing style advice, outfit suggestions, and fashion guidance! Is there something in that realm I can help with, gorgeous?",
-      "I wish I could help with that, beautiful, but I don't have the ability to search online, make calls, or access external information. I'm Ruby, your personal stylist, and my expertise is all about making you look and feel fabulous! I can't browse the web, but I'm all yours for fashion advice. What style question can I help you with instead, love?",
-      "Oh sweetheart, I'd love to do that for you, but I need to be transparent - I can't actually access the internet, look things up online, or do tasks outside of our conversation here. I'm your AI fashion advisor, and while I can't Google things, I CAN help you create stunning outfits and give you style tips! Would you like some fashion help instead, darling?",
+      "Oh, I really appreciate you thinking of me for that, darling! I have to be honest with you though - searching the internet or accessing live information isn't something I'm able to do. But here's where I truly shine: helping you feel absolutely beautiful through style advice, outfit ideas, and celebrating your unique look. Would you like to explore that together, gorgeous?",
+      "That's such a fair thing to ask, and I genuinely wish I could help with that. My world is really centered around fashion and style - I'm not able to browse the web or look things up externally. But when it comes to making you feel confident and fabulous? That's exactly where my heart is. What style adventure can we go on together?",
+      "I'd honestly love to help with that if I could, beautiful! Unfortunately, internet searches aren't in my repertoire. What I am genuinely passionate about is understanding your personal style and helping you create looks that make you feel incredible. Is there something in that realm I could help with, love?",
+      "Great question, sweetheart, and I appreciate you asking. While I'm not able to browse the web or handle external tasks, I'm truly here for your style journey. If you have any outfit questions or want to discover new looks together, I'm absolutely here for that.",
+      "I hear you, darling, and that's a perfectly reasonable ask. I should be transparent though - my focus is really on fashion advice rather than web searches. The wonderful news? When it comes to helping you look and feel amazing, I'm genuinely passionate about that. What would you like to explore together?",
     ];
     return {
       content: capabilityResponses[Math.floor(Math.random() * capabilityResponses.length)],
@@ -206,15 +210,19 @@ function generateAIResponse(
   
   if (isGreeting && !hasOutfitIntent) {
     const greetingResponses = isMaleStylist ? [
-      "Hey! I'm doing great, thanks for asking! Ready to help you look sharp. What's on your mind today - need some outfit ideas or style advice?",
-      "What's up! I'm here and ready to level up your style game. So what are we working with today?",
-      "Hey there! Good to hear from you. I'm pumped to help you put together some killer looks. What's the occasion?",
-      "Yo! I'm all set to help you out. Whether it's a casual day or something special, I've got you covered. What do you need?",
+      "Hey! I'm doing really well, thanks for asking - that's thoughtful of you. I'm genuinely excited to help you today. What's on your mind? Whether it's putting together an outfit or just chatting about style, I'm here.",
+      "Hey there! Great to hear from you. I hope you're having a good day so far. I'm ready whenever you are - what would you like to work on together?",
+      "What's up! Honestly, it's nice to connect with you. I'm here to help with whatever style questions you have, no matter how big or small. What brings you here today?",
+      "Hey! Really glad you reached out. I'm doing well and genuinely looking forward to helping you out. What's going on - special occasion, everyday style, or just exploring?",
+      "Hi there! Thanks for saying hello - I appreciate that. I'm here and ready to help you feel confident in what you wear. What would you like to explore?",
+      "Hey! Good to see you. I'm doing great and honestly excited to dive into some style talk. What's on your agenda today?",
     ] : [
-      "Hey! I'm doing wonderful, thank you for asking! So lovely to chat with you. What can I help you with today - outfit ideas, style tips, or just a fashion chat?",
-      "Hello there! I'm fabulous, thanks! I'm so excited to help you create some stunning looks. What's the occasion?",
-      "Hi! I'm great, thanks for checking in! Ready to make you look absolutely amazing. What are we styling for today?",
-      "Hey lovely! I'm here and ready to help you shine. Tell me what you're looking for and let's create some magic together!",
+      "Hey! I'm doing wonderfully, thank you so much for asking - that's so sweet of you. It's genuinely lovely to chat with you. What can I help you with today, gorgeous?",
+      "Hello there! Oh, it's so nice to hear from you. I hope your day is going beautifully. I'm here for whatever you need - what would you like to explore together?",
+      "Hi lovely! Thank you for reaching out. I'm doing great and honestly so excited to help you today. What's on your mind - outfit ideas, style inspiration, or just a friendly chat about fashion?",
+      "Hey there, beautiful! It's wonderful to connect with you. I'm genuinely here to help you feel amazing in what you wear. What brings you here today?",
+      "Hello, darling! Thanks for saying hello - I really appreciate the warmth. I'm here and ready to help you shine. What would you like to work on together?",
+      "Hey gorgeous! So lovely to hear from you. I'm doing great and truly looking forward to helping you create something special. What's the occasion?",
     ];
     return {
       content: greetingResponses[Math.floor(Math.random() * greetingResponses.length)],
@@ -223,13 +231,19 @@ function generateAIResponse(
   
   if (isThanks && !hasOutfitIntent) {
     const thanksResponses = isMaleStylist ? [
-      "No problem at all! That's what I'm here for. Hit me up anytime you need style advice!",
-      "You got it! Always happy to help you look your best. Come back anytime!",
-      "Anytime! Helping you nail your style is what I do. Let me know if you need anything else!",
+      "Honestly, it's my pleasure! I genuinely enjoy helping out with this stuff. Don't hesitate to come back whenever you need anything - I'm always here.",
+      "You're very welcome! I'm really glad I could help. Feel free to reach out anytime - whether it's for outfit advice or just to bounce ideas around.",
+      "Anytime! Helping you feel good about your style is genuinely rewarding for me. Come back whenever you like - my door's always open.",
+      "No problem at all! I'm happy it was helpful. Seriously, reach out whenever - I'm here for exactly this kind of thing.",
+      "You got it! It was great working through this with you. I hope you feel good about it - and remember, I'm just a message away if you need me again.",
+      "That means a lot, thank you for saying that! I'm genuinely here to help whenever you need. Take care, and don't be a stranger!",
     ] : [
-      "You're so welcome! It's my absolute pleasure to help you look fabulous. Come back anytime!",
-      "Aww, you're welcome! Helping you shine is what I love doing. Don't hesitate to reach out whenever you need me!",
-      "Of course! I'm always here for you. Styling you is such a joy - come back soon!",
+      "Oh, you're so welcome, darling! It genuinely makes me happy to help. Please don't hesitate to reach out whenever you need me - I'm always here for you.",
+      "Thank you for those kind words, gorgeous! Helping you feel confident and beautiful is honestly the best part of what I do. Come back anytime!",
+      "You're so sweet, thank you! I'm truly glad I could help. My door is always open - please come back whenever you need style advice or just a friendly chat.",
+      "Aww, that's so lovely of you to say! It's my absolute pleasure, and I mean that. Reach out anytime - I'm here for you, beautiful.",
+      "You're very welcome, love! I really enjoyed helping you with this. Remember, I'm just a message away whenever you need me. Take care of yourself!",
+      "It's my genuine pleasure, sweetheart! Helping you shine is what I love doing. Come back anytime - I'll always be here for you.",
     ];
     return {
       content: thanksResponses[Math.floor(Math.random() * thanksResponses.length)],
@@ -238,13 +252,19 @@ function generateAIResponse(
   
   if (isBye && !hasOutfitIntent) {
     const byeResponses = isMaleStylist ? [
-      "Catch you later! Go out there and own your look. You've got this!",
-      "Take care! Remember, confidence is the best accessory. See you soon!",
-      "Later! Come back anytime you need to level up your style game!",
+      "Take care! It was genuinely great chatting with you. Go out there and own it - you've got this. See you next time!",
+      "Later! I really enjoyed helping you out. Remember, style is about feeling good, and I think you're in a great place. Come back anytime!",
+      "Catch you later! Thanks for spending some time with me. Go rock that look - I know you'll do great. I'm here whenever you need me!",
+      "Take it easy! It was a pleasure. Remember, confidence is the best thing you can wear. Come back soon!",
+      "See you! I hope you feel good about what we put together. Have a fantastic time, and reach out whenever you like.",
+      "All the best! It was great working with you. You're going to look sharp - I'm certain of it. Don't be a stranger!",
     ] : [
-      "Goodbye for now! Go out there and absolutely slay. You're going to look amazing!",
-      "See you soon! Remember, you're beautiful inside and out. Take care!",
-      "Bye for now, lovely! Come back anytime you need some style magic!",
+      "Goodbye for now, beautiful! It was such a pleasure chatting with you. Go out there and shine - you're going to be absolutely stunning. Come back anytime!",
+      "Take care, gorgeous! I truly enjoyed our time together. Remember, you're beautiful inside and out. I'm always here when you need me!",
+      "See you soon, lovely! Thank you for spending time with me. Go embrace your day - you're going to look amazing. My door is always open!",
+      "Bye for now, darling! It was wonderful helping you. Remember to carry yourself with confidence - it's your most beautiful accessory. Come back soon!",
+      "Take care of yourself, sweetheart! I really enjoyed our chat. You're going to look incredible, I just know it. Reach out anytime!",
+      "Goodbye, beautiful! Thank you for letting me be part of your style journey. Go shine bright - and remember, I'm always here for you!",
     ];
     return {
       content: byeResponses[Math.floor(Math.random() * byeResponses.length)],
@@ -253,11 +273,15 @@ function generateAIResponse(
   
   if (isAboutYou && !hasOutfitIntent) {
     const aboutResponses = isMaleStylist ? [
-      "I'm Max, your personal AI stylist! I'm here to help you put together outfits, give you style advice, and make sure you always look your best. Add clothes to your digital wardrobe and I can create personalized outfit recommendations based on the occasion. What would you like help with?",
-      "The name's Max! I'm your go-to guy for all things style. I can help you pick outfits, give fashion tips, and work with whatever's in your wardrobe. Think of me as your style wingman. What do you need?",
+      "I'm Max, your personal AI stylist! I'm genuinely here to help you feel confident and look great. Whether it's putting together outfits for specific occasions, helping you understand what works for your body and style, or just exploring your wardrobe together - that's what I'm about. Add clothes to your digital wardrobe and I can give you personalized recommendations. What would you like to explore?",
+      "I'm Max! Think of me as your style partner - someone who's genuinely invested in helping you look and feel your best. I can help you put together outfits, understand color combinations, figure out what to wear for different occasions, and make the most of what's already in your closet. What can I help you with today?",
+      "Hey! I'm Max, your AI fashion stylist. My whole purpose is to help you navigate style in a way that feels authentic to you. I'm not here to push trends - I'm here to help you understand what works for YOU. Got any style questions or outfit challenges? I'm all ears.",
+      "I'm Max! I'm here to make getting dressed feel easier and more enjoyable. Whether you're preparing for something important or just want to refresh your everyday look, I'm genuinely here to help. Tell me about yourself or what you're looking for, and let's figure it out together.",
     ] : [
-      "I'm Ruby, your personal AI stylist! I'm here to help you create beautiful outfits, offer style advice, and make sure you always feel confident and fabulous. Add clothes to your digital wardrobe and I'll create personalized recommendations just for you. What can I help you with today?",
-      "I'm Ruby! Think of me as your personal style bestie. I'm here to help you look and feel amazing - from outfit suggestions to fashion tips. Together, we'll create looks you'll absolutely love. What would you like to work on?",
+      "I'm Ruby, your personal AI stylist! I'm truly passionate about helping you feel confident, beautiful, and comfortable in what you wear. Whether it's creating outfits for special moments, exploring what colors and styles work best for you, or simply having a friendly fashion chat - I'm here for all of it. What can I help you with today, gorgeous?",
+      "I'm Ruby! Think of me as your personal style bestie - someone who genuinely cares about helping you feel amazing. I can help you discover looks you'll love, put together outfits for any occasion, and make the most of your beautiful wardrobe. I'm all about celebrating your unique style. What would you like to explore together?",
+      "Hello, beautiful! I'm Ruby, your AI fashion stylist. My heart is truly in helping you shine. Fashion should be fun and empowering, not stressful - and that's the energy I bring. Whether you need outfit advice, style inspiration, or just someone to chat with about fashion, I'm here for you. What's on your mind?",
+      "I'm Ruby! I'm here to be your supportive guide through all things style. Every person has their own beautiful uniqueness, and I love helping people express that through what they wear. Got any style questions or outfit challenges? I'm genuinely excited to help, love.",
     ];
     return {
       content: aboutResponses[Math.floor(Math.random() * aboutResponses.length)],
@@ -266,15 +290,19 @@ function generateAIResponse(
   
   if (isOffTopic && !hasOutfitIntent) {
     const offTopicResponses = isMaleStylist ? [
-      "Oh, the Premier League? I don't have live scores on me, mate, but it's been quite a season! Are you watching any matches this weekend? If you're heading out to catch the game, I could help you put together a solid casual look!",
-      "I've been following bits about that situation - it's definitely been in the headlines. What's on your mind about it? Happy to chat, and of course if you ever need style advice, that's my main thing!",
-      "That's an interesting topic! I'm not an expert on that specifically, but I'm always happy to chat about whatever's on your mind. My specialty is fashion, but I'm here for the conversation too. What's got you thinking about this?",
-      "Great question! I might not have all the details on that, but I'm curious to hear your thoughts. And hey, whenever you need style advice, I've got you covered there for sure!",
+      "That's an interesting topic! I appreciate you wanting to chat about it. While that's a bit outside my wheelhouse, I'm always happy to listen if you want to share your thoughts. And of course, whenever you're ready to talk style, I'm right here for that.",
+      "I hear you! That's definitely something people are talking about. I may not be the best person to give insights on that specifically, but I'm genuinely interested in hearing your perspective. And when you're ready for some fashion chat, you know where to find me!",
+      "Interesting question! I wish I had more expertise there, but that's not really my area. What I can say is I'm here to chat about whatever's on your mind. And whenever style questions come up, that's definitely where I can add value.",
+      "That's a fair question! I'm honestly more of a fashion guy than an expert on that topic, but I appreciate you bringing it up. Is there something on your mind you wanted to talk through? I'm here to listen.",
+      "I appreciate you sharing that! While I might not have the best insight on that particular topic, I'm genuinely here for the conversation. When you're ready to dive into style stuff, I'd love to help with that too.",
+      "Good topic! I'm probably not the most informed person on that, but I'm happy to hear what you think about it. And hey, if outfit questions come up along the way, that's where I really shine.",
     ] : [
-      "Oh, that's interesting! I don't have the latest updates on that specifically, darling, but I'd love to hear what you think about it. And of course, whenever you need fashion advice, that's my forte!",
-      "I've heard a bit about what's happening there - quite a situation, isn't it? What's got you thinking about it, gorgeous? I'm here to chat about anything, though fashion is where I really shine!",
-      "That's a great topic to discuss! I may not be an expert on that particular area, but I'm always happy to have a conversation, love. My main specialty is helping you look fabulous, but I'm here for you regardless!",
-      "Interesting question, beautiful! I might not have all the specifics, but I'm curious about your take on it. And whenever you want to switch to style talk, you know I'm right here for that!",
+      "That's really interesting, darling! I appreciate you wanting to chat about it. While that's a bit outside my area of expertise, I'm always here to listen if you'd like to share your thoughts. And whenever you're ready for some style talk, I'm absolutely here for you, gorgeous.",
+      "I hear you, love! That's definitely been in the conversations lately. I may not be the best person to give deep insights there, but I'm genuinely interested in your perspective. And when you're in the mood for fashion chat, you know I'm here!",
+      "Interesting topic, beautiful! I wish I could offer more expertise there, but fashion is really where my heart is. That said, I'm always happy to listen to whatever's on your mind. What are you thinking about it?",
+      "That's a fair question, sweetheart! I'm honestly more of a fashion girl than an expert on that, but I appreciate you bringing it up. I'm here to chat about whatever matters to you. And of course, style advice is always available!",
+      "I appreciate you sharing that with me, gorgeous! While I might not have the best insight on that particular topic, I'm genuinely here for the conversation. When you're ready to explore some style options together, I'd love that too.",
+      "Good topic, darling! I'm probably not the most informed on that specific area, but I'm happy to hear your thoughts. And whenever outfit questions come up, that's absolutely where I can help you shine!",
     ];
     return {
       content: offTopicResponses[Math.floor(Math.random() * offTopicResponses.length)],
@@ -302,11 +330,19 @@ function generateAIResponse(
   const seemsNegative = hasEmotionalContent && !hasPositiveContent;
   
   if (seemsNegative && !hasOutfitIntent) {
-    const supportiveResponses = [
-      "I'm really sorry to hear you're going through this. That sounds incredibly tough. I'm here for you - sometimes just having someone to talk to can help. Would you like to chat about what's on your mind, or would you prefer a distraction? I'm happy to help with either.",
-      "Oh, I can hear that you're hurting right now. Please know that your feelings are completely valid. I'm here to listen if you want to share more. Sometimes when we're going through difficult times, a little self-care goes a long way. Is there anything I can do to help you feel a bit better?",
-      "That sounds really difficult, and I'm so sorry you're dealing with this. Please be gentle with yourself - it's okay to not be okay sometimes. I'm here if you want to talk, or if you'd like a distraction, I could suggest something to brighten your day.",
-      "I hear you, and I want you to know I'm here for you. Going through tough times is never easy, but you don't have to face it alone. Take all the time you need. When you're ready, I'm here - whether you want to talk about what's happening or just need a friendly chat.",
+    const supportiveResponses = isMaleStylist ? [
+      "Hey, I can tell something's weighing on you, and I just want you to know - that matters. I'm here to listen if you want to talk about it. Sometimes it helps just to get things off your chest. No pressure at all, but I'm here for whatever you need right now.",
+      "I hear you, and I'm genuinely sorry you're going through this. Life can be really tough sometimes. I'm not going anywhere - take your time. If you want to talk, I'm listening. If you'd rather focus on something else for a bit, I can help with that too.",
+      "That sounds really hard, and I appreciate you sharing that with me. Your feelings are completely valid. I'm here - whether you want to chat about what's happening, or if a distraction would help. Either way, I've got your back.",
+      "I'm really sorry to hear you're dealing with this. It takes strength to open up, even a little bit. I want you to know you don't have to face this alone. I'm here for you - whatever you need right now, whether that's talking it through or just having someone to be here.",
+      "Hey, that sounds genuinely tough, and I'm sorry you're going through it. Please be kind to yourself - it's okay to not be okay sometimes. I'm here to listen, and there's no judgment here. What would help you most right now?",
+    ] : [
+      "Oh sweetheart, I can tell you're going through something difficult, and I want you to know that I'm truly here for you. Your feelings matter, and they're completely valid. Take all the time you need - I'm not going anywhere. Would you like to talk about it, or would a gentle distraction help?",
+      "I hear you, beautiful, and my heart goes out to you. Life can be so challenging sometimes. Please know that you're not alone in this - I'm here to listen without any judgment. What would feel most supportive for you right now, love?",
+      "Oh darling, that sounds really hard, and I'm so sorry you're experiencing this. Please be gentle with yourself - you're doing the best you can, and that's enough. I'm here for you, whether you want to share more or just need someone to be present with you.",
+      "I'm truly sorry to hear you're going through this, gorgeous. Opening up takes courage, and I want you to know it's safe here. Your feelings are valid, and you deserve compassion - especially from yourself. I'm here for whatever you need.",
+      "My heart goes out to you, sweetheart. Whatever you're feeling right now is completely okay. Sometimes we just need someone to listen, and I'm genuinely here for that. There's no rush - take your time, and know that I care.",
+      "Oh love, I can sense you're hurting, and I wish I could give you a hug. Please know that it's okay to not be okay. I'm here to support you in whatever way feels right - whether that's talking, listening, or just being here with you.",
     ];
     return {
       content: supportiveResponses[Math.floor(Math.random() * supportiveResponses.length)],
@@ -330,19 +366,27 @@ function generateAIResponse(
   const hasWishlistItems = wishlistItems.length > 0;
   
   if (!hasOwnedItems && (hasInspirationItems || hasWishlistItems)) {
-    const inspirationOnlyResponse = isMaleStylist ? 
-      `I see you've saved ${inspirationItems.length + wishlistItems.length} inspiration/wishlist pieces! To create outfit suggestions, add some items you actually own. Then I can help you recreate those saved looks with pieces from your closet.` :
-      `I see you have ${inspirationItems.length + wishlistItems.length} beautiful inspiration pieces saved! Once you add items you own, I can help you create outfits that bring those inspirations to life with your actual wardrobe.`;
-    return { content: inspirationOnlyResponse };
+    const inspirationOnlyResponses = isMaleStylist ? [
+      `I love that you've already saved ${inspirationItems.length + wishlistItems.length} inspiration pieces - that shows you've got great taste! To help you create outfits, I'd need to know what you actually have in your closet. Once you add some items you own, I can help you recreate those saved looks with your real wardrobe. Ready to add some pieces?`,
+      `Nice work saving ${inspirationItems.length + wishlistItems.length} inspiration pieces! That's a solid foundation for understanding your style. The next step is to add items you already own - then I can start showing you how to achieve those looks with what's in your closet. Want to get started?`,
+    ] : [
+      `Oh wonderful, you've already saved ${inspirationItems.length + wishlistItems.length} beautiful inspiration pieces! That tells me you have lovely taste, gorgeous. To help you create real outfits, I'd love to see what you already own. Once you add some pieces from your closet, I can show you how to bring those inspirations to life. Shall we start?`,
+      `I see you've got ${inspirationItems.length + wishlistItems.length} gorgeous inspiration pieces saved - you clearly have an eye for style, darling! The exciting next step is adding items you already own. Then I can help you recreate those looks with your actual wardrobe. Ready to add some pieces, love?`,
+    ];
+    return { content: inspirationOnlyResponses[Math.floor(Math.random() * inspirationOnlyResponses.length)] };
   }
   
   if (!hasWardrobe) {
     const emptyWardrobeResponses = isMaleStylist ? [
-      "I notice your digital wardrobe is empty! To give you personalized outfit suggestions, add some items to your wardrobe first. Snap some photos of your clothes and I'll help you create awesome outfits with them.",
-      "Looks like your wardrobe is waiting to be filled! Add some pieces by taking photos of your clothes, and I'll start putting together some solid looks for you.",
+      "I'm excited to help you out, but I notice your digital wardrobe is empty at the moment. Once you add some of your clothes here - just snap a few photos - I can start creating personalized outfit suggestions just for you. It's pretty straightforward to get started. Would you like to add some pieces?",
+      "Great to have you here! Your wardrobe is ready to be filled with your favorite pieces. Take some photos of your clothes and add them, and I'll help you discover outfit combinations you might not have thought of. It's actually pretty fun once you get going!",
+      "I'd love to dive into styling for you! First though, we'll need to build out your digital wardrobe. Add some of your clothes by taking photos, and I'll take it from there. The more you add, the better suggestions I can give. Ready to start?",
+      "Perfect timing to get started! Your wardrobe is a blank canvas right now, which means we get to build it together. Snap some photos of your favorite pieces, and I'll help you put together looks you'll genuinely feel good in.",
     ] : [
-      "I notice your digital wardrobe is empty! To give you personalized outfit suggestions, please add some items to your wardrobe first. You can photograph your clothes and I'll help you create amazing outfits with them!",
-      "Your wardrobe is looking a bit empty, lovely! Let's fix that - take some photos of your clothes and add them here. Once you do, I'll create gorgeous outfit combinations just for you!",
+      "I'm so excited to help you, gorgeous! I notice your digital wardrobe is empty at the moment. Once you add some of your beautiful clothes here - just snap a few photos - I can start creating personalized outfit magic just for you. Ready to get started, love?",
+      "Welcome, beautiful! Your wardrobe is ready and waiting to be filled with your lovely pieces. Take some photos of your clothes and add them here, and I'll help you discover stunning combinations you might never have considered. This is going to be fun!",
+      "I'd absolutely love to dive into styling for you, darling! First though, we'll need to build out your digital wardrobe together. Add some of your clothes by taking photos, and watch the outfit possibilities unfold. The more you add, the more magic we can create!",
+      "Oh, this is exciting - we get to build your wardrobe from scratch together! Right now it's empty, but once you start adding your beautiful pieces, I can help you see your clothes in a whole new way. Shall we begin, gorgeous?",
     ];
     return {
       content: emptyWardrobeResponses[Math.floor(Math.random() * emptyWardrobeResponses.length)],
@@ -350,46 +394,65 @@ function generateAIResponse(
   }
   
   if (hasInspirationIntent && hasInspirationItems) {
-    let inspirationResponse = `I see you have ${inspirationItems.length} inspiration piece${inspirationItems.length > 1 ? 's' : ''} saved! `;
+    const randomInspiration = inspirationItems[Math.floor(Math.random() * inspirationItems.length)];
+    const matchingOwned = ownedItems.filter(item => 
+      item.color === randomInspiration.color || 
+      item.occasions.some(o => randomInspiration.occasions.includes(o))
+    );
     
-    if (hasOwnedItems) {
-      const randomInspiration = inspirationItems[Math.floor(Math.random() * inspirationItems.length)];
-      const matchingOwned = ownedItems.filter(item => 
-        item.color === randomInspiration.color || 
-        item.occasions.some(o => randomInspiration.occasions.includes(o))
-      );
+    let inspirationResponse = '';
+    
+    if (hasOwnedItems && matchingOwned.length > 0) {
+      inspirationResponse = isMaleStylist 
+        ? `Nice - you've got ${inspirationItems.length} inspiration piece${inspirationItems.length > 1 ? 's' : ''} saved! Let's work with your "${randomInspiration.name}" inspiration.\n\nLooking at what you own, here are some solid pairing options:\n`
+        : `How lovely - you've saved ${inspirationItems.length} beautiful inspiration piece${inspirationItems.length > 1 ? 's' : ''}! Let's explore your "${randomInspiration.name}" inspiration together, gorgeous.\n\nFrom your wardrobe, here are some wonderful pairing possibilities:\n`;
       
-      if (matchingOwned.length > 0) {
-        inspirationResponse += `\n\nLet's work with your "${randomInspiration.name}" inspiration:\n\n`;
-        inspirationResponse += `From your owned items, I can see some great pairing opportunities:\n`;
-        matchingOwned.slice(0, 3).forEach((item, index) => {
-          inspirationResponse += `${index + 1}. Your ${item.name} would complement this style beautifully\n`;
-        });
-        inspirationResponse += `\nWant me to create a full outfit inspired by this look using pieces you already own?`;
-      } else {
-        inspirationResponse += `\n\nYour "${randomInspiration.name}" is gorgeous inspiration! While I couldn't find exact matches in your owned items, consider shopping for similar pieces or adding more items to build toward this look.\n\nWould you like suggestions for what types of pieces would help recreate this style?`;
-      }
+      matchingOwned.slice(0, 3).forEach((item, index) => {
+        inspirationResponse += isMaleStylist
+          ? `${index + 1}. Your ${item.name} would work really well with this vibe\n`
+          : `${index + 1}. Your gorgeous ${item.name} would complement this beautifully, love\n`;
+      });
+      
+      inspirationResponse += isMaleStylist
+        ? `\nWant me to put together a complete outfit inspired by this look using pieces from your closet?`
+        : `\nShall I create a complete outfit inspired by this look using your beautiful pieces, darling?`;
+    } else if (hasOwnedItems) {
+      inspirationResponse = isMaleStylist
+        ? `You've got ${inspirationItems.length} inspiration piece${inspirationItems.length > 1 ? 's' : ''} saved - nice taste! Your "${randomInspiration.name}" is solid inspiration. I couldn't find exact matches in what you own right now, but that's actually useful information. It shows you what direction you might want to shop in, or what pieces to add to build toward this look.\n\nWould you like suggestions on what types of pieces would help you recreate this style?`
+        : `You've saved ${inspirationItems.length} lovely inspiration piece${inspirationItems.length > 1 ? 's' : ''}! Your "${randomInspiration.name}" is absolutely gorgeous inspiration, darling. While I couldn't find exact matches in your current wardrobe, this is actually helpful - it shows us what direction might inspire your next additions.\n\nWould you like suggestions on what types of pieces would help bring this vision to life, love?`;
     } else {
-      inspirationResponse += `These saved looks are great for building your style vision! Once you add items you own, I can help you recreate these looks or find similar outfit combinations.\n\nTip: Use the AI scan feature to quickly add screenshots of items you find online!`;
+      inspirationResponse = isMaleStylist
+        ? `You've got ${inspirationItems.length} inspiration piece${inspirationItems.length > 1 ? 's' : ''} saved - that's a great start for understanding your style direction. Once you add items you actually own, I can help you recreate these looks or find similar combinations with what's in your closet.\n\nQuick tip: Use the AI scan feature to easily add screenshots of items you find online!`
+        : `You've saved ${inspirationItems.length} beautiful inspiration piece${inspirationItems.length > 1 ? 's' : ''} - that tells me you have wonderful taste, gorgeous! Once you add items you own, I can help you bring these inspirations to life with your actual wardrobe.\n\nLittle tip, darling: Use the AI scan feature to easily add screenshots of items you discover online!`;
     }
     
     return { content: inspirationResponse };
   }
   
   if (hasInspirationIntent && hasWishlistItems) {
-    let wishlistResponse = `You have ${wishlistItems.length} item${wishlistItems.length > 1 ? 's' : ''} on your wishlist! `;
+    let wishlistResponse = '';
     
     if (hasOwnedItems) {
-      wishlistResponse += `Let me see how these would work with what you already own:\n\n`;
+      wishlistResponse = isMaleStylist
+        ? `You've got ${wishlistItems.length} item${wishlistItems.length > 1 ? 's' : ''} on your wishlist - let me show you how these would work with what you already own:\n\n`
+        : `Oh lovely, you have ${wishlistItems.length} gorgeous item${wishlistItems.length > 1 ? 's' : ''} on your wishlist! Let me show you how beautifully these would complement your current wardrobe, darling:\n\n`;
+      
       wishlistItems.slice(0, 3).forEach((item, index) => {
         const complementaryOwned = ownedItems.filter(o => 
           o.occasions.some(occ => item.occasions.includes(occ))
         );
-        wishlistResponse += `${index + 1}. "${item.name}" would pair well with ${complementaryOwned.length} of your current pieces\n`;
+        wishlistResponse += isMaleStylist
+          ? `${index + 1}. "${item.name}" would pair nicely with ${complementaryOwned.length} of your current pieces\n`
+          : `${index + 1}. "${item.name}" would pair beautifully with ${complementaryOwned.length} of your lovely pieces\n`;
       });
-      wishlistResponse += `\nThese additions would expand your outfit possibilities nicely!`;
+      
+      wishlistResponse += isMaleStylist
+        ? `\nThese would definitely expand your outfit options. Smart choices!`
+        : `\nThese additions would open up so many beautiful new outfit possibilities for you, gorgeous!`;
     } else {
-      wishlistResponse += `Great picks for building your wardrobe! Add some items you currently own and I can show you how these wishlist pieces would complement your existing style.`;
+      wishlistResponse = isMaleStylist
+        ? `You have ${wishlistItems.length} item${wishlistItems.length > 1 ? 's' : ''} on your wishlist - solid picks for building out your wardrobe! Once you add items you currently own, I can show you exactly how these wishlist pieces would work with your existing style.`
+        : `You have ${wishlistItems.length} lovely item${wishlistItems.length > 1 ? 's' : ''} on your wishlist - beautiful choices, darling! Once you add items you currently own, I can show you how these wishlist treasures would complement your existing wardrobe perfectly.`;
     }
     
     return { content: wishlistResponse };
@@ -437,11 +500,17 @@ function generateAIResponse(
       .slice(0, 3)
       .map(([color]) => color);
     
-    const colorAdvice = `Looking at your wardrobe, your dominant colors are ${dominantColors.join(', ')}. Here are some tips:\n\n` +
-      `- ${dominantColors[0]} pairs beautifully with neutral tones like white, cream, or black\n` +
-      `- Try creating contrast with complementary colors for a bold look\n` +
-      `- For a sophisticated ensemble, stick to a monochromatic palette using different shades\n\n` +
-      `Would you like me to suggest a specific outfit using these colors?`;
+    const colorAdvice = isMaleStylist
+      ? `Looking at your wardrobe, your dominant colors are ${dominantColors.join(', ')}. Here's what I'd suggest:\n\n` +
+        `- ${dominantColors[0]} works really well with neutral tones like white, cream, or black\n` +
+        `- For a bolder look, try creating contrast with complementary colors\n` +
+        `- If you want something more refined, go monochromatic with different shades of the same color\n\n` +
+        `Want me to put together a specific outfit using these colors?`
+      : `Looking at your beautiful wardrobe, your dominant colors are ${dominantColors.join(', ')}. Here are some lovely suggestions, darling:\n\n` +
+        `- ${dominantColors[0]} pairs beautifully with neutral tones like white, cream, or black\n` +
+        `- For a bold and striking look, try creating contrast with complementary colors\n` +
+        `- For an elegant, sophisticated ensemble, consider a monochromatic palette with different shades\n\n` +
+        `Would you like me to create a specific outfit using these gorgeous colors, love?`;
     
     return { content: colorAdvice };
   }
