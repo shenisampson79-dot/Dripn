@@ -18,6 +18,7 @@ import SupportScreen from "@/screens/SupportScreen";
 import FeatureSuggestionsScreen from "@/screens/FeatureSuggestionsScreen";
 import FashionTherapyScreen from "@/screens/FashionTherapyScreen";
 import WeatherOutfitScreen from "@/screens/WeatherOutfitScreen";
+import CostPerWearScreen from "@/screens/CostPerWearScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -40,6 +41,7 @@ export type ProfileStackParamList = {
   FeatureSuggestions: undefined;
   FashionTherapy: undefined;
   WeatherOutfit: undefined;
+  CostPerWear: undefined;
   VideoCall: {
     callId?: string;
     roomUrl: string;
@@ -204,6 +206,14 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={WeatherOutfitScreen}
         options={{
           title: "Weather Outfits",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="CostPerWear"
+        component={CostPerWearScreen}
+        options={{
+          title: "Cost-per-Wear",
           headerShown: false,
         }}
       />

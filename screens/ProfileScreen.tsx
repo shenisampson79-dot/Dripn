@@ -88,6 +88,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("WeatherOutfit");
   };
 
+  const handleCostPerWearPress = () => {
+    navigation.navigate("CostPerWear");
+  };
+
   const getSubscriptionBadge = () => {
     const tier = user?.subscriptionTier || "free";
     const colors = SubscriptionColors[tier];
@@ -251,6 +255,19 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           <Feather name="cloud" size={18} color="#FFFFFF" />
           <ThemedText type="body" style={styles.upgradeButtonText}>
             Weather Outfits
+          </ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={handleCostPerWearPress}
+          style={({ pressed }) => [
+            styles.analyticsButton,
+            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
+          ]}
+        >
+          <Feather name="pie-chart" size={18} color="#FFFFFF" />
+          <ThemedText type="body" style={styles.upgradeButtonText}>
+            Cost-per-Wear
           </ThemedText>
         </Pressable>
 
@@ -724,6 +741,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     borderRadius: BorderRadius.full,
     backgroundColor: "#3B82F6",
+  },
+  analyticsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    backgroundColor: "#8B5CF6",
   },
   upgradeButtonText: {
     color: "#FFFFFF",
