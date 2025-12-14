@@ -48,27 +48,27 @@ export const QUICK_TROUBLESHOOTING: { id: string; label: string; response: strin
   {
     id: 'app-slow',
     label: 'App is running slow',
-    response: "I understand the app feels slow. Here are some quick fixes:\n\n1. Close and reopen the app\n2. Check your internet connection\n3. Clear the app cache in your phone's settings\n4. Make sure you have the latest app version\n\nIf it's still slow after trying these, I can help you create a support ticket.",
+    response: "I understand the app feels slow. Here are some quick fixes:\n\n1. Close and reopen the app\n2. Check your internet connection\n3. Clear the app cache in your phone's settings\n4. Make sure you have the latest app version\n\nIf it's still slow after trying these, tap the ticket icon in the bottom-left corner to create a support ticket.",
   },
   {
     id: 'login-issues',
     label: 'Cannot log in',
-    response: "Having trouble logging in? Let's fix that:\n\n1. Double-check your email address for typos\n2. Try resetting your password using 'Forgot Password'\n3. Make sure Caps Lock is off when entering your password\n4. Check if you signed up with Apple/Google instead\n\nStill having issues? I can create a ticket for our team.",
+    response: "Having trouble logging in? Let's fix that:\n\n1. Double-check your email address for typos\n2. Try resetting your password using 'Forgot Password'\n3. Make sure Caps Lock is off when entering your password\n4. Check if you signed up with Apple/Google instead\n\nStill having issues? Tap the ticket icon in the bottom-left corner to reach our support team.",
   },
   {
     id: 'subscription-not-working',
     label: 'Subscription features not working',
-    response: "Let's get your subscription features working:\n\n1. Log out and log back in to refresh your account\n2. Check if your payment went through in your app store\n3. Restore purchases in your account settings\n4. Give it a few minutes - sometimes there's a short delay\n\nIf features are still locked, I'll help you create a ticket for priority support.",
+    response: "Let's get your subscription features working:\n\n1. Log out and log back in to refresh your account\n2. Check if your payment went through in your app store\n3. Restore purchases in your account settings\n4. Give it a few minutes - sometimes there's a short delay\n\nIf features are still locked, tap the ticket icon in the bottom-left corner for priority support.",
   },
   {
     id: 'photos-not-uploading',
     label: 'Photos not uploading',
-    response: "Let's fix your photo uploads:\n\n1. Check if you've allowed Dripn to access your photos\n2. Make sure you have a stable internet connection\n3. Try uploading a smaller photo first\n4. Close other apps to free up memory\n\nNeed more help? I can escalate this to our support team.",
+    response: "Let's fix your photo uploads:\n\n1. Check if you've allowed Dripn to access your photos\n2. Make sure you have a stable internet connection\n3. Try uploading a smaller photo first\n4. Close other apps to free up memory\n\nNeed more help? Tap the ticket icon in the bottom-left corner to reach our team.",
   },
   {
     id: 'notifications-not-working',
     label: 'Not receiving notifications',
-    response: "To get your notifications working:\n\n1. Go to your phone's Settings and find Dripn\n2. Make sure notifications are enabled\n3. Check that 'Do Not Disturb' is off\n4. In the app, check notification settings under Profile > Settings\n\nWant me to create a ticket if this doesn't help?",
+    response: "To get your notifications working:\n\n1. Go to your phone's Settings and find Dripn\n2. Make sure notifications are enabled\n3. Check that 'Do Not Disturb' is off\n4. In the app, check notification settings under Profile > Settings\n\nStill not working? Tap the ticket icon in the bottom-left corner to get help from our team.",
   },
 ];
 
