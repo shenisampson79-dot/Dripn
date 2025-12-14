@@ -52,10 +52,6 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
         isMuted
         onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
       />
-      <View style={[
-        styles.overlay,
-        { backgroundColor: isDark ? 'rgba(13, 11, 9, 0.75)' : 'rgba(250, 248, 245, 0.75)' }
-      ]} />
 
       <View style={[styles.content, { paddingTop: insets.top + Spacing["3xl"] }]}>
         <View style={styles.logoContainer}>
@@ -181,13 +177,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
   content: {
     flex: 1,
     paddingHorizontal: Spacing.xl,
@@ -203,6 +192,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: Spacing.md,
     letterSpacing: 2,
+    textShadowColor: "rgba(0, 0, 0, 0.4)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   logo: {
     width: 120,
@@ -213,15 +205,19 @@ const styles = StyleSheet.create({
   taglineBelow: {
     textAlign: "center",
     fontStyle: "italic",
-    opacity: 0.8,
     marginBottom: Spacing.lg,
     letterSpacing: 1,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   tagline: {
     textAlign: "center",
-    opacity: 0.6,
     paddingHorizontal: Spacing.xl,
     fontSize: 14,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   featuresContainer: {
     gap: Spacing.lg,
@@ -243,9 +239,14 @@ const styles = StyleSheet.create({
   },
   featureTitle: {
     marginBottom: Spacing.xs,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   featureDescription: {
-    opacity: 0.7,
+    textShadowColor: "rgba(0, 0, 0, 0.25)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   footer: {
     paddingHorizontal: Spacing.xl,
