@@ -126,7 +126,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
   const processImage = async (uri: string) => {
     try {
       const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: "base64",
       });
 
       const result = await scanBody(base64);
@@ -546,10 +546,10 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
           <Card style={styles.introCard}>
             <View style={styles.featureList}>
               {[
-                { icon: "cpu", text: "GPT-4 Vision powered analysis" },
-                { icon: "target", text: "Precise body proportions" },
-                { icon: "users", text: "Find users with similar bodies" },
-                { icon: "shield", text: "Private and secure" },
+                { icon: "cpu" as const, text: "GPT-4 Vision powered analysis" },
+                { icon: "target" as const, text: "Precise body proportions" },
+                { icon: "users" as const, text: "Find users with similar bodies" },
+                { icon: "shield" as const, text: "Private and secure" },
               ].map((feature, index) => (
                 <View key={index} style={styles.featureItem}>
                   <View style={[styles.featureIcon, { backgroundColor: theme.link + "20" }]}>
