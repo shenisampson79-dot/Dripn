@@ -23,6 +23,8 @@ import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -64,6 +66,7 @@ const SEASON_INFO: Record<ColorSeason, { icon: keyof typeof Feather.glyphMap; co
 export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenProps) {
   const { theme, isDark } = useTheme();
   const { bodyProfile, analyzeColorSeason, isAnalyzingColor, hasColorAnalysis } = useBodyProfile();
+  const insets = useSafeAreaInsets();
   
   const [permission, requestPermission] = useCameraPermissions();
   const [showCamera, setShowCamera] = useState(false);
@@ -221,7 +224,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
     }
 
     return (
-      <View style={styles.cameraContainer}>
+      <View style={[styles.cameraContainer, { paddingTop: insets.top }]}>
         <CameraView
           ref={cameraRef}
           style={styles.camera}
@@ -235,7 +238,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
               </ThemedText>
             </View>
           </View>
-          <View style={styles.cameraControls}>
+          <View style={[styles.cameraControls, { paddingBottom: insets.bottom + Spacing.lg }]}>
             <Pressable
               onPress={() => setShowCamera(false)}
               style={[styles.cameraButton, { backgroundColor: theme.backgroundSecondary }]}
