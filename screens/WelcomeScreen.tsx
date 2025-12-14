@@ -44,7 +44,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
     <View style={styles.container}>
       <Video
         ref={videoRef}
-        source={require("../assets/videos/champagne_gold_silk_flow.mp4")}
+        source={require("../assets/videos/light_pale_champagne_silk.mp4")}
         style={styles.backgroundVideo}
         resizeMode={ResizeMode.COVER}
         shouldPlay
