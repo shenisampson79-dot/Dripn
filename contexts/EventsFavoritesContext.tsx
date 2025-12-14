@@ -66,9 +66,10 @@ export function EventsFavoritesProvider({ children }: EventsFavoritesProviderPro
               description: '',
               category: '',
               price: '',
+              currency: 'USD',
               source: 'liked',
               sourceUrl: '',
-              imageUrl: '',
+              outfitSuggestion: '',
             }));
             
             setLikedEventIds(backendIds);

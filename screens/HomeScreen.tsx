@@ -34,7 +34,7 @@ type HomeScreenProps = {
 
 interface StoryUser extends UserSummary {
   hasNewPost: boolean;
-  lastPostTime?: string;
+  lastPostTime?: string | undefined;
 }
 
 const STORY_AVATAR_SIZE = 68;
@@ -195,7 +195,7 @@ function StoryReel({
           lastPostTime,
         };
       })
-      .filter((u): u is StoryUser => u !== null);
+      .filter((u): u is NonNullable<typeof u> => u !== null) as StoryUser[];
 
     usersWithStories.sort((a, b) => {
       if (a.hasNewPost && !b.hasNewPost) return -1;

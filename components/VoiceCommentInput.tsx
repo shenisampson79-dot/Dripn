@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { StyleSheet, View, Pressable, Platform, Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { Audio } from "expo-audio";
+import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
 import Animated, {
   useSharedValue,
@@ -117,8 +117,8 @@ export function VoiceCommentInput({
 
     try {
       await Audio.setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
       });
 
       const recording = new Audio.Recording();

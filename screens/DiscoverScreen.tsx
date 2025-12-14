@@ -373,14 +373,15 @@ const getColorFromName = (colorName: string): string => {
 };
 
 interface EmergingTrend {
-  trendName: string;
-  description: string;
-  confidence: number;
+  name: string;
   category: string;
-  keyPieces: string[];
-  colorPalette: string[];
-  momentum: string;
-  targetAudience: string[];
+  description: string;
+  emergenceLevel: string;
+  mainstreamPrediction: string;
+  keyInfluencers: string[];
+  howToWear: string;
+  buyNowSuggestion: string;
+  confidenceScore: number;
 }
 
 export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
@@ -473,10 +474,10 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
       try {
         const result = await apiService.getEmergingTrends({
           region: user?.country,
-          gender: user?.gender,
+          gender: user?.gender || undefined,
         });
-        if (result.trends) {
-          setEmergingTrends(result.trends);
+        if (result.trends?.emergingTrends) {
+          setEmergingTrends(result.trends.emergingTrends);
         }
       } catch (error) {
         console.error('Failed to load emerging trends:', error);
@@ -763,8 +764,8 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
                   key={index}
                   onPress={() => {
                     Alert.alert(
-                      trend.trendName,
-                      `${trend.description}\n\nCategory: ${trend.category}\nMomentum: ${trend.momentum}\n\nKey Pieces:\n${trend.keyPieces.join(", ")}\n\nColors: ${trend.colorPalette.join(", ")}`,
+                      trend.name,
+                      `${trend.description}\n\nCategory: ${trend.category}\nEmergence: ${trend.emergenceLevel}\n\nHow to Wear:\n${trend.howToWear}\n\nKey Influencers: ${trend.keyInfluencers.join(", ")}`,
                       [{ text: "Got it" }]
                     );
                   }}
@@ -774,17 +775,17 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
                   ]}
                 >
                   <View style={[styles.trendConfidenceBadge, { 
-                    backgroundColor: trend.confidence >= 0.8 ? "#27AE60" : trend.confidence >= 0.6 ? "#F39C12" : theme.link 
+                    backgroundColor: trend.confidenceScore >= 0.8 ? "#27AE60" : trend.confidenceScore >= 0.6 ? "#F39C12" : theme.link 
                   }]}>
                     <ThemedText type="small" style={styles.trendConfidenceText}>
-                      {Math.round(trend.confidence * 100)}%
+                      {Math.round(trend.confidenceScore * 100)}%
                     </ThemedText>
                   </View>
                   <View style={[styles.trendIconContainer, { backgroundColor: theme.link + "15" }]}>
                     <Feather name="trending-up" size={24} color={theme.link} />
                   </View>
                   <ThemedText type="h3" style={styles.trendName} numberOfLines={2}>
-                    {trend.trendName}
+                    {trend.name}
                   </ThemedText>
                   <ThemedText type="small" style={styles.trendCategory}>
                     {trend.category}
@@ -792,7 +793,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
                   <View style={styles.trendMomentum}>
                     <Feather name="activity" size={12} color={theme.link} />
                     <ThemedText type="small" style={[styles.trendMomentumText, { color: theme.link }]}>
-                      {trend.momentum}
+                      {trend.emergenceLevel}
                     </ThemedText>
                   </View>
                 </Pressable>

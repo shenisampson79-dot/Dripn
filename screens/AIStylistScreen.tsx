@@ -21,7 +21,7 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { Audio } from 'expo-audio';
+import { Audio } from 'expo-av';
 import Animated, {
   FadeIn,
   FadeInUp,
@@ -917,8 +917,8 @@ export default function AIStylistScreen() {
 
       if (response.success && response.audio?.audioBuffer) {
         await Audio.setAudioModeAsync({
-          allowsRecording: false,
-          playsInSilentMode: true,
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
         });
 
         const { sound } = await Audio.Sound.createAsync(
@@ -961,7 +961,7 @@ export default function AIStylistScreen() {
     try {
       if (Platform.OS === 'web') return null;
       const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64',
       });
       return base64;
     } catch (error) {
@@ -985,7 +985,7 @@ export default function AIStylistScreen() {
     if (!hasAudioPermission) {
       const { status, canAskAgain } = await Audio.requestPermissionsAsync();
       if (status !== 'granted') {
-        if (!canAskAgain && Platform.OS !== 'web') {
+        if (!canAskAgain && (Platform.OS as string) !== 'web') {
           Alert.alert(
             'Microphone Permission Required',
             `${stylist.name} needs access to your microphone to hear your voice commands. Please enable it in Settings.`,
@@ -1016,8 +1016,8 @@ export default function AIStylistScreen() {
 
     try {
       await Audio.setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
       });
 
       const recording = new Audio.Recording();
@@ -1028,7 +1028,7 @@ export default function AIStylistScreen() {
       setIsRecording(true);
       setRecordingDuration(0);
 
-      if (Platform.OS !== 'web') {
+      if ((Platform.OS as string) !== 'web') {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }
 
