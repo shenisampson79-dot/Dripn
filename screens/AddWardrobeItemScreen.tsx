@@ -23,6 +23,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   useWardrobe,
   ClothingCategory,
@@ -45,13 +46,13 @@ type AddWardrobeItemScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "AddWardrobeItem">;
 };
 
-const CATEGORY_OPTIONS: Array<{ key: ClothingCategory; icon: string; iconSet: 'feather' | 'material' }> = [
+const getCategoryOptions = (isMale: boolean): Array<{ key: ClothingCategory; icon: string; iconSet: 'feather' | 'material' }> => [
   { key: 'tops', icon: 'tshirt-crew', iconSet: 'material' },
-  { key: 'bottoms', icon: 'lingerie', iconSet: 'material' },
+  { key: 'bottoms', icon: isMale ? 'roller-skate-off' : 'lingerie', iconSet: 'material' },
   { key: 'dresses', icon: 'tshirt-v', iconSet: 'material' },
   { key: 'outerwear', icon: 'coat-rack', iconSet: 'material' },
-  { key: 'shoes', icon: 'shoe-heel', iconSet: 'material' },
-  { key: 'bags', icon: 'bag-personal', iconSet: 'material' },
+  { key: 'shoes', icon: isMale ? 'shoe-formal' : 'shoe-heel', iconSet: 'material' },
+  { key: 'bags', icon: isMale ? 'briefcase' : 'bag-personal', iconSet: 'material' },
   { key: 'accessories', icon: 'watch', iconSet: 'material' },
   { key: 'activewear', icon: 'run', iconSet: 'material' },
   { key: 'swimwear', icon: 'swim', iconSet: 'material' },
@@ -74,6 +75,10 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { addItem } = useWardrobe();
+  const { user } = useAuth();
+  
+  const isMale = user?.gender === 'man';
+  const categoryOptions = getCategoryOptions(isMale);
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -458,7 +463,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>Category</ThemedText>
           <View style={styles.optionsGrid}>
-            {CATEGORY_OPTIONS.map((cat) => (
+            {categoryOptions.map((cat) => (
               <Pressable
                 key={cat.key}
                 onPress={() => {
