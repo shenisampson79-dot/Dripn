@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Image } from "expo-image";
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -45,18 +45,18 @@ type AddWardrobeItemScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "AddWardrobeItem">;
 };
 
-const CATEGORY_OPTIONS: Array<{ key: ClothingCategory; icon: string }> = [
-  { key: 'tops', icon: 'triangle' },
-  { key: 'bottoms', icon: 'square' },
-  { key: 'dresses', icon: 'maximize' },
-  { key: 'outerwear', icon: 'layers' },
-  { key: 'shoes', icon: 'navigation' },
-  { key: 'bags', icon: 'shopping-bag' },
-  { key: 'accessories', icon: 'watch' },
-  { key: 'activewear', icon: 'activity' },
-  { key: 'swimwear', icon: 'droplet' },
-  { key: 'sleepwear', icon: 'moon' },
-  { key: 'formal', icon: 'award' },
+const CATEGORY_OPTIONS: Array<{ key: ClothingCategory; icon: string; iconSet: 'feather' | 'material' }> = [
+  { key: 'tops', icon: 'tshirt-crew', iconSet: 'material' },
+  { key: 'bottoms', icon: 'lingerie', iconSet: 'material' },
+  { key: 'dresses', icon: 'tshirt-v', iconSet: 'material' },
+  { key: 'outerwear', icon: 'coat-rack', iconSet: 'material' },
+  { key: 'shoes', icon: 'shoe-heel', iconSet: 'material' },
+  { key: 'bags', icon: 'bag-personal', iconSet: 'material' },
+  { key: 'accessories', icon: 'watch', iconSet: 'material' },
+  { key: 'activewear', icon: 'run', iconSet: 'material' },
+  { key: 'swimwear', icon: 'swim', iconSet: 'material' },
+  { key: 'sleepwear', icon: 'sleep', iconSet: 'material' },
+  { key: 'formal', icon: 'bow-tie', iconSet: 'material' },
 ];
 
 const COLOR_OPTIONS: ClothingColor[] = [
@@ -472,11 +472,19 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
                   },
                 ]}
               >
-                <Feather
-                  name={cat.icon as any}
-                  size={20}
-                  color={category === cat.key ? "#FFFFFF" : theme.tabIconDefault}
-                />
+                {cat.iconSet === 'material' ? (
+                  <MaterialCommunityIcons
+                    name={cat.icon as any}
+                    size={22}
+                    color={category === cat.key ? "#FFFFFF" : theme.tabIconDefault}
+                  />
+                ) : (
+                  <Feather
+                    name={cat.icon as any}
+                    size={20}
+                    color={category === cat.key ? "#FFFFFF" : theme.tabIconDefault}
+                  />
+                )}
                 <ThemedText
                   type="caption"
                   style={{
