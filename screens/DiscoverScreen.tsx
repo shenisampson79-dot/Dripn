@@ -18,7 +18,7 @@ import { usePosts } from "@/contexts/PostsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { shareChallenge } from "@/services/SharingService";
-import { getInfluencerStyleGuide, TRENDING_STYLES_2024_2025 } from "@/services/AIAdviceService";
+import { getInfluencerStyleGuide, TRENDING_STYLES_2025_2026 } from "@/services/AIAdviceService";
 import { MagazineInspirationService, MagazineInspiration } from "@/services/MagazineInspirationService";
 import { useOutfitFavorites, StyleOfTheDayOutfit } from "@/contexts/OutfitFavoritesContext";
 import { useStyleProfile } from "@/contexts/StyleProfileContext";
@@ -628,9 +628,6 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
               <ThemedText type="body" style={{ color: theme.link, fontWeight: "600" }}>
                 Exploring: {explorationCountry}
               </ThemedText>
-              <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-                Discover fashion from {explorationCountry}
-              </ThemedText>
             </View>
           </View>
           <Pressable
@@ -871,10 +868,10 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         </View>
         <View style={styles.trendingColorsSection}>
           <ThemedText type="h3" style={styles.trendingPiecesTitle}>
-            Hot Colors for 2024/2025
+            Hot Colors for 2025/2026
           </ThemedText>
           <View style={styles.trendingPiecesContainer}>
-            {TRENDING_STYLES_2024_2025.colors.hot.slice(0, 5).map((color, index) => (
+            {TRENDING_STYLES_2025_2026.colors.hot.slice(0, 5).map((color, index) => (
               <View 
                 key={index} 
                 style={[styles.colorTag, { backgroundColor: theme.backgroundDefault }]}

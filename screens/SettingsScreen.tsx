@@ -328,12 +328,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     navigation.navigate("Support");
   };
 
-  const handlePartnerWithUs = async () => {
-    try {
-      await WebBrowser.openBrowserAsync("https://dripn.app/partner.html");
-    } catch (error) {
-      Linking.openURL("https://dripn.app/partner.html");
-    }
+  const handlePartnerWithUs = () => {
+    navigation.navigate("Partner");
   };
 
   const handleLanguageSelect = () => {

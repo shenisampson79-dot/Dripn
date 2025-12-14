@@ -43,6 +43,27 @@ export const STYLIST_ACCENTS = [
   'New Zealand',
 ] as const;
 
+export const LANGUAGE_ACCENT_MAP: Record<string, readonly string[]> = {
+  'English': ['American', 'British', 'Australian', 'Irish', 'Scottish', 'Canadian', 'South African', 'Indian', 'Caribbean', 'New Zealand'],
+  'Spanish': ['Castilian', 'Latin American', 'Mexican', 'Argentine', 'Caribbean'],
+  'French': ['Parisian', 'Quebec', 'Belgian', 'Swiss', 'African'],
+  'German': ['Standard German', 'Austrian', 'Swiss German', 'Bavarian'],
+  'Italian': ['Standard Italian', 'Neapolitan', 'Sicilian', 'Milanese'],
+  'Portuguese': ['Brazilian', 'European Portuguese', 'African Portuguese'],
+  'Japanese': ['Standard Japanese', 'Kansai', 'Tokyo'],
+  'Korean': ['Seoul', 'Busan', 'Standard Korean'],
+  'Chinese': ['Mandarin', 'Cantonese', 'Taiwanese'],
+  'Arabic': ['Modern Standard', 'Egyptian', 'Gulf', 'Levantine', 'Maghrebi'],
+  'Hindi': ['Standard Hindi', 'Punjabi-influenced', 'Bhojpuri-influenced'],
+  'Dutch': ['Netherlands Dutch', 'Belgian Dutch', 'Surinamese'],
+  'Russian': ['Moscow', 'St. Petersburg', 'Standard Russian'],
+  'Swedish': ['Stockholm', 'Southern Swedish', 'Standard Swedish'],
+} as const;
+
+export function getAccentsForLanguage(language: string): readonly string[] {
+  return LANGUAGE_ACCENT_MAP[language] || STYLIST_ACCENTS;
+}
+
 export const RUBY_VOICE_PITCHES = ['soprano', 'mezzo-soprano', 'contralto'] as const;
 export const MAX_VOICE_RANGES = ['tenor', 'baritone', 'bass'] as const;
 export const VOICE_PITCHES = ['soprano', 'mezzo-soprano', 'contralto', 'tenor', 'baritone', 'bass'] as const;

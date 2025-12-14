@@ -12,7 +12,7 @@ import { Spacing, BorderRadius, StyleTheme } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
-import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getVoiceOptionsForStylist, getDefaultVoiceForStylist } from "@/services/PersonalStylistService";
+import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getVoiceOptionsForStylist, getDefaultVoiceForStylist, getAccentsForLanguage } from "@/services/PersonalStylistService";
 import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
 
 const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
@@ -361,6 +361,13 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const totalSteps = 5;
 
   useEffect(() => {
+    const accents = getAccentsForLanguage(stylistLanguage);
+    if (!accents.includes(stylistAccent)) {
+      setStylistAccent(accents[0]);
+    }
+  }, [stylistLanguage]);
+
+  useEffect(() => {
     const setupAudio = async () => {
       if (Platform.OS === 'ios') {
         try {
@@ -672,7 +679,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                 </ThemedText>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
                   <View style={styles.horizontalOptionsRow}>
-                    {STYLIST_ACCENTS.map((accent) => (
+                    {getAccentsForLanguage(stylistLanguage).map((accent) => (
                       <Pressable
                         key={accent}
                         onPress={() => setStylistAccent(accent)}

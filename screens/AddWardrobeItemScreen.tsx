@@ -46,17 +46,17 @@ type AddWardrobeItemScreenProps = {
 };
 
 const CATEGORY_OPTIONS: Array<{ key: ClothingCategory; icon: string }> = [
-  { key: 'tops', icon: 'sun' },
-  { key: 'bottoms', icon: 'minimize-2' },
-  { key: 'dresses', icon: 'heart' },
-  { key: 'outerwear', icon: 'cloud' },
-  { key: 'shoes', icon: 'disc' },
+  { key: 'tops', icon: 'triangle' },
+  { key: 'bottoms', icon: 'square' },
+  { key: 'dresses', icon: 'maximize' },
+  { key: 'outerwear', icon: 'layers' },
+  { key: 'shoes', icon: 'navigation' },
   { key: 'bags', icon: 'shopping-bag' },
   { key: 'accessories', icon: 'watch' },
   { key: 'activewear', icon: 'activity' },
   { key: 'swimwear', icon: 'droplet' },
   { key: 'sleepwear', icon: 'moon' },
-  { key: 'formal', icon: 'star' },
+  { key: 'formal', icon: 'award' },
 ];
 
 const COLOR_OPTIONS: ClothingColor[] = [

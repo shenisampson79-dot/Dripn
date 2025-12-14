@@ -255,7 +255,7 @@ const REGIONAL_INFLUENCER_STYLES: Record<string, {
   },
 };
 
-const TRENDING_STYLES_2024_2025 = {
+const TRENDING_STYLES_2025_2026 = {
   colors: {
     hot: ["Deep chocolate brown", "Burgundy", "Icy blue/powder blue", "Butter yellow", "Mint green", "Marigold gold", "Cardinal red"],
     neutral: ["Leopard print (the new neutral)", "Cream", "Olive green", "Midnight plum", "Navy blue", "Forest green"],
@@ -1309,7 +1309,7 @@ export function getStyleOfTheDayContent(country: string, userGender?: string): {
     title: `Today's Style Inspiration from ${region}`,
     tip: getRandomItem(styleTips),
     influencerCredit: `Inspired by ${influencer.name} (${influencer.handle})`,
-    trendingColors: TRENDING_STYLES_2024_2025.colors.hot.slice(0, 4),
+    trendingColors: TRENDING_STYLES_2025_2026.colors.hot.slice(0, 4),
     mustHavePieces,
   };
 }
@@ -1361,4 +1361,4 @@ export async function getTrendInsightsForUser(
   }
 }
 
-export { REGIONAL_INFLUENCER_STYLES, TRENDING_STYLES_2024_2025, TrendInsightsService };
+export { REGIONAL_INFLUENCER_STYLES, TRENDING_STYLES_2025_2026, TrendInsightsService };
