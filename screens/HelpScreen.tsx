@@ -333,14 +333,14 @@ export default function HelpScreen({ navigation }: HelpScreenProps) {
           <Feather name="heart" size={32} color={theme.link} />
         </View>
         <ThemedText type="h2" style={styles.heroTitle}>
-          No matter where you are{'\n'}on your style journey,
+          Your style questions,{'\n'}answered with care.
         </ThemedText>
         <ThemedText type="h2" style={[styles.heroTitleItalic, { color: theme.link }]}>
-          we are here for you.
+          We have got you covered.
         </ThemedText>
         <ThemedText type="body" style={styles.heroSubtitle}>
-          Browse our frequently asked questions below, or chat with Julia,
-          our friendly support assistant who is always ready to help.
+          Find answers in our FAQ below, or chat with Julia,
+          your friendly support companion who is always happy to help.
         </ThemedText>
       </Animated.View>
 
