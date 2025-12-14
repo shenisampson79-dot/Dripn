@@ -709,11 +709,13 @@ export default function StyleShuffleScreen() {
     cancelAnimation(translateX);
     cancelAnimation(translateY);
     cancelAnimation(cardOpacity);
+    cancelAnimation(cardScale);
     translateX.value = 0;
     translateY.value = 0;
     cardOpacity.value = 1;
+    cardScale.value = 1;
     isAnimating.value = false;
-  }, []);
+  }, [translateX, translateY, cardOpacity, cardScale, isAnimating]);
 
   const prevIndexRef = useRef(currentIndex);
   
@@ -725,7 +727,9 @@ export default function StyleShuffleScreen() {
   }, [currentIndex, resetCardPosition]);
 
   const handleSwipeComplete = useCallback((direction: 'left' | 'right') => {
-    if (currentIndex >= outfits.length) return;
+    if (currentIndex >= outfits.length) {
+      return;
+    }
 
     const currentOutfit = outfits[currentIndex];
     
@@ -763,6 +767,7 @@ export default function StyleShuffleScreen() {
     const targetY = direction === 'right' ? -30 : 30;
     
     translateX.value = withSpring(targetX, SWIPE_OUT_SPRING, (finished) => {
+      isAnimating.value = false;
       if (finished) {
         runOnJS(handleSwipeComplete)(direction);
       }
@@ -776,9 +781,11 @@ export default function StyleShuffleScreen() {
         cancelAnimation(translateX);
         cancelAnimation(translateY);
         cancelAnimation(cardOpacity);
-        translateX.value = 0;
-        translateY.value = 0;
-        cardOpacity.value = 1;
+        cancelAnimation(cardScale);
+        translateX.value = withSpring(0, SNAP_BACK_SPRING);
+        translateY.value = withSpring(0, SNAP_BACK_SPRING);
+        cardOpacity.value = withTiming(1, { duration: 150 });
+        cardScale.value = withSpring(1, SNAP_BACK_SPRING);
         isAnimating.value = false;
       }
     })
@@ -812,6 +819,7 @@ export default function StyleShuffleScreen() {
             ...SWIPE_OUT_SPRING,
             velocity: velocityX * velocityBoost,
           }, (finished) => {
+            isAnimating.value = false;
             if (finished) {
               runOnJS(handleSwipeComplete)(direction);
             }
