@@ -8,6 +8,7 @@ import DiscoverPeopleScreen from "@/screens/DiscoverPeopleScreen";
 import MessagesScreen from "@/screens/MessagesScreen";
 import ConversationScreen from "@/screens/ConversationScreen";
 import StyleSoulmatesScreen from "@/screens/StyleSoulmatesScreen";
+import BodyScannerScreen from "@/screens/BodyScannerScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -20,6 +21,7 @@ export type CommunityStackParamList = {
   Messages: undefined;
   Conversation: { conversationId: string; participantName: string };
   StyleSoulmates: undefined;
+  BodyScanner: undefined;
 };
 
 const Stack = createNativeStackNavigator<CommunityStackParamList>();
@@ -70,6 +72,11 @@ export default function CommunityStackNavigator() {
         name="StyleSoulmates"
         component={StyleSoulmatesScreen}
         options={{ headerTitle: "Style Soulmates" }}
+      />
+      <Stack.Screen
+        name="BodyScanner"
+        component={BodyScannerScreen}
+        options={{ headerTitle: "Body Scanner" }}
       />
     </Stack.Navigator>
   );

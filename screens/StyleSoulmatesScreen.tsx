@@ -17,6 +17,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useStyleTheme } from "@/hooks/useStyleTheme";
 import { useSocial } from "@/contexts/SocialContext";
 import { getAllDiscoverableUsers, UserSummary } from "@/contexts/SocialContext";
+import { useBodyProfile, BodyProfile, BodyShape, HeightCategory, BuildCategory } from "@/contexts/BodyProfileContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
 
 type StyleSoulmatesScreenProps = {
@@ -25,9 +26,12 @@ type StyleSoulmatesScreenProps = {
 
 interface StyleMatch extends UserSummary {
   matchPercentage: number;
+  styleMatchPercentage: number;
+  bodyMatchPercentage: number;
   sharedStyles: StyleTheme[];
   sharedColors: string[];
   compatibilityNote: string;
+  mockBodyProfile?: BodyProfile;
 }
 
 const STYLE_LABELS: Record<StyleTheme, string> = {
@@ -69,14 +73,66 @@ const SHARED_COLORS = [
   ["Coral", "Blush", "White"],
 ];
 
+const BODY_SHAPES: BodyShape[] = ['hourglass', 'pear', 'apple', 'rectangle', 'inverted-triangle', 'athletic'];
+const HEIGHT_CATEGORIES: HeightCategory[] = ['petite', 'average', 'tall', 'very-tall'];
+const BUILD_CATEGORIES: BuildCategory[] = ['slim', 'average', 'athletic', 'curvy', 'plus'];
+
+const BODY_SHAPE_LABELS: Record<BodyShape, string> = {
+  hourglass: "Hourglass",
+  pear: "Pear",
+  apple: "Apple",
+  rectangle: "Rectangle",
+  "inverted-triangle": "Inverted Triangle",
+  athletic: "Athletic",
+  petite: "Petite",
+  "plus-size": "Plus Size",
+  tall: "Tall",
+  unknown: "Unknown",
+};
+
 export default function StyleSoulmatesScreen({ navigation }: StyleSoulmatesScreenProps) {
   const { theme, isDark } = useTheme();
-  const { currentTheme } = useStyleTheme();
+  const { styleTheme } = useStyleTheme();
   const { followUser, sendFriendRequest, isFollowing, isFriend, hasPendingRequestTo } = useSocial();
+  const { hasBodyProfile, getBodyMatchScore, bodyProfile } = useBodyProfile();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
 
   const allUsers = useMemo(() => getAllDiscoverableUsers(), []);
+
+  const generateMockBodyProfile = (index: number): BodyProfile => {
+    const shape = BODY_SHAPES[index % BODY_SHAPES.length];
+    const height = HEIGHT_CATEGORIES[index % HEIGHT_CATEGORIES.length];
+    const build = BUILD_CATEGORIES[index % BUILD_CATEGORIES.length];
+    
+    return {
+      id: `mock_body_${index}`,
+      userId: `user_${index}`,
+      measurements: {
+        bust: 34 + (index % 8),
+        waist: 26 + (index % 10),
+        hips: 36 + (index % 8),
+        height: 60 + (index % 12),
+      },
+      bodyShape: shape,
+      heightCategory: height,
+      buildCategory: build,
+      proportions: {
+        shoulderToHipRatio: 0.9 + (index % 3) * 0.1,
+        waistToHipRatio: 0.7 + (index % 3) * 0.05,
+        bustToWaistRatio: 1.1 + (index % 3) * 0.1,
+        torsoToLegRatio: 0.85 + (index % 3) * 0.05,
+      },
+      fitPreferences: {
+        preferredFit: 'fitted',
+        problemAreas: [],
+        highlightAreas: [],
+      },
+      isManualEntry: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  };
 
   const styleMatches: StyleMatch[] = useMemo(() => {
     if (!hasAnalyzed) return [];
@@ -89,23 +145,35 @@ export default function StyleSoulmatesScreen({ navigation }: StyleSoulmatesScree
         .slice(0, Math.floor(Math.random() * 3) + 1);
       
       const includesCurrentTheme = Math.random() > 0.5;
-      const sharedStyles = includesCurrentTheme && !randomStyles.includes(currentTheme)
-        ? [currentTheme, ...randomStyles.slice(0, 2)]
+      const sharedStyles = includesCurrentTheme && !randomStyles.includes(styleTheme)
+        ? [styleTheme, ...randomStyles.slice(0, 2)]
         : randomStyles;
 
-      const matchPercentage = 65 + Math.floor(Math.random() * 30);
+      const styleMatchPercentage = 65 + Math.floor(Math.random() * 30);
       const colorsIndex = index % SHARED_COLORS.length;
       const noteIndex = index % COMPATIBILITY_NOTES.length;
+
+      const mockBodyProfile = generateMockBodyProfile(index);
+      const bodyMatchPercentage = hasBodyProfile 
+        ? getBodyMatchScore(mockBodyProfile) 
+        : 50 + Math.floor(Math.random() * 30);
+
+      const matchPercentage = hasBodyProfile
+        ? Math.round((styleMatchPercentage * 0.6) + (bodyMatchPercentage * 0.4))
+        : styleMatchPercentage;
 
       return {
         ...user,
         matchPercentage,
+        styleMatchPercentage,
+        bodyMatchPercentage,
         sharedStyles: sharedStyles as StyleTheme[],
         sharedColors: SHARED_COLORS[colorsIndex],
         compatibilityNote: COMPATIBILITY_NOTES[noteIndex],
+        mockBodyProfile,
       };
     }).sort((a, b) => b.matchPercentage - a.matchPercentage);
-  }, [allUsers, hasAnalyzed, currentTheme]);
+  }, [allUsers, hasAnalyzed, styleTheme, hasBodyProfile, getBodyMatchScore]);
 
   const getStyleColor = (style: StyleTheme): string => {
     const colors = StyleThemes[style];
@@ -133,6 +201,10 @@ export default function StyleSoulmatesScreen({ navigation }: StyleSoulmatesScree
     if (!isFriend(user.id) && !hasPendingRequestTo(user.id)) {
       await sendFriendRequest(user.id, user.name);
     }
+  };
+
+  const handleScanBody = () => {
+    navigation.navigate("BodyScanner");
   };
 
   const renderMatchCard = (match: StyleMatch) => {
@@ -176,9 +248,49 @@ export default function StyleSoulmatesScreen({ navigation }: StyleSoulmatesScree
               >
                 <ThemedText style={styles.percentageText}>{match.matchPercentage}%</ThemedText>
               </LinearGradient>
-              <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>match</ThemedText>
+              <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>overall</ThemedText>
             </View>
           </View>
+
+          <View style={styles.matchBreakdown}>
+            <View style={styles.matchBreakdownItem}>
+              <Feather name="heart" size={14} color={theme.link} />
+              <ThemedText type="small" style={{ color: theme.text }}>
+                Style: {match.styleMatchPercentage}%
+              </ThemedText>
+            </View>
+            <View style={styles.matchBreakdownItem}>
+              <Feather name="user" size={14} color={hasBodyProfile ? theme.success : theme.tabIconDefault} />
+              <ThemedText type="small" style={{ color: hasBodyProfile ? theme.text : theme.tabIconDefault }}>
+                Body: {hasBodyProfile ? `${match.bodyMatchPercentage}%` : "Scan needed"}
+              </ThemedText>
+            </View>
+          </View>
+
+          {hasBodyProfile && match.mockBodyProfile ? (
+            <View style={styles.bodyMatchSection}>
+              <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
+                Body Compatibility
+              </ThemedText>
+              <View style={styles.bodyMatchTags}>
+                <View style={[styles.bodyTag, { backgroundColor: theme.link + "20" }]}>
+                  <ThemedText type="caption" style={{ color: theme.link }}>
+                    {BODY_SHAPE_LABELS[match.mockBodyProfile.bodyShape]}
+                  </ThemedText>
+                </View>
+                <View style={[styles.bodyTag, { backgroundColor: theme.backgroundSecondary }]}>
+                  <ThemedText type="caption">
+                    {match.mockBodyProfile.heightCategory.charAt(0).toUpperCase() + match.mockBodyProfile.heightCategory.slice(1)}
+                  </ThemedText>
+                </View>
+                <View style={[styles.bodyTag, { backgroundColor: theme.backgroundSecondary }]}>
+                  <ThemedText type="caption">
+                    {match.mockBodyProfile.buildCategory.charAt(0).toUpperCase() + match.mockBodyProfile.buildCategory.slice(1)}
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+          ) : null}
 
           <ThemedText type="small" style={[styles.compatibilityNote, { color: theme.tabIconDefault }]}>
             {match.compatibilityNote}
@@ -283,9 +395,59 @@ export default function StyleSoulmatesScreen({ navigation }: StyleSoulmatesScree
         </LinearGradient>
         <ThemedText type="h1" style={styles.title}>Style Soulmates</ThemedText>
         <ThemedText style={[styles.subtitle, { color: theme.tabIconDefault }]}>
-          Find users with matching style DNA using AI-powered analysis
+          Find users with matching style DNA and body compatibility
         </ThemedText>
       </View>
+
+      {!hasBodyProfile ? (
+        <Card style={styles.bodyScanPrompt}>
+          <View style={styles.bodyScanPromptContent}>
+            <View style={[styles.bodyScanIcon, { backgroundColor: theme.warning + "20" }]}>
+              <Feather name="user" size={24} color={theme.warning} />
+            </View>
+            <View style={styles.bodyScanPromptText}>
+              <ThemedText type="h4">Enhance Your Matches</ThemedText>
+              <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+                Scan your body to find users with similar body types
+              </ThemedText>
+            </View>
+          </View>
+          <Pressable
+            onPress={handleScanBody}
+            style={({ pressed }) => [
+              styles.bodyScanButton,
+              { backgroundColor: theme.link, opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <Feather name="camera" size={16} color="#FFFFFF" />
+            <ThemedText style={{ color: "#FFFFFF", fontWeight: "600" }}>Scan Body</ThemedText>
+          </Pressable>
+        </Card>
+      ) : (
+        <Card style={styles.bodyProfileBadge}>
+          <View style={styles.bodyProfileBadgeContent}>
+            <View style={[styles.bodyScanIcon, { backgroundColor: theme.success + "20" }]}>
+              <Feather name="check-circle" size={24} color={theme.success} />
+            </View>
+            <View style={styles.bodyScanPromptText}>
+              <ThemedText type="h4">Body Profile Active</ThemedText>
+              <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+                {bodyProfile?.bodyShape ? BODY_SHAPE_LABELS[bodyProfile.bodyShape] : "Unknown"} body type
+              </ThemedText>
+            </View>
+          </View>
+          <Pressable
+            onPress={handleScanBody}
+            style={({ pressed }) => [
+              styles.bodyScanButton,
+              { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <Feather name="refresh-cw" size={16} color={theme.link} />
+            <ThemedText style={{ color: theme.link, fontWeight: "600" }}>Update</ThemedText>
+          </Pressable>
+        </Card>
+      )}
 
       {!hasAnalyzed ? (
         <Card style={styles.analyzeCard}>
@@ -294,7 +456,7 @@ export default function StyleSoulmatesScreen({ navigation }: StyleSoulmatesScree
             Discover Your Style Matches
           </ThemedText>
           <ThemedText style={[styles.analyzeDescription, { color: theme.tabIconDefault }]}>
-            Our AI analyzes your style preferences, wardrobe choices, and fashion DNA to find 
+            Our AI analyzes your style preferences, wardrobe choices, and{hasBodyProfile ? " body compatibility" : " fashion DNA"} to find 
             users with compatible aesthetics
           </ThemedText>
           
@@ -382,6 +544,41 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
     paddingHorizontal: Spacing.lg,
+  },
+  bodyScanPrompt: {
+    padding: Spacing.md,
+  },
+  bodyScanPromptContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
+  bodyScanIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bodyScanPromptText: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  bodyScanButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    gap: Spacing.xs,
+  },
+  bodyProfileBadge: {
+    padding: Spacing.md,
+  },
+  bodyProfileBadgeContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.md,
   },
   analyzeCard: {
     padding: Spacing.xl,
@@ -475,6 +672,30 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "700",
     fontSize: 16,
+  },
+  matchBreakdown: {
+    flexDirection: "row",
+    gap: Spacing.lg,
+    marginBottom: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  matchBreakdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  bodyMatchSection: {
+    marginBottom: Spacing.md,
+  },
+  bodyMatchTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.xs,
+  },
+  bodyTag: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
   },
   compatibilityNote: {
     fontStyle: "italic",
