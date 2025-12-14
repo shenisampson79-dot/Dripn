@@ -5,7 +5,7 @@
  * Color Analysis Screen - AI-powered seasonal color analysis from selfie
  */
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { 
   StyleSheet, 
   View, 
@@ -72,8 +72,79 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
   const [permission, requestPermission] = useCameraPermissions();
   const [showCamera, setShowCamera] = useState(false);
   const [facing, setFacing] = useState<CameraType>("front");
+  const [countdown, setCountdown] = useState<number | null>(null);
   const cameraRef = useRef<CameraView>(null);
   const [selectedBrand, setSelectedBrand] = useState<FoundationBrand | 'all'>('all');
+
+  useEffect(() => {
+    if (countdown === null) return;
+    
+    if (countdown === 0) {
+      capturePhoto();
+      setCountdown(null);
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      setCountdown(countdown - 1);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  const startCountdown = () => {
+    setCountdown(3);
+  };
+
+  const capturePhoto = async () => {
+    if (!cameraRef.current) {
+      Alert.alert("Error", "Camera not ready. Please try again.");
+      return;
+    }
+
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (photo?.base64) {
+        setShowCamera(false);
+        await analyzeFromBase64(photo.base64);
+      } else if (photo?.uri) {
+        setShowCamera(false);
+        await processImage(photo.uri);
+      } else {
+        Alert.alert("Error", "Failed to capture photo. Please try again.");
+      }
+    } catch (err) {
+      console.error("Failed to capture photo:", err);
+      Alert.alert("Error", "Failed to capture photo. Please try again or upload an image instead.");
+    }
+  };
+
+  const analyzeFromBase64 = async (base64Data: string) => {
+    try {
+      const result = await analyzeColorSeason(base64Data);
+
+      if (result.success) {
+        Alert.alert(
+          "Analysis Complete",
+          `You are a ${result.colorSeason.season.toUpperCase()} ${result.colorSeason.subtype || ''} with ${result.colorSeason.confidence}% confidence!`,
+          [{ text: "View Results", style: "default" }]
+        );
+      } else {
+        Alert.alert(
+          "Analysis Issue",
+          "We couldn't fully analyze the image. Please try again with a clear, well-lit selfie showing your face, natural hair, and skin.",
+          [{ text: "Try Again", style: "default" }]
+        );
+      }
+    } catch (err) {
+      console.error("Failed to analyze image:", err);
+      Alert.alert("Error", "Failed to analyze image. Please try again.");
+    }
+  };
 
   const foundationMatches = hasSkinToneAnalysis && bodyProfile?.skinTone 
     ? getRecommendedShades(
@@ -86,24 +157,6 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
   const secondaryTextColor = isDark ? "#B0B0B0" : "#666666";
   const tertiaryTextColor = isDark ? "#808080" : "#999999";
 
-  const handleTakePhoto = async () => {
-    if (!cameraRef.current) return;
-
-    try {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
-        base64: false,
-      });
-
-      if (photo?.uri) {
-        setShowCamera(false);
-        await processImage(photo.uri);
-      }
-    } catch (err) {
-      console.error("Failed to take photo:", err);
-      Alert.alert("Error", "Failed to capture photo. Please try again.");
-    }
-  };
 
   const handlePickImage = async () => {
     try {
@@ -256,10 +309,17 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
               <Feather name="x" size={24} color={theme.text} />
             </Pressable>
             <Pressable
-              onPress={handleTakePhoto}
+              onPress={startCountdown}
               style={[styles.captureButton, { borderColor: theme.link }]}
+              disabled={countdown !== null}
             >
-              <View style={[styles.captureButtonInner, { backgroundColor: theme.link }]} />
+              {countdown !== null ? (
+                <ThemedText type="h1" style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 'bold' }}>
+                  {countdown}
+                </ThemedText>
+              ) : (
+                <View style={[styles.captureButtonInner, { backgroundColor: theme.link }]} />
+              )}
             </Pressable>
             <Pressable
               onPress={() => setFacing(facing === "front" ? "back" : "front")}
