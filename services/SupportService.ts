@@ -119,7 +119,7 @@ class SupportService {
   }
 
   getWelcomeMessage(): SupportMessage {
-    const greeting = "Hello! I'm Julia, your Dripn support assistant. No matter where you are on your style journey, I'm here to help with anything you need - from app questions to subscription support. What can I help you with today?";
+    const greeting = "Hello! I'm Julia, your Dripn support assistant. Whether you have questions about the app, need help with your account, or just want some guidance, I'm here for you. What can I help you with today?";
 
     return {
       id: generateId(),
