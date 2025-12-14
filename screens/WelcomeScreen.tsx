@@ -1,10 +1,10 @@
-import React from "react";
-import { StyleSheet, View, Image, Pressable } from "react-native";
+import React, { useRef, useEffect } from "react";
+import { StyleSheet, View, Image, Pressable, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 
-import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -17,10 +17,46 @@ type WelcomeScreenProps = {
 
 export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
+  const videoRef = useRef<Video>(null);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && videoRef.current) {
+      const attemptPlay = async () => {
+        try {
+          await videoRef.current?.playAsync();
+        } catch (e) {
+        }
+      };
+      attemptPlay();
+      const timer = setTimeout(attemptPlay, 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+    if (status.isLoaded && !status.isPlaying && Platform.OS === 'web') {
+      videoRef.current?.playAsync().catch(() => {});
+    }
+  };
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
+      <Video
+        ref={videoRef}
+        source={require("../assets/videos/champagne_gold_silk_flow.mp4")}
+        style={styles.backgroundVideo}
+        resizeMode={ResizeMode.COVER}
+        shouldPlay
+        isLooping
+        isMuted
+        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+      />
+      <View style={[
+        styles.overlay,
+        { backgroundColor: isDark ? 'rgba(13, 11, 9, 0.75)' : 'rgba(250, 248, 245, 0.75)' }
+      ]} />
+
       <View style={[styles.content, { paddingTop: insets.top + Spacing["3xl"] }]}>
         <View style={styles.logoContainer}>
           <ThemedText type="h1" style={styles.brandName}>
@@ -45,30 +81,35 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
             title="Share Your Style"
             description="Post outfit photos and get real feedback"
             theme={theme}
+            isDark={isDark}
           />
           <FeatureItem
             icon="message-circle"
             title="Expert Advice"
             description="Personal styling tips and community support"
             theme={theme}
+            isDark={isDark}
           />
           <FeatureItem
             icon="heart"
             title="Find Your Look"
             description="Discover styles that match your personality"
             theme={theme}
+            isDark={isDark}
           />
           <FeatureItem
             icon="tag"
             title="Exclusive Offers"
             description="Daily and weekly deals from top fashion brands"
             theme={theme}
+            isDark={isDark}
           />
           <FeatureItem
             icon="calendar"
             title="Events Near You"
             description="Discover events and get outfit suggestions"
             theme={theme}
+            isDark={isDark}
           />
         </View>
       </View>
@@ -96,7 +137,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           </ThemedText>
         </Pressable>
       </View>
-    </ThemedView>
+    </View>
   );
 }
 
@@ -105,12 +146,16 @@ interface FeatureItemProps {
   title: string;
   description: string;
   theme: any;
+  isDark: boolean;
 }
 
-function FeatureItem({ icon, title, description, theme }: FeatureItemProps) {
+function FeatureItem({ icon, title, description, theme, isDark }: FeatureItemProps) {
   return (
     <View style={styles.featureItem}>
-      <View style={[styles.featureIcon, { backgroundColor: theme.backgroundDefault }]}>
+      <View style={[
+        styles.featureIcon, 
+        { backgroundColor: isDark ? 'rgba(26, 23, 20, 0.9)' : 'rgba(240, 235, 228, 0.9)' }
+      ]}>
         <Feather name={icon} size={24} color={theme.link} />
       </View>
       <View style={styles.featureText}>
@@ -128,6 +173,20 @@ function FeatureItem({ icon, title, description, theme }: FeatureItemProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  backgroundVideo: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   content: {
     flex: 1,
