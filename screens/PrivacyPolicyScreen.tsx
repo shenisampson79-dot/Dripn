@@ -18,6 +18,15 @@ export default function PrivacyPolicyScreen() {
           Last Updated: December 7, 2025
         </ThemedText>
 
+        <View style={styles.welcomeSection}>
+          <ThemedText type="body" style={styles.welcomeText}>
+            Your trust means everything to us. We know that sharing personal information requires confidence in how it will be handled, and we take that responsibility seriously.
+          </ThemedText>
+          <ThemedText type="body" style={styles.welcomeText}>
+            This policy explains, in plain language, what information we collect, why we collect it, and how we keep it safe. If you ever have questions, our support team is always here to help.
+          </ThemedText>
+        </View>
+
         <View style={styles.section}>
           <ThemedText type="body" style={styles.paragraph}>
             Welcome to Dripn. Your privacy is important to us. This Privacy Policy explains how Dripn ("we," "us," or "our") collects, uses, discloses, and protects your personal information when you use our mobile application and related services (collectively, the "Service").
@@ -353,7 +362,20 @@ const styles = StyleSheet.create({
   },
   lastUpdated: {
     opacity: 0.6,
+    marginBottom: Spacing.lg,
+  },
+  welcomeSection: {
     marginBottom: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 12,
+    backgroundColor: 'rgba(150, 150, 150, 0.08)',
+  },
+  welcomeText: {
+    lineHeight: 26,
+    marginBottom: Spacing.sm,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   section: {
     marginBottom: Spacing.xl,

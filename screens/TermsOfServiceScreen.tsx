@@ -18,6 +18,15 @@ export default function TermsOfServiceScreen() {
           Last Updated: December 7, 2025
         </ThemedText>
 
+        <View style={styles.welcomeSection}>
+          <ThemedText type="body" style={styles.welcomeText}>
+            We believe in building a supportive community where everyone feels welcome. These terms are designed to create a safe, positive space for all members to explore and express their personal style.
+          </ThemedText>
+          <ThemedText type="body" style={styles.welcomeText}>
+            We have tried to make this document as clear and straightforward as possible. If anything is unclear, please reach out - we are always happy to explain.
+          </ThemedText>
+        </View>
+
         <View style={styles.section}>
           <ThemedText type="body" style={styles.paragraph}>
             Welcome to Dripn. These Terms of Service ("Terms") govern your access to and use of the Dripn mobile application and related services (collectively, the "Service"). By accessing or using Dripn, you agree to be bound by these Terms.
@@ -453,7 +462,20 @@ const styles = StyleSheet.create({
   },
   lastUpdated: {
     opacity: 0.6,
+    marginBottom: Spacing.lg,
+  },
+  welcomeSection: {
     marginBottom: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 12,
+    backgroundColor: 'rgba(150, 150, 150, 0.08)',
+  },
+  welcomeText: {
+    lineHeight: 26,
+    marginBottom: Spacing.sm,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   section: {
     marginBottom: Spacing.xl,

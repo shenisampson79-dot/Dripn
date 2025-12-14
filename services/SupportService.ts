@@ -119,10 +119,7 @@ class SupportService {
   }
 
   getWelcomeMessage(): SupportMessage {
-    const stylistName = this.stylist?.name || 'Ruby';
-    const greeting = stylistName === 'Max'
-      ? "Hey! I'm Max, your Dripn support assistant. Whether you're having app issues, questions about your subscription, or just need help navigating features - I've got you covered. What can I help you with today?"
-      : "Hello darling! I'm Ruby, your Dripn support assistant. I'm here to help with anything you need - from app troubles to subscription questions. What's on your mind?";
+    const greeting = "Hello! I'm Julia, your Dripn support assistant. No matter where you are on your style journey, I'm here to help with anything you need - from app questions to subscription support. What can I help you with today?";
 
     return {
       id: generateId(),
@@ -195,8 +192,7 @@ class SupportService {
 
   private getMockResponse(userMessage: string): string {
     const lowerMessage = userMessage.toLowerCase();
-    const stylistName = this.stylist?.name || 'Ruby';
-    const signOff = stylistName === 'Max' ? 'Let me know!' : 'Happy to help, darling!';
+    const signOff = 'Happy to help!';
 
     if (lowerMessage.includes('subscription') || lowerMessage.includes('plan') || lowerMessage.includes('upgrade')) {
       return `Great question about subscriptions! Dripn offers four tiers:\n\n- **Free**: Basic features with limited AI advice\n- **Basic**: More uploads and AI requests\n- **Premium**: Unlimited features and priority support\n- **VIP**: Everything plus real-life stylist video sessions\n\nYou can upgrade anytime in Settings > Subscription. ${signOff}`;

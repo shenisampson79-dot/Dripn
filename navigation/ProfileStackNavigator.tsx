@@ -24,6 +24,7 @@ import VirtualTryOnScreen from "@/screens/VirtualTryOnScreen";
 import ColorAnalysisScreen from "@/screens/ColorAnalysisScreen";
 import BodyScannerScreen from "@/screens/BodyScannerScreen";
 import PartnerScreen from "@/screens/PartnerScreen";
+import HelpScreen from "@/screens/HelpScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -52,6 +53,7 @@ export type ProfileStackParamList = {
   ColorAnalysis: undefined;
   BodyScanner: undefined;
   Partner: undefined;
+  Help: undefined;
   VideoCall: {
     callId?: string;
     roomUrl: string;
@@ -265,6 +267,13 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={PartnerScreen}
         options={{
           title: "Partner With Us",
+        }}
+      />
+      <Stack.Screen
+        name="Help"
+        component={HelpScreen}
+        options={{
+          title: "Help & FAQ",
         }}
       />
     </Stack.Navigator>

@@ -411,9 +411,9 @@ export default function SupportScreen() {
               </View>
             ) : null}
             <View>
-              <ThemedText type="h3">{stylist?.name || 'Support'}</ThemedText>
+              <ThemedText type="h3">Julia</ThemedText>
               <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-                Dripn Support Assistant
+                Your support assistant
               </ThemedText>
             </View>
           </View>
@@ -439,7 +439,7 @@ export default function SupportScreen() {
                 <View style={styles.typingIndicator}>
                   <ActivityIndicator size="small" color={theme.link} />
                   <ThemedText type="small" style={{ marginLeft: Spacing.sm }}>
-                    {stylist?.name || 'Support'} is typing...
+                    Julia is typing...
                   </ThemedText>
                 </View>
               ) : null}

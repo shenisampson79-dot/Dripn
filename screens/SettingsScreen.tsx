@@ -800,7 +800,15 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         <View style={styles.sectionContent}>
           <SettingItem
             icon="help-circle"
-            title="Help & Support"
+            title="Help & FAQ"
+            subtitle="Browse questions and chat with Julia"
+            onPress={() => navigation.navigate("Help")}
+            theme={theme}
+          />
+          <SettingItem
+            icon="message-circle"
+            title="Chat with Julia"
+            subtitle="Get instant support from our assistant"
             onPress={handleSupport}
             theme={theme}
           />
