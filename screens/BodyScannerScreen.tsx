@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    paddingBottom: 50,
+    paddingBottom: 120,
     paddingTop: Spacing.xl,
   },
   galleryButton: {

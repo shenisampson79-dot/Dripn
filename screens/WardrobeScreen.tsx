@@ -393,6 +393,18 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       />
 
       {renderItemModal()}
+
+      <Pressable
+        onPress={handleAddItem}
+        style={[
+          styles.fab,
+          { backgroundColor: theme.link, bottom: insets.bottom + 100 },
+        ]}
+      >
+        <View style={styles.fabInner}>
+          <View style={styles.fabShutter} />
+        </View>
+      </Pressable>
     </View>
   );
 }
@@ -530,6 +542,36 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     color: "#FFFFFF",
     fontWeight: "600",
+  },
+  fab: {
+    position: "absolute",
+    right: Spacing.xl,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  fabInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fabShutter: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 4,
+    borderColor: "#333",
   },
   modalContainer: {
     flex: 1,
