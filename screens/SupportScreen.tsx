@@ -30,6 +30,7 @@ import {
   TicketCategory,
 } from '@/services/SupportService';
 import { PersonalStylist } from '@/services/PersonalStylistService';
+import { currencyService } from '@/services/CurrencyService';
 
 const INPUT_CONTAINER_HEIGHT = 80;
 
@@ -49,6 +50,7 @@ export default function SupportScreen() {
   const [selectedCategory, setSelectedCategory] = useState<TicketCategory | null>(null);
   const [ticketDescription, setTicketDescription] = useState('');
   const [showQuickActions, setShowQuickActions] = useState(true);
+  const [currencySymbol, setCurrencySymbol] = useState('$');
 
   useEffect(() => {
     const initialize = async () => {
@@ -61,6 +63,8 @@ export default function SupportScreen() {
       } else {
         setMessages(history);
       }
+      await currencyService.initialize();
+      setCurrencySymbol(currencyService.getCurrencySymbol());
       setIsInitialized(true);
     };
     initialize();
@@ -309,11 +313,22 @@ export default function SupportScreen() {
                     },
                   ]}
                 >
-                  <Feather
-                    name={cat.icon as any}
-                    size={20}
-                    color={selectedCategory === cat.id ? theme.link : theme.text}
-                  />
+                  {cat.id === 'billing' ? (
+                    <ThemedText
+                      style={[
+                        styles.currencySymbol,
+                        { color: selectedCategory === cat.id ? theme.link : theme.text },
+                      ]}
+                    >
+                      {currencySymbol}
+                    </ThemedText>
+                  ) : (
+                    <Feather
+                      name={cat.icon as any}
+                      size={20}
+                      color={selectedCategory === cat.id ? theme.link : theme.text}
+                    />
+                  )}
                   <ThemedText
                     type="small"
                     style={[
@@ -688,6 +703,10 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     fontWeight: '500',
+  },
+  currencySymbol: {
+    fontSize: 20,
+    fontWeight: '600',
   },
   ticketInput: {
     borderRadius: BorderRadius.lg,
