@@ -33,6 +33,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useBodyProfile, ColorSeason, SkinToneData } from "@/contexts/BodyProfileContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
+import { getRecommendedShades, FoundationBrand, FoundationMatch } from "@/services/FoundationMatchingService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -72,6 +73,15 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
   const [showCamera, setShowCamera] = useState(false);
   const [facing, setFacing] = useState<CameraType>("front");
   const cameraRef = useRef<CameraView>(null);
+  const [selectedBrand, setSelectedBrand] = useState<FoundationBrand | 'all'>('all');
+
+  const foundationMatches = hasSkinToneAnalysis && bodyProfile?.skinTone 
+    ? getRecommendedShades(
+        bodyProfile.skinTone, 
+        6, 
+        selectedBrand === 'all' ? undefined : selectedBrand
+      )
+    : [];
 
   const secondaryTextColor = isDark ? "#B0B0B0" : "#666666";
   const tertiaryTextColor = isDark ? "#808080" : "#999999";
@@ -382,6 +392,76 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
                   </View>
                 </View>
               ) : null}
+            </Card>
+          ) : null}
+
+          {hasSkinToneAnalysis && foundationMatches.length > 0 ? (
+            <Card elevation={2} style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Feather name="shopping-bag" size={20} color={theme.link} />
+                <ThemedText type="h3" style={styles.sectionTitle}>
+                  Foundation Matches
+                </ThemedText>
+              </View>
+              <ThemedText type="caption" style={[styles.foundationSubtitle, { color: secondaryTextColor }]}>
+                Based on your skin tone analysis
+              </ThemedText>
+              <View style={styles.brandTabs}>
+                {(['all', 'fenty', 'mac'] as const).map((brand) => (
+                  <Pressable
+                    key={brand}
+                    onPress={() => setSelectedBrand(brand)}
+                    style={[
+                      styles.brandTab,
+                      { 
+                        backgroundColor: selectedBrand === brand ? theme.link : theme.backgroundSecondary,
+                        borderColor: selectedBrand === brand ? theme.link : theme.border,
+                      }
+                    ]}
+                  >
+                    <ThemedText 
+                      type="caption" 
+                      style={{ 
+                        color: selectedBrand === brand ? '#FFFFFF' : theme.text,
+                        fontWeight: selectedBrand === brand ? '600' : '400',
+                      }}
+                    >
+                      {brand === 'all' ? 'All Brands' : brand === 'fenty' ? 'Fenty Beauty' : 'MAC'}
+                    </ThemedText>
+                  </Pressable>
+                ))}
+              </View>
+              <View style={styles.foundationGrid}>
+                {foundationMatches.map((match) => (
+                  <Pressable
+                    key={match.shade.id}
+                    style={styles.foundationItem}
+                    onPress={() => {
+                      if (Platform.OS !== 'web') {
+                        Linking.openURL(match.shade.productUrl).catch(() => {});
+                      }
+                    }}
+                  >
+                    <View style={[styles.foundationSwatch, { backgroundColor: match.shade.hexColor }]} />
+                    <View style={styles.foundationInfo}>
+                      <ThemedText type="caption" style={styles.foundationBrand} numberOfLines={1}>
+                        {match.shade.brandName}
+                      </ThemedText>
+                      <ThemedText type="body" style={styles.foundationName} numberOfLines={1}>
+                        {match.shade.shadeName}
+                      </ThemedText>
+                      <View style={[styles.matchBadge, { backgroundColor: theme.success + '20' }]}>
+                        <ThemedText type="caption" style={{ color: theme.success, fontSize: 10 }}>
+                          {Math.round(match.matchScore)}% match
+                        </ThemedText>
+                      </View>
+                    </View>
+                    {Platform.OS !== 'web' ? (
+                      <Feather name="external-link" size={14} color={tertiaryTextColor} />
+                    ) : null}
+                  </Pressable>
+                ))}
+              </View>
             </Card>
           ) : null}
 
@@ -847,5 +927,50 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontWeight: "600",
+  },
+  foundationSubtitle: {
+    marginBottom: Spacing.md,
+  },
+  brandTabs: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  brandTab: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  foundationGrid: {
+    gap: Spacing.md,
+  },
+  foundationItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  foundationSwatch: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+  },
+  foundationInfo: {
+    flex: 1,
+  },
+  foundationBrand: {
+    opacity: 0.7,
+    marginBottom: 2,
+  },
+  foundationName: {
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  matchBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
   },
 });
