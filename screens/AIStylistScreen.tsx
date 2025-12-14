@@ -592,16 +592,8 @@ function generateAIResponse(
       .map(([color]) => color);
     
     const colorAdvice = isMaleStylist
-      ? `Looking at your wardrobe, your dominant colors are ${dominantColors.join(', ')}. Here's what I'd suggest:\n\n` +
-        `- ${dominantColors[0]} works really well with neutral tones like white, cream, or black\n` +
-        `- For a bolder look, try creating contrast with complementary colors\n` +
-        `- If you want something more refined, go monochromatic with different shades of the same color\n\n` +
-        `Want me to put together a specific outfit using these colors?`
-      : `Looking at your beautiful wardrobe, your dominant colors are ${dominantColors.join(', ')}. Here are some lovely suggestions, darling:\n\n` +
-        `- ${dominantColors[0]} pairs beautifully with neutral tones like white, cream, or black\n` +
-        `- For a bold and striking look, try creating contrast with complementary colors\n` +
-        `- For an elegant, sophisticated ensemble, consider a monochromatic palette with different shades\n\n` +
-        `Would you like me to create a specific outfit using these gorgeous colors, love?`;
+      ? `Looking at your wardrobe, your go-to colors are definitely ${dominantColors.join(', ')}. That's actually a solid foundation to work with! Your ${dominantColors[0]} pieces would look great paired with neutral tones like white, cream, or black for a clean, pulled-together look. If you're feeling a bit more adventurous, you could create some contrast with complementary colors - it makes a statement. Or if you want something more refined and intentional, try going monochromatic with different shades of the same color family. What vibe are you going for? I can put together something specific if you tell me the occasion.`
+      : `Looking at your beautiful wardrobe, I can see you're drawn to ${dominantColors.join(', ')} - and honestly, that tells me you have lovely taste, gorgeous! Your ${dominantColors[0]} pieces pair beautifully with neutral tones like white, cream, or black for an elegant everyday look. If you want to make more of a statement, playing with complementary colors creates a gorgeous contrast that really turns heads. Or for something truly sophisticated, you could go monochromatic with different shades of the same color family - it's incredibly chic. What kind of look are you hoping to create, darling? Tell me the occasion and I'll put together something perfect for you.`;
     
     return { content: colorAdvice };
   }
@@ -721,31 +713,49 @@ function generateAIResponse(
     const favorites = wardrobeItems.filter(item => item.isFavorite);
     const mostWorn = [...wardrobeItems].sort((a, b) => b.timesWorn - a.timesWorn).slice(0, 3);
     
-    let favoritesResponse = `Here's what I've noticed about your style preferences:\n\n`;
+    let favoritesResponse = '';
     
-    if (favorites.length > 0) {
-      favoritesResponse += `Your favorite pieces: ${favorites.map(f => f.name).join(', ')}\n\n`;
+    if (isMaleStylist) {
+      if (favorites.length > 0 && mostWorn.length > 0 && mostWorn[0].timesWorn > 0) {
+        favoritesResponse = `I've been looking at your wardrobe patterns, and here's what stands out: your favorite pieces are ${favorites.map(f => f.name).join(', ')}. And when it comes to what you actually reach for most, it's ${mostWorn[0].name} at the top with ${mostWorn[0].timesWorn} wears${mostWorn.length > 1 ? `, followed by ${mostWorn[1].name}` : ''}. That tells me a lot about your style preferences. Want me to put together some outfit ideas featuring these pieces you clearly love?`;
+      } else if (favorites.length > 0) {
+        favoritesResponse = `I can see you've marked ${favorites.map(f => f.name).join(', ')} as your favorites - good choices! These are clearly pieces you feel great in. Would you like me to show you some fresh ways to style them, or put together outfits that feature them?`;
+      } else if (mostWorn.length > 0 && mostWorn[0].timesWorn > 0) {
+        favoritesResponse = `Looking at your wear history, ${mostWorn[0].name} is definitely your go-to piece with ${mostWorn[0].timesWorn} wears${mostWorn.length > 1 ? `, and ${mostWorn[1].name} comes in second` : ''}. There's a reason you keep reaching for these - they clearly work for you. Want me to build some outfits around your most-loved items?`;
+      } else {
+        favoritesResponse = `You haven't marked any favorites yet or logged any wears, so I don't have a clear picture of your go-to pieces. Try marking items you love as favorites, or log when you wear something - that'll help me understand your style better and give you more personalized suggestions.`;
+      }
+    } else {
+      if (favorites.length > 0 && mostWorn.length > 0 && mostWorn[0].timesWorn > 0) {
+        favoritesResponse = `I've been admiring your wardrobe patterns, gorgeous, and here's what I've noticed: your heart belongs to ${favorites.map(f => f.name).join(', ')}. And the pieces you reach for most? ${mostWorn[0].name} leads the way with ${mostWorn[0].timesWorn} wears${mostWorn.length > 1 ? `, with ${mostWorn[1].name} close behind` : ''}. These clearly make you feel wonderful, darling. Would you love some fresh outfit ideas featuring these treasured pieces?`;
+      } else if (favorites.length > 0) {
+        favoritesResponse = `I see you've marked ${favorites.map(f => f.name).join(', ')} as your favorites - such lovely choices, gorgeous! These are clearly pieces that make you feel beautiful. Would you like me to show you some new ways to style them, or create stunning outfits around them, darling?`;
+      } else if (mostWorn.length > 0 && mostWorn[0].timesWorn > 0) {
+        favoritesResponse = `Looking at your wear history, beautiful, ${mostWorn[0].name} is clearly your beloved go-to with ${mostWorn[0].timesWorn} wears${mostWorn.length > 1 ? `, and ${mostWorn[1].name} follows lovingly behind` : ''}. There's magic in pieces you keep reaching for - they truly work for you, darling. Shall I create some gorgeous outfits around your most-loved items?`;
+      } else {
+        favoritesResponse = `You haven't marked any favorites yet or logged any wears, sweetheart, so I don't quite know which pieces hold your heart. Try marking items you adore as favorites, or log when you wear something - that'll help me understand your beautiful style better and give you the personalized suggestions you deserve, love.`;
+      }
     }
-    
-    if (mostWorn.length > 0 && mostWorn[0].timesWorn > 0) {
-      favoritesResponse += `Your most-worn items:\n`;
-      mostWorn.forEach((item, index) => {
-        favoritesResponse += `${index + 1}. ${item.name} (worn ${item.timesWorn} times)\n`;
-      });
-    }
-    
-    favoritesResponse += `\nWould you like outfit ideas featuring your favorite pieces?`;
     
     return { content: favoritesResponse };
   }
   
+  const fallbackResponses = isMaleStylist ? [
+    `I'm genuinely here to help you figure out what works for you. What's the situation? Are you getting ready for something specific - maybe work, a date, a party, or just refreshing your everyday style? Or if you're curious about color combinations or want to know which pieces in your wardrobe work best together, I'm all over that too. With ${wardrobeItems.length} ${wardrobeItems.length === 1 ? 'piece' : 'pieces'} in your closet, we've got plenty to work with.`,
+    `What's on your mind style-wise? I can help you put together looks for specific occasions, figure out what colors work best together, or just explore what's in your wardrobe. Tell me what you're thinking - are you trying to get ready for something, or just want to see what outfit options you have? I'm here for whatever you need.`,
+    `So what are we working on today? I can help with outfit ideas for any occasion you've got coming up, color coordination, or just making the most of the ${wardrobeItems.length} ${wardrobeItems.length === 1 ? 'piece' : 'pieces'} you have. Give me some context about what you're looking for and I'll tailor my suggestions to exactly what you need.`,
+    `I'm ready when you are! Whether you need help with an outfit for something specific, want to explore color combinations, or just want to see fresh ways to style what you own - I've got you. What sounds helpful right now?`,
+    `Let's figure something out together. What's your situation? Getting ready for work, a special event, or just want to level up your everyday look? I can also help with color advice or finding new ways to wear your favorite pieces. What would be most useful for you?`,
+  ] : [
+    `I'm absolutely here for whatever you need, gorgeous! What's on your mind? Are you getting ready for something special - work, a date, a party, or maybe a lovely casual day out? Or if you're curious about which colors in your wardrobe complement each other beautifully, I'd love to explore that with you. With ${wardrobeItems.length} gorgeous ${wardrobeItems.length === 1 ? 'piece' : 'pieces'} to work with, we can create some truly stunning looks together, darling.`,
+    `What would you like to explore today, beautiful? I can help you put together outfits for any occasion, figure out which colors make you absolutely glow, or discover new ways to style your favorite pieces. Just tell me what's on your heart - are you preparing for something, or simply in the mood to play with your wardrobe? I'm here for all of it, love.`,
+    `Tell me what's on your mind, sweetheart! Whether it's finding the perfect outfit for an upcoming event, exploring color combinations that flatter you, or just making the most of your beautiful ${wardrobeItems.length} ${wardrobeItems.length === 1 ? 'piece' : 'pieces'} - I'm genuinely excited to help. What sounds good to you?`,
+    `I'm all yours, gorgeous! What can I help you with today? Maybe an outfit for something special coming up, advice on colors that work beautifully together, or fresh ways to style pieces you already love? Just share what you're thinking and we'll create something wonderful together.`,
+    `What's calling to you right now, darling? I can help with outfit ideas for any occasion - work, dates, parties, everyday elegance - or we could explore color coordination and how to get the most from your wardrobe. Tell me your heart's desire and let's make it happen, love.`,
+  ];
+  
   return {
-    content: `I'm here to help you with your styling needs! You can ask me to:\n\n` +
-      `- Suggest outfits for specific occasions (work, dates, parties)\n` +
-      `- Recommend color combinations from your wardrobe\n` +
-      `- Analyze your capsule wardrobe essentials\n` +
-      `- Create looks based on your favorite pieces\n\n` +
-      `Just tell me what you're looking for, and I'll create personalized recommendations from your ${wardrobeItems.length} wardrobe items!`,
+    content: fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)],
   };
 }
 

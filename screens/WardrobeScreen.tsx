@@ -362,7 +362,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           <ThemedText type="h2">My Wardrobe</ThemedText>
           <View style={styles.headerStats}>
             <ThemedText type="caption" style={{ opacity: 0.7 }}>
-              {items.length} items
+              {items.length} {items.length === 1 ? 'item' : 'items'}
             </ThemedText>
           </View>
         </View>
@@ -391,21 +391,6 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyState}
       />
-
-      <Pressable
-        onPress={handleAddItem}
-        style={({ pressed }) => [
-          styles.fab,
-          {
-            backgroundColor: theme.link,
-            bottom: insets.bottom + Spacing.xl,
-            opacity: pressed ? 0.9 : 1,
-            transform: [{ scale: pressed ? 0.95 : 1 }],
-          },
-        ]}
-      >
-        <Feather name="plus" size={28} color="#FFFFFF" />
-      </Pressable>
 
       {renderItemModal()}
     </View>
@@ -545,20 +530,6 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     color: "#FFFFFF",
     fontWeight: "600",
-  },
-  fab: {
-    position: "absolute",
-    right: Spacing.xl,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
   modalContainer: {
     flex: 1,
