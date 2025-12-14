@@ -390,9 +390,20 @@ export default function VisualSearchScreen() {
       `${item.brand}\n${item.store}\n\nPrice: ${item.originalPrice ? `Was ${item.originalPrice.toFixed(2)} - ` : ''}Now ${item.price.toFixed(2)}`,
       [
         { text: 'Close', style: 'cancel' },
+        { text: 'Try It On', onPress: () => handleTryItOn(item) },
         { text: 'Shop Now', onPress: () => {} },
       ]
     );
+  };
+
+  const handleTryItOn = (item: SimilarItem) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    (navigation as any).navigate('VirtualTryOn', {
+      garmentImageUrl: item.imageUrl,
+      garmentDescription: `${item.brand} ${item.name} - ${item.color} ${item.category}`,
+    });
   };
 
   const remainingSearches = getRemainingSearches();

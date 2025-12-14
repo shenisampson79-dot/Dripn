@@ -7,6 +7,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { StyleTheme } from '@/constants/theme';
+import { apiService } from '@/services/ApiService';
 
 export type Gender = 'woman' | 'man' | 'non-binary' | 'prefer-not-to-say' | null;
 export type SizeRange = 'XS-S' | 'M-L' | 'XL-2X' | '3X+' | null;
@@ -297,6 +298,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadUser = async () => {
     try {
+      await apiService.init();
       const userData = await AsyncStorage.getItem(STORAGE_KEY);
       if (userData) {
         setUser(JSON.parse(userData));
@@ -318,10 +320,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, _password: string) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        await apiService.login(email, password);
+      } catch {
+      }
       const existingData = await AsyncStorage.getItem(STORAGE_KEY);
       if (existingData) {
         const existingUser = JSON.parse(existingData);
@@ -337,10 +342,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (email: string, _password: string, name: string) => {
+  const signup = async (email: string, password: string, name: string) => {
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        await apiService.register(email, password, name);
+      } catch {
+      }
       const newUser = createDefaultUser(email, name);
       await saveUser(newUser);
     } finally {
@@ -364,6 +372,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      await apiService.logout();
       await AsyncStorage.removeItem(STORAGE_KEY);
       setUser(null);
     } catch (error) {

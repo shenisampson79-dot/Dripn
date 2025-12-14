@@ -41,6 +41,7 @@ export interface TierLimits {
   canAccessChallenges: boolean;
   canAccessOutfitCalendar: boolean;
   canAccessSustainabilityFeatures: boolean;
+  virtualTryOnPerMonth: number;
 }
 
 export interface UsageStats {
@@ -106,6 +107,7 @@ const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     canAccessChallenges: false,
     canAccessOutfitCalendar: false,
     canAccessSustainabilityFeatures: false,
+    virtualTryOnPerMonth: 0,
   },
   basic: {
     uploadsPerMonth: 20,
@@ -130,6 +132,7 @@ const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     canAccessChallenges: true,
     canAccessOutfitCalendar: false,
     canAccessSustainabilityFeatures: false,
+    virtualTryOnPerMonth: 3,
   },
   premium: {
     uploadsPerMonth: Infinity,
@@ -154,6 +157,7 @@ const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     canAccessChallenges: true,
     canAccessOutfitCalendar: true,
     canAccessSustainabilityFeatures: true,
+    virtualTryOnPerMonth: 10,
   },
   vip: {
     uploadsPerMonth: Infinity,
@@ -178,6 +182,7 @@ const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     canAccessChallenges: true,
     canAccessOutfitCalendar: true,
     canAccessSustainabilityFeatures: true,
+    virtualTryOnPerMonth: Infinity,
   },
 };
 

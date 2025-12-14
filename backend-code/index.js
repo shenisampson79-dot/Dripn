@@ -453,6 +453,20 @@ async function initDB() {
       CREATE INDEX IF NOT EXISTS idx_trend_reports_date ON trend_reports(generated_at);
       CREATE INDEX IF NOT EXISTS idx_trend_color_palettes_active ON trend_color_palettes(is_active, year, region);
       CREATE INDEX IF NOT EXISTS idx_trend_color_palettes_style ON trend_color_palettes(style_theme, color_role);
+
+      -- Virtual Try-On History Table
+      CREATE TABLE IF NOT EXISTS virtual_try_on_history (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        human_image_url TEXT NOT NULL,
+        garment_image_url TEXT NOT NULL,
+        result_image_url TEXT,
+        garment_description TEXT,
+        processing_time_ms INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_virtual_try_on_user ON virtual_try_on_history(user_id, created_at);
     `);
     console.log('Database tables initialized');
   } catch (error) {
@@ -4324,6 +4338,166 @@ app.get('/api/ai/reasoning-model', async (req, res) => {
   } catch (error) {
     console.error('Get reasoning model error:', error);
     res.status(500).json({ error: 'Failed to get reasoning model info' });
+  }
+});
+
+// ============ VIRTUAL TRY-ON (Replicate IDM-VTON) ============
+
+// Virtual try-on limits by subscription tier
+const VIRTUAL_TRY_ON_LIMITS = {
+  free: 0,
+  basic: 3,
+  premium: 10,
+  vip: Infinity,
+};
+
+// Virtual try-on endpoint
+app.post('/api/virtual-try-on', authMiddleware, async (req, res) => {
+  const Replicate = require('replicate');
+  
+  try {
+    const { humanImageUri, garmentImageUrl, garmentDescription } = req.body;
+    
+    if (!humanImageUri || !garmentImageUrl) {
+      return res.status(400).json({ error: 'Human image and garment image are required' });
+    }
+    
+    // Check user subscription and usage
+    const userResult = await pool.query(
+      'SELECT subscription_tier FROM users WHERE id = $1',
+      [req.userId]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const tier = userResult.rows[0].subscription_tier || 'free';
+    const limit = VIRTUAL_TRY_ON_LIMITS[tier] || 0;
+    
+    // Check current month usage
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const usageResult = await pool.query(
+      `SELECT COUNT(*) as count FROM virtual_try_on_history 
+       WHERE user_id = $1 AND created_at >= $2`,
+      [req.userId, `${currentMonth}-01`]
+    );
+    
+    const used = parseInt(usageResult.rows[0]?.count || '0');
+    
+    if (limit !== Infinity && used >= limit) {
+      return res.status(403).json({ 
+        error: 'Virtual try-on limit reached for this month',
+        used,
+        limit,
+        tier
+      });
+    }
+    
+    // Check for Replicate API token
+    if (!process.env.REPLICATE_API_TOKEN) {
+      return res.status(500).json({ error: 'Virtual try-on service not configured' });
+    }
+    
+    const replicate = new Replicate({
+      auth: process.env.REPLICATE_API_TOKEN,
+    });
+    
+    const startTime = Date.now();
+    
+    // Run IDM-VTON model
+    const output = await replicate.run("cuuupid/idm-vton:c871bb9b046c1462f43284e5ea49e2136c7f16b8e0744ca41ea003dcac3fab4a", {
+      input: {
+        human_img: humanImageUri,
+        garm_img: garmentImageUrl,
+        garment_des: garmentDescription || 'A fashionable garment',
+      }
+    });
+    
+    const processingTimeMs = Date.now() - startTime;
+    
+    // Store in history
+    await pool.query(
+      `INSERT INTO virtual_try_on_history (user_id, human_image_url, garment_image_url, result_image_url, garment_description, processing_time_ms)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [req.userId, humanImageUri, garmentImageUrl, output, garmentDescription, processingTimeMs]
+    );
+    
+    res.json({
+      success: true,
+      resultImageUrl: output,
+      processingTimeMs,
+    });
+  } catch (error) {
+    console.error('Virtual try-on error:', error);
+    res.status(500).json({ error: 'Failed to generate try-on image' });
+  }
+});
+
+// Get virtual try-on usage
+app.get('/api/virtual-try-on/usage', authMiddleware, async (req, res) => {
+  try {
+    const userResult = await pool.query(
+      'SELECT subscription_tier FROM users WHERE id = $1',
+      [req.userId]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const tier = userResult.rows[0].subscription_tier || 'free';
+    const limit = VIRTUAL_TRY_ON_LIMITS[tier] || 0;
+    
+    // Check current month usage
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const usageResult = await pool.query(
+      `SELECT COUNT(*) as count FROM virtual_try_on_history 
+       WHERE user_id = $1 AND created_at >= $2`,
+      [req.userId, `${currentMonth}-01`]
+    );
+    
+    const used = parseInt(usageResult.rows[0]?.count || '0');
+    
+    res.json({
+      used,
+      limit: limit === Infinity ? -1 : limit,
+      remaining: limit === Infinity ? -1 : Math.max(0, limit - used),
+      tier,
+    });
+  } catch (error) {
+    console.error('Virtual try-on usage error:', error);
+    res.status(500).json({ error: 'Failed to get usage' });
+  }
+});
+
+// Get virtual try-on history
+app.get('/api/virtual-try-on/history', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, human_image_url, garment_image_url, result_image_url, garment_description, processing_time_ms, created_at
+       FROM virtual_try_on_history 
+       WHERE user_id = $1 
+       ORDER BY created_at DESC 
+       LIMIT 20`,
+      [req.userId]
+    );
+    
+    res.json({
+      success: true,
+      history: result.rows.map(row => ({
+        id: row.id,
+        humanImageUrl: row.human_image_url,
+        garmentImageUrl: row.garment_image_url,
+        resultImageUrl: row.result_image_url,
+        garmentDescription: row.garment_description,
+        processingTimeMs: row.processing_time_ms,
+        createdAt: row.created_at,
+      })),
+    });
+  } catch (error) {
+    console.error('Virtual try-on history error:', error);
+    res.status(500).json({ error: 'Failed to get history' });
   }
 });
 

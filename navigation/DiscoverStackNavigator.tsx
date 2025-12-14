@@ -13,6 +13,7 @@ import ChallengeDetailScreen from "@/screens/ChallengeDetailScreen";
 import ChallengeSubmissionScreen from "@/screens/ChallengeSubmissionScreen";
 import EventsScreen from "@/screens/EventsScreen";
 import StreetStyleScannerScreen from "@/screens/StreetStyleScannerScreen";
+import VirtualTryOnScreen from "@/screens/VirtualTryOnScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -30,6 +31,7 @@ export type DiscoverStackParamList = {
   ChallengeSubmission: { challengeId: string };
   Events: undefined;
   StreetStyleScanner: undefined;
+  VirtualTryOn: { garmentImageUrl?: string; garmentDescription?: string } | undefined;
 };
 
 const Stack = createNativeStackNavigator<DiscoverStackParamList>();
@@ -105,6 +107,11 @@ export default function DiscoverStackNavigator() {
         name="StreetStyleScanner"
         component={StreetStyleScannerScreen}
         options={{ headerTitle: "Street Style Scanner" }}
+      />
+      <Stack.Screen
+        name="VirtualTryOn"
+        component={VirtualTryOnScreen}
+        options={{ headerTitle: "Virtual Try-On" }}
       />
     </Stack.Navigator>
   );

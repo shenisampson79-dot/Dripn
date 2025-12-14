@@ -1,9 +1,7 @@
 # Dripn - Fashion Advice Mobile App
 
 ## Overview
-Dripn is a mobile fashion advice app built with Expo React Native, designed to allow users to post outfit photos/videos and receive styling advice from AI, community members, and professional stylists via live video calls. The app aims to provide size-inclusive recommendations, shoppable affiliate content, dynamic UI theming, and strong community engagement. It supports freemium subscriptions and offers a comprehensive platform for fashion enthusiasts with a vision for market potential in personalized fashion.
-
-**Tagline:** Style that flows
+Dripn is a mobile fashion advice app built with Expo React Native, enabling users to post outfit photos/videos and receive styling advice from AI, community members, and professional stylists. The app aims to provide size-inclusive recommendations, shoppable affiliate content, dynamic UI theming, and strong community engagement. It supports freemium subscriptions and offers a comprehensive platform for personalized fashion.
 
 ## User Preferences
 I prefer detailed explanations.
@@ -11,206 +9,42 @@ Do not make changes to the folder `Z`.
 Do not make changes to the file `Y`.
 
 ## System Architecture
-The app is built with Expo React Native and TypeScript, utilizing React Navigation 7+ for navigation and React Context API for state management. Local persistence is handled by AsyncStorage. The UI adheres to an iOS 26 Liquid Glass design system, featuring 7 dynamic, fashion-inspired color themes with light/dark modes (Luxury, Streetwear, Boho, Sporty, Business/Smart Casual, Edgy), with gender-specific adaptations for "Business."
+The app is built with Expo React Native and TypeScript, utilizing React Navigation 7+ and React Context API for state management. It features an iOS 26 Liquid Glass design system with 7 dynamic, fashion-inspired color themes (including light/dark modes and gender-specific adaptations), and an annual "Hot Colors Rotation Policy" based on Pantone's "Color of the Year."
 
-The application incorporates a dynamic "Hot Colors Rotation Policy" that ensures the color palette in `constants/theme.ts` is updated annually based on Pantone's "Color of the Year" announcements, always featuring colors for the current and next year.
-
-Key Features include:
-- **Subscription Tiers**: Freemium model with Free, Basic, Premium, and VIP (£9,999/month) tiers offering varied access to uploads, AI advice requests, video posts, personal stylist sessions, and VIP video calling.
-- **Content Creation**: Users can create outfit posts with photos/videos and comparison polls.
-- **AI Fashion Advice**: AI-driven advice incorporates color analysis, personalized recommendations, influencer trends, and culturally relevant insights, filtered by gender and region.
+Key Features:
+- **Subscription Tiers**: Freemium model (Free, Basic, Premium, VIP) with varied access to features like uploads, AI advice, and personal stylist sessions.
+- **Content Creation**: Users can post outfit photos/videos and create comparison polls.
+- **AI Fashion Advice**: AI-driven advice includes color analysis, personalized recommendations, trend insights, and culturally relevant suggestions, filtered by gender and region. Integrated with OpenAI, using model priority `gpt-4.5-preview` → `gpt-4o` → `gpt-4-turbo` → `gpt-4` → `gpt-3.5-turbo`.
 - **Community Engagement**: Supports voice comments, content reporting, and viral sharing with auto-generated hashtags.
-- **Discovery**: Features include "Style of the Day," category browsing, trending challenges, weekly highlights, Celebrity-Inspired Looks (AI-generated), and Influencer Inspiration.
-- **Bargains of the Day**: Dedicated tab for daily deals from trusted retailers with category filtering and real-time expiry countdowns.
-- **Events Near You**: Location-based event discovery with outfit suggestions, sourced from multiple external platforms.
-- **Code Protection**: Includes ProGuard for Android, JavaScript obfuscation, and Hermes Engine for enhanced security and performance.
-
-Technical Implementations:
+- **Discovery**: Features "Style of the Day," category browsing, trending challenges, weekly highlights, AI-generated Celebrity-Inspired Looks, and Influencer Inspiration.
+- **Bargains of the Day**: Dedicated tab for daily deals from trusted retailers with filtering and real-time countdowns.
+- **Events Near You**: Location-based event discovery with outfit suggestions.
+- **Code Protection**: Includes ProGuard for Android, JavaScript obfuscation, and Hermes Engine.
 - **Dynamic Theming**: Six style themes with light/dark modes.
-- **AI Stylist Integration**: Full OpenAI integration with automatic model selection (prefers gpt-4.5-preview → gpt-4o → gpt-4-turbo → gpt-4 → gpt-3.5-turbo). Features Ruby (women's stylist) and Max (men's stylist) personas with 8 fashion knowledge domains, 15-message conversation memory, and gender/region-specific advice.
-- **Gender-Specific Experience**: UI and content (models, advice, influencers) are tailored based on user's gender.
-- **Region-Specific Images**: Style previews (Boho, Sporty, Business, Smart Casual) use regional models based on the user's country across 7 regions.
-- **Stripe Integration**: Client-side ready for subscription payments.
-- **Backend**: A separate Node.js backend supports full API functionality with PostgreSQL.
-
-The app also includes a comprehensive **Fashion Accessories System** within the AI advice, covering luxury bags (men/women), designer eyewear, belts, fine jewelry, luxury watches, and winter accessories, with specific brand and style recommendations.
-
-A **Fashion Trend Intelligence System** curates global trend data from fashion publications and influencers. This system delivers regional/gender-specific trend data, trending items, influencer recommendations, color trends, style movements, and cultural notes, with access tiered by subscription level.
-
-A **Visual Outfit Inspiration System** provides a Pinterest-style feature with similar outfit ideas. It uses a curated outfit library organized by style category and gender, with future plans for AI-generated images via DALL-E integration.
-
-## Advanced AI Capabilities (OpenAI Integration)
-
-The backend includes comprehensive AI services leveraging multiple OpenAI models:
-
-### Model Lifecycle System (`backend-code/modelLifecycleService.js`)
-- Automatic model upgrade detection and A/B testing
-- Model priority: gpt-4.5-preview → gpt-4o → gpt-4-turbo → gpt-4 → gpt-3.5-turbo
-- Daily health checks and performance monitoring
-- API endpoints: `/api/ai/model-status`, `/api/ai/refresh-models`, `/api/ai/health-check`, `/api/ai/check-upgrades`
-
-### Vision-Powered Outfit Analysis (`backend-code/visionAnalysisService.js`)
-- GPT-4o Vision integration for analyzing outfit photos
-- Features: color extraction, style detection, fit analysis, occasion matching
-- Multi-image outfit comparison
-- API endpoints: `/api/ai/analyze-photo`, `/api/ai/compare-outfits`, `/api/ai/extract-colors`
-
-### Voice Services (`backend-code/voiceService.js`)
-- Whisper integration for speech-to-text transcription
-- TTS-1-HD for natural AI voice responses
-- Voice personas: Ruby (women's stylist) and Max (men's stylist)
-- API endpoints: `/api/ai/transcribe`, `/api/ai/speak`, `/api/ai/voices`, `/api/ai/voice-message`, `/api/ai/voice-response`
-
-### Fashion Therapy & Wellness (`backend-code/lifestyleStylistService.js`)
-- Mood-based outfit recommendations
-- Body positivity affirmations and styling tips
-- Capsule wardrobe planning
-- Confidence ritual generation
-- Wellness activity outfit suggestions
-- Daily fashion affirmations
-- API endpoints: `/api/ai/lifestyle/mood-outfit`, `/api/ai/lifestyle/body-positivity`, `/api/ai/lifestyle/capsule-wardrobe`, `/api/ai/lifestyle/confidence-ritual`, `/api/ai/lifestyle/wellness-outfit`, `/api/ai/lifestyle/affirmation`
-
-### Semantic Style Search (`backend-code/styleEmbeddingService.js`)
-- text-embedding-3-large for semantic outfit matching
-- Style preference understanding
-- Complementary piece suggestions
-- API endpoints: `/api/ai/semantic-search`, `/api/ai/complementary-pieces`, `/api/ai/embedding-stats`
-
-### AI Image Generation (`backend-code/imageGenerationService.js`)
-- DALL-E 3 integration for outfit inspiration images
-- Moodboard generation
-- Style guide visualization
-- Similar outfit generation
-- API endpoints: `/api/ai/generate-inspiration`, `/api/ai/generate-moodboard`, `/api/ai/generate-similar`, `/api/ai/generate-variations`, `/api/ai/generate-style-guide`, `/api/ai/available-styles`, `/api/ai/available-moods`
-
-### Complex Analysis with o1 Reasoning Models (`backend-code/aiStylistService.js`)
-- Deep fashion analysis using OpenAI's o1 reasoning models for Premium/VIP subscribers
-- Automatic model selection: o1 → o1-preview → o1-mini → gpt-4.1 → gpt-4.5-preview → gpt-4o
-- 8 specialized analysis types:
-  - `wardrobe_audit`: Comprehensive wardrobe composition, versatility scoring, gap analysis
-  - `personal_style_profile`: Core aesthetic identification, style personality typing, signature elements
-  - `color_analysis`: Seasonal color typing, best colors by context, color combination formulas
-  - `capsule_wardrobe`: Optimized piece lists, color schemes, outfit combination matrices
-  - `outfit_planning`: Daily formulas, occasion templates, accessory rotation systems
-  - `style_transformation`: Phased transformation roadmaps with timelines and milestones
-  - `shopping_strategy`: Investment prioritization, budget allocation, cost-per-wear projections
-  - `trend_adaptation`: Personal trend alignment, longevity predictions, adoption strategies
-- Handles o1 model-specific requirements (developer role for modern o1, combined user messages for legacy o1-preview/mini)
-- Graceful fallback to GPT-4o if reasoning models unavailable
-- Returns reasoning token usage metrics
-- API endpoints:
-  - `GET /api/ai/analysis-types` - List available analysis types
-  - `POST /api/ai/complex-analysis` - Main complex analysis endpoint (Premium/VIP only)
-  - `POST /api/ai/wardrobe-audit` - Quick wardrobe audit
-  - `POST /api/ai/style-profile` - Personal style profile creation
-  - `GET /api/ai/reasoning-model` - Get current reasoning model info
-
-### Fashion Therapy Screen (`screens/FashionTherapyScreen.tsx`)
-- Mood selector with 8 emotional states (happy, confident, calm, anxious, tired, stressed, sad, motivated)
-- Mood-based outfit recommendations
-- Body positivity section with personalized affirmations
-- Confidence ritual generator
-- Wellness wardrobe for activities (yoga, meditation, workout, nature walk, self-care, journaling)
-- Capsule wardrobe planner
-- Daily affirmation display
-- Navigation: Accessible from Profile screen via "Fashion Therapy" button
-
-## VIP Video Calling System
-VIP members have exclusive access to video calling features hosted on the Dripn platform:
-
-**VIP-to-VIP Calls**:
-- VIP members can browse other available VIP members in the VIP Members screen
-- Online status indicators show availability
-- Video calls are initiated and hosted within Dripn (not external social media)
-- Call history and duration tracking
-
-**Stylist Video Sessions**:
-- 4x 60-minute video styling sessions per month for VIP members
-- Sessions with professional stylists conducted via video call
-- Session notes and completion tracking
-
-**Access Control**:
-- Video calling features only visible/accessible to VIP tier subscribers
-- Non-VIP users see upgrade prompts when attempting to access video features
-- Backend enforces VIP-only access via vipAuthMiddleware
-
-**Technical Implementation**:
-- Frontend screens: `screens/VIPMembersScreen.tsx`, `screens/VideoCallScreen.tsx`
-- API endpoints in `backend-code/index.js`:
-  - `GET /api/video/vip-members` - List VIP members for calling
-  - `POST /api/video/call` - Initiate VIP-to-VIP call
-  - `POST /api/video/call/:id/accept` - Accept incoming call
-  - `POST /api/video/call/:id/end` - End/decline call
-  - `GET /api/video/incoming` - Get pending incoming calls
-  - `GET /api/video/history` - Get call history
-  - `POST /api/sessions/:id/start-video` - Start stylist video session
-- Database tables: `vip_peer_calls`, `vip_sessions` (with room_url, room_token columns)
-- Navigation: Accessible from Profile screen for VIP users
-
-## Admin Notification System
-The backend includes an admin notification system for VIP purchases:
-
-**Email Notifications (SendGrid)**:
-- Sends to: shenisampson79@gmail.com, sheni_sampson@yahoo.co.uk
-- Triggered on VIP membership purchases
-
-**SMS Notifications (Twilio)** - To be configured:
-- Sends to: +447835913601
-- Requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER secrets
-
-**Stripe Webhook** (`/api/stripe/webhook`):
-- Detects VIP purchases via price ID (price_vip_monthly, price_vip_yearly) or metadata
-- Handles: checkout.session.completed, customer.subscription.created/updated, invoice.paid
-
-**Test Endpoint** (`POST /api/admin/test-vip-notification`):
-- Admin-only endpoint to test the notification system
-- Sends test emails and SMS to admin contacts
-
-Files:
-- `backend-code/notificationService.js` - Email and SMS notification logic
-- `backend-code/index.js` - Stripe webhook and test endpoint
-
-## Marketing & Growth Features
-The app includes comprehensive marketing and growth features:
-
-**Social Sharing with Branding**:
-- Branded share messages with Dripn hashtags (#Dripn #FashionAdvice)
-- Deep link sharing for posts, profiles, and outfits
-- Platform-optimized sharing via expo-sharing
-- Service: `services/SharingService.ts`
-
-**Referral Program**:
-- Unique referral codes generated per user (format: DR + 6 alphanumeric chars)
-- Referral tracking and rewards system
-- 10% discount rewards for successful referrals
-- Context: `contexts/ReferralContext.tsx`
-- UI: Accessible from Settings screen "Invite Friends" section
-
-**App Store Review Prompts**:
-- Smart review prompting using expo-store-review
-- Triggered after positive user engagement
-- Integrated into post creation and sharing flows
-
-**Deep Link Sharing**:
-- Configured expo-linking for content deep links
-- Supports sharing specific posts, profiles, and outfits
-- URL scheme: dripn://
-
-**Email Newsletter Signup**:
-- Fashion updates newsletter subscription
-- Toggle in Settings screen under "Newsletter" section
-- Backend integration via SendGrid for newsletter delivery
-- API: `services/ApiService.ts` newsletter methods
+- **Gender & Region Specificity**: UI, content, models, and advice are tailored based on user's gender and region.
+- **Fashion Accessories System**: AI advice includes recommendations for luxury bags, eyewear, belts, jewelry, watches, and winter accessories.
+- **Fashion Trend Intelligence System**: Curates global trend data for regional/gender-specific trends, items, influencers, colors, and style movements.
+- **Visual Outfit Inspiration System**: Pinterest-style feature with curated outfit libraries and future AI-generated images via DALL-E.
+- **Advanced AI Capabilities**:
+    - **Model Lifecycle System**: Automatic model upgrades, A/B testing, and health checks.
+    - **Vision-Powered Outfit Analysis**: GPT-4o Vision for color extraction, style detection, fit analysis, and multi-image comparison.
+    - **Voice Services**: Whisper for speech-to-text and TTS-1-HD for AI voice responses, with Ruby (women's) and Max (men's) personas.
+    - **Fashion Therapy & Wellness**: Mood-based outfit recommendations, body positivity affirmations, capsule wardrobe planning, confidence rituals, and wellness outfit suggestions.
+    - **Semantic Style Search**: `text-embedding-3-large` for semantic outfit matching and complementary piece suggestions.
+    - **AI Image Generation**: DALL-E 3 for outfit inspiration, moodboards, and style guide visualization.
+    - **Complex Analysis (o1 Reasoning Models)**: Deep fashion analysis for Premium/VIP subscribers, offering comprehensive wardrobe audits, personal style profiles, color analysis, and shopping strategies.
+    - **Virtual Try-On**: AI-powered try-on using Replicate's IDM-VTON model, allowing users to see how clothes look on them (subscription-gated).
+- **VIP Video Calling System**: Exclusive video calls for VIP members (VIP-to-VIP and stylist sessions), with online status, call history, and access control.
+- **Admin Notification System**: Email (SendGrid) and SMS (Twilio - to be configured) notifications for VIP purchases.
+- **Marketing & Growth Features**: Social sharing with branding, deep linking, referral program (unique codes, 10% discount), App Store review prompts, and email newsletter signup.
 
 ## External Dependencies
-- **Stripe**: For subscription management and payment processing.
-- **SendGrid**: For transactional email notifications (VIP purchase alerts, newsletters).
-- **Twilio**: For SMS text alerts (VIP purchase alerts) - to be configured.
-- **Expo-audio**: Used for voice comments functionality.
-- **Expo-sharing**: For branded social sharing functionality.
-- **Expo-store-review**: For App Store review prompts.
-- **Expo-linking**: For deep link sharing.
-- **OpenAI API**: Powers the AI Stylist feature with automatic model selection and enhanced fashion knowledge.
-- **PostgreSQL**: Database solution for the backend.
-- **Affiliate APIs**: Planned for "Shop Now" functionality.
+- **Stripe**: Subscription management and payments.
+- **SendGrid**: Transactional emails (VIP alerts, newsletters).
+- **Twilio**: SMS notifications (VIP alerts - to be configured).
+- **Expo**: `expo-audio`, `expo-sharing`, `expo-store-review`, `expo-linking`.
+- **OpenAI API**: AI Stylist, Vision, Voice services, Image Generation, Complex Analysis (GPT-4.5-preview, GPT-4o, GPT-4-turbo, GPT-4, GPT-3.5-turbo, DALL-E 3, Whisper, TTS-1-HD, text-embedding-3-large, o1 reasoning models).
+- **Replicate**: IDM-VTON model for Virtual Try-On.
+- **PostgreSQL**: Backend database.
+- **Affiliate APIs**: For "Shop Now" functionality.
 - **Event APIs**: Timeout, TodayTix, Eventbrite, Meetup, ClassPass (for "Events Near You").

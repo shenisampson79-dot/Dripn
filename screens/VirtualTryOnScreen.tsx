@@ -1,781 +1,724 @@
 /**
  * Copyright (c) 2025 Dripn. All rights reserved.
- * Proprietary and confidential.
+ * Virtual Try-On feature using IDM-VTON via Replicate.
  */
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
-import { 
-  StyleSheet, 
-  View, 
-  Pressable, 
-  Image, 
-  Dimensions, 
-  Platform,
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  StyleSheet,
+  View,
+  Pressable,
   ActivityIndicator,
-  FlatList,
-  ScrollView
-} from "react-native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Feather } from "@expo/vector-icons";
-import { CameraView, useCameraPermissions, CameraType } from "expo-camera";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Linking from "expo-linking";
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring,
-  runOnJS
-} from "react-native-reanimated";
-import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+  Alert,
+  Platform,
+  Image,
+  Dimensions,
+} from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import Animated, { FadeInUp, FadeIn, SlideInRight } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { Card } from "@/components/Card";
-import { Spacing, BorderRadius } from "@/constants/theme";
-import { useTheme } from "@/hooks/useTheme";
-import { useWardrobe, WardrobeItem, ClothingCategory, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
-import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import { ScreenScrollView } from '@/components/ScreenScrollView';
+import { ThemedText } from '@/components/ThemedText';
+import { Card } from '@/components/Card';
+import { Spacing, BorderRadius, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { virtualTryOnService } from '@/services/VirtualTryOnService';
+import type { DiscoverStackParamList } from '@/navigation/DiscoverStackNavigator';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type VirtualTryOnScreenProps = {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, "VirtualTryOn">;
+  navigation: NativeStackNavigationProp<DiscoverStackParamList, 'VirtualTryOn'>;
+  route: RouteProp<DiscoverStackParamList, 'VirtualTryOn'>;
 };
 
-interface OverlayItem {
-  item: WardrobeItem;
-  x: number;
-  y: number;
-  scale: number;
-  rotation: number;
-}
+type TryOnStep = 'upload_body' | 'select_garment' | 'processing' | 'result';
 
-const TRYABLE_CATEGORIES: ClothingCategory[] = [
-  "tops",
-  "bottoms",
-  "dresses",
-  "outerwear",
-  "accessories",
-  "bags",
-];
-
-const CATEGORY_ICONS: Record<ClothingCategory, string> = {
-  tops: "align-center",
-  bottoms: "minus",
-  dresses: "align-justify",
-  outerwear: "layers",
-  shoes: "anchor",
-  bags: "shopping-bag",
-  accessories: "watch",
-  activewear: "activity",
-  swimwear: "droplet",
-  sleepwear: "moon",
-  formal: "star",
-};
-
-export default function VirtualTryOnScreen({ navigation }: VirtualTryOnScreenProps) {
-  const { theme, isDark } = useTheme();
+export default function VirtualTryOnScreen({ navigation, route }: VirtualTryOnScreenProps) {
+  const { theme } = useTheme();
+  const { user } = useAuth();
+  const { tier, limits } = useSubscription();
   const insets = useSafeAreaInsets();
-  const { items } = useWardrobe();
-  const [permission, requestPermission] = useCameraPermissions();
-  const [facing, setFacing] = useState<CameraType>("front");
-  const [selectedCategory, setSelectedCategory] = useState<ClothingCategory>("tops");
-  const [overlayItems, setOverlayItems] = useState<OverlayItem[]>([]);
-  const [selectedOverlayIndex, setSelectedOverlayIndex] = useState<number | null>(null);
-  const [showItemPicker, setShowItemPicker] = useState(true);
 
-  const ownedItems = useMemo(() => {
-    return items.filter(item => 
-      (!item.origin || item.origin === "owned") && 
-      TRYABLE_CATEGORIES.includes(item.category)
-    );
-  }, [items]);
-
-  const categoryItems = useMemo(() => {
-    return ownedItems.filter(item => item.category === selectedCategory);
-  }, [ownedItems, selectedCategory]);
-
-  const handleBack = () => {
-    navigation.goBack();
-  };
-
-  const handleFlipCamera = () => {
-    setFacing((current: CameraType) => (current === "back" ? "front" : "back"));
-  };
-
-  const handleAddItem = (item: WardrobeItem) => {
-    const newOverlay: OverlayItem = {
-      item,
-      x: SCREEN_WIDTH / 2 - 75,
-      y: SCREEN_HEIGHT / 2 - 100,
-      scale: 1,
-      rotation: 0,
-    };
-    setOverlayItems(prev => [...prev, newOverlay]);
-    setSelectedOverlayIndex(overlayItems.length);
-    setShowItemPicker(false);
-  };
-
-  const handleRemoveItem = (index: number) => {
-    setOverlayItems(prev => prev.filter((_, i) => i !== index));
-    setSelectedOverlayIndex(null);
-  };
-
-  const handleClearAll = () => {
-    setOverlayItems([]);
-    setSelectedOverlayIndex(null);
-  };
-
-  const updateOverlayPosition = (index: number, x: number, y: number) => {
-    setOverlayItems(prev => 
-      prev.map((item, i) => 
-        i === index ? { ...item, x, y } : item
-      )
-    );
-  };
-
-  const updateOverlayScale = (index: number, scale: number) => {
-    setOverlayItems(prev => 
-      prev.map((item, i) => 
-        i === index ? { ...item, scale: Math.max(0.3, Math.min(3, scale)) } : item
-      )
-    );
-  };
-
-  if (!permission) {
-    return (
-      <ThemedView style={styles.container}>
-        <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
-          <ActivityIndicator size="large" color={theme.link} />
-          <ThemedText type="body" style={styles.loadingText}>
-            Loading camera...
-          </ThemedText>
-        </View>
-      </ThemedView>
-    );
-  }
-
-  if (!permission.granted) {
-    if (permission.status === "denied" && !permission.canAskAgain) {
-      return (
-        <ThemedView style={styles.container}>
-          <View style={[styles.permissionContainer, { paddingTop: insets.top }]}>
-            <Pressable onPress={handleBack} style={styles.backButtonAbsolute}>
-              <Feather name="arrow-left" size={24} color={theme.text} />
-            </Pressable>
-            <Feather name="camera-off" size={64} color={theme.tabIconDefault} />
-            <ThemedText type="h2" style={styles.permissionTitle}>
-              Camera Access Required
-            </ThemedText>
-            <ThemedText type="body" style={styles.permissionText}>
-              Virtual Try-On needs camera access to show how items look on you. Please enable camera access in your device settings.
-            </ThemedText>
-            {Platform.OS !== "web" ? (
-              <Pressable
-                onPress={async () => {
-                  try {
-                    await Linking.openSettings();
-                  } catch (error) {
-                    console.log("Could not open settings");
-                  }
-                }}
-                style={({ pressed }) => [
-                  styles.permissionButton,
-                  { backgroundColor: theme.link, opacity: pressed ? 0.9 : 1 },
-                ]}
-              >
-                <Feather name="settings" size={18} color="#FFFFFF" />
-                <ThemedText type="body" style={styles.permissionButtonText}>
-                  Open Settings
-                </ThemedText>
-              </Pressable>
-            ) : null}
-          </View>
-        </ThemedView>
-      );
-    }
-
-    return (
-      <ThemedView style={styles.container}>
-        <View style={[styles.permissionContainer, { paddingTop: insets.top }]}>
-          <Pressable onPress={handleBack} style={styles.backButtonAbsolute}>
-            <Feather name="arrow-left" size={24} color={theme.text} />
-          </Pressable>
-          <Feather name="camera" size={64} color={theme.link} />
-          <ThemedText type="h2" style={styles.permissionTitle}>
-            Virtual Try-On
-          </ThemedText>
-          <ThemedText type="body" style={styles.permissionText}>
-            See how your wardrobe items look on you in real-time. Grant camera access to get started.
-          </ThemedText>
-          <Pressable
-            onPress={requestPermission}
-            style={({ pressed }) => [
-              styles.permissionButton,
-              { backgroundColor: theme.link, opacity: pressed ? 0.9 : 1 },
-            ]}
-          >
-            <Feather name="camera" size={18} color="#FFFFFF" />
-            <ThemedText type="body" style={styles.permissionButtonText}>
-              Enable Camera
-            </ThemedText>
-          </Pressable>
-        </View>
-      </ThemedView>
-    );
-  }
-
-  if (Platform.OS === "web") {
-    return (
-      <ThemedView style={styles.container}>
-        <View style={[styles.permissionContainer, { paddingTop: insets.top }]}>
-          <Pressable onPress={handleBack} style={styles.backButtonAbsolute}>
-            <Feather name="arrow-left" size={24} color={theme.text} />
-          </Pressable>
-          <Feather name="smartphone" size={64} color={theme.link} />
-          <ThemedText type="h2" style={styles.permissionTitle}>
-            Use Expo Go
-          </ThemedText>
-          <ThemedText type="body" style={styles.permissionText}>
-            Virtual Try-On works best on your mobile device. Scan the QR code to open in Expo Go for the full experience.
-          </ThemedText>
-        </View>
-      </ThemedView>
-    );
-  }
-
-  return (
-    <GestureHandlerRootView style={styles.container}>
-      <View style={styles.cameraContainer}>
-        <CameraView
-          style={styles.camera}
-          facing={facing}
-        >
-          {overlayItems.map((overlay, index) => (
-            <DraggableOverlay
-              key={`${overlay.item.id}-${index}`}
-              overlay={overlay}
-              index={index}
-              isSelected={selectedOverlayIndex === index}
-              onSelect={() => setSelectedOverlayIndex(index)}
-              onPositionChange={(x, y) => updateOverlayPosition(index, x, y)}
-              onScaleChange={(scale) => updateOverlayScale(index, scale)}
-              onRemove={() => handleRemoveItem(index)}
-              theme={theme}
-            />
-          ))}
-        </CameraView>
-
-        <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-          <Pressable
-            onPress={handleBack}
-            style={({ pressed }) => [
-              styles.headerButton,
-              { backgroundColor: "rgba(0,0,0,0.5)", opacity: pressed ? 0.8 : 1 },
-            ]}
-          >
-            <Feather name="x" size={24} color="#FFFFFF" />
-          </Pressable>
-
-          <ThemedText type="h3" style={styles.headerTitle}>
-            Virtual Try-On
-          </ThemedText>
-
-          <Pressable
-            onPress={handleFlipCamera}
-            style={({ pressed }) => [
-              styles.headerButton,
-              { backgroundColor: "rgba(0,0,0,0.5)", opacity: pressed ? 0.8 : 1 },
-            ]}
-          >
-            <Feather name="refresh-cw" size={20} color="#FFFFFF" />
-          </Pressable>
-        </View>
-
-        {overlayItems.length > 0 ? (
-          <View style={styles.overlayControls}>
-            <Pressable
-              onPress={handleClearAll}
-              style={({ pressed }) => [
-                styles.clearButton,
-                { backgroundColor: "rgba(0,0,0,0.6)", opacity: pressed ? 0.8 : 1 },
-              ]}
-            >
-              <Feather name="trash-2" size={16} color="#FFFFFF" />
-              <ThemedText type="small" style={styles.clearButtonText}>
-                Clear All
-              </ThemedText>
-            </Pressable>
-          </View>
-        ) : null}
-
-        <View style={[styles.bottomPanel, { paddingBottom: insets.bottom + Spacing.md }]}>
-          {showItemPicker ? (
-            <>
-              <View style={styles.categoryTabs}>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.categoryTabsContent}
-                >
-                  {TRYABLE_CATEGORIES.map((category) => {
-                    const count = ownedItems.filter(i => i.category === category).length;
-                    const isSelected = selectedCategory === category;
-                    return (
-                      <Pressable
-                        key={category}
-                        onPress={() => setSelectedCategory(category)}
-                        style={({ pressed }) => [
-                          styles.categoryTab,
-                          {
-                            backgroundColor: isSelected 
-                              ? theme.link 
-                              : "rgba(255,255,255,0.2)",
-                            opacity: pressed ? 0.8 : 1,
-                          },
-                        ]}
-                      >
-                        <Feather 
-                          name={CATEGORY_ICONS[category] as any} 
-                          size={16} 
-                          color={isSelected ? "#FFFFFF" : "rgba(255,255,255,0.9)"} 
-                        />
-                        <ThemedText 
-                          type="small" 
-                          style={[
-                            styles.categoryTabText,
-                            { color: isSelected ? "#FFFFFF" : "rgba(255,255,255,0.9)" }
-                          ]}
-                        >
-                          {CATEGORY_LABELS[category].split(" ")[0]} ({count})
-                        </ThemedText>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-
-              {categoryItems.length > 0 ? (
-                <FlatList
-                  horizontal
-                  data={categoryItems}
-                  keyExtractor={(item) => item.id}
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.itemList}
-                  renderItem={({ item }) => (
-                    <Pressable
-                      onPress={() => handleAddItem(item)}
-                      style={({ pressed }) => [
-                        styles.itemCard,
-                        { opacity: pressed ? 0.8 : 1 },
-                      ]}
-                    >
-                      <Image
-                        source={{ uri: item.imageUri }}
-                        style={styles.itemImage}
-                        resizeMode="cover"
-                      />
-                      <View style={styles.itemInfo}>
-                        <ThemedText type="small" style={styles.itemName} numberOfLines={1}>
-                          {item.name}
-                        </ThemedText>
-                      </View>
-                      <View style={[styles.addBadge, { backgroundColor: theme.link }]}>
-                        <Feather name="plus" size={14} color="#FFFFFF" />
-                      </View>
-                    </Pressable>
-                  )}
-                />
-              ) : (
-                <View style={styles.emptyItems}>
-                  <ThemedText type="body" style={styles.emptyItemsText}>
-                    No {CATEGORY_LABELS[selectedCategory].toLowerCase()} in your wardrobe
-                  </ThemedText>
-                </View>
-              )}
-            </>
-          ) : (
-            <Pressable
-              onPress={() => setShowItemPicker(true)}
-              style={({ pressed }) => [
-                styles.showPickerButton,
-                { backgroundColor: "rgba(0,0,0,0.6)", opacity: pressed ? 0.8 : 1 },
-              ]}
-            >
-              <Feather name="plus" size={20} color="#FFFFFF" />
-              <ThemedText type="body" style={styles.showPickerButtonText}>
-                Add More Items
-              </ThemedText>
-            </Pressable>
-          )}
-        </View>
-      </View>
-    </GestureHandlerRootView>
-  );
-}
-
-interface DraggableOverlayProps {
-  overlay: OverlayItem;
-  index: number;
-  isSelected: boolean;
-  onSelect: () => void;
-  onPositionChange: (x: number, y: number) => void;
-  onScaleChange: (scale: number) => void;
-  onRemove: () => void;
-  theme: any;
-}
-
-function DraggableOverlay({
-  overlay,
-  index,
-  isSelected,
-  onSelect,
-  onPositionChange,
-  onScaleChange,
-  onRemove,
-  theme,
-}: DraggableOverlayProps) {
-  const translateX = useSharedValue(overlay.x);
-  const translateY = useSharedValue(overlay.y);
-  const scale = useSharedValue(overlay.scale);
-  const savedTranslateX = useSharedValue(overlay.x);
-  const savedTranslateY = useSharedValue(overlay.y);
-  const savedScale = useSharedValue(overlay.scale);
-  const isGestureActive = useSharedValue(false);
+  const [step, setStep] = useState<TryOnStep>('upload_body');
+  const [bodyImageUri, setBodyImageUri] = useState<string | null>(null);
+  const [garmentImageUrl, setGarmentImageUrl] = useState<string | null>(route.params?.garmentImageUrl || null);
+  const [garmentDescription, setGarmentDescription] = useState<string>(route.params?.garmentDescription || '');
+  const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [usageInfo, setUsageInfo] = useState<{ used: number; limit: number; remaining: number } | null>(null);
+  const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
 
   useEffect(() => {
-    if (!isGestureActive.value) {
-      translateX.value = overlay.x;
-      translateY.value = overlay.y;
-      scale.value = overlay.scale;
-      savedTranslateX.value = overlay.x;
-      savedTranslateY.value = overlay.y;
-      savedScale.value = overlay.scale;
+    fetchUsage();
+    if (route.params?.garmentImageUrl) {
+      setGarmentImageUrl(route.params.garmentImageUrl);
+      setGarmentDescription(route.params.garmentDescription || '');
     }
-  }, [overlay.x, overlay.y, overlay.scale]);
+  }, [route.params]);
 
-  const updatePosition = (x: number, y: number) => {
-    onPositionChange(x, y);
+  const fetchUsage = async () => {
+    const usage = await virtualTryOnService.checkUsage();
+    if (usage) {
+      setUsageInfo({
+        used: usage.used,
+        limit: usage.limit === -1 ? Infinity : usage.limit,
+        remaining: usage.remaining === -1 ? Infinity : usage.remaining,
+      });
+    }
   };
 
-  const updateScale = (s: number) => {
-    onScaleChange(s);
+  const canTryOn = () => {
+    if (limits.virtualTryOnPerMonth === 0) return false;
+    if (limits.virtualTryOnPerMonth === Infinity) return true;
+    if (usageInfo === null) return true;
+    return usageInfo.remaining > 0;
   };
 
-  const selectOverlay = () => {
-    onSelect();
+  const handleUploadBodyPhoto = async () => {
+    if (!canTryOn()) {
+      Alert.alert(
+        'Upgrade Required',
+        tier === 'free' 
+          ? 'Virtual Try-On is available for Basic subscribers and above. Upgrade to try on clothes virtually!'
+          : 'You have used all your virtual try-ons this month. Upgrade for more!',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => navigation.navigate('Subscription' as any) },
+        ]
+      );
+      return;
+    }
+
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [3, 4],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setBodyImageUri(result.assets[0].uri);
+        if (garmentImageUrl) {
+          setStep('select_garment');
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
   };
 
-  const setGestureActive = (active: boolean) => {
-    isGestureActive.value = active;
+  const handleTakePhoto = async () => {
+    if (!canTryOn()) {
+      Alert.alert('Upgrade Required', 'Virtual Try-On requires a Basic subscription or higher.');
+      return;
+    }
+
+    if (!cameraPermission?.granted) {
+      const result = await requestCameraPermission();
+      if (!result.granted) {
+        Alert.alert('Permission Required', 'Camera access is needed to take a photo.');
+        return;
+      }
+    }
+
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [3, 4],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setBodyImageUri(result.assets[0].uri);
+        if (garmentImageUrl) {
+          setStep('select_garment');
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    }
   };
 
-  const panGesture = Gesture.Pan()
-    .onStart(() => {
-      isGestureActive.value = true;
-      runOnJS(selectOverlay)();
-      savedTranslateX.value = translateX.value;
-      savedTranslateY.value = translateY.value;
-    })
-    .onUpdate((event) => {
-      translateX.value = savedTranslateX.value + event.translationX;
-      translateY.value = savedTranslateY.value + event.translationY;
-    })
-    .onEnd(() => {
-      isGestureActive.value = false;
-      runOnJS(updatePosition)(translateX.value, translateY.value);
-    })
-    .onFinalize(() => {
-      isGestureActive.value = false;
-    });
+  const handleSelectGarment = async () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
 
-  const pinchGesture = Gesture.Pinch()
-    .onStart(() => {
-      isGestureActive.value = true;
-      runOnJS(selectOverlay)();
-      savedScale.value = scale.value;
-    })
-    .onUpdate((event) => {
-      scale.value = savedScale.value * event.scale;
-    })
-    .onEnd(() => {
-      isGestureActive.value = false;
-      const clampedScale = Math.max(0.3, Math.min(3, scale.value));
-      scale.value = withSpring(clampedScale);
-      runOnJS(updateScale)(clampedScale);
-    })
-    .onFinalize(() => {
-      isGestureActive.value = false;
-    });
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
 
-  const tapGesture = Gesture.Tap()
-    .onEnd(() => {
-      runOnJS(selectOverlay)();
-    });
+      if (!result.canceled && result.assets[0]) {
+        setGarmentImageUrl(result.assets[0].uri);
+        setGarmentDescription('A fashionable garment');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to select garment. Please try again.');
+    }
+  };
 
-  const composedGesture = Gesture.Simultaneous(
-    Gesture.Race(panGesture, pinchGesture),
-    tapGesture
+  const handleGenerateTryOn = async () => {
+    if (!bodyImageUri || !garmentImageUrl) {
+      Alert.alert('Missing Images', 'Please upload both a body photo and a garment image.');
+      return;
+    }
+
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+
+    setStep('processing');
+    setIsLoading(true);
+    setProcessingProgress(0);
+
+    const progressInterval = setInterval(() => {
+      setProcessingProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 10;
+      });
+    }, 1000);
+
+    try {
+      const response = await virtualTryOnService.generateTryOn(
+        {
+          humanImageUri: bodyImageUri,
+          garmentImageUrl: garmentImageUrl,
+          garmentDescription: garmentDescription || 'A fashionable garment',
+        },
+      );
+
+      clearInterval(progressInterval);
+      setProcessingProgress(100);
+
+      if (response.success && response.resultImageUrl) {
+        setResultImageUrl(response.resultImageUrl);
+        setStep('result');
+        fetchUsage();
+      } else {
+        Alert.alert('Error', response.error || 'Failed to generate try-on image. Please try again.');
+        setStep('select_garment');
+      }
+    } catch (error) {
+      clearInterval(progressInterval);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+      setStep('select_garment');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReset = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setStep('upload_body');
+    setBodyImageUri(null);
+    setGarmentImageUrl(route.params?.garmentImageUrl || null);
+    setResultImageUrl(null);
+    setProcessingProgress(0);
+  };
+
+  const renderUploadBodyStep = () => (
+    <Animated.View entering={FadeIn.duration(400)} style={styles.stepContainer}>
+      <LinearGradient
+        colors={[`${theme.link}15`, `${theme.link}05`]}
+        style={[styles.uploadCard, { backgroundColor: theme.backgroundSecondary }]}
+      >
+        <View style={[styles.iconContainer, { backgroundColor: `${theme.link}20` }]}>
+          <Feather name="user" size={48} color={theme.link} />
+        </View>
+
+        <ThemedText style={styles.stepTitle}>Upload Your Photo</ThemedText>
+        <ThemedText style={[styles.stepDescription, { color: theme.tabIconDefault }]}>
+          Upload a full-body photo to see how clothes look on you
+        </ThemedText>
+
+        <View style={styles.buttonRow}>
+          <Pressable
+            onPress={handleTakePhoto}
+            disabled={!canTryOn()}
+            style={({ pressed }) => [
+              styles.uploadButton,
+              { backgroundColor: theme.link, opacity: pressed ? 0.8 : canTryOn() ? 1 : 0.5 },
+            ]}
+          >
+            <Feather name="camera" size={20} color="#FFFFFF" />
+            <ThemedText style={styles.uploadButtonText}>Take Photo</ThemedText>
+          </Pressable>
+
+          <Pressable
+            onPress={handleUploadBodyPhoto}
+            disabled={!canTryOn()}
+            style={({ pressed }) => [
+              styles.uploadButton,
+              { backgroundColor: theme.backgroundTertiary, opacity: pressed ? 0.8 : canTryOn() ? 1 : 0.5 },
+            ]}
+          >
+            <Feather name="image" size={20} color={theme.text} />
+            <ThemedText style={[styles.uploadButtonText, { color: theme.text }]}>Gallery</ThemedText>
+          </Pressable>
+        </View>
+
+        {bodyImageUri ? (
+          <Animated.View entering={FadeInUp.duration(300)} style={styles.previewContainer}>
+            <Image source={{ uri: bodyImageUri }} style={styles.previewImage} />
+            <View style={[styles.checkBadge, { backgroundColor: theme.success }]}>
+              <Feather name="check" size={16} color="#FFFFFF" />
+            </View>
+          </Animated.View>
+        ) : null}
+      </LinearGradient>
+
+      {usageInfo && limits.virtualTryOnPerMonth !== Infinity ? (
+        <Animated.View 
+          entering={FadeInUp.delay(200)}
+          style={[styles.usageBanner, { backgroundColor: theme.backgroundSecondary }]}
+        >
+          <Feather name="info" size={16} color={theme.tabIconDefault} />
+          <ThemedText style={[styles.usageText, { color: theme.tabIconDefault }]}>
+            {usageInfo.remaining > 0
+              ? `${usageInfo.remaining} virtual ${usageInfo.remaining === 1 ? 'try-on' : 'try-ons'} remaining`
+              : 'No try-ons remaining this month'}
+          </ThemedText>
+        </Animated.View>
+      ) : null}
+
+      <View style={styles.tipsSection}>
+        <ThemedText style={[styles.tipsTitle, { color: theme.tabIconDefault }]}>Tips for Best Results</ThemedText>
+        {[
+          { icon: 'user', text: 'Full body visible from head to toe' },
+          { icon: 'sun', text: 'Good lighting, plain background' },
+          { icon: 'maximize-2', text: 'Stand straight facing the camera' },
+        ].map((tip, index) => (
+          <View key={index} style={styles.tipItem}>
+            <View style={[styles.tipIcon, { backgroundColor: `${theme.link}15` }]}>
+              <Feather name={tip.icon as any} size={14} color={theme.link} />
+            </View>
+            <ThemedText style={[styles.tipText, { color: theme.tabIconDefault }]}>{tip.text}</ThemedText>
+          </View>
+        ))}
+      </View>
+
+      {bodyImageUri && garmentImageUrl ? (
+        <Pressable
+          onPress={() => setStep('select_garment')}
+          style={[styles.continueButton, { backgroundColor: theme.link }]}
+        >
+          <ThemedText style={styles.continueButtonText}>Continue</ThemedText>
+          <Feather name="arrow-right" size={20} color="#FFFFFF" />
+        </Pressable>
+      ) : null}
+    </Animated.View>
   );
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value },
-    ],
-  }));
+  const renderSelectGarmentStep = () => (
+    <Animated.View entering={SlideInRight.duration(400)} style={styles.stepContainer}>
+      <View style={styles.imagesRow}>
+        <View style={styles.imageColumn}>
+          <ThemedText style={styles.imageLabel}>Your Photo</ThemedText>
+          {bodyImageUri ? (
+            <Image source={{ uri: bodyImageUri }} style={styles.selectedImage} />
+          ) : (
+            <View style={[styles.imagePlaceholder, { backgroundColor: theme.backgroundTertiary }]}>
+              <Feather name="user" size={32} color={theme.tabIconDefault} />
+            </View>
+          )}
+          <Pressable onPress={handleUploadBodyPhoto} style={styles.changeButton}>
+            <ThemedText style={[styles.changeButtonText, { color: theme.link }]}>Change</ThemedText>
+          </Pressable>
+        </View>
+
+        <View style={styles.arrowContainer}>
+          <Feather name="plus" size={24} color={theme.tabIconDefault} />
+        </View>
+
+        <View style={styles.imageColumn}>
+          <ThemedText style={styles.imageLabel}>Garment</ThemedText>
+          {garmentImageUrl ? (
+            <Image source={{ uri: garmentImageUrl }} style={styles.selectedImage} />
+          ) : (
+            <Pressable 
+              onPress={handleSelectGarment}
+              style={[styles.imagePlaceholder, { backgroundColor: theme.backgroundTertiary }]}
+            >
+              <Feather name="plus" size={32} color={theme.link} />
+              <ThemedText style={[styles.addText, { color: theme.link }]}>Add Garment</ThemedText>
+            </Pressable>
+          )}
+          {garmentImageUrl ? (
+            <Pressable onPress={handleSelectGarment} style={styles.changeButton}>
+              <ThemedText style={[styles.changeButtonText, { color: theme.link }]}>Change</ThemedText>
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+
+      {bodyImageUri && garmentImageUrl ? (
+        <Pressable
+          onPress={handleGenerateTryOn}
+          style={[styles.generateButton, { backgroundColor: theme.link }]}
+        >
+          <Feather name="zap" size={20} color="#FFFFFF" />
+          <ThemedText style={styles.generateButtonText}>Try It On</ThemedText>
+        </Pressable>
+      ) : null}
+
+      <Pressable onPress={handleReset} style={styles.resetButton}>
+        <ThemedText style={[styles.resetButtonText, { color: theme.tabIconDefault }]}>Start Over</ThemedText>
+      </Pressable>
+    </Animated.View>
+  );
+
+  const renderProcessingStep = () => (
+    <Animated.View entering={FadeIn.duration(400)} style={styles.processingContainer}>
+      <View style={[styles.processingCard, { backgroundColor: theme.backgroundSecondary }]}>
+        <ActivityIndicator size="large" color={theme.link} />
+        <ThemedText style={styles.processingTitle}>Creating Your Look</ThemedText>
+        <ThemedText style={[styles.processingDescription, { color: theme.tabIconDefault }]}>
+          Our AI is virtually trying on the garment for you. This may take up to 30 seconds...
+        </ThemedText>
+        
+        <View style={styles.progressBarContainer}>
+          <View 
+            style={[
+              styles.progressBar, 
+              { backgroundColor: theme.link, width: `${processingProgress}%` }
+            ]} 
+          />
+        </View>
+        <ThemedText style={[styles.progressText, { color: theme.tabIconDefault }]}>
+          {Math.round(processingProgress)}%
+        </ThemedText>
+      </View>
+    </Animated.View>
+  );
+
+  const renderResultStep = () => (
+    <Animated.View entering={FadeIn.duration(400)} style={styles.resultContainer}>
+      <ThemedText style={styles.resultTitle}>Your Virtual Try-On</ThemedText>
+      
+      <View style={styles.comparisonContainer}>
+        <View style={styles.comparisonColumn}>
+          <ThemedText style={[styles.comparisonLabel, { color: theme.tabIconDefault }]}>Before</ThemedText>
+          {bodyImageUri ? (
+            <Image source={{ uri: bodyImageUri }} style={styles.comparisonImage} />
+          ) : null}
+        </View>
+        
+        <View style={styles.comparisonColumn}>
+          <ThemedText style={[styles.comparisonLabel, { color: theme.tabIconDefault }]}>After</ThemedText>
+          {resultImageUrl ? (
+            <Image source={{ uri: resultImageUrl }} style={styles.comparisonImage} />
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.resultActions}>
+        <Pressable
+          onPress={handleReset}
+          style={[styles.actionButton, { backgroundColor: theme.backgroundTertiary }]}
+        >
+          <Feather name="refresh-cw" size={20} color={theme.text} />
+          <ThemedText style={[styles.actionButtonText, { color: theme.text }]}>Try Another</ThemedText>
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
 
   return (
-    <GestureDetector gesture={composedGesture}>
-      <Animated.View style={[styles.overlayItem, animatedStyle]}>
-        <Image
-          source={{ uri: overlay.item.imageUri }}
-          style={styles.overlayImage}
-          resizeMode="contain"
-        />
-        {isSelected ? (
-          <View style={styles.overlaySelectedBorder}>
-            <Pressable
-              onPress={onRemove}
-              style={({ pressed }) => [
-                styles.removeButton,
-                { backgroundColor: theme.error || "#DC2626", opacity: pressed ? 0.8 : 1 },
-              ]}
-            >
-              <Feather name="x" size={14} color="#FFFFFF" />
-            </Pressable>
-            <View style={[styles.scaleHint, { backgroundColor: "rgba(0,0,0,0.6)" }]}>
-              <ThemedText type="caption" style={styles.scaleHintText}>
-                Pinch to resize
-              </ThemedText>
-            </View>
-          </View>
-        ) : null}
-      </Animated.View>
-    </GestureDetector>
+    <ScreenScrollView contentContainerStyle={styles.container}>
+      {step === 'upload_body' && renderUploadBodyStep()}
+      {step === 'select_garment' && renderSelectGarmentStep()}
+      {step === 'processing' && renderProcessingStep()}
+      {step === 'result' && renderResultStep()}
+    </ScreenScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    padding: Spacing.lg,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: Spacing.md,
-  },
-  loadingText: {
-    opacity: 0.7,
-  },
-  permissionContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Spacing.xl,
+  stepContainer: {
     gap: Spacing.lg,
   },
-  backButtonAbsolute: {
-    position: "absolute",
-    top: 60,
-    left: Spacing.lg,
-    padding: Spacing.sm,
+  uploadCard: {
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    alignItems: 'center',
   },
-  permissionTitle: {
-    textAlign: "center",
-    marginTop: Spacing.md,
+  iconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
   },
-  permissionText: {
-    textAlign: "center",
-    opacity: 0.7,
-    maxWidth: 300,
+  stepTitle: {
+    fontSize: Typography.h2.fontSize,
+    fontWeight: Typography.h2.fontWeight,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  stepDescription: {
+    fontSize: Typography.body.fontSize,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
     lineHeight: 22,
   },
-  permissionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.xl,
+  buttonRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+  },
+  uploadButtonText: {
+    color: '#FFFFFF',
+    fontSize: Typography.body.fontSize,
+    fontWeight: '600',
+  },
+  previewContainer: {
     marginTop: Spacing.lg,
+    position: 'relative',
   },
-  permissionButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
+  previewImage: {
+    width: 120,
+    height: 160,
+    borderRadius: BorderRadius.lg,
   },
-  cameraContainer: {
+  checkBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  usageBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
+  },
+  usageText: {
+    fontSize: Typography.caption.fontSize,
     flex: 1,
   },
-  camera: {
-    flex: 1,
-  },
-  header: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
-  headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    color: "#FFFFFF",
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  overlayControls: {
-    position: "absolute",
-    top: 110,
-    right: Spacing.lg,
+  tipsSection: {
     gap: Spacing.sm,
   },
-  clearButton: {
-    flexDirection: "row",
-    alignItems: "center",
+  tipsTitle: {
+    fontSize: Typography.caption.fontSize,
+    fontWeight: '600',
+    marginBottom: Spacing.xs,
+  },
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  tipIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tipText: {
+    fontSize: Typography.caption.fontSize,
+  },
+  continueButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+  },
+  continueButtonText: {
+    color: '#FFFFFF',
+    fontSize: Typography.body.fontSize,
+    fontWeight: '600',
+  },
+  imagesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+  },
+  imageColumn: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  imageLabel: {
+    fontSize: Typography.caption.fontSize,
+    fontWeight: '600',
+  },
+  selectedImage: {
+    width: (SCREEN_WIDTH - Spacing.lg * 4) / 2.5,
+    height: ((SCREEN_WIDTH - Spacing.lg * 4) / 2.5) * 1.33,
+    borderRadius: BorderRadius.lg,
+  },
+  imagePlaceholder: {
+    width: (SCREEN_WIDTH - Spacing.lg * 4) / 2.5,
+    height: ((SCREEN_WIDTH - Spacing.lg * 4) / 2.5) * 1.33,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
   },
-  clearButtonText: {
-    color: "#FFFFFF",
+  addText: {
+    fontSize: Typography.caption.fontSize,
+    fontWeight: '500',
   },
-  bottomPanel: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    paddingTop: Spacing.md,
-  },
-  categoryTabs: {
-    marginBottom: Spacing.sm,
-  },
-  categoryTabsContent: {
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.sm,
-  },
-  categoryTab: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-  },
-  categoryTabText: {
-    fontWeight: "500",
-  },
-  itemList: {
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.sm,
-    paddingBottom: Spacing.sm,
-  },
-  itemCard: {
-    width: 100,
-    height: 130,
-    borderRadius: BorderRadius.md,
-    overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.1)",
-    marginRight: Spacing.sm,
-  },
-  itemImage: {
-    width: "100%",
-    height: 90,
-  },
-  itemInfo: {
+  changeButton: {
     padding: Spacing.xs,
   },
-  itemName: {
-    color: "#FFFFFF",
-    fontSize: 11,
+  changeButtonText: {
+    fontSize: Typography.caption.fontSize,
+    fontWeight: '500',
   },
-  addBadge: {
-    position: "absolute",
-    top: Spacing.xs,
-    right: Spacing.xs,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+  arrowContainer: {
+    padding: Spacing.sm,
   },
-  emptyItems: {
-    padding: Spacing.xl,
-    alignItems: "center",
-  },
-  emptyItemsText: {
-    color: "rgba(255,255,255,0.7)",
-    textAlign: "center",
-  },
-  showPickerButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+  generateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     gap: Spacing.sm,
-    paddingVertical: Spacing.lg,
-    marginHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
+    marginTop: Spacing.lg,
   },
-  showPickerButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
+  generateButtonText: {
+    color: '#FFFFFF',
+    fontSize: Typography.body.fontSize,
+    fontWeight: '600',
   },
-  overlayItem: {
-    position: "absolute",
-    width: 150,
-    height: 200,
+  resetButton: {
+    alignItems: 'center',
+    padding: Spacing.md,
   },
-  overlayImage: {
-    width: "100%",
-    height: "100%",
+  resetButtonText: {
+    fontSize: Typography.caption.fontSize,
   },
-  overlaySelectedBorder: {
-    position: "absolute",
-    top: -2,
-    left: -2,
-    right: -2,
-    bottom: -2,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-    borderRadius: BorderRadius.sm,
-    borderStyle: "dashed",
+  processingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing['3xl'],
   },
-  removeButton: {
-    position: "absolute",
-    top: -10,
-    right: -10,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+  processingCard: {
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.xl,
+    alignItems: 'center',
+    width: '100%',
   },
-  scaleHint: {
-    position: "absolute",
-    bottom: -24,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    paddingVertical: 2,
-    borderRadius: BorderRadius.xs,
+  processingTitle: {
+    fontSize: Typography.h3.fontSize,
+    fontWeight: Typography.h3.fontWeight,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
-  scaleHintText: {
-    color: "#FFFFFF",
-    fontSize: 10,
+  processingDescription: {
+    fontSize: Typography.body.fontSize,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: Spacing.lg,
+  },
+  progressBarContainer: {
+    width: '100%',
+    height: 8,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: Typography.caption.fontSize,
+    marginTop: Spacing.sm,
+  },
+  resultContainer: {
+    gap: Spacing.lg,
+  },
+  resultTitle: {
+    fontSize: Typography.h2.fontSize,
+    fontWeight: Typography.h2.fontWeight,
+    textAlign: 'center',
+  },
+  comparisonContainer: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    justifyContent: 'center',
+  },
+  comparisonColumn: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  comparisonLabel: {
+    fontSize: Typography.caption.fontSize,
+    fontWeight: '600',
+  },
+  comparisonImage: {
+    width: (SCREEN_WIDTH - Spacing.lg * 3) / 2,
+    height: ((SCREEN_WIDTH - Spacing.lg * 3) / 2) * 1.33,
+    borderRadius: BorderRadius.lg,
+  },
+  resultActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+  },
+  actionButtonText: {
+    fontSize: Typography.body.fontSize,
+    fontWeight: '600',
   },
 });
