@@ -104,11 +104,15 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("ColorAnalysis");
   };
 
+  const handleBodyScannerPress = () => {
+    navigation.navigate("BodyScanner");
+  };
+
   const getSubscriptionBadge = () => {
     const tier = user?.subscriptionTier || "free";
     const colors = SubscriptionColors[tier];
     return (
-      <View style={[styles.subscriptionBadge, { backgroundColor: colors.backgroundStart || colors.background }]}>
+      <View style={[styles.subscriptionBadge, { backgroundColor: (colors as { backgroundStart?: string }).backgroundStart || colors.background }]}>
         <ThemedText type="caption" style={{ color: colors.text, fontWeight: "600" }}>
           {tier.charAt(0).toUpperCase() + tier.slice(1)}
         </ThemedText>
@@ -319,6 +323,19 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           <Feather name="droplet" size={18} color="#FFFFFF" />
           <ThemedText type="body" style={styles.upgradeButtonText}>
             Color Analysis
+          </ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={handleBodyScannerPress}
+          style={({ pressed }) => [
+            styles.bodyScannerButton,
+            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
+          ]}
+        >
+          <Feather name="user" size={18} color="#FFFFFF" />
+          <ThemedText type="body" style={styles.upgradeButtonText}>
+            Body Scanner
           </ThemedText>
         </Pressable>
 
@@ -828,6 +845,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     borderRadius: BorderRadius.full,
     backgroundColor: "#EC4899",
+  },
+  bodyScannerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    backgroundColor: "#06B6D4",
   },
   upgradeButtonText: {
     color: "#FFFFFF",
