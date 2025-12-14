@@ -52,6 +52,31 @@ const STYLIST_FEATURES: StylistFeature[] = [
     gradientColors: ["#4facfe", "#00f2fe"] as const,
     premium: true,
   },
+  {
+    id: "dream-outfit",
+    title: "Dream Outfit Generator",
+    description: "Describe your perfect outfit and watch AI bring it to life with DALL-E",
+    icon: "image",
+    screen: "DreamOutfitGenerator",
+    gradientColors: ["#f093fb", "#f5576c"] as const,
+    premium: true,
+  },
+  {
+    id: "voice-chat",
+    title: "Voice Chat",
+    description: "Have a real-time voice conversation with Ruby or Max, your AI stylists",
+    icon: "headphones",
+    screen: "VoiceConversation",
+    gradientColors: ["#667eea", "#764ba2"] as const,
+  },
+  {
+    id: "social-sync",
+    title: "Social Style Sync",
+    description: "Connect with friends to share style preferences and get coordinated outfit ideas",
+    icon: "users",
+    screen: "SocialStyleSync",
+    gradientColors: ["#4facfe", "#00f2fe"] as const,
+  },
 ];
 
 export default function StylistHubScreen({ navigation }: StylistHubScreenProps) {

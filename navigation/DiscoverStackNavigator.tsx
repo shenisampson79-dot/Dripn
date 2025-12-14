@@ -12,6 +12,7 @@ import StyleChallengesScreen from "@/screens/StyleChallengesScreen";
 import ChallengeDetailScreen from "@/screens/ChallengeDetailScreen";
 import ChallengeSubmissionScreen from "@/screens/ChallengeSubmissionScreen";
 import EventsScreen from "@/screens/EventsScreen";
+import StreetStyleScannerScreen from "@/screens/StreetStyleScannerScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -28,6 +29,7 @@ export type DiscoverStackParamList = {
   ChallengeDetail: { challengeId: string };
   ChallengeSubmission: { challengeId: string };
   Events: undefined;
+  StreetStyleScanner: undefined;
 };
 
 const Stack = createNativeStackNavigator<DiscoverStackParamList>();
@@ -98,6 +100,11 @@ export default function DiscoverStackNavigator() {
         name="Events"
         component={EventsScreen}
         options={{ headerTitle: "Events Near You" }}
+      />
+      <Stack.Screen
+        name="StreetStyleScanner"
+        component={StreetStyleScannerScreen}
+        options={{ headerTitle: "Street Style Scanner" }}
       />
     </Stack.Navigator>
   );

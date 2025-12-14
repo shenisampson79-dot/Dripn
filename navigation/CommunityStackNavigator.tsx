@@ -7,6 +7,7 @@ import FriendRequestsScreen from "@/screens/FriendRequestsScreen";
 import DiscoverPeopleScreen from "@/screens/DiscoverPeopleScreen";
 import MessagesScreen from "@/screens/MessagesScreen";
 import ConversationScreen from "@/screens/ConversationScreen";
+import StyleSoulmatesScreen from "@/screens/StyleSoulmatesScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -18,6 +19,7 @@ export type CommunityStackParamList = {
   DiscoverPeople: undefined;
   Messages: undefined;
   Conversation: { conversationId: string; participantName: string };
+  StyleSoulmates: undefined;
 };
 
 const Stack = createNativeStackNavigator<CommunityStackParamList>();
@@ -63,6 +65,11 @@ export default function CommunityStackNavigator() {
         name="Conversation"
         component={ConversationScreen}
         options={{ headerTitle: "Chat" }}
+      />
+      <Stack.Screen
+        name="StyleSoulmates"
+        component={StyleSoulmatesScreen}
+        options={{ headerTitle: "Style Soulmates" }}
       />
     </Stack.Navigator>
   );
