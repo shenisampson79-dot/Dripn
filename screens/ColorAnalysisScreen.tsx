@@ -31,7 +31,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { Card } from "@/components/Card";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useBodyProfile, ColorSeason } from "@/contexts/BodyProfileContext";
+import { useBodyProfile, ColorSeason, SkinToneData } from "@/contexts/BodyProfileContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -65,7 +65,7 @@ const SEASON_INFO: Record<ColorSeason, { icon: keyof typeof Feather.glyphMap; co
 
 export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenProps) {
   const { theme, isDark } = useTheme();
-  const { bodyProfile, analyzeColorSeason, isAnalyzingColor, hasColorAnalysis } = useBodyProfile();
+  const { bodyProfile, analyzeColorSeason, isAnalyzingColor, hasColorAnalysis, hasSkinToneAnalysis } = useBodyProfile();
   const insets = useSafeAreaInsets();
   
   const [permission, requestPermission] = useCameraPermissions();
@@ -319,6 +319,72 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
             </ThemedText>
           </Card>
 
+          {hasSkinToneAnalysis && bodyProfile?.skinTone ? (
+            <Card elevation={2} style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Feather name="heart" size={20} color={theme.link} />
+                <ThemedText type="h3" style={styles.sectionTitle}>
+                  Your Skin Tone
+                </ThemedText>
+              </View>
+              <View style={styles.skinToneContainer}>
+                <View 
+                  style={[
+                    styles.skinToneSwatch, 
+                    { backgroundColor: bodyProfile.skinTone.hexApproximation }
+                  ]} 
+                />
+                <View style={styles.skinToneInfo}>
+                  <ThemedText type="h3" style={styles.skinToneName}>
+                    {bodyProfile.skinTone.name}
+                  </ThemedText>
+                  <View style={styles.skinToneBadges}>
+                    <View style={[styles.undertoneTag, { backgroundColor: theme.link + "20" }]}>
+                      <ThemedText type="caption" style={{ color: theme.link }}>
+                        {bodyProfile.skinTone.undertone.charAt(0).toUpperCase() + bodyProfile.skinTone.undertone.slice(1)} Undertone
+                      </ThemedText>
+                    </View>
+                    <View style={[styles.depthTag, { backgroundColor: theme.backgroundSecondary }]}>
+                      <ThemedText type="caption" style={{ color: secondaryTextColor }}>
+                        {bodyProfile.skinTone.depth.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                      </ThemedText>
+                    </View>
+                  </View>
+                </View>
+              </View>
+              <ThemedText type="body" style={[styles.skinToneDescription, { color: secondaryTextColor }]}>
+                {bodyProfile.skinTone.description}
+              </ThemedText>
+              {bodyProfile.skinTone.complementaryColors.length > 0 ? (
+                <View style={styles.complementarySection}>
+                  <ThemedText type="caption" style={[styles.complementaryLabel, { color: tertiaryTextColor }]}>
+                    Colors that complement your skin:
+                  </ThemedText>
+                  <View style={styles.complementaryColors}>
+                    {bodyProfile.skinTone.complementaryColors.map((color, index) => {
+                      const hexMatch = color.match(/#(?:[0-9a-fA-F]{3}){1,2}/i);
+                      const displayColor = hexMatch ? hexMatch[0] : null;
+                      return (
+                        <View key={index} style={styles.complementaryItem}>
+                          {displayColor ? (
+                            <View style={[styles.complementaryCircle, { backgroundColor: displayColor }]} />
+                          ) : (
+                            <View style={[styles.complementaryCircle, { backgroundColor: theme.backgroundSecondary, borderWidth: 1, borderColor: theme.border, justifyContent: 'center', alignItems: 'center' }]}>
+                              <Feather name="droplet" size={16} color={secondaryTextColor} />
+                            </View>
+                          )}
+                          <ThemedText type="caption" numberOfLines={1} style={{ maxWidth: 60, textAlign: 'center' }}>
+                            {color}
+                          </ThemedText>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
+            </Card>
+          ) : null}
+
           <Card elevation={1} style={styles.section}>
             <View style={styles.sectionHeader}>
               <Feather name="check-circle" size={20} color={theme.success} />
@@ -327,14 +393,24 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
               </ThemedText>
             </View>
             <View style={styles.colorGrid}>
-              {colorSeason.bestColors.map((color, index) => (
-                <View key={index} style={styles.colorItem}>
-                  <View style={[styles.colorCircle, { backgroundColor: color.toLowerCase().includes('#') ? color : theme.link }]} />
-                  <ThemedText type="caption" numberOfLines={1}>
-                    {color}
-                  </ThemedText>
-                </View>
-              ))}
+              {colorSeason.bestColors.map((color, index) => {
+                const hexMatch = color.match(/#(?:[0-9a-fA-F]{3}){1,2}/i);
+                const displayColor = hexMatch ? hexMatch[0] : null;
+                return (
+                  <View key={index} style={styles.colorItem}>
+                    {displayColor ? (
+                      <View style={[styles.colorCircle, { backgroundColor: displayColor }]} />
+                    ) : (
+                      <View style={[styles.colorCircle, { backgroundColor: theme.backgroundSecondary, borderWidth: 1, borderColor: theme.border, justifyContent: 'center', alignItems: 'center' }]}>
+                        <Feather name="droplet" size={14} color={theme.success} />
+                      </View>
+                    )}
+                    <ThemedText type="caption" numberOfLines={1}>
+                      {color}
+                    </ThemedText>
+                  </View>
+                );
+              })}
             </View>
           </Card>
 
@@ -346,14 +422,24 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
               </ThemedText>
             </View>
             <View style={styles.colorGrid}>
-              {colorSeason.avoidColors.map((color, index) => (
-                <View key={index} style={styles.colorItem}>
-                  <View style={[styles.colorCircle, { backgroundColor: color.toLowerCase().includes('#') ? color : tertiaryTextColor }]} />
-                  <ThemedText type="caption" numberOfLines={1}>
-                    {color}
-                  </ThemedText>
-                </View>
-              ))}
+              {colorSeason.avoidColors.map((color, index) => {
+                const hexMatch = color.match(/#(?:[0-9a-fA-F]{3}){1,2}/i);
+                const displayColor = hexMatch ? hexMatch[0] : null;
+                return (
+                  <View key={index} style={styles.colorItem}>
+                    {displayColor ? (
+                      <View style={[styles.colorCircle, { backgroundColor: displayColor }]} />
+                    ) : (
+                      <View style={[styles.colorCircle, { backgroundColor: theme.backgroundSecondary, borderWidth: 1, borderColor: theme.border, justifyContent: 'center', alignItems: 'center' }]}>
+                        <Feather name="droplet" size={14} color={theme.error} />
+                      </View>
+                    )}
+                    <ThemedText type="caption" numberOfLines={1}>
+                      {color}
+                    </ThemedText>
+                  </View>
+                );
+              })}
             </View>
           </Card>
 
@@ -626,6 +712,66 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     backgroundColor: "rgba(255,215,0,0.2)",
     alignSelf: "flex-start",
+  },
+  skinToneContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  skinToneSwatch: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  skinToneInfo: {
+    flex: 1,
+  },
+  skinToneName: {
+    marginBottom: Spacing.xs,
+  },
+  skinToneBadges: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.xs,
+  },
+  undertoneTag: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  depthTag: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  skinToneDescription: {
+    lineHeight: 22,
+    marginBottom: Spacing.md,
+  },
+  complementarySection: {
+    marginTop: Spacing.sm,
+  },
+  complementaryLabel: {
+    marginBottom: Spacing.sm,
+  },
+  complementaryColors: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.md,
+  },
+  complementaryItem: {
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  complementaryCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
   },
   reanalyzeButton: {
     flexDirection: "row",

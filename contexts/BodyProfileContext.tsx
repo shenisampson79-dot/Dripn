@@ -12,6 +12,19 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const BODY_PROFILE_STORAGE_KEY = '@dripn_body_profile';
 
+const getDefaultHexForDepth = (depth?: string): string => {
+  const depthColors: Record<string, string> = {
+    'very-fair': '#F5E6D3',
+    'fair': '#E8D4C4',
+    'light-medium': '#D4B896',
+    'medium': '#C4A574',
+    'medium-deep': '#A67C52',
+    'deep': '#8B5A2B',
+    'very-deep': '#5C4033',
+  };
+  return depthColors[depth || 'medium'] || '#B8A090';
+};
+
 export type BodyShape = 
   | 'hourglass'
   | 'pear'
@@ -533,11 +546,15 @@ Respond in this exact JSON format:
         analyzedAt: now,
       };
 
+      const hexRegex = /^#(?:[0-9a-fA-F]{3}){1,2}$/i;
+      const rawHex = parsed.skinTone?.hexApproximation;
+      const validHex = rawHex && hexRegex.test(rawHex) ? rawHex : getDefaultHexForDepth(parsed.skinTone?.depth);
+
       const skinToneData: SkinToneData = {
         name: parsed.skinTone?.name || 'Beautiful Natural',
         depth: parsed.skinTone?.depth || 'medium',
         undertone: parsed.skinTone?.undertone || parsed.skinUndertone || 'neutral',
-        hexApproximation: parsed.skinTone?.hexApproximation || '#C4A484',
+        hexApproximation: validHex,
         description: parsed.skinTone?.description || 'Your unique and beautiful skin tone.',
         complementaryColors: parsed.skinTone?.complementaryColors || parsed.bestColors?.slice(0, 4) || [],
         analyzedAt: now,
@@ -569,11 +586,11 @@ Respond in this exact JSON format:
           analyzedAt: now,
         },
         skinTone: {
-          name: 'Unknown',
+          name: 'Analysis Pending',
           depth: 'medium',
           undertone: 'neutral',
-          hexApproximation: '#C4A484',
-          description: 'Please try again with a clearer photo.',
+          hexApproximation: '#A0A0A0',
+          description: 'We could not analyze your skin tone. Please try again with a well-lit photo showing your natural skin.',
           complementaryColors: [],
           analyzedAt: now,
         },
