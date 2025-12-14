@@ -40,6 +40,47 @@ export interface BodyMeasurements {
   torsoLength?: number;
 }
 
+export type ColorSeason = 'spring' | 'summer' | 'autumn' | 'winter';
+export type ColorSubtype = 'light' | 'true' | 'deep' | 'warm' | 'cool' | 'soft' | 'clear' | 'bright';
+export type MetallicType = 'gold' | 'silver' | 'rose-gold' | 'mixed';
+
+export interface ColorSeasonData {
+  season: ColorSeason;
+  subtype?: ColorSubtype;
+  bestColors: string[];
+  avoidColors: string[];
+  metallic: MetallicType;
+  confidence: number;
+  analyzedAt: string;
+}
+
+export interface StylingGuideData {
+  bodyShape: string;
+  bestSilhouettes: string[];
+  idealNecklines: string[];
+  recommendedPants: string[];
+  skirtStyles: string[];
+  dressStyles: string[];
+  avoidStyles: string[];
+  proportionTips: string[];
+  accessoryTips: string[];
+  generatedAt: string;
+}
+
+export interface ColorAnalysisResult {
+  success: boolean;
+  colorSeason: ColorSeasonData;
+  skinUndertone: 'warm' | 'cool' | 'neutral';
+  eyeColor: string;
+  hairColor: string;
+  recommendations: string[];
+}
+
+export interface StylingGuideResult {
+  success: boolean;
+  guide: StylingGuideData;
+}
+
 export interface BodyProfile {
   id: string;
   userId: string;
@@ -70,6 +111,10 @@ export interface BodyProfile {
     aiModel: string;
   };
   
+  colorSeason?: ColorSeasonData;
+  
+  stylingGuide?: StylingGuideData;
+  
   isManualEntry: boolean;
   createdAt: string;
   updatedAt: string;
@@ -96,12 +141,18 @@ interface BodyProfileContextType {
   bodyProfile: BodyProfile | null;
   isLoading: boolean;
   isScanning: boolean;
+  isAnalyzingColor: boolean;
+  isGeneratingStylingGuide: boolean;
   hasBodyProfile: boolean;
+  hasColorAnalysis: boolean;
+  hasStylingGuide: boolean;
   error: string | null;
   
   saveBodyProfile: (profile: Partial<BodyProfile>) => Promise<void>;
   updateMeasurements: (measurements: Partial<BodyMeasurements>) => Promise<void>;
   scanBody: (imageBase64: string) => Promise<BodyScanResult>;
+  analyzeColorSeason: (selfieBase64: string) => Promise<ColorAnalysisResult>;
+  generateStylingGuide: () => Promise<StylingGuideResult>;
   clearBodyProfile: () => Promise<void>;
   getBodyMatchScore: (otherProfile: BodyProfile) => number;
 }
@@ -117,12 +168,17 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
   const [bodyProfile, setBodyProfile] = useState<BodyProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isScanning, setIsScanning] = useState(false);
+  const [isAnalyzingColor, setIsAnalyzingColor] = useState(false);
+  const [isGeneratingStylingGuide, setIsGeneratingStylingGuide] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const hasBodyProfile = bodyProfile !== null && (
     bodyProfile.bodyShape !== 'unknown' || 
     Object.keys(bodyProfile.measurements).length > 0
   );
+  
+  const hasColorAnalysis = bodyProfile?.colorSeason !== undefined;
+  const hasStylingGuide = bodyProfile?.stylingGuide !== undefined;
 
   useEffect(() => {
     loadBodyProfile();
@@ -167,6 +223,8 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
           highlightAreas: [],
         },
         scanData: profileData.scanData || bodyProfile?.scanData,
+        colorSeason: profileData.colorSeason || bodyProfile?.colorSeason,
+        stylingGuide: profileData.stylingGuide || bodyProfile?.stylingGuide,
         isManualEntry: profileData.isManualEntry ?? bodyProfile?.isManualEntry ?? true,
         createdAt: bodyProfile?.createdAt || now,
         updatedAt: now,
@@ -329,6 +387,268 @@ Respond in this exact JSON format:
     }
   }, [saveBodyProfile]);
 
+  const analyzeColorSeason = useCallback(async (selfieBase64: string): Promise<ColorAnalysisResult> => {
+    setIsAnalyzingColor(true);
+    setError(null);
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert color analyst for a fashion app. Analyze selfie photos to determine the person's seasonal color palette based on their natural coloring (skin undertone, eye color, hair color).
+
+SEASONAL COLOR ANALYSIS GUIDE:
+- SPRING: Warm undertone, clear/bright coloring. Light warm colors, coral, peach, warm greens.
+- SUMMER: Cool undertone, soft/muted coloring. Soft cool colors, lavender, dusty rose, sage.
+- AUTUMN: Warm undertone, deep/rich coloring. Earth tones, rust, olive, burnt orange.
+- WINTER: Cool undertone, high contrast/clear coloring. Bold cool colors, jewel tones, black, white.
+
+Each season has subtypes:
+- Light: Lighter coloring within the season
+- True/Pure: Classic representative of the season
+- Deep: Darker coloring within the season
+- Warm/Cool: Leaning more warm or cool
+- Soft: Muted, gentle coloring
+- Clear/Bright: High clarity, vivid coloring
+
+Analyze the image and provide color recommendations. Be encouraging and helpful.
+
+Respond in this exact JSON format:
+{
+  "season": "<spring|summer|autumn|winter>",
+  "subtype": "<light|true|deep|warm|cool|soft|clear|bright>",
+  "skinUndertone": "<warm|cool|neutral>",
+  "eyeColor": "<descriptive eye color>",
+  "hairColor": "<descriptive hair color>",
+  "bestColors": ["<color 1>", "<color 2>", "<color 3>", "<color 4>", "<color 5>", "<color 6>"],
+  "avoidColors": ["<color 1>", "<color 2>", "<color 3>"],
+  "metallic": "<gold|silver|rose-gold|mixed>",
+  "confidence": <0-100>,
+  "recommendations": ["<styling tip 1>", "<styling tip 2>", "<styling tip 3>"]
+}`
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Please analyze this selfie and determine my seasonal color palette. Focus on skin undertone, eye color, and natural hair color to recommend the most flattering colors for me.'
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/jpeg;base64,${selfieBase64}`,
+                    detail: 'high'
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 1200,
+          temperature: 0.3,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+
+      if (!content) {
+        throw new Error('No response from AI');
+      }
+
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Invalid response format');
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      const colorSeasonData: ColorSeasonData = {
+        season: parsed.season,
+        subtype: parsed.subtype,
+        bestColors: parsed.bestColors,
+        avoidColors: parsed.avoidColors,
+        metallic: parsed.metallic,
+        confidence: parsed.confidence,
+        analyzedAt: new Date().toISOString(),
+      };
+
+      await saveBodyProfile({ colorSeason: colorSeasonData });
+
+      return {
+        success: true,
+        colorSeason: colorSeasonData,
+        skinUndertone: parsed.skinUndertone,
+        eyeColor: parsed.eyeColor,
+        hairColor: parsed.hairColor,
+        recommendations: parsed.recommendations,
+      };
+    } catch (err) {
+      console.error('Color analysis failed:', err);
+      setError('Failed to analyze colors. Please try again with a clearer selfie.');
+      return {
+        success: false,
+        colorSeason: {
+          season: 'autumn',
+          bestColors: [],
+          avoidColors: [],
+          metallic: 'mixed',
+          confidence: 0,
+          analyzedAt: new Date().toISOString(),
+        },
+        skinUndertone: 'neutral',
+        eyeColor: 'unknown',
+        hairColor: 'unknown',
+        recommendations: [],
+      };
+    } finally {
+      setIsAnalyzingColor(false);
+    }
+  }, [saveBodyProfile]);
+
+  const generateStylingGuide = useCallback(async (): Promise<StylingGuideResult> => {
+    if (!bodyProfile || bodyProfile.bodyShape === 'unknown') {
+      setError('Please complete a body scan first to generate styling tips.');
+      return {
+        success: false,
+        guide: {
+          bodyShape: 'unknown',
+          bestSilhouettes: [],
+          idealNecklines: [],
+          recommendedPants: [],
+          skirtStyles: [],
+          dressStyles: [],
+          avoidStyles: [],
+          proportionTips: [],
+          accessoryTips: [],
+          generatedAt: new Date().toISOString(),
+        },
+      };
+    }
+
+    setIsGeneratingStylingGuide(true);
+    setError(null);
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a professional fashion stylist providing personalized styling advice based on body shape analysis. Your advice should be encouraging, body-positive, and practical.
+
+Provide comprehensive styling recommendations tailored to the specific body shape, considering proportions and what silhouettes work best.
+
+Be specific with recommendations - name actual styles, cuts, and shapes rather than vague suggestions.
+
+Respond in this exact JSON format:
+{
+  "bestSilhouettes": ["<silhouette 1>", "<silhouette 2>", "<silhouette 3>"],
+  "idealNecklines": ["<neckline 1>", "<neckline 2>", "<neckline 3>"],
+  "recommendedPants": ["<pant style 1>", "<pant style 2>", "<pant style 3>"],
+  "skirtStyles": ["<skirt 1>", "<skirt 2>", "<skirt 3>"],
+  "dressStyles": ["<dress 1>", "<dress 2>", "<dress 3>"],
+  "avoidStyles": ["<style to avoid 1>", "<style to avoid 2>"],
+  "proportionTips": ["<proportion tip 1>", "<proportion tip 2>", "<proportion tip 3>"],
+  "accessoryTips": ["<accessory tip 1>", "<accessory tip 2>"]
+}`
+            },
+            {
+              role: 'user',
+              content: `Generate personalized styling recommendations for someone with:
+- Body Shape: ${bodyProfile.bodyShape}
+- Height Category: ${bodyProfile.heightCategory}
+- Build: ${bodyProfile.buildCategory}
+- Shoulder to Hip Ratio: ${bodyProfile.proportions?.shoulderToHipRatio || 1}
+- Waist to Hip Ratio: ${bodyProfile.proportions?.waistToHipRatio || 0.75}
+- Preferred Fit: ${bodyProfile.fitPreferences?.preferredFit || 'fitted'}
+
+Please provide specific, actionable styling advice that flatters this body type.`
+            }
+          ],
+          max_tokens: 1200,
+          temperature: 0.4,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+
+      if (!content) {
+        throw new Error('No response from AI');
+      }
+
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Invalid response format');
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      const stylingGuideData: StylingGuideData = {
+        bodyShape: bodyProfile.bodyShape,
+        bestSilhouettes: parsed.bestSilhouettes,
+        idealNecklines: parsed.idealNecklines,
+        recommendedPants: parsed.recommendedPants,
+        skirtStyles: parsed.skirtStyles,
+        dressStyles: parsed.dressStyles,
+        avoidStyles: parsed.avoidStyles,
+        proportionTips: parsed.proportionTips,
+        accessoryTips: parsed.accessoryTips,
+        generatedAt: new Date().toISOString(),
+      };
+
+      await saveBodyProfile({ stylingGuide: stylingGuideData });
+
+      return {
+        success: true,
+        guide: stylingGuideData,
+      };
+    } catch (err) {
+      console.error('Styling guide generation failed:', err);
+      setError('Failed to generate styling guide. Please try again.');
+      return {
+        success: false,
+        guide: {
+          bodyShape: bodyProfile.bodyShape,
+          bestSilhouettes: [],
+          idealNecklines: [],
+          recommendedPants: [],
+          skirtStyles: [],
+          dressStyles: [],
+          avoidStyles: [],
+          proportionTips: [],
+          accessoryTips: [],
+          generatedAt: new Date().toISOString(),
+        },
+      };
+    } finally {
+      setIsGeneratingStylingGuide(false);
+    }
+  }, [bodyProfile, saveBodyProfile]);
+
   const clearBodyProfile = useCallback(async () => {
     try {
       await AsyncStorage.removeItem(BODY_PROFILE_STORAGE_KEY);
@@ -400,11 +720,17 @@ Respond in this exact JSON format:
     bodyProfile,
     isLoading,
     isScanning,
+    isAnalyzingColor,
+    isGeneratingStylingGuide,
     hasBodyProfile,
+    hasColorAnalysis,
+    hasStylingGuide,
     error,
     saveBodyProfile,
     updateMeasurements,
     scanBody,
+    analyzeColorSeason,
+    generateStylingGuide,
     clearBodyProfile,
     getBodyMatchScore,
   };

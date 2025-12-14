@@ -9,6 +9,9 @@ import MessagesScreen from "@/screens/MessagesScreen";
 import ConversationScreen from "@/screens/ConversationScreen";
 import StyleSoulmatesScreen from "@/screens/StyleSoulmatesScreen";
 import BodyScannerScreen from "@/screens/BodyScannerScreen";
+import ColorAnalysisScreen from "@/screens/ColorAnalysisScreen";
+import BodyShapeStylingGuideScreen from "@/screens/BodyShapeStylingGuideScreen";
+import PersonalizedWardrobeFilterScreen from "@/screens/PersonalizedWardrobeFilterScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -22,6 +25,9 @@ export type CommunityStackParamList = {
   Conversation: { conversationId: string; participantName: string };
   StyleSoulmates: undefined;
   BodyScanner: undefined;
+  ColorAnalysis: undefined;
+  BodyShapeStylingGuide: undefined;
+  PersonalizedWardrobeFilter: undefined;
 };
 
 const Stack = createNativeStackNavigator<CommunityStackParamList>();
@@ -77,6 +83,21 @@ export default function CommunityStackNavigator() {
         name="BodyScanner"
         component={BodyScannerScreen}
         options={{ headerTitle: "Body Scanner" }}
+      />
+      <Stack.Screen
+        name="ColorAnalysis"
+        component={ColorAnalysisScreen}
+        options={{ headerTitle: "Color Analysis" }}
+      />
+      <Stack.Screen
+        name="BodyShapeStylingGuide"
+        component={BodyShapeStylingGuideScreen}
+        options={{ headerTitle: "Styling Guide" }}
+      />
+      <Stack.Screen
+        name="PersonalizedWardrobeFilter"
+        component={PersonalizedWardrobeFilterScreen}
+        options={{ headerTitle: "Wardrobe Filter" }}
       />
     </Stack.Navigator>
   );
