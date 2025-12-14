@@ -100,6 +100,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("VirtualTryOn");
   };
 
+  const handleColorAnalysisPress = () => {
+    navigation.navigate("ColorAnalysis");
+  };
+
   const getSubscriptionBadge = () => {
     const tier = user?.subscriptionTier || "free";
     const colors = SubscriptionColors[tier];
@@ -302,6 +306,19 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           <Feather name="camera" size={18} color="#FFFFFF" />
           <ThemedText type="body" style={styles.upgradeButtonText}>
             Virtual Try-On
+          </ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={handleColorAnalysisPress}
+          style={({ pressed }) => [
+            styles.colorAnalysisButton,
+            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
+          ]}
+        >
+          <Feather name="droplet" size={18} color="#FFFFFF" />
+          <ThemedText type="body" style={styles.upgradeButtonText}>
+            Color Analysis
           </ThemedText>
         </Pressable>
 
@@ -802,6 +819,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     borderRadius: BorderRadius.full,
     backgroundColor: "#8B5CF6",
+  },
+  colorAnalysisButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    backgroundColor: "#EC4899",
   },
   upgradeButtonText: {
     color: "#FFFFFF",

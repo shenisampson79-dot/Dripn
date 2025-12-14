@@ -21,6 +21,7 @@ import WeatherOutfitScreen from "@/screens/WeatherOutfitScreen";
 import CostPerWearScreen from "@/screens/CostPerWearScreen";
 import StyleDNAScreen from "@/screens/StyleDNAScreen";
 import VirtualTryOnScreen from "@/screens/VirtualTryOnScreen";
+import ColorAnalysisScreen from "@/screens/ColorAnalysisScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -46,6 +47,7 @@ export type ProfileStackParamList = {
   CostPerWear: undefined;
   StyleDNA: undefined;
   VirtualTryOn: undefined;
+  ColorAnalysis: undefined;
   VideoCall: {
     callId?: string;
     roomUrl: string;
@@ -236,6 +238,14 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
           title: "Virtual Try-On",
           headerShown: false,
           presentation: "fullScreenModal",
+        }}
+      />
+      <Stack.Screen
+        name="ColorAnalysis"
+        component={ColorAnalysisScreen}
+        options={{
+          title: "Color Analysis",
+          headerShown: false,
         }}
       />
     </Stack.Navigator>
