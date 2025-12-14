@@ -9,6 +9,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
+import { getBestAvailableModel, preloadModelAvailability } from '@/services/ModelSelectionService';
 
 const BODY_PROFILE_STORAGE_KEY = '@dripn_body_profile';
 
@@ -213,6 +214,10 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
 
   useEffect(() => {
     loadBodyProfile();
+    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+    if (apiKey) {
+      preloadModelAvailability(apiKey).catch(console.warn);
+    }
   }, [isAuthenticated, user?.id]);
 
   const loadBodyProfile = async () => {
@@ -284,15 +289,19 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
     setIsScanning(true);
     setError(null);
 
+    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+    const bestModel = await getBestAvailableModel('vision', apiKey, 'gpt-4o');
+    console.log(`Using vision model: ${bestModel} for body scan`);
+
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: bestModel,
           messages: [
             {
               role: 'system',
@@ -390,7 +399,7 @@ Respond in this exact JSON format:
           imageUri: `scan_${Date.now()}`,
           scannedAt: new Date().toISOString(),
           confidence: result.confidence,
-          aiModel: 'gpt-4o-vision',
+          aiModel: bestModel,
         },
       });
 
@@ -423,15 +432,19 @@ Respond in this exact JSON format:
     setIsAnalyzingColor(true);
     setError(null);
 
+    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+    const bestModel = await getBestAvailableModel('vision', apiKey, 'gpt-4o');
+    console.log(`Using vision model: ${bestModel} for color analysis`);
+
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: bestModel,
           messages: [
             {
               role: 'system',
@@ -627,15 +640,19 @@ Respond in this exact JSON format:
     setIsGeneratingStylingGuide(true);
     setError(null);
 
+    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+    const bestModel = await getBestAvailableModel('text', apiKey, 'gpt-4o');
+    console.log(`Using text model: ${bestModel} for styling guide`);
+
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: bestModel,
           messages: [
             {
               role: 'system',
