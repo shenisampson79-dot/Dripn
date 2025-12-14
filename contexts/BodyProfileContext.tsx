@@ -44,6 +44,19 @@ export type ColorSeason = 'spring' | 'summer' | 'autumn' | 'winter';
 export type ColorSubtype = 'light' | 'true' | 'deep' | 'warm' | 'cool' | 'soft' | 'clear' | 'bright';
 export type MetallicType = 'gold' | 'silver' | 'rose-gold' | 'mixed';
 
+export type SkinToneDepth = 'very-fair' | 'fair' | 'light-medium' | 'medium' | 'medium-deep' | 'deep' | 'very-deep';
+export type SkinUndertone = 'warm' | 'cool' | 'neutral' | 'olive';
+
+export interface SkinToneData {
+  name: string;
+  depth: SkinToneDepth;
+  undertone: SkinUndertone;
+  hexApproximation: string;
+  description: string;
+  complementaryColors: string[];
+  analyzedAt: string;
+}
+
 export interface ColorSeasonData {
   season: ColorSeason;
   subtype?: ColorSubtype;
@@ -70,7 +83,8 @@ export interface StylingGuideData {
 export interface ColorAnalysisResult {
   success: boolean;
   colorSeason: ColorSeasonData;
-  skinUndertone: 'warm' | 'cool' | 'neutral';
+  skinTone: SkinToneData;
+  skinUndertone: 'warm' | 'cool' | 'neutral' | 'olive';
   eyeColor: string;
   hairColor: string;
   recommendations: string[];
@@ -113,6 +127,8 @@ export interface BodyProfile {
   
   colorSeason?: ColorSeasonData;
   
+  skinTone?: SkinToneData;
+  
   stylingGuide?: StylingGuideData;
   
   isManualEntry: boolean;
@@ -145,6 +161,7 @@ interface BodyProfileContextType {
   isGeneratingStylingGuide: boolean;
   hasBodyProfile: boolean;
   hasColorAnalysis: boolean;
+  hasSkinToneAnalysis: boolean;
   hasStylingGuide: boolean;
   error: string | null;
   
@@ -178,6 +195,7 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
   );
   
   const hasColorAnalysis = bodyProfile?.colorSeason !== undefined;
+  const hasSkinToneAnalysis = bodyProfile?.skinTone !== undefined;
   const hasStylingGuide = bodyProfile?.stylingGuide !== undefined;
 
   useEffect(() => {
@@ -224,6 +242,7 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
         },
         scanData: profileData.scanData || bodyProfile?.scanData,
         colorSeason: profileData.colorSeason || bodyProfile?.colorSeason,
+        skinTone: profileData.skinTone || bodyProfile?.skinTone,
         stylingGuide: profileData.stylingGuide || bodyProfile?.stylingGuide,
         isManualEntry: profileData.isManualEntry ?? bodyProfile?.isManualEntry ?? true,
         createdAt: bodyProfile?.createdAt || now,
@@ -403,7 +422,35 @@ Respond in this exact JSON format:
           messages: [
             {
               role: 'system',
-              content: `You are an expert color analyst for a fashion app. Analyze selfie photos to determine the person's seasonal color palette based on their natural coloring (skin undertone, eye color, hair color).
+              content: `You are an expert color analyst for an inclusive fashion app. Analyze selfie photos to determine the person's seasonal color palette AND their unique skin tone. You MUST celebrate diversity and provide culturally-sensitive, affirming skin tone names.
+
+INCLUSIVE SKIN TONE ANALYSIS:
+You must accurately identify skin tones across ALL ethnicities and races including but not limited to:
+- African/Black heritage (rich deep tones like Ebony, Mahogany, Espresso, Cocoa, Onyx, Umber, Sable)
+- South Asian/Indian heritage (warm golden tones like Bronze, Sandalwood, Cinnamon, Turmeric, Teak, Chai)
+- East Asian heritage (various tones like Porcelain, Honey, Almond, Ginger, Sesame, Bamboo)
+- Latino/Hispanic heritage (warm undertones like Caramel, Dulce de Leche, Terracotta, Amber, Canela)
+- Middle Eastern heritage (olive/warm tones like Olive, Saffron, Date, Fig, Hazelnut)
+- European/Caucasian heritage (fair to medium tones like Ivory, Peach, Cream, Rose, Bisque, Sand)
+- Indigenous/Native heritage (various earth tones like Clay, Sienna, Copper, Russet)
+- Mixed heritage (celebrate the unique blend)
+
+SKIN TONE DEPTH CATEGORIES:
+- very-fair: Porcelain, Ivory, Alabaster, Pearl, Snow
+- fair: Cream, Peach, Bisque, Light Beige, Rose
+- light-medium: Sand, Honey, Buff, Light Caramel, Golden Beige
+- medium: Golden, Olive, Warm Beige, Almond, Fawn
+- medium-deep: Bronze, Copper, Toffee, Cinnamon, Sienna
+- deep: Mahogany, Espresso, Chestnut, Umber, Cocoa
+- very-deep: Ebony, Onyx, Rich Chocolate, Obsidian, Jet
+
+UNDERTONES:
+- warm: Yellow, golden, peachy undertones
+- cool: Pink, red, blue undertones
+- neutral: Balance of warm and cool
+- olive: Green/yellow undertones (common in Mediterranean, South Asian, Latino skin)
+
+Create a UNIQUE, CELEBRATORY skin tone name that honors the person's heritage and beauty. Be poetic and affirming.
 
 SEASONAL COLOR ANALYSIS GUIDE:
 - SPRING: Warm undertone, clear/bright coloring. Light warm colors, coral, peach, warm greens.
@@ -411,21 +458,21 @@ SEASONAL COLOR ANALYSIS GUIDE:
 - AUTUMN: Warm undertone, deep/rich coloring. Earth tones, rust, olive, burnt orange.
 - WINTER: Cool undertone, high contrast/clear coloring. Bold cool colors, jewel tones, black, white.
 
-Each season has subtypes:
-- Light: Lighter coloring within the season
-- True/Pure: Classic representative of the season
-- Deep: Darker coloring within the season
-- Warm/Cool: Leaning more warm or cool
-- Soft: Muted, gentle coloring
-- Clear/Bright: High clarity, vivid coloring
-
-Analyze the image and provide color recommendations. Be encouraging and helpful.
+Each season has subtypes: light, true, deep, warm, cool, soft, clear, bright
 
 Respond in this exact JSON format:
 {
   "season": "<spring|summer|autumn|winter>",
   "subtype": "<light|true|deep|warm|cool|soft|clear|bright>",
-  "skinUndertone": "<warm|cool|neutral>",
+  "skinTone": {
+    "name": "<unique celebratory skin tone name like 'Golden Sandalwood' or 'Rich Mahogany'>",
+    "depth": "<very-fair|fair|light-medium|medium|medium-deep|deep|very-deep>",
+    "undertone": "<warm|cool|neutral|olive>",
+    "hexApproximation": "<hex color like #D4A574>",
+    "description": "<affirming 1-2 sentence description celebrating the skin tone>",
+    "complementaryColors": ["<color 1>", "<color 2>", "<color 3>", "<color 4>"]
+  },
+  "skinUndertone": "<warm|cool|neutral|olive>",
   "eyeColor": "<descriptive eye color>",
   "hairColor": "<descriptive hair color>",
   "bestColors": ["<color 1>", "<color 2>", "<color 3>", "<color 4>", "<color 5>", "<color 6>"],
@@ -440,7 +487,7 @@ Respond in this exact JSON format:
               content: [
                 {
                   type: 'text',
-                  text: 'Please analyze this selfie and determine my seasonal color palette. Focus on skin undertone, eye color, and natural hair color to recommend the most flattering colors for me.'
+                  text: 'Please analyze this selfie and determine my seasonal color palette and unique skin tone. Celebrate my natural beauty and provide personalized color recommendations that complement my skin.'
                 },
                 {
                   type: 'image_url',
@@ -452,8 +499,8 @@ Respond in this exact JSON format:
               ]
             }
           ],
-          max_tokens: 1200,
-          temperature: 0.3,
+          max_tokens: 1500,
+          temperature: 0.4,
         }),
       });
 
@@ -474,6 +521,7 @@ Respond in this exact JSON format:
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
+      const now = new Date().toISOString();
       
       const colorSeasonData: ColorSeasonData = {
         season: parsed.season,
@@ -482,15 +530,26 @@ Respond in this exact JSON format:
         avoidColors: parsed.avoidColors,
         metallic: parsed.metallic,
         confidence: parsed.confidence,
-        analyzedAt: new Date().toISOString(),
+        analyzedAt: now,
       };
 
-      await saveBodyProfile({ colorSeason: colorSeasonData });
+      const skinToneData: SkinToneData = {
+        name: parsed.skinTone?.name || 'Beautiful Natural',
+        depth: parsed.skinTone?.depth || 'medium',
+        undertone: parsed.skinTone?.undertone || parsed.skinUndertone || 'neutral',
+        hexApproximation: parsed.skinTone?.hexApproximation || '#C4A484',
+        description: parsed.skinTone?.description || 'Your unique and beautiful skin tone.',
+        complementaryColors: parsed.skinTone?.complementaryColors || parsed.bestColors?.slice(0, 4) || [],
+        analyzedAt: now,
+      };
+
+      await saveBodyProfile({ colorSeason: colorSeasonData, skinTone: skinToneData });
 
       return {
         success: true,
         colorSeason: colorSeasonData,
-        skinUndertone: parsed.skinUndertone,
+        skinTone: skinToneData,
+        skinUndertone: parsed.skinUndertone || parsed.skinTone?.undertone || 'neutral',
         eyeColor: parsed.eyeColor,
         hairColor: parsed.hairColor,
         recommendations: parsed.recommendations,
@@ -498,6 +557,7 @@ Respond in this exact JSON format:
     } catch (err) {
       console.error('Color analysis failed:', err);
       setError('Failed to analyze colors. Please try again with a clearer selfie.');
+      const now = new Date().toISOString();
       return {
         success: false,
         colorSeason: {
@@ -506,7 +566,16 @@ Respond in this exact JSON format:
           avoidColors: [],
           metallic: 'mixed',
           confidence: 0,
-          analyzedAt: new Date().toISOString(),
+          analyzedAt: now,
+        },
+        skinTone: {
+          name: 'Unknown',
+          depth: 'medium',
+          undertone: 'neutral',
+          hexApproximation: '#C4A484',
+          description: 'Please try again with a clearer photo.',
+          complementaryColors: [],
+          analyzedAt: now,
         },
         skinUndertone: 'neutral',
         eyeColor: 'unknown',
@@ -724,6 +793,7 @@ Please provide specific, actionable styling advice that flatters this body type.
     isGeneratingStylingGuide,
     hasBodyProfile,
     hasColorAnalysis,
+    hasSkinToneAnalysis,
     hasStylingGuide,
     error,
     saveBodyProfile,
