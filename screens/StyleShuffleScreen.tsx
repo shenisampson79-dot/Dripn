@@ -782,10 +782,10 @@ export default function StyleShuffleScreen() {
         cancelAnimation(translateY);
         cancelAnimation(cardOpacity);
         cancelAnimation(cardScale);
-        translateX.value = withSpring(0, SNAP_BACK_SPRING);
-        translateY.value = withSpring(0, SNAP_BACK_SPRING);
-        cardOpacity.value = withTiming(1, { duration: 150 });
-        cardScale.value = withSpring(1, SNAP_BACK_SPRING);
+        translateX.value = 0;
+        translateY.value = 0;
+        cardOpacity.value = 1;
+        cardScale.value = 1;
         isAnimating.value = false;
       }
     })
