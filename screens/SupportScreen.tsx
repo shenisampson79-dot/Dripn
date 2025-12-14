@@ -21,6 +21,7 @@ import { Spacing, BorderRadius, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   supportService,
   SupportMessage,
@@ -36,6 +37,7 @@ export default function SupportScreen() {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { paddingTop, paddingBottom } = useScreenInsets();
+  const safeAreaInsets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
 
   const [messages, setMessages] = useState<SupportMessage[]>([]);
@@ -347,7 +349,7 @@ export default function SupportScreen() {
             />
           </ScrollView>
 
-          <View style={styles.modalFooter}>
+          <View style={[styles.modalFooter, { paddingBottom: Math.max(safeAreaInsets.bottom, Spacing.lg) }]}>
             <Pressable
               onPress={() => setShowTicketModal(false)}
               style={({ pressed }) => [
