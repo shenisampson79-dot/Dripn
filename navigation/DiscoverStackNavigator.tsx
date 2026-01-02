@@ -25,6 +25,7 @@ import StyleSoulmatesScreen from "@/screens/StyleSoulmatesScreen";
 import BargainsScreen from "@/screens/BargainsScreen";
 import WishlistScreen from "@/screens/WishlistScreen";
 import SustainabilityScreen from "@/screens/SustainabilityScreen";
+import FashionTherapyScreen from "@/screens/FashionTherapyScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -54,6 +55,7 @@ export type DiscoverStackParamList = {
   Bargains: undefined;
   Wishlist: undefined;
   Sustainability: undefined;
+  FashionTherapy: undefined;
 };
 
 const Stack = createNativeStackNavigator<DiscoverStackParamList>();
@@ -189,6 +191,11 @@ export default function DiscoverStackNavigator() {
         name="Sustainability"
         component={SustainabilityScreen}
         options={{ headerTitle: "Sustainability" }}
+      />
+      <Stack.Screen
+        name="FashionTherapy"
+        component={FashionTherapyScreen}
+        options={{ headerTitle: "Fashion Therapy", headerShown: false }}
       />
     </Stack.Navigator>
   );
