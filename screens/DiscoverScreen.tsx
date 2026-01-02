@@ -172,6 +172,34 @@ type DiscoverScreenProps = {
 
 const { width } = Dimensions.get("window");
 
+const TILE_SIZE = (width - Spacing.lg * 2 - Spacing.md * 2) / 3;
+
+interface CategoryTile {
+  id: string;
+  name: string;
+  icon: keyof typeof Feather.glyphMap;
+  pastelBg: string;
+  iconColor: string;
+  description: string;
+  screen?: keyof DiscoverStackParamList;
+  sectionId?: string;
+}
+
+const CATEGORY_TILES: CategoryTile[] = [
+  { id: "styleOfTheDay", name: "Style of Day", icon: "award", pastelBg: "#FFF0F5", iconColor: "#E91E63", description: "Daily curated outfit inspiration tailored to your region and style preferences.", sectionId: "styleOfTheDay" },
+  { id: "trends", name: "Trends", icon: "trending-up", pastelBg: "#F0F4FF", iconColor: "#5C6BC0", description: "Discover what's hot right now in fashion with real-time trend analysis and forecasts.", sectionId: "trendScanner" },
+  { id: "influencers", name: "Influencers", icon: "users", pastelBg: "#E8F5E9", iconColor: "#43A047", description: "Get inspired by top fashion influencers and learn how to recreate their signature looks.", sectionId: "influencer" },
+  { id: "challenges", name: "Challenges", icon: "flag", pastelBg: "#FFF3E0", iconColor: "#FB8C00", description: "Join fun style challenges, compete with the community, and showcase your creativity.", screen: "StyleChallenges" },
+  { id: "highlights", name: "Highlights", icon: "zap", pastelBg: "#FFFDE7", iconColor: "#FBC02D", description: "Weekly roundup of the best community posts, trending outfits, and editor's picks.", sectionId: "highlights" },
+  { id: "blog", name: "Blog", icon: "edit-3", pastelBg: "#FCE4EC", iconColor: "#EC407A", description: "Read expert fashion articles, styling tips, and in-depth guides from our editors.", screen: "FashionBlog" },
+  { id: "magazine", name: "Magazines", icon: "book-open", pastelBg: "#EDE7F6", iconColor: "#7E57C2", description: "Curated looks from top fashion magazines with shoppable outfit breakdowns.", sectionId: "magazine" },
+  { id: "celebrity", name: "Celebrity", icon: "star", pastelBg: "#FFF8E1", iconColor: "#FFB300", description: "See what celebrities are wearing and get AI-powered lookalike outfit suggestions.", sectionId: "celebrity" },
+  { id: "fashionTherapy", name: "Fashion Therapy", icon: "heart", pastelBg: "#FFEBEE", iconColor: "#EF5350", description: "Mood-based styling, body positivity affirmations, and wellness-focused outfit recommendations.", screen: "FashionTherapy" },
+  { id: "events", name: "Events", icon: "calendar", pastelBg: "#E3F2FD", iconColor: "#1E88E5", description: "Discover fashion events, pop-ups, and shows happening near you with outfit suggestions.", screen: "Events" },
+  { id: "people", name: "People", icon: "smile", pastelBg: "#E0F7FA", iconColor: "#00ACC1", description: "Connect with the Dripn community, follow fellow fashion enthusiasts, and share inspiration.", screen: "Community" },
+  { id: "offers", name: "Offers", icon: "tag", pastelBg: "#F3E5F5", iconColor: "#AB47BC", description: "Exclusive daily deals and discounts from trusted fashion retailers.", screen: "Bargains" },
+];
+
 const SECTION_NAV = [
   { id: "styleOfTheDay", name: "Style of Day", icon: "award" as const },
   { id: "trendScanner", name: "Trends", icon: "trending-up" as const },
@@ -401,6 +429,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const [currencyInitialized, setCurrencyInitialized] = useState(false);
   const [celebrityLooksGenderFilter, setCelebrityLooksGenderFilter] = useState<'user' | 'female' | 'male'>('user');
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [selectedTile, setSelectedTile] = useState<CategoryTile | null>(null);
 
   const moreMenuItems = [
     { id: 'people', label: 'People', icon: 'users' as const, screen: 'Community' as const },
@@ -583,9 +612,58 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
     }
   };
 
+  const handleCategoryTilePress = (tile: CategoryTile) => {
+    setSelectedTile(tile);
+  };
+
+  const handleTileNavigate = () => {
+    if (selectedTile) {
+      if (selectedTile.screen) {
+        navigation.navigate(selectedTile.screen as any);
+      } else if (selectedTile.sectionId) {
+        scrollToSection(selectedTile.sectionId);
+      }
+      setSelectedTile(null);
+    }
+  };
+
   return (
+    <>
     <ScreenScrollView ref={scrollViewRef}>
-      {/* Quick Section Navigation */}
+      {/* Browse Header */}
+      <View style={styles.browseHeader}>
+        <ThemedText type="h1" style={styles.browseTitle}>Browse</ThemedText>
+        <ThemedText type="body" style={[styles.browseSubtitle, { color: theme.tabIconDefault }]}>
+          Explore fashion inspiration and discover your style
+        </ThemedText>
+      </View>
+
+      {/* 3-Column Category Grid */}
+      <View style={styles.categoryGrid}>
+        {CATEGORY_TILES.map((tile) => (
+          <Pressable
+            key={tile.id}
+            onPress={() => handleCategoryTilePress(tile)}
+            style={({ pressed }) => [
+              styles.categoryTile,
+              { 
+                backgroundColor: tile.pastelBg,
+                opacity: pressed ? 0.8 : 1,
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+              },
+            ]}
+          >
+            <View style={[styles.categoryIconContainer, { backgroundColor: tile.iconColor + "20" }]}>
+              <Feather name={tile.icon} size={24} color={tile.iconColor} />
+            </View>
+            <ThemedText type="small" style={[styles.categoryLabel, { color: tile.iconColor }]}>
+              {tile.name}
+            </ThemedText>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* Quick Section Navigation (compact) */}
       <View style={styles.sectionNavContainer}>
         <ScrollView
           horizontal
@@ -609,7 +687,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             >
               <Feather
                 name={section.icon}
-                size={18}
+                size={16}
                 color={activeSection === section.id ? "#FFFFFF" : theme.text}
               />
               <ThemedText
@@ -1369,10 +1447,93 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         </Pressable>
       </View>
     </ScreenScrollView>
+
+      <Modal
+        visible={selectedTile !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedTile(null)}
+      >
+        <Pressable
+          style={styles.sheetOverlay}
+          onPress={() => setSelectedTile(null)}
+        >
+          <Pressable style={[styles.sheetContainer, { backgroundColor: theme.surface }]}>
+            {selectedTile ? (
+              <>
+                <View style={styles.sheetHandle} />
+                <View style={[styles.sheetIconBadge, { backgroundColor: selectedTile.pastelBg }]}>
+                  <Feather name={selectedTile.icon} size={32} color={selectedTile.iconColor} />
+                </View>
+                <ThemedText type="h2" style={styles.sheetTitle}>
+                  {selectedTile.name}
+                </ThemedText>
+                <ThemedText type="body" style={[styles.sheetDescription, { color: theme.tabIconDefault }]}>
+                  {selectedTile.description}
+                </ThemedText>
+                <Pressable
+                  onPress={handleTileNavigate}
+                  style={({ pressed }) => [
+                    styles.sheetButton,
+                    { backgroundColor: selectedTile.iconColor, opacity: pressed ? 0.9 : 1 },
+                  ]}
+                >
+                  <ThemedText type="body" style={styles.sheetButtonText}>
+                    {selectedTile.screen ? "Open" : "Go to Section"}
+                  </ThemedText>
+                  <Feather name="arrow-right" size={18} color="#FFFFFF" />
+                </Pressable>
+              </>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  browseHeader: {
+    alignItems: "center",
+    paddingVertical: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  browseTitle: {
+    fontWeight: "700",
+    marginBottom: Spacing.xs,
+  },
+  browseSubtitle: {
+    textAlign: "center",
+    opacity: 0.7,
+  },
+  categoryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  categoryTile: {
+    width: TILE_SIZE,
+    height: TILE_SIZE + 10,
+    borderRadius: BorderRadius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.md,
+  },
+  categoryIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.sm,
+  },
+  categoryLabel: {
+    fontWeight: "600",
+    textAlign: "center",
+    fontSize: 11,
+  },
   sectionNavContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -1983,5 +2144,57 @@ const styles = StyleSheet.create({
   menuItemLabel: {
     flex: 1,
     fontWeight: "500",
+  },
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  sheetContainer: {
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xxl,
+    alignItems: "center",
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    marginBottom: Spacing.lg,
+  },
+  sheetIconBadge: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.lg,
+  },
+  sheetTitle: {
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: Spacing.sm,
+  },
+  sheetDescription: {
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: Spacing.xl,
+  },
+  sheetButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    gap: Spacing.sm,
+    minWidth: 160,
+  },
+  sheetButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
 });

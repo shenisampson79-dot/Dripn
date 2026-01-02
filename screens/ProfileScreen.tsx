@@ -72,9 +72,6 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("VIPMembers");
   };
 
-  const handleFashionTherapyPress = () => {
-    navigation.navigate("FashionTherapy");
-  };
 
   const getSubscriptionBadge = () => {
     const tier = user?.subscriptionTier || "free";
@@ -189,19 +186,6 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             </ThemedText>
           </Pressable>
         ) : null}
-
-        <Pressable
-          onPress={handleFashionTherapyPress}
-          style={({ pressed }) => [
-            styles.therapyButton,
-            { opacity: pressed ? 0.9 : 1 },
-          ]}
-        >
-          <Feather name="heart" size={18} color="#FFFFFF" />
-          <ThemedText type="body" style={styles.upgradeButtonText}>
-            Fashion Therapy
-          </ThemedText>
-        </Pressable>
 
       </View>
 
