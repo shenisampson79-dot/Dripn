@@ -218,16 +218,26 @@ const BUDGET_OPTIONS: { id: BudgetRange; name: string }[] = [
 ];
 
 const POPULAR_SHOPS = [
-  "Zara", "H&M", "ASOS", "Nordstrom", "Macy's", "Bloomingdale's",
-  "Nike", "Adidas", "Uniqlo", "Gap", "Banana Republic", "J.Crew",
-  "Target", "Walmart", "Amazon Fashion", "Shein", "Forever 21",
-  "Saks Fifth Avenue", "Neiman Marcus", "Net-a-Porter", "Farfetch",
-  "Revolve", "Shopbop", "Anthropologie", "Free People", "Urban Outfitters",
-  "Lululemon", "Athleta", "REI", "Patagonia", "The North Face",
-  "Gucci", "Louis Vuitton", "Prada", "Chanel", "Dior", "Burberry",
-  "Ralph Lauren", "Tommy Hilfiger", "Calvin Klein", "Michael Kors",
-  "Coach", "Kate Spade", "Tory Burch", "Reformation", "Everlane",
-  "COS", "Massimo Dutti", "Mango", "Topshop", "Primark", "TK Maxx",
+  "Adidas", "Amazon Fashion", "Anthropologie", "ASOS", "Athleta",
+  "Banana Republic", "Bloomingdale's", "Burberry",
+  "Calvin Klein", "Chanel", "Coach", "COS",
+  "Dior",
+  "Everlane",
+  "Farfetch", "Forever 21", "Free People",
+  "Gap", "Gucci",
+  "H&M",
+  "J.Crew",
+  "Kate Spade",
+  "Louis Vuitton", "Lululemon",
+  "Macy's", "Mango", "Massimo Dutti", "Michael Kors",
+  "Neiman Marcus", "Net-a-Porter", "Nike", "Nordstrom",
+  "Patagonia", "Prada", "Primark",
+  "Ralph Lauren", "REI", "Reformation", "Revolve",
+  "Saks Fifth Avenue", "Shein", "Shopbop",
+  "Target", "The North Face", "TK Maxx", "Tommy Hilfiger", "Topshop", "Tory Burch",
+  "Uniqlo", "Urban Outfitters",
+  "Walmart",
+  "Zara",
 ];
 
 const DRIPN_GOALS: { id: DripnGoal; name: string; icon: keyof typeof Feather.glyphMap; description: string }[] = [
@@ -1011,20 +1021,41 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
               Select up to 10 shops you love (helps AI personalize recommendations)
             </ThemedText>
 
-            <TextInput
-              style={[
-                styles.searchInput,
-                { 
-                  backgroundColor: theme.backgroundDefault,
-                  color: theme.text,
-                  borderColor: theme.backgroundSecondary,
-                }
-              ]}
-              placeholder="Search shops..."
-              placeholderTextColor={theme.tabIconDefault}
-              value={shopSearchQuery}
-              onChangeText={setShopSearchQuery}
-            />
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={[
+                  styles.searchInput,
+                  { 
+                    backgroundColor: theme.backgroundDefault,
+                    color: theme.text,
+                    borderColor: theme.backgroundSecondary,
+                    flex: 1,
+                  }
+                ]}
+                placeholder="Search or add a shop..."
+                placeholderTextColor={theme.tabIconDefault}
+                value={shopSearchQuery}
+                onChangeText={setShopSearchQuery}
+              />
+              {shopSearchQuery.trim().length > 0 && 
+               !POPULAR_SHOPS.some(s => s.toLowerCase() === shopSearchQuery.trim().toLowerCase()) &&
+               !favoriteShops.some(s => s.toLowerCase() === shopSearchQuery.trim().toLowerCase()) &&
+               favoriteShops.length < 10 ? (
+                <Pressable
+                  onPress={() => {
+                    const newShop = shopSearchQuery.trim();
+                    if (newShop && favoriteShops.length < 10) {
+                      setFavoriteShops([...favoriteShops, newShop]);
+                      setShopSearchQuery("");
+                    }
+                  }}
+                  style={[styles.addButton, { backgroundColor: theme.link }]}
+                >
+                  <Feather name="plus" size={16} color="#FFFFFF" />
+                  <ThemedText type="small" style={{ color: "#FFFFFF", marginLeft: 4 }}>Add</ThemedText>
+                </Pressable>
+              ) : null}
+            </View>
 
             {favoriteShops.length > 0 ? (
               <View style={styles.selectedShopsContainer}>
@@ -1395,12 +1426,24 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     gap: Spacing.sm,
   },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
   searchInput: {
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    marginBottom: Spacing.md,
     fontSize: 16,
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
   },
   selectedShopsContainer: {
     marginBottom: Spacing.md,
