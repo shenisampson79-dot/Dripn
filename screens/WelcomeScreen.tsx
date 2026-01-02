@@ -40,11 +40,16 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
     }
   };
 
+  const backgroundVideo = isDark 
+    ? require("../assets/videos/champagne_gold_silk_flow.mp4")
+    : require("../assets/videos/seamless_looping_pale_silk.mp4");
+
   return (
     <View style={styles.container}>
       <Video
         ref={videoRef}
-        source={require("../assets/videos/seamless_looping_pale_silk.mp4")}
+        key={isDark ? 'dark-bg' : 'light-bg'}
+        source={backgroundVideo}
         style={styles.backgroundVideo}
         resizeMode={ResizeMode.COVER}
         shouldPlay
