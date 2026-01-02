@@ -67,6 +67,15 @@ args = "npm run dev"
 waitForPort = 8081
 ensurePreviewReachable = "/status"
 
+[[workflows.workflow]]
+name = "Backend API"
+mode = "sequential"
+author = 50694868
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend-code && npm install && PORT=8082 node index.js"
+
 [agent]
 stack = "EXPO"
 integrations = ["stripe:1.0.0", "sendgrid:1.0.0"]
