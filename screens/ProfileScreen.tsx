@@ -72,40 +72,8 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("VIPMembers");
   };
 
-  const handleWardrobePress = () => {
-    navigation.navigate("Wardrobe");
-  };
-
-  const handleCalendarPress = () => {
-    navigation.navigate("OutfitCalendar");
-  };
-
   const handleFashionTherapyPress = () => {
     navigation.navigate("FashionTherapy");
-  };
-
-  const handleWeatherOutfitPress = () => {
-    navigation.navigate("WeatherOutfit");
-  };
-
-  const handleCostPerWearPress = () => {
-    navigation.navigate("CostPerWear");
-  };
-
-  const handleStyleDNAPress = () => {
-    navigation.navigate("StyleDNA");
-  };
-
-  const handleVirtualTryOnPress = () => {
-    navigation.navigate("VirtualTryOn");
-  };
-
-  const handleColorAnalysisPress = () => {
-    navigation.navigate("ColorAnalysis");
-  };
-
-  const handleBodyScannerPress = () => {
-    navigation.navigate("BodyScanner");
   };
 
   const getSubscriptionBadge = () => {
@@ -223,119 +191,15 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
         ) : null}
 
         <Pressable
-          onPress={handleWardrobePress}
-          style={({ pressed }) => [
-            styles.wardrobeButton,
-            { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.9 : 1 },
-          ]}
-        >
-          <Feather name="grid" size={18} color={theme.text} />
-          <ThemedText type="body" style={styles.wardrobeButtonText}>
-            My Wardrobe
-          </ThemedText>
-        </Pressable>
-
-        <Pressable
-          onPress={handleCalendarPress}
-          style={({ pressed }) => [
-            styles.wardrobeButton,
-            { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
-          ]}
-        >
-          <Feather name="calendar" size={18} color={theme.text} />
-          <ThemedText type="body" style={styles.wardrobeButtonText}>
-            Outfit Calendar
-          </ThemedText>
-        </Pressable>
-
-        <Pressable
           onPress={handleFashionTherapyPress}
           style={({ pressed }) => [
             styles.therapyButton,
-            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
+            { opacity: pressed ? 0.9 : 1 },
           ]}
         >
           <Feather name="heart" size={18} color="#FFFFFF" />
           <ThemedText type="body" style={styles.upgradeButtonText}>
             Fashion Therapy
-          </ThemedText>
-        </Pressable>
-
-        <Pressable
-          onPress={handleWeatherOutfitPress}
-          style={({ pressed }) => [
-            styles.weatherButton,
-            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
-          ]}
-        >
-          <Feather name="cloud" size={18} color="#FFFFFF" />
-          <ThemedText type="body" style={styles.upgradeButtonText}>
-            Weather Outfits
-          </ThemedText>
-        </Pressable>
-
-        <Pressable
-          onPress={handleCostPerWearPress}
-          style={({ pressed }) => [
-            styles.analyticsButton,
-            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
-          ]}
-        >
-          <Feather name="pie-chart" size={18} color="#FFFFFF" />
-          <ThemedText type="body" style={styles.upgradeButtonText}>
-            Cost-per-Wear
-          </ThemedText>
-        </Pressable>
-
-        <Pressable
-          onPress={handleStyleDNAPress}
-          style={({ pressed }) => [
-            styles.styleDNAButton,
-            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
-          ]}
-        >
-          <Feather name="git-branch" size={18} color="#FFFFFF" />
-          <ThemedText type="body" style={styles.upgradeButtonText}>
-            Style DNA
-          </ThemedText>
-        </Pressable>
-
-        <Pressable
-          onPress={handleVirtualTryOnPress}
-          style={({ pressed }) => [
-            styles.tryOnButton,
-            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
-          ]}
-        >
-          <Feather name="camera" size={18} color="#FFFFFF" />
-          <ThemedText type="body" style={styles.upgradeButtonText}>
-            Virtual Try-On
-          </ThemedText>
-        </Pressable>
-
-        <Pressable
-          onPress={handleColorAnalysisPress}
-          style={({ pressed }) => [
-            styles.colorAnalysisButton,
-            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
-          ]}
-        >
-          <Feather name="droplet" size={18} color="#FFFFFF" />
-          <ThemedText type="body" style={styles.upgradeButtonText}>
-            Color Analysis
-          </ThemedText>
-        </Pressable>
-
-        <Pressable
-          onPress={handleBodyScannerPress}
-          style={({ pressed }) => [
-            styles.bodyScannerButton,
-            { opacity: pressed ? 0.9 : 1, marginTop: Spacing.sm },
-          ]}
-        >
-          <Feather name="user" size={18} color="#FFFFFF" />
-          <ThemedText type="body" style={styles.upgradeButtonText}>
-            Body Scanner
           </ThemedText>
         </Pressable>
 

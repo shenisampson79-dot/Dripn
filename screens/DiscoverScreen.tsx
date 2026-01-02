@@ -400,6 +400,13 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const [loadingTrends, setLoadingTrends] = useState(false);
   const [currencyInitialized, setCurrencyInitialized] = useState(false);
   const [celebrityLooksGenderFilter, setCelebrityLooksGenderFilter] = useState<'user' | 'female' | 'male'>('user');
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+
+  const moreMenuItems = [
+    { id: 'people', label: 'People', icon: 'users' as const, screen: 'Community' as const },
+    { id: 'events', label: 'Events', icon: 'calendar' as const, screen: 'Events' as const },
+    { id: 'offers', label: 'Offers', icon: 'tag' as const, screen: 'Bargains' as const },
+  ];
 
   useEffect(() => {
     currencyService.initialize().then(() => setCurrencyInitialized(true));
@@ -618,7 +625,57 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             </Pressable>
           ))}
         </ScrollView>
+        <Pressable
+          onPress={() => setShowMoreMenu(true)}
+          style={({ pressed }) => [
+            styles.moreMenuButton,
+            { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          <Feather name="menu" size={20} color={theme.text} />
+        </Pressable>
       </View>
+
+      {/* More Menu Modal */}
+      {showMoreMenu ? (
+        <Pressable
+          style={styles.menuOverlay}
+          onPress={() => setShowMoreMenu(false)}
+        >
+          <Pressable 
+            style={[styles.menuContainer, { backgroundColor: theme.backgroundDefault }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.menuHeader}>
+              <ThemedText type="h4">More</ThemedText>
+              <Pressable onPress={() => setShowMoreMenu(false)}>
+                <Feather name="x" size={22} color={theme.text} />
+              </Pressable>
+            </View>
+            {moreMenuItems.map((item) => (
+              <Pressable
+                key={item.id}
+                onPress={() => {
+                  setShowMoreMenu(false);
+                  navigation.navigate(item.screen);
+                }}
+                style={({ pressed }) => [
+                  styles.menuItem,
+                  { backgroundColor: pressed ? theme.backgroundSecondary : "transparent" },
+                ]}
+              >
+                <View style={[styles.menuItemIcon, { backgroundColor: theme.link + "20" }]}>
+                  <Feather name={item.icon} size={20} color={theme.link} />
+                </View>
+                <ThemedText type="body" style={styles.menuItemLabel}>
+                  {item.label}
+                </ThemedText>
+                <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
+              </Pressable>
+            ))}
+          </Pressable>
+        </Pressable>
+      ) : null}
 
       {isExploringOtherCountry && actualCountry ? (
         <View style={[styles.explorationBanner, { backgroundColor: theme.link + "15" }]}>
@@ -1312,9 +1369,12 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
 
 const styles = StyleSheet.create({
   sectionNavContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: Spacing.lg,
     marginHorizontal: -Spacing.xl,
     paddingHorizontal: Spacing.xl,
+    paddingRight: Spacing.md,
   },
   sectionNavScroll: {
     paddingVertical: Spacing.xs,
@@ -1865,5 +1925,61 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     fontStyle: "italic",
     fontSize: 12,
+  },
+  moreMenuButton: {
+    width: 44,
+    height: 36,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: Spacing.sm,
+  },
+  menuOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    zIndex: 100,
+    justifyContent: "flex-start",
+    paddingTop: 60,
+  },
+  menuContainer: {
+    marginHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  menuHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(0,0,0,0.1)",
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+  },
+  menuItemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuItemLabel: {
+    flex: 1,
+    fontWeight: "500",
   },
 });
