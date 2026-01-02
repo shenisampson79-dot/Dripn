@@ -1048,25 +1048,35 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
               </View>
             ) : null}
 
+            {favoriteShops.length >= 10 ? (
+              <ThemedText type="small" style={{ opacity: 0.7, marginBottom: Spacing.md }}>
+                Maximum 10 shops selected
+              </ThemedText>
+            ) : null}
+
             <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.shopsGrid}>
-                {filteredShops.map((shop) => (
-                  <Pressable
-                    key={shop}
-                    onPress={() => toggleShop(shop)}
-                    style={({ pressed }) => [
-                      styles.shopChip,
-                      {
-                        backgroundColor: theme.backgroundDefault,
-                        borderWidth: 1,
-                        borderColor: theme.backgroundSecondary,
-                        opacity: pressed ? 0.8 : 1,
-                      },
-                    ]}
-                  >
-                    <ThemedText type="small">{shop}</ThemedText>
-                  </Pressable>
-                ))}
+                {filteredShops.map((shop) => {
+                  const isDisabled = favoriteShops.length >= 10;
+                  return (
+                    <Pressable
+                      key={shop}
+                      onPress={() => toggleShop(shop)}
+                      disabled={isDisabled}
+                      style={({ pressed }) => [
+                        styles.shopChip,
+                        {
+                          backgroundColor: theme.backgroundDefault,
+                          borderWidth: 1,
+                          borderColor: theme.backgroundSecondary,
+                          opacity: isDisabled ? 0.4 : (pressed ? 0.8 : 1),
+                        },
+                      ]}
+                    >
+                      <ThemedText type="small" style={{ opacity: isDisabled ? 0.5 : 1 }}>{shop}</ThemedText>
+                    </Pressable>
+                  );
+                })}
               </View>
             </ScrollView>
           </View>
@@ -1081,32 +1091,40 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
             <ThemedText type="body" style={styles.stepSubtitle}>
               Choose up to 3 goals (helps AI understand your needs)
             </ThemedText>
+            {usageGoals.length >= 3 ? (
+              <ThemedText type="small" style={{ opacity: 0.7, marginBottom: Spacing.md }}>
+                Maximum 3 goals selected
+              </ThemedText>
+            ) : null}
+
             <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.goalsContainer}>
                 {DRIPN_GOALS.map((goal) => {
                   const isSelected = usageGoals.includes(goal.id);
+                  const isDisabled = !isSelected && usageGoals.length >= 3;
                   return (
                     <Pressable
                       key={goal.id}
                       onPress={() => toggleGoal(goal.id)}
+                      disabled={isDisabled}
                       style={({ pressed }) => [
                         styles.goalOption,
                         {
                           backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
                           borderColor: isSelected ? theme.link : theme.backgroundSecondary,
-                          opacity: pressed ? 0.8 : 1,
+                          opacity: isDisabled ? 0.4 : (pressed ? 0.8 : 1),
                         },
                       ]}
                     >
                       <Feather
                         name={goal.icon}
                         size={24}
-                        color={isSelected ? "#FFFFFF" : theme.text}
+                        color={isSelected ? "#FFFFFF" : (isDisabled ? theme.tabIconDefault : theme.text)}
                       />
                       <View style={styles.goalTextContainer}>
                         <ThemedText
                           type="h3"
-                          style={{ color: isSelected ? "#FFFFFF" : theme.text }}
+                          style={{ color: isSelected ? "#FFFFFF" : (isDisabled ? theme.tabIconDefault : theme.text) }}
                         >
                           {goal.name}
                         </ThemedText>
