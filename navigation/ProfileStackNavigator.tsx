@@ -13,6 +13,7 @@ import LogoPreviewScreen from "@/screens/LogoPreviewScreen";
 import OnboardingQuizScreen from "@/screens/OnboardingQuizScreen";
 import WardrobeScreen from "@/screens/WardrobeScreen";
 import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
+import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
 import SupportScreen from "@/screens/SupportScreen";
 import FeatureSuggestionsScreen from "@/screens/FeatureSuggestionsScreen";
@@ -42,6 +43,7 @@ export type ProfileStackParamList = {
   OnboardingQuiz: undefined;
   Wardrobe: undefined;
   AddWardrobeItem: undefined;
+  BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
   Support: undefined;
   FeatureSuggestions: undefined;
@@ -177,6 +179,15 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={AddWardrobeItemScreen}
         options={{
           title: "Add Item",
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="BulkWardrobeUpload"
+        component={BulkWardrobeUploadScreen}
+        options={{
+          title: "Quick Add Items",
           headerShown: false,
           presentation: "modal",
         }}

@@ -60,6 +60,7 @@ export interface WardrobeItem {
   id: string;
   userId: string;
   imageUri: string;
+  enhancedImageUri?: string;
   category: ClothingCategory;
   subcategory?: string;
   color: ClothingColor;
@@ -69,15 +70,22 @@ export interface WardrobeItem {
   seasons: ClothingSeason[];
   occasions: ClothingOccasion[];
   purchasePrice?: number;
+  purchaseCurrency?: string;
+  originalPrice?: number;
   purchaseDate?: string;
   timesWorn: number;
   lastWorn?: string;
+  plannedDate?: string;
   isFavorite: boolean;
   sustainabilityScore?: number;
   notes?: string;
   origin?: ItemOrigin;
   sourceUrl?: string;
+  retailer?: string;
+  size?: string;
+  material?: string;
   aiAnalyzed?: boolean;
+  aiTags?: string[];
   createdAt: string;
   updatedAt: string;
 }

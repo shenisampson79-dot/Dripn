@@ -60,6 +60,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     navigation.navigate("AddWardrobeItem");
   };
 
+  const handleQuickAdd = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    navigation.navigate("BulkWardrobeUpload");
+  };
+
   const handleItemPress = (item: WardrobeItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedItem(item);
@@ -189,12 +194,21 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         Start building your digital closet by adding photos of your clothes
       </ThemedText>
       <Pressable
-        onPress={handleAddItem}
+        onPress={handleQuickAdd}
         style={[styles.emptyButton, { backgroundColor: theme.link }]}
       >
-        <Feather name="plus" size={20} color="#FFFFFF" />
+        <Feather name="layers" size={20} color="#FFFFFF" />
         <ThemedText type="body" style={styles.emptyButtonText}>
-          Add Your First Item
+          Quick Add Multiple Items
+        </ThemedText>
+      </Pressable>
+      <Pressable
+        onPress={handleAddItem}
+        style={[styles.emptyButtonSecondary, { borderColor: theme.tabIconDefault }]}
+      >
+        <Feather name="plus" size={20} color={theme.text} />
+        <ThemedText type="body" style={{ marginLeft: Spacing.sm }}>
+          Add Single Item
         </ThemedText>
       </Pressable>
     </View>
@@ -394,17 +408,22 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
 
       {renderItemModal()}
 
-      <Pressable
-        onPress={handleAddItem}
-        style={[
-          styles.fab,
-          { backgroundColor: theme.link, bottom: insets.bottom + 100 },
-        ]}
-      >
-        <View style={styles.fabInner}>
-          <View style={styles.fabShutter} />
-        </View>
-      </Pressable>
+      <View style={[styles.fabContainer, { bottom: insets.bottom + 100 }]}>
+        <Pressable
+          onPress={handleQuickAdd}
+          style={[styles.fabSecondary, { backgroundColor: theme.backgroundDefault }]}
+        >
+          <Feather name="layers" size={20} color={theme.link} />
+        </Pressable>
+        <Pressable
+          onPress={handleAddItem}
+          style={[styles.fab, { backgroundColor: theme.link }]}
+        >
+          <View style={styles.fabInner}>
+            <View style={styles.fabShutter} />
+          </View>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -543,9 +562,35 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "600",
   },
-  fab: {
+  emptyButtonSecondary: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing["2xl"],
+    paddingVertical: Spacing.lg,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    marginTop: Spacing.md,
+  },
+  fabContainer: {
     position: "absolute",
     right: Spacing.xl,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  fabSecondary: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  fab: {
     width: 64,
     height: 64,
     borderRadius: 32,
