@@ -8,6 +8,7 @@ import { StyleSheet, View, Pressable, Image, ScrollView, Dimensions, Alert, Imag
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -1454,11 +1455,16 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
         animationType="slide"
         onRequestClose={() => setSelectedTile(null)}
       >
-        <Pressable
-          style={styles.sheetOverlay}
-          onPress={() => setSelectedTile(null)}
-        >
-          <Pressable style={[styles.sheetContainer, { backgroundColor: theme.surface }]}>
+        <View style={styles.sheetOverlay}>
+          <Pressable
+            style={styles.sheetBackdrop}
+            onPress={() => setSelectedTile(null)}
+          />
+          <BlurView
+            intensity={80}
+            tint={theme.isDark ? "dark" : "light"}
+            style={styles.sheetContainer}
+          >
             {selectedTile ? (
               <>
                 <View style={styles.sheetHandle} />
@@ -1477,6 +1483,8 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
                     styles.sheetButton,
                     { backgroundColor: selectedTile.iconColor, opacity: pressed ? 0.9 : 1 },
                   ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Navigate to ${selectedTile.name}`}
                 >
                   <ThemedText type="body" style={styles.sheetButtonText}>
                     {selectedTile.screen ? "Open" : "Go to Section"}
@@ -1485,8 +1493,8 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
                 </Pressable>
               </>
             ) : null}
-          </Pressable>
-        </Pressable>
+          </BlurView>
+        </View>
       </Modal>
     </>
   );
@@ -2147,8 +2155,11 @@ const styles = StyleSheet.create({
   },
   sheetOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
+  },
+  sheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheetContainer: {
     borderTopLeftRadius: BorderRadius.xl,
@@ -2157,6 +2168,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xxl,
     alignItems: "center",
+    overflow: "hidden",
   },
   sheetHandle: {
     width: 40,
