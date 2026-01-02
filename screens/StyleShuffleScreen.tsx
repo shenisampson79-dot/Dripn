@@ -25,7 +25,6 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
@@ -1114,13 +1113,13 @@ export default function StyleShuffleScreen() {
               <Card style={styles.outfitCard} elevation={3}>
                 <Image source={currentOutfit.image} style={styles.outfitImage} resizeMode="cover" />
                 
-                <Animated.View style={[styles.likeOverlay, likeOverlayStyle]}>
+                <Animated.View style={[styles.likeOverlay, likeOverlayStyle]} pointerEvents="none">
                   <View style={styles.likeStamp}>
                     <ThemedText style={styles.stampText}>LIKE</ThemedText>
                   </View>
                 </Animated.View>
 
-                <Animated.View style={[styles.passOverlay, passOverlayStyle]}>
+                <Animated.View style={[styles.passOverlay, passOverlayStyle]} pointerEvents="none">
                   <View style={styles.passStamp}>
                     <ThemedText style={styles.stampText}>PASS</ThemedText>
                   </View>
@@ -1157,12 +1156,14 @@ export default function StyleShuffleScreen() {
         ) : null}
       </View>
 
-      <BlurView
-        intensity={80}
-        tint={isDark ? 'dark' : 'light'}
+      <View
         style={[
           styles.floatingActionBar,
-          { bottom: tabBarHeight + Spacing.md }
+          { 
+            bottom: tabBarHeight + Spacing.lg,
+            backgroundColor: isDark ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            zIndex: 100,
+          }
         ]}
       >
         <View style={styles.progressRow}>
@@ -1185,6 +1186,9 @@ export default function StyleShuffleScreen() {
 
         <View style={styles.actionsRow}>
           <Pressable
+            accessibilityLabel="Pass outfit"
+            accessibilityRole="button"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             style={({ pressed }) => [
               styles.actionButton, 
               styles.passButton, 
@@ -1200,6 +1204,9 @@ export default function StyleShuffleScreen() {
           </Pressable>
 
           <Pressable
+            accessibilityLabel="Outfit information"
+            accessibilityRole="button"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={({ pressed }) => [
               styles.actionButton, 
               styles.infoButton, 
@@ -1222,6 +1229,9 @@ export default function StyleShuffleScreen() {
           </Pressable>
 
           <Pressable
+            accessibilityLabel="Like outfit"
+            accessibilityRole="button"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             style={({ pressed }) => [
               styles.actionButton, 
               styles.likeButton, 
@@ -1236,7 +1246,7 @@ export default function StyleShuffleScreen() {
             <Feather name="heart" size={24} color="#FFFFFF" />
           </Pressable>
         </View>
-      </BlurView>
+      </View>
 
       {showMatchOverlay ? (
         <Animated.View 
@@ -1299,7 +1309,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    overflow: 'hidden',
+    elevation: 10,
   },
   cardWrapper: {
     position: 'absolute',

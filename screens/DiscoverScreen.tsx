@@ -1380,6 +1380,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -Spacing.xl,
     paddingHorizontal: Spacing.xl,
     paddingRight: Spacing.md,
+    zIndex: 5,
   },
   sectionNavScroll: {
     paddingVertical: Spacing.xs,
@@ -1938,6 +1939,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginLeft: Spacing.sm,
+    zIndex: 10,
   },
   menuOverlay: {
     flex: 1,
