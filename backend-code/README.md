@@ -10,25 +10,41 @@ Complete backend server for the Dripn fashion app.
 3. Name it "dripn-backend"
 
 ### Step 2: Copy Files
-Copy all the files from this `backend-code` folder into your new Replit:
+Copy ALL files from this `backend-code` folder into your new Replit:
 - `index.js` (main server)
 - `package.json` (dependencies)
 - `.replit` (run configuration)
+- All service files (`*Service.js`)
+- `newsletterTemplates.js`
 
 ### Step 3: Set Up Database
 1. In your new Replit, click the "Database" tab in the left sidebar
 2. Click "Create Database" to create a PostgreSQL database
 3. The DATABASE_URL will be automatically added to your environment
 
-### Step 4: Add OpenAI Key (Optional)
+### Step 4: Add Required Secrets
 1. Click the "Secrets" tab (lock icon)
-2. Add a secret named `OPENAI_API_KEY`
-3. Paste your API key from [platform.openai.com](https://platform.openai.com/api-keys)
+2. Add these secrets:
+
+| Secret Name | Required | Description |
+|-------------|----------|-------------|
+| OPENAI_API_KEY | Yes | Your OpenAI API key for AI features |
+| JWT_SECRET | Yes | Random string for JWT tokens (use any long random string) |
+| STRIPE_SECRET_KEY | Optional | For payment processing |
+| STRIPE_PUBLISHABLE_KEY | Optional | For Stripe frontend |
+| SENDGRID_API_KEY | Optional | For email notifications |
+| REPLICATE_API_TOKEN | Optional | For virtual try-on feature |
 
 ### Step 5: Run the Server
 1. Click the green "Run" button
 2. Your API will be live at your Replit URL (shown in the webview)
-3. Copy this URL - you'll need it for your Dripn app!
+3. Test it by visiting `/api/health` - should show `{"status":"healthy"}`
+
+### Step 6: Deploy for Production
+1. Click the "Publish" button (or "Deploy" in some views)
+2. Choose "Autoscale" deployment
+3. Click "Publish" to deploy
+4. Copy the production URL (e.g., `https://dripn-backend.replit.app`)
 
 ## API Endpoints
 
@@ -49,14 +65,32 @@ Copy all the files from this `backend-code` folder into your new Replit:
 
 ## Connecting Your Dripn App
 
-After your backend is running, update your Dripn app:
-1. Add your backend URL as an environment variable
-2. The app will automatically connect to your backend
+After your backend is deployed, update your Dripn mobile app:
+
+1. Go to your Dripn mobile app Replit project
+2. Open the "Secrets" tab
+3. Update `EXPO_PUBLIC_API_URL` to your new backend URL:
+   - Example: `https://dripn-backend.replit.app`
+   - Make sure NOT to include a trailing slash
+4. Restart your Expo app to pick up the new URL
+5. Test login/signup - it should now work from your mobile device!
+
+## Health Check
+
+Test your backend is running by visiting:
+- Development: `http://localhost:3000/api/health`
+- Production: `https://your-backend-url.replit.app/api/health`
+
+Should return: `{"status":"healthy"}`
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| DATABASE_URL | Auto-set by Replit PostgreSQL |
-| OPENAI_API_KEY | Your OpenAI API key (optional) |
-| JWT_SECRET | Auto-generated if not set |
+| Variable | Description | Auto-Set |
+|----------|-------------|----------|
+| DATABASE_URL | PostgreSQL connection string | Yes (by Replit) |
+| PORT | Server port (default: 3000) | Yes |
+| JWT_SECRET | JWT signing secret for auth tokens | No (add manually) |
+| OPENAI_API_KEY | OpenAI API key for AI features | No (add manually) |
+| STRIPE_SECRET_KEY | Stripe secret key for payments | No (optional) |
+| SENDGRID_API_KEY | SendGrid key for emails | No (optional) |
+| REPLICATE_API_TOKEN | Replicate key for virtual try-on | No (optional) |
