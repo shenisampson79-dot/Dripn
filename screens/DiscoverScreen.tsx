@@ -173,7 +173,7 @@ type DiscoverScreenProps = {
 
 const { width } = Dimensions.get("window");
 
-const TILE_SIZE = (width - Spacing.lg * 2 - Spacing.md * 2) / 3;
+const TILE_SIZE = (width - Spacing.lg * 2 - Spacing.sm * 3) / 4;
 
 interface CategoryTile {
   id: string;
@@ -187,18 +187,22 @@ interface CategoryTile {
 }
 
 const CATEGORY_TILES: CategoryTile[] = [
-  { id: "styleOfTheDay", name: "Style of Day", icon: "award", pastelBg: "#FFF0F5", iconColor: "#E91E63", description: "Daily curated outfit inspiration tailored to your region and style preferences.", sectionId: "styleOfTheDay" },
-  { id: "trends", name: "Trends", icon: "trending-up", pastelBg: "#F0F4FF", iconColor: "#5C6BC0", description: "Discover what's hot right now in fashion with real-time trend analysis and forecasts.", sectionId: "trendScanner" },
-  { id: "influencers", name: "Influencers", icon: "users", pastelBg: "#E8F5E9", iconColor: "#43A047", description: "Get inspired by top fashion influencers and learn how to recreate their signature looks.", sectionId: "influencer" },
+  { id: "styleOfTheDay", name: "Style of Day", icon: "award", pastelBg: "#FFF0F5", iconColor: "#E91E63", description: "Daily curated outfit inspiration tailored to your region and style preferences.", screen: "SmartNotifications" },
+  { id: "trends", name: "Trends", icon: "trending-up", pastelBg: "#F0F4FF", iconColor: "#5C6BC0", description: "Discover what's hot right now in fashion with real-time trend analysis and forecasts.", screen: "SmartNotifications" },
+  { id: "influencers", name: "Influencers", icon: "users", pastelBg: "#E8F5E9", iconColor: "#43A047", description: "Get inspired by top fashion influencers and learn how to recreate their signature looks.", screen: "Community" },
   { id: "challenges", name: "Challenges", icon: "flag", pastelBg: "#FFF3E0", iconColor: "#FB8C00", description: "Join fun style challenges, compete with the community, and showcase your creativity.", screen: "StyleChallenges" },
-  { id: "highlights", name: "Highlights", icon: "zap", pastelBg: "#FFFDE7", iconColor: "#FBC02D", description: "Weekly roundup of the best community posts, trending outfits, and editor's picks.", sectionId: "highlights" },
+  { id: "highlights", name: "Highlights", icon: "zap", pastelBg: "#FFFDE7", iconColor: "#FBC02D", description: "Weekly roundup of the best community posts, trending outfits, and editor's picks.", screen: "Gamification" },
   { id: "blog", name: "Blog", icon: "edit-3", pastelBg: "#FCE4EC", iconColor: "#EC407A", description: "Read expert fashion articles, styling tips, and in-depth guides from our editors.", screen: "FashionBlog" },
-  { id: "magazine", name: "Magazines", icon: "book-open", pastelBg: "#EDE7F6", iconColor: "#7E57C2", description: "Curated looks from top fashion magazines with shoppable outfit breakdowns.", sectionId: "magazine" },
-  { id: "celebrity", name: "Celebrity", icon: "star", pastelBg: "#FFF8E1", iconColor: "#FFB300", description: "See what celebrities are wearing and get AI-powered lookalike outfit suggestions.", sectionId: "celebrity" },
-  { id: "fashionTherapy", name: "Fashion Therapy", icon: "heart", pastelBg: "#FFEBEE", iconColor: "#EF5350", description: "Mood-based styling, body positivity affirmations, and wellness-focused outfit recommendations.", screen: "FashionTherapy" },
+  { id: "magazine", name: "Magazines", icon: "book-open", pastelBg: "#EDE7F6", iconColor: "#7E57C2", description: "Curated looks from top fashion magazines with shoppable outfit breakdowns.", screen: "FashionBlog" },
+  { id: "celebrity", name: "Celebrity", icon: "star", pastelBg: "#FFF8E1", iconColor: "#FFB300", description: "See what celebrities are wearing and get AI-powered lookalike outfit suggestions.", screen: "VisualSearch" },
+  { id: "fashionTherapy", name: "Therapy", icon: "heart", pastelBg: "#FFEBEE", iconColor: "#EF5350", description: "Mood-based styling, body positivity affirmations, and wellness-focused outfit recommendations.", screen: "FashionTherapy" },
   { id: "events", name: "Events", icon: "calendar", pastelBg: "#E3F2FD", iconColor: "#1E88E5", description: "Discover fashion events, pop-ups, and shows happening near you with outfit suggestions.", screen: "Events" },
   { id: "people", name: "People", icon: "smile", pastelBg: "#E0F7FA", iconColor: "#00ACC1", description: "Connect with the Dripn community, follow fellow fashion enthusiasts, and share inspiration.", screen: "Community" },
   { id: "offers", name: "Offers", icon: "tag", pastelBg: "#F3E5F5", iconColor: "#AB47BC", description: "Exclusive daily deals and discounts from trusted fashion retailers.", screen: "Bargains" },
+  { id: "aiStylist", name: "AI Stylist", icon: "cpu", pastelBg: "#E8EAF6", iconColor: "#3F51B5", description: "Get personalized AI-powered outfit recommendations based on your style profile and preferences.", screen: "AIStylist" },
+  { id: "virtualTryOn", name: "Try-On", icon: "image", pastelBg: "#FBE9E7", iconColor: "#FF5722", description: "Virtually try on clothes and see how they look on you before buying.", screen: "VirtualTryOn" },
+  { id: "sustainability", name: "Eco Style", icon: "globe", pastelBg: "#E8F5E9", iconColor: "#4CAF50", description: "Discover sustainable fashion brands and eco-friendly styling tips.", screen: "Sustainability" },
+  { id: "styleShuffle", name: "Shuffle", icon: "shuffle", pastelBg: "#E1F5FE", iconColor: "#03A9F4", description: "Randomly generate outfit combinations from your wardrobe or trending styles.", screen: "StyleShuffle" },
 ];
 
 const SECTION_NAV = [
@@ -414,7 +418,7 @@ interface EmergingTrend {
 }
 
 export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { user, isExploringOtherCountry, explorationCountry, actualCountry, switchBackToActualLocation } = useAuth();
   const { tier } = useSubscription();
   const { posts, votePost, voteComparison, thankPost } = usePosts();
@@ -655,7 +659,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             ]}
           >
             <View style={[styles.categoryIconContainer, { backgroundColor: tile.iconColor + "20" }]}>
-              <Feather name={tile.icon} size={24} color={tile.iconColor} />
+              <Feather name={tile.icon} size={18} color={tile.iconColor} />
             </View>
             <ThemedText type="small" style={[styles.categoryLabel, { color: tile.iconColor }]}>
               {tile.name}
@@ -679,7 +683,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
           />
           <BlurView
             intensity={80}
-            tint={theme.isDark ? "dark" : "light"}
+            tint={isDark ? "dark" : "light"}
             style={styles.sheetContainer}
           >
             {selectedTile ? (
@@ -735,29 +739,32 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: Spacing.md,
+    gap: Spacing.sm,
     marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.xs,
   },
   categoryTile: {
     width: TILE_SIZE,
-    height: TILE_SIZE + 10,
-    borderRadius: BorderRadius.lg,
+    height: TILE_SIZE + 6,
+    borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   categoryIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   categoryLabel: {
     fontWeight: "600",
     textAlign: "center",
-    fontSize: 11,
+    fontSize: 10,
+    lineHeight: 12,
+    paddingHorizontal: 2,
   },
   sectionNavContainer: {
     flexDirection: "row",
@@ -1383,7 +1390,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: BorderRadius.xl,
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing.xxl,
+    paddingBottom: Spacing["2xl"],
     alignItems: "center",
     overflow: "hidden",
   },
