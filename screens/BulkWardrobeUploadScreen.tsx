@@ -76,7 +76,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       selectionLimit: 20,
       quality: 0.8,
@@ -117,7 +117,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
       quality: 0.9,
     });
