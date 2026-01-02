@@ -168,6 +168,8 @@ export default function OnboardingQuizScreen({ navigation }: OnboardingQuizScree
         preferOnlineShopping,
         sustainabilityImportant,
         occasions,
+        favoriteShops: user?.extendedPreferences?.favoriteShops || [],
+        usageGoals: user?.extendedPreferences?.usageGoals || [],
       };
 
       await completeQuiz({

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -10,7 +10,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, StyleTheme } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences } from "@/contexts/AuthContext";
+import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences, DripnGoal } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getVoiceOptionsForStylist, getDefaultVoiceForStylist, getAccentsForLanguage } from "@/services/PersonalStylistService";
 import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
@@ -217,6 +217,29 @@ const BUDGET_OPTIONS: { id: BudgetRange; name: string }[] = [
   { id: "Luxury", name: "Luxury" },
 ];
 
+const POPULAR_SHOPS = [
+  "Zara", "H&M", "ASOS", "Nordstrom", "Macy's", "Bloomingdale's",
+  "Nike", "Adidas", "Uniqlo", "Gap", "Banana Republic", "J.Crew",
+  "Target", "Walmart", "Amazon Fashion", "Shein", "Forever 21",
+  "Saks Fifth Avenue", "Neiman Marcus", "Net-a-Porter", "Farfetch",
+  "Revolve", "Shopbop", "Anthropologie", "Free People", "Urban Outfitters",
+  "Lululemon", "Athleta", "REI", "Patagonia", "The North Face",
+  "Gucci", "Louis Vuitton", "Prada", "Chanel", "Dior", "Burberry",
+  "Ralph Lauren", "Tommy Hilfiger", "Calvin Klein", "Michael Kors",
+  "Coach", "Kate Spade", "Tory Burch", "Reformation", "Everlane",
+  "COS", "Massimo Dutti", "Mango", "Topshop", "Primark", "TK Maxx",
+];
+
+const DRIPN_GOALS: { id: DripnGoal; name: string; icon: keyof typeof Feather.glyphMap; description: string }[] = [
+  { id: "dress-better", name: "Dress Better", icon: "star", description: "Improve my overall style and appearance" },
+  { id: "meet-people", name: "Meet People", icon: "users", description: "Connect with fashion-minded individuals" },
+  { id: "find-offers", name: "Find Deals", icon: "tag", description: "Discover great fashion bargains and sales" },
+  { id: "get-inspired", name: "Get Inspired", icon: "eye", description: "Find new outfit ideas and style inspiration" },
+  { id: "build-wardrobe", name: "Build Wardrobe", icon: "grid", description: "Create a versatile and cohesive wardrobe" },
+  { id: "special-events", name: "Special Events", icon: "calendar", description: "Look amazing for parties, dates, and occasions" },
+  { id: "professional-image", name: "Professional Image", icon: "briefcase", description: "Elevate my work and career style" },
+];
+
 const ALL_COUNTRIES = [
   "Albania",
   "Andorra",
@@ -357,8 +380,31 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const [stylistAccent, setStylistAccent] = useState<string>("American");
   const [voicePitch, setVoicePitch] = useState<VoicePitch>("contralto");
   const [isPlayingVoice, setIsPlayingVoice] = useState<string | null>(null);
+  const [favoriteShops, setFavoriteShops] = useState<string[]>([]);
+  const [usageGoals, setUsageGoals] = useState<DripnGoal[]>([]);
+  const [shopSearchQuery, setShopSearchQuery] = useState("");
 
-  const totalSteps = 5;
+  const totalSteps = 7;
+  
+  const filteredShops = POPULAR_SHOPS.filter(
+    shop => shop.toLowerCase().includes(shopSearchQuery.toLowerCase()) && !favoriteShops.includes(shop)
+  );
+
+  const toggleShop = (shop: string) => {
+    if (favoriteShops.includes(shop)) {
+      setFavoriteShops(favoriteShops.filter(s => s !== shop));
+    } else if (favoriteShops.length < 10) {
+      setFavoriteShops([...favoriteShops, shop]);
+    }
+  };
+
+  const toggleGoal = (goalId: DripnGoal) => {
+    if (usageGoals.includes(goalId)) {
+      setUsageGoals(usageGoals.filter(g => g !== goalId));
+    } else if (usageGoals.length < 3) {
+      setUsageGoals([...usageGoals, goalId]);
+    }
+  };
 
   useEffect(() => {
     const accents = getAccentsForLanguage(stylistLanguage);
@@ -452,6 +498,17 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
       bodyShape,
       budgetRange,
       stylistPreferences,
+      extendedPreferences: {
+        lifestyle: null,
+        favoriteBrands: [],
+        colorPreferences: [],
+        shoppingFrequency: null,
+        preferOnlineShopping: true,
+        sustainabilityImportant: false,
+        occasions: [],
+        favoriteShops,
+        usageGoals,
+      },
     });
     navigation.replace("SuggestedFollows");
   };
@@ -944,6 +1001,137 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
           </View>
         );
 
+      case 5:
+        return (
+          <View style={styles.stepContent}>
+            <ThemedText type="h2" style={styles.stepTitle}>
+              Where do you shop?
+            </ThemedText>
+            <ThemedText type="body" style={styles.stepSubtitle}>
+              Select up to 10 shops you love (helps AI personalize recommendations)
+            </ThemedText>
+
+            <TextInput
+              style={[
+                styles.searchInput,
+                { 
+                  backgroundColor: theme.backgroundDefault,
+                  color: theme.text,
+                  borderColor: theme.backgroundSecondary,
+                }
+              ]}
+              placeholder="Search shops..."
+              placeholderTextColor={theme.tabIconDefault}
+              value={shopSearchQuery}
+              onChangeText={setShopSearchQuery}
+            />
+
+            {favoriteShops.length > 0 ? (
+              <View style={styles.selectedShopsContainer}>
+                <ThemedText type="small" style={styles.selectedLabel}>
+                  Selected ({favoriteShops.length}/10)
+                </ThemedText>
+                <View style={styles.shopsGrid}>
+                  {favoriteShops.map((shop) => (
+                    <Pressable
+                      key={shop}
+                      onPress={() => toggleShop(shop)}
+                      style={[styles.shopChip, { backgroundColor: theme.link }]}
+                    >
+                      <ThemedText type="small" style={{ color: "#FFFFFF" }}>
+                        {shop}
+                      </ThemedText>
+                      <Feather name="x" size={14} color="#FFFFFF" style={{ marginLeft: 4 }} />
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.shopsGrid}>
+                {filteredShops.map((shop) => (
+                  <Pressable
+                    key={shop}
+                    onPress={() => toggleShop(shop)}
+                    style={({ pressed }) => [
+                      styles.shopChip,
+                      {
+                        backgroundColor: theme.backgroundDefault,
+                        borderWidth: 1,
+                        borderColor: theme.backgroundSecondary,
+                        opacity: pressed ? 0.8 : 1,
+                      },
+                    ]}
+                  >
+                    <ThemedText type="small">{shop}</ThemedText>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        );
+
+      case 6:
+        return (
+          <View style={styles.stepContent}>
+            <ThemedText type="h2" style={styles.stepTitle}>
+              What brings you to Dripn?
+            </ThemedText>
+            <ThemedText type="body" style={styles.stepSubtitle}>
+              Choose up to 3 goals (helps AI understand your needs)
+            </ThemedText>
+            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.goalsContainer}>
+                {DRIPN_GOALS.map((goal) => {
+                  const isSelected = usageGoals.includes(goal.id);
+                  return (
+                    <Pressable
+                      key={goal.id}
+                      onPress={() => toggleGoal(goal.id)}
+                      style={({ pressed }) => [
+                        styles.goalOption,
+                        {
+                          backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
+                          borderColor: isSelected ? theme.link : theme.backgroundSecondary,
+                          opacity: pressed ? 0.8 : 1,
+                        },
+                      ]}
+                    >
+                      <Feather
+                        name={goal.icon}
+                        size={24}
+                        color={isSelected ? "#FFFFFF" : theme.text}
+                      />
+                      <View style={styles.goalTextContainer}>
+                        <ThemedText
+                          type="h3"
+                          style={{ color: isSelected ? "#FFFFFF" : theme.text }}
+                        >
+                          {goal.name}
+                        </ThemedText>
+                        <ThemedText
+                          type="small"
+                          style={{ 
+                            color: isSelected ? "rgba(255,255,255,0.8)" : theme.tabIconDefault,
+                          }}
+                        >
+                          {goal.description}
+                        </ThemedText>
+                      </View>
+                      {isSelected ? (
+                        <View style={[styles.checkCircle, { backgroundColor: "rgba(255,255,255,0.3)" }]}>
+                          <Feather name="check" size={16} color="#FFFFFF" />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
+        );
+
       default:
         return null;
     }
@@ -1188,5 +1376,47 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 2,
     gap: Spacing.sm,
+  },
+  searchInput: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
+    fontSize: 16,
+  },
+  selectedShopsContainer: {
+    marginBottom: Spacing.md,
+  },
+  selectedLabel: {
+    marginBottom: Spacing.sm,
+    opacity: 0.7,
+  },
+  shopsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+    paddingBottom: Spacing.xl,
+  },
+  shopChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+  },
+  goalsContainer: {
+    gap: Spacing.md,
+    paddingBottom: Spacing.xl,
+  },
+  goalOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+    gap: Spacing.md,
+  },
+  goalTextContainer: {
+    flex: 1,
   },
 });

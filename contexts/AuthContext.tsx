@@ -18,6 +18,7 @@ export type ContributorTier = 'none' | 'styleContributor' | 'fashionAdvisor' | '
 export type FeedPreference = 'global' | 'regional' | 'local';
 export type Lifestyle = 'casual' | 'professional' | 'active' | 'creative' | 'minimalist' | 'trendsetter' | null;
 export type ShoppingFrequency = 'weekly' | 'monthly' | 'seasonal' | 'rarely' | null;
+export type DripnGoal = 'dress-better' | 'meet-people' | 'find-offers' | 'get-inspired' | 'build-wardrobe' | 'special-events' | 'professional-image';
 export type HeightUnit = 'cm' | 'ft';
 export type WeightUnit = 'kg' | 'lbs';
 export type StylistId = 'ruby' | 'max' | null;
@@ -47,6 +48,8 @@ export interface ExtendedPreferences {
   preferOnlineShopping: boolean;
   sustainabilityImportant: boolean;
   occasions: string[];
+  favoriteShops: string[];
+  usageGoals: DripnGoal[];
 }
 
 export interface UserProfile {
@@ -140,6 +143,8 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
     preferOnlineShopping: true,
     sustainabilityImportant: false,
     occasions: [],
+    favoriteShops: [],
+    usageGoals: [],
   },
   stylistPreferences: {
     selectedStylistId: null,
