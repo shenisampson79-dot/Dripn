@@ -12,6 +12,8 @@ import TrendInsightsService, {
   StyleMovement,
   RegionalTrends 
 } from './TrendInsightsService';
+import ContentPersonalizationService from './ContentPersonalizationService';
+import { DripnGoal, ExtendedPreferences } from '@/contexts/AuthContext';
 
 const REGIONAL_INFLUENCER_STYLES: Record<string, {
   influencers: { name: string; handle: string; signature: string; gender: 'female' | 'male' }[];
@@ -1019,7 +1021,9 @@ async function generateAdvice(
   isPremium: boolean, 
   userCountry?: string, 
   userGender?: string,
-  subscriptionTier: 'free' | 'basic' | 'premium' | 'vip' = 'free'
+  subscriptionTier: 'free' | 'basic' | 'premium' | 'vip' = 'free',
+  userGoals: DripnGoal[] = [],
+  extendedPrefs?: Partial<ExtendedPreferences>
 ): Promise<AIAdviceResult> {
   const descLower = description.toLowerCase();
 
@@ -1029,6 +1033,9 @@ async function generateAdvice(
   } else if (descLower.includes('formal') || descLower.includes('business') || descLower.includes('dress') || descLower.includes('suit')) {
     category = 'formal';
   }
+
+  const goalFeatures = ContentPersonalizationService.getActiveGoalFeatures(userGoals);
+  const feedConfig = ContentPersonalizationService.getPersonalizedFeedConfig(userGoals, extendedPrefs, userGender as any);
 
   const mainAdvice = getRandomItem(STYLE_ADVICE_TEMPLATES[category]);
   const colorAdvice = getRandomItem(STYLE_ADVICE_TEMPLATES.colorAdvice);
@@ -1043,6 +1050,27 @@ async function generateAdvice(
   const suggestions = [seasonalAdvice];
   if (isPremium) {
     suggestions.push(sizeInclusiveAdvice);
+  }
+
+  if (userGoals.length > 0) {
+    if (goalFeatures.showDeals) {
+      suggestions.push("Budget tip: Check our Bargains section for today's best deals on similar pieces!");
+    }
+    if (goalFeatures.showProfessionalSection && (descLower.includes('work') || descLower.includes('office') || descLower.includes('meeting'))) {
+      suggestions.push("Professional tip: This look projects confidence and competence - perfect for making an impression.");
+    }
+    if (goalFeatures.showWardrobeTools) {
+      suggestions.push("Wardrobe building tip: This is a versatile piece that pairs with multiple items in your closet.");
+    }
+    if (goalFeatures.showOccasionPlanner && (descLower.includes('party') || descLower.includes('event') || descLower.includes('date') || descLower.includes('wedding'))) {
+      suggestions.push("Event styling tip: This outfit is perfectly dressed for the occasion - you'll stand out beautifully!");
+    }
+    if (goalFeatures.showCommunity) {
+      suggestions.push("Community tip: Share this look to connect with others who love this style!");
+    }
+    if (goalFeatures.showStyleTips) {
+      suggestions.push("Style elevation tip: Small details like fit and accessories can transform this from good to stunning.");
+    }
   }
 
   const hashtags = getRandomItem(HASHTAG_SUGGESTIONS).split(' ');
@@ -1218,11 +1246,13 @@ export async function getAIFashionAdvice(
   isPremiumUser: boolean = false,
   userCountry?: string,
   userGender?: string,
-  subscriptionTier: 'free' | 'basic' | 'premium' | 'vip' = 'free'
+  subscriptionTier: 'free' | 'basic' | 'premium' | 'vip' = 'free',
+  userGoals: DripnGoal[] = [],
+  extendedPrefs?: Partial<ExtendedPreferences>
 ): Promise<AIAdviceResult> {
   await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
 
-  return generateAdvice(description, isPremiumUser, userCountry, userGender, subscriptionTier);
+  return generateAdvice(description, isPremiumUser, userCountry, userGender, subscriptionTier, userGoals, extendedPrefs);
 }
 
 export async function getQuickAdvice(description: string): Promise<string> {
@@ -1361,4 +1391,4 @@ export async function getTrendInsightsForUser(
   }
 }
 
-export { REGIONAL_INFLUENCER_STYLES, TRENDING_STYLES_2025_2026, TrendInsightsService };
+export { REGIONAL_INFLUENCER_STYLES, TRENDING_STYLES_2025_2026, TrendInsightsService, ContentPersonalizationService };
