@@ -13,9 +13,6 @@ import { BlurView } from "expo-blur";
 import HomeStackNavigator from "@/navigation/HomeStackNavigator";
 import DiscoverStackNavigator from "@/navigation/DiscoverStackNavigator";
 import UserStylistStackNavigator from "@/navigation/UserStylistStackNavigator";
-import CommunityStackNavigator from "@/navigation/CommunityStackNavigator";
-import BargainsStackNavigator from "@/navigation/BargainsStackNavigator";
-import EventsStackNavigator from "@/navigation/EventsStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemedText } from "@/components/ThemedText";
@@ -25,21 +22,15 @@ export type MainTabParamList = {
   HomeTab: undefined;
   DiscoverTab: undefined;
   StylistTab: undefined;
-  CommunityTab: undefined;
-  BargainsTab: undefined;
-  EventsTab: undefined;
   ProfileTab: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const TAB_CONFIG: { name: keyof MainTabParamList; icon: string; label: string }[] = [
-  { name: "HomeTab", icon: "home", label: "Home" },
+  { name: "HomeTab", icon: "home", label: "Feed" },
   { name: "DiscoverTab", icon: "compass", label: "Discover" },
   { name: "StylistTab", icon: "scissors", label: "Stylist" },
-  { name: "CommunityTab", icon: "users", label: "People" },
-  { name: "BargainsTab", icon: "tag", label: "Offers" },
-  { name: "EventsTab", icon: "calendar", label: "Events" },
   { name: "ProfileTab", icon: "user", label: "Profile" },
 ];
 
@@ -51,8 +42,8 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const leftTabs = TAB_CONFIG.slice(0, 4);
-  const rightTabs = TAB_CONFIG.slice(4);
+  const leftTabs = TAB_CONFIG.slice(0, 2);
+  const rightTabs = TAB_CONFIG.slice(2);
 
   const renderTabItem = (tabConfig: typeof TAB_CONFIG[0], index: number) => {
     const routeIndex = state.routes.findIndex(r => r.name === tabConfig.name);
@@ -168,9 +159,6 @@ export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTab
       <Tab.Screen name="HomeTab" component={HomeStackNavigator} />
       <Tab.Screen name="DiscoverTab" component={DiscoverStackNavigator} />
       <Tab.Screen name="StylistTab" component={UserStylistStackNavigator} />
-      <Tab.Screen name="CommunityTab" component={CommunityStackNavigator} />
-      <Tab.Screen name="BargainsTab" component={BargainsStackNavigator} />
-      <Tab.Screen name="EventsTab" component={EventsStackNavigator} />
       <Tab.Screen name="ProfileTab">
         {() => <ProfileStackNavigator onOpenPortal={onOpenPortal} />}
       </Tab.Screen>
@@ -202,14 +190,14 @@ const styles = StyleSheet.create({
   },
   leftTabGroup: {
     flexDirection: "row",
-    flex: 4,
+    flex: 2,
     justifyContent: "space-evenly",
     alignItems: "center",
     height: "100%",
   },
   rightTabGroup: {
     flexDirection: "row",
-    flex: 3,
+    flex: 2,
     justifyContent: "space-evenly",
     alignItems: "center",
     height: "100%",

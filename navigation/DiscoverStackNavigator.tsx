@@ -14,6 +14,17 @@ import ChallengeSubmissionScreen from "@/screens/ChallengeSubmissionScreen";
 import EventsScreen from "@/screens/EventsScreen";
 import StreetStyleScannerScreen from "@/screens/StreetStyleScannerScreen";
 import VirtualTryOnScreen from "@/screens/VirtualTryOnScreen";
+import CommunityScreen from "@/screens/CommunityScreen";
+import UserProfileScreen from "@/screens/UserProfileScreen";
+import FriendsActivityScreen from "@/screens/FriendsActivityScreen";
+import FriendRequestsScreen from "@/screens/FriendRequestsScreen";
+import DiscoverPeopleScreen from "@/screens/DiscoverPeopleScreen";
+import MessagesScreen from "@/screens/MessagesScreen";
+import ConversationScreen from "@/screens/ConversationScreen";
+import StyleSoulmatesScreen from "@/screens/StyleSoulmatesScreen";
+import BargainsScreen from "@/screens/BargainsScreen";
+import WishlistScreen from "@/screens/WishlistScreen";
+import SustainabilityScreen from "@/screens/SustainabilityScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -32,6 +43,17 @@ export type DiscoverStackParamList = {
   Events: undefined;
   StreetStyleScanner: undefined;
   VirtualTryOn: { garmentImageUrl?: string; garmentDescription?: string } | undefined;
+  Community: undefined;
+  UserProfile: { userId: string };
+  FriendsActivity: undefined;
+  FriendRequests: undefined;
+  DiscoverPeople: undefined;
+  Messages: undefined;
+  Conversation: { conversationId: string; participantName: string };
+  StyleSoulmates: undefined;
+  Bargains: undefined;
+  Wishlist: undefined;
+  Sustainability: undefined;
 };
 
 const Stack = createNativeStackNavigator<DiscoverStackParamList>();
@@ -112,6 +134,61 @@ export default function DiscoverStackNavigator() {
         name="VirtualTryOn"
         component={VirtualTryOnScreen}
         options={{ headerTitle: "Virtual Try-On" }}
+      />
+      <Stack.Screen
+        name="Community"
+        component={CommunityScreen}
+        options={{ headerTitle: "People" }}
+      />
+      <Stack.Screen
+        name="UserProfile"
+        component={UserProfileScreen}
+        options={{ headerTitle: "Profile" }}
+      />
+      <Stack.Screen
+        name="FriendsActivity"
+        component={FriendsActivityScreen}
+        options={{ headerTitle: "Friends Activity" }}
+      />
+      <Stack.Screen
+        name="FriendRequests"
+        component={FriendRequestsScreen}
+        options={{ headerTitle: "Friend Requests" }}
+      />
+      <Stack.Screen
+        name="DiscoverPeople"
+        component={DiscoverPeopleScreen}
+        options={{ headerTitle: "Discover People" }}
+      />
+      <Stack.Screen
+        name="Messages"
+        component={MessagesScreen}
+        options={{ headerTitle: "Messages" }}
+      />
+      <Stack.Screen
+        name="Conversation"
+        component={ConversationScreen}
+        options={{ headerTitle: "Chat" }}
+      />
+      <Stack.Screen
+        name="StyleSoulmates"
+        component={StyleSoulmatesScreen}
+        options={{ headerTitle: "Style Soulmates" }}
+      />
+      <Stack.Screen
+        name="Bargains"
+        component={BargainsScreen}
+        options={{ headerTitle: "Offers" }}
+      />
+      <Stack.Screen
+        name="Wishlist"
+        component={WishlistScreen}
+        options={{ headerTitle: "Wishlist" }}
+      />
+      <Stack.Screen
+        name="Sustainability"
+        component={SustainabilityScreen}
+        options={{ headerTitle: "Sustainability" }}
       />
     </Stack.Navigator>
   );
