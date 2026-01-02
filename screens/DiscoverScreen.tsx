@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { StyleSheet, View, Pressable, Image, ScrollView, Dimensions, Alert, ImageSourcePropType, Linking, ActivityIndicator, LayoutChangeEvent } from "react-native";
+import { StyleSheet, View, Pressable, Image, ScrollView, Dimensions, Alert, ImageSourcePropType, Linking, ActivityIndicator, LayoutChangeEvent, Modal } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -637,7 +637,12 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
       </View>
 
       {/* More Menu Modal */}
-      {showMoreMenu ? (
+      <Modal
+        visible={showMoreMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMoreMenu(false)}
+      >
         <Pressable
           style={styles.menuOverlay}
           onPress={() => setShowMoreMenu(false)}
@@ -675,7 +680,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
             ))}
           </Pressable>
         </Pressable>
-      ) : null}
+      </Modal>
 
       {isExploringOtherCountry && actualCountry ? (
         <View style={[styles.explorationBanner, { backgroundColor: theme.link + "15" }]}>
@@ -1935,15 +1940,10 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.sm,
   },
   menuOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
-    zIndex: 100,
     justifyContent: "flex-start",
-    paddingTop: 60,
+    paddingTop: 100,
   },
   menuContainer: {
     marginHorizontal: Spacing.lg,
