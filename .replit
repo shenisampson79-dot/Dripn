@@ -103,4 +103,4 @@ value = "0"
 [userenv]
 
 [userenv.shared]
-EXPO_PUBLIC_API_URL = "https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:3000"
+EXPO_PUBLIC_API_URL = "https://repl-creator--shenisampson79.replit.app"
