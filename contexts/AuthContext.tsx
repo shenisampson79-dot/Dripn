@@ -334,20 +334,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      try {
-        await apiService.login(email, password);
-      } catch {
-      }
+      const result = await apiService.login(email, password);
+      const backendUser = result.user;
       const existingData = await AsyncStorage.getItem(STORAGE_KEY);
+      let userProfile: UserProfile;
+      
       if (existingData) {
         const existingUser = JSON.parse(existingData);
         if (existingUser.email === email) {
-          setUser(existingUser);
-          return;
+          userProfile = { ...existingUser, id: backendUser.id?.toString() || existingUser.id };
+        } else {
+          userProfile = createDefaultUser(email, backendUser.displayName || email.split('@')[0]);
+          userProfile.id = backendUser.id?.toString() || userProfile.id;
         }
+      } else {
+        userProfile = createDefaultUser(email, backendUser.displayName || email.split('@')[0]);
+        userProfile.id = backendUser.id?.toString() || userProfile.id;
       }
-      const newUser = createDefaultUser(email, email.split('@')[0]);
-      await saveUser(newUser);
+      await saveUser(userProfile);
     } finally {
       setIsLoading(false);
     }
@@ -356,11 +360,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (email: string, password: string, name: string) => {
     setIsLoading(true);
     try {
-      try {
-        await apiService.register(email, password, name);
-      } catch {
-      }
+      const result = await apiService.register(email, password, name);
+      const backendUser = result.user;
       const newUser = createDefaultUser(email, name);
+      newUser.id = backendUser.id?.toString() || newUser.id;
       await saveUser(newUser);
     } finally {
       setIsLoading(false);
@@ -447,12 +450,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const result = await apiService.socialLogin(provider, accessToken || '', idToken);
       
+      if (!result || !result.token || !result.user) {
+        throw new Error('Invalid response from authentication server');
+      }
+      
       const backendUser = result.user;
+      if (!backendUser.id) {
+        throw new Error('Authentication failed: No user ID received');
+      }
+      
       const newUser = createDefaultUser(
         backendUser.email || userEmail || `${provider}_user@${provider}.com`,
         backendUser.displayName || userName || `${provider.charAt(0).toUpperCase() + provider.slice(1)} User`
       );
-      newUser.id = backendUser.id?.toString() || newUser.id;
+      newUser.id = backendUser.id.toString();
       await saveUser(newUser);
     } finally {
       setIsLoading(false);
