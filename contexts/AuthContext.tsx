@@ -6,8 +6,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
+import * as AuthSession from 'expo-auth-session';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as WebBrowser from 'expo-web-browser';
+import { Platform } from 'react-native';
 import { StyleTheme } from '@/constants/theme';
 import { apiService } from '@/services/ApiService';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export type Gender = 'woman' | 'man' | 'non-binary' | 'prefer-not-to-say' | null;
 export type SizeRange = 'XS-S' | 'M-L' | 'XL-2X' | '3X+' | null;
@@ -262,12 +268,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { status, canAskAgain } = await Location.getForegroundPermissionsAsync();
       
-      if (status === 'granted') {
+      if (status === Location.PermissionStatus.GRANTED) {
         setLocationPermissionStatus('granted');
-      } else if (status === 'denied' && !canAskAgain) {
+      } else if (status === Location.PermissionStatus.DENIED && !canAskAgain) {
         setLocationPermissionStatus('denied_forever');
         return false;
-      } else if (status !== 'granted') {
+      } else {
         const response = await Location.requestForegroundPermissionsAsync();
         if (response.status === 'granted') {
           setLocationPermissionStatus('granted');
@@ -364,11 +370,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const socialLogin = async (provider: 'google' | 'facebook' | 'apple') => {
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
-      const mockEmail = `${provider}_user_${Date.now()}@${provider}.com`;
-      const mockName = `${providerName} User`;
-      const newUser = createDefaultUser(mockEmail, mockName);
+      let accessToken: string | undefined;
+      let idToken: string | undefined;
+      let userEmail: string | undefined;
+      let userName: string | undefined;
+
+      if (provider === 'apple') {
+        if (Platform.OS !== 'ios') {
+          throw new Error('Apple Sign-In is only available on iOS devices');
+        }
+        const credential = await AppleAuthentication.signInAsync({
+          requestedScopes: [
+            AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+            AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          ],
+        });
+        idToken = credential.identityToken || undefined;
+        userEmail = credential.email || undefined;
+        userName = credential.fullName?.givenName 
+          ? `${credential.fullName.givenName} ${credential.fullName.familyName || ''}`.trim()
+          : undefined;
+      } else if (provider === 'google') {
+        const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+        if (!googleClientId) {
+          throw new Error('Google Client ID not configured. Please set EXPO_PUBLIC_GOOGLE_CLIENT_ID.');
+        }
+        const redirectUri = AuthSession.makeRedirectUri({ scheme: 'dripn' });
+        const discovery = {
+          authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+          tokenEndpoint: 'https://oauth2.googleapis.com/token',
+        };
+        const authRequest = new AuthSession.AuthRequest({
+          clientId: googleClientId,
+          scopes: ['openid', 'profile', 'email'],
+          redirectUri,
+          responseType: AuthSession.ResponseType.Token,
+        });
+        const result = await authRequest.promptAsync(discovery);
+        if (result.type === 'success' && result.authentication) {
+          accessToken = result.authentication.accessToken;
+          idToken = result.authentication.idToken || undefined;
+        } else if (result.type === 'cancel') {
+          throw new Error('Google sign-in was cancelled');
+        } else {
+          throw new Error('Google sign-in failed');
+        }
+      } else if (provider === 'facebook') {
+        const facebookAppId = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
+        if (!facebookAppId) {
+          throw new Error('Facebook App ID not configured. Please set EXPO_PUBLIC_FACEBOOK_APP_ID.');
+        }
+        const redirectUri = AuthSession.makeRedirectUri({ scheme: 'dripn' });
+        const discovery = {
+          authorizationEndpoint: 'https://www.facebook.com/v18.0/dialog/oauth',
+          tokenEndpoint: 'https://graph.facebook.com/v18.0/oauth/access_token',
+        };
+        const authRequest = new AuthSession.AuthRequest({
+          clientId: facebookAppId,
+          scopes: ['public_profile', 'email'],
+          redirectUri,
+          responseType: AuthSession.ResponseType.Token,
+        });
+        const result = await authRequest.promptAsync(discovery);
+        if (result.type === 'success' && result.authentication) {
+          accessToken = result.authentication.accessToken;
+        } else if (result.type === 'cancel') {
+          throw new Error('Facebook sign-in was cancelled');
+        } else {
+          throw new Error('Facebook sign-in failed');
+        }
+      }
+
+      if (!accessToken && !idToken) {
+        throw new Error('No authentication token received');
+      }
+
+      const result = await apiService.socialLogin(provider, accessToken || '', idToken);
+      
+      const backendUser = result.user;
+      const newUser = createDefaultUser(
+        backendUser.email || userEmail || `${provider}_user@${provider}.com`,
+        backendUser.displayName || userName || `${provider.charAt(0).toUpperCase() + provider.slice(1)} User`
+      );
+      newUser.id = backendUser.id?.toString() || newUser.id;
       await saveUser(newUser);
     } finally {
       setIsLoading(false);
