@@ -13,13 +13,17 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.dripn.app",
       "buildNumber": "1",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Dripn needs camera access to take outfit photos for style advice.",
         "NSPhotoLibraryUsageDescription": "Dripn needs photo library access to select outfit images for style advice.",
         "NSMicrophoneUsageDescription": "Dripn needs microphone access to record voice comments and video calls with stylists."
       },
       "config": {
-        "usesNonExemptEncryption": false
+        "usesNonExemptEncryption": false,
+        "googleSignIn": {
+          "reservedClientId": "com.googleusercontent.apps.YOUR_GOOGLE_CLIENT_ID"
+        }
       }
     },
     "android": {
@@ -72,7 +76,8 @@
           }
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      "expo-apple-authentication"
     ],
     "jsEngine": "hermes",
     "experiments": {
