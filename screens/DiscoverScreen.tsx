@@ -187,14 +187,14 @@ interface CategoryTile {
 }
 
 const CATEGORY_TILES: CategoryTile[] = [
-  { id: "styleOfTheDay", name: "Style of Day", icon: "award", pastelBg: "#FFF0F5", iconColor: "#E91E63", description: "Daily curated outfit inspiration tailored to your region and style preferences.", screen: "SmartNotifications" },
-  { id: "trends", name: "Trends", icon: "trending-up", pastelBg: "#F0F4FF", iconColor: "#5C6BC0", description: "Discover what's hot right now in fashion with real-time trend analysis and forecasts.", screen: "SmartNotifications" },
-  { id: "influencers", name: "Influencers", icon: "users", pastelBg: "#E8F5E9", iconColor: "#43A047", description: "Get inspired by top fashion influencers and learn how to recreate their signature looks.", screen: "Community" },
+  { id: "styleOfTheDay", name: "Style of Day", icon: "award", pastelBg: "#FFF0F5", iconColor: "#E91E63", description: "Daily curated outfit inspiration tailored to your region and style preferences.", sectionId: "styleOfTheDay" },
+  { id: "trends", name: "Trends", icon: "trending-up", pastelBg: "#F0F4FF", iconColor: "#5C6BC0", description: "Discover what's hot right now in fashion with real-time trend analysis and forecasts.", sectionId: "trendScanner" },
+  { id: "influencers", name: "Influencers", icon: "users", pastelBg: "#E8F5E9", iconColor: "#43A047", description: "Get inspired by top fashion influencers and learn how to recreate their signature looks.", sectionId: "influencer" },
   { id: "challenges", name: "Challenges", icon: "flag", pastelBg: "#FFF3E0", iconColor: "#FB8C00", description: "Join fun style challenges, compete with the community, and showcase your creativity.", screen: "StyleChallenges" },
-  { id: "highlights", name: "Highlights", icon: "zap", pastelBg: "#FFFDE7", iconColor: "#FBC02D", description: "Weekly roundup of the best community posts, trending outfits, and editor's picks.", screen: "Gamification" },
+  { id: "highlights", name: "Highlights", icon: "zap", pastelBg: "#FFFDE7", iconColor: "#FBC02D", description: "Weekly roundup of the best community posts, trending outfits, and editor's picks.", sectionId: "highlights" },
   { id: "blog", name: "Blog", icon: "edit-3", pastelBg: "#FCE4EC", iconColor: "#EC407A", description: "Read expert fashion articles, styling tips, and in-depth guides from our editors.", screen: "FashionBlog" },
-  { id: "magazine", name: "Magazines", icon: "book-open", pastelBg: "#EDE7F6", iconColor: "#7E57C2", description: "Curated looks from top fashion magazines with shoppable outfit breakdowns.", screen: "FashionBlog" },
-  { id: "celebrity", name: "Celebrity", icon: "star", pastelBg: "#FFF8E1", iconColor: "#FFB300", description: "See what celebrities are wearing and get AI-powered lookalike outfit suggestions.", screen: "VisualSearch" },
+  { id: "magazine", name: "Magazines", icon: "book-open", pastelBg: "#EDE7F6", iconColor: "#7E57C2", description: "Curated looks from top fashion magazines with shoppable outfit breakdowns.", sectionId: "magazine" },
+  { id: "celebrity", name: "Celebrity", icon: "star", pastelBg: "#FFF8E1", iconColor: "#FFB300", description: "See what celebrities are wearing and get AI-powered lookalike outfit suggestions.", sectionId: "celebrity" },
   { id: "fashionTherapy", name: "Therapy", icon: "heart", pastelBg: "#FFEBEE", iconColor: "#EF5350", description: "Mood-based styling, body positivity affirmations, and wellness-focused outfit recommendations.", screen: "FashionTherapy" },
   { id: "events", name: "Events", icon: "calendar", pastelBg: "#E3F2FD", iconColor: "#1E88E5", description: "Discover fashion events, pop-ups, and shows happening near you with outfit suggestions.", screen: "Events" },
   { id: "people", name: "People", icon: "smile", pastelBg: "#E0F7FA", iconColor: "#00ACC1", description: "Connect with the Dripn community, follow fellow fashion enthusiasts, and share inspiration.", screen: "Community" },
