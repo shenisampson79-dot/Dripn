@@ -14,8 +14,22 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { StyleSheet, Modal } from "react-native";
+import { StyleSheet, Modal, LogBox } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
+
+LogBox.ignoreLogs([
+  'Failed to load from backend',
+  'Failed to fetch style profile',
+  'Failed to fetch personalized',
+  'HTTP 401',
+  'Request failed',
+  'expo-av',
+  'expo-notifications',
+  'shadow*',
+  'textShadow*',
+  'pointerEvents is deprecated',
+  'resizeMode is deprecated',
+]);
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
