@@ -92,6 +92,7 @@ type LocationPermissionStatus = 'unknown' | 'granted' | 'denied' | 'denied_forev
 interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
+  isAuthenticating: boolean;
   isAuthenticated: boolean;
   isExploringOtherCountry: boolean;
   explorationCountry: string | null;
@@ -234,6 +235,7 @@ function getCountryName(isoCode: string | null | undefined): string {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [detectedCountry, setDetectedCountry] = useState<string | null>(null);
   const [locationPermissionStatus, setLocationPermissionStatus] = useState<LocationPermissionStatus>('unknown');
 
@@ -332,7 +334,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
+    setIsAuthenticating(true);
     try {
       const result = await apiService.login(email, password);
       const backendUser = result.user;
@@ -353,12 +355,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       await saveUser(userProfile);
     } finally {
-      setIsLoading(false);
+      setIsAuthenticating(false);
     }
   };
 
   const signup = async (email: string, password: string, name: string) => {
-    setIsLoading(true);
+    setIsAuthenticating(true);
     try {
       const result = await apiService.register(email, password, name);
       const backendUser = result.user;
@@ -366,12 +368,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       newUser.id = backendUser.id?.toString() || newUser.id;
       await saveUser(newUser);
     } finally {
-      setIsLoading(false);
+      setIsAuthenticating(false);
     }
   };
 
   const socialLogin = async (provider: 'google' | 'facebook' | 'apple') => {
-    setIsLoading(true);
+    setIsAuthenticating(true);
     try {
       let accessToken: string | undefined;
       let idToken: string | undefined;
@@ -466,7 +468,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       newUser.id = backendUser.id.toString();
       await saveUser(newUser);
     } finally {
-      setIsLoading(false);
+      setIsAuthenticating(false);
     }
   };
 
@@ -533,6 +535,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isLoading,
+        isAuthenticating,
         isAuthenticated: !!user,
         isExploringOtherCountry,
         explorationCountry,

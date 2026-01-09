@@ -23,39 +23,41 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const { mode } = route.params;
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
-  const { login, signup, socialLogin, isLoading } = useAuth();
+  const { login, signup, socialLogin, isAuthenticating } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isSignup = mode === "signup";
 
   const handleSocialAuth = async (provider: 'google' | 'facebook' | 'apple') => {
     setSocialLoading(provider);
+    setErrorMessage(null);
     try {
       await socialLogin(provider);
       navigation.replace("Onboarding");
     } catch (error) {
-      Alert.alert(
-        "Sign In Failed", 
-        `Could not sign in with ${provider.charAt(0).toUpperCase() + provider.slice(1)}. Please try again.`
-      );
+      const message = `Could not sign in with ${provider.charAt(0).toUpperCase() + provider.slice(1)}. Please try again.`;
+      setErrorMessage(message);
     } finally {
       setSocialLoading(null);
     }
   };
 
   const handleSubmit = async () => {
+    setErrorMessage(null);
+    
     if (!email || !password) {
-      Alert.alert("Error", "Please fill in all required fields");
+      setErrorMessage("Please fill in all required fields");
       return;
     }
 
     if (isSignup && !name) {
-      Alert.alert("Error", "Please enter your name");
+      setErrorMessage("Please enter your name");
       return;
     }
 
@@ -67,7 +69,8 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
       }
       navigation.replace("Onboarding");
     } catch (error) {
-      Alert.alert("Error", "Authentication failed. Please try again.");
+      const errorMsg = error instanceof Error ? error.message : "Authentication failed. Please try again.";
+      setErrorMessage(errorMsg);
     }
   };
 
@@ -110,7 +113,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
         <View style={styles.socialButtonsContainer}>
           <Pressable
             onPress={() => handleSocialAuth('google')}
-            disabled={socialLoading !== null || isLoading}
+            disabled={socialLoading !== null || isAuthenticating}
             style={({ pressed }) => [
               styles.socialButton,
               { 
@@ -134,7 +137,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
           <Pressable
             onPress={() => handleSocialAuth('facebook')}
-            disabled={socialLoading !== null || isLoading}
+            disabled={socialLoading !== null || isAuthenticating}
             style={({ pressed }) => [
               styles.socialButton,
               { 
@@ -158,7 +161,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           {Platform.OS === 'ios' ? (
             <Pressable
               onPress={() => handleSocialAuth('apple')}
-              disabled={socialLoading !== null || isLoading}
+              disabled={socialLoading !== null || isAuthenticating}
               style={({ pressed }) => [
                 styles.socialButton,
                 { 
@@ -250,8 +253,15 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
             </View>
           </View>
 
-          <Button onPress={handleSubmit} disabled={isLoading} style={styles.submitButton}>
-            {isLoading ? (
+          {errorMessage ? (
+            <View style={styles.errorContainer}>
+              <Feather name="alert-circle" size={16} color="#DC2626" />
+              <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
+            </View>
+          ) : null}
+
+          <Button onPress={handleSubmit} disabled={isAuthenticating} style={styles.submitButton}>
+            {isAuthenticating ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : isSignup ? (
               "Create Account"
@@ -409,5 +419,19 @@ const styles = StyleSheet.create({
   },
   termsLink: {
     fontSize: 14,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 14,
+    flex: 1,
   },
 });

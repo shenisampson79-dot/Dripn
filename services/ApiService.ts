@@ -57,7 +57,31 @@ class ApiService {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(error.error || `HTTP ${response.status}`);
+      let errorMessage = error.error || error.message || '';
+      
+      if (!errorMessage || errorMessage.startsWith('HTTP')) {
+        switch (response.status) {
+          case 401:
+            errorMessage = 'Invalid email or password. Please try again.';
+            break;
+          case 403:
+            errorMessage = 'Access denied. Please check your credentials.';
+            break;
+          case 404:
+            errorMessage = 'Account not found. Please check your email or sign up.';
+            break;
+          case 429:
+            errorMessage = 'Too many attempts. Please try again later.';
+            break;
+          case 500:
+            errorMessage = 'Server error. Please try again later.';
+            break;
+          default:
+            errorMessage = 'Something went wrong. Please try again.';
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
 
     return response.json();
