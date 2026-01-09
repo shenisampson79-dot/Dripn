@@ -208,10 +208,6 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
       return;
     }
     
-    if (feature.premium && tier === "free") {
-      navigation.navigate("AIStylist");
-      return;
-    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate(feature.screen);
   };

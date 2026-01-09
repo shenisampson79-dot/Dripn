@@ -6,7 +6,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { StyleSheet, View, Pressable, ActivityIndicator, Image, Alert } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -312,6 +312,19 @@ export default function SocialStyleSyncScreen({ navigation }: SocialStyleSyncScr
     } catch (e) {}
   };
 
+  const renderBrandIcon = (accountId: string) => {
+    switch (accountId) {
+      case "instagram":
+        return <Ionicons name="logo-instagram" size={20} color="#FFFFFF" />;
+      case "pinterest":
+        return <Ionicons name="logo-pinterest" size={20} color="#FFFFFF" />;
+      case "tiktok":
+        return <Ionicons name="logo-tiktok" size={20} color="#FFFFFF" />;
+      default:
+        return <Feather name="globe" size={20} color="#FFFFFF" />;
+    }
+  };
+
   const renderSocialAccountButton = (account: SocialAccount) => (
     <Pressable
       key={account.id}
@@ -326,7 +339,7 @@ export default function SocialStyleSyncScreen({ navigation }: SocialStyleSyncScr
       ]}
     >
       <View style={[styles.accountIcon, { backgroundColor: account.color }]}>
-        <Feather name={account.icon} size={20} color="#FFFFFF" />
+        {renderBrandIcon(account.id)}
       </View>
       <View style={styles.accountInfo}>
         <ThemedText style={{ fontWeight: "600" }}>{account.name}</ThemedText>

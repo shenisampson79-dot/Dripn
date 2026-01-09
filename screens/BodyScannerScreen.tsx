@@ -18,6 +18,7 @@ import {
   Dimensions,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { CommonActions } from "@react-navigation/native";
 import { CameraView, useCameraPermissions, CameraType } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
@@ -32,6 +33,7 @@ import { Card } from "@/components/Card";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useBodyProfile, BodyScanResult, BodyShape } from "@/contexts/BodyProfileContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -69,6 +71,9 @@ const MEASUREMENT_LABELS: Record<string, string> = {
 export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps) {
   const { theme, isDark } = useTheme();
   const { bodyProfile, scanBody, isScanning, hasBodyProfile, saveBodyProfile } = useBodyProfile();
+  const { tier } = useSubscription();
+  
+  const isPremium = tier === "premium" || tier === "vip";
   
   const [permission, requestPermission] = useCameraPermissions();
   const [showCamera, setShowCamera] = useState(false);
@@ -423,7 +428,35 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
         </ThemedText>
       </View>
 
-      {isScanning ? (
+      {!isPremium ? (
+        <Card style={styles.premiumCard}>
+          <View style={styles.premiumIconContainer}>
+            <Feather name="star" size={32} color={theme.link} />
+          </View>
+          <ThemedText type="h3" style={styles.premiumTitle}>Premium Feature</ThemedText>
+          <ThemedText style={[styles.premiumDescription, { color: theme.tabIconDefault }]}>
+            Upgrade to Premium or VIP to unlock AI-powered body scanning for perfect fit recommendations
+          </ThemedText>
+          <Pressable
+            onPress={() => navigation.dispatch(
+              CommonActions.navigate({
+                name: "ProfileTab",
+                params: { screen: "Subscription" },
+              })
+            )}
+            style={({ pressed }) => [styles.upgradeButton, { opacity: pressed ? 0.8 : 1 }]}
+          >
+            <LinearGradient
+              colors={["#667eea", "#764ba2"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.upgradeGradient}
+            >
+              <ThemedText style={styles.upgradeButtonText}>Upgrade Now</ThemedText>
+            </LinearGradient>
+          </Pressable>
+        </Card>
+      ) : isScanning ? (
         <Card style={styles.scanningCard}>
           <ActivityIndicator size="large" color={theme.link} />
           <ThemedText type="h3" style={styles.scanningTitle}>Analyzing Your Body</ThemedText>
@@ -999,5 +1032,44 @@ const styles = StyleSheet.create({
   },
   backButton: {
     paddingVertical: Spacing.sm,
+  },
+  premiumCard: {
+    padding: Spacing.xl,
+    alignItems: "center",
+    marginTop: Spacing.md,
+  },
+  premiumIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(102, 126, 234, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.md,
+  },
+  premiumTitle: {
+    marginBottom: Spacing.sm,
+    textAlign: "center",
+  },
+  premiumDescription: {
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: Spacing.lg,
+  },
+  upgradeButton: {
+    width: "100%",
+  },
+  upgradeGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    gap: Spacing.sm,
+  },
+  upgradeButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });

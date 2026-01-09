@@ -166,6 +166,8 @@ export default function VisualSearchScreen() {
   const insets = useSafeAreaInsets();
   const { paddingTop } = useScreenInsets();
   const navigation = useNavigation();
+  
+  const isPaidTier = tier === 'basic' || tier === 'premium' || tier === 'vip';
 
   const [searchState, setSearchState] = useState<SearchState>({
     status: 'idle',
@@ -653,6 +655,45 @@ export default function VisualSearchScreen() {
     />
   );
 
+  if (!isPaidTier) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.backgroundDefault }]}>
+        <View
+          style={[
+            styles.content,
+            { 
+              paddingTop: paddingTop,
+              paddingBottom: insets.bottom + Spacing.xl,
+            },
+          ]}
+        >
+          <Card style={styles.premiumCard}>
+            <View style={[styles.premiumIconContainer, { backgroundColor: `${theme.link}15` }]}>
+              <Feather name="star" size={32} color={theme.link} />
+            </View>
+            <ThemedText style={styles.premiumTitle}>Subscription Required</ThemedText>
+            <ThemedText style={[styles.premiumDescription, { color: theme.tabIconDefault }]}>
+              Upgrade to Basic or above to unlock AI-powered visual search and find similar items from top retailers
+            </ThemedText>
+            <Pressable
+              onPress={navigateToSubscription}
+              style={({ pressed }) => [styles.premiumUpgradeButton, { opacity: pressed ? 0.8 : 1 }]}
+            >
+              <LinearGradient
+                colors={['#4facfe', '#00f2fe']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.premiumUpgradeGradient}
+              >
+                <ThemedText style={styles.premiumUpgradeText}>Upgrade Now</ThemedText>
+              </LinearGradient>
+            </Pressable>
+          </Card>
+        </View>
+      </View>
+    );
+  }
+
   if (searchState.status === 'results') {
     return (
       <View style={[styles.container, { backgroundColor: theme.backgroundDefault }]}>
@@ -937,5 +978,47 @@ const styles = StyleSheet.create({
   resultStore: {
     fontSize: Typography.caption.fontSize,
     marginTop: 2,
+  },
+  premiumCard: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+    marginTop: Spacing.xl,
+  },
+  premiumIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  premiumTitle: {
+    fontSize: Typography.h2.fontSize,
+    fontWeight: Typography.h2.fontWeight,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  premiumDescription: {
+    fontSize: Typography.body.fontSize,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+  },
+  premiumUpgradeButton: {
+    width: '100%',
+  },
+  premiumUpgradeGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    gap: Spacing.sm,
+  },
+  premiumUpgradeText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });

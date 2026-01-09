@@ -21,7 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import Animated, { FadeInUp, FadeIn, SlideInRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
+import { RouteProp, CommonActions } from '@react-navigation/native';
 
 import { ScreenScrollView } from '@/components/ScreenScrollView';
 import { ThemedText } from '@/components/ThemedText';
@@ -93,7 +93,7 @@ export default function VirtualTryOnScreen({ navigation, route }: VirtualTryOnSc
           : 'You have used all your virtual try-ons this month. Upgrade for more!',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Upgrade', onPress: () => navigation.navigate('Subscription' as any) },
+          { text: 'Upgrade', onPress: () => navigation.dispatch(CommonActions.navigate({ name: 'ProfileTab', params: { screen: 'Subscription' } })) },
         ]
       );
       return;
