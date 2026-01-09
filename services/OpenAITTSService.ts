@@ -251,12 +251,20 @@ const playWithFallbackSpeech = async (
   });
 };
 
+const DEFAULT_VOICE_FOR_STYLIST: Record<string, TTSVoice> = {
+  ruby: 'nova',
+  max: 'onyx',
+};
+
 export const playVoicePreview = async (
   stylistId: string,
   language: string = 'English',
-  voiceRange?: string
+  voiceRange?: string,
+  voice?: TTSVoice
 ): Promise<void> => {
   await stopAudio();
+
+  const selectedVoice = voice || DEFAULT_VOICE_FOR_STYLIST[stylistId] || 'nova';
 
   if (!API_URL) {
     console.log('Backend API URL not configured, using device speech synthesis');
@@ -279,6 +287,7 @@ export const playVoicePreview = async (
         stylistId,
         language,
         voiceRange,
+        voice: selectedVoice,
       }),
     });
 

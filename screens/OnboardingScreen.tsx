@@ -454,7 +454,8 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
     setIsPlayingVoice(stylistId);
 
     try {
-      await playOpenAIVoice(stylistId, stylistLanguage, voicePitch);
+      const voiceForStylist = stylistId === 'ruby' ? 'nova' : 'onyx';
+      await playOpenAIVoice(stylistId, stylistLanguage, voicePitch, voiceForStylist);
       setIsPlayingVoice(null);
     } catch (error) {
       console.log('Voice preview error:', error);

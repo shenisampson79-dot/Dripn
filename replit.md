@@ -29,7 +29,7 @@ Key Features:
 - **Advanced AI Capabilities**:
     - **Model Lifecycle System**: Automatic model upgrades, A/B testing, and health checks.
     - **Vision-Powered Outfit Analysis**: GPT-4o Vision for color extraction, style detection, fit analysis, and multi-image comparison.
-    - **Voice Services**: Whisper for speech-to-text and TTS-1-HD for AI voice responses, with Ruby (women's) and Max (men's) personas.
+    - **Voice Services**: Whisper for speech-to-text and TTS-1-HD for AI voice responses, with Ruby (women's, uses 'nova' voice - warm/friendly) and Max (men's, uses 'onyx' voice - deep/authoritative) personas. Voice settings are configurable per stylist in VoiceSettingsContext.
     - **Fashion Therapy & Wellness**: Mood-based outfit recommendations, body positivity affirmations, capsule wardrobe planning, confidence rituals, and wellness outfit suggestions.
     - **Semantic Style Search**: `text-embedding-3-large` for semantic outfit matching and complementary piece suggestions.
     - **AI Image Generation**: DALL-E 3 for outfit inspiration, moodboards, and style guide visualization.

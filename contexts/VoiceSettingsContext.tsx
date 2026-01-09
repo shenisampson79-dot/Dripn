@@ -55,6 +55,8 @@ export interface VoiceSettings {
   preferredLanguage: string;
   voiceSpeed: VoiceSpeed;
   preferredVoice: VoiceId;
+  rubyVoice: VoiceId;
+  maxVoice: VoiceId;
   autoPlayResponses: boolean;
   showTranscriptions: boolean;
 }
@@ -76,6 +78,8 @@ const DEFAULT_SETTINGS: VoiceSettings = {
   preferredLanguage: 'en',
   voiceSpeed: 1.0,
   preferredVoice: 'nova',
+  rubyVoice: 'nova',
+  maxVoice: 'onyx',
   autoPlayResponses: true,
   showTranscriptions: true,
 };
@@ -124,10 +128,12 @@ export function VoiceSettingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getVoiceForStylist = useCallback((stylistId: 'ruby' | 'max'): VoiceId => {
-    // Always honor user's preferred voice setting
-    // The preferredVoice in settings takes priority
-    return settings.preferredVoice;
-  }, [settings.preferredVoice]);
+    if (stylistId === 'ruby') {
+      return settings.rubyVoice;
+    } else {
+      return settings.maxVoice;
+    }
+  }, [settings.rubyVoice, settings.maxVoice]);
 
   return (
     <VoiceSettingsContext.Provider
