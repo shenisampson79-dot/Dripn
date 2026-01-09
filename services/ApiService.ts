@@ -86,12 +86,12 @@ class ApiService {
   }
 
   async socialLogin(provider: 'google' | 'facebook' | 'apple', accessToken: string, idToken?: string) {
+    const token = idToken || accessToken;
     const result = await this.request<{ token: string; user: any }>('/api/auth/social', {
       method: 'POST',
       body: JSON.stringify({ 
         provider, 
-        accessToken,
-        idToken,
+        token,
       }),
     });
     await this.setToken(result.token);
