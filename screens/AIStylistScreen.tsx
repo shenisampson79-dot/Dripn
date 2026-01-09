@@ -1552,6 +1552,9 @@ export default function AIStylistScreen() {
             key={prompt.id}
             onPress={() => handleQuickPrompt(prompt.prompt)}
             disabled={!canSendMessage()}
+            accessibilityLabel={prompt.label}
+            accessibilityRole="button"
+            accessibilityHint={`Send message: ${prompt.prompt}`}
             style={({ pressed }) => [
               styles.quickPromptButton,
               { 
