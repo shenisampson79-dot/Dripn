@@ -392,28 +392,28 @@ const getVoiceSettingsForRange = (stylistId: string, voiceRange?: string): Eleve
   if (stylistId === 'ruby') {
     switch (voiceRange) {
       case 'soprano':
-        return { stability: 0.20, similarityBoost: 0.45, style: 1.0, speakerBoost: false };
+        return { stability: 0.45, similarityBoost: 0.85, style: 0.40, speakerBoost: true };
       case 'mezzo-soprano':
       case 'mezzo':
-        return { stability: 0.25, similarityBoost: 0.50, style: 0.95, speakerBoost: false };
+        return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
       case 'contralto':
-        return { stability: 0.30, similarityBoost: 0.55, style: 0.90, speakerBoost: true };
+        return { stability: 0.55, similarityBoost: 0.92, style: 0.30, speakerBoost: true };
       default:
-        return { stability: 0.25, similarityBoost: 0.50, style: 1.0, speakerBoost: false };
+        return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
     }
   } else if (stylistId === 'max') {
     switch (voiceRange) {
       case 'tenor':
-        return { stability: 0.25, similarityBoost: 0.50, style: 0.95, speakerBoost: false };
+        return { stability: 0.48, similarityBoost: 0.88, style: 0.38, speakerBoost: true };
       case 'baritone':
-        return { stability: 0.30, similarityBoost: 0.55, style: 0.90, speakerBoost: true };
+        return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
       case 'bass':
-        return { stability: 0.35, similarityBoost: 0.60, style: 0.85, speakerBoost: true };
+        return { stability: 0.55, similarityBoost: 0.92, style: 0.30, speakerBoost: true };
       default:
-        return { stability: 0.30, similarityBoost: 0.55, style: 0.90, speakerBoost: true };
+        return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
     }
   }
-  return { stability: 0.25, similarityBoost: 0.50, style: 1.0, speakerBoost: false };
+  return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
 };
 
 export const playVoicePreview = async (
