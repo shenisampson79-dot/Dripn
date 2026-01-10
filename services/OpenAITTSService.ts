@@ -72,12 +72,61 @@ const getAvailableVoices = async (): Promise<Speech.Voice[]> => {
   }
 };
 
-const findBestVoiceForLanguage = async (language: string): Promise<{ voiceId?: string; langCode: string } | null> => {
+const findBestVoiceForLanguage = async (language: string, preferFemale: boolean = true): Promise<{ voiceId?: string; langCode: string } | null> => {
   const alternatives = LANGUAGE_CODE_ALTERNATIVES[language] || [LANGUAGE_CODES[language] || 'en-US'];
   const voices = await getAvailableVoices();
   
   if (voices.length === 0) {
     return { langCode: alternatives[0] };
+  }
+  
+  const femaleKeywords = ['female', 'woman', 'samantha', 'victoria', 'karen', 'moira', 'tessa', 'fiona', 'siri female', 'zoe', 'nicky', 'ava', 'allison', 'susan', 'kate', 'serena', 'veena', 'emily', 'emma', 'enhanced', 'premium'];
+  const maleKeywords = ['male', 'man', 'daniel', 'alex', 'fred', 'tom', 'lee', 'oliver', 'aaron', 'gordon', 'rishi', 'james', 'evan'];
+  
+  const scoredVoices = voices.map(v => {
+    const identifier = (v.identifier || '').toLowerCase();
+    const name = (v.name || '').toLowerCase();
+    const quality = v.quality || '';
+    
+    let score = 0;
+    
+    const langPrefix = alternatives[0].split('-')[0].toLowerCase();
+    const voiceLang = v.language?.toLowerCase() || '';
+    if (voiceLang === alternatives[0].toLowerCase() || 
+        voiceLang.startsWith(langPrefix + '-') ||
+        voiceLang === langPrefix) {
+      score += 10;
+    } else {
+      return { voice: v, score: -1 };
+    }
+    
+    if (quality === 'Enhanced' || identifier.includes('enhanced') || identifier.includes('premium')) {
+      score += 5;
+    }
+    
+    const isLikelyFemale = femaleKeywords.some(kw => identifier.includes(kw) || name.includes(kw));
+    const isLikelyMale = maleKeywords.some(kw => identifier.includes(kw) || name.includes(kw));
+    
+    if (preferFemale && isLikelyFemale && !isLikelyMale) {
+      score += 8;
+    } else if (!preferFemale && isLikelyMale && !isLikelyFemale) {
+      score += 8;
+    } else if (preferFemale && !isLikelyMale) {
+      score += 2;
+    } else if (!preferFemale && !isLikelyFemale) {
+      score += 2;
+    }
+    
+    return { voice: v, score };
+  });
+  
+  const validVoices = scoredVoices.filter(sv => sv.score >= 0);
+  validVoices.sort((a, b) => b.score - a.score);
+  
+  if (validVoices.length > 0) {
+    const bestVoice = validVoices[0].voice;
+    console.log(`Selected voice for ${language} (${preferFemale ? 'female' : 'male'}): ${bestVoice.identifier} - ${bestVoice.name}`);
+    return { voiceId: bestVoice.identifier, langCode: bestVoice.language || alternatives[0] };
   }
   
   for (const langCode of alternatives) {
@@ -92,16 +141,6 @@ const findBestVoiceForLanguage = async (language: string): Promise<{ voiceId?: s
     if (matchingVoice) {
       return { voiceId: matchingVoice.identifier, langCode: matchingVoice.language || langCode };
     }
-  }
-  
-  const langPrefix = alternatives[0].split('-')[0].toLowerCase();
-  const fallbackVoice = voices.find(v => {
-    const voiceLang = v.language?.toLowerCase() || '';
-    return voiceLang.startsWith(langPrefix);
-  });
-  
-  if (fallbackVoice) {
-    return { voiceId: fallbackVoice.identifier, langCode: fallbackVoice.language || alternatives[0] };
   }
   
   return null;
@@ -173,7 +212,8 @@ const playWithFallbackSpeech = async (
 
   await Speech.stop();
 
-  const voiceInfo = await findBestVoiceForLanguage(language);
+  const preferFemale = stylistId === 'ruby';
+  const voiceInfo = await findBestVoiceForLanguage(language, preferFemale);
   
   let langCode = LANGUAGE_CODES[language] || 'en-US';
   let voiceId: string | undefined;
@@ -182,11 +222,11 @@ const playWithFallbackSpeech = async (
   if (voiceInfo) {
     langCode = voiceInfo.langCode;
     voiceId = voiceInfo.voiceId;
-    console.log(`Found voice for ${language}: ${voiceId || 'default'} (${langCode})`);
+    console.log(`Found ${preferFemale ? 'female' : 'male'} voice for ${language}: ${voiceId || 'default'} (${langCode})`);
   } else {
     console.log(`No voice found for ${language}, falling back to English`);
     useEnglishFallback = true;
-    const englishVoice = await findBestVoiceForLanguage('English');
+    const englishVoice = await findBestVoiceForLanguage('English', preferFemale);
     if (englishVoice) {
       langCode = englishVoice.langCode;
       voiceId = englishVoice.voiceId;
@@ -197,31 +237,33 @@ const playWithFallbackSpeech = async (
   }
   
   let pitch = 1.0;
-  let rate = 1.0;
+  let rate = 0.95;
   
   if (stylistId === 'ruby') {
-    pitch = 1.1;
+    pitch = 1.15;
+    rate = 0.92;
     if (voiceRange === 'soprano') {
-      pitch = 1.2;
-      rate = 1.05;
-    } else if (voiceRange === 'mezzo-soprano') {
-      pitch = 1.1;
+      pitch = 1.25;
       rate = 0.95;
+    } else if (voiceRange === 'mezzo-soprano' || voiceRange === 'mezzo') {
+      pitch = 1.15;
+      rate = 0.90;
     } else if (voiceRange === 'contralto') {
-      pitch = 0.95;
-      rate = 0.88;
+      pitch = 1.0;
+      rate = 0.85;
     }
   } else if (stylistId === 'max') {
-    pitch = 0.85;
+    pitch = 0.80;
+    rate = 0.90;
     if (voiceRange === 'tenor') {
-      pitch = 1.0;
-      rate = 1.1;
+      pitch = 0.95;
+      rate = 0.95;
     } else if (voiceRange === 'baritone') {
-      pitch = 0.85;
-      rate = 1.0;
+      pitch = 0.80;
+      rate = 0.90;
     } else if (voiceRange === 'bass') {
-      pitch = 0.7;
-      rate = 0.9;
+      pitch = 0.65;
+      rate = 0.85;
     }
   }
 
@@ -239,7 +281,7 @@ const playWithFallbackSpeech = async (
         reject(error);
       },
       onStart: () => {
-        console.log(`Speech started for ${language} with voice: ${voiceId || 'system default'}`);
+        console.log(`Speech started for ${stylistId} in ${language} with voice: ${voiceId || 'system default'}, pitch: ${pitch}, rate: ${rate}`);
       },
     };
     
