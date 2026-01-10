@@ -771,50 +771,51 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                 </ScrollView>
               </View>
 
-              <View style={styles.voiceSettingsSection}>
-                <ThemedText type="h3" style={styles.sectionLabel}>
-                  {selectedStylistId === 'max' ? 'Voice Range' : 'Voice Type'}
-                </ThemedText>
-                <View style={styles.pitchOptionsRow}>
-                  {(selectedStylistId ? getVoiceOptionsForStylist(selectedStylistId) : getVoiceOptionsForStylist('ruby')).map((pitch) => {
-                    const getVoiceIcon = (voiceType: string): keyof typeof Feather.glyphMap => {
-                      if (voiceType === 'soprano' || voiceType === 'tenor') return 'volume-2';
-                      if (voiceType === 'mezzo-soprano' || voiceType === 'baritone') return 'volume-1';
-                      return 'volume';
-                    };
-                    const formatVoiceLabel = (voiceType: string): string => {
-                      if (voiceType === 'mezzo-soprano') return 'Mezzo';
-                      return voiceType.charAt(0).toUpperCase() + voiceType.slice(1);
-                    };
-                    return (
-                      <Pressable
-                        key={pitch}
-                        onPress={() => setVoicePitch(pitch as VoicePitch)}
-                        style={({ pressed }) => [
-                          styles.pitchOption,
-                          {
-                            backgroundColor: voicePitch === pitch ? theme.link : theme.backgroundDefault,
-                            borderColor: voicePitch === pitch ? theme.link : theme.backgroundSecondary,
-                            opacity: pressed ? 0.8 : 1,
-                          },
-                        ]}
-                      >
-                        <Feather
-                          name={getVoiceIcon(pitch)}
-                          size={20}
-                          color={voicePitch === pitch ? "#FFFFFF" : theme.text}
-                        />
-                        <ThemedText
-                          type="body"
-                          style={{ color: voicePitch === pitch ? "#FFFFFF" : theme.text }}
+              {selectedStylistId === 'max' && (
+                <View style={styles.voiceSettingsSection}>
+                  <ThemedText type="h3" style={styles.sectionLabel}>
+                    Voice Range
+                  </ThemedText>
+                  <View style={styles.pitchOptionsRow}>
+                    {getVoiceOptionsForStylist('max').map((pitch) => {
+                      const getVoiceIcon = (voiceType: string): keyof typeof Feather.glyphMap => {
+                        if (voiceType === 'tenor') return 'volume-2';
+                        if (voiceType === 'baritone') return 'volume-1';
+                        return 'volume';
+                      };
+                      const formatVoiceLabel = (voiceType: string): string => {
+                        return voiceType.charAt(0).toUpperCase() + voiceType.slice(1);
+                      };
+                      return (
+                        <Pressable
+                          key={pitch}
+                          onPress={() => setVoicePitch(pitch as VoicePitch)}
+                          style={({ pressed }) => [
+                            styles.pitchOption,
+                            {
+                              backgroundColor: voicePitch === pitch ? theme.link : theme.backgroundDefault,
+                              borderColor: voicePitch === pitch ? theme.link : theme.backgroundSecondary,
+                              opacity: pressed ? 0.8 : 1,
+                            },
+                          ]}
                         >
-                          {formatVoiceLabel(pitch)}
-                        </ThemedText>
-                      </Pressable>
-                    );
-                  })}
+                          <Feather
+                            name={getVoiceIcon(pitch)}
+                            size={20}
+                            color={voicePitch === pitch ? "#FFFFFF" : theme.text}
+                          />
+                          <ThemedText
+                            type="body"
+                            style={{ color: voicePitch === pitch ? "#FFFFFF" : theme.text }}
+                          >
+                            {formatVoiceLabel(pitch)}
+                          </ThemedText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
+              )}
             </ScrollView>
           </View>
         );
