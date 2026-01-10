@@ -1,4 +1,4 @@
-import { AudioModule, AudioPlayer } from 'expo-audio';
+import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
@@ -267,15 +267,54 @@ const VOICE_PREVIEW_PHRASES: Record<string, Record<string, string>> = {
   },
 };
 
-let currentPlayer: AudioPlayer | null = null;
+let currentSound: Audio.Sound | null = null;
+
+const playAudioFile = async (uri: string): Promise<void> => {
+  try {
+    if (currentSound) {
+      await currentSound.stopAsync();
+      await currentSound.unloadAsync();
+      currentSound = null;
+    }
+    
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+      shouldDuckAndroid: true,
+    });
+    
+    const { sound } = await Audio.Sound.createAsync(
+      { uri },
+      { shouldPlay: true }
+    );
+    
+    currentSound = sound;
+    console.log('Playing ElevenLabs audio successfully');
+    
+    sound.setOnPlaybackStatusUpdate((status) => {
+      if (status.isLoaded && status.didJustFinish) {
+        sound.unloadAsync().catch(() => {});
+        if (uri.startsWith(FileSystem.cacheDirectory || '')) {
+          FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
+        }
+        currentSound = null;
+      }
+    });
+  } catch (error) {
+    console.log('Error playing audio file:', error);
+    throw error;
+  }
+};
 
 export const stopAudio = async (): Promise<void> => {
   await Speech.stop();
   
-  if (currentPlayer) {
+  if (currentSound) {
     try {
-      await currentPlayer.remove();
-      currentPlayer = null;
+      await currentSound.stopAsync();
+      await currentSound.unloadAsync();
+      currentSound = null;
     } catch (error) {
       console.log('Error stopping audio:', error);
     }
@@ -434,8 +473,9 @@ export const playVoicePreview = async (
 
   try {
     if (Platform.OS === 'ios') {
-      await AudioModule.setAudioModeAsync({
-        playsInSilentMode: true,
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
       });
     }
 
@@ -486,17 +526,7 @@ export const playVoicePreview = async (
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      currentPlayer = AudioModule.createPlayer(fileUri);
-      
-      if (currentPlayer) {
-        await currentPlayer.play();
-        currentPlayer.addListener('playbackStatusUpdate', (status: { didJustFinish?: boolean }) => {
-          if (status.didJustFinish) {
-            FileSystem.deleteAsync(fileUri, { idempotent: true }).catch(() => {});
-            currentPlayer = null;
-          }
-        });
-      }
+      await playAudioFile(fileUri);
       return;
     }
 
@@ -518,15 +548,7 @@ export const playVoicePreview = async (
     
     if (audioUrl) {
       console.log('Playing audio from URL:', audioUrl.substring(0, 50));
-      currentPlayer = AudioModule.createPlayer(audioUrl);
-      if (currentPlayer) {
-        await currentPlayer.play();
-        currentPlayer.addListener('playbackStatusUpdate', (status: { didJustFinish?: boolean }) => {
-          if (status.didJustFinish) {
-            currentPlayer = null;
-          }
-        });
-      }
+      await playAudioFile(audioUrl);
       return;
     }
     
@@ -539,17 +561,7 @@ export const playVoicePreview = async (
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      currentPlayer = AudioModule.createPlayer(fileUri);
-      
-      if (currentPlayer) {
-        await currentPlayer.play();
-        currentPlayer.addListener('playbackStatusUpdate', (status: { didJustFinish?: boolean }) => {
-          if (status.didJustFinish) {
-            FileSystem.deleteAsync(fileUri, { idempotent: true }).catch(() => {});
-            currentPlayer = null;
-          }
-        });
-      }
+      await playAudioFile(fileUri);
       return;
     }
     
@@ -563,7 +575,7 @@ export const playVoicePreview = async (
 };
 
 export const isPlaying = (): boolean => {
-  return currentPlayer !== null;
+  return currentSound !== null;
 };
 
 export const getSupportedLanguages = (): string[] => {
