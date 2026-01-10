@@ -45,6 +45,38 @@ const LANGUAGE_CODES: Record<string, string> = {
   Turkish: 'tr-TR',
 };
 
+const ELEVENLABS_LANGUAGE_CODES: Record<string, string> = {
+  'Standard Italian': 'it',
+  'Standard French': 'fr',
+  'Parisian French': 'fr',
+  'Canadian French': 'fr-CA',
+  'Standard German': 'de',
+  'Austrian German': 'de',
+  'Swiss German': 'de',
+  'Castilian Spanish': 'es',
+  'Mexican Spanish': 'es-MX',
+  'Latin American Spanish': 'es',
+  'Brazilian Portuguese': 'pt-BR',
+  'European Portuguese': 'pt-PT',
+  'Standard Japanese': 'ja',
+  'Standard Korean': 'ko',
+  'Mandarin Chinese': 'zh',
+  'Standard Arabic': 'ar',
+  'Standard Hindi': 'hi',
+  'Standard Russian': 'ru',
+  'Standard Dutch': 'nl',
+  'American': 'en',
+  'British': 'en-GB',
+  'Australian': 'en-AU',
+  'Irish': 'en-IE',
+  'Indian English': 'en-IN',
+};
+
+const getLanguageCodeForAccent = (accent?: string): string | undefined => {
+  if (!accent) return undefined;
+  return ELEVENLABS_LANGUAGE_CODES[accent];
+};
+
 const LANGUAGE_CODE_ALTERNATIVES: Record<string, string[]> = {
   French: ['fr-FR', 'fr-CA', 'fr-BE', 'fr-CH', 'fr'],
   Spanish: ['es-ES', 'es-MX', 'es-US', 'es-AR', 'es-CO', 'es'],
@@ -696,6 +728,8 @@ export const playVoicePreview = async (
     const voiceSettings = getVoiceSettingsForRange(stylistId, voiceRange);
     // Use accent-based native voice IDs for authentic regional accents
     const elevenLabsVoiceId = getElevenLabsVoiceIdForAccent(stylistId, accent);
+    // Get language code for authentic pronunciation (ISO 639-1)
+    const languageCode = getLanguageCodeForAccent(accent);
     // Use culturally-authentic scripts for non-English languages
     const text = getVoicePreviewPhrase(stylistId, language, accent, userName) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
     
@@ -704,6 +738,7 @@ export const playVoicePreview = async (
     console.log(`=== VOICE PREVIEW REQUEST ===`);
     console.log(`Stylist: ${stylistId}, Language accent: ${accent || 'none'}`);
     console.log(`Native speaker voice: ${nativeVoiceName} (ID: ${elevenLabsVoiceId || 'using backend default'})`);
+    console.log(`Language code: ${languageCode || 'default'}`);
     console.log(`Text preview: ${text.substring(0, 80)}...`);
     
     // DEBUG: Show user which voice is being requested (remove after debugging)
@@ -719,6 +754,7 @@ export const playVoicePreview = async (
       accent,
       voiceSettings,
       ...(elevenLabsVoiceId && { elevenLabsVoiceId }),
+      ...(languageCode && { languageCode }),
     };
     
     console.log(`FULL REQUEST BODY: ${JSON.stringify(requestBody)}`);
