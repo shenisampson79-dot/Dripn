@@ -2,9 +2,20 @@ import { AudioModule, AudioPlayer } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
 export type TTSModel = 'tts-1' | 'tts-1-hd';
+
+const TOKEN_KEY = '@dripn_token';
+
+const getAuthToken = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
 
 export interface TTSOptions {
   voice?: TTSVoice;
@@ -77,11 +88,13 @@ const IOS_PREMIUM_VOICES = {
     'en-US': ['com.apple.voice.enhanced.en-US.Ava', 'com.apple.voice.compact.en-US.Samantha', 'com.apple.ttsbundle.Samantha-compact', 'Samantha'],
     'en-GB': ['com.apple.voice.enhanced.en-GB.Serena', 'com.apple.voice.compact.en-GB.Kate', 'com.apple.ttsbundle.Kate-compact', 'Kate', 'Serena'],
     'en-AU': ['com.apple.voice.enhanced.en-AU.Karen', 'com.apple.voice.compact.en-AU.Karen', 'Karen'],
+    'en-IE': ['com.apple.voice.enhanced.en-IE.Moira', 'com.apple.voice.compact.en-IE.Moira', 'Moira'],
   },
   male: {
     'en-US': ['com.apple.voice.enhanced.en-US.Evan', 'com.apple.voice.compact.en-US.Alex', 'com.apple.ttsbundle.Alex-compact', 'Alex'],
     'en-GB': ['com.apple.voice.enhanced.en-GB.Daniel', 'com.apple.voice.compact.en-GB.Daniel', 'com.apple.ttsbundle.Daniel-compact', 'Daniel'],
     'en-AU': ['com.apple.voice.enhanced.en-AU.Lee', 'com.apple.voice.compact.en-AU.Lee', 'Lee'],
+    'en-IE': ['com.apple.voice.enhanced.en-IE.Moira', 'com.apple.voice.compact.en-IE.Moira', 'Moira'],
   },
 };
 
@@ -98,6 +111,8 @@ const findBestVoiceForLanguage = async (
       targetLangCode = 'en-GB';
     } else if (accent === 'Australian') {
       targetLangCode = 'en-AU';
+    } else if (accent === 'Irish') {
+      targetLangCode = 'en-IE';
     } else if (accent === 'American' || accent === 'US') {
       targetLangCode = 'en-US';
     }
@@ -371,11 +386,18 @@ export const playVoicePreview = async (
 
     console.log(`Calling ElevenLabs TTS for ${stylistId} (${accent || 'default'} accent, ${voiceRange || 'default'} pitch)`);
 
+    const authToken = await getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
     const response = await fetch(`${API_URL}/api/ai/voice-preview`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         stylistId,
         language,
