@@ -706,18 +706,21 @@ export const playVoicePreview = async (
     console.log(`Native speaker voice: ${nativeVoiceName} (ID: ${elevenLabsVoiceId || 'using backend default'})`);
     console.log(`Text preview: ${text.substring(0, 80)}...`);
     
+    const requestBody = {
+      text,
+      stylist: stylistId,
+      voiceRange,
+      accent,
+      voiceSettings,
+      ...(elevenLabsVoiceId && { elevenLabsVoiceId }),
+    };
+    
+    console.log(`FULL REQUEST BODY: ${JSON.stringify(requestBody)}`);
+    
     const response = await fetch(`${API_URL}/api/ai/voice-preview`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        text,
-        stylist: stylistId,
-        voiceRange,
-        accent,
-        voiceSettings,
-        // Send native accent voice ID for authentic regional voice (not synthesized accent)
-        ...(elevenLabsVoiceId && { elevenLabsVoiceId }),
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
