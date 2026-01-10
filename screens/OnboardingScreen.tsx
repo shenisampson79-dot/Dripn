@@ -388,7 +388,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const [selectedStylistId, setSelectedStylistId] = useState<StylistId>(null);
   const [stylistLanguage, setStylistLanguage] = useState<string>("English");
   const [stylistAccent, setStylistAccent] = useState<string>("American");
-  const [voicePitch, setVoicePitch] = useState<VoicePitch>("contralto");
+  const [voicePitch, setVoicePitch] = useState<VoicePitch>("mezzo-soprano");
   const [isPlayingVoice, setIsPlayingVoice] = useState<string | null>(null);
   const [favoriteShops, setFavoriteShops] = useState<string[]>([]);
   const [usageGoals, setUsageGoals] = useState<DripnGoal[]>([]);

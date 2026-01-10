@@ -427,48 +427,48 @@ interface ElevenLabsVoiceSettings {
   speakerBoost: boolean;
 }
 
-// ElevenLabs voice IDs for specific voice ranges
-// Uses real human voices from ElevenLabs Voice Library for natural sound
-// These are human-recorded voices with natural bass/raspy qualities built-in
-const ELEVENLABS_VOICE_IDS: Record<string, Record<string, string>> = {
+// ElevenLabs native accent voice IDs
+// Real human voices recorded by native speakers with authentic regional accents
+// These are NOT synthesized accents - they are real voices from ElevenLabs Voice Library
+const ELEVENLABS_ACCENT_VOICES: Record<string, Record<string, string>> = {
   ruby: {
-    soprano: '', // Use backend default
-    mezzo: '', // Use backend default
-    'mezzo-soprano': '', // Use backend default
-    // "Tiffany - Gritty, Articulate and Calm" - gritty yet articulate, husky middle-aged voice
-    // ElevenLabs multilingual v2 will apply regional accent styling
-    contralto: 'x9leqCOAXOcmC5jtkq65',
+    'American': '', // Use backend default (ElevenLabs Ruby voice)
+    'British': 'ptBd2v6mebIps3ZQEXD7', // Adela - Neutral British 30s-40s female
+    'Australian': 'Dh68koMHNSYl8A1jH9Je', // Addison - Australian female, warm, clear
+    'Irish': 'EfdW5L7xDpYTHDlIRmg9', // Aisling - Young Irish female, calm tone
+    'Scottish': '3eeY9rFz1akxkQTWoYXs', // Daisy - Young Scottish Female
+    'Canadian': 'ClKfJnuqp0hQ7Ax41F4w', // Ada - Young enthusiastic Canadian female
+    'South African': '', // Fallback to backend accent styling
+    'Indian': '', // Fallback to backend accent styling
+    'Caribbean': '', // Fallback to backend accent styling
+    'New Zealand': '', // Fallback to backend accent styling
   },
   max: {
-    tenor: '', // Use backend default
-    baritone: '', // Use backend default
-    // "James - Deep, Raspy and Grim" - UK accent, very low, deep, raspy male voice
-    bass: 'jtE6dbPUTt2kchN89Uej',
+    'American': '', // Use backend default (ElevenLabs Max voice)
+    'British': 'U1Vk2oyatMdYs096Ety7', // Michael - Deep, Dark British urban voice
+    'Australian': '', // Fallback to backend accent styling
+    'Irish': '', // Fallback to backend accent styling
+    'Scottish': '', // Fallback to backend accent styling
+    'Canadian': '', // Fallback to backend accent styling
+    'South African': '', // Fallback to backend accent styling
+    'Indian': '', // Fallback to backend accent styling
+    'Caribbean': '', // Fallback to backend accent styling
+    'New Zealand': '', // Fallback to backend accent styling
   },
 };
 
-const getElevenLabsVoiceId = (stylistId: string, voiceRange?: string): string | undefined => {
-  if (!voiceRange) return undefined;
-  const stylistVoices = ELEVENLABS_VOICE_IDS[stylistId];
+const getElevenLabsVoiceIdForAccent = (stylistId: string, accent?: string): string | undefined => {
+  if (!accent) return undefined;
+  const stylistVoices = ELEVENLABS_ACCENT_VOICES[stylistId];
   if (!stylistVoices) return undefined;
-  const voiceId = stylistVoices[voiceRange];
+  const voiceId = stylistVoices[accent];
   return voiceId || undefined;
 };
 
 const getVoiceSettingsForRange = (stylistId: string, voiceRange?: string): ElevenLabsVoiceSettings => {
   if (stylistId === 'ruby') {
-    switch (voiceRange) {
-      case 'soprano':
-        return { stability: 0.45, similarityBoost: 0.85, style: 0.40, speakerBoost: true };
-      case 'mezzo-soprano':
-      case 'mezzo':
-        return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
-      case 'contralto':
-        // Natural settings for real husky voice - let the voice speak for itself
-        return { stability: 0.55, similarityBoost: 0.78, style: 0.22, speakerBoost: true };
-      default:
-        return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
-    }
+    // Ruby only uses mezzo-soprano now
+    return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
   } else if (stylistId === 'max') {
     switch (voiceRange) {
       case 'tenor':
@@ -520,10 +520,11 @@ export const playVoicePreview = async (
     }
 
     const voiceSettings = getVoiceSettingsForRange(stylistId, voiceRange);
-    const elevenLabsVoiceId = getElevenLabsVoiceId(stylistId, voiceRange);
+    // Use accent-based native voice IDs for authentic regional accents
+    const elevenLabsVoiceId = getElevenLabsVoiceIdForAccent(stylistId, accent);
     const text = getVoicePreviewPhrase(stylistId, language) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
     
-    console.log(`Voice request: stylist=${stylistId}, range=${voiceRange}, elevenLabsVoiceId=${elevenLabsVoiceId || 'default'}`);
+    console.log(`Voice request: stylist=${stylistId}, accent=${accent}, elevenLabsVoiceId=${elevenLabsVoiceId || 'default'}`);
     
     const response = await fetch(`${API_URL}/api/ai/voice-preview`, {
       method: 'POST',
@@ -534,7 +535,7 @@ export const playVoicePreview = async (
         voiceRange,
         accent,
         voiceSettings,
-        // Send specific ElevenLabs voice ID for contralto/bass to use real human husky voice
+        // Send native accent voice ID for authentic regional voice (not synthesized accent)
         ...(elevenLabsVoiceId && { elevenLabsVoiceId }),
       }),
     });

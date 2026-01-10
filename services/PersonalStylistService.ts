@@ -64,9 +64,9 @@ export function getAccentsForLanguage(language: string): readonly string[] {
   return LANGUAGE_ACCENT_MAP[language] || STYLIST_ACCENTS;
 }
 
-export const RUBY_VOICE_PITCHES = ['soprano', 'mezzo-soprano', 'contralto'] as const;
+export const RUBY_VOICE_PITCHES = ['mezzo-soprano'] as const;
 export const MAX_VOICE_RANGES = ['tenor', 'baritone', 'bass'] as const;
-export const VOICE_PITCHES = ['soprano', 'mezzo-soprano', 'contralto', 'tenor', 'baritone', 'bass'] as const;
+export const VOICE_PITCHES = ['mezzo-soprano', 'tenor', 'baritone', 'bass'] as const;
 
 export function getVoiceOptionsForStylist(stylistId: string): readonly string[] {
   if (stylistId === 'max') {
@@ -79,7 +79,7 @@ export function getDefaultVoiceForStylist(stylistId: string): string {
   if (stylistId === 'max') {
     return 'baritone';
   }
-  return 'contralto';
+  return 'mezzo-soprano';
 }
 
 export const STYLISTS: Record<string, PersonalStylist> = {

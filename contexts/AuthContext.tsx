@@ -28,7 +28,7 @@ export type DripnGoal = 'dress-better' | 'meet-people' | 'find-offers' | 'get-in
 export type HeightUnit = 'cm' | 'ft';
 export type WeightUnit = 'kg' | 'lbs';
 export type StylistId = 'ruby' | 'max' | null;
-export type RubyVoicePitch = 'soprano' | 'mezzo-soprano' | 'contralto';
+export type RubyVoicePitch = 'mezzo-soprano';
 export type MaxVoiceRange = 'tenor' | 'baritone' | 'bass';
 export type VoicePitch = RubyVoicePitch | MaxVoiceRange;
 
@@ -157,7 +157,7 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
     selectedStylistId: null,
     language: 'English',
     accent: 'American',
-    voicePitch: 'contralto',
+    voicePitch: 'mezzo-soprano',
   },
 });
 
