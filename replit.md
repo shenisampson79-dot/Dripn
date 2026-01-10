@@ -27,10 +27,12 @@ Key Features:
 - **Visual Outfit Inspiration System**: Pinterest-style feature with curated outfit libraries and future AI-generated images via DALL-E.
 - **Goal-Based Content Personalization**: AI and content are tailored to member's selected goals (Dress Better, Meet People, Find Deals, Get Inspired, Build Wardrobe, Special Events, Professional Image). 70% of content directly supports goals, 30% general for comprehensive experience. Goals are guaranteed to be prioritized in all AI interactions and content feeds.
 - **Advanced AI Capabilities**:
-    - **Model Lifecycle System**: Automatic model upgrades, A/B testing, and health checks.
+    - **Model Lifecycle System**: Automatic model upgrades, A/B testing, and health checks. Autonomous AI Model Manager auto-selects latest models (GPT-4.1, GPT-4.1-nano, o3).
     - **Vision-Powered Outfit Analysis**: GPT-4o Vision for color extraction, style detection, fit analysis, and multi-image comparison.
-    - **Voice Services**: Whisper for speech-to-text and TTS-1-HD for AI voice responses, with Ruby (women's, uses 'nova' voice - warm/friendly) and Max (men's, uses 'onyx' voice - deep/authoritative) personas. Voice settings are configurable per stylist in VoiceSettingsContext.
+    - **Voice Services**: ElevenLabs TTS (eleven_multilingual_v2) for Siri/Alexa-quality voices with Ruby and Max personas. Native speaker voices for 13 languages with authentic pronunciation via languageCode parameter. Whisper for speech-to-text. Voice settings configurable per stylist in VoiceSettingsContext.
     - **Name Pronunciation Feedback System**: After voice preview plays with member's name, a "Did we say your name right?" prompt appears (once per session). If the member indicates incorrect pronunciation, the system falls back to culturally appropriate friendly terms (e.g., "bella", "amigo") instead of their name. Preferences are stored in `stylistPreferences.useNameInGreetings` and `namePronunciationConfirmed`. Future enhancement: voice recording for definitive pronunciation correction.
+    - **AI Stylist Chat System**: Contextual conversations with Ruby and Max using GPT-4o/4.1 that incorporate user profile data (skin tone, preferences, goals). Features persistent chat history per stylist, body-positive culturally-aware messaging, and optional voice generation with ElevenLabs in 13 languages.
+    - **Personality Learning System**: Automatic Memory Capture extracts key moments from conversations. Personality Analysis learns communication style (quick/direct vs detailed/thoughtful), fashion confidence level, style personality type, shopping behavior patterns, and preferred tone of communication. Future conversations use these insights for personalized advice.
     - **Fashion Therapy & Wellness**: Mood-based outfit recommendations, body positivity affirmations, capsule wardrobe planning, confidence rituals, and wellness outfit suggestions.
     - **Semantic Style Search**: `text-embedding-3-large` for semantic outfit matching and complementary piece suggestions.
     - **AI Image Generation**: DALL-E 3 for outfit inspiration, moodboards, and style guide visualization.
@@ -45,8 +47,16 @@ Key Features:
 - **SendGrid**: Transactional emails (VIP alerts, newsletters).
 - **Twilio**: SMS notifications (VIP alerts - to be configured).
 - **Expo**: `expo-audio`, `expo-sharing`, `expo-store-review`, `expo-linking`.
-- **OpenAI API**: AI Stylist, Vision, Voice services, Image Generation, Complex Analysis (GPT-4.5-preview, GPT-4o, GPT-4-turbo, GPT-4, GPT-3.5-turbo, DALL-E 3, Whisper, TTS-1-HD, text-embedding-3-large, o1 reasoning models).
+- **OpenAI API**: AI Stylist, Vision, Voice services, Image Generation, Complex Analysis (GPT-4.1, GPT-4.1-nano, o3, GPT-4o, GPT-4-turbo, DALL-E 3, Whisper, text-embedding-3-large). Model priority managed by Autonomous AI Model Manager.
+- **ElevenLabs**: High-quality TTS (eleven_multilingual_v2) for native speaker voices in 13 languages with authentic pronunciation.
 - **Replicate**: IDM-VTON model for Virtual Try-On.
-- **PostgreSQL**: Backend database.
+- **PostgreSQL**: Backend database with `chat_messages` and `user_style_profiles` tables.
 - **Affiliate APIs**: For "Shop Now" functionality.
 - **Event APIs**: Timeout, TodayTix, Eventbrite, Meetup, ClassPass (for "Events Near You").
+
+## Backend API Endpoints
+- **Chat**: `POST /api/chat/message`, `GET /api/chat/history`, `DELETE /api/chat/history`
+- **Style Profile**: `GET /api/profile/style`, `POST /api/profile/style`
+- **Personality**: `POST /api/personality/analyze`, `GET /api/personality/insights`, `POST /api/personality/memory`
+- **Voice Preview**: `POST /api/ai/voice-preview` (with elevenLabsVoiceId and languageCode params)
+- **AI Models**: `GET /api/ai/models/status` (check and refresh AI model status)
