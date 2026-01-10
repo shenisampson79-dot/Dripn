@@ -369,6 +369,8 @@ export const playVoicePreview = async (
       });
     }
 
+    console.log(`Calling ElevenLabs TTS for ${stylistId} (${accent || 'default'} accent, ${voiceRange || 'default'} pitch)`);
+
     const response = await fetch(`${API_URL}/api/ai/voice-preview`, {
       method: 'POST',
       headers: {
@@ -380,40 +382,100 @@ export const playVoicePreview = async (
         voiceRange,
         voice: selectedVoice,
         accent,
+        style: voiceRange,
       }),
     });
 
     if (!response.ok) {
-      console.log('Backend voice preview failed, falling back to device speech');
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.log(`Backend voice preview failed (${response.status}): ${errorText}`);
       return playWithFallbackSpeech(stylistId, language, voiceRange, accent);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    
+    if (contentType.includes('audio/')) {
+      console.log('Received audio stream from ElevenLabs');
+      const arrayBuffer = await response.arrayBuffer();
+      const base64Audio = arrayBufferToBase64(arrayBuffer);
+      
+      const ext = contentType.includes('mpeg') ? 'mp3' : 'wav';
+      const fileName = `voice_preview_${Date.now()}.${ext}`;
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+      
+      await FileSystem.writeAsStringAsync(fileUri, base64Audio, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      currentPlayer = AudioModule.createPlayer(fileUri);
+      
+      if (currentPlayer) {
+        await currentPlayer.play();
+        currentPlayer.addListener('playbackStatusUpdate', (status: { didJustFinish?: boolean }) => {
+          if (status.didJustFinish) {
+            FileSystem.deleteAsync(fileUri, { idempotent: true }).catch(() => {});
+            currentPlayer = null;
+          }
+        });
+      }
+      return;
     }
 
     const data = await response.json();
+    console.log('ElevenLabs response:', JSON.stringify(data).substring(0, 200));
     
-    if (!data.success || !data.audioBase64) {
-      console.log('Invalid backend response, falling back to device speech');
-      return playWithFallbackSpeech(stylistId, language, voiceRange, accent);
+    let audioData: string | null = null;
+    let audioUrl: string | null = null;
+    
+    if (data.audioBase64) {
+      audioData = data.audioBase64;
+    } else if (data.audio) {
+      audioData = data.audio;
+    } else if (data.url) {
+      audioUrl = data.url;
+    } else if (data.audioUrl) {
+      audioUrl = data.audioUrl;
     }
-
-    const fileName = `voice_preview_${Date.now()}.mp3`;
-    const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
     
-    await FileSystem.writeAsStringAsync(fileUri, data.audioBase64, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-
-    currentPlayer = AudioModule.createPlayer(fileUri);
+    if (audioUrl) {
+      console.log('Playing audio from URL:', audioUrl.substring(0, 50));
+      currentPlayer = AudioModule.createPlayer(audioUrl);
+      if (currentPlayer) {
+        await currentPlayer.play();
+        currentPlayer.addListener('playbackStatusUpdate', (status: { didJustFinish?: boolean }) => {
+          if (status.didJustFinish) {
+            currentPlayer = null;
+          }
+        });
+      }
+      return;
+    }
     
-    if (currentPlayer) {
-      await currentPlayer.play();
-
-      currentPlayer.addListener('playbackStatusUpdate', (status: { didJustFinish?: boolean }) => {
-        if (status.didJustFinish) {
-          FileSystem.deleteAsync(fileUri, { idempotent: true }).catch(() => {});
-          currentPlayer = null;
-        }
+    if (audioData) {
+      console.log('Playing audio from base64 data');
+      const fileName = `voice_preview_${Date.now()}.mp3`;
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+      
+      await FileSystem.writeAsStringAsync(fileUri, audioData, {
+        encoding: FileSystem.EncodingType.Base64,
       });
+
+      currentPlayer = AudioModule.createPlayer(fileUri);
+      
+      if (currentPlayer) {
+        await currentPlayer.play();
+        currentPlayer.addListener('playbackStatusUpdate', (status: { didJustFinish?: boolean }) => {
+          if (status.didJustFinish) {
+            FileSystem.deleteAsync(fileUri, { idempotent: true }).catch(() => {});
+            currentPlayer = null;
+          }
+        });
+      }
+      return;
     }
+    
+    console.log('No audio data in response, falling back to device speech');
+    return playWithFallbackSpeech(stylistId, language, voiceRange, accent);
 
   } catch (error) {
     console.log('Voice preview error, falling back to device speech:', error);
