@@ -72,13 +72,58 @@ const getAvailableVoices = async (): Promise<Speech.Voice[]> => {
   }
 };
 
-const findBestVoiceForLanguage = async (language: string, preferFemale: boolean = true): Promise<{ voiceId?: string; langCode: string } | null> => {
-  const alternatives = LANGUAGE_CODE_ALTERNATIVES[language] || [LANGUAGE_CODES[language] || 'en-US'];
+const IOS_PREMIUM_VOICES = {
+  female: {
+    'en-US': ['com.apple.voice.enhanced.en-US.Ava', 'com.apple.voice.compact.en-US.Samantha', 'com.apple.ttsbundle.Samantha-compact', 'Samantha'],
+    'en-GB': ['com.apple.voice.enhanced.en-GB.Serena', 'com.apple.voice.compact.en-GB.Kate', 'com.apple.ttsbundle.Kate-compact', 'Kate', 'Serena'],
+    'en-AU': ['com.apple.voice.enhanced.en-AU.Karen', 'com.apple.voice.compact.en-AU.Karen', 'Karen'],
+  },
+  male: {
+    'en-US': ['com.apple.voice.enhanced.en-US.Evan', 'com.apple.voice.compact.en-US.Alex', 'com.apple.ttsbundle.Alex-compact', 'Alex'],
+    'en-GB': ['com.apple.voice.enhanced.en-GB.Daniel', 'com.apple.voice.compact.en-GB.Daniel', 'com.apple.ttsbundle.Daniel-compact', 'Daniel'],
+    'en-AU': ['com.apple.voice.enhanced.en-AU.Lee', 'com.apple.voice.compact.en-AU.Lee', 'Lee'],
+  },
+};
+
+const findBestVoiceForLanguage = async (
+  language: string, 
+  preferFemale: boolean = true,
+  accent?: string
+): Promise<{ voiceId?: string; langCode: string } | null> => {
   const voices = await getAvailableVoices();
   
-  if (voices.length === 0) {
-    return { langCode: alternatives[0] };
+  let targetLangCode = LANGUAGE_CODES[language] || 'en-US';
+  if (language === 'English' && accent) {
+    if (accent === 'British' || accent === 'UK') {
+      targetLangCode = 'en-GB';
+    } else if (accent === 'Australian') {
+      targetLangCode = 'en-AU';
+    } else if (accent === 'American' || accent === 'US') {
+      targetLangCode = 'en-US';
+    }
   }
+  
+  if (voices.length === 0) {
+    return { langCode: targetLangCode };
+  }
+  
+  if (Platform.OS === 'ios') {
+    const genderVoices = preferFemale ? IOS_PREMIUM_VOICES.female : IOS_PREMIUM_VOICES.male;
+    const preferredVoices = genderVoices[targetLangCode as keyof typeof genderVoices] || genderVoices['en-US'];
+    
+    for (const preferredId of preferredVoices) {
+      const match = voices.find(v => 
+        v.identifier?.toLowerCase().includes(preferredId.toLowerCase()) ||
+        v.name?.toLowerCase() === preferredId.toLowerCase()
+      );
+      if (match) {
+        console.log(`Found iOS premium voice for ${language} (${accent || 'default'}): ${match.identifier} - ${match.name}`);
+        return { voiceId: match.identifier, langCode: match.language || targetLangCode };
+      }
+    }
+  }
+  
+  const alternatives = LANGUAGE_CODE_ALTERNATIVES[language] || [targetLangCode];
   
   const femaleKeywords = ['female', 'woman', 'samantha', 'victoria', 'karen', 'moira', 'tessa', 'fiona', 'siri female', 'zoe', 'nicky', 'ava', 'allison', 'susan', 'kate', 'serena', 'veena', 'emily', 'emma', 'enhanced', 'premium'];
   const maleKeywords = ['male', 'man', 'daniel', 'alex', 'fred', 'tom', 'lee', 'oliver', 'aaron', 'gordon', 'rishi', 'james', 'evan'];
@@ -87,34 +132,36 @@ const findBestVoiceForLanguage = async (language: string, preferFemale: boolean 
     const identifier = (v.identifier || '').toLowerCase();
     const name = (v.name || '').toLowerCase();
     const quality = v.quality || '';
+    const voiceLang = v.language?.toLowerCase() || '';
     
     let score = 0;
     
-    const langPrefix = alternatives[0].split('-')[0].toLowerCase();
-    const voiceLang = v.language?.toLowerCase() || '';
-    if (voiceLang === alternatives[0].toLowerCase() || 
-        voiceLang.startsWith(langPrefix + '-') ||
-        voiceLang === langPrefix) {
-      score += 10;
+    if (voiceLang === targetLangCode.toLowerCase()) {
+      score += 15;
     } else {
-      return { voice: v, score: -1 };
+      const langPrefix = targetLangCode.split('-')[0].toLowerCase();
+      if (voiceLang.startsWith(langPrefix + '-') || voiceLang === langPrefix) {
+        score += 8;
+      } else {
+        return { voice: v, score: -1 };
+      }
     }
     
     if (quality === 'Enhanced' || identifier.includes('enhanced') || identifier.includes('premium')) {
-      score += 5;
+      score += 10;
     }
     
     const isLikelyFemale = femaleKeywords.some(kw => identifier.includes(kw) || name.includes(kw));
     const isLikelyMale = maleKeywords.some(kw => identifier.includes(kw) || name.includes(kw));
     
     if (preferFemale && isLikelyFemale && !isLikelyMale) {
-      score += 8;
+      score += 12;
     } else if (!preferFemale && isLikelyMale && !isLikelyFemale) {
-      score += 8;
+      score += 12;
     } else if (preferFemale && !isLikelyMale) {
-      score += 2;
+      score += 3;
     } else if (!preferFemale && !isLikelyFemale) {
-      score += 2;
+      score += 3;
     }
     
     return { voice: v, score };
@@ -125,17 +172,17 @@ const findBestVoiceForLanguage = async (language: string, preferFemale: boolean 
   
   if (validVoices.length > 0) {
     const bestVoice = validVoices[0].voice;
-    console.log(`Selected voice for ${language} (${preferFemale ? 'female' : 'male'}): ${bestVoice.identifier} - ${bestVoice.name}`);
-    return { voiceId: bestVoice.identifier, langCode: bestVoice.language || alternatives[0] };
+    console.log(`Selected voice for ${language} (${preferFemale ? 'female' : 'male'}, ${accent || 'default'}): ${bestVoice.identifier} - ${bestVoice.name}`);
+    return { voiceId: bestVoice.identifier, langCode: bestVoice.language || targetLangCode };
   }
   
   for (const langCode of alternatives) {
     const matchingVoice = voices.find(v => {
       const voiceLang = v.language?.toLowerCase() || '';
-      const targetLang = langCode.toLowerCase();
-      return voiceLang === targetLang || 
-             voiceLang.startsWith(targetLang.split('-')[0] + '-') ||
-             voiceLang === targetLang.split('-')[0];
+      const target = langCode.toLowerCase();
+      return voiceLang === target || 
+             voiceLang.startsWith(target.split('-')[0] + '-') ||
+             voiceLang === target.split('-')[0];
     });
     
     if (matchingVoice) {
@@ -203,7 +250,8 @@ export const stopAudio = async (): Promise<void> => {
 const playWithFallbackSpeech = async (
   stylistId: string,
   language: string,
-  voiceRange?: string
+  voiceRange?: string,
+  accent?: string
 ): Promise<void> => {
   let text = getVoicePreviewPhrase(stylistId, language);
   if (!text) {
@@ -213,7 +261,7 @@ const playWithFallbackSpeech = async (
   await Speech.stop();
 
   const preferFemale = stylistId === 'ruby';
-  const voiceInfo = await findBestVoiceForLanguage(language, preferFemale);
+  const voiceInfo = await findBestVoiceForLanguage(language, preferFemale, accent);
   
   let langCode = LANGUAGE_CODES[language] || 'en-US';
   let voiceId: string | undefined;
@@ -222,11 +270,11 @@ const playWithFallbackSpeech = async (
   if (voiceInfo) {
     langCode = voiceInfo.langCode;
     voiceId = voiceInfo.voiceId;
-    console.log(`Found ${preferFemale ? 'female' : 'male'} voice for ${language}: ${voiceId || 'default'} (${langCode})`);
+    console.log(`Found ${preferFemale ? 'female' : 'male'} voice for ${language} (${accent || 'default'}): ${voiceId || 'default'} (${langCode})`);
   } else {
     console.log(`No voice found for ${language}, falling back to English`);
     useEnglishFallback = true;
-    const englishVoice = await findBestVoiceForLanguage('English', preferFemale);
+    const englishVoice = await findBestVoiceForLanguage('English', preferFemale, accent);
     if (englishVoice) {
       langCode = englishVoice.langCode;
       voiceId = englishVoice.voiceId;
@@ -237,33 +285,33 @@ const playWithFallbackSpeech = async (
   }
   
   let pitch = 1.0;
-  let rate = 0.95;
+  let rate = 0.92;
   
   if (stylistId === 'ruby') {
-    pitch = 1.15;
-    rate = 0.92;
+    pitch = 1.2;
+    rate = 0.90;
     if (voiceRange === 'soprano') {
-      pitch = 1.25;
-      rate = 0.95;
+      pitch = 1.8;
+      rate = 1.0;
     } else if (voiceRange === 'mezzo-soprano' || voiceRange === 'mezzo') {
-      pitch = 1.15;
-      rate = 0.90;
+      pitch = 1.2;
+      rate = 0.88;
     } else if (voiceRange === 'contralto') {
-      pitch = 1.0;
-      rate = 0.85;
+      pitch = 0.7;
+      rate = 0.80;
     }
   } else if (stylistId === 'max') {
-    pitch = 0.80;
-    rate = 0.90;
+    pitch = 0.75;
+    rate = 0.88;
     if (voiceRange === 'tenor') {
-      pitch = 0.95;
+      pitch = 1.1;
       rate = 0.95;
     } else if (voiceRange === 'baritone') {
-      pitch = 0.80;
-      rate = 0.90;
-    } else if (voiceRange === 'bass') {
-      pitch = 0.65;
+      pitch = 0.75;
       rate = 0.85;
+    } else if (voiceRange === 'bass') {
+      pitch = 0.5;
+      rate = 0.78;
     }
   }
 
@@ -281,7 +329,7 @@ const playWithFallbackSpeech = async (
         reject(error);
       },
       onStart: () => {
-        console.log(`Speech started for ${stylistId} in ${language} with voice: ${voiceId || 'system default'}, pitch: ${pitch}, rate: ${rate}`);
+        console.log(`Speech started for ${stylistId} in ${language} (${accent || 'default'}) with voice: ${voiceId || 'system default'}, pitch: ${pitch}, rate: ${rate}`);
       },
     };
     
@@ -302,7 +350,8 @@ export const playVoicePreview = async (
   stylistId: string,
   language: string = 'English',
   voiceRange?: string,
-  voice?: TTSVoice
+  voice?: TTSVoice,
+  accent?: string
 ): Promise<void> => {
   await stopAudio();
 
@@ -310,7 +359,7 @@ export const playVoicePreview = async (
 
   if (!API_URL) {
     console.log('Backend API URL not configured, using device speech synthesis');
-    return playWithFallbackSpeech(stylistId, language, voiceRange);
+    return playWithFallbackSpeech(stylistId, language, voiceRange, accent);
   }
 
   try {
@@ -330,19 +379,20 @@ export const playVoicePreview = async (
         language,
         voiceRange,
         voice: selectedVoice,
+        accent,
       }),
     });
 
     if (!response.ok) {
       console.log('Backend voice preview failed, falling back to device speech');
-      return playWithFallbackSpeech(stylistId, language, voiceRange);
+      return playWithFallbackSpeech(stylistId, language, voiceRange, accent);
     }
 
     const data = await response.json();
     
     if (!data.success || !data.audioBase64) {
       console.log('Invalid backend response, falling back to device speech');
-      return playWithFallbackSpeech(stylistId, language, voiceRange);
+      return playWithFallbackSpeech(stylistId, language, voiceRange, accent);
     }
 
     const fileName = `voice_preview_${Date.now()}.mp3`;
@@ -367,7 +417,7 @@ export const playVoicePreview = async (
 
   } catch (error) {
     console.log('Voice preview error, falling back to device speech:', error);
-    return playWithFallbackSpeech(stylistId, language, voiceRange);
+    return playWithFallbackSpeech(stylistId, language, voiceRange, accent);
   }
 };
 

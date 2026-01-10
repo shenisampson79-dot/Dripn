@@ -455,13 +455,13 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
 
     try {
       const voiceForStylist = stylistId === 'ruby' ? 'nova' : 'onyx';
-      await playOpenAIVoice(stylistId, stylistLanguage, voicePitch, voiceForStylist);
+      await playOpenAIVoice(stylistId, stylistLanguage, voicePitch, voiceForStylist, stylistAccent);
       setIsPlayingVoice(null);
     } catch (error) {
       console.log('Voice preview error:', error);
       setIsPlayingVoice(null);
     }
-  }, [stylistLanguage, voicePitch, isPlayingVoice]);
+  }, [stylistLanguage, voicePitch, isPlayingVoice, stylistAccent]);
 
   const handleStylistSelect = useCallback((stylistId: StylistId) => {
     setSelectedStylistId(stylistId);
