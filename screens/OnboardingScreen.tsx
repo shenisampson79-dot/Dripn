@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -14,6 +14,7 @@ import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePit
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getDefaultVoiceForStylist, getAccentsForLanguage } from "@/services/PersonalStylistService";
 import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
+import { NamePronunciationPrompt } from "@/components/NamePronunciationPrompt";
 
 const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "woman", name: "Woman", icon: "user" },
@@ -373,6 +374,9 @@ const ALL_COUNTRIES = [
   "Zimbabwe",
 ];
 
+// Module-level flag to persist across component remounts in the same app session
+let hasPromptedForPronunciationThisSession = false;
+
 export default function OnboardingScreen({ navigation }: OnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
@@ -396,6 +400,22 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const [favoriteShops, setFavoriteShops] = useState<string[]>([]);
   const [usageGoals, setUsageGoals] = useState<DripnGoal[]>([]);
   const [shopSearchQuery, setShopSearchQuery] = useState("");
+  const [showPronunciationPrompt, setShowPronunciationPrompt] = useState(false);
+  // Initialize from user's stored preferences, or use defaults
+  const [useNameInGreetings, setUseNameInGreetings] = useState(
+    user?.stylistPreferences?.useNameInGreetings ?? true
+  );
+  const [namePronunciationConfirmed, setNamePronunciationConfirmed] = useState(
+    user?.stylistPreferences?.namePronunciationConfirmed ?? false
+  );
+
+  // Sync local state when user's stylist preferences change (e.g., after profile loads or updates)
+  useEffect(() => {
+    if (user?.stylistPreferences) {
+      setUseNameInGreetings(user.stylistPreferences.useNameInGreetings ?? true);
+      setNamePronunciationConfirmed(user.stylistPreferences.namePronunciationConfirmed ?? false);
+    }
+  }, [user?.stylistPreferences?.useNameInGreetings, user?.stylistPreferences?.namePronunciationConfirmed]);
 
   const totalSteps = 7;
   
@@ -459,13 +479,22 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
     try {
       const voiceForStylist = stylistId === 'ruby' ? 'nova' : 'onyx';
       // Pass user's first name for personalized greetings (e.g., "Ciao Sarah!" instead of "Ciao bella!")
-      await playOpenAIVoice(stylistId, stylistLanguage, voicePitch, voiceForStylist, stylistAccent, userFirstName);
+      // Only use name if user hasn't said pronunciation is wrong
+      const nameToUse = useNameInGreetings ? userFirstName : undefined;
+      await playOpenAIVoice(stylistId, stylistLanguage, voicePitch, voiceForStylist, stylistAccent, nameToUse);
       setIsPlayingVoice(null);
+      
+      // Show pronunciation prompt after first voice preview if user has a name and hasn't confirmed yet
+      // Only show once per session to avoid annoying the user (module-level flag persists across remounts)
+      if (userFirstName && !namePronunciationConfirmed && useNameInGreetings && !hasPromptedForPronunciationThisSession) {
+        setShowPronunciationPrompt(true);
+        hasPromptedForPronunciationThisSession = true;
+      }
     } catch (error) {
       console.log('Voice preview error:', error);
       setIsPlayingVoice(null);
     }
-  }, [stylistLanguage, voicePitch, isPlayingVoice, stylistAccent, userFirstName]);
+  }, [stylistLanguage, voicePitch, isPlayingVoice, stylistAccent, userFirstName, useNameInGreetings, namePronunciationConfirmed]);
 
   const handleStylistSelect = useCallback((stylistId: StylistId) => {
     setSelectedStylistId(stylistId);
@@ -475,6 +504,18 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
       playVoicePreview(stylistId);
     }
   }, [playVoicePreview]);
+
+  const handlePronunciationCorrect = useCallback(() => {
+    setNamePronunciationConfirmed(true);
+    setUseNameInGreetings(true);
+    setShowPronunciationPrompt(false);
+  }, []);
+
+  const handlePronunciationIncorrect = useCallback(() => {
+    setNamePronunciationConfirmed(true);
+    setUseNameInGreetings(false);
+    setShowPronunciationPrompt(false);
+  }, []);
 
   const getBodyShapeOptions = () => {
     if (gender === "man") return MEN_BODY_SHAPES;
@@ -504,6 +545,8 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
       language: stylistLanguage,
       accent: stylistAccent,
       voicePitch,
+      useNameInGreetings,
+      namePronunciationConfirmed,
     };
     await completeOnboarding({
       country,
@@ -714,6 +757,16 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                   );
                 })}
               </View>
+
+              {showPronunciationPrompt && userFirstName && selectedStylistId ? (
+                <NamePronunciationPrompt
+                  memberName={userFirstName}
+                  stylistName={selectedStylistId === 'ruby' ? 'Ruby' : 'Max'}
+                  onConfirmCorrect={handlePronunciationCorrect}
+                  onConfirmIncorrect={handlePronunciationIncorrect}
+                  onDismiss={() => setShowPronunciationPrompt(false)}
+                />
+              ) : null}
 
               <View style={styles.voiceSettingsSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>

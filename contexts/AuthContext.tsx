@@ -37,6 +37,10 @@ export interface StylistPreferences {
   language: string;
   accent: string;
   voicePitch: VoicePitch;
+  // Name pronunciation preferences
+  useNameInGreetings: boolean; // Whether to use member's name in voice greetings
+  namePronunciationConfirmed: boolean; // Whether member has confirmed pronunciation is correct
+  phoneticSpelling?: string; // Optional phonetic spelling for future voice recording feature
 }
 
 export interface BodyMeasurements {
@@ -158,6 +162,8 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
     language: 'English',
     accent: 'American',
     voicePitch: 'mezzo-soprano',
+    useNameInGreetings: true, // Default to using name
+    namePronunciationConfirmed: false, // Not yet confirmed
   },
 });
 
