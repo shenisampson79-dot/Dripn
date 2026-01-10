@@ -147,31 +147,35 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   }, [selectedCategory, theme]);
 
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
+    const hasProcessedImage = item.imageProcessed || item.aiAnalyzed;
+    
     return (
       <Pressable
         onPress={() => handleItemPress(item)}
         style={({ pressed }) => [
           styles.itemCard,
+          styles.itemCardShadow,
           {
-            backgroundColor: theme.backgroundDefault,
             opacity: pressed ? 0.9 : 1,
             transform: [{ scale: pressed ? 0.98 : 1 }],
           },
         ]}
       >
-        <Image
-          source={{ uri: item.imageUri }}
-          style={styles.itemImage}
-          contentFit="cover"
-          transition={200}
-        />
+        <View style={styles.itemImageWrapper}>
+          <Image
+            source={{ uri: item.imageUri }}
+            style={styles.itemImage}
+            contentFit={hasProcessedImage ? "contain" : "cover"}
+            transition={200}
+          />
+        </View>
         {item.isFavorite ? (
           <View style={[styles.favoriteIndicator, { backgroundColor: theme.link }]}>
             <Feather name="heart" size={12} color="#FFFFFF" />
           </View>
         ) : null}
-        <View style={styles.itemInfo}>
-          <ThemedText type="caption" numberOfLines={1} style={styles.itemName}>
+        <View style={[styles.itemInfo, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
+          <ThemedText type="caption" numberOfLines={1} style={[styles.itemName, { color: '#1F2937' }]}>
             {item.name}
           </ThemedText>
           <ThemedText type="caption" style={{ opacity: 0.6 }}>
@@ -252,12 +256,14 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             showsVerticalScrollIndicator={false}
             renderItem={() => (
               <>
-                <Image
-                  source={{ uri: selectedItem.imageUri }}
-                  style={styles.modalImage}
-                  contentFit="cover"
-                  transition={300}
-                />
+                <View style={styles.modalImageWrapper}>
+                  <Image
+                    source={{ uri: selectedItem.imageUri }}
+                    style={styles.modalImage}
+                    contentFit={selectedItem.imageProcessed || selectedItem.aiAnalyzed ? "contain" : "cover"}
+                    transition={300}
+                  />
+                </View>
 
                 <View style={styles.modalInfo}>
                   <ThemedText type="h2" style={styles.modalItemName}>
@@ -503,11 +509,25 @@ const styles = StyleSheet.create({
     width: ITEM_SIZE,
     borderRadius: BorderRadius.md,
     overflow: "hidden",
+    backgroundColor: '#FFFFFF',
+  },
+  itemCardShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  itemImageWrapper: {
+    width: "100%",
+    height: ITEM_SIZE,
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius.md,
+    overflow: "hidden",
   },
   itemImage: {
     width: "100%",
-    height: ITEM_SIZE,
-    borderRadius: BorderRadius.md,
+    height: "100%",
   },
   favoriteIndicator: {
     position: "absolute",
@@ -638,10 +658,21 @@ const styles = StyleSheet.create({
   modalContent: {
     paddingHorizontal: Spacing.xl,
   },
-  modalImage: {
+  modalImageWrapper: {
     width: "100%",
     height: SCREEN_WIDTH - Spacing.xl * 2,
+    backgroundColor: '#FFFFFF',
     borderRadius: BorderRadius.lg,
+    overflow: "hidden",
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  modalImage: {
+    width: "100%",
+    height: "100%",
   },
   modalInfo: {
     marginTop: Spacing.xl,

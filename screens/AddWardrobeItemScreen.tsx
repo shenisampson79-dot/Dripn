@@ -82,6 +82,9 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   const categoryOptions = getCategoryOptions(isMale);
 
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [originalImageUri, setOriginalImageUri] = useState<string | null>(null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [imageProcessed, setImageProcessed] = useState(false);
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ClothingCategory | null>(null);
   const [color, setColor] = useState<ClothingColor | null>(null);
@@ -93,6 +96,48 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalyzed, setAiAnalyzed] = useState(false);
+
+  const processImageWithAI = async (uri: string) => {
+    setIsProcessingImage(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    try {
+      let imageBase64: string;
+      if (uri.startsWith('data:')) {
+        imageBase64 = uri.split(',')[1];
+      } else {
+        imageBase64 = await FileSystem.readAsStringAsync(uri, {
+          encoding: 'base64',
+        });
+      }
+      
+      const result = await apiService.processWardrobeImage(imageBase64, {
+        removeBackground: true,
+        straighten: true,
+        targetSize: 1024,
+      });
+      
+      if (result.success && (result.processedImageUrl || result.processedImageBase64)) {
+        const processedUri = result.processedImageUrl || 
+          (result.processedImageBase64 ? `data:image/png;base64,${result.processedImageBase64}` : null);
+        
+        if (processedUri) {
+          setImageUri(processedUri);
+          setImageProcessed(true);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          return processedUri;
+        }
+      }
+      setImageProcessed(false);
+      return uri;
+    } catch (error: any) {
+      console.log('Image processing not available, using original image');
+      setImageProcessed(false);
+      return uri;
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
 
   const handleAIScan = async () => {
     if (!imageUri) return;
@@ -196,7 +241,13 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
 
     if (!result.canceled && result.assets[0]) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setImageUri(result.assets[0].uri);
+      const selectedUri = result.assets[0].uri;
+      setOriginalImageUri(selectedUri);
+      setImageUri(selectedUri);
+      setImageProcessed(false);
+      setAiAnalyzed(false);
+      
+      processImageWithAI(selectedUri);
     }
   };
 
@@ -227,7 +278,13 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
 
     if (!result.canceled && result.assets[0]) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setImageUri(result.assets[0].uri);
+      const selectedUri = result.assets[0].uri;
+      setOriginalImageUri(selectedUri);
+      setImageUri(selectedUri);
+      setImageProcessed(false);
+      setAiAnalyzed(false);
+      
+      processImageWithAI(selectedUri);
     }
   };
 
@@ -280,6 +337,8 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     try {
       await addItem({
         imageUri,
+        originalImageUri: originalImageUri || imageUri,
+        imageProcessed,
         name: name.trim(),
         category,
         color,
@@ -342,15 +401,33 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
           <ThemedText type="h4" style={styles.sectionTitle}>Photo</ThemedText>
           {imageUri ? (
             <View>
-              <Pressable onPress={handlePickImage} style={styles.imageContainer}>
-                <Image
-                  source={{ uri: imageUri }}
-                  style={styles.selectedImage}
-                  contentFit="cover"
-                />
+              <Pressable onPress={handlePickImage} disabled={isProcessingImage} style={styles.imageContainer}>
+                <View style={[styles.imageWrapper, { backgroundColor: '#FFFFFF' }]}>
+                  <Image
+                    source={{ uri: imageUri }}
+                    style={[styles.selectedImage, imageProcessed && { backgroundColor: '#FFFFFF' }]}
+                    contentFit={imageProcessed ? "contain" : "cover"}
+                  />
+                </View>
+                {isProcessingImage && (
+                  <View style={styles.processingOverlay}>
+                    <ActivityIndicator size="large" color="#FFFFFF" />
+                    <ThemedText type="body" style={styles.processingText}>
+                      Removing background...
+                    </ThemedText>
+                  </View>
+                )}
                 <View style={[styles.changeImageBadge, { backgroundColor: theme.backgroundDefault }]}>
                   <Feather name="edit-2" size={16} color={theme.text} />
                 </View>
+                {imageProcessed && !isProcessingImage && (
+                  <View style={[styles.processedBadge, { backgroundColor: '#10B981' }]}>
+                    <Feather name="check-circle" size={14} color="#FFFFFF" />
+                    <ThemedText type="caption" style={{ color: "#FFFFFF", marginLeft: 4 }}>
+                      Pro Quality
+                    </ThemedText>
+                  </View>
+                )}
                 {aiAnalyzed ? (
                   <View style={[styles.aiAnalyzedBadge, { backgroundColor: theme.link }]}>
                     <Feather name="zap" size={14} color="#FFFFFF" />
@@ -360,25 +437,48 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
                   </View>
                 ) : null}
               </Pressable>
+              {originalImageUri && imageProcessed && (
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    if (imageUri === originalImageUri) {
+                      processImageWithAI(originalImageUri);
+                    } else {
+                      setImageUri(originalImageUri);
+                      setImageProcessed(false);
+                    }
+                  }}
+                  style={[styles.toggleImageButton, { backgroundColor: theme.backgroundDefault }]}
+                >
+                  <Feather 
+                    name={imageUri === originalImageUri ? "zap" : "image"} 
+                    size={16} 
+                    color={theme.tabIconDefault} 
+                  />
+                  <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginLeft: 6 }}>
+                    {imageUri === originalImageUri ? "Reprocess image" : "View original"}
+                  </ThemedText>
+                </Pressable>
+              )}
               <Pressable
                 onPress={handleAIScan}
-                disabled={isAnalyzing}
+                disabled={isAnalyzing || isProcessingImage}
                 style={[
                   styles.aiScanButton,
                   {
-                    backgroundColor: isAnalyzing ? theme.backgroundDefault : theme.link,
-                    opacity: isAnalyzing ? 0.7 : 1,
+                    backgroundColor: isAnalyzing || isProcessingImage ? theme.backgroundDefault : theme.link,
+                    opacity: isAnalyzing || isProcessingImage ? 0.7 : 1,
                   },
                 ]}
               >
                 {isAnalyzing ? (
                   <ActivityIndicator size="small" color={theme.text} />
                 ) : (
-                  <Feather name="zap" size={20} color="#FFFFFF" />
+                  <Feather name="zap" size={20} color={isProcessingImage ? theme.tabIconDefault : "#FFFFFF"} />
                 )}
                 <ThemedText
                   type="body"
-                  style={{ color: isAnalyzing ? theme.text : "#FFFFFF", marginLeft: Spacing.sm }}
+                  style={{ color: isAnalyzing || isProcessingImage ? theme.text : "#FFFFFF", marginLeft: Spacing.sm }}
                 >
                   {isAnalyzing ? "Analyzing..." : "Scan with AI"}
                 </ThemedText>
@@ -814,6 +914,44 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.full,
+  },
+  processedBadge: {
+    position: "absolute",
+    top: Spacing.md + 32,
+    left: Spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  imageWrapper: {
+    width: "100%",
+    height: "100%",
+    borderRadius: BorderRadius.lg,
+    overflow: "hidden",
+  },
+  processingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: BorderRadius.lg,
+  },
+  processingText: {
+    color: "#FFFFFF",
+    marginTop: Spacing.sm,
+    fontWeight: "600",
+  },
+  toggleImageButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.sm,
+    alignSelf: "center",
   },
   originSelector: {
     flexDirection: "row",

@@ -61,6 +61,8 @@ export interface WardrobeItem {
   userId: string;
   imageUri: string;
   enhancedImageUri?: string;
+  originalImageUri?: string;
+  imageProcessed?: boolean;
   category: ClothingCategory;
   subcategory?: string;
   color: ClothingColor;

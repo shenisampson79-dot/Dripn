@@ -221,6 +221,29 @@ class ApiService {
     });
   }
 
+  async processWardrobeImage(imageBase64: string, options?: { 
+    removeBackground?: boolean;
+    straighten?: boolean;
+    targetSize?: number;
+  }) {
+    return this.request<{
+      success: boolean;
+      processedImageUrl?: string;
+      processedImageBase64?: string;
+      maskQuality?: number;
+      straightened?: boolean;
+      error?: string;
+    }>('/api/wardrobe/process-image', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        imageBase64, 
+        removeBackground: options?.removeBackground ?? true,
+        straighten: options?.straighten ?? true,
+        targetSize: options?.targetSize ?? 1024,
+      }),
+    });
+  }
+
   isConfigured() {
     return Boolean(API_URL);
   }
