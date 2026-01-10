@@ -436,7 +436,7 @@ const getVoiceSettingsForRange = (stylistId: string, voiceRange?: string): Eleve
       case 'mezzo':
         return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
       case 'contralto':
-        return { stability: 0.55, similarityBoost: 0.92, style: 0.30, speakerBoost: true };
+        return { stability: 0.38, similarityBoost: 0.88, style: 0.18, speakerBoost: false };
       default:
         return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
     }
@@ -447,7 +447,7 @@ const getVoiceSettingsForRange = (stylistId: string, voiceRange?: string): Eleve
       case 'baritone':
         return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
       case 'bass':
-        return { stability: 0.55, similarityBoost: 0.92, style: 0.30, speakerBoost: true };
+        return { stability: 0.38, similarityBoost: 0.88, style: 0.18, speakerBoost: false };
       default:
         return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
     }
