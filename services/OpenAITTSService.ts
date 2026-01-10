@@ -268,9 +268,112 @@ const VOICE_PREVIEW_PHRASES: Record<string, Record<string, string>> = {
 };
 
 let currentSound: Audio.Sound | null = null;
+let webAudioElement: HTMLAudioElement | null = null;
+
+const playAudioOnWeb = async (dataUriOrBase64: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    try {
+      if (webAudioElement) {
+        webAudioElement.pause();
+        webAudioElement.src = '';
+        webAudioElement = null;
+      }
+      
+      let audioSrc = dataUriOrBase64;
+      
+      // If it's raw base64 (not a data URI), convert to blob URL for better compatibility
+      if (!dataUriOrBase64.startsWith('data:') && !dataUriOrBase64.startsWith('http')) {
+        try {
+          const byteCharacters = atob(dataUriOrBase64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'audio/mpeg' });
+          audioSrc = URL.createObjectURL(blob);
+          console.log('Created blob URL for audio playback');
+        } catch (e) {
+          console.log('Failed to create blob, using as data URI:', e);
+          audioSrc = `data:audio/mpeg;base64,${dataUriOrBase64}`;
+        }
+      }
+      
+      // If it's a data URI, try converting to blob URL for better browser support
+      if (audioSrc.startsWith('data:audio')) {
+        try {
+          const [header, base64Data] = audioSrc.split(',');
+          const mimeMatch = header.match(/data:([^;]+)/);
+          const mimeType = mimeMatch ? mimeMatch[1] : 'audio/mpeg';
+          
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: mimeType });
+          audioSrc = URL.createObjectURL(blob);
+          console.log('Converted data URI to blob URL for better compatibility');
+        } catch (e) {
+          console.log('Blob conversion failed, using original data URI:', e);
+        }
+      }
+      
+      console.log('Playing audio from:', audioSrc.substring(0, 80));
+      
+      const audio = new window.Audio(audioSrc);
+      webAudioElement = audio;
+      
+      audio.onended = () => {
+        // Clean up blob URL if we created one
+        if (audioSrc.startsWith('blob:')) {
+          URL.revokeObjectURL(audioSrc);
+        }
+        webAudioElement = null;
+        resolve();
+      };
+      
+      audio.onerror = (e: any) => {
+        const errorCode = audio.error?.code;
+        const errorMessage = audio.error?.message || 'Unknown error';
+        console.log('Web audio playback error - code:', errorCode, 'message:', errorMessage, 'event:', e);
+        if (audioSrc.startsWith('blob:')) {
+          URL.revokeObjectURL(audioSrc);
+        }
+        webAudioElement = null;
+        reject(new Error(`Web audio playback failed: ${errorMessage}`));
+      };
+      
+      audio.oncanplaythrough = () => {
+        console.log('Audio can play through - starting playback');
+      };
+      
+      audio.play().then(() => {
+        console.log('Playing audio on web successfully');
+      }).catch((playError) => {
+        console.log('Audio play() promise rejected:', playError);
+        if (audioSrc.startsWith('blob:')) {
+          URL.revokeObjectURL(audioSrc);
+        }
+        webAudioElement = null;
+        reject(playError);
+      });
+    } catch (error) {
+      console.log('Web audio setup error:', error);
+      reject(error);
+    }
+  });
+};
 
 const playAudioFile = async (uri: string): Promise<void> => {
   try {
+    // On web, use HTML5 Audio API directly
+    if (Platform.OS === 'web') {
+      await playAudioOnWeb(uri);
+      return;
+    }
+    
     if (currentSound) {
       await currentSound.stopAsync();
       await currentSound.unloadAsync();
@@ -309,6 +412,17 @@ const playAudioFile = async (uri: string): Promise<void> => {
 
 export const stopAudio = async (): Promise<void> => {
   await Speech.stop();
+  
+  // Stop web audio if playing
+  if (webAudioElement) {
+    try {
+      webAudioElement.pause();
+      webAudioElement.src = '';
+      webAudioElement = null;
+    } catch (error) {
+      console.log('Error stopping web audio:', error);
+    }
+  }
   
   if (currentSound) {
     try {
@@ -553,6 +667,14 @@ export const playVoicePreview = async (
       const arrayBuffer = await response.arrayBuffer();
       const base64Audio = arrayBufferToBase64(arrayBuffer);
       
+      // On web, use data URI directly; on native, write to file
+      if (Platform.OS === 'web') {
+        const mimeType = contentType.includes('mpeg') ? 'audio/mpeg' : 'audio/wav';
+        const dataUri = `data:${mimeType};base64,${base64Audio}`;
+        await playAudioFile(dataUri);
+        return;
+      }
+      
       const ext = contentType.includes('mpeg') ? 'mp3' : 'wav';
       const fileName = `voice_preview_${Date.now()}.${ext}`;
       const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
@@ -596,6 +718,14 @@ export const playVoicePreview = async (
     
     if (audioData) {
       console.log('Playing audio from base64 data');
+      
+      // On web, use data URI directly; on native, write to file
+      if (Platform.OS === 'web') {
+        const dataUri = `data:audio/mpeg;base64,${audioData}`;
+        await playAudioFile(dataUri);
+        return;
+      }
+      
       const fileName = `voice_preview_${Date.now()}.mp3`;
       const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
       
