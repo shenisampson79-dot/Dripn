@@ -533,6 +533,13 @@ export const playVoicePreview = async (
     const data = await response.json();
     console.log('ElevenLabs response:', JSON.stringify(data).substring(0, 200));
     
+    // Priority 1: Use audioDataUri if available (ready-to-play data URI from backend)
+    if (data.audioDataUri) {
+      console.log('Playing audio from data URI (optimized path)');
+      await playAudioFile(data.audioDataUri);
+      return;
+    }
+    
     let audioData: string | null = null;
     let audioUrl: string | null = null;
     
