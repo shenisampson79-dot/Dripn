@@ -429,18 +429,21 @@ interface ElevenLabsVoiceSettings {
 
 // ElevenLabs voice IDs for specific voice ranges
 // Uses real human voices from ElevenLabs Voice Library for natural sound
+// These are human-recorded voices with natural bass/raspy qualities built-in
 const ELEVENLABS_VOICE_IDS: Record<string, Record<string, string>> = {
   ruby: {
     soprano: '', // Use backend default
     mezzo: '', // Use backend default
     'mezzo-soprano': '', // Use backend default
     // "Tiffany - Gritty, Articulate and Calm" - gritty yet articulate, husky middle-aged voice
+    // ElevenLabs multilingual v2 will apply regional accent styling
     contralto: 'x9leqCOAXOcmC5jtkq65',
   },
   max: {
     tenor: '', // Use backend default
     baritone: '', // Use backend default
-    bass: '', // Use backend default
+    // "James - Deep, Raspy and Grim" - UK accent, very low, deep, raspy male voice
+    bass: 'jtE6dbPUTt2kchN89Uej',
   },
 };
 
