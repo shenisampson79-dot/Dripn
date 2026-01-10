@@ -65,8 +65,8 @@ export function getAccentsForLanguage(language: string): readonly string[] {
 }
 
 export const RUBY_VOICE_PITCHES = ['mezzo-soprano'] as const;
-export const MAX_VOICE_RANGES = ['tenor', 'baritone', 'bass'] as const;
-export const VOICE_PITCHES = ['mezzo-soprano', 'tenor', 'baritone', 'bass'] as const;
+export const MAX_VOICE_RANGES = ['baritone'] as const;
+export const VOICE_PITCHES = ['mezzo-soprano', 'baritone'] as const;
 
 export function getVoiceOptionsForStylist(stylistId: string): readonly string[] {
   if (stylistId === 'max') {
