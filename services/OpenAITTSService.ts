@@ -598,6 +598,46 @@ const getElevenLabsVoiceIdForAccent = (stylistId: string, accent?: string): stri
   return voiceId || undefined;
 };
 
+const NATIVE_VOICE_NAMES: Record<string, Record<string, string>> = {
+  ruby: {
+    'Standard Spanish': 'LoidaBurgos (Spain)',
+    'Standard French': 'Jeanne (Paris)',
+    'Standard German': 'Johanna (Germany)',
+    'Standard Italian': 'Manuela (Italian actress)',
+    'Standard Portuguese': 'Carla (Brazil)',
+    'Standard Japanese': 'Morioki (Japan)',
+    'Standard Korean': 'JiYoung (Seoul)',
+    'Standard Mandarin': 'Julia (China)',
+    'Modern Standard Arabic': 'Asmaa (Arabic)',
+    'Standard Hindi': 'Aaliyah (India)',
+    'Standard Dutch': 'Ruth (Netherlands)',
+    'Standard Russian': 'Victoria (Russia)',
+    'Standard Swedish': 'Sanna (Stockholm)',
+    'British': 'Adela (UK)',
+  },
+  max: {
+    'Standard Spanish': 'JeiJo (Madrid)',
+    'Standard French': 'Clément (Paris)',
+    'Standard German': 'Basti (26yo German)',
+    'Standard Italian': 'Francesco (Italy)',
+    'Standard Portuguese': 'Márcio (Brazil)',
+    'Standard Japanese': 'Junichi (Japan)',
+    'Standard Korean': 'Taemin (Seoul)',
+    'Standard Mandarin': 'James Gao (China)',
+    'Modern Standard Arabic': 'Anas (Arabic)',
+    'Standard Hindi': 'Vayu (India)',
+    'Standard Dutch': 'Arjen (Netherlands)',
+    'Standard Russian': 'Denis (Russia)',
+    'Standard Swedish': 'Jonas (Sweden)',
+    'British': 'Michael (UK)',
+  },
+};
+
+const getNativeVoiceNameForId = (stylistId: string, accent?: string): string => {
+  if (!accent) return 'default';
+  return NATIVE_VOICE_NAMES[stylistId]?.[accent] || accent;
+};
+
 const getVoiceSettingsForRange = (stylistId: string, voiceRange?: string): ElevenLabsVoiceSettings => {
   if (stylistId === 'ruby') {
     // Ruby only uses mezzo-soprano now
@@ -659,8 +699,12 @@ export const playVoicePreview = async (
     // Use culturally-authentic scripts for non-English languages
     const text = getVoicePreviewPhrase(stylistId, language, accent, userName) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
     
-    console.log(`Voice request: stylist=${stylistId}, accent=${accent}, elevenLabsVoiceId=${elevenLabsVoiceId || 'default'}`);
-    console.log(`Sending culturally-localized text: ${text.substring(0, 100)}...`);
+    // Log native speaker voice details for debugging
+    const nativeVoiceName = elevenLabsVoiceId ? getNativeVoiceNameForId(stylistId, accent) : 'default backend voice';
+    console.log(`=== VOICE PREVIEW REQUEST ===`);
+    console.log(`Stylist: ${stylistId}, Language accent: ${accent || 'none'}`);
+    console.log(`Native speaker voice: ${nativeVoiceName} (ID: ${elevenLabsVoiceId || 'using backend default'})`);
+    console.log(`Text preview: ${text.substring(0, 80)}...`);
     
     const response = await fetch(`${API_URL}/api/ai/voice-preview`, {
       method: 'POST',
