@@ -376,7 +376,10 @@ const ALL_COUNTRIES = [
 export default function OnboardingScreen({ navigation }: OnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { completeOnboarding } = useAuth();
+  const { completeOnboarding, user } = useAuth();
+  
+  // Get user's first name for personalized greetings
+  const userFirstName = user?.name?.split(' ')[0] || undefined;
 
   const [step, setStep] = useState(0);
   const [country, setCountry] = useState("United States");
@@ -455,13 +458,14 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
 
     try {
       const voiceForStylist = stylistId === 'ruby' ? 'nova' : 'onyx';
-      await playOpenAIVoice(stylistId, stylistLanguage, voicePitch, voiceForStylist, stylistAccent);
+      // Pass user's first name for personalized greetings (e.g., "Ciao Sarah!" instead of "Ciao bella!")
+      await playOpenAIVoice(stylistId, stylistLanguage, voicePitch, voiceForStylist, stylistAccent, userFirstName);
       setIsPlayingVoice(null);
     } catch (error) {
       console.log('Voice preview error:', error);
       setIsPlayingVoice(null);
     }
-  }, [stylistLanguage, voicePitch, isPlayingVoice, stylistAccent]);
+  }, [stylistLanguage, voicePitch, isPlayingVoice, stylistAccent, userFirstName]);
 
   const handleStylistSelect = useCallback((stylistId: StylistId) => {
     setSelectedStylistId(stylistId);

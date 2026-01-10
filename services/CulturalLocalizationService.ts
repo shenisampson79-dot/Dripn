@@ -580,25 +580,31 @@ const FRIENDLY_TERMS: Record<string, { male: string; female: string }> = {
 export function getVoicePreviewScript(
   language: string,
   accent: string,
-  stylistId: string
+  stylistId: string,
+  userName?: string // Optional: use member's actual name when logged in
 ): string {
   const stylist = STYLISTS[stylistId];
   const isMale = stylist?.gender === 'male';
   const stylistName = stylist?.name || (stylistId === 'max' ? 'Max' : 'Ruby');
   
-  // Get culturally appropriate friendly term for when name is not available
-  // For voice preview, use the term that matches the LISTENER's assumed gender (opposite of stylist)
-  const friendlyTerms = FRIENDLY_TERMS[language];
-  const friendlyTerm = friendlyTerms 
-    ? (isMale ? friendlyTerms.female : friendlyTerms.male) // Stylist addresses listener
-    : '';
+  // Use member's name if provided, otherwise fall back to culturally appropriate friendly term
+  let nameToUse = userName?.trim() || '';
+  
+  if (!nameToUse) {
+    // Get culturally appropriate friendly term for when name is not available
+    // For voice preview, use the term that matches the LISTENER's assumed gender (opposite of stylist)
+    const friendlyTerms = FRIENDLY_TERMS[language];
+    nameToUse = friendlyTerms 
+      ? (isMale ? friendlyTerms.female : friendlyTerms.male) // Stylist addresses listener
+      : '';
+  }
   
   const greetingsSource = isMale ? CULTURAL_GREETINGS_MALE : CULTURAL_GREETINGS;
   const languageGreetings = greetingsSource[language]?.[accent];
   
   if (languageGreetings) {
     const greeting = languageGreetings.greetings[0]
-      .replace(/{name}/g, friendlyTerm)
+      .replace(/{name}/g, nameToUse)
       .replace(/{stylist}/g, stylistName)
       .replace(/\s+/g, ' ')
       .trim();
@@ -606,12 +612,13 @@ export function getVoicePreviewScript(
   }
   
   if (language === 'English') {
+    const greeting = nameToUse ? `, ${nameToUse}` : '';
     return isMale 
-      ? `Hey! I'm ${stylistName}, your personal stylist. I'm genuinely glad you're here. Let's make you look amazing.`
-      : `Hello! I'm ${stylistName}, your personal stylist. I'm delighted to meet you. Let's create something beautiful together.`;
+      ? `Hey${greeting}! I'm ${stylistName}, your personal stylist. I'm genuinely glad you're here. Let's make you look amazing.`
+      : `Hello${greeting}! I'm ${stylistName}, your personal stylist. I'm delighted to meet you. Let's create something beautiful together.`;
   }
   
-  return stylist?.greeting[0]?.replace(/{name}/g, friendlyTerm || '') || "Hello! I'm your personal stylist.";
+  return stylist?.greeting[0]?.replace(/{name}/g, nameToUse || '') || "Hello! I'm your personal stylist.";
 }
 
 export async function generateLocalizedGreetingWithAI(

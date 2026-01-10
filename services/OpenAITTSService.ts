@@ -440,10 +440,11 @@ const playWithFallbackSpeech = async (
   stylistId: string,
   language: string,
   voiceRange?: string,
-  accent?: string
+  accent?: string,
+  userName?: string // Optional: use member's actual name when logged in
 ): Promise<void> => {
   // Use culturally-authentic scripts for non-English languages
-  let text = getVoicePreviewPhrase(stylistId, language, accent);
+  let text = getVoicePreviewPhrase(stylistId, language, accent, userName);
   if (!text) {
     throw new Error('No preview phrase available');
   }
@@ -471,7 +472,7 @@ const playWithFallbackSpeech = async (
     } else {
       langCode = 'en-US';
     }
-    text = getVoicePreviewPhrase(stylistId, 'English', 'American');
+    text = getVoicePreviewPhrase(stylistId, 'English', 'American', userName);
   }
   
   let pitch = 1.0;
@@ -621,7 +622,8 @@ export const playVoicePreview = async (
   language: string = 'English',
   voiceRange?: string,
   voice?: TTSVoice,
-  accent?: string
+  accent?: string,
+  userName?: string // Optional: use member's actual name when logged in
 ): Promise<void> => {
   await stopAudio();
 
@@ -629,7 +631,7 @@ export const playVoicePreview = async (
 
   if (!API_URL) {
     console.log('Backend API URL not configured, using device speech synthesis');
-    return playWithFallbackSpeech(stylistId, language, voiceRange, accent);
+    return playWithFallbackSpeech(stylistId, language, voiceRange, accent, userName);
   }
 
   try {
@@ -655,7 +657,7 @@ export const playVoicePreview = async (
     // Use accent-based native voice IDs for authentic regional accents
     const elevenLabsVoiceId = getElevenLabsVoiceIdForAccent(stylistId, accent);
     // Use culturally-authentic scripts for non-English languages
-    const text = getVoicePreviewPhrase(stylistId, language, accent) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
+    const text = getVoicePreviewPhrase(stylistId, language, accent, userName) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
     
     console.log(`Voice request: stylist=${stylistId}, accent=${accent}, elevenLabsVoiceId=${elevenLabsVoiceId || 'default'}`);
     console.log(`Sending culturally-localized text: ${text.substring(0, 100)}...`);
@@ -677,7 +679,7 @@ export const playVoicePreview = async (
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
       console.log(`Backend voice preview failed (${response.status}): ${errorText}`);
-      return playWithFallbackSpeech(stylistId, language, voiceRange, accent);
+      return playWithFallbackSpeech(stylistId, language, voiceRange, accent, userName);
     }
 
     const contentType = response.headers.get('content-type') || '';
@@ -758,11 +760,11 @@ export const playVoicePreview = async (
     }
     
     console.log('No audio data in response, falling back to device speech');
-    return playWithFallbackSpeech(stylistId, language, voiceRange, accent);
+    return playWithFallbackSpeech(stylistId, language, voiceRange, accent, userName);
 
   } catch (error) {
     console.log('Voice preview error, falling back to device speech:', error);
-    return playWithFallbackSpeech(stylistId, language, voiceRange, accent);
+    return playWithFallbackSpeech(stylistId, language, voiceRange, accent, userName);
   }
 };
 
@@ -774,10 +776,10 @@ export const getSupportedLanguages = (): string[] => {
   return Object.keys(VOICE_PREVIEW_PHRASES.ruby);
 };
 
-export const getVoicePreviewPhrase = (stylistId: string, language: string, accent?: string): string => {
+export const getVoicePreviewPhrase = (stylistId: string, language: string, accent?: string, userName?: string): string => {
   // For non-English languages, use culturally-authentic scripts from CulturalLocalizationService
   if (language !== 'English' && accent) {
-    const culturalScript = getVoicePreviewScript(language, accent, stylistId);
+    const culturalScript = getVoicePreviewScript(language, accent, stylistId, userName);
     if (culturalScript) {
       return culturalScript;
     }
@@ -786,7 +788,14 @@ export const getVoicePreviewPhrase = (stylistId: string, language: string, accen
   // Fallback to standard phrases for English or if no cultural script available
   const phrases = VOICE_PREVIEW_PHRASES[stylistId];
   if (!phrases) return '';
-  return phrases[language] || phrases['English'];
+  
+  // For English, include the user's name if provided
+  let phrase = phrases[language] || phrases['English'];
+  if (userName && phrase) {
+    // Insert name into English greetings
+    phrase = phrase.replace(/^(Hey!|Hello!|Hi!)/, `$1 ${userName},`);
+  }
+  return phrase;
 };
 
 export const checkLanguageVoiceAvailability = async (language: string): Promise<boolean> => {
