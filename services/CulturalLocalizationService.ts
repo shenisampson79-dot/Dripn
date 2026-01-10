@@ -559,6 +559,24 @@ export function getCulturalGreeting(
   };
 }
 
+// Culturally appropriate friendly terms for voice previews when no name is available
+// These are warm, affectionate terms native speakers actually use
+const FRIENDLY_TERMS: Record<string, { male: string; female: string }> = {
+  Spanish: { male: 'amigo', female: 'amiga' }, // Friend (gender-appropriate)
+  French: { male: 'mon ami', female: 'ma chérie' }, // My friend / My dear
+  German: { male: 'mein Freund', female: 'meine Liebe' }, // My friend / My dear
+  Italian: { male: 'bello', female: 'bella' }, // Handsome / Beautiful (common Italian endearments)
+  Portuguese: { male: 'amigo', female: 'querida' }, // Friend / Dear
+  Japanese: { male: '', female: '' }, // Japanese typically doesn't use such terms
+  Korean: { male: '', female: '' }, // Korean typically uses formal address
+  Mandarin: { male: '朋友', female: '亲爱的' }, // Friend / Dear
+  Arabic: { male: 'صديقي', female: 'عزيزتي' }, // My friend / My dear
+  Hindi: { male: 'दोस्त', female: 'प्रिय' }, // Friend / Dear
+  Dutch: { male: 'vriend', female: 'lieverd' }, // Friend / Sweetheart
+  Russian: { male: 'друг', female: 'дорогая' }, // Friend / Dear
+  Swedish: { male: 'vän', female: 'kära' }, // Friend / Dear
+};
+
 export function getVoicePreviewScript(
   language: string,
   accent: string,
@@ -568,12 +586,19 @@ export function getVoicePreviewScript(
   const isMale = stylist?.gender === 'male';
   const stylistName = stylist?.name || (stylistId === 'max' ? 'Max' : 'Ruby');
   
+  // Get culturally appropriate friendly term for when name is not available
+  // For voice preview, use the term that matches the LISTENER's assumed gender (opposite of stylist)
+  const friendlyTerms = FRIENDLY_TERMS[language];
+  const friendlyTerm = friendlyTerms 
+    ? (isMale ? friendlyTerms.female : friendlyTerms.male) // Stylist addresses listener
+    : '';
+  
   const greetingsSource = isMale ? CULTURAL_GREETINGS_MALE : CULTURAL_GREETINGS;
   const languageGreetings = greetingsSource[language]?.[accent];
   
   if (languageGreetings) {
     const greeting = languageGreetings.greetings[0]
-      .replace(/{name}/g, '')
+      .replace(/{name}/g, friendlyTerm)
       .replace(/{stylist}/g, stylistName)
       .replace(/\s+/g, ' ')
       .trim();
@@ -586,7 +611,7 @@ export function getVoicePreviewScript(
       : `Hello! I'm ${stylistName}, your personal stylist. I'm delighted to meet you. Let's create something beautiful together.`;
   }
   
-  return stylist?.greeting[0]?.replace(/{name}/g, '') || "Hello! I'm your personal stylist.";
+  return stylist?.greeting[0]?.replace(/{name}/g, friendlyTerm || '') || "Hello! I'm your personal stylist.";
 }
 
 export async function generateLocalizedGreetingWithAI(
