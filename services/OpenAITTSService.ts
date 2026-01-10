@@ -547,13 +547,15 @@ interface ElevenLabsVoiceSettings {
 // Real human voices recorded by native speakers with authentic regional accents
 // These are NOT synthesized accents - they are real voices from ElevenLabs Voice Library
 // IMPORTANT: These voices are native speakers from their respective countries, not Americans reading scripts
+// Voice IDs verified from json2video.com/ai-voices/elevenlabs/languages/
 const ELEVENLABS_ACCENT_VOICES: Record<string, Record<string, string>> = {
   ruby: {
     // English accents
     'American': '', // Use backend default (ElevenLabs Ruby voice)
     'British': 'ptBd2v6mebIps3ZQEXD7', // Adela - Neutral British 30s-40s female
     // Native language voices (authentic native speakers from their countries)
-    'Standard Spanish': 'UOIqAnmS11Reiei1Ytkc', // Carolina - Native Spanish woman from Spain (es_ES)
+    // Spanish: Using LoidaBurgos - verified young female FROM SPAIN with clear Castilian accent
+    'Standard Spanish': 'HYlEvvU9GMan5YdjFYpg', // LoidaBurgos - Young female from Spain, Castilian accent, friendly and calm
     'Standard French': 'txtf1EDouKke753vN8SL', // Jeanne - Professional Parisian French woman, native from France
     'Standard German': 'YYDsZT3K2y6tv7X1aj6N', // Johanna - Clear, professional native German female voice
     'Standard Italian': 'oVJbgLwL0s5pk9e2U6QH', // Manuela - Warm, clear, versatile Italian PRO actress, native from Italy
@@ -572,7 +574,8 @@ const ELEVENLABS_ACCENT_VOICES: Record<string, Record<string, string>> = {
     'American': '', // Use backend default (ElevenLabs Max voice)
     'British': 'U1Vk2oyatMdYs096Ety7', // Michael - Deep, Dark British urban voice
     // Native language voices (authentic native speakers from their countries)
-    'Standard Spanish': 'RyfjEHnKbtma4Srae2za', // Juan Carlos - Deep, calm native Spanish voice from Spain (Peninsular)
+    // Spanish: Using JeiJo - verified man BORN IN MADRID and raised in León with Castilian accent
+    'Standard Spanish': 'PBaBRSRTvwmnK1PAq9e0', // JeiJo - Middle-aged Spanish man born in Madrid, raised in León, Castilian accent
     'Standard French': 'jUHQdLfy668sllNiNTSW', // Clément - Top French Voice, middle-aged native Parisian male
     'Standard German': 'Rc6mVxOkevStnSH2pUO9', // Basti - Young authentic native German male (26yo from Germany)
     'Standard Italian': 'lcweSB9PJMspXEFIqkPb', // Francesco - Warm, incisive, persuasive native Italian male (30-50)
