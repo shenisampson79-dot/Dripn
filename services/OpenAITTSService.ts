@@ -554,40 +554,38 @@ const ELEVENLABS_ACCENT_VOICES: Record<string, Record<string, string>> = {
     'American': '', // Use backend default (ElevenLabs Ruby voice)
     'British': 'ptBd2v6mebIps3ZQEXD7', // Adela - Neutral British 30s-40s female
     // Native language voices (authentic native speakers from their countries)
-    // Spanish: Using LoidaBurgos - verified young female FROM SPAIN with clear Castilian accent
-    'Standard Spanish': 'HYlEvvU9GMan5YdjFYpg', // LoidaBurgos - Young female from Spain, Castilian accent, friendly and calm
-    'Standard French': 'txtf1EDouKke753vN8SL', // Jeanne - Professional Parisian French woman, native from France
+    'Standard Spanish': 'HYlEvvU9GMan5YdjFYpg', // LoidaBurgos - Young female FROM SPAIN, Castilian accent, friendly and calm
+    'Standard French': 'txtf1EDouKke753vN8SL', // Jeanne - Young Parisian French woman, native from France
     'Standard German': 'YYDsZT3K2y6tv7X1aj6N', // Johanna - Clear, professional native German female voice
-    'Standard Italian': 'oVJbgLwL0s5pk9e2U6QH', // Manuela - Warm, clear, versatile Italian PRO actress, native from Italy
-    'Standard Portuguese': '', // Backend handles with language code
+    'Standard Italian': 'oVJbgLwL0s5pk9e2U6QH', // Manuela - Warm, clear Italian PRO actress, native from Italy
+    'Standard Portuguese': 'eVXYtPVYB9wDoz9NVTIy', // Carla - Young Brazilian female voice
     'Standard Japanese': '8EkOjt4xTPGMclNlh1pk', // Morioki - Native Japanese woman
-    'Standard Korean': '', // Backend handles with language code
-    'Standard Mandarin': '', // Backend handles with language code
-    'Modern Standard Arabic': '', // Backend handles with language code
-    'Standard Hindi': '', // Backend handles with language code
-    'Standard Dutch': '', // Backend handles with language code
-    'Standard Russian': '', // Backend handles with language code
-    'Standard Swedish': '', // Backend handles with language code
+    'Standard Korean': 'AW5wrnG1jVizOYY7R1Oo', // JiYoung - Warm Korean female from Seoul, friendly and natural
+    'Standard Mandarin': 'tOuLUAIdXShmWH7PEUrU', // Julia - 30s female, smooth neutral Mandarin accent
+    'Modern Standard Arabic': 'qi4PkV9c01kb869Vh7Su', // Asmaa - Young Female Arabic Modern Standard accent
+    'Standard Hindi': 'aUTn6mevnrM9pqtesisb', // Aaliyah - Sophisticated professional Hindi female
+    'Standard Dutch': 'YUdpWWny7k5yb4QCeweX', // Ruth - Young Dutch female professional voiceover
+    'Standard Russian': 'FZGeNF7bE3syeQOynDKC', // Victoria - Warm Russian female, mid-aged, confident
+    'Standard Swedish': 'aSLKtNoVBZlxQEMsnGL2', // Sanna Hartfield - Swedish professional narrator from Stockholm
   },
   max: {
     // English accents
     'American': '', // Use backend default (ElevenLabs Max voice)
     'British': 'U1Vk2oyatMdYs096Ety7', // Michael - Deep, Dark British urban voice
     // Native language voices (authentic native speakers from their countries)
-    // Spanish: Using JeiJo - verified man BORN IN MADRID and raised in León with Castilian accent
-    'Standard Spanish': 'PBaBRSRTvwmnK1PAq9e0', // JeiJo - Middle-aged Spanish man born in Madrid, raised in León, Castilian accent
+    'Standard Spanish': 'PBaBRSRTvwmnK1PAq9e0', // JeiJo - Man BORN IN MADRID, raised in León, Castilian accent
     'Standard French': 'jUHQdLfy668sllNiNTSW', // Clément - Top French Voice, middle-aged native Parisian male
     'Standard German': 'Rc6mVxOkevStnSH2pUO9', // Basti - Young authentic native German male (26yo from Germany)
-    'Standard Italian': 'lcweSB9PJMspXEFIqkPb', // Francesco - Warm, incisive, persuasive native Italian male (30-50)
-    'Standard Portuguese': '', // Backend handles with language code
+    'Standard Italian': 'lcweSB9PJMspXEFIqkPb', // Francesco - Warm, incisive native Italian male (30-50)
+    'Standard Portuguese': '29Pm0vQJJRoVfMCsUKB6', // Márcio - Brazilian deep masculine voice
     'Standard Japanese': 'wAWUBOIVEUw9IEUYoNzR', // Junichi - Native Japanese male baritone voice
-    'Standard Korean': '', // Backend handles with language code
-    'Standard Mandarin': '', // Backend handles with language code
-    'Modern Standard Arabic': '', // Backend handles with language code
-    'Standard Hindi': '', // Backend handles with language code
-    'Standard Dutch': '', // Backend handles with language code
-    'Standard Russian': '', // Backend handles with language code
-    'Standard Swedish': '', // Backend handles with language code
+    'Standard Korean': 'Ir7oQcBXWiq4oFGROCfj', // Taemin - Warm natural Korean male from Seoul (20s)
+    'Standard Mandarin': '4VZIsMPtgggwNg7OXbPY', // James Gao - Middle-aged Chinese male, calm friendly
+    'Modern Standard Arabic': 'R6nda3uM038xEEKi7GFl', // Anas - Middle-aged Arabic male, gentle conversational
+    'Standard Hindi': 'Mbwx1ZAXuMdYGtJRjvvQ', // Vayu - Soothing Hindi male narrator
+    'Standard Dutch': '62klqbsYqbynbr66ypRt', // Arjen - Dutch male, calm and familiar
+    'Standard Russian': '1EVds7FNGSXoKeOiMXuf', // Denis - Smooth refined Russian male, confident
+    'Standard Swedish': 'Hyidyy6OA9R3GpDKGwoZ', // Jonas - Deep Swedish voice for storytelling
   },
 };
 
