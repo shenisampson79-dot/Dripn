@@ -38,7 +38,8 @@ import {
   ORIGIN_LABELS,
 } from "@/contexts/WardrobeContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
-import { analyzeGarmentImage } from "@/services/VisionAnalysisService";
+import { apiService } from "@/services/ApiService";
+import * as FileSystem from "expo-file-system";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -100,35 +101,58 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
     try {
-      const result = await analyzeGarmentImage(imageUri);
+      let imageBase64: string;
+      if (imageUri.startsWith('data:')) {
+        imageBase64 = imageUri.split(',')[1];
+      } else {
+        imageBase64 = await FileSystem.readAsStringAsync(imageUri, {
+          encoding: 'base64',
+        });
+      }
       
-      if (result.success) {
-        setCategory(result.category);
-        setColor(result.color);
-        setName(result.suggestedName);
-        setSeasons(result.seasons.length > 0 ? result.seasons : ['all-season']);
-        setOccasions(result.occasions.length > 0 ? result.occasions : ['everyday']);
-        if (result.brand) setBrand(result.brand);
-        if (result.description) setNotes(result.description);
+      const result = await apiService.analyzeGarmentPhoto(imageBase64);
+      
+      if (result.success && result.analysis) {
+        const analysis = result.analysis;
+        const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+        const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
+        const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
+        const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
+        
+        if (analysis.category && validCategories.includes(analysis.category as ClothingCategory)) {
+          setCategory(analysis.category as ClothingCategory);
+        }
+        if (analysis.color && validColors.includes(analysis.color as ClothingColor)) {
+          setColor(analysis.color as ClothingColor);
+        }
+        if (analysis.suggestedName) setName(analysis.suggestedName);
+        if (analysis.seasons && analysis.seasons.length > 0) {
+          setSeasons(analysis.seasons.filter((s: string) => validSeasons.includes(s as ClothingSeason)) as ClothingSeason[]);
+        }
+        if (analysis.occasions && analysis.occasions.length > 0) {
+          setOccasions(analysis.occasions.filter((o: string) => validOccasions.includes(o as ClothingOccasion)) as ClothingOccasion[]);
+        }
+        if (analysis.brand) setBrand(analysis.brand);
+        if (analysis.description) setNotes(analysis.description);
         setAiAnalyzed(true);
         
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
           "AI Analysis Complete",
-          `Detected: ${result.suggestedName}\n\nFeel free to adjust any details before saving.`,
+          `Detected: ${analysis.suggestedName || 'Fashion Item'}\n\nFeel free to adjust any details before saving.`,
           [{ text: "Got it", style: "default" }]
         );
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         Alert.alert(
           "Analysis Issue",
-          result.error || "Could not analyze image. Please fill in the details manually.",
+          "Could not analyze image. Please fill in the details manually.",
           [{ text: "OK", style: "default" }]
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Error", "Failed to analyze image. Please try again or fill in details manually.");
+      Alert.alert("Error", error.message || "Failed to analyze image. Please try again or fill in details manually.");
     } finally {
       setIsAnalyzing(false);
     }
