@@ -122,8 +122,7 @@ export function StyleProfileProvider({ children }: StyleProfileProviderProps) {
       const profile = await apiService.getStyleProfile();
       setStyleProfile(profile);
     } catch (err) {
-      console.error('Failed to fetch style profile:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch style profile');
+      console.log('Style profile not available yet:', err);
       setStyleProfile(null);
     } finally {
       setIsLoading(false);

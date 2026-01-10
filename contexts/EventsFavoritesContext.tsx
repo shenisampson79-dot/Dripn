@@ -84,7 +84,7 @@ export function EventsFavoritesProvider({ children }: EventsFavoritesProviderPro
             return;
           }
         } catch (backendError) {
-          console.error('Failed to load from backend, falling back to local:', backendError);
+          console.log('Backend not available, using local storage');
         }
       }
       
