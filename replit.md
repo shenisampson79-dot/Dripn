@@ -30,6 +30,7 @@ Key Features:
     - **Model Lifecycle System**: Automatic model upgrades, A/B testing, and health checks.
     - **Vision-Powered Outfit Analysis**: GPT-4o Vision for color extraction, style detection, fit analysis, and multi-image comparison.
     - **Voice Services**: Whisper for speech-to-text and TTS-1-HD for AI voice responses, with Ruby (women's, uses 'nova' voice - warm/friendly) and Max (men's, uses 'onyx' voice - deep/authoritative) personas. Voice settings are configurable per stylist in VoiceSettingsContext.
+    - **Name Pronunciation Feedback System**: After voice preview plays with member's name, a "Did we say your name right?" prompt appears (once per session). If the member indicates incorrect pronunciation, the system falls back to culturally appropriate friendly terms (e.g., "bella", "amigo") instead of their name. Preferences are stored in `stylistPreferences.useNameInGreetings` and `namePronunciationConfirmed`. Future enhancement: voice recording for definitive pronunciation correction.
     - **Fashion Therapy & Wellness**: Mood-based outfit recommendations, body positivity affirmations, capsule wardrobe planning, confidence rituals, and wellness outfit suggestions.
     - **Semantic Style Search**: `text-embedding-3-large` for semantic outfit matching and complementary piece suggestions.
     - **AI Image Generation**: DALL-E 3 for outfit inspiration, moodboards, and style guide visualization.
