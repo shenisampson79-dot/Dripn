@@ -244,6 +244,29 @@ class ApiService {
     });
   }
 
+  async extractClothing(imageData: { imageBase64?: string; imageUrl?: string }) {
+    return this.request<{
+      success: boolean;
+      processedImageBase64?: string;
+      clothingAnalysis?: {
+        type: string;
+        color: string;
+        style: string;
+        material?: string;
+        brand?: string;
+        features?: string[];
+        occasions?: string[];
+        seasons?: string[];
+        description?: string;
+      };
+      backgroundRemoved: boolean;
+      error?: string;
+    }>('/api/wardrobe/extract-clothing', {
+      method: 'POST',
+      body: JSON.stringify(imageData),
+    });
+  }
+
   isConfigured() {
     return Boolean(API_URL);
   }

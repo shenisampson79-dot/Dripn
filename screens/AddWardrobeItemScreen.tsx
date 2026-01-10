@@ -111,27 +111,54 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         });
       }
       
-      const result = await apiService.processWardrobeImage(imageBase64, {
-        removeBackground: true,
-        straighten: true,
-        targetSize: 1024,
-      });
+      const result = await apiService.extractClothing({ imageBase64 });
       
-      if (result.success && (result.processedImageUrl || result.processedImageBase64)) {
-        const processedUri = result.processedImageUrl || 
-          (result.processedImageBase64 ? `data:image/png;base64,${result.processedImageBase64}` : null);
+      if (result.success && result.processedImageBase64) {
+        const processedUri = `data:image/png;base64,${result.processedImageBase64}`;
+        setImageUri(processedUri);
+        setImageProcessed(true);
         
-        if (processedUri) {
-          setImageUri(processedUri);
-          setImageProcessed(true);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          return processedUri;
+        if (result.clothingAnalysis) {
+          const analysis = result.clothingAnalysis;
+          const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+          const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
+          const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
+          const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
+          
+          const typeToCategory: Record<string, ClothingCategory> = {
+            'shirt': 'tops', 'blouse': 'tops', 't-shirt': 'tops', 'top': 'tops', 'sweater': 'tops', 'hoodie': 'tops',
+            'pants': 'bottoms', 'jeans': 'bottoms', 'shorts': 'bottoms', 'skirt': 'bottoms', 'trousers': 'bottoms',
+            'dress': 'dresses', 'gown': 'dresses', 'jumpsuit': 'dresses', 'romper': 'dresses',
+            'jacket': 'outerwear', 'coat': 'outerwear', 'blazer': 'outerwear', 'cardigan': 'outerwear', 'suit': 'formal',
+            'shoes': 'shoes', 'sneakers': 'shoes', 'boots': 'shoes', 'heels': 'shoes', 'sandals': 'shoes',
+            'bag': 'bags', 'purse': 'bags', 'backpack': 'bags', 'handbag': 'bags',
+            'watch': 'accessories', 'jewelry': 'accessories', 'belt': 'accessories', 'hat': 'accessories', 'scarf': 'accessories',
+          };
+          
+          const detectedType = analysis.type?.toLowerCase() || '';
+          const mappedCategory = typeToCategory[detectedType] || validCategories.find(c => detectedType.includes(c));
+          if (mappedCategory) setCategory(mappedCategory);
+          
+          const colorLower = analysis.color?.toLowerCase() || '';
+          const mappedColor = validColors.find(c => colorLower.includes(c));
+          if (mappedColor) setColor(mappedColor);
+          
+          if (analysis.description) setName(analysis.description.slice(0, 50));
+          if (analysis.brand) setBrand(analysis.brand);
+          if (analysis.seasons) setSeasons(analysis.seasons.filter((s: string) => validSeasons.includes(s as ClothingSeason)) as ClothingSeason[]);
+          if (analysis.occasions) setOccasions(analysis.occasions.filter((o: string) => validOccasions.includes(o as ClothingOccasion)) as ClothingOccasion[]);
+          
+          setAiAnalyzed(true);
         }
+        
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        return processedUri;
       }
+      
       setImageProcessed(false);
       return uri;
     } catch (error: any) {
-      console.log('Image processing not available, using original image');
+      console.log('Clothing extraction not available, using original image:', error.message);
       setImageProcessed(false);
       return uri;
     } finally {
