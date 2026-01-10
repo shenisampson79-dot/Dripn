@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getVoicePreviewScript } from './CulturalLocalizationService';
 
 export type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
 export type TTSModel = 'tts-1' | 'tts-1-hd';
@@ -441,7 +442,8 @@ const playWithFallbackSpeech = async (
   voiceRange?: string,
   accent?: string
 ): Promise<void> => {
-  let text = getVoicePreviewPhrase(stylistId, language);
+  // Use culturally-authentic scripts for non-English languages
+  let text = getVoicePreviewPhrase(stylistId, language, accent);
   if (!text) {
     throw new Error('No preview phrase available');
   }
@@ -469,7 +471,7 @@ const playWithFallbackSpeech = async (
     } else {
       langCode = 'en-US';
     }
-    text = getVoicePreviewPhrase(stylistId, 'English');
+    text = getVoicePreviewPhrase(stylistId, 'English', 'American');
   }
   
   let pitch = 1.0;
@@ -651,9 +653,11 @@ export const playVoicePreview = async (
     const voiceSettings = getVoiceSettingsForRange(stylistId, voiceRange);
     // Use accent-based native voice IDs for authentic regional accents
     const elevenLabsVoiceId = getElevenLabsVoiceIdForAccent(stylistId, accent);
-    const text = getVoicePreviewPhrase(stylistId, language) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
+    // Use culturally-authentic scripts for non-English languages
+    const text = getVoicePreviewPhrase(stylistId, language, accent) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
     
     console.log(`Voice request: stylist=${stylistId}, accent=${accent}, elevenLabsVoiceId=${elevenLabsVoiceId || 'default'}`);
+    console.log(`Sending culturally-localized text: ${text.substring(0, 100)}...`);
     
     const response = await fetch(`${API_URL}/api/ai/voice-preview`, {
       method: 'POST',
@@ -769,7 +773,16 @@ export const getSupportedLanguages = (): string[] => {
   return Object.keys(VOICE_PREVIEW_PHRASES.ruby);
 };
 
-export const getVoicePreviewPhrase = (stylistId: string, language: string): string => {
+export const getVoicePreviewPhrase = (stylistId: string, language: string, accent?: string): string => {
+  // For non-English languages, use culturally-authentic scripts from CulturalLocalizationService
+  if (language !== 'English' && accent) {
+    const culturalScript = getVoicePreviewScript(language, accent, stylistId);
+    if (culturalScript) {
+      return culturalScript;
+    }
+  }
+  
+  // Fallback to standard phrases for English or if no cultural script available
   const phrases = VOICE_PREVIEW_PHRASES[stylistId];
   if (!phrases) return '';
   return phrases[language] || phrases['English'];
