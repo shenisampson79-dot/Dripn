@@ -35,21 +35,23 @@ export const STYLIST_ACCENTS = [
   'British',
 ] as const;
 
+// Non-English languages only show their native standard accent
+// English has American and British accent options
 export const LANGUAGE_ACCENT_MAP: Record<string, readonly string[]> = {
   'English': ['American', 'British'],
-  'Spanish': ['American', 'British', 'Standard Spanish'],
-  'French': ['American', 'British', 'Standard French'],
-  'German': ['American', 'British', 'Standard German'],
-  'Italian': ['American', 'British', 'Standard Italian'],
-  'Portuguese': ['American', 'British', 'Standard Portuguese'],
-  'Japanese': ['American', 'British', 'Standard Japanese'],
-  'Korean': ['American', 'British', 'Standard Korean'],
-  'Chinese': ['American', 'British', 'Standard Mandarin'],
-  'Arabic': ['American', 'British', 'Modern Standard Arabic'],
-  'Hindi': ['American', 'British', 'Standard Hindi'],
-  'Dutch': ['American', 'British', 'Standard Dutch'],
-  'Russian': ['American', 'British', 'Standard Russian'],
-  'Swedish': ['American', 'British', 'Standard Swedish'],
+  'Spanish': ['Standard Spanish'],
+  'French': ['Standard French'],
+  'German': ['Standard German'],
+  'Italian': ['Standard Italian'],
+  'Portuguese': ['Standard Portuguese'],
+  'Japanese': ['Standard Japanese'],
+  'Korean': ['Standard Korean'],
+  'Chinese': ['Standard Mandarin'],
+  'Arabic': ['Modern Standard Arabic'],
+  'Hindi': ['Standard Hindi'],
+  'Dutch': ['Standard Dutch'],
+  'Russian': ['Standard Russian'],
+  'Swedish': ['Standard Swedish'],
 } as const;
 
 export function getAccentsForLanguage(language: string): readonly string[] {

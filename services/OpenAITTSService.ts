@@ -544,18 +544,19 @@ interface ElevenLabsVoiceSettings {
 // ElevenLabs native accent voice IDs
 // Real human voices recorded by native speakers with authentic regional accents
 // These are NOT synthesized accents - they are real voices from ElevenLabs Voice Library
+// IMPORTANT: These voices are native speakers from their respective countries, not Americans reading scripts
 const ELEVENLABS_ACCENT_VOICES: Record<string, Record<string, string>> = {
   ruby: {
     // English accents
     'American': '', // Use backend default (ElevenLabs Ruby voice)
     'British': 'ptBd2v6mebIps3ZQEXD7', // Adela - Neutral British 30s-40s female
-    // Native language voices (authentic native speakers)
-    'Standard Spanish': 'HYlEvvU9GMan5YdjFYpg', // LoidaBurgos - Young female with clear Spanish accent from Spain
-    'Standard French': 'txtf1EDouKke753vN8SL', // Jeanne - Professional Parisian French woman
-    'Standard German': 'YYDsZT3K2y6tv7X1aj6N', // Johanna - Clear, professional German female voice
-    'Standard Italian': 'fQmr8dTaOQq116mo2X7F', // Samanta - Warm Italian female voice
+    // Native language voices (authentic native speakers from their countries)
+    'Standard Spanish': 'UOIqAnmS11Reiei1Ytkc', // Carolina - Native Spanish woman from Spain (es_ES)
+    'Standard French': 'txtf1EDouKke753vN8SL', // Jeanne - Professional Parisian French woman, native from France
+    'Standard German': 'YYDsZT3K2y6tv7X1aj6N', // Johanna - Clear, professional native German female voice
+    'Standard Italian': 'oVJbgLwL0s5pk9e2U6QH', // Manuela - Warm, clear, versatile Italian PRO actress, native from Italy
     'Standard Portuguese': '', // Backend handles with language code
-    'Standard Japanese': '', // Backend handles with language code
+    'Standard Japanese': '8EkOjt4xTPGMclNlh1pk', // Morioki - Native Japanese woman
     'Standard Korean': '', // Backend handles with language code
     'Standard Mandarin': '', // Backend handles with language code
     'Modern Standard Arabic': '', // Backend handles with language code
@@ -568,13 +569,13 @@ const ELEVENLABS_ACCENT_VOICES: Record<string, Record<string, string>> = {
     // English accents
     'American': '', // Use backend default (ElevenLabs Max voice)
     'British': 'U1Vk2oyatMdYs096Ety7', // Michael - Deep, Dark British urban voice
-    // Native language voices (authentic native speakers)
-    'Standard Spanish': 'usTmJvQOCyW3nRcZ8OEo', // Dante - Castilian Spanish male, excited and dynamic
-    'Standard French': 'jUHQdLfy668sllNiNTSW', // Clément - Top French Voice, middle-aged male
-    'Standard German': 'Rc6mVxOkevStnSH2pUO9', // Basti - Young German male, authentic modern voice
-    'Standard Italian': '', // Backend handles with language code
+    // Native language voices (authentic native speakers from their countries)
+    'Standard Spanish': 'RyfjEHnKbtma4Srae2za', // Juan Carlos - Deep, calm native Spanish voice from Spain (Peninsular)
+    'Standard French': 'jUHQdLfy668sllNiNTSW', // Clément - Top French Voice, middle-aged native Parisian male
+    'Standard German': 'Rc6mVxOkevStnSH2pUO9', // Basti - Young authentic native German male (26yo from Germany)
+    'Standard Italian': 'lcweSB9PJMspXEFIqkPb', // Francesco - Warm, incisive, persuasive native Italian male (30-50)
     'Standard Portuguese': '', // Backend handles with language code
-    'Standard Japanese': 'FMgBdHe1YV2Xi0B9anXW', // Hideo - Japanese male voice
+    'Standard Japanese': 'wAWUBOIVEUw9IEUYoNzR', // Junichi - Native Japanese male baritone voice
     'Standard Korean': '', // Backend handles with language code
     'Standard Mandarin': '', // Backend handles with language code
     'Modern Standard Arabic': '', // Backend handles with language code
