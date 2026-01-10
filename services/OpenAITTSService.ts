@@ -361,6 +361,41 @@ const DEFAULT_VOICE_FOR_STYLIST: Record<string, TTSVoice> = {
   max: 'onyx',
 };
 
+interface ElevenLabsVoiceSettings {
+  stability: number;
+  similarityBoost: number;
+  style: number;
+  speakerBoost: boolean;
+}
+
+const getVoiceSettingsForRange = (stylistId: string, voiceRange?: string): ElevenLabsVoiceSettings => {
+  if (stylistId === 'ruby') {
+    switch (voiceRange) {
+      case 'soprano':
+        return { stability: 0.20, similarityBoost: 0.45, style: 1.0, speakerBoost: false };
+      case 'mezzo-soprano':
+      case 'mezzo':
+        return { stability: 0.25, similarityBoost: 0.50, style: 0.95, speakerBoost: false };
+      case 'contralto':
+        return { stability: 0.30, similarityBoost: 0.55, style: 0.90, speakerBoost: true };
+      default:
+        return { stability: 0.25, similarityBoost: 0.50, style: 1.0, speakerBoost: false };
+    }
+  } else if (stylistId === 'max') {
+    switch (voiceRange) {
+      case 'tenor':
+        return { stability: 0.25, similarityBoost: 0.50, style: 0.95, speakerBoost: false };
+      case 'baritone':
+        return { stability: 0.30, similarityBoost: 0.55, style: 0.90, speakerBoost: true };
+      case 'bass':
+        return { stability: 0.35, similarityBoost: 0.60, style: 0.85, speakerBoost: true };
+      default:
+        return { stability: 0.30, similarityBoost: 0.55, style: 0.90, speakerBoost: true };
+    }
+  }
+  return { stability: 0.25, similarityBoost: 0.50, style: 1.0, speakerBoost: false };
+};
+
 export const playVoicePreview = async (
   stylistId: string,
   language: string = 'English',
@@ -395,6 +430,8 @@ export const playVoicePreview = async (
       headers['Authorization'] = `Bearer ${authToken}`;
     }
 
+    const voiceSettings = getVoiceSettingsForRange(stylistId, voiceRange);
+    
     const response = await fetch(`${API_URL}/api/ai/voice-preview`, {
       method: 'POST',
       headers,
@@ -405,6 +442,7 @@ export const playVoicePreview = async (
         voice: selectedVoice,
         accent,
         style: voiceRange,
+        voiceSettings,
       }),
     });
 
