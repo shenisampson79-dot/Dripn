@@ -89,12 +89,22 @@ const IOS_PREMIUM_VOICES = {
     'en-GB': ['com.apple.voice.enhanced.en-GB.Serena', 'com.apple.voice.compact.en-GB.Kate', 'com.apple.ttsbundle.Kate-compact', 'Kate', 'Serena'],
     'en-AU': ['com.apple.voice.enhanced.en-AU.Karen', 'com.apple.voice.compact.en-AU.Karen', 'Karen'],
     'en-IE': ['com.apple.voice.enhanced.en-IE.Moira', 'com.apple.voice.compact.en-IE.Moira', 'Moira'],
+    'en-SCT': ['com.apple.voice.enhanced.en-GB.Fiona', 'com.apple.voice.compact.en-GB.Fiona', 'Fiona'],
+    'en-CA': ['com.apple.voice.enhanced.en-US.Ava', 'com.apple.voice.compact.en-US.Samantha', 'Samantha'],
+    'en-ZA': ['com.apple.voice.enhanced.en-ZA.Tessa', 'com.apple.voice.compact.en-ZA.Tessa', 'Tessa'],
+    'en-IN': ['com.apple.voice.enhanced.en-IN.Veena', 'com.apple.voice.compact.en-IN.Veena', 'Veena'],
+    'en-JM': ['com.apple.voice.enhanced.en-US.Ava', 'com.apple.voice.compact.en-US.Samantha', 'Samantha'],
   },
   male: {
     'en-US': ['com.apple.voice.enhanced.en-US.Evan', 'com.apple.voice.compact.en-US.Alex', 'com.apple.ttsbundle.Alex-compact', 'Alex'],
     'en-GB': ['com.apple.voice.enhanced.en-GB.Daniel', 'com.apple.voice.compact.en-GB.Daniel', 'com.apple.ttsbundle.Daniel-compact', 'Daniel'],
     'en-AU': ['com.apple.voice.enhanced.en-AU.Lee', 'com.apple.voice.compact.en-AU.Lee', 'Lee'],
     'en-IE': ['com.apple.voice.enhanced.en-IE.Moira', 'com.apple.voice.compact.en-IE.Moira', 'Moira'],
+    'en-SCT': ['com.apple.voice.enhanced.en-GB.Daniel', 'com.apple.voice.compact.en-GB.Daniel', 'Daniel'],
+    'en-CA': ['com.apple.voice.enhanced.en-US.Evan', 'com.apple.voice.compact.en-US.Alex', 'Alex'],
+    'en-ZA': ['com.apple.voice.enhanced.en-ZA.Rishi', 'com.apple.voice.compact.en-ZA.Rishi', 'Rishi'],
+    'en-IN': ['com.apple.voice.enhanced.en-IN.Rishi', 'com.apple.voice.compact.en-IN.Rishi', 'Rishi'],
+    'en-JM': ['com.apple.voice.enhanced.en-US.Evan', 'com.apple.voice.compact.en-US.Alex', 'Alex'],
   },
 };
 
@@ -113,6 +123,16 @@ const findBestVoiceForLanguage = async (
       targetLangCode = 'en-AU';
     } else if (accent === 'Irish') {
       targetLangCode = 'en-IE';
+    } else if (accent === 'Scottish') {
+      targetLangCode = 'en-SCT';
+    } else if (accent === 'Canadian') {
+      targetLangCode = 'en-CA';
+    } else if (accent === 'South African') {
+      targetLangCode = 'en-ZA';
+    } else if (accent === 'Indian') {
+      targetLangCode = 'en-IN';
+    } else if (accent === 'Caribbean') {
+      targetLangCode = 'en-JM';
     } else if (accent === 'American' || accent === 'US') {
       targetLangCode = 'en-US';
     }
@@ -431,17 +451,16 @@ export const playVoicePreview = async (
     }
 
     const voiceSettings = getVoiceSettingsForRange(stylistId, voiceRange);
+    const text = getVoicePreviewPhrase(stylistId, language) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
     
     const response = await fetch(`${API_URL}/api/ai/voice-preview`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        stylistId,
-        language,
+        text,
+        stylist: stylistId,
         voiceRange,
-        voice: selectedVoice,
         accent,
-        style: voiceRange,
         voiceSettings,
       }),
     });
