@@ -723,7 +723,10 @@ export const playVoicePreview = async (
     
     console.log(`FULL REQUEST BODY: ${JSON.stringify(requestBody)}`);
     
-    const response = await fetch(`${API_URL}/api/ai/voice-preview`, {
+    const fullUrl = `${API_URL}/api/ai/voice-preview`;
+    console.log(`=== CALLING BACKEND URL: ${fullUrl} ===`);
+    
+    const response = await fetch(fullUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(requestBody),
