@@ -730,8 +730,34 @@ export const playVoicePreview = async (
     const elevenLabsVoiceId = getElevenLabsVoiceIdForAccent(stylistId, accent);
     // Get language code for authentic pronunciation (ISO 639-1)
     const languageCode = getLanguageCodeForAccent(accent);
-    // Use culturally-authentic scripts for non-English languages
-    const text = getVoicePreviewPhrase(stylistId, language, accent, userName) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
+    
+    // Fetch culturally-authentic script from backend (supports British, American, and other accents)
+    let text: string;
+    try {
+      const scriptParams = new URLSearchParams({
+        stylist: stylistId,
+        ...(accent && { accent }),
+        ...(userName && { userName }),
+      });
+      const scriptResponse = await fetch(`${API_URL}/api/ai/voice-preview/script?${scriptParams}`, {
+        method: 'GET',
+        headers,
+      });
+      
+      if (scriptResponse.ok) {
+        const scriptData = await scriptResponse.json();
+        text = scriptData.script || getVoicePreviewPhrase(stylistId, language, accent, userName) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
+        console.log(`Fetched script from backend: ${text.substring(0, 60)}...`);
+      } else {
+        // Fall back to local script if backend endpoint fails
+        text = getVoicePreviewPhrase(stylistId, language, accent, userName) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
+        console.log(`Backend script endpoint failed, using local script`);
+      }
+    } catch (scriptError) {
+      // Fall back to local script on error
+      text = getVoicePreviewPhrase(stylistId, language, accent, userName) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
+      console.log(`Script fetch error, using local script:`, scriptError);
+    }
     
     // Log native speaker voice details for debugging
     const nativeVoiceName = elevenLabsVoiceId ? getNativeVoiceNameForId(stylistId, accent) : 'default backend voice';
