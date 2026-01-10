@@ -436,7 +436,8 @@ const getVoiceSettingsForRange = (stylistId: string, voiceRange?: string): Eleve
       case 'mezzo':
         return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
       case 'contralto':
-        return { stability: 0.38, similarityBoost: 0.88, style: 0.18, speakerBoost: false };
+        // Deep, raspy, bass-like female voice (Dani Behr / female radio host style)
+        return { stability: 0.75, similarityBoost: 0.92, style: 0.32, speakerBoost: true };
       default:
         return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
     }
