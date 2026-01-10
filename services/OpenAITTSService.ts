@@ -427,6 +427,31 @@ interface ElevenLabsVoiceSettings {
   speakerBoost: boolean;
 }
 
+// ElevenLabs voice IDs for specific voice ranges
+// Uses real human voices from ElevenLabs Voice Library for natural sound
+const ELEVENLABS_VOICE_IDS: Record<string, Record<string, string>> = {
+  ruby: {
+    soprano: '', // Use backend default
+    mezzo: '', // Use backend default
+    'mezzo-soprano': '', // Use backend default
+    // "Tiffany - Gritty, Articulate and Calm" - gritty yet articulate, husky middle-aged voice
+    contralto: 'x9leqCOAXOcmC5jtkq65',
+  },
+  max: {
+    tenor: '', // Use backend default
+    baritone: '', // Use backend default
+    bass: '', // Use backend default
+  },
+};
+
+const getElevenLabsVoiceId = (stylistId: string, voiceRange?: string): string | undefined => {
+  if (!voiceRange) return undefined;
+  const stylistVoices = ELEVENLABS_VOICE_IDS[stylistId];
+  if (!stylistVoices) return undefined;
+  const voiceId = stylistVoices[voiceRange];
+  return voiceId || undefined;
+};
+
 const getVoiceSettingsForRange = (stylistId: string, voiceRange?: string): ElevenLabsVoiceSettings => {
   if (stylistId === 'ruby') {
     switch (voiceRange) {
@@ -436,8 +461,8 @@ const getVoiceSettingsForRange = (stylistId: string, voiceRange?: string): Eleve
       case 'mezzo':
         return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
       case 'contralto':
-        // Deep, raspy, bass-like female voice (Dani Behr / female radio host style)
-        return { stability: 0.75, similarityBoost: 0.92, style: 0.32, speakerBoost: true };
+        // Natural settings for real husky voice - let the voice speak for itself
+        return { stability: 0.55, similarityBoost: 0.78, style: 0.22, speakerBoost: true };
       default:
         return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
     }
@@ -448,7 +473,7 @@ const getVoiceSettingsForRange = (stylistId: string, voiceRange?: string): Eleve
       case 'baritone':
         return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
       case 'bass':
-        return { stability: 0.38, similarityBoost: 0.88, style: 0.18, speakerBoost: false };
+        return { stability: 0.55, similarityBoost: 0.78, style: 0.22, speakerBoost: true };
       default:
         return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
     }
@@ -492,7 +517,10 @@ export const playVoicePreview = async (
     }
 
     const voiceSettings = getVoiceSettingsForRange(stylistId, voiceRange);
+    const elevenLabsVoiceId = getElevenLabsVoiceId(stylistId, voiceRange);
     const text = getVoicePreviewPhrase(stylistId, language) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
+    
+    console.log(`Voice request: stylist=${stylistId}, range=${voiceRange}, elevenLabsVoiceId=${elevenLabsVoiceId || 'default'}`);
     
     const response = await fetch(`${API_URL}/api/ai/voice-preview`, {
       method: 'POST',
@@ -503,6 +531,8 @@ export const playVoicePreview = async (
         voiceRange,
         accent,
         voiceSettings,
+        // Send specific ElevenLabs voice ID for contralto/bass to use real human husky voice
+        ...(elevenLabsVoiceId && { elevenLabsVoiceId }),
       }),
     });
 
