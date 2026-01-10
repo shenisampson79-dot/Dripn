@@ -706,6 +706,12 @@ export const playVoicePreview = async (
     console.log(`Native speaker voice: ${nativeVoiceName} (ID: ${elevenLabsVoiceId || 'using backend default'})`);
     console.log(`Text preview: ${text.substring(0, 80)}...`);
     
+    // DEBUG: Show user which voice is being requested (remove after debugging)
+    if (__DEV__) {
+      const debugMsg = `Voice: ${nativeVoiceName}\nAccent: ${accent || 'none'}\nID: ${elevenLabsVoiceId || 'backend default'}`;
+      console.log(`DEBUG ALERT: ${debugMsg}`);
+    }
+    
     const requestBody = {
       text,
       stylist: stylistId,
