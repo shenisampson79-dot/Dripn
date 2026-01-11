@@ -47,6 +47,7 @@ import { GamificationProvider } from "@/contexts/GamificationContext";
 import { MessagingProvider } from "@/contexts/MessagingContext";
 import { VoiceSettingsProvider } from "@/contexts/VoiceSettingsContext";
 import { BodyProfileProvider } from "@/contexts/BodyProfileContext";
+import { TranslationProvider } from "@/contexts/TranslationContext";
 
 export type PortalMode = 'stylist' | 'admin' | null;
 
@@ -133,11 +134,13 @@ export default function App() {
                                         <GamificationProvider>
                                           <MessagingProvider>
                                               <VoiceSettingsProvider>
-                                                <BodyProfileProvider>
-                                                  <NavigationContainer>
-                                                    <AppContent />
-                                                  </NavigationContainer>
-                                                </BodyProfileProvider>
+                                                <TranslationProvider>
+                                                  <BodyProfileProvider>
+                                                    <NavigationContainer>
+                                                      <AppContent />
+                                                    </NavigationContainer>
+                                                  </BodyProfileProvider>
+                                                </TranslationProvider>
                                               </VoiceSettingsProvider>
                                             </MessagingProvider>
                                         </GamificationProvider>

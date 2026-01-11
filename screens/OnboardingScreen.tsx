@@ -19,6 +19,7 @@ import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenA
 import { NamePronunciationPrompt } from "@/components/NamePronunciationPrompt";
 import { RetailerService, Retailer } from "@/services/RetailerService";
 import { OnboardingService, BodyScanResult, ColorScanResult, StyleQuizQuestion, StyleQuizResult, StyleArchetype } from "@/services/OnboardingService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "woman", name: "Woman", icon: "user" },
@@ -426,6 +427,7 @@ let hasPromptedForPronunciationThisSession = false;
 export default function OnboardingScreen({ navigation }: OnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { translations, isRTL } = useTranslations();
   const { completeOnboarding, user } = useAuth();
   
   // Get user's first name for personalized greetings
@@ -857,8 +859,8 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
       case 0:
         return (
           <View style={styles.stepContent}>
-            <ThemedText type="h2" style={styles.countryTitle}>
-              Select your country
+            <ThemedText type="h2" style={[styles.countryTitle, isRTL && { textAlign: 'right' }]}>
+              {translations.onboarding.steps.location.title}
             </ThemedText>
             
             <View style={[styles.countrySearchContainer, { backgroundColor: theme.backgroundSecondary }]}>
@@ -1878,7 +1880,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
           ]}
         >
           <ThemedText type="body" style={{ color: theme.link }}>
-            Skip
+            {translations.common.skip}
           </ThemedText>
         </Pressable>
       </View>
@@ -1887,7 +1889,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.xl }]}>
         <Button onPress={handleNext} style={styles.nextButton}>
-          {step === totalSteps - 1 ? "Get Started" : "Continue"}
+          {step === totalSteps - 1 ? translations.common.done : translations.common.continue}
         </Button>
       </View>
     </ThemedView>
