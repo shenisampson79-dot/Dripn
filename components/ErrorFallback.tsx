@@ -15,7 +15,13 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Fonts } from "@/constants/theme";
 import { OnboardingService } from "@/services/OnboardingService";
-import { useNavigation, CommonActions } from "@react-navigation/native";
+import { CommonActions, NavigationContainerRef } from "@react-navigation/native";
+
+let navigationRef: NavigationContainerRef<any> | null = null;
+
+export function setNavigationRef(ref: NavigationContainerRef<any> | null) {
+  navigationRef = ref;
+}
 
 export type ErrorFallbackProps = {
   error: Error;
@@ -26,32 +32,40 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
   const { theme } = useTheme();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const navigation = useNavigation();
 
   const handleRestart = async () => {
     setIsLoading(true);
     try {
       const progress = await OnboardingService.getOnboardingProgress();
       
-      if (progress.onboardingComplete) {
-        resetError();
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: 'Main' as never }],
-          })
-        );
+      if (navigationRef && navigationRef.isReady()) {
+        if (progress.onboardingComplete) {
+          resetError();
+          navigationRef.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: 'Main' as never }],
+            })
+          );
+        } else {
+          resetError();
+          navigationRef.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ 
+                name: 'Onboarding' as never, 
+                params: { initialStep: progress.onboardingStep } 
+              }],
+            })
+          );
+        }
       } else {
         resetError();
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ 
-              name: 'Onboarding' as never, 
-              params: { initialStep: progress.onboardingStep } 
-            }],
-          })
-        );
+        try {
+          await reloadAppAsync();
+        } catch (reloadError) {
+          console.error("Failed to reload app:", reloadError);
+        }
       }
     } catch (restartError) {
       console.error("Failed to restore progress, reloading app:", restartError);

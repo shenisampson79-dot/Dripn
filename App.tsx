@@ -13,9 +13,9 @@
  * For licensing inquiries: legal@dripn.app
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { StyleSheet, Modal } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, NavigationContainerRef } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -28,6 +28,7 @@ import CreatePostScreen from "@/screens/CreatePostScreen";
 import { AppTour } from "@/components/AppTour";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { setNavigationRef } from "@/components/ErrorFallback";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PostsProvider } from "@/contexts/PostsContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
@@ -50,6 +51,19 @@ import { BodyProfileProvider } from "@/contexts/BodyProfileContext";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 
 export type PortalMode = 'stylist' | 'admin' | null;
+
+function NavigationContainerWithRef() {
+  const navigationRef = useRef<NavigationContainerRef<any>>(null);
+  
+  return (
+    <NavigationContainer 
+      ref={navigationRef}
+      onReady={() => setNavigationRef(navigationRef.current)}
+    >
+      <AppContent />
+    </NavigationContainer>
+  );
+}
 
 function AppContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -136,9 +150,7 @@ export default function App() {
                                               <VoiceSettingsProvider>
                                                 <TranslationProvider>
                                                   <BodyProfileProvider>
-                                                    <NavigationContainer>
-                                                      <AppContent />
-                                                    </NavigationContainer>
+                                                    <NavigationContainerWithRef />
                                                   </BodyProfileProvider>
                                                 </TranslationProvider>
                                               </VoiceSettingsProvider>
