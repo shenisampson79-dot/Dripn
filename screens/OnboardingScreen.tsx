@@ -690,7 +690,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const handleStartStyleQuiz = useCallback(async () => {
     try {
       setIsLoadingQuiz(true);
-      const quizConfig = await OnboardingService.getStyleQuiz();
+      const quizConfig = await OnboardingService.getStyleQuiz(gender || undefined);
       setQuizQuestions(quizConfig.questions);
       setCurrentQuizQuestion(0);
       setQuizAnswers({});
@@ -701,7 +701,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
     } finally {
       setIsLoadingQuiz(false);
     }
-  }, []);
+  }, [gender]);
 
   const handleQuizAnswer = useCallback((questionId: number, answer: string) => {
     setQuizAnswers(prev => ({ ...prev, [questionId]: answer }));

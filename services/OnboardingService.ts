@@ -160,9 +160,12 @@ class OnboardingServiceClass {
     return response.json();
   }
 
-  async getStyleQuiz(): Promise<StyleQuizConfig> {
+  async getStyleQuiz(gender?: string): Promise<StyleQuizConfig> {
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/onboarding/style-quiz`, {
+    const url = gender 
+      ? `${API_URL}/api/onboarding/style-quiz?gender=${encodeURIComponent(gender)}`
+      : `${API_URL}/api/onboarding/style-quiz`;
+    const response = await fetch(url, {
       method: "GET",
       headers,
     });
