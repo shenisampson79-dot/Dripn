@@ -523,7 +523,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   
   const suggestedShopNames = suggestedRetailers.map(r => r.name);
   const allAvailableShops = (suggestedRetailers.length > 0 
-    ? [...new Set([...suggestedShopNames, ...POPULAR_SHOPS])]
+    ? suggestedShopNames
     : POPULAR_SHOPS
   ).sort((a, b) => a.localeCompare(b));
   
@@ -1832,7 +1832,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
               {suggestedRetailers.length > 0 
-                ? `AI-suggested stores for ${country} - select up to 10`
+                ? `Select up to 10 of your favorites`
                 : 'Select up to 10 shops you love (helps AI personalize recommendations)'}
             </ThemedText>
 
@@ -1913,7 +1913,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               <View style={[styles.aiSuggestionHint, { backgroundColor: theme.link + '10', borderColor: theme.link + '30' }]}>
                 <Feather name="zap" size={14} color={theme.link} />
                 <ThemedText type="small" style={{ color: theme.link, marginLeft: Spacing.xs, flex: 1 }}>
-                  Highlighted stores are AI recommendations for {country}
+                  AI-curated stores that ship to or operate in {country}
                 </ThemedText>
               </View>
             ) : null}
@@ -1923,7 +1923,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 {filteredShops.map((shop) => {
                   const isDisabled = favoriteShops.length >= 10;
                   const category = getRetailerCategory(shop);
-                  const isSuggested = suggestedShopNames.includes(shop);
                   return (
                     <Pressable
                       key={shop}
@@ -1932,9 +1931,9 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       style={({ pressed }) => [
                         styles.shopChip,
                         {
-                          backgroundColor: isSuggested ? `${theme.link}15` : theme.backgroundDefault,
+                          backgroundColor: theme.backgroundDefault,
                           borderWidth: 1,
-                          borderColor: isSuggested ? theme.link : theme.backgroundSecondary,
+                          borderColor: theme.backgroundSecondary,
                           opacity: isDisabled ? 0.4 : (pressed ? 0.8 : 1),
                         },
                       ]}
