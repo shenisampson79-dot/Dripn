@@ -102,6 +102,32 @@ export interface StyleArchetype {
   matchScore: number;
 }
 
+export interface StyleQuizCelebration {
+  title: string;
+  subtitle: string;
+  emoji: string;
+  matchMessage: string;
+  reaction: string;
+  showConfetti: boolean;
+}
+
+export interface StyleBlend {
+  headline: string;
+  subheadline: string;
+  description: string;
+  superpower: string;
+  vibes: string[];
+  perfectFor: string[];
+  funFact: string;
+}
+
+export interface QuickStats {
+  keyPieces: string[];
+  colors: string[];
+  icons: string[];
+  stylistTip: string;
+}
+
 export interface StyleQuizResult {
   primaryArchetype: StyleArchetype;
   secondaryArchetype: StyleArchetype;
@@ -111,6 +137,9 @@ export interface StyleQuizResult {
   };
   personalizedMessage: string;
   message: string;
+  celebration?: StyleQuizCelebration;
+  styleBlend?: StyleBlend;
+  quickStats?: QuickStats;
 }
 
 class OnboardingServiceClass {

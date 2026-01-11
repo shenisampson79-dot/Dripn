@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput, Alert, Keyboard } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput, Alert, Keyboard, Modal, Animated, Easing, Dimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -463,6 +463,14 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const [currentQuizQuestion, setCurrentQuizQuestion] = useState(0);
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
   const [quizResult, setQuizResult] = useState<StyleQuizResult | null>(null);
+  const [showQuizResultModal, setShowQuizResultModal] = useState(false);
+  const [confettiAnims] = useState(() => Array.from({ length: 50 }, () => ({
+    x: new Animated.Value(Math.random() * Dimensions.get('window').width),
+    y: new Animated.Value(-50),
+    rotate: new Animated.Value(0),
+    opacity: new Animated.Value(1),
+    color: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'][Math.floor(Math.random() * 7)],
+  })));
   const [showPronunciationPrompt, setShowPronunciationPrompt] = useState(false);
   // Initialize from user's stored preferences, or use defaults
   const [useNameInGreetings, setUseNameInGreetings] = useState(
@@ -516,6 +524,42 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
       setUsageGoals([...usageGoals, goalId]);
     }
   };
+
+  const triggerConfetti = useCallback(() => {
+    const screenWidth = Dimensions.get('window').width;
+    const screenHeight = Dimensions.get('window').height;
+    
+    confettiAnims.forEach((anim, i) => {
+      anim.x.setValue(Math.random() * screenWidth);
+      anim.y.setValue(-50);
+      anim.rotate.setValue(0);
+      anim.opacity.setValue(1);
+      
+      Animated.parallel([
+        Animated.timing(anim.y, {
+          toValue: screenHeight + 50,
+          duration: 2500 + Math.random() * 1500,
+          easing: Easing.linear,
+          useNativeDriver: true,
+          delay: i * 30,
+        }),
+        Animated.timing(anim.rotate, {
+          toValue: 360 * (2 + Math.random() * 3),
+          duration: 3000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+          delay: i * 30,
+        }),
+        Animated.timing(anim.opacity, {
+          toValue: 0,
+          duration: 3500,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+          delay: i * 30 + 1500,
+        }),
+      ]).start();
+    });
+  }, [confettiAnims]);
 
   useEffect(() => {
     const accents = getAccentsForLanguage(stylistLanguage);
@@ -742,11 +786,10 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
         const mappedStyle = archetypeToStyle[result.primaryArchetype.id] || 'smart-casual';
         setStylePreference(mappedStyle);
         
-        Alert.alert(
-          `You're ${result.primaryArchetype.name}!`,
-          result.personalizedMessage || result.primaryArchetype.description,
-          [{ text: 'Continue', onPress: () => setStep(prev => prev + 1) }]
-        );
+        setShowQuizResultModal(true);
+        if (result.celebration?.showConfetti) {
+          setTimeout(() => triggerConfetti(), 300);
+        }
       } else {
         Alert.alert(
           'Style Quiz Complete',
@@ -760,7 +803,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
     } finally {
       setIsLoadingQuiz(false);
     }
-  }, [quizAnswers]);
+  }, [quizAnswers, triggerConfetti]);
 
   const getBodyShapeOptions = () => {
     if (gender === "man") return MEN_BODY_SHAPES;
@@ -1892,6 +1935,157 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
           {step === totalSteps - 1 ? translations.common.done : translations.common.continue}
         </Button>
       </View>
+
+      <Modal
+        visible={showQuizResultModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => {
+          setShowQuizResultModal(false);
+          setStep(prev => prev + 1);
+        }}
+      >
+        <View style={styles.quizResultModalOverlay}>
+          {confettiAnims.map((anim, i) => (
+            <Animated.View
+              key={i}
+              style={[
+                styles.confettiPiece,
+                {
+                  backgroundColor: anim.color,
+                  transform: [
+                    { translateX: anim.x },
+                    { translateY: anim.y },
+                    { rotate: anim.rotate.interpolate({
+                      inputRange: [0, 360],
+                      outputRange: ['0deg', '360deg'],
+                    })},
+                  ],
+                  opacity: anim.opacity,
+                },
+              ]}
+            />
+          ))}
+          
+          <View style={[styles.quizResultModalContent, { backgroundColor: theme.backgroundDefault }]}>
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.quizResultScrollContent}
+            >
+              {quizResult?.celebration ? (
+                <View style={styles.celebrationHeader}>
+                  <ThemedText style={styles.celebrationEmoji}>
+                    {quizResult.celebration.emoji}
+                  </ThemedText>
+                  <ThemedText type="h1" style={styles.celebrationTitle}>
+                    {quizResult.celebration.title}
+                  </ThemedText>
+                  <ThemedText type="body" style={[styles.celebrationSubtitle, { color: theme.tabIconDefault }]}>
+                    {quizResult.celebration.subtitle}
+                  </ThemedText>
+                  <View style={[styles.matchBadge, { backgroundColor: theme.link + '20' }]}>
+                    <ThemedText type="caption" style={{ color: theme.link }}>
+                      {quizResult.celebration.matchMessage}
+                    </ThemedText>
+                  </View>
+                </View>
+              ) : null}
+
+              {quizResult?.styleBlend ? (
+                <View style={styles.styleBlendSection}>
+                  <ThemedText type="h2" style={styles.styleBlendHeadline}>
+                    {quizResult.styleBlend.headline}
+                  </ThemedText>
+                  <ThemedText type="body" style={[styles.styleBlendSubheadline, { color: theme.tabIconDefault }]}>
+                    {quizResult.styleBlend.subheadline}
+                  </ThemedText>
+                  
+                  <ThemedText type="body" style={styles.styleBlendDescription}>
+                    {quizResult.styleBlend.description}
+                  </ThemedText>
+                  
+                  <View style={[styles.superpowerCard, { backgroundColor: theme.link + '15' }]}>
+                    <Feather name="zap" size={18} color={theme.link} />
+                    <ThemedText type="body" style={[styles.superpowerText, { color: theme.link }]}>
+                      {quizResult.styleBlend.superpower}
+                    </ThemedText>
+                  </View>
+
+                  <View style={styles.vibesContainer}>
+                    {quizResult.styleBlend.vibes.map((vibe, i) => (
+                      <View key={i} style={[styles.vibeBadge, { backgroundColor: theme.backgroundSecondary }]}>
+                        <ThemedText type="caption">{vibe}</ThemedText>
+                      </View>
+                    ))}
+                  </View>
+
+                  <View style={styles.perfectForSection}>
+                    <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
+                      Perfect For
+                    </ThemedText>
+                    <ThemedText type="body">
+                      {quizResult.styleBlend.perfectFor.join(' • ')}
+                    </ThemedText>
+                  </View>
+                </View>
+              ) : null}
+
+              {quizResult?.quickStats ? (
+                <View style={[styles.quickStatsSection, { backgroundColor: theme.backgroundSecondary }]}>
+                  <View style={styles.quickStatRow}>
+                    <Feather name="star" size={16} color={theme.link} />
+                    <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginLeft: Spacing.sm }}>
+                      Key Pieces: {quizResult.quickStats.keyPieces.join(', ')}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.quickStatRow}>
+                    <Feather name="droplet" size={16} color={theme.link} />
+                    <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginLeft: Spacing.sm }}>
+                      Colors: {quizResult.quickStats.colors.join(', ')}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.quickStatRow}>
+                    <Feather name="users" size={16} color={theme.link} />
+                    <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginLeft: Spacing.sm }}>
+                      Style Icons: {quizResult.quickStats.icons.join(', ')}
+                    </ThemedText>
+                  </View>
+                </View>
+              ) : null}
+
+              {quizResult?.styleBlend?.funFact ? (
+                <View style={[styles.funFactCard, { borderColor: theme.link + '40' }]}>
+                  <Feather name="info" size={16} color={theme.link} />
+                  <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginLeft: Spacing.sm, flex: 1 }}>
+                    {quizResult.styleBlend.funFact}
+                  </ThemedText>
+                </View>
+              ) : null}
+
+              {quizResult?.quickStats?.stylistTip ? (
+                <View style={[styles.stylistTipCard, { backgroundColor: theme.link + '10' }]}>
+                  <ThemedText type="caption" style={{ color: theme.link, fontWeight: '600', marginBottom: Spacing.xs }}>
+                    Stylist Tip
+                  </ThemedText>
+                  <ThemedText type="body" style={{ color: theme.text }}>
+                    {quizResult.quickStats.stylistTip}
+                  </ThemedText>
+                </View>
+              ) : null}
+            </ScrollView>
+
+            <Button 
+              onPress={() => {
+                setShowQuizResultModal(false);
+                setStep(prev => prev + 1);
+              }}
+              style={styles.quizResultContinueBtn}
+            >
+              {translations.common.continue}
+            </Button>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -2312,5 +2506,119 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.md,
+  },
+  quizResultModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.xl,
+  },
+  quizResultModalContent: {
+    width: "100%",
+    maxHeight: "85%",
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    overflow: "hidden",
+  },
+  quizResultScrollContent: {
+    paddingBottom: Spacing.lg,
+  },
+  confettiPiece: {
+    position: "absolute",
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+  },
+  celebrationHeader: {
+    alignItems: "center",
+    marginBottom: Spacing.xl,
+  },
+  celebrationEmoji: {
+    fontSize: 64,
+    marginBottom: Spacing.md,
+  },
+  celebrationTitle: {
+    textAlign: "center",
+    marginBottom: Spacing.sm,
+  },
+  celebrationSubtitle: {
+    textAlign: "center",
+    marginBottom: Spacing.md,
+  },
+  matchBadge: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    marginTop: Spacing.sm,
+  },
+  styleBlendSection: {
+    marginBottom: Spacing.lg,
+  },
+  styleBlendHeadline: {
+    textAlign: "center",
+    marginBottom: Spacing.xs,
+  },
+  styleBlendSubheadline: {
+    textAlign: "center",
+    marginBottom: Spacing.md,
+  },
+  styleBlendDescription: {
+    textAlign: "center",
+    marginBottom: Spacing.lg,
+  },
+  superpowerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  superpowerText: {
+    flex: 1,
+    fontWeight: "600",
+  },
+  vibesContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  vibeBadge: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  perfectForSection: {
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
+  quickStatsSection: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  quickStatRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  funFactCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginBottom: Spacing.lg,
+  },
+  stylistTipCard: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  quizResultContinueBtn: {
+    marginTop: Spacing.md,
   },
 });
