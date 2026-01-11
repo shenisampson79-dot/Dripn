@@ -284,33 +284,147 @@ class OnboardingServiceClass {
   }
 
   async getBodyScanGuidance(): Promise<CameraGuidance> {
-    const headers = await this.getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/onboarding/body-scan/guidance`, {
-      method: "GET",
-      headers,
-    });
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_URL}/api/onboarding/body-scan/guidance`, {
+        method: "GET",
+        headers,
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to get body scan guidance: ${error}`);
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server returned non-JSON response");
+      }
+
+      return response.json();
+    } catch (error) {
+      console.log("Using fallback body scan guidance:", error);
+      return this.getFallbackBodyScanGuidance();
     }
+  }
 
-    return response.json();
+  private getFallbackBodyScanGuidance(): CameraGuidance {
+    return {
+      timer: {
+        enabled: true,
+        durationSeconds: 3,
+        countdownText: ["3", "2", "1", "Scanning..."]
+      },
+      overlay: {
+        type: "body-silhouette",
+        aspectRatio: "9:16",
+        guideText: {
+          top: "Stand back so your full body is visible",
+          middle: "Align yourself with the silhouette",
+          bottom: "Keep your arms slightly away from your body"
+        },
+        targetZoneLabel: "Full Body"
+      },
+      tips: [
+        {
+          icon: "maximize",
+          title: "Full Body Visible",
+          description: "Stand far enough back that your entire body from head to feet is in frame"
+        },
+        {
+          icon: "sun",
+          title: "Good Lighting",
+          description: "Make sure you're well-lit so your body shape is clearly visible"
+        },
+        {
+          icon: "user",
+          title: "Form-Fitting Clothes",
+          description: "Wear fitted clothing for the most accurate body type detection"
+        }
+      ],
+      tipsSimple: [
+        "Stand back so your full body is visible",
+        "Wear form-fitting clothes for accuracy",
+        "Good lighting helps detection",
+        "Keep arms slightly away from body"
+      ],
+      positioning: {
+        distance: "6-8 feet from camera",
+        lighting: "well-lit area",
+        angle: "straight on, facing camera"
+      }
+    };
   }
 
   async getColorScanGuidance(): Promise<CameraGuidance> {
-    const headers = await this.getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/onboarding/color-scan/guidance`, {
-      method: "GET",
-      headers,
-    });
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_URL}/api/onboarding/color-scan/guidance`, {
+        method: "GET",
+        headers,
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to get color scan guidance: ${error}`);
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server returned non-JSON response");
+      }
+
+      return response.json();
+    } catch (error) {
+      console.log("Using fallback color scan guidance:", error);
+      return this.getFallbackColorScanGuidance();
     }
+  }
 
-    return response.json();
+  private getFallbackColorScanGuidance(): CameraGuidance {
+    return {
+      timer: {
+        enabled: true,
+        durationSeconds: 3,
+        countdownText: ["3", "2", "1", "Analyzing..."]
+      },
+      overlay: {
+        type: "face-oval",
+        aspectRatio: "3:4",
+        guideText: {
+          top: "Position your face in the oval",
+          middle: "",
+          bottom: "Good lighting helps accuracy"
+        },
+        targetZoneLabel: "Face"
+      },
+      tips: [
+        {
+          icon: "sun",
+          title: "Natural Lighting",
+          description: "Stand near a window with natural daylight for the most accurate color analysis"
+        },
+        {
+          icon: "camera",
+          title: "Remove Makeup",
+          description: "For best results, remove any makeup so we can see your natural skin tone"
+        },
+        {
+          icon: "user",
+          title: "Show Your Face",
+          description: "Position your face clearly in the frame, avoiding shadows"
+        }
+      ],
+      tipsSimple: [
+        "Use natural daylight for best results",
+        "Remove makeup if possible",
+        "Avoid harsh shadows on your face",
+        "Keep a neutral expression"
+      ],
+      positioning: {
+        distance: "arm's length",
+        lighting: "natural daylight preferred",
+        angle: "straight on, looking at camera"
+      }
+    };
   }
 
   async getOnboardingProgress(): Promise<OnboardingProgress> {
