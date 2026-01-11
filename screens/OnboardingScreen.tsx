@@ -502,9 +502,10 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const totalSteps = 7;
   
   const suggestedShopNames = suggestedRetailers.map(r => r.name);
-  const allAvailableShops = suggestedRetailers.length > 0 
+  const allAvailableShops = (suggestedRetailers.length > 0 
     ? [...new Set([...suggestedShopNames, ...POPULAR_SHOPS])]
-    : POPULAR_SHOPS;
+    : POPULAR_SHOPS
+  ).sort((a, b) => a.localeCompare(b));
   
   const filteredShops = allAvailableShops.filter(
     shop => shop.toLowerCase().includes(shopSearchQuery.toLowerCase()) && !favoriteShops.includes(shop)
