@@ -2411,23 +2411,34 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 <ThemedText type="h3" style={{ marginBottom: Spacing.md }}>
                   {(pendingScanResult.result as ColorScanResult).colorSeasonType} {(pendingScanResult.result as ColorScanResult).seasonSubtype}
                 </ThemedText>
-                <ThemedText type="body" style={{ marginBottom: Spacing.lg }}>
+                <ThemedText type="body" style={{ marginBottom: Spacing.md }}>
                   {(pendingScanResult.result as ColorScanResult).message}
                 </ThemedText>
+                <View style={[styles.colorSeasonTip, { backgroundColor: theme.backgroundSecondary }]}>
+                  <Feather name="info" size={14} color={theme.link} style={{ marginRight: Spacing.sm }} />
+                  <ThemedText type="caption" style={{ flex: 1, color: theme.tabIconDefault }}>
+                    Seasonal color analysis is widely used in fashion and beauty. You can reference these colors when shopping for clothes, makeup, or accessories that complement your natural coloring.
+                  </ThemedText>
+                </View>
                 
-                <View style={[styles.scanResultCard, { backgroundColor: theme.backgroundSecondary }]}>
+                <View style={[styles.scanResultCard, { backgroundColor: theme.backgroundSecondary, marginTop: Spacing.md }]}>
                   <ThemedText type="caption" style={{ fontWeight: '600', marginBottom: Spacing.sm }}>
                     Your Power Colors
                   </ThemedText>
                   <View style={styles.colorSwatchRow}>
-                    {(pendingScanResult.result as ColorScanResult).colorPalette.powerColors.slice(0, 5).map((color, i) => (
-                      <View key={i} style={styles.colorSwatchItem}>
-                        <View style={[styles.colorSwatch, { backgroundColor: color.toLowerCase().replace(/\s+/g, '') }]} />
-                        <ThemedText type="caption" style={{ fontSize: 10, textAlign: 'center' }}>
-                          {color}
-                        </ThemedText>
-                      </View>
-                    ))}
+                    {(pendingScanResult.result as ColorScanResult).colorPalette.powerColors.slice(0, 5).map((color, i) => {
+                      const hexMatch = color.match(/#[0-9A-Fa-f]{6}/);
+                      const hexColor = hexMatch ? hexMatch[0] : color.toLowerCase().replace(/\s+/g, '');
+                      const colorName = color.replace(/#[0-9A-Fa-f]{6}/g, '').trim();
+                      return (
+                        <View key={i} style={styles.colorSwatchItem}>
+                          <View style={[styles.colorSwatch, { backgroundColor: hexColor }]} />
+                          <ThemedText type="caption" style={{ fontSize: 10, textAlign: 'center' }}>
+                            {colorName}
+                          </ThemedText>
+                        </View>
+                      );
+                    })}
                   </View>
                 </View>
               </View>
@@ -3157,6 +3168,12 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginTop: Spacing.md,
+  },
+  colorSeasonTip: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
   },
   colorSwatchRow: {
     flexDirection: "row",

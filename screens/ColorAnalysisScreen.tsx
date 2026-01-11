@@ -434,6 +434,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
                     {bodyProfile.skinTone.complementaryColors.map((color, index) => {
                       const hexMatch = color.match(/#(?:[0-9a-fA-F]{3}){1,2}/i);
                       const displayColor = hexMatch ? hexMatch[0] : null;
+                      const colorName = color.replace(/#[0-9A-Fa-f]{3,6}/gi, '').trim();
                       return (
                         <View key={index} style={styles.complementaryItem}>
                           {displayColor ? (
@@ -444,7 +445,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
                             </View>
                           )}
                           <ThemedText type="caption" numberOfLines={1} style={{ maxWidth: 60, textAlign: 'center' }}>
-                            {color}
+                            {colorName || color}
                           </ThemedText>
                         </View>
                       );
@@ -536,6 +537,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
               {colorSeason.bestColors.map((color, index) => {
                 const hexMatch = color.match(/#(?:[0-9a-fA-F]{3}){1,2}/i);
                 const displayColor = hexMatch ? hexMatch[0] : null;
+                const colorName = color.replace(/#[0-9A-Fa-f]{3,6}/gi, '').trim();
                 return (
                   <View key={index} style={styles.colorItem}>
                     {displayColor ? (
@@ -546,7 +548,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
                       </View>
                     )}
                     <ThemedText type="caption" numberOfLines={1}>
-                      {color}
+                      {colorName || color}
                     </ThemedText>
                   </View>
                 );
@@ -565,6 +567,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
               {colorSeason.avoidColors.map((color, index) => {
                 const hexMatch = color.match(/#(?:[0-9a-fA-F]{3}){1,2}/i);
                 const displayColor = hexMatch ? hexMatch[0] : null;
+                const colorName = color.replace(/#[0-9A-Fa-f]{3,6}/gi, '').trim();
                 return (
                   <View key={index} style={styles.colorItem}>
                     {displayColor ? (
@@ -575,7 +578,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
                       </View>
                     )}
                     <ThemedText type="caption" numberOfLines={1}>
-                      {color}
+                      {colorName || color}
                     </ThemedText>
                   </View>
                 );
