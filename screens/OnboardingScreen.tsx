@@ -15,6 +15,7 @@ import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getDefaultVoiceForStylist, getAccentsForLanguage } from "@/services/PersonalStylistService";
 import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
 import { NamePronunciationPrompt } from "@/components/NamePronunciationPrompt";
+import { RetailerService, Retailer } from "@/services/RetailerService";
 
 const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "woman", name: "Woman", icon: "user" },
@@ -400,6 +401,8 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const [favoriteShops, setFavoriteShops] = useState<string[]>([]);
   const [usageGoals, setUsageGoals] = useState<DripnGoal[]>([]);
   const [shopSearchQuery, setShopSearchQuery] = useState("");
+  const [suggestedRetailers, setSuggestedRetailers] = useState<Retailer[]>([]);
+  const [loadingRetailers, setLoadingRetailers] = useState(false);
   const [showPronunciationPrompt, setShowPronunciationPrompt] = useState(false);
   // Initialize from user's stored preferences, or use defaults
   const [useNameInGreetings, setUseNameInGreetings] = useState(
@@ -419,9 +422,24 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
 
   const totalSteps = 7;
   
-  const filteredShops = POPULAR_SHOPS.filter(
+  const suggestedShopNames = suggestedRetailers.map(r => r.name);
+  const allAvailableShops = suggestedRetailers.length > 0 
+    ? [...new Set([...suggestedShopNames, ...POPULAR_SHOPS])]
+    : POPULAR_SHOPS;
+  
+  const filteredShops = allAvailableShops.filter(
     shop => shop.toLowerCase().includes(shopSearchQuery.toLowerCase()) && !favoriteShops.includes(shop)
   );
+  
+  const getRetailerCategory = (shopName: string): string | null => {
+    const retailer = suggestedRetailers.find(r => r.name === shopName);
+    return retailer ? RetailerService.getCategoryLabel(retailer.category) : null;
+  };
+  
+  const isLocalStore = (shopName: string): boolean => {
+    const retailer = suggestedRetailers.find(r => r.name === shopName);
+    return retailer?.hasLocalStores ?? false;
+  };
 
   const toggleShop = (shop: string) => {
     if (favoriteShops.includes(shop)) {
@@ -445,6 +463,22 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
       setStylistAccent(accents[0]);
     }
   }, [stylistLanguage]);
+
+  useEffect(() => {
+    const fetchRetailers = async () => {
+      if (!country) return;
+      setLoadingRetailers(true);
+      try {
+        const retailers = await RetailerService.getRetailerSuggestions(country);
+        setSuggestedRetailers(retailers);
+      } catch (error) {
+        console.log('Error fetching retailer suggestions:', error);
+      } finally {
+        setLoadingRetailers(false);
+      }
+    };
+    fetchRetailers();
+  }, [country]);
 
   useEffect(() => {
     const setupAudio = async () => {
@@ -1032,7 +1066,9 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
               Where do you shop?
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              Select up to 10 shops you love (helps AI personalize recommendations)
+              {suggestedRetailers.length > 0 
+                ? `AI-suggested stores for ${country} - select up to 10`
+                : 'Select up to 10 shops you love (helps AI personalize recommendations)'}
             </ThemedText>
 
             <View style={styles.searchContainer}>
@@ -1052,7 +1088,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                 onChangeText={setShopSearchQuery}
               />
               {shopSearchQuery.trim().length > 0 && 
-               !POPULAR_SHOPS.some(s => s.toLowerCase() === shopSearchQuery.trim().toLowerCase()) &&
+               !allAvailableShops.some(s => s.toLowerCase() === shopSearchQuery.trim().toLowerCase()) &&
                !favoriteShops.some(s => s.toLowerCase() === shopSearchQuery.trim().toLowerCase()) &&
                favoriteShops.length < 10 ? (
                 <Pressable
@@ -1099,10 +1135,22 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
               </ThemedText>
             ) : null}
 
+            {loadingRetailers ? (
+              <View style={styles.loadingRetailersContainer}>
+                <ActivityIndicator size="small" color={theme.link} />
+                <ThemedText type="small" style={{ marginLeft: Spacing.sm, opacity: 0.7 }}>
+                  Finding stores in {country}...
+                </ThemedText>
+              </View>
+            ) : null}
+
             <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.shopsGrid}>
                 {filteredShops.map((shop) => {
                   const isDisabled = favoriteShops.length >= 10;
+                  const isLocal = isLocalStore(shop);
+                  const category = getRetailerCategory(shop);
+                  const isSuggested = suggestedShopNames.includes(shop);
                   return (
                     <Pressable
                       key={shop}
@@ -1111,14 +1159,22 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                       style={({ pressed }) => [
                         styles.shopChip,
                         {
-                          backgroundColor: theme.backgroundDefault,
+                          backgroundColor: isSuggested ? `${theme.link}15` : theme.backgroundDefault,
                           borderWidth: 1,
-                          borderColor: theme.backgroundSecondary,
+                          borderColor: isSuggested ? theme.link : theme.backgroundSecondary,
                           opacity: isDisabled ? 0.4 : (pressed ? 0.8 : 1),
                         },
                       ]}
                     >
+                      {isLocal ? (
+                        <Feather name="map-pin" size={12} color={theme.link} style={{ marginRight: 4 }} />
+                      ) : null}
                       <ThemedText type="small" style={{ opacity: isDisabled ? 0.5 : 1 }}>{shop}</ThemedText>
+                      {category ? (
+                        <ThemedText type="small" style={{ opacity: 0.5, marginLeft: 4, fontSize: 10 }}>
+                          {category}
+                        </ThemedText>
+                      ) : null}
                     </Pressable>
                   );
                 })}
@@ -1471,6 +1527,11 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: Spacing.sm,
     paddingBottom: Spacing.xl,
+  },
+  loadingRetailersContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.md,
   },
   shopChip: {
     flexDirection: "row",
