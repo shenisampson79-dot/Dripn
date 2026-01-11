@@ -1913,7 +1913,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               <View style={styles.shopsGrid}>
                 {filteredShops.map((shop) => {
                   const isDisabled = favoriteShops.length >= 10;
-                  const isLocal = isLocalStore(shop);
                   const category = getRetailerCategory(shop);
                   const isSuggested = suggestedShopNames.includes(shop);
                   return (
@@ -1931,9 +1930,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                         },
                       ]}
                     >
-                      {isLocal ? (
-                        <Feather name="map-pin" size={12} color={theme.link} style={{ marginRight: 4 }} />
-                      ) : null}
                       <ThemedText type="small" style={{ opacity: isDisabled ? 0.5 : 1 }}>{shop}</ThemedText>
                       {category ? (
                         <ThemedText type="small" style={{ opacity: 0.5, marginLeft: 4, fontSize: 10 }}>
