@@ -124,6 +124,12 @@ headers: {
 - Supported languages: English, Spanish, French, German, Italian, Portuguese, Japanese, Korean, Mandarin, Arabic, Hindi, Dutch, Russian, Swedish
 - Best quality with ElevenLabs credits; OpenAI TTS as fallback
 
+**OpenAI TTS Fallback Details**:
+- English: Uses `tts-1-hd` (high definition)
+- Non-English: Uses `tts-1` (standard model, cleaner without echo)
+- British Ruby: Uses "alloy" voice (gender-neutral, less American) instead of "nova"
+- When ElevenLabs credits available: British Ruby uses "Lily" (proper British female voice)
+
 ### Personality
 - `POST /api/personality/analyze` - Analyze user personality
 - `GET /api/personality/insights` - Get personality insights
