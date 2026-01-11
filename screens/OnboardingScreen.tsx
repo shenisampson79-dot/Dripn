@@ -2452,7 +2452,9 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 <View style={[styles.colorSeasonTip, { backgroundColor: theme.backgroundSecondary }]}>
                   <Feather name="info" size={14} color={theme.link} style={{ marginRight: Spacing.sm }} />
                   <ThemedText type="caption" style={{ flex: 1, color: theme.tabIconDefault }}>
-                    Seasonal color analysis is widely used in fashion and beauty. You can reference these colors when shopping for clothes, makeup, or accessories that complement your natural coloring.
+                    {user?.gender?.toLowerCase() === 'man' || user?.gender?.toLowerCase() === 'male'
+                      ? "Seasonal color analysis is widely used in fashion. You can reference these colors when shopping for clothes, watches, or accessories that complement your natural coloring."
+                      : "Seasonal color analysis is widely used in fashion and beauty. You can reference these colors when shopping for clothes, makeup, or accessories that complement your natural coloring."}
                   </ThemedText>
                 </View>
                 
