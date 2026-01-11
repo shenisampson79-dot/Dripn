@@ -142,6 +142,35 @@ export interface StyleQuizResult {
   quickStats?: QuickStats;
 }
 
+export interface CameraGuidanceTimer {
+  enabled: boolean;
+  durationSeconds: number;
+  countdownText: string[];
+}
+
+export interface CameraGuidanceOverlay {
+  type: 'body-silhouette' | 'face-oval';
+  aspectRatio: string;
+  guideText: {
+    top: string;
+    middle: string;
+    bottom: string;
+  };
+}
+
+export interface CameraGuidancePositioning {
+  distance: string;
+  lighting?: string;
+  angle?: string;
+}
+
+export interface CameraGuidance {
+  timer: CameraGuidanceTimer;
+  overlay: CameraGuidanceOverlay;
+  tips: string[];
+  positioning: CameraGuidancePositioning;
+}
+
 class OnboardingServiceClass {
   private async getAuthHeaders(): Promise<Record<string, string>> {
     const token = await apiService.getToken();
@@ -221,6 +250,36 @@ class OnboardingServiceClass {
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`Style quiz submission failed: ${error}`);
+    }
+
+    return response.json();
+  }
+
+  async getBodyScanGuidance(): Promise<CameraGuidance> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/onboarding/body-scan/guidance`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to get body scan guidance: ${error}`);
+    }
+
+    return response.json();
+  }
+
+  async getColorScanGuidance(): Promise<CameraGuidance> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/onboarding/color-scan/guidance`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to get color scan guidance: ${error}`);
     }
 
     return response.json();

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput, Alert, Keyboard, Modal, Animated, Easing, Dimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -18,8 +18,9 @@ import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getDefaul
 import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
 import { NamePronunciationPrompt } from "@/components/NamePronunciationPrompt";
 import { RetailerService, Retailer } from "@/services/RetailerService";
-import { OnboardingService, BodyScanResult, ColorScanResult, StyleQuizQuestion, StyleQuizResult, StyleArchetype } from "@/services/OnboardingService";
+import { OnboardingService, BodyScanResult, ColorScanResult, StyleQuizQuestion, StyleQuizResult, StyleArchetype, CameraGuidance } from "@/services/OnboardingService";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { CameraView, useCameraPermissions } from "expo-camera";
 
 const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "woman", name: "Woman", icon: "user" },
@@ -472,6 +473,16 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
     color: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'][Math.floor(Math.random() * 7)],
   })));
   const [showPronunciationPrompt, setShowPronunciationPrompt] = useState(false);
+  
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [cameraGuidance, setCameraGuidance] = useState<CameraGuidance | null>(null);
+  const [cameraScanType, setCameraScanType] = useState<'body' | 'color' | null>(null);
+  const [countdownIndex, setCountdownIndex] = useState(-1);
+  const [isCountdownActive, setIsCountdownActive] = useState(false);
+  const [showTipsScreen, setShowTipsScreen] = useState(true);
+  const cameraRef = useRef<CameraView>(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  
   // Initialize from user's stored preferences, or use defaults
   const [useNameInGreetings, setUseNameInGreetings] = useState(
     user?.stylistPreferences?.useNameInGreetings ?? true
@@ -657,81 +668,134 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
 
   const handleBodyScan = useCallback(async () => {
     try {
-      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      if (permissionResult.status !== 'granted') {
-        Alert.alert('Permission Required', 'Camera access is needed to scan your body type.');
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [3, 4],
-        quality: 0.8,
-        base64: true,
-      });
-
-      if (result.canceled || !result.assets[0].base64) return;
-
-      setIsBodyScanning(true);
-      const scanResult = await OnboardingService.bodyScan(result.assets[0].base64);
-      setBodyScanResult(scanResult);
-      
-      if (scanResult.autoFillFields) {
-        const fields = scanResult.autoFillFields;
-        if (fields.bodyType) {
-          const mappedShape = fields.bodyType as BodyShape;
-          setBodyShape(mappedShape);
+      if (!cameraPermission?.granted) {
+        const result = await requestCameraPermission();
+        if (!result.granted) {
+          Alert.alert('Permission Required', 'Camera access is needed to scan your body type.');
+          return;
         }
       }
-      
-      Alert.alert(
-        'Body Scan Complete',
-        scanResult.message || `Your body type: ${scanResult.bodyType}\nKibbe type: ${scanResult.kibbeBodyType}`,
-        [{ text: 'OK' }]
-      );
+
+      const guidance = await OnboardingService.getBodyScanGuidance();
+      setCameraGuidance(guidance);
+      setCameraScanType('body');
+      setShowTipsScreen(true);
+      setCountdownIndex(-1);
+      setIsCountdownActive(false);
+      setShowCameraModal(true);
     } catch (error) {
-      console.log('Body scan error:', error);
-      Alert.alert('Scan Failed', 'Unable to analyze photo. Please try again or select manually.');
-    } finally {
-      setIsBodyScanning(false);
+      console.log('Body scan setup error:', error);
+      Alert.alert('Setup Failed', 'Unable to prepare body scan. Please try again.');
     }
-  }, []);
+  }, [cameraPermission, requestCameraPermission]);
 
   const handleColorScan = useCallback(async () => {
     try {
-      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      if (permissionResult.status !== 'granted') {
-        Alert.alert('Permission Required', 'Camera access is needed to analyze your colors.');
-        return;
+      if (!cameraPermission?.granted) {
+        const result = await requestCameraPermission();
+        if (!result.granted) {
+          Alert.alert('Permission Required', 'Camera access is needed to analyze your colors.');
+          return;
+        }
       }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-        base64: true,
-      });
-
-      if (result.canceled || !result.assets[0].base64) return;
-
-      setIsColorScanning(true);
-      const scanResult = await OnboardingService.colorScan(result.assets[0].base64);
-      setColorScanResult(scanResult);
-      
-      Alert.alert(
-        'Color Analysis Complete',
-        scanResult.message || `You're a ${scanResult.colorSeasonType} ${scanResult.seasonSubtype}!\n\nPower colors: ${scanResult.colorPalette.powerColors.slice(0, 3).join(', ')}`,
-        [{ text: 'OK' }]
-      );
+      const guidance = await OnboardingService.getColorScanGuidance();
+      setCameraGuidance(guidance);
+      setCameraScanType('color');
+      setShowTipsScreen(true);
+      setCountdownIndex(-1);
+      setIsCountdownActive(false);
+      setShowCameraModal(true);
     } catch (error) {
-      console.log('Color scan error:', error);
-      Alert.alert('Analysis Failed', 'Unable to analyze colors. Please try again.');
-    } finally {
+      console.log('Color scan setup error:', error);
+      Alert.alert('Setup Failed', 'Unable to prepare color analysis. Please try again.');
+    }
+  }, [cameraPermission, requestCameraPermission]);
+
+  const startCountdown = useCallback(() => {
+    if (!cameraGuidance?.timer.enabled) {
+      capturePhoto();
+      return;
+    }
+    
+    setShowTipsScreen(false);
+    setIsCountdownActive(true);
+    setCountdownIndex(0);
+  }, [cameraGuidance]);
+
+  useEffect(() => {
+    if (!isCountdownActive || !cameraGuidance) return;
+    
+    const countdownTexts = cameraGuidance.timer.countdownText;
+    if (countdownIndex >= countdownTexts.length - 1) {
+      capturePhoto();
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      setCountdownIndex(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [isCountdownActive, countdownIndex, cameraGuidance]);
+
+  const capturePhoto = useCallback(async () => {
+    if (!cameraRef.current) return;
+    
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        base64: true,
+        quality: 0.8,
+      });
+      
+      if (!photo?.base64) {
+        Alert.alert('Capture Failed', 'Unable to capture photo. Please try again.');
+        return;
+      }
+      
+      setShowCameraModal(false);
+      setIsCountdownActive(false);
+      
+      if (cameraScanType === 'body') {
+        setIsBodyScanning(true);
+        try {
+          const scanResult = await OnboardingService.bodyScan(photo.base64);
+          setBodyScanResult(scanResult);
+          
+          if (scanResult.autoFillFields?.bodyType) {
+            setBodyShape(scanResult.autoFillFields.bodyType as BodyShape);
+          }
+          
+          Alert.alert(
+            'Body Scan Complete',
+            scanResult.message || `Your body type: ${scanResult.bodyType}\nKibbe type: ${scanResult.kibbeBodyType}`,
+            [{ text: 'OK' }]
+          );
+        } finally {
+          setIsBodyScanning(false);
+        }
+      } else if (cameraScanType === 'color') {
+        setIsColorScanning(true);
+        try {
+          const scanResult = await OnboardingService.colorScan(photo.base64);
+          setColorScanResult(scanResult);
+          
+          Alert.alert(
+            'Color Analysis Complete',
+            scanResult.message || `You're a ${scanResult.colorSeasonType} ${scanResult.seasonSubtype}!\n\nPower colors: ${scanResult.colorPalette.powerColors.slice(0, 3).join(', ')}`,
+            [{ text: 'OK' }]
+          );
+        } finally {
+          setIsColorScanning(false);
+        }
+      }
+    } catch (error) {
+      console.log('Photo capture error:', error);
+      Alert.alert('Capture Failed', 'Unable to analyze photo. Please try again.');
+      setIsBodyScanning(false);
       setIsColorScanning(false);
     }
-  }, []);
+  }, [cameraScanType]);
 
   const handleStartStyleQuiz = useCallback(async () => {
     try {
@@ -2086,6 +2150,126 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={showCameraModal}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowCameraModal(false);
+          setIsCountdownActive(false);
+        }}
+      >
+        <View style={styles.cameraModalContainer}>
+          {showTipsScreen && cameraGuidance ? (
+            <View style={[styles.cameraTipsScreen, { backgroundColor: theme.backgroundDefault }]}>
+              <View style={[styles.cameraTipsHeader, { paddingTop: insets.top + Spacing.lg }]}>
+                <Pressable
+                  onPress={() => setShowCameraModal(false)}
+                  style={styles.cameraCloseBtn}
+                >
+                  <Feather name="x" size={24} color={theme.text} />
+                </Pressable>
+                <ThemedText type="h2" style={{ flex: 1, textAlign: 'center' }}>
+                  {cameraScanType === 'body' ? 'Body Scan' : 'Color Analysis'}
+                </ThemedText>
+                <View style={{ width: 40 }} />
+              </View>
+
+              <ScrollView 
+                style={styles.cameraTipsContent}
+                contentContainerStyle={{ paddingBottom: Spacing.xl }}
+              >
+                <View style={[styles.overlayPreview, { backgroundColor: theme.backgroundSecondary }]}>
+                  <View style={[
+                    cameraGuidance.overlay.type === 'body-silhouette' 
+                      ? styles.bodySilhouettePreview 
+                      : styles.faceOvalPreview,
+                    { borderColor: theme.link }
+                  ]} />
+                  <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: Spacing.md }}>
+                    {cameraGuidance.overlay.guideText.middle}
+                  </ThemedText>
+                </View>
+
+                <View style={styles.positioningInfo}>
+                  <Feather name="move" size={20} color={theme.link} />
+                  <ThemedText type="body" style={{ marginLeft: Spacing.sm }}>
+                    {cameraGuidance.positioning.distance}
+                  </ThemedText>
+                </View>
+
+                <ThemedText type="h3" style={{ marginBottom: Spacing.md }}>Tips</ThemedText>
+                {cameraGuidance.tips.map((tip, i) => (
+                  <View key={i} style={styles.tipItem}>
+                    <Feather name="check-circle" size={18} color={theme.link} />
+                    <ThemedText type="body" style={{ marginLeft: Spacing.sm, flex: 1 }}>
+                      {tip}
+                    </ThemedText>
+                  </View>
+                ))}
+              </ScrollView>
+
+              <View style={[styles.cameraTipsFooter, { paddingBottom: insets.bottom + Spacing.xl }]}>
+                <Button onPress={startCountdown}>
+                  {cameraGuidance.timer.enabled 
+                    ? `Start ${cameraGuidance.timer.durationSeconds}s Timer` 
+                    : 'Take Photo'}
+                </Button>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.cameraViewContainer}>
+              <CameraView
+                ref={cameraRef}
+                style={styles.cameraView}
+                facing="front"
+              >
+                <View style={[styles.cameraOverlay, { paddingTop: insets.top }]}>
+                  <Pressable
+                    onPress={() => {
+                      setShowCameraModal(false);
+                      setIsCountdownActive(false);
+                    }}
+                    style={styles.cameraCloseBtn}
+                  >
+                    <Feather name="x" size={24} color="#FFFFFF" />
+                  </Pressable>
+                </View>
+
+                {cameraGuidance?.overlay ? (
+                  <View style={styles.cameraGuideOverlay}>
+                    <ThemedText style={styles.guideTextTop}>
+                      {cameraGuidance.overlay.guideText.top}
+                    </ThemedText>
+                    
+                    <View style={[
+                      cameraGuidance.overlay.type === 'body-silhouette' 
+                        ? styles.bodySilhouetteOverlay 
+                        : styles.faceOvalOverlay
+                    ]} />
+                    
+                    <ThemedText style={styles.guideTextMiddle}>
+                      {cameraGuidance.overlay.guideText.middle}
+                    </ThemedText>
+                    
+                    <ThemedText style={styles.guideTextBottom}>
+                      {cameraGuidance.overlay.guideText.bottom}
+                    </ThemedText>
+                  </View>
+                ) : null}
+
+                {isCountdownActive && cameraGuidance ? (
+                  <View style={styles.countdownContainer}>
+                    <ThemedText style={styles.countdownText}>
+                      {cameraGuidance.timer.countdownText[countdownIndex] || ''}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </CameraView>
+            </View>
+          )}
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -2620,5 +2804,146 @@ const styles = StyleSheet.create({
   },
   quizResultContinueBtn: {
     marginTop: Spacing.md,
+  },
+  cameraModalContainer: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  cameraTipsScreen: {
+    flex: 1,
+  },
+  cameraTipsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
+  },
+  cameraCloseBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cameraTipsContent: {
+    flex: 1,
+    paddingHorizontal: Spacing.xl,
+  },
+  overlayPreview: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xl,
+  },
+  bodySilhouettePreview: {
+    width: 80,
+    height: 160,
+    borderWidth: 2,
+    borderRadius: 40,
+    borderStyle: "dashed",
+  },
+  faceOvalPreview: {
+    width: 100,
+    height: 130,
+    borderWidth: 2,
+    borderRadius: 65,
+    borderStyle: "dashed",
+  },
+  positioningInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.xl,
+  },
+  tipItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: Spacing.md,
+  },
+  cameraTipsFooter: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+  },
+  cameraViewContainer: {
+    flex: 1,
+  },
+  cameraView: {
+    flex: 1,
+  },
+  cameraOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: Spacing.lg,
+    zIndex: 10,
+  },
+  cameraGuideOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bodySilhouetteOverlay: {
+    width: 150,
+    height: 350,
+    borderWidth: 3,
+    borderColor: "rgba(255,255,255,0.7)",
+    borderRadius: 75,
+    borderStyle: "dashed",
+  },
+  faceOvalOverlay: {
+    width: 200,
+    height: 260,
+    borderWidth: 3,
+    borderColor: "rgba(255,255,255,0.7)",
+    borderRadius: 130,
+    borderStyle: "dashed",
+  },
+  guideTextTop: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    textShadowColor: "rgba(0,0,0,0.8)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    marginBottom: Spacing.lg,
+  },
+  guideTextMiddle: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    textShadowColor: "rgba(0,0,0,0.8)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    marginTop: Spacing.lg,
+  },
+  guideTextBottom: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    textShadowColor: "rgba(0,0,0,0.8)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    marginTop: Spacing.lg,
+  },
+  countdownContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.3)",
+  },
+  countdownText: {
+    color: "#FFFFFF",
+    fontSize: 72,
+    fontWeight: "bold",
+    textShadowColor: "rgba(0,0,0,0.8)",
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 5,
   },
 });
