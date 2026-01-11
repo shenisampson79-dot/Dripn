@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { AudioModule } from "expo-audio";
+import * as ImagePicker from "expo-image-picker";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -16,6 +17,7 @@ import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getDefaul
 import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
 import { NamePronunciationPrompt } from "@/components/NamePronunciationPrompt";
 import { RetailerService, Retailer } from "@/services/RetailerService";
+import { OnboardingService, BodyScanResult, ColorScanResult, StyleQuizQuestion, StyleQuizResult, StyleArchetype } from "@/services/OnboardingService";
 
 const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "woman", name: "Woman", icon: "user" },
@@ -403,6 +405,16 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const [shopSearchQuery, setShopSearchQuery] = useState("");
   const [suggestedRetailers, setSuggestedRetailers] = useState<Retailer[]>([]);
   const [loadingRetailers, setLoadingRetailers] = useState(false);
+  const [isBodyScanning, setIsBodyScanning] = useState(false);
+  const [bodyScanResult, setBodyScanResult] = useState<BodyScanResult | null>(null);
+  const [isColorScanning, setIsColorScanning] = useState(false);
+  const [colorScanResult, setColorScanResult] = useState<ColorScanResult | null>(null);
+  const [showStyleQuiz, setShowStyleQuiz] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState<StyleQuizQuestion[]>([]);
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
+  const [currentQuizQuestion, setCurrentQuizQuestion] = useState(0);
+  const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
+  const [quizResult, setQuizResult] = useState<StyleQuizResult | null>(null);
   const [showPronunciationPrompt, setShowPronunciationPrompt] = useState(false);
   // Initialize from user's stored preferences, or use defaults
   const [useNameInGreetings, setUseNameInGreetings] = useState(
@@ -550,6 +562,157 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
     setUseNameInGreetings(false);
     setShowPronunciationPrompt(false);
   }, []);
+
+  const handleBodyScan = useCallback(async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (permissionResult.status !== 'granted') {
+        Alert.alert('Permission Required', 'Camera access is needed to scan your body type.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [3, 4],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (result.canceled || !result.assets[0].base64) return;
+
+      setIsBodyScanning(true);
+      const scanResult = await OnboardingService.bodyScan(result.assets[0].base64);
+      setBodyScanResult(scanResult);
+      
+      if (scanResult.autoFillFields) {
+        const fields = scanResult.autoFillFields;
+        if (fields.bodyType) {
+          const mappedShape = fields.bodyType as BodyShape;
+          setBodyShape(mappedShape);
+        }
+      }
+      
+      Alert.alert(
+        'Body Scan Complete',
+        scanResult.message || `Your body type: ${scanResult.bodyType}\nKibbe type: ${scanResult.kibbeBodyType}`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.log('Body scan error:', error);
+      Alert.alert('Scan Failed', 'Unable to analyze photo. Please try again or select manually.');
+    } finally {
+      setIsBodyScanning(false);
+    }
+  }, []);
+
+  const handleColorScan = useCallback(async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (permissionResult.status !== 'granted') {
+        Alert.alert('Permission Required', 'Camera access is needed to analyze your colors.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (result.canceled || !result.assets[0].base64) return;
+
+      setIsColorScanning(true);
+      const scanResult = await OnboardingService.colorScan(result.assets[0].base64);
+      setColorScanResult(scanResult);
+      
+      Alert.alert(
+        'Color Analysis Complete',
+        scanResult.message || `You're a ${scanResult.colorSeasonType} ${scanResult.seasonSubtype}!\n\nPower colors: ${scanResult.colorPalette.powerColors.slice(0, 3).join(', ')}`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.log('Color scan error:', error);
+      Alert.alert('Analysis Failed', 'Unable to analyze colors. Please try again.');
+    } finally {
+      setIsColorScanning(false);
+    }
+  }, []);
+
+  const handleStartStyleQuiz = useCallback(async () => {
+    try {
+      setIsLoadingQuiz(true);
+      const quizConfig = await OnboardingService.getStyleQuiz();
+      setQuizQuestions(quizConfig.questions);
+      setCurrentQuizQuestion(0);
+      setQuizAnswers({});
+      setShowStyleQuiz(true);
+    } catch (error) {
+      console.log('Quiz load error:', error);
+      Alert.alert('Quiz Unavailable', 'Unable to load the style quiz. Please choose your style manually.');
+    } finally {
+      setIsLoadingQuiz(false);
+    }
+  }, []);
+
+  const handleQuizAnswer = useCallback((questionId: number, answer: string) => {
+    setQuizAnswers(prev => ({ ...prev, [questionId]: answer }));
+    
+    if (currentQuizQuestion < quizQuestions.length - 1) {
+      setCurrentQuizQuestion(prev => prev + 1);
+    }
+  }, [currentQuizQuestion, quizQuestions.length]);
+
+  const handleSubmitQuiz = useCallback(async () => {
+    try {
+      setIsLoadingQuiz(true);
+      const answers = Object.entries(quizAnswers).map(([questionId, answer]) => ({
+        questionId: parseInt(questionId),
+        answer,
+      }));
+      
+      const result = await OnboardingService.submitStyleQuiz(answers);
+      setQuizResult(result);
+      
+      setShowStyleQuiz(false);
+      
+      if (result.primaryArchetype) {
+        const archetypeToStyle: Record<string, StyleTheme> = {
+          minimalist: 'luxury',
+          classic: 'smart-casual',
+          bohemian: 'boho',
+          edgy: 'edgy',
+          romantic: 'luxury',
+          streetwear: 'streetwear',
+          glamorous: 'luxury',
+          preppy: 'smart-casual',
+          athleisure: 'sporty',
+          eclectic: 'boho',
+        };
+        const mappedStyle = archetypeToStyle[result.primaryArchetype.id] || 'smart-casual';
+        setStylePreference(mappedStyle);
+        
+        Alert.alert(
+          `You're ${result.primaryArchetype.name}!`,
+          result.personalizedMessage || result.primaryArchetype.description,
+          [{ text: 'Continue', onPress: () => setStep(prev => prev + 1) }]
+        );
+      } else {
+        Alert.alert(
+          'Style Quiz Complete',
+          result.personalizedMessage || 'Thanks for completing the quiz! Please select your preferred style below.',
+          [{ text: 'Continue' }]
+        );
+      }
+    } catch (error) {
+      console.log('Quiz submit error:', error);
+      Alert.alert('Submission Failed', 'Unable to submit quiz. Please try again.');
+    } finally {
+      setIsLoadingQuiz(false);
+    }
+  }, [quizAnswers]);
 
   const getBodyShapeOptions = () => {
     if (gender === "man") return MEN_BODY_SHAPES;
@@ -867,6 +1030,103 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
         );
 
       case 3:
+        if (showStyleQuiz && quizQuestions.length > 0) {
+          const currentQ = quizQuestions[currentQuizQuestion];
+          const allAnswered = quizQuestions.every(q => quizAnswers[q.id]);
+          return (
+            <View style={styles.stepContent}>
+              <View style={styles.quizHeader}>
+                <Pressable onPress={() => setShowStyleQuiz(false)} style={styles.quizBackButton}>
+                  <Feather name="arrow-left" size={20} color={theme.text} />
+                </Pressable>
+                <ThemedText type="small" style={{ opacity: 0.7 }}>
+                  Question {currentQuizQuestion + 1} of {quizQuestions.length}
+                </ThemedText>
+              </View>
+              <View style={styles.quizProgressBar}>
+                <View 
+                  style={[
+                    styles.quizProgressFill, 
+                    { 
+                      width: `${((currentQuizQuestion + 1) / quizQuestions.length) * 100}%`,
+                      backgroundColor: theme.link,
+                    }
+                  ]} 
+                />
+              </View>
+              <ThemedText type="h2" style={[styles.stepTitle, { marginTop: Spacing.lg }]}>
+                {currentQ.question}
+              </ThemedText>
+              <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+                <View style={styles.quizOptions}>
+                  {currentQ.options.map((option) => (
+                    <Pressable
+                      key={option.value}
+                      onPress={() => handleQuizAnswer(currentQ.id, option.value)}
+                      style={({ pressed }) => [
+                        styles.quizOption,
+                        {
+                          backgroundColor: quizAnswers[currentQ.id] === option.value 
+                            ? theme.link 
+                            : theme.backgroundDefault,
+                          borderColor: quizAnswers[currentQ.id] === option.value 
+                            ? theme.link 
+                            : theme.backgroundSecondary,
+                          opacity: pressed ? 0.8 : 1,
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        type="body"
+                        style={{
+                          color: quizAnswers[currentQ.id] === option.value ? "#FFFFFF" : theme.text,
+                        }}
+                      >
+                        {option.text}
+                      </ThemedText>
+                    </Pressable>
+                  ))}
+                </View>
+                <View style={styles.quizNavigation}>
+                  {currentQuizQuestion > 0 ? (
+                    <Pressable
+                      onPress={() => setCurrentQuizQuestion(prev => prev - 1)}
+                      style={[styles.quizNavButton, { backgroundColor: theme.backgroundDefault }]}
+                    >
+                      <Feather name="chevron-left" size={20} color={theme.text} />
+                      <ThemedText type="body">Previous</ThemedText>
+                    </Pressable>
+                  ) : <View />}
+                  {allAnswered ? (
+                    <Pressable
+                      onPress={handleSubmitQuiz}
+                      disabled={isLoadingQuiz}
+                      style={[styles.quizNavButton, { backgroundColor: theme.link }]}
+                    >
+                      {isLoadingQuiz ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <>
+                          <ThemedText type="body" style={{ color: "#FFFFFF" }}>Submit</ThemedText>
+                          <Feather name="check" size={20} color="#FFFFFF" />
+                        </>
+                      )}
+                    </Pressable>
+                  ) : currentQuizQuestion < quizQuestions.length - 1 && quizAnswers[currentQ.id] ? (
+                    <Pressable
+                      onPress={() => setCurrentQuizQuestion(prev => prev + 1)}
+                      style={[styles.quizNavButton, { backgroundColor: theme.link }]}
+                    >
+                      <ThemedText type="body" style={{ color: "#FFFFFF" }}>Next</ThemedText>
+                      <Feather name="chevron-right" size={20} color="#FFFFFF" />
+                    </Pressable>
+                  ) : null}
+                </View>
+              </ScrollView>
+            </View>
+          );
+        }
+        
         const styleOptions = gender === 'man' ? STYLE_OPTIONS_MALE : STYLE_OPTIONS_FEMALE;
         const getStyleImage = (styleId: StyleTheme): ImageSourcePropType => {
           const region = getRegionFromCountry(country);
@@ -886,6 +1146,39 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
             <ThemedText type="body" style={styles.stepSubtitle}>
               Pick the aesthetic that speaks to you
             </ThemedText>
+            
+            <Pressable
+              onPress={handleStartStyleQuiz}
+              disabled={isLoadingQuiz}
+              style={({ pressed }) => [
+                styles.aiShortcutButton,
+                {
+                  backgroundColor: `${theme.link}15`,
+                  borderColor: theme.link,
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
+            >
+              {isLoadingQuiz ? (
+                <ActivityIndicator size="small" color={theme.link} />
+              ) : (
+                <Feather name="zap" size={20} color={theme.link} />
+              )}
+              <View style={styles.aiShortcutText}>
+                <ThemedText type="body" style={{ color: theme.link, fontWeight: '600' }}>
+                  Take the Style Quiz
+                </ThemedText>
+                <ThemedText type="small" style={{ opacity: 0.7 }}>
+                  7 quick questions to discover your style archetype
+                </ThemedText>
+              </View>
+              <Feather name="chevron-right" size={20} color={theme.link} />
+            </Pressable>
+            
+            <ThemedText type="small" style={[styles.orDivider, { color: theme.tabIconDefault }]}>
+              or choose below
+            </ThemedText>
+            
             <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.styleOptions}>
                 {styleOptions.map((s) => (
@@ -941,6 +1234,81 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
               Help us personalize your recommendations
             </ThemedText>
             <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.aiScanSection}>
+                <Pressable
+                  onPress={handleBodyScan}
+                  disabled={isBodyScanning}
+                  style={({ pressed }) => [
+                    styles.aiShortcutButton,
+                    {
+                      backgroundColor: bodyScanResult ? `${theme.link}25` : `${theme.link}15`,
+                      borderColor: theme.link,
+                      opacity: pressed ? 0.8 : 1,
+                    },
+                  ]}
+                >
+                  {isBodyScanning ? (
+                    <ActivityIndicator size="small" color={theme.link} />
+                  ) : (
+                    <Feather name="camera" size={20} color={theme.link} />
+                  )}
+                  <View style={styles.aiShortcutText}>
+                    <ThemedText type="body" style={{ color: theme.link, fontWeight: '600' }}>
+                      {bodyScanResult ? 'Body Scan Complete' : 'AI Body Scan'}
+                    </ThemedText>
+                    <ThemedText type="small" style={{ opacity: 0.7 }}>
+                      {bodyScanResult 
+                        ? `${bodyScanResult.bodyType} - ${bodyScanResult.kibbeBodyType}`
+                        : 'Take a photo to detect your body type'}
+                    </ThemedText>
+                  </View>
+                  {bodyScanResult ? (
+                    <Feather name="check-circle" size={20} color={theme.link} />
+                  ) : (
+                    <Feather name="chevron-right" size={20} color={theme.link} />
+                  )}
+                </Pressable>
+
+                <Pressable
+                  onPress={handleColorScan}
+                  disabled={isColorScanning}
+                  style={({ pressed }) => [
+                    styles.aiShortcutButton,
+                    {
+                      backgroundColor: colorScanResult ? `${theme.link}25` : `${theme.link}15`,
+                      borderColor: theme.link,
+                      opacity: pressed ? 0.8 : 1,
+                      marginTop: Spacing.sm,
+                    },
+                  ]}
+                >
+                  {isColorScanning ? (
+                    <ActivityIndicator size="small" color={theme.link} />
+                  ) : (
+                    <Feather name="sun" size={20} color={theme.link} />
+                  )}
+                  <View style={styles.aiShortcutText}>
+                    <ThemedText type="body" style={{ color: theme.link, fontWeight: '600' }}>
+                      {colorScanResult ? 'Color Analysis Complete' : 'AI Color Analysis'}
+                    </ThemedText>
+                    <ThemedText type="small" style={{ opacity: 0.7 }}>
+                      {colorScanResult 
+                        ? `${colorScanResult.colorSeasonType} ${colorScanResult.seasonSubtype}`
+                        : 'Selfie to find your best colors'}
+                    </ThemedText>
+                  </View>
+                  {colorScanResult ? (
+                    <Feather name="check-circle" size={20} color={theme.link} />
+                  ) : (
+                    <Feather name="chevron-right" size={20} color={theme.link} />
+                  )}
+                </Pressable>
+              </View>
+
+              <ThemedText type="small" style={[styles.orDivider, { color: theme.tabIconDefault }]}>
+                or select manually
+              </ThemedText>
+
               <View style={styles.optionalSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>
                   Size Range
@@ -1554,5 +1922,68 @@ const styles = StyleSheet.create({
   },
   goalTextContainer: {
     flex: 1,
+  },
+  aiShortcutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    gap: Spacing.md,
+  },
+  aiShortcutText: {
+    flex: 1,
+  },
+  aiScanSection: {
+    marginBottom: Spacing.md,
+  },
+  orDivider: {
+    textAlign: "center",
+    marginVertical: Spacing.md,
+  },
+  quizHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  quizBackButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quizProgressBar: {
+    height: 4,
+    backgroundColor: "rgba(128, 128, 128, 0.2)",
+    borderRadius: 2,
+    marginTop: Spacing.md,
+    overflow: "hidden",
+  },
+  quizProgressFill: {
+    height: "100%",
+    borderRadius: 2,
+  },
+  quizOptions: {
+    gap: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  quizOption: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+  },
+  quizNavigation: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.xl,
+  },
+  quizNavButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
   },
 });
