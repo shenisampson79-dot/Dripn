@@ -4501,6 +4501,306 @@ app.get('/api/virtual-try-on/history', authMiddleware, async (req, res) => {
   }
 });
 
+// ============ ONBOARDING SCANS ============
+
+const BODY_SCAN_PROMPT = `You are a supportive fashion consultant helping someone understand their body proportions for clothing recommendations.
+
+CRITICAL RULES - READ CAREFULLY:
+1. ONLY describe what you can ACTUALLY SEE in the photo
+2. NEVER make claims about height - you cannot determine height from a photo
+3. NEVER claim to see through clothing - if someone wears loose/bulky clothes, say "Based on visible proportions, though fitted clothing would give more accurate results"
+4. Use hedged, honest language: "appears to have", "seems to be", "based on visible proportions"
+5. Focus on OBSERVABLE features: shoulder width relative to hips, torso length relative to legs, overall silhouette
+6. If feet are not visible, DO NOT mention height or leg length
+7. If wearing bulky clothes, acknowledge this limits accuracy
+8. Be body-positive and focus on finding flattering styles, not critiquing the body
+
+Analyze the visible proportions and provide:
+
+1. BODY TYPE: Based on visible shoulder-to-hip ratio and overall silhouette (rectangle, triangle, inverted triangle, hourglass, oval)
+2. KIBBE BODY TYPE: Best estimate based on visible bone structure and proportions
+3. STYLE RECOMMENDATIONS: 3-5 clothing styles that typically flatter this body type
+4. AFFIRMATION: A warm, body-positive message (2-3 sentences)
+
+Important: If you cannot clearly see the full body or the person is wearing very loose clothing, include a note that results may be more accurate with form-fitting clothes and full body visible.
+
+Respond in JSON format:
+{
+  "bodyType": "body type name",
+  "kibbeBodyType": "Kibbe classification",
+  "confidence": "high/medium/low based on photo quality and visibility",
+  "limitations": "any limitations noted (e.g., 'Wearing loose clothing - results approximate')",
+  "kibbeStyleRecommendations": ["recommendation 1", "recommendation 2", "recommendation 3"],
+  "affirmation": "body-positive message celebrating their unique proportions",
+  "message": "brief summary of findings with honest caveats",
+  "review": {
+    "confirmButtonText": "Confirm",
+    "retakeButtonText": "Retake"
+  }
+}`;
+
+const COLOR_SCAN_PROMPT = `You are an expert color analyst helping someone discover their most flattering colors based on their natural coloring.
+
+Analyze the person's visible skin tone, and if visible, their hair and eye color. Determine their seasonal color type.
+
+Focus on:
+1. SKIN UNDERTONE: Warm (golden/peachy), Cool (pink/blue), or Neutral
+2. CONTRAST LEVEL: High (dark hair, light skin), Medium, or Low (similar tones)
+3. SEASONAL COLOR TYPE: Spring, Summer, Autumn, or Winter
+4. SEASON SUBTYPE: Light, Deep, Warm, Cool, Soft, or Clear
+
+Provide a palette of 5 "power colors" that will make them look their best.
+
+Be encouraging and focus on how these colors will enhance their natural beauty.
+
+Respond in JSON format:
+{
+  "skinTone": "description of visible skin tone",
+  "undertone": "warm/cool/neutral",
+  "contrastLevel": "high/medium/low",
+  "colorSeasonType": "Spring/Summer/Autumn/Winter",
+  "seasonSubtype": "light/deep/warm/cool/soft/clear",
+  "colorPalette": {
+    "powerColors": ["Color Name #HexCode", "Color Name #HexCode", "Color Name #HexCode", "Color Name #HexCode", "Color Name #HexCode"],
+    "neutrals": ["Neutral 1 #HexCode", "Neutral 2 #HexCode"],
+    "colorsToAvoid": ["color to avoid 1", "color to avoid 2"]
+  },
+  "metalRecommendation": "gold/silver/rose gold/mixed",
+  "message": "personalized message about their color season and how to use it when shopping",
+  "review": {
+    "confirmButtonText": "Confirm",
+    "retakeButtonText": "Retake"
+  }
+}`;
+
+app.post('/api/onboarding/body-scan', authMiddleware, async (req, res) => {
+  try {
+    const { imageBase64, autoSave } = req.body;
+    
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'Image is required' });
+    }
+
+    const visionModel = await getBestModel('vision');
+    console.log(`[BodyScan] Using model: ${visionModel}`);
+
+    const response = await openai.chat.completions.create({
+      model: visionModel,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: BODY_SCAN_PROMPT },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${imageBase64}`,
+                detail: 'high',
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 1000,
+      temperature: 0.7,
+    });
+
+    const content = response.choices[0]?.message?.content?.trim();
+    if (!content) {
+      throw new Error('Empty response from vision model');
+    }
+
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
+    const result = JSON.parse(cleanedContent);
+
+    if (autoSave && req.userId) {
+      await pool.query(
+        `UPDATE users SET body_type = $1, kibbe_body_type = $2 WHERE id = $3`,
+        [result.bodyType, result.kibbeBodyType, req.userId]
+      );
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Body scan error:', error);
+    res.status(500).json({ error: 'Body scan failed. Please try again.' });
+  }
+});
+
+app.get('/api/onboarding/body-scan/guidance', authMiddleware, (req, res) => {
+  res.json({
+    timer: {
+      enabled: true,
+      durationSeconds: 5,
+      countdownText: ["5", "4", "3", "2", "1", "Scanning..."]
+    },
+    overlay: {
+      type: "body-silhouette",
+      aspectRatio: "9:16",
+      guideText: {
+        top: "Fit your whole body in frame (head to feet)",
+        middle: "Stand straight, arms relaxed",
+        bottom: ""
+      },
+      targetZoneLabel: "Stand straight, arms relaxed"
+    },
+    tips: [
+      {
+        icon: "maximize",
+        title: "Full Body Visible",
+        description: "Stand far enough back that your entire body from head to feet is in frame"
+      },
+      {
+        icon: "sun",
+        title: "Good Lighting",
+        description: "Stand facing natural light or a well-lit area"
+      },
+      {
+        icon: "user",
+        title: "Form-fitting clothes",
+        description: "Wear fitted clothing so we can see your natural shape"
+      },
+      {
+        icon: "smartphone",
+        title: "Prop your phone",
+        description: "Use a shelf, lean against something, or ask someone to help"
+      }
+    ],
+    tipsSimple: [
+      "Good lighting: Stand facing natural light or a well-lit area",
+      "Form-fitting clothes: Wear fitted clothing so we can see your natural shape",
+      "Prop your phone: Use a shelf, lean against something, or ask someone to help",
+      "Full body visible: Step back so your entire body fits in the frame"
+    ],
+    positioning: {
+      distance: "6-8 feet from camera",
+      lighting: "well-lit area",
+      angle: "straight on, facing camera"
+    }
+  });
+});
+
+app.post('/api/onboarding/color-scan', authMiddleware, async (req, res) => {
+  try {
+    const { imageBase64, autoSave } = req.body;
+    
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'Image is required' });
+    }
+
+    const visionModel = await getBestModel('vision');
+    console.log(`[ColorScan] Using model: ${visionModel}`);
+
+    const response = await openai.chat.completions.create({
+      model: visionModel,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: COLOR_SCAN_PROMPT },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${imageBase64}`,
+                detail: 'high',
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 1000,
+      temperature: 0.7,
+    });
+
+    const content = response.choices[0]?.message?.content?.trim();
+    if (!content) {
+      throw new Error('Empty response from vision model');
+    }
+
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
+    const result = JSON.parse(cleanedContent);
+
+    if (autoSave && req.userId) {
+      await pool.query(
+        `UPDATE users SET color_season = $1, skin_undertone = $2 WHERE id = $3`,
+        [result.colorSeasonType, result.undertone, req.userId]
+      );
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Color scan error:', error);
+    res.status(500).json({ error: 'Color scan failed. Please try again.' });
+  }
+});
+
+app.get('/api/onboarding/color-scan/guidance', authMiddleware, (req, res) => {
+  res.json({
+    timer: {
+      enabled: true,
+      durationSeconds: 3,
+      countdownText: ["3", "2", "1", "Analyzing..."]
+    },
+    overlay: {
+      type: "face-oval",
+      aspectRatio: "3:4",
+      guideText: {
+        top: "Position your face in the oval",
+        middle: "",
+        bottom: "Good lighting helps accuracy"
+      },
+      targetZoneLabel: "Face"
+    },
+    tips: [
+      {
+        icon: "sun",
+        title: "Natural Lighting",
+        description: "Stand near a window with natural daylight for accurate skin tone detection"
+      },
+      {
+        icon: "droplet",
+        title: "No makeup (if possible)",
+        description: "Bare skin gives the most accurate results, but light makeup is okay"
+      },
+      {
+        icon: "eye",
+        title: "Face camera directly",
+        description: "Look straight at the camera with your face fully visible"
+      }
+    ],
+    tipsSimple: [
+      "Natural light: Stand near a window for accurate color detection",
+      "Minimal makeup: Bare skin gives the best results",
+      "Face the camera: Look straight ahead with your whole face visible"
+    ],
+    positioning: {
+      distance: "2-3 feet from camera",
+      lighting: "natural daylight preferred",
+      angle: "face camera directly"
+    }
+  });
+});
+
+app.get('/api/discover/config', (req, res) => {
+  res.json({
+    layout: {
+      type: "grid",
+      columns: 2,
+      tileAspectRatio: "1:1",
+      horizontalPadding: 16,
+      verticalSpacing: 12,
+      equalWidth: true
+    },
+    styling: {
+      tileTextColor: "#FFFFFF",
+      tileIconColor: "#FFFFFF",
+      tileIconSize: 36,
+      tileLabelSize: 15,
+      tileBorderRadius: 20
+    }
+  });
+});
+
 // ============ HEALTH CHECK ============
 
 app.get('/', (req, res) => {
