@@ -3,6 +3,14 @@ import { apiService } from "@/services/ApiService";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
 
+export interface ScanReview {
+  showCapturedImage: boolean;
+  allowRetake: boolean;
+  confirmButtonText: string;
+  retakeButtonText: string;
+  adjustButtonText?: string;
+}
+
 export interface BodyScanResult {
   bodyType: string;
   kibbeBodyType: string;
@@ -34,6 +42,7 @@ export interface BodyScanResult {
   analyzedAt: string;
   aiPowered: boolean;
   message: string;
+  review?: ScanReview;
 }
 
 export interface ColorScanResult {
@@ -72,6 +81,7 @@ export interface ColorScanResult {
   analyzedAt: string;
   aiPowered: boolean;
   message: string;
+  review?: ScanReview;
 }
 
 export interface StyleQuizQuestion {

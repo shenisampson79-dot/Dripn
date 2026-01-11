@@ -18,7 +18,7 @@ import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getDefaul
 import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
 import { NamePronunciationPrompt } from "@/components/NamePronunciationPrompt";
 import { RetailerService, Retailer } from "@/services/RetailerService";
-import { OnboardingService, BodyScanResult, ColorScanResult, StyleQuizQuestion, StyleQuizResult, StyleArchetype, CameraGuidance } from "@/services/OnboardingService";
+import { OnboardingService, BodyScanResult, ColorScanResult, StyleQuizQuestion, StyleQuizResult, StyleArchetype, CameraGuidance, ScanReview } from "@/services/OnboardingService";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { CameraView, useCameraPermissions } from "expo-camera";
 
@@ -491,6 +491,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const cameraRef = useRef<CameraView>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   
+  const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
+  const [showScanReviewModal, setShowScanReviewModal] = useState(false);
+  const [pendingScanResult, setPendingScanResult] = useState<{ type: 'body' | 'color'; result: BodyScanResult | ColorScanResult } | null>(null);
+  
   // Initialize from user's stored preferences, or use defaults
   const [useNameInGreetings, setUseNameInGreetings] = useState(
     user?.stylistPreferences?.useNameInGreetings ?? true
@@ -757,11 +761,12 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         quality: 0.8,
       });
       
-      if (!photo?.base64) {
+      if (!photo?.base64 || !photo?.uri) {
         Alert.alert('Capture Failed', 'Unable to capture photo. Please try again.');
         return;
       }
       
+      setCapturedPhotoUri(photo.uri);
       setShowCameraModal(false);
       setIsCountdownActive(false);
       
@@ -769,17 +774,21 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         setIsBodyScanning(true);
         try {
           const scanResult = await OnboardingService.bodyScan(photo.base64);
-          setBodyScanResult(scanResult);
           
-          if (scanResult.autoFillFields?.bodyType) {
-            setBodyShape(scanResult.autoFillFields.bodyType as BodyShape);
+          if (scanResult.review?.showCapturedImage) {
+            setPendingScanResult({ type: 'body', result: scanResult });
+            setShowScanReviewModal(true);
+          } else {
+            setBodyScanResult(scanResult);
+            if (scanResult.autoFillFields?.bodyType) {
+              setBodyShape(scanResult.autoFillFields.bodyType as BodyShape);
+            }
+            Alert.alert(
+              'Body Scan Complete',
+              scanResult.message || `Your body type: ${scanResult.bodyType}\nKibbe type: ${scanResult.kibbeBodyType}`,
+              [{ text: 'OK' }]
+            );
           }
-          
-          Alert.alert(
-            'Body Scan Complete',
-            scanResult.message || `Your body type: ${scanResult.bodyType}\nKibbe type: ${scanResult.kibbeBodyType}`,
-            [{ text: 'OK' }]
-          );
         } finally {
           setIsBodyScanning(false);
         }
@@ -787,13 +796,18 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         setIsColorScanning(true);
         try {
           const scanResult = await OnboardingService.colorScan(photo.base64);
-          setColorScanResult(scanResult);
           
-          Alert.alert(
-            'Color Analysis Complete',
-            scanResult.message || `You're a ${scanResult.colorSeasonType} ${scanResult.seasonSubtype}!\n\nPower colors: ${scanResult.colorPalette.powerColors.slice(0, 3).join(', ')}`,
-            [{ text: 'OK' }]
-          );
+          if (scanResult.review?.showCapturedImage) {
+            setPendingScanResult({ type: 'color', result: scanResult });
+            setShowScanReviewModal(true);
+          } else {
+            setColorScanResult(scanResult);
+            Alert.alert(
+              'Color Analysis Complete',
+              scanResult.message || `You're a ${scanResult.colorSeasonType} ${scanResult.seasonSubtype}!\n\nPower colors: ${scanResult.colorPalette.powerColors.slice(0, 3).join(', ')}`,
+              [{ text: 'OK' }]
+            );
+          }
         } finally {
           setIsColorScanning(false);
         }
@@ -805,6 +819,32 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       setIsColorScanning(false);
     }
   }, [cameraScanType]);
+
+  const handleConfirmScanResult = useCallback(() => {
+    if (!pendingScanResult) return;
+    
+    if (pendingScanResult.type === 'body') {
+      const result = pendingScanResult.result as BodyScanResult;
+      setBodyScanResult(result);
+      if (result.autoFillFields?.bodyType) {
+        setBodyShape(result.autoFillFields.bodyType as BodyShape);
+      }
+    } else {
+      setColorScanResult(pendingScanResult.result as ColorScanResult);
+    }
+    
+    setShowScanReviewModal(false);
+    setPendingScanResult(null);
+    setCapturedPhotoUri(null);
+  }, [pendingScanResult]);
+  
+  const handleRetakeScan = useCallback(() => {
+    setShowScanReviewModal(false);
+    setPendingScanResult(null);
+    setCapturedPhotoUri(null);
+    setShowTipsScreen(true);
+    setShowCameraModal(true);
+  }, []);
 
   const handleStartStyleQuiz = useCallback(async () => {
     try {
@@ -2279,6 +2319,116 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           )}
         </View>
       </Modal>
+
+      <Modal
+        visible={showScanReviewModal}
+        animationType="slide"
+        onRequestClose={() => setShowScanReviewModal(false)}
+      >
+        <ThemedView style={styles.scanReviewModal}>
+          <View style={[styles.scanReviewHeader, { paddingTop: insets.top + Spacing.lg }]}>
+            <Pressable
+              onPress={() => {
+                setShowScanReviewModal(false);
+                setPendingScanResult(null);
+                setCapturedPhotoUri(null);
+              }}
+              style={styles.cameraCloseBtn}
+            >
+              <Feather name="x" size={24} color={theme.text} />
+            </Pressable>
+            <ThemedText type="h2" style={{ flex: 1, textAlign: 'center' }}>
+              {pendingScanResult?.type === 'body' ? 'Body Scan Results' : 'Color Analysis Results'}
+            </ThemedText>
+            <View style={{ width: 40 }} />
+          </View>
+
+          <ScrollView 
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.scanReviewContent}
+          >
+            {capturedPhotoUri ? (
+              <View style={styles.capturedPhotoContainer}>
+                <Image 
+                  source={{ uri: capturedPhotoUri }} 
+                  style={styles.capturedPhoto}
+                  resizeMode="cover"
+                />
+              </View>
+            ) : null}
+
+            {pendingScanResult?.type === 'body' ? (
+              <View style={styles.scanResultDetails}>
+                <ThemedText type="h3" style={{ marginBottom: Spacing.md }}>
+                  {(pendingScanResult.result as BodyScanResult).bodyType}
+                </ThemedText>
+                <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.md }}>
+                  Kibbe: {(pendingScanResult.result as BodyScanResult).kibbeBodyType}
+                </ThemedText>
+                <ThemedText type="body" style={{ marginBottom: Spacing.lg }}>
+                  {(pendingScanResult.result as BodyScanResult).affirmation}
+                </ThemedText>
+                
+                <View style={[styles.scanResultCard, { backgroundColor: theme.backgroundSecondary }]}>
+                  <ThemedText type="caption" style={{ fontWeight: '600', marginBottom: Spacing.sm }}>
+                    Style Recommendations
+                  </ThemedText>
+                  {(pendingScanResult.result as BodyScanResult).kibbeStyleRecommendations.slice(0, 3).map((rec, i) => (
+                    <View key={i} style={styles.tipItem}>
+                      <Feather name="check" size={16} color={theme.link} />
+                      <ThemedText type="body" style={{ marginLeft: Spacing.sm, flex: 1 }}>
+                        {rec}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : pendingScanResult?.type === 'color' ? (
+              <View style={styles.scanResultDetails}>
+                <ThemedText type="h3" style={{ marginBottom: Spacing.md }}>
+                  {(pendingScanResult.result as ColorScanResult).colorSeasonType} {(pendingScanResult.result as ColorScanResult).seasonSubtype}
+                </ThemedText>
+                <ThemedText type="body" style={{ marginBottom: Spacing.lg }}>
+                  {(pendingScanResult.result as ColorScanResult).message}
+                </ThemedText>
+                
+                <View style={[styles.scanResultCard, { backgroundColor: theme.backgroundSecondary }]}>
+                  <ThemedText type="caption" style={{ fontWeight: '600', marginBottom: Spacing.sm }}>
+                    Your Power Colors
+                  </ThemedText>
+                  <View style={styles.colorSwatchRow}>
+                    {(pendingScanResult.result as ColorScanResult).colorPalette.powerColors.slice(0, 5).map((color, i) => (
+                      <View key={i} style={styles.colorSwatchItem}>
+                        <View style={[styles.colorSwatch, { backgroundColor: color.toLowerCase().replace(/\s+/g, '') }]} />
+                        <ThemedText type="caption" style={{ fontSize: 10, textAlign: 'center' }}>
+                          {color}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            ) : null}
+          </ScrollView>
+
+          <View style={[styles.scanReviewFooter, { paddingBottom: insets.bottom + Spacing.lg }]}>
+            <View style={styles.scanReviewButtons}>
+              <Pressable
+                onPress={handleRetakeScan}
+                style={[styles.scanReviewSecondaryBtn, { borderColor: theme.link }]}
+              >
+                <Feather name="refresh-cw" size={18} color={theme.link} />
+                <ThemedText type="body" style={{ color: theme.link, marginLeft: Spacing.sm }}>
+                  {pendingScanResult?.result.review?.retakeButtonText || 'Retake'}
+                </ThemedText>
+              </Pressable>
+              <Button onPress={handleConfirmScanResult} style={{ flex: 1 }}>
+                {pendingScanResult?.result.review?.confirmButtonText || 'Confirm'}
+              </Button>
+            </View>
+          </View>
+        </ThemedView>
+      </Modal>
     </ThemedView>
   );
 }
@@ -2954,5 +3104,72 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.8)",
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 5,
+  },
+  scanReviewModal: {
+    flex: 1,
+  },
+  scanReviewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
+  },
+  scanReviewContent: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl,
+  },
+  capturedPhotoContainer: {
+    alignItems: "center",
+    marginBottom: Spacing.xl,
+  },
+  capturedPhoto: {
+    width: 200,
+    height: 280,
+    borderRadius: BorderRadius.lg,
+  },
+  scanResultDetails: {
+    flex: 1,
+  },
+  scanResultCard: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
+  },
+  colorSwatchRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  colorSwatchItem: {
+    alignItems: "center",
+    width: 50,
+  },
+  colorSwatch: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginBottom: Spacing.xs,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
+  },
+  scanReviewFooter: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.1)",
+  },
+  scanReviewButtons: {
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
+  scanReviewSecondaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
   },
 });
