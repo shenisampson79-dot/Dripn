@@ -173,36 +173,35 @@ type DiscoverScreenProps = {
 
 const { width } = Dimensions.get("window");
 
-const TILE_SIZE = (width - Spacing.lg * 2 - Spacing.sm * 3) / 4;
+const TILE_COLUMNS = 3;
+const TILE_GAP = 12;
+const TILE_SIZE = (width - Spacing.lg * 2 - TILE_GAP * (TILE_COLUMNS - 1)) / TILE_COLUMNS;
+
+const TILE_TEXT_COLOR = "#1A1A1A";
+const TILE_ICON_SIZE = 32;
+const TILE_LABEL_SIZE = 16;
 
 interface CategoryTile {
   id: string;
   name: string;
   icon: keyof typeof Feather.glyphMap;
   pastelBg: string;
-  iconColor: string;
   description: string;
   screen?: keyof DiscoverStackParamList;
   sectionId?: string;
 }
 
 const CATEGORY_TILES: CategoryTile[] = [
-  { id: "styleOfTheDay", name: "Style of Day", icon: "award", pastelBg: "#FFF0F5", iconColor: "#E91E63", description: "Daily curated outfit inspiration tailored to your region and style preferences.", sectionId: "styleOfTheDay" },
-  { id: "trends", name: "Trends", icon: "trending-up", pastelBg: "#F0F4FF", iconColor: "#5C6BC0", description: "Discover what's hot right now in fashion with real-time trend analysis and forecasts.", sectionId: "trendScanner" },
-  { id: "influencers", name: "Influencers", icon: "users", pastelBg: "#E8F5E9", iconColor: "#43A047", description: "Get inspired by top fashion influencers and learn how to recreate their signature looks.", sectionId: "influencer" },
-  { id: "challenges", name: "Challenges", icon: "flag", pastelBg: "#FFF3E0", iconColor: "#FB8C00", description: "Join fun style challenges, compete with the community, and showcase your creativity.", screen: "StyleChallenges" },
-  { id: "highlights", name: "Highlights", icon: "zap", pastelBg: "#FFFDE7", iconColor: "#FBC02D", description: "Weekly roundup of the best community posts, trending outfits, and editor's picks.", sectionId: "highlights" },
-  { id: "blog", name: "Blog", icon: "edit-3", pastelBg: "#FCE4EC", iconColor: "#EC407A", description: "Read expert fashion articles, styling tips, and in-depth guides from our editors.", screen: "FashionBlog" },
-  { id: "magazine", name: "Magazines", icon: "book-open", pastelBg: "#EDE7F6", iconColor: "#7E57C2", description: "Curated looks from top fashion magazines with shoppable outfit breakdowns.", sectionId: "magazine" },
-  { id: "celebrity", name: "Celebrity", icon: "star", pastelBg: "#FFF8E1", iconColor: "#FFB300", description: "See what celebrities are wearing and get AI-powered lookalike outfit suggestions.", sectionId: "celebrity" },
-  { id: "fashionTherapy", name: "Therapy", icon: "heart", pastelBg: "#FFEBEE", iconColor: "#EF5350", description: "Mood-based styling, body positivity affirmations, and wellness-focused outfit recommendations.", screen: "FashionTherapy" },
-  { id: "events", name: "Events", icon: "calendar", pastelBg: "#E3F2FD", iconColor: "#1E88E5", description: "Discover fashion events, pop-ups, and shows happening near you with outfit suggestions.", screen: "Events" },
-  { id: "people", name: "People", icon: "smile", pastelBg: "#E0F7FA", iconColor: "#00ACC1", description: "Connect with the Dripn community, follow fellow fashion enthusiasts, and share inspiration.", screen: "Community" },
-  { id: "offers", name: "Offers", icon: "tag", pastelBg: "#F3E5F5", iconColor: "#AB47BC", description: "Exclusive daily deals and discounts from trusted fashion retailers.", screen: "Bargains" },
-  { id: "aiStylist", name: "AI Stylist", icon: "cpu", pastelBg: "#E8EAF6", iconColor: "#3F51B5", description: "Get personalized AI-powered outfit recommendations based on your style profile and preferences.", screen: "AIStylist" },
-  { id: "virtualTryOn", name: "Try-On", icon: "image", pastelBg: "#FBE9E7", iconColor: "#FF5722", description: "Virtually try on clothes and see how they look on you before buying.", screen: "VirtualTryOn" },
-  { id: "sustainability", name: "Eco Style", icon: "globe", pastelBg: "#E8F5E9", iconColor: "#4CAF50", description: "Discover sustainable fashion brands and eco-friendly styling tips.", screen: "Sustainability" },
-  { id: "styleShuffle", name: "Shuffle", icon: "shuffle", pastelBg: "#E1F5FE", iconColor: "#03A9F4", description: "Randomly generate outfit combinations from your wardrobe or trending styles.", screen: "StyleShuffle" },
+  { id: "styleOfTheDay", name: "Style of Day", icon: "award", pastelBg: "#FFF5F5", description: "Your personalized daily outfit recommendation tailored to your style and region.", sectionId: "styleOfTheDay" },
+  { id: "trends", name: "Trends", icon: "trending-up", pastelBg: "#F0F5FF", description: "What's hot right now in fashion with real-time trend analysis and weekly highlights.", sectionId: "trendScanner" },
+  { id: "styleIcons", name: "Style Icons", icon: "star", pastelBg: "#FFF5EB", description: "Get inspired by celebrities and top fashion influencers with AI-powered lookalike outfits.", sectionId: "celebrity" },
+  { id: "challenges", name: "Challenges", icon: "flag", pastelBg: "#FFF0F5", description: "Join fun style challenges, compete with the community, and showcase your creativity.", screen: "StyleChallenges" },
+  { id: "virtualTryOn", name: "Try-On", icon: "camera", pastelBg: "#FFF5F0", description: "Virtually try on clothes and see how they look on you before buying.", screen: "VirtualTryOn" },
+  { id: "fashionTherapy", name: "Style Therapy", icon: "heart", pastelBg: "#FFF0FF", description: "Mood-based styling, body positivity affirmations, and wellness-focused outfit recommendations.", screen: "FashionTherapy" },
+  { id: "sustainability", name: "Eco Style", icon: "globe", pastelBg: "#F0FFF5", description: "Discover sustainable fashion brands and eco-friendly styling tips.", screen: "Sustainability" },
+  { id: "fashionReads", name: "Fashion Reads", icon: "book-open", pastelBg: "#F5F5FF", description: "Expert fashion articles, styling tips, magazine looks, and in-depth guides.", screen: "FashionBlog" },
+  { id: "offers", name: "Offers", icon: "tag", pastelBg: "#F0FFF0", description: "Exclusive daily deals and discounts from trusted fashion retailers.", screen: "Bargains" },
+  { id: "community", name: "Community", icon: "users", pastelBg: "#FFF5FF", description: "Events, people, and connections - discover fashion happenings and fellow enthusiasts.", screen: "Community" },
 ];
 
 const SECTION_NAV = [
@@ -658,10 +657,10 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
               },
             ]}
           >
-            <View style={[styles.categoryIconContainer, { backgroundColor: tile.iconColor + "20" }]}>
-              <Feather name={tile.icon} size={18} color={tile.iconColor} />
+            <View style={[styles.categoryIconContainer, { backgroundColor: TILE_TEXT_COLOR + "15" }]}>
+              <Feather name={tile.icon} size={TILE_ICON_SIZE} color={TILE_TEXT_COLOR} />
             </View>
-            <ThemedText type="small" style={[styles.categoryLabel, { color: tile.iconColor }]}>
+            <ThemedText style={[styles.categoryLabel, { color: TILE_TEXT_COLOR, fontSize: TILE_LABEL_SIZE }]}>
               {tile.name}
             </ThemedText>
           </Pressable>
@@ -690,7 +689,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
               <>
                 <View style={styles.sheetHandle} />
                 <View style={[styles.sheetIconBadge, { backgroundColor: selectedTile.pastelBg }]}>
-                  <Feather name={selectedTile.icon} size={32} color={selectedTile.iconColor} />
+                  <Feather name={selectedTile.icon} size={40} color={TILE_TEXT_COLOR} />
                 </View>
                 <ThemedText type="h2" style={styles.sheetTitle}>
                   {selectedTile.name}
@@ -702,7 +701,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
                   onPress={handleTileNavigate}
                   style={({ pressed }) => [
                     styles.sheetButton,
-                    { backgroundColor: selectedTile.iconColor, opacity: pressed ? 0.9 : 1 },
+                    { backgroundColor: theme.link, opacity: pressed ? 0.9 : 1 },
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel={`Navigate to ${selectedTile.name}`}
@@ -739,32 +738,32 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: Spacing.sm,
+    gap: TILE_GAP,
     marginBottom: Spacing.xl,
     paddingHorizontal: Spacing.xs,
   },
   categoryTile: {
     width: TILE_SIZE,
-    height: TILE_SIZE + 6,
-    borderRadius: BorderRadius.md,
+    height: TILE_SIZE + 16,
+    borderRadius: BorderRadius.lg,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
   },
   categoryIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   categoryLabel: {
     fontWeight: "600",
     textAlign: "center",
-    fontSize: 10,
-    lineHeight: 12,
-    paddingHorizontal: 2,
+    lineHeight: 20,
+    paddingHorizontal: 4,
   },
   sectionNavContainer: {
     flexDirection: "row",
