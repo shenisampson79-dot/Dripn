@@ -103,6 +103,15 @@ headers: {
 - `GET /api/weather-outfits` - Weather-aware recommendations
 - `POST /api/outfit-calendar` - Weekly outfit planning
 - `POST /api/style-shuffle` - Mix wardrobe items creatively
+- `GET /api/retailers/suggestions?country={country}` - AI-powered country-specific retailer suggestions
+
+### Retailer Suggestions
+The retailers endpoint uses OpenAI to find stores that actually operate in or ship to the member's country:
+- Includes local stores (e.g., John Bull, Coles of Nassau for Bahamas)
+- Includes international retailers that ship there (ASOS, Zara, Net-a-Porter)
+- Categorizes by type: luxury, contemporary, fast-fashion, sportswear, department-store, online, basics
+- Shows which have physical stores vs online-only
+- Results cached for 24 hours to save API costs
 
 ### Mood/Therapy
 - `POST /api/mood/capture` - Analyze mood from selfie
