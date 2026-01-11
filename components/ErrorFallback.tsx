@@ -7,12 +7,15 @@ import {
   ScrollView,
   Text,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Fonts } from "@/constants/theme";
+import { OnboardingService } from "@/services/OnboardingService";
+import { useNavigation, CommonActions } from "@react-navigation/native";
 
 export type ErrorFallbackProps = {
   error: Error;
@@ -22,13 +25,44 @@ export type ErrorFallbackProps = {
 export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
   const { theme } = useTheme();
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const navigation = useNavigation();
 
   const handleRestart = async () => {
+    setIsLoading(true);
     try {
-      await reloadAppAsync();
+      const progress = await OnboardingService.getOnboardingProgress();
+      
+      if (progress.onboardingComplete) {
+        resetError();
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Main' as never }],
+          })
+        );
+      } else {
+        resetError();
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ 
+              name: 'Onboarding' as never, 
+              params: { initialStep: progress.onboardingStep } 
+            }],
+          })
+        );
+      }
     } catch (restartError) {
-      console.error("Failed to restart app:", restartError);
-      resetError();
+      console.error("Failed to restore progress, reloading app:", restartError);
+      try {
+        await reloadAppAsync();
+      } catch (reloadError) {
+        console.error("Failed to reload app:", reloadError);
+        resetError();
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -72,21 +106,26 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
 
         <Pressable
           onPress={handleRestart}
+          disabled={isLoading}
           style={({ pressed }) => [
             styles.button,
             {
               backgroundColor: theme.link,
-              opacity: pressed ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.98 : 1 }],
+              opacity: isLoading ? 0.7 : pressed ? 0.9 : 1,
+              transform: [{ scale: pressed && !isLoading ? 0.98 : 1 }],
             },
           ]}
         >
-          <Feather name="refresh-cw" size={20} color="#FFFFFF" />
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Feather name="refresh-cw" size={20} color="#FFFFFF" />
+          )}
           <ThemedText
             type="body"
             style={[styles.buttonText, { color: theme.buttonText }]}
           >
-            Refresh My Look
+            {isLoading ? "Restoring..." : "Refresh My Look"}
           </ThemedText>
         </Pressable>
       </View>

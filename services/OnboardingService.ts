@@ -164,11 +164,28 @@ export interface CameraGuidancePositioning {
   angle?: string;
 }
 
+export interface CameraGuidanceTip {
+  icon: string;
+  title: string;
+  description: string;
+}
+
 export interface CameraGuidance {
   timer: CameraGuidanceTimer;
   overlay: CameraGuidanceOverlay;
-  tips: string[];
+  tips: CameraGuidanceTip[];
+  tipsSimple: string[];
   positioning: CameraGuidancePositioning;
+}
+
+export interface OnboardingProgress {
+  onboardingStep: number;
+  stepProgress: {
+    step: number;
+    name: string;
+    complete: boolean;
+  }[];
+  onboardingComplete: boolean;
 }
 
 class OnboardingServiceClass {
@@ -280,6 +297,21 @@ class OnboardingServiceClass {
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`Failed to get color scan guidance: ${error}`);
+    }
+
+    return response.json();
+  }
+
+  async getOnboardingProgress(): Promise<OnboardingProgress> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/onboarding/progress`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to get onboarding progress: ${error}`);
     }
 
     return response.json();

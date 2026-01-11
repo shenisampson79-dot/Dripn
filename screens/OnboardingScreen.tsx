@@ -195,6 +195,11 @@ const getRegionFromCountry = (country: string): RegionalType => {
 
 type OnboardingScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Onboarding">;
+  route?: {
+    params?: {
+      initialStep?: number;
+    };
+  };
 };
 
 const STYLE_OPTIONS_FEMALE: { id: StyleTheme; name: string; description: string }[] = [
@@ -425,7 +430,7 @@ const ALL_COUNTRIES = [
 // Module-level flag to persist across component remounts in the same app session
 let hasPromptedForPronunciationThisSession = false;
 
-export default function OnboardingScreen({ navigation }: OnboardingScreenProps) {
+export default function OnboardingScreen({ navigation, route }: OnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { translations, isRTL } = useTranslations();
@@ -433,8 +438,11 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   
   // Get user's first name for personalized greetings
   const userFirstName = user?.name?.split(' ')[0] || undefined;
+  
+  // Get initial step from navigation params (for error recovery)
+  const initialStep = route?.params?.initialStep ?? 0;
 
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(initialStep);
   const [country, setCountry] = useState("");
   const [countrySearchQuery, setCountrySearchQuery] = useState("");
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
@@ -2200,7 +2208,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                 </View>
 
                 <ThemedText type="h3" style={{ marginBottom: Spacing.md }}>Tips</ThemedText>
-                {cameraGuidance.tips.map((tip, i) => (
+                {cameraGuidance.tipsSimple.map((tip, i) => (
                   <View key={i} style={styles.tipItem}>
                     <Feather name="check-circle" size={18} color={theme.link} />
                     <ThemedText type="body" style={{ marginLeft: Spacing.sm, flex: 1 }}>
