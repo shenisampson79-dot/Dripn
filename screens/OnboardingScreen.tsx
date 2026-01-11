@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput, Alert } from "react-native";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
+import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput, Alert, Keyboard } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { AudioModule } from "expo-audio";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -254,6 +255,48 @@ const DRIPN_GOALS: { id: DripnGoal; name: string; icon: keyof typeof Feather.gly
   { id: "professional-image", name: "Professional Image", icon: "briefcase", description: "Elevate my work and career style" },
 ];
 
+const QUICK_SELECT_COUNTRIES = [
+  "United States",
+  "United Kingdom", 
+  "Canada",
+  "Australia",
+  "Germany",
+  "France",
+  "India",
+  "Japan",
+];
+
+const COUNTRY_REGIONS: Record<string, string[]> = {
+  "Americas": [
+    "United States", "Canada", "Mexico", "Brazil", "Argentina", "Colombia", "Chile", "Peru",
+    "Venezuela", "Ecuador", "Bolivia", "Paraguay", "Uruguay", "Guyana", "Suriname",
+    "Costa Rica", "Panama", "Nicaragua", "Honduras", "El Salvador", "Guatemala", "Belize",
+    "Cuba", "Dominican Republic", "Haiti", "Jamaica", "Puerto Rico", "Bahamas", "Barbados",
+    "Trinidad and Tobago", "Antigua and Barbuda", "Dominica", "Grenada", "Saint Kitts and Nevis",
+    "Saint Lucia", "Saint Vincent and the Grenadines", "Cayman Islands", "Curacao", 
+    "Turks and Caicos Islands", "US Virgin Islands"
+  ],
+  "Europe": [
+    "United Kingdom", "France", "Germany", "Italy", "Spain", "Portugal", "Netherlands",
+    "Belgium", "Switzerland", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Iceland",
+    "Ireland", "Poland", "Czech Republic", "Hungary", "Romania", "Bulgaria", "Greece",
+    "Croatia", "Serbia", "Slovenia", "Slovakia", "Estonia", "Latvia", "Lithuania",
+    "Ukraine", "Belarus", "Moldova", "Russia", "Albania", "North Macedonia", "Montenegro",
+    "Bosnia and Herzegovina", "Kosovo", "Malta", "Cyprus", "Luxembourg", "Liechtenstein",
+    "Monaco", "San Marino", "Vatican City", "Andorra", "Georgia", "Armenia", "Azerbaijan"
+  ],
+  "Asia & Pacific": [
+    "Japan", "South Korea", "China", "Taiwan", "Singapore", "Thailand", "Vietnam",
+    "Malaysia", "Indonesia", "Philippines", "India", "Pakistan", "Bangladesh",
+    "Australia", "New Zealand", "Kazakhstan"
+  ],
+  "Middle East & Africa": [
+    "United Arab Emirates", "Saudi Arabia", "Israel", "Turkey", "Egypt", "Morocco",
+    "South Africa", "Nigeria", "Kenya", "Ghana", "Ethiopia", "Botswana", "Namibia",
+    "Mauritius", "Zimbabwe"
+  ],
+};
+
 const ALL_COUNTRIES = [
   "Albania",
   "Andorra",
@@ -389,7 +432,10 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const userFirstName = user?.name?.split(' ')[0] || undefined;
 
   const [step, setStep] = useState(0);
-  const [country, setCountry] = useState("United States");
+  const [country, setCountry] = useState("");
+  const [countrySearchQuery, setCountrySearchQuery] = useState("");
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
   const [gender, setGender] = useState<Gender>(null);
   const [stylePreference, setStylePreference] = useState<StyleTheme>("luxury");
   const [sizeRange, setSizeRange] = useState<SizeRange>(null);
@@ -722,7 +768,45 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
 
   const handleCountrySelect = (c: string) => {
     setCountry(c);
+    setCountrySearchQuery("");
+    Keyboard.dismiss();
   };
+
+  const filteredCountries = useMemo(() => {
+    if (!countrySearchQuery.trim()) return [];
+    const query = countrySearchQuery.toLowerCase().trim();
+    return ALL_COUNTRIES.filter(c => c.toLowerCase().includes(query)).slice(0, 10);
+  }, [countrySearchQuery]);
+
+  const detectLocation = useCallback(async () => {
+    setIsDetectingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Location Access', 'Enable location to auto-detect your country, or select manually below.');
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+      const [address] = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+      if (address?.country) {
+        const detectedCountry = ALL_COUNTRIES.find(
+          c => c.toLowerCase() === address.country?.toLowerCase()
+        );
+        if (detectedCountry) {
+          setCountry(detectedCountry);
+        } else {
+          Alert.alert('Country Not Found', `We detected "${address.country}" but it's not in our list. Please select manually.`);
+        }
+      }
+    } catch (error) {
+      console.log('Location detection error:', error);
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  }, []);
 
   const handleNext = () => {
     if (step < totalSteps - 1) {
@@ -773,38 +857,184 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
       case 0:
         return (
           <View style={styles.stepContent}>
-            <ThemedText type="h2" style={styles.stepTitle}>
-              Where are you located?
+            <ThemedText type="h2" style={styles.countryTitle}>
+              Select your country
             </ThemedText>
-            <ThemedText type="body" style={styles.stepSubtitle}>
-              This helps us show seasonal and regional content
-            </ThemedText>
-            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
-              <View style={styles.optionsGrid}>
-                {ALL_COUNTRIES.map((c) => (
+            
+            <View style={[styles.countrySearchContainer, { backgroundColor: theme.backgroundSecondary }]}>
+              <Feather name="search" size={20} color={theme.textSecondary} />
+              <TextInput
+                style={[styles.countrySearchInput, { color: theme.text }]}
+                placeholder="Search countries..."
+                placeholderTextColor={theme.textSecondary}
+                value={countrySearchQuery}
+                onChangeText={setCountrySearchQuery}
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
+              {countrySearchQuery.length > 0 ? (
+                <Pressable onPress={() => setCountrySearchQuery("")}>
+                  <Feather name="x" size={20} color={theme.textSecondary} />
+                </Pressable>
+              ) : null}
+            </View>
+
+            {country ? (
+              <View style={[styles.selectedCountryBanner, { backgroundColor: theme.link + '15' }]}>
+                <View style={styles.selectedCountryContent}>
+                  <Feather name="map-pin" size={18} color={theme.link} />
+                  <ThemedText type="body" style={[styles.selectedCountryText, { color: theme.link }]}>
+                    {country}
+                  </ThemedText>
+                </View>
+                <Pressable onPress={() => setCountry("")} hitSlop={8}>
+                  <Feather name="x" size={18} color={theme.link} />
+                </Pressable>
+              </View>
+            ) : null}
+
+            <ScrollView 
+              style={styles.countryScrollView} 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {countrySearchQuery.trim().length > 0 ? (
+                <View style={styles.countrySearchResults}>
+                  {filteredCountries.length > 0 ? (
+                    filteredCountries.map((c) => (
+                      <Pressable
+                        key={c}
+                        onPress={() => handleCountrySelect(c)}
+                        style={({ pressed }) => [
+                          styles.countryListItem,
+                          { 
+                            backgroundColor: country === c ? theme.link : theme.backgroundDefault,
+                            opacity: pressed ? 0.8 : 1 
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          type="body"
+                          style={{ color: country === c ? "#FFFFFF" : theme.text, fontWeight: country === c ? '600' : '400' }}
+                        >
+                          {c}
+                        </ThemedText>
+                        {country === c ? (
+                          <Feather name="check" size={18} color="#FFFFFF" />
+                        ) : null}
+                      </Pressable>
+                    ))
+                  ) : (
+                    <ThemedText type="body" style={[styles.noResultsText, { color: theme.textSecondary }]}>
+                      No countries found
+                    </ThemedText>
+                  )}
+                </View>
+              ) : (
+                <>
                   <Pressable
-                    key={c}
-                    onPress={() => handleCountrySelect(c)}
+                    onPress={detectLocation}
+                    disabled={isDetectingLocation}
                     style={({ pressed }) => [
-                      styles.optionChip,
-                      {
-                        backgroundColor:
-                          country === c ? theme.link : theme.backgroundDefault,
-                        opacity: pressed ? 0.8 : 1,
+                      styles.detectLocationButton,
+                      { 
+                        backgroundColor: theme.backgroundDefault,
+                        borderColor: theme.link,
+                        opacity: pressed ? 0.8 : 1 
                       },
                     ]}
                   >
-                    <ThemedText
-                      type="body"
-                      style={{
-                        color: country === c ? "#FFFFFF" : theme.text,
-                      }}
-                    >
-                      {c}
+                    {isDetectingLocation ? (
+                      <ActivityIndicator size="small" color={theme.link} />
+                    ) : (
+                      <Feather name="navigation" size={20} color={theme.link} />
+                    )}
+                    <ThemedText type="body" style={{ color: theme.link, fontWeight: '500', marginLeft: Spacing.sm }}>
+                      {isDetectingLocation ? 'Detecting...' : 'Use my location'}
                     </ThemedText>
                   </Pressable>
-                ))}
-              </View>
+
+                  <ThemedText type="label" style={[styles.countrySectionLabel, { color: theme.textSecondary }]}>
+                    Quick Select
+                  </ThemedText>
+                  <View style={styles.popularCountriesGrid}>
+                    {QUICK_SELECT_COUNTRIES.map((c) => (
+                      <Pressable
+                        key={c}
+                        onPress={() => handleCountrySelect(c)}
+                        style={({ pressed }) => [
+                          styles.popularCountryChip,
+                          { 
+                            backgroundColor: country === c ? theme.link : theme.backgroundDefault,
+                            borderColor: country === c ? theme.link : theme.backgroundSecondary,
+                            opacity: pressed ? 0.8 : 1 
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          type="body"
+                          style={{ 
+                            color: country === c ? "#FFFFFF" : theme.text,
+                            fontWeight: country === c ? '600' : '400',
+                          }}
+                        >
+                          {c}
+                        </ThemedText>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  <ThemedText type="label" style={[styles.countrySectionLabel, { color: theme.textSecondary }]}>
+                    All Regions
+                  </ThemedText>
+                  {Object.entries(COUNTRY_REGIONS).map(([region, countries]) => (
+                    <View key={region}>
+                      <Pressable
+                        onPress={() => setExpandedRegion(expandedRegion === region ? null : region)}
+                        style={[styles.regionHeader, { backgroundColor: theme.backgroundDefault }]}
+                      >
+                        <ThemedText type="body" style={{ fontWeight: '600' }}>{region}</ThemedText>
+                        <Feather 
+                          name={expandedRegion === region ? "chevron-up" : "chevron-down"} 
+                          size={20} 
+                          color={theme.textSecondary} 
+                        />
+                      </Pressable>
+                      {expandedRegion === region ? (
+                        <View style={styles.regionCountries}>
+                          {countries.filter(c => ALL_COUNTRIES.includes(c)).map((c) => (
+                            <Pressable
+                              key={c}
+                              onPress={() => handleCountrySelect(c)}
+                              style={({ pressed }) => [
+                                styles.countryListItem,
+                                { 
+                                  backgroundColor: country === c ? theme.link : 'transparent',
+                                  opacity: pressed ? 0.8 : 1 
+                                },
+                              ]}
+                            >
+                              <ThemedText
+                                type="body"
+                                style={{ 
+                                  color: country === c ? "#FFFFFF" : theme.text,
+                                  fontWeight: country === c ? '600' : '400',
+                                }}
+                              >
+                                {c}
+                              </ThemedText>
+                              {country === c ? (
+                                <Feather name="check" size={18} color="#FFFFFF" />
+                              ) : null}
+                            </Pressable>
+                          ))}
+                        </View>
+                      ) : null}
+                    </View>
+                  ))}
+                  <View style={{ height: Spacing.xl }} />
+                </>
+              )}
             </ScrollView>
           </View>
         );
@@ -1698,6 +1928,101 @@ const styles = StyleSheet.create({
   stepSubtitle: {
     opacity: 0.7,
     marginBottom: Spacing.xl,
+  },
+  countryTitle: {
+    marginBottom: Spacing.lg,
+    textAlign: 'center',
+  },
+  countrySearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  countrySearchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: Spacing.sm,
+  },
+  selectedCountryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  selectedCountryContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  selectedCountryText: {
+    fontWeight: '600',
+  },
+  countryScrollView: {
+    flex: 1,
+  },
+  countrySearchResults: {
+    gap: Spacing.xs,
+  },
+  countryListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  noResultsText: {
+    textAlign: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  detectLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    marginBottom: Spacing.lg,
+  },
+  countrySectionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  popularCountriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  popularCountryChip: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  regionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.xs,
+  },
+  regionCountries: {
+    paddingLeft: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   backButton: {
     flexDirection: "row",
