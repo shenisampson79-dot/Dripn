@@ -173,13 +173,13 @@ type DiscoverScreenProps = {
 
 const { width } = Dimensions.get("window");
 
-const TILE_COLUMNS = 3;
-const TILE_GAP = 12;
+const TILE_COLUMNS = 2;
+const TILE_GAP = 16;
 const TILE_SIZE = (width - Spacing.lg * 2 - TILE_GAP * (TILE_COLUMNS - 1)) / TILE_COLUMNS;
 
-const TILE_TEXT_COLOR = "#1A1A1A";
-const TILE_ICON_SIZE = 32;
-const TILE_LABEL_SIZE = 16;
+const TILE_TEXT_COLOR = "#FFFFFF";
+const TILE_ICON_SIZE = 36;
+const TILE_LABEL_SIZE = 15;
 
 interface CategoryTile {
   id: string;
@@ -192,16 +192,16 @@ interface CategoryTile {
 }
 
 const CATEGORY_TILES: CategoryTile[] = [
-  { id: "styleOfTheDay", name: "Style of Day", icon: "award", pastelBg: "#FFF5F5", description: "Your personalized daily outfit recommendation tailored to your style and region.", sectionId: "styleOfTheDay" },
-  { id: "trends", name: "Trends", icon: "trending-up", pastelBg: "#F0F5FF", description: "What's hot right now in fashion with real-time trend analysis and weekly highlights.", sectionId: "trendScanner" },
-  { id: "styleIcons", name: "Style Icons", icon: "star", pastelBg: "#FFF5EB", description: "Get inspired by celebrities and top fashion influencers with AI-powered lookalike outfits.", sectionId: "celebrity" },
-  { id: "challenges", name: "Challenges", icon: "flag", pastelBg: "#FFF0F5", description: "Join fun style challenges, compete with the community, and showcase your creativity.", screen: "StyleChallenges" },
-  { id: "virtualTryOn", name: "Try-On", icon: "camera", pastelBg: "#FFF5F0", description: "Virtually try on clothes and see how they look on you before buying.", screen: "VirtualTryOn" },
-  { id: "fashionTherapy", name: "Style Therapy", icon: "heart", pastelBg: "#FFF0FF", description: "Mood-based styling, body positivity affirmations, and wellness-focused outfit recommendations.", screen: "FashionTherapy" },
-  { id: "sustainability", name: "Eco Style", icon: "globe", pastelBg: "#F0FFF5", description: "Discover sustainable fashion brands and eco-friendly styling tips.", screen: "Sustainability" },
-  { id: "fashionReads", name: "Fashion Reads", icon: "book-open", pastelBg: "#F5F5FF", description: "Expert fashion articles, styling tips, magazine looks, and in-depth guides.", screen: "FashionBlog" },
-  { id: "offers", name: "Offers", icon: "tag", pastelBg: "#F0FFF0", description: "Exclusive daily deals and discounts from trusted fashion retailers.", screen: "Bargains" },
-  { id: "community", name: "Community", icon: "users", pastelBg: "#FFF5FF", description: "Events, people, and connections - discover fashion happenings and fellow enthusiasts.", screen: "Community" },
+  { id: "styleOfTheDay", name: "Style of Day", icon: "award", pastelBg: "#E85D75", description: "Your personalized daily outfit recommendation tailored to your style and region.", sectionId: "styleOfTheDay" },
+  { id: "trends", name: "Trends", icon: "trending-up", pastelBg: "#6366F1", description: "What's hot right now in fashion with real-time trend analysis and weekly highlights.", sectionId: "trendScanner" },
+  { id: "styleIcons", name: "Style Icons", icon: "star", pastelBg: "#F59E0B", description: "Get inspired by celebrities and top fashion influencers with AI-powered lookalike outfits.", sectionId: "celebrity" },
+  { id: "challenges", name: "Challenges", icon: "flag", pastelBg: "#EC4899", description: "Join fun style challenges, compete with the community, and showcase your creativity.", screen: "StyleChallenges" },
+  { id: "virtualTryOn", name: "Try-On", icon: "camera", pastelBg: "#8B5CF6", description: "Virtually try on clothes and see how they look on you before buying.", screen: "VirtualTryOn" },
+  { id: "fashionTherapy", name: "Style Therapy", icon: "heart", pastelBg: "#F472B6", description: "Mood-based styling, body positivity affirmations, and wellness-focused outfit recommendations.", screen: "FashionTherapy" },
+  { id: "sustainability", name: "Eco Style", icon: "globe", pastelBg: "#10B981", description: "Discover sustainable fashion brands and eco-friendly styling tips.", screen: "Sustainability" },
+  { id: "fashionReads", name: "Fashion Reads", icon: "book-open", pastelBg: "#3B82F6", description: "Expert fashion articles, styling tips, magazine looks, and in-depth guides.", screen: "FashionBlog" },
+  { id: "offers", name: "Offers", icon: "tag", pastelBg: "#EF4444", description: "Exclusive daily deals and discounts from trusted fashion retailers.", screen: "Bargains" },
+  { id: "community", name: "Community", icon: "users", pastelBg: "#14B8A6", description: "Events, people, and connections - discover fashion happenings and fellow enthusiasts.", screen: "Community" },
 ];
 
 const SECTION_NAV = [
@@ -657,7 +657,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
               },
             ]}
           >
-            <View style={[styles.categoryIconContainer, { backgroundColor: TILE_TEXT_COLOR + "15" }]}>
+            <View style={styles.categoryIconContainer}>
               <Feather name={tile.icon} size={TILE_ICON_SIZE} color={TILE_TEXT_COLOR} />
             </View>
             <ThemedText style={[styles.categoryLabel, { color: TILE_TEXT_COLOR, fontSize: TILE_LABEL_SIZE }]}>
@@ -689,7 +689,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
               <>
                 <View style={styles.sheetHandle} />
                 <View style={[styles.sheetIconBadge, { backgroundColor: selectedTile.pastelBg }]}>
-                  <Feather name={selectedTile.icon} size={40} color={TILE_TEXT_COLOR} />
+                  <Feather name={selectedTile.icon} size={40} color="#FFFFFF" />
                 </View>
                 <ThemedText type="h2" style={styles.sheetTitle}>
                   {selectedTile.name}
@@ -701,7 +701,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
                   onPress={handleTileNavigate}
                   style={({ pressed }) => [
                     styles.sheetButton,
-                    { backgroundColor: theme.link, opacity: pressed ? 0.9 : 1 },
+                    { backgroundColor: selectedTile.pastelBg, opacity: pressed ? 0.9 : 1 },
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel={`Navigate to ${selectedTile.name}`}
@@ -740,27 +740,28 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: TILE_GAP,
     marginBottom: Spacing.xl,
-    paddingHorizontal: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
   },
   categoryTile: {
     width: TILE_SIZE,
-    height: TILE_SIZE + 16,
-    borderRadius: BorderRadius.lg,
+    height: TILE_SIZE * 0.85,
+    borderRadius: BorderRadius.xl,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
   },
   categoryIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
   },
   categoryLabel: {
-    fontWeight: "600",
+    fontWeight: "700",
     textAlign: "center",
     lineHeight: 20,
     paddingHorizontal: 4,
