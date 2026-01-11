@@ -1909,6 +1909,15 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               </View>
             ) : null}
 
+            {suggestedRetailers.length > 0 && !loadingRetailers ? (
+              <View style={[styles.aiSuggestionHint, { backgroundColor: theme.link + '10', borderColor: theme.link + '30' }]}>
+                <Feather name="zap" size={14} color={theme.link} />
+                <ThemedText type="small" style={{ color: theme.link, marginLeft: Spacing.xs, flex: 1 }}>
+                  Highlighted stores are AI recommendations for {country}
+                </ThemedText>
+              </View>
+            ) : null}
+
             <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.shopsGrid}>
                 {filteredShops.map((shop) => {
@@ -2793,6 +2802,15 @@ const styles = StyleSheet.create({
   loadingRetailersContainer: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: Spacing.md,
+  },
+  aiSuggestionHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
     marginBottom: Spacing.md,
   },
   shopChip: {
