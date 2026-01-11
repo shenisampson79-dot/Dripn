@@ -719,11 +719,8 @@ export default function StyleShuffleScreen() {
   const prevIndexRef = useRef(currentIndex);
   
   useEffect(() => {
-    if (prevIndexRef.current !== currentIndex) {
-      resetCardPosition();
-      prevIndexRef.current = currentIndex;
-    }
-  }, [currentIndex, resetCardPosition]);
+    prevIndexRef.current = currentIndex;
+  }, [currentIndex]);
 
   const handleSwipeComplete = useCallback((direction: 'left' | 'right') => {
     if (currentIndex >= outfits.length) {
@@ -766,9 +763,19 @@ export default function StyleShuffleScreen() {
     const targetY = direction === 'right' ? -30 : 30;
     
     translateX.value = withSpring(targetX, SWIPE_OUT_SPRING, (finished) => {
-      isAnimating.value = false;
       if (finished) {
+        cancelAnimation(translateX);
+        cancelAnimation(translateY);
+        cancelAnimation(cardOpacity);
+        cancelAnimation(cardScale);
+        translateX.value = 0;
+        translateY.value = 0;
+        cardOpacity.value = 1;
+        cardScale.value = 1;
+        isAnimating.value = false;
         runOnJS(handleSwipeComplete)(direction);
+      } else {
+        isAnimating.value = false;
       }
     });
     translateY.value = withSpring(targetY, { ...SWIPE_OUT_SPRING, damping: 35 });
@@ -818,9 +825,19 @@ export default function StyleShuffleScreen() {
             ...SWIPE_OUT_SPRING,
             velocity: velocityX * velocityBoost,
           }, (finished) => {
-            isAnimating.value = false;
             if (finished) {
+              cancelAnimation(translateX);
+              cancelAnimation(translateY);
+              cancelAnimation(cardOpacity);
+              cancelAnimation(cardScale);
+              translateX.value = 0;
+              translateY.value = 0;
+              cardOpacity.value = 1;
+              cardScale.value = 1;
+              isAnimating.value = false;
               runOnJS(handleSwipeComplete)(direction);
+            } else {
+              isAnimating.value = false;
             }
           });
           translateY.value = withSpring(event.translationY * 0.3, {

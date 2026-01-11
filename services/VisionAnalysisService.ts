@@ -46,18 +46,28 @@ Guidelines:
 
 Respond ONLY with valid JSON, no additional text.`;
 
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+
 export async function convertImageToBase64(imageUri: string): Promise<string> {
   try {
     if (imageUri.startsWith('data:')) {
       return imageUri.split(',')[1];
+    }
+
+    const fileInfo = await FileSystem.getInfoAsync(imageUri);
+    if (fileInfo.exists && 'size' in fileInfo && fileInfo.size && fileInfo.size > MAX_IMAGE_SIZE_BYTES) {
+      throw new Error(`Image is too large (${Math.round(fileInfo.size / 1024 / 1024)}MB). Please use an image under 10MB.`);
     }
     
     const base64 = await FileSystem.readAsStringAsync(imageUri, {
       encoding: Base64Encoding,
     });
     return base64;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error converting image to base64:', error);
+    if (error.message?.includes('too large')) {
+      throw error;
+    }
     throw new Error('Failed to process image');
   }
 }

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef } from "react";
-import { StyleSheet, View, Pressable, Image, ActivityIndicator, Platform } from "react-native";
+import { StyleSheet, View, Pressable, Image, ActivityIndicator, Platform, Alert } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -103,7 +103,9 @@ export default function StreetStyleScannerScreen({ navigation }: StreetStyleScan
           setShowCamera(false);
           await analyzeImage(photo.uri);
         }
-      } catch (error) {}
+      } catch (error: any) {
+        Alert.alert('Photo Error', error?.message || 'Failed to capture photo. Please try again.');
+      }
     }
   };
 

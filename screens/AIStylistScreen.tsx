@@ -840,6 +840,8 @@ export default function AIStylistScreen() {
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
       }
+      cancelAnimation(pulseScale);
+      waveformBars.forEach((bar) => cancelAnimation(bar));
       stopRecording(true);
       stopTTSPlayback();
     };

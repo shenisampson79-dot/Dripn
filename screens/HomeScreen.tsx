@@ -14,6 +14,7 @@ import Animated, {
   withRepeat,
   withTiming,
   Easing,
+  cancelAnimation,
 } from "react-native-reanimated";
 import { useEffect } from "react";
 
@@ -60,6 +61,9 @@ function StoryAvatar({
         false
       );
     }
+    return () => {
+      cancelAnimation(rotation);
+    };
   }, [user.hasNewPost]);
 
   const animatedGradientStyle = useAnimatedStyle(() => ({

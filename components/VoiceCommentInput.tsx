@@ -46,6 +46,8 @@ export function VoiceCommentInput({
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+      cancelAnimation(pulseScale);
+      waveformBars.forEach((bar) => cancelAnimation(bar));
       stopRecording(true);
     };
   }, []);

@@ -9,11 +9,61 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
 
 const TOKEN_KEY = '@dripn_token';
 
+const DEFAULT_TIMEOUT = 30000;
+
 class ApiService {
   private token: string | null = null;
 
   async init() {
     this.token = await AsyncStorage.getItem(TOKEN_KEY);
+  }
+
+  private fetchWithTimeout(
+    url: string,
+    options: RequestInit & { timeout?: number } = {}
+  ): Promise<Response> {
+    const { timeout = DEFAULT_TIMEOUT, signal: externalSignal, ...fetchOptions } = options;
+    const controller = new AbortController();
+    let wasTimeout = false;
+    let externalReason: string | undefined;
+    
+    const timeoutId = setTimeout(() => {
+      wasTimeout = true;
+      controller.abort();
+    }, timeout);
+
+    const onExternalAbort = () => {
+      externalReason = typeof externalSignal?.reason === 'string' ? externalSignal.reason : undefined;
+      controller.abort();
+    };
+
+    if (externalSignal) {
+      if (externalSignal.aborted) {
+        externalReason = typeof externalSignal.reason === 'string' ? externalSignal.reason : undefined;
+        controller.abort();
+      } else {
+        externalSignal.addEventListener('abort', onExternalAbort);
+      }
+    }
+
+    return fetch(url, {
+      ...fetchOptions,
+      signal: controller.signal,
+    }).catch((error) => {
+      if (error.name === 'AbortError') {
+        const abortError = new Error(
+          wasTimeout ? 'INTERNAL_TIMEOUT' : (externalReason || 'EXTERNAL_ABORT')
+        );
+        abortError.name = 'AbortError';
+        throw abortError;
+      }
+      throw error;
+    }).finally(() => {
+      clearTimeout(timeoutId);
+      if (externalSignal) {
+        externalSignal.removeEventListener('abort', onExternalAbort);
+      }
+    });
   }
 
   async setToken(token: string | null) {
@@ -34,7 +84,7 @@ class ApiService {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit & { timeout?: number } = {}
   ): Promise<T> {
     if (!API_URL) {
       throw new Error('Backend API URL not configured. Set EXPO_PUBLIC_API_URL environment variable.');
@@ -50,10 +100,25 @@ class ApiService {
       (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers,
-    });
+    let response: Response;
+    try {
+      response = await this.fetchWithTimeout(`${API_URL}${endpoint}`, {
+        ...options,
+        headers,
+      });
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        const reason = error.message || '';
+        if (reason === 'INTERNAL_TIMEOUT') {
+          throw new Error('Request timed out. Please check your connection and try again.');
+        }
+        if (reason !== 'EXTERNAL_ABORT' && reason.length > 0) {
+          throw new Error(reason);
+        }
+        throw new Error('Request was cancelled.');
+      }
+      throw error;
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Request failed' }));
