@@ -48,7 +48,7 @@ import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { getStylistForUser, getStylistGreeting, PersonalStylist } from '@/services/PersonalStylistService';
 import { apiService } from '@/services/ApiService';
 import { useVoiceSettings, VoiceId } from '@/contexts/VoiceSettingsContext';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const INPUT_CONTAINER_HEIGHT = 80;

@@ -39,7 +39,7 @@ import {
 } from "@/contexts/WardrobeContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { apiService } from "@/services/ApiService";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
