@@ -18,9 +18,14 @@ import { OnboardingService } from "@/services/OnboardingService";
 import { CommonActions, NavigationContainerRef } from "@react-navigation/native";
 
 let navigationRef: NavigationContainerRef<any> | null = null;
+let currentOnboardingStep: number | null = null;
 
 export function setNavigationRef(ref: NavigationContainerRef<any> | null) {
   navigationRef = ref;
+}
+
+export function setCurrentOnboardingStep(step: number | null) {
+  currentOnboardingStep = step;
 }
 
 export type ErrorFallbackProps = {
@@ -36,28 +41,41 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
   const handleRestart = async () => {
     setIsLoading(true);
     try {
-      const progress = await OnboardingService.getOnboardingProgress();
-      
       if (navigationRef && navigationRef.isReady()) {
-        if (progress.onboardingComplete) {
-          resetError();
-          navigationRef.dispatch(
-            CommonActions.reset({
-              index: 0,
-              routes: [{ name: 'Main' as never }],
-            })
-          );
-        } else {
+        if (currentOnboardingStep !== null) {
           resetError();
           navigationRef.dispatch(
             CommonActions.reset({
               index: 0,
               routes: [{ 
                 name: 'Onboarding' as never, 
-                params: { initialStep: progress.onboardingStep } 
+                params: { initialStep: currentOnboardingStep } 
               }],
             })
           );
+        } else {
+          const progress = await OnboardingService.getOnboardingProgress();
+          
+          if (progress.onboardingComplete) {
+            resetError();
+            navigationRef.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Main' as never }],
+              })
+            );
+          } else {
+            resetError();
+            navigationRef.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ 
+                  name: 'Onboarding' as never, 
+                  params: { initialStep: progress.onboardingStep } 
+                }],
+              })
+            );
+          }
         }
       } else {
         resetError();

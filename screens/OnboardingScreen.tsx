@@ -21,6 +21,7 @@ import { RetailerService, Retailer } from "@/services/RetailerService";
 import { OnboardingService, BodyScanResult, ColorScanResult, StyleQuizQuestion, StyleQuizResult, StyleArchetype, CameraGuidance, ScanReview } from "@/services/OnboardingService";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { setCurrentOnboardingStep } from "@/components/ErrorFallback";
 
 const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "woman", name: "Woman", icon: "user" },
@@ -443,6 +444,13 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const initialStep = route?.params?.initialStep ?? 0;
 
   const [step, setStep] = useState(initialStep);
+  
+  // Track current step for error recovery
+  useEffect(() => {
+    setCurrentOnboardingStep(step);
+    return () => setCurrentOnboardingStep(null);
+  }, [step]);
+  
   const [country, setCountry] = useState("");
   const [countrySearchQuery, setCountrySearchQuery] = useState("");
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
@@ -2228,39 +2236,47 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 style={styles.cameraTipsContent}
                 contentContainerStyle={{ paddingBottom: Spacing.xl }}
               >
-                <View style={[styles.overlayPreview, { backgroundColor: theme.backgroundSecondary }]}>
-                  <View style={[
-                    cameraGuidance.overlay.type === 'body-silhouette' 
-                      ? styles.bodySilhouettePreview 
-                      : styles.faceOvalPreview,
-                    { borderColor: theme.link }
-                  ]} />
-                  <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: Spacing.md }}>
-                    {cameraGuidance.overlay.guideText.middle}
-                  </ThemedText>
-                </View>
-
-                <View style={styles.positioningInfo}>
-                  <Feather name="move" size={20} color={theme.link} />
-                  <ThemedText type="body" style={{ marginLeft: Spacing.sm }}>
-                    {cameraGuidance.positioning.distance}
-                  </ThemedText>
-                </View>
-
-                <ThemedText type="h3" style={{ marginBottom: Spacing.md }}>Tips</ThemedText>
-                {cameraGuidance.tipsSimple.map((tip, i) => (
-                  <View key={i} style={styles.tipItem}>
-                    <Feather name="check-circle" size={18} color={theme.link} />
-                    <ThemedText type="body" style={{ marginLeft: Spacing.sm, flex: 1 }}>
-                      {tip}
+                {cameraGuidance.overlay ? (
+                  <View style={[styles.overlayPreview, { backgroundColor: theme.backgroundSecondary }]}>
+                    <View style={[
+                      cameraGuidance.overlay.type === 'body-silhouette' 
+                        ? styles.bodySilhouettePreview 
+                        : styles.faceOvalPreview,
+                      { borderColor: theme.link }
+                    ]} />
+                    <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: Spacing.md }}>
+                      {cameraGuidance.overlay.guideText?.middle || 'Position yourself in the frame'}
                     </ThemedText>
                   </View>
-                ))}
+                ) : null}
+
+                {cameraGuidance.positioning ? (
+                  <View style={styles.positioningInfo}>
+                    <Feather name="move" size={20} color={theme.link} />
+                    <ThemedText type="body" style={{ marginLeft: Spacing.sm }}>
+                      {cameraGuidance.positioning.distance}
+                    </ThemedText>
+                  </View>
+                ) : null}
+
+                {cameraGuidance.tipsSimple && cameraGuidance.tipsSimple.length > 0 ? (
+                  <>
+                    <ThemedText type="h3" style={{ marginBottom: Spacing.md }}>Tips</ThemedText>
+                    {cameraGuidance.tipsSimple.map((tip, i) => (
+                      <View key={i} style={styles.tipItem}>
+                        <Feather name="check-circle" size={18} color={theme.link} />
+                        <ThemedText type="body" style={{ marginLeft: Spacing.sm, flex: 1 }}>
+                          {tip}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </>
+                ) : null}
               </ScrollView>
 
               <View style={[styles.cameraTipsFooter, { paddingBottom: insets.bottom + Spacing.xl }]}>
                 <Button onPress={startCountdown}>
-                  {cameraGuidance.timer.enabled 
+                  {cameraGuidance.timer?.enabled 
                     ? `Start ${cameraGuidance.timer.durationSeconds}s Timer` 
                     : 'Take Photo'}
                 </Button>
@@ -2287,9 +2303,11 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
                 {cameraGuidance?.overlay ? (
                   <View style={styles.cameraGuideOverlay}>
-                    <ThemedText style={styles.guideTextTop}>
-                      {cameraGuidance.overlay.guideText.top}
-                    </ThemedText>
+                    {cameraGuidance.overlay.guideText?.top ? (
+                      <ThemedText style={styles.guideTextTop}>
+                        {cameraGuidance.overlay.guideText.top}
+                      </ThemedText>
+                    ) : null}
                     
                     <View style={[
                       cameraGuidance.overlay.type === 'body-silhouette' 
@@ -2297,17 +2315,21 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                         : styles.faceOvalOverlay
                     ]} />
                     
-                    <ThemedText style={styles.guideTextMiddle}>
-                      {cameraGuidance.overlay.guideText.middle}
-                    </ThemedText>
+                    {cameraGuidance.overlay.guideText?.middle ? (
+                      <ThemedText style={styles.guideTextMiddle}>
+                        {cameraGuidance.overlay.guideText.middle}
+                      </ThemedText>
+                    ) : null}
                     
-                    <ThemedText style={styles.guideTextBottom}>
-                      {cameraGuidance.overlay.guideText.bottom}
-                    </ThemedText>
+                    {cameraGuidance.overlay.guideText?.bottom ? (
+                      <ThemedText style={styles.guideTextBottom}>
+                        {cameraGuidance.overlay.guideText.bottom}
+                      </ThemedText>
+                    ) : null}
                   </View>
                 ) : null}
 
-                {isCountdownActive && cameraGuidance ? (
+                {isCountdownActive && cameraGuidance?.timer?.countdownText ? (
                   <View style={styles.countdownContainer}>
                     <ThemedText style={styles.countdownText}>
                       {cameraGuidance.timer.countdownText[countdownIndex] || ''}
