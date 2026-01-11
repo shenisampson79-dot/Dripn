@@ -117,6 +117,13 @@ headers: {
 - `GET /api/ai/voice-preview/script` - Get culturally-appropriate script for accent
 - `GET /api/ai/voices` - Available voice options
 
+**Voice Features**:
+- Auto-translation from English to target language for non-English voices
+- Slower speech speed (0.9x max) for clearer pronunciation in non-English
+- Gender-appropriate voices (Ruby = female, Max = male)
+- Supported languages: English, Spanish, French, German, Italian, Portuguese, Japanese, Korean, Mandarin, Arabic, Hindi, Dutch, Russian, Swedish
+- Best quality with ElevenLabs credits; OpenAI TTS as fallback
+
 ### Personality
 - `POST /api/personality/analyze` - Analyze user personality
 - `GET /api/personality/insights` - Get personality insights
