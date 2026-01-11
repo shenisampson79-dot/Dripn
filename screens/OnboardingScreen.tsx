@@ -727,9 +727,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       setCountdownIndex(-1);
       setIsCountdownActive(false);
       setShowCameraModal(true);
-    } catch (error) {
-      console.log('Color scan setup error:', error);
-      Alert.alert('Setup Failed', 'Unable to prepare color analysis. Please try again.');
+    } catch (error: any) {
+      console.error('Color scan setup error:', error?.message || error);
+      console.error('Color scan full error:', JSON.stringify(error, null, 2));
+      Alert.alert('Setup Failed', `Unable to prepare color analysis. ${error?.message || 'Please try again.'}`);
     }
   }, [cameraPermission, requestCameraPermission]);
 
