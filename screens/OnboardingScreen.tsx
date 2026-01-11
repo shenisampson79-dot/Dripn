@@ -268,32 +268,32 @@ const QUICK_SELECT_COUNTRIES = [
 
 const COUNTRY_REGIONS: Record<string, string[]> = {
   "Americas": [
-    "United States", "Canada", "Mexico", "Brazil", "Argentina", "Colombia", "Chile", "Peru",
-    "Venezuela", "Ecuador", "Bolivia", "Paraguay", "Uruguay", "Guyana", "Suriname",
-    "Costa Rica", "Panama", "Nicaragua", "Honduras", "El Salvador", "Guatemala", "Belize",
-    "Cuba", "Dominican Republic", "Haiti", "Jamaica", "Puerto Rico", "Bahamas", "Barbados",
-    "Trinidad and Tobago", "Antigua and Barbuda", "Dominica", "Grenada", "Saint Kitts and Nevis",
-    "Saint Lucia", "Saint Vincent and the Grenadines", "Cayman Islands", "Curacao", 
-    "Turks and Caicos Islands", "US Virgin Islands"
+    "Antigua and Barbuda", "Argentina", "Bahamas", "Barbados", "Belize", "Bolivia", "Brazil",
+    "Canada", "Cayman Islands", "Chile", "Colombia", "Costa Rica", "Cuba", "Curacao",
+    "Dominica", "Dominican Republic", "Ecuador", "El Salvador", "Grenada", "Guatemala",
+    "Guyana", "Haiti", "Honduras", "Jamaica", "Mexico", "Nicaragua", "Panama", "Paraguay",
+    "Peru", "Puerto Rico", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines",
+    "Suriname", "Trinidad and Tobago", "Turks and Caicos Islands", "United States", "Uruguay",
+    "US Virgin Islands", "Venezuela"
   ],
   "Europe": [
-    "United Kingdom", "France", "Germany", "Italy", "Spain", "Portugal", "Netherlands",
-    "Belgium", "Switzerland", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Iceland",
-    "Ireland", "Poland", "Czech Republic", "Hungary", "Romania", "Bulgaria", "Greece",
-    "Croatia", "Serbia", "Slovenia", "Slovakia", "Estonia", "Latvia", "Lithuania",
-    "Ukraine", "Belarus", "Moldova", "Russia", "Albania", "North Macedonia", "Montenegro",
-    "Bosnia and Herzegovina", "Kosovo", "Malta", "Cyprus", "Luxembourg", "Liechtenstein",
-    "Monaco", "San Marino", "Vatican City", "Andorra", "Georgia", "Armenia", "Azerbaijan"
+    "Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", "Belarus", "Belgium",
+    "Bosnia and Herzegovina", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark",
+    "Estonia", "Finland", "France", "Georgia", "Germany", "Greece", "Hungary", "Iceland",
+    "Ireland", "Italy", "Kosovo", "Latvia", "Liechtenstein", "Lithuania", "Luxembourg",
+    "Malta", "Moldova", "Monaco", "Montenegro", "Netherlands", "North Macedonia", "Norway",
+    "Poland", "Portugal", "Romania", "Russia", "San Marino", "Serbia", "Slovakia", "Slovenia",
+    "Spain", "Sweden", "Switzerland", "Ukraine", "United Kingdom", "Vatican City"
   ],
   "Asia & Pacific": [
-    "Japan", "South Korea", "China", "Taiwan", "Singapore", "Thailand", "Vietnam",
-    "Malaysia", "Indonesia", "Philippines", "India", "Pakistan", "Bangladesh",
-    "Australia", "New Zealand", "Kazakhstan"
+    "Australia", "Bangladesh", "China", "India", "Indonesia", "Japan", "Kazakhstan",
+    "Malaysia", "New Zealand", "Pakistan", "Philippines", "Singapore", "South Korea",
+    "Taiwan", "Thailand", "Vietnam"
   ],
   "Middle East & Africa": [
-    "United Arab Emirates", "Saudi Arabia", "Israel", "Turkey", "Egypt", "Morocco",
-    "South Africa", "Nigeria", "Kenya", "Ghana", "Ethiopia", "Botswana", "Namibia",
-    "Mauritius", "Zimbabwe"
+    "Botswana", "Egypt", "Ethiopia", "Ghana", "Israel", "Kenya", "Mauritius", "Morocco",
+    "Namibia", "Nigeria", "Saudi Arabia", "South Africa", "Turkey", "United Arab Emirates",
+    "Zimbabwe"
   ],
 };
 
@@ -862,11 +862,11 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
             </ThemedText>
             
             <View style={[styles.countrySearchContainer, { backgroundColor: theme.backgroundSecondary }]}>
-              <Feather name="search" size={20} color={theme.textSecondary} />
+              <Feather name="search" size={20} color={theme.tabIconDefault} />
               <TextInput
                 style={[styles.countrySearchInput, { color: theme.text }]}
                 placeholder="Search countries..."
-                placeholderTextColor={theme.textSecondary}
+                placeholderTextColor={theme.tabIconDefault}
                 value={countrySearchQuery}
                 onChangeText={setCountrySearchQuery}
                 autoCapitalize="words"
@@ -874,7 +874,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
               />
               {countrySearchQuery.length > 0 ? (
                 <Pressable onPress={() => setCountrySearchQuery("")}>
-                  <Feather name="x" size={20} color={theme.textSecondary} />
+                  <Feather name="x" size={20} color={theme.tabIconDefault} />
                 </Pressable>
               ) : null}
             </View>
@@ -925,7 +925,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                       </Pressable>
                     ))
                   ) : (
-                    <ThemedText type="body" style={[styles.noResultsText, { color: theme.textSecondary }]}>
+                    <ThemedText type="body" style={[styles.noResultsText, { color: theme.tabIconDefault }]}>
                       No countries found
                     </ThemedText>
                   )}
@@ -954,7 +954,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                     </ThemedText>
                   </Pressable>
 
-                  <ThemedText type="label" style={[styles.countrySectionLabel, { color: theme.textSecondary }]}>
+                  <ThemedText type="caption" style={[styles.countrySectionLabel, { color: theme.tabIconDefault }]}>
                     Quick Select
                   </ThemedText>
                   <View style={styles.popularCountriesGrid}>
@@ -984,7 +984,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                     ))}
                   </View>
 
-                  <ThemedText type="label" style={[styles.countrySectionLabel, { color: theme.textSecondary }]}>
+                  <ThemedText type="caption" style={[styles.countrySectionLabel, { color: theme.tabIconDefault }]}>
                     All Regions
                   </ThemedText>
                   {Object.entries(COUNTRY_REGIONS).map(([region, countries]) => (
@@ -997,7 +997,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
                         <Feather 
                           name={expandedRegion === region ? "chevron-up" : "chevron-down"} 
                           size={20} 
-                          color={theme.textSecondary} 
+                          color={theme.tabIconDefault} 
                         />
                       </Pressable>
                       {expandedRegion === region ? (
