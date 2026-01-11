@@ -161,11 +161,12 @@ export interface CameraGuidanceTimer {
 export interface CameraGuidanceOverlay {
   type: 'body-silhouette' | 'face-oval';
   aspectRatio: string;
-  guideText: {
-    top: string;
-    middle: string;
-    bottom: string;
+  guideText?: {
+    top?: string;
+    middle?: string;
+    bottom?: string;
   };
+  targetZoneLabel?: string;
 }
 
 export interface CameraGuidancePositioning {

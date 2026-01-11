@@ -2246,7 +2246,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       { borderColor: theme.link }
                     ]} />
                     <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: Spacing.md }}>
-                      {cameraGuidance.overlay.guideText?.middle || 'Position yourself in the frame'}
+                      {cameraGuidance.overlay.guideText?.middle || cameraGuidance.overlay.targetZoneLabel || 'Position yourself in the frame'}
                     </ThemedText>
                   </View>
                 ) : null}
