@@ -14,7 +14,7 @@ The app is built with Expo React Native and TypeScript, utilizing React Navigati
 Key Features:
 - **Subscription Tiers**: Freemium model (Free, Basic, Premium, VIP) with varied access to features like uploads, AI advice, and personal stylist sessions.
 - **Content Creation**: Users can post outfit photos/videos and create comparison polls.
-- **AI Fashion Advice**: AI-driven advice includes color analysis, personalized recommendations, trend insights, and culturally relevant suggestions, filtered by gender and region. Integrated with OpenAI, using model priority `gpt-4.5-preview` → `gpt-4o` → `gpt-4-turbo` → `gpt-4` → `gpt-3.5-turbo`.
+- **AI Fashion Advice**: AI-driven advice includes color analysis, personalized recommendations, trend insights, and culturally relevant suggestions, filtered by gender and region. Integrated with OpenAI using GPT-4.1 for chat/vision and GPT-4.1-nano for fast tasks, with automatic model upgrades every 6 hours.
 - **Community Engagement**: Supports voice comments, content reporting, and viral sharing with auto-generated hashtags.
 - **Discovery**: Features "Style of the Day," category browsing, trending challenges, weekly highlights, AI-generated Celebrity-Inspired Looks, and Influencer Inspiration.
 - **Bargains of the Day**: Dedicated tab for daily deals from trusted retailers with filtering and real-time countdowns.
@@ -54,9 +54,78 @@ Key Features:
 - **Affiliate APIs**: For "Shop Now" functionality.
 - **Event APIs**: Timeout, TodayTix, Eventbrite, Meetup, ClassPass (for "Events Near You").
 
-## Backend API Endpoints
-- **Chat**: `POST /api/chat/message`, `GET /api/chat/history`, `DELETE /api/chat/history`
-- **Style Profile**: `GET /api/profile/style`, `POST /api/profile/style`
-- **Personality**: `POST /api/personality/analyze`, `GET /api/personality/insights`, `POST /api/personality/memory`
-- **Voice Preview**: `POST /api/ai/voice-preview` (with elevenLabsVoiceId and languageCode params)
-- **AI Models**: `GET /api/ai/models/status` (check and refresh AI model status)
+## Backend API Reference
+
+**Base URL**: `https://ebdc4c03-8d36-4aa1-bb96-6b14471d4732-00-23rsu0o9cqav1.spock.replit.dev`
+
+**Authentication**: After login/register, store the JWT token and include in all requests:
+```
+headers: {
+  "Authorization": `Bearer ${token}`,
+  "Content-Type": "application/json"
+}
+```
+
+**Backend Capabilities**:
+- Real AI responses (no mock data)
+- GPT-4.1 for chat/vision, GPT-4.1-nano for fast tasks
+- 13-language voice support via ElevenLabs
+- Automatic model upgrades every 6 hours
+
+### Home Screen
+- `GET /api/personalized/style-of-the-day` - Daily outfit recommendation
+- `GET /api/challenges` - Style challenges with gamification
+- `GET /api/trends/emerging` - Current fashion trends
+
+### Chat with AI Stylists
+- `POST /api/chat/message` - Send message to Ruby or Max
+  - Body: `{ "message": "...", "stylist": "ruby" | "max" }`
+- `GET /api/chat/history?stylist=ruby` - Chat history
+- `DELETE /api/chat/history` - Clear chat history
+
+### Style DNA / Profile
+- `GET /api/style-dna/profile` - User's fashion genome
+- `GET /api/style-dna/traits` - Personality traits
+- `GET /api/style-dna/visualization` - Chart data
+- `GET /api/profile/style` - Style profile
+- `POST /api/profile/style` - Update style profile
+
+### Wardrobe
+- `GET /api/wardrobe` - List items
+- `POST /api/wardrobe` - Add item
+- `POST /api/wardrobe/extract-clothing` - AI detect clothing from photo
+- `POST /api/wardrobe/analyze` - AI analyze single item
+
+### AI Features
+- `POST /api/color-analysis` - Skin tone analysis (send photo)
+- `POST /api/street-style-scan` - Visual search (identify any outfit)
+- `POST /api/dream-outfit` - Generate outfit description
+- `GET /api/weather-outfits` - Weather-aware recommendations
+- `POST /api/outfit-calendar` - Weekly outfit planning
+- `POST /api/style-shuffle` - Mix wardrobe items creatively
+
+### Mood/Therapy
+- `POST /api/mood/capture` - Analyze mood from selfie
+- `GET /api/mood/recommendations` - Fashion therapy suggestions
+
+### Virtual Try-On
+- `POST /api/tryon/simulate` - AI try-on simulation
+- `POST /api/fashn/tryon` - Industry-leading try-on (if FASHN_API_KEY set)
+
+### Voice
+- `POST /api/ai/voice-preview` - Generate voice audio (with elevenLabsVoiceId and languageCode params)
+- `GET /api/ai/voice-preview/script` - Get culturally-appropriate script for accent
+- `GET /api/ai/voices` - Available voice options
+
+### Personality
+- `POST /api/personality/analyze` - Analyze user personality
+- `GET /api/personality/insights` - Get personality insights
+- `POST /api/personality/memory` - Store personality memory
+
+### AI Models
+- `GET /api/ai/models/status` - Check and refresh AI model status
+
+### Image Handling
+For endpoints requiring images, send either:
+- `imageUrl`: Public URL to image
+- `imageBase64`: Base64-encoded image string
