@@ -2274,13 +2274,19 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               >
                 {cameraGuidance.overlay ? (
                   <View style={[styles.overlayPreview, { backgroundColor: theme.backgroundSecondary }]}>
-                    <View style={[
-                      cameraGuidance.overlay.type === 'body-silhouette' 
-                        ? styles.bodySilhouettePreview 
-                        : styles.faceOvalPreview,
-                      { borderColor: theme.link }
-                    ]} />
-                    <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: Spacing.md }}>
+                    {cameraGuidance.overlay.type === 'body-silhouette' ? (
+                      <View style={styles.bodySilhouetteContainer}>
+                        <View style={[styles.bodySilhouetteHead, { borderColor: theme.link }]} />
+                        <View style={[styles.bodySilhouetteBody, { borderColor: theme.link }]} />
+                        <View style={styles.bodySilhouetteLegsRow}>
+                          <View style={[styles.bodySilhouetteLeg, { borderColor: theme.link }]} />
+                          <View style={[styles.bodySilhouetteLeg, { borderColor: theme.link }]} />
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={[styles.faceOvalPreview, { borderColor: theme.link }]} />
+                    )}
+                    <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: Spacing.md, textAlign: 'center' }}>
                       {cameraGuidance.overlay.guideText?.middle || cameraGuidance.overlay.targetZoneLabel || 'Position yourself in the frame'}
                     </ThemedText>
                   </View>
@@ -2439,6 +2445,13 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       </ThemedText>
                     </View>
                   ))}
+                </View>
+
+                <View style={[styles.colorSeasonTip, { backgroundColor: theme.backgroundSecondary, marginTop: Spacing.md }]}>
+                  <Feather name="info" size={14} color={theme.link} style={{ marginRight: Spacing.sm }} />
+                  <ThemedText type="caption" style={{ flex: 1, color: theme.tabIconDefault }}>
+                    Results are based on visible proportions in your photo. For best accuracy, retake with form-fitting clothes and your full body visible from head to feet.
+                  </ThemedText>
                 </View>
               </View>
             ) : pendingScanResult?.type === 'color' ? (
@@ -3079,6 +3092,36 @@ const styles = StyleSheet.create({
     height: 160,
     borderWidth: 2,
     borderRadius: 40,
+    borderStyle: "dashed",
+  },
+  bodySilhouetteContainer: {
+    alignItems: "center",
+  },
+  bodySilhouetteHead: {
+    width: 30,
+    height: 30,
+    borderWidth: 2,
+    borderRadius: 15,
+    borderStyle: "dashed",
+    marginBottom: 4,
+  },
+  bodySilhouetteBody: {
+    width: 50,
+    height: 70,
+    borderWidth: 2,
+    borderRadius: 8,
+    borderStyle: "dashed",
+    marginBottom: 4,
+  },
+  bodySilhouetteLegsRow: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  bodySilhouetteLeg: {
+    width: 18,
+    height: 50,
+    borderWidth: 2,
+    borderRadius: 6,
     borderStyle: "dashed",
   },
   faceOvalPreview: {

@@ -318,11 +318,11 @@ class OnboardingServiceClass {
         type: "body-silhouette",
         aspectRatio: "9:16",
         guideText: {
-          top: "Stand back so your full body is visible",
-          middle: "Align yourself with the silhouette",
-          bottom: "Keep your arms slightly away from your body"
+          top: "Fit your whole body in frame (head to feet)",
+          middle: "Stand straight, arms relaxed",
+          bottom: ""
         },
-        targetZoneLabel: "Full Body"
+        targetZoneLabel: "Stand straight, arms relaxed"
       },
       tips: [
         {
@@ -333,19 +333,29 @@ class OnboardingServiceClass {
         {
           icon: "sun",
           title: "Good Lighting",
-          description: "Make sure you're well-lit so your body shape is clearly visible"
+          description: "Stand facing natural light or a well-lit area"
         },
         {
           icon: "user",
-          title: "Form-Fitting Clothes",
-          description: "Wear fitted clothing for the most accurate body type detection"
+          title: "Form-fitting clothes",
+          description: "Wear fitted clothing so we can see your natural shape"
+        },
+        {
+          icon: "smartphone",
+          title: "Prop your phone",
+          description: "Use a shelf, lean against something, or ask someone to help"
+        },
+        {
+          icon: "eye",
+          title: "Full body visible",
+          description: "Step back so your entire body fits in the frame"
         }
       ],
       tipsSimple: [
-        "Stand back so your full body is visible",
-        "Wear form-fitting clothes for accuracy",
-        "Good lighting helps detection",
-        "Keep arms slightly away from body"
+        "Good lighting: Stand facing natural light or a well-lit area",
+        "Form-fitting clothes: Wear fitted clothing so we can see your natural shape",
+        "Prop your phone: Use a shelf, lean against something, or ask someone to help",
+        "Full body visible: Step back so your entire body fits in the frame"
       ],
       positioning: {
         distance: "6-8 feet from camera",
