@@ -174,8 +174,8 @@ type DiscoverScreenProps = {
 const { width } = Dimensions.get("window");
 
 const TILE_COLUMNS = 2;
-const TILE_GAP = 16;
-const TILE_SIZE = (width - Spacing.lg * 2 - TILE_GAP * (TILE_COLUMNS - 1)) / TILE_COLUMNS;
+const TILE_GAP = 12;
+const TILE_SIZE = (width - Spacing.md * 2 - TILE_GAP) / TILE_COLUMNS;
 
 const TILE_TEXT_COLOR = "#FFFFFF";
 const TILE_ICON_SIZE = 36;
@@ -520,7 +520,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
           setEmergingTrends(result.trends.emergingTrends);
         }
       } catch (error) {
-        console.error('Failed to load emerging trends:', error);
+        console.log('Emerging trends unavailable:', error);
       } finally {
         setLoadingTrends(false);
       }
@@ -740,7 +740,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: TILE_GAP,
     marginBottom: Spacing.xl,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.md,
   },
   categoryTile: {
     width: TILE_SIZE,
