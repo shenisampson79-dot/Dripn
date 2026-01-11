@@ -473,6 +473,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const [isBodyScanning, setIsBodyScanning] = useState(false);
   const [bodyScanResult, setBodyScanResult] = useState<BodyScanResult | null>(null);
   const [isColorScanning, setIsColorScanning] = useState(false);
+  const [colorScanProgress, setColorScanProgress] = useState<string>("");
   const [colorScanResult, setColorScanResult] = useState<ColorScanResult | null>(null);
   const [showStyleQuiz, setShowStyleQuiz] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<StyleQuizQuestion[]>([]);
@@ -803,8 +804,30 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         }
       } else if (cameraScanType === 'color') {
         setIsColorScanning(true);
+        setColorScanProgress("Uploading photo...");
+        
+        const progressStages = [
+          { message: "Analyzing skin tone...", delay: 2000 },
+          { message: "Detecting undertones...", delay: 5000 },
+          { message: "Determining color season...", delay: 10000 },
+          { message: "Generating your palette...", delay: 18000 },
+          { message: "Finalizing recommendations...", delay: 30000 },
+          { message: "Almost there...", delay: 45000 },
+        ];
+        
+        const progressTimers: NodeJS.Timeout[] = [];
+        progressStages.forEach((stage) => {
+          const timer = setTimeout(() => {
+            setColorScanProgress(stage.message);
+          }, stage.delay);
+          progressTimers.push(timer);
+        });
+        
         try {
           const scanResult = await OnboardingService.colorScan(photo.base64);
+          
+          progressTimers.forEach(timer => clearTimeout(timer));
+          setColorScanProgress("");
           
           if (scanResult.review?.showCapturedImage) {
             setPendingScanResult({ type: 'color', result: scanResult });
@@ -818,6 +841,8 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             );
           }
         } finally {
+          progressTimers.forEach(timer => clearTimeout(timer));
+          setColorScanProgress("");
           setIsColorScanning(false);
         }
       }
@@ -1686,17 +1711,23 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   )}
                   <View style={styles.aiShortcutText}>
                     <ThemedText type="body" style={{ color: theme.link, fontWeight: '600' }}>
-                      {colorScanResult ? 'Color Analysis Complete' : 'AI Color Analysis'}
+                      {isColorScanning 
+                        ? 'Analyzing...' 
+                        : colorScanResult 
+                          ? 'Color Analysis Complete' 
+                          : 'AI Color Analysis'}
                     </ThemedText>
                     <ThemedText type="small" style={{ opacity: 0.7 }}>
-                      {colorScanResult 
-                        ? `${colorScanResult.colorSeasonType} ${colorScanResult.seasonSubtype}`
-                        : 'Selfie to find your best colors'}
+                      {isColorScanning && colorScanProgress
+                        ? colorScanProgress
+                        : colorScanResult 
+                          ? `${colorScanResult.colorSeasonType} ${colorScanResult.seasonSubtype}`
+                          : 'Selfie to find your best colors'}
                     </ThemedText>
                   </View>
                   {colorScanResult ? (
                     <Feather name="check-circle" size={20} color={theme.link} />
-                  ) : (
+                  ) : isColorScanning ? null : (
                     <Feather name="chevron-right" size={20} color={theme.link} />
                   )}
                 </Pressable>
