@@ -175,8 +175,8 @@ const { width } = Dimensions.get("window");
 
 const TILE_COLUMNS = 2;
 const TILE_GAP = 12;
-const TILE_SIZE = (width - Spacing.md * 2 - TILE_GAP) / TILE_COLUMNS;
-
+const TILE_PADDING = 16;
+const TILE_SIZE = (width - TILE_PADDING * 2 - TILE_GAP) / TILE_COLUMNS;
 const TILE_TEXT_COLOR = "#FFFFFF";
 const TILE_ICON_SIZE = 36;
 const TILE_LABEL_SIZE = 15;
@@ -740,7 +740,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: TILE_GAP,
     marginBottom: Spacing.xl,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: TILE_PADDING,
   },
   categoryTile: {
     width: TILE_SIZE,
