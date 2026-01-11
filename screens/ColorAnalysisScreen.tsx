@@ -387,6 +387,21 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
             <ThemedText type="body" style={[styles.seasonDescription, { color: secondaryTextColor }]}>
               {seasonInfo.description}
             </ThemedText>
+            <Pressable
+              onPress={() => navigation.getParent()?.navigate("Discover", { 
+                screen: "FashionBlog",
+                params: { highlightArticle: "fallback-color-guide" }
+              })}
+              style={({ pressed }) => [
+                styles.learnMoreButton,
+                { backgroundColor: theme.link + "15", opacity: pressed ? 0.7 : 1 }
+              ]}
+            >
+              <Feather name="book-open" size={16} color={theme.link} />
+              <ThemedText type="body" style={{ color: theme.link, fontWeight: "600", marginLeft: Spacing.xs }}>
+                Learn How to Use Your Season When Shopping
+              </ThemedText>
+            </Pressable>
           </Card>
 
           {hasSkinToneAnalysis && bodyProfile?.skinTone ? (
@@ -816,6 +831,15 @@ const styles = StyleSheet.create({
   },
   seasonDescription: {
     lineHeight: 22,
+  },
+  learnMoreButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
   },
   section: {
     marginBottom: Spacing.lg,

@@ -40,6 +40,22 @@ const NEWSLETTER_SUBSCRIPTION_KEY = "@dripn_newsletter_subscribed";
 
 const FALLBACK_BLOG_POSTS: BlogPost[] = [
   {
+    id: "fallback-color-guide",
+    subject: "Dripn Weekly: Your Complete Seasonal Colour Analysis Guide",
+    headline: "Seasonal Colour Analysis: The Complete Shopping Guide",
+    previewText: "How to use your colour season when shopping for clothes, accessories, and more",
+    introduction: "You've discovered you're a Winter, Summer, Spring, or Autumn - but what does that actually mean when you walk into a shop? This comprehensive guide explains how to use your seasonal colour analysis in real-world shopping situations, from menswear to makeup counters.",
+    category: "Colour Analysis",
+    tags: ["colour-season", "shopping-guide", "winter", "summer", "spring", "autumn", "menswear", "practical"],
+    publishedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
+    tips: [
+      { title: "What Is Seasonal Colour Analysis?", content: "Seasonal colour analysis is a system developed in the 1980s by colour consultants to help people identify which colours complement their natural colouring - skin tone, eye colour, and hair. The four seasons (Spring, Summer, Autumn, Winter) each have distinct palettes, and subtypes like 'Deep Winter' or 'Light Summer' refine this further. It's widely used by professional stylists, personal shoppers, and beauty advisors worldwide.", proTip: "The system works for everyone regardless of gender, age, or ethnicity. It's about your natural colouring, not fashion rules." },
+      { title: "Deep/True Winter Explained", content: "If you're a Deep Winter or True Winter, you have cool undertones with high contrast between your skin, hair, and eyes. Your power colours are bold, saturated, and cool: Royal Blue, Emerald Green, True Red, Black, Charcoal, Pure White, Burgundy, and jewel tones. These colours make your skin look vibrant and healthy. Avoid warm, muted colours like orange, olive, and cream which can make you look tired.", proTip: "Black is your best neutral - unlike Springs and Autumns, you can wear black right next to your face without looking washed out." },
+      { title: "Using Your Season When Shopping", content: "When shopping for suits, shirts, or casual wear, stick to your power colours for pieces that sit near your face - shirts, ties, scarves, jumpers. Trousers and shoes have more flexibility. At a department store, you can absolutely say 'I'm a Deep Winter' to a personal shopper - trained staff will understand. At makeup counters, mention your season and they'll steer you toward cool-toned foundations and lip colours.", proTip: "For men: Navy, charcoal, and black suits are your foundation. Add interest with deep burgundy, forest green, or royal blue shirts and accessories." },
+      { title: "Building a Seasonal Wardrobe", content: "Start with foundational pieces in your best neutrals: for Winters, that's black, navy, charcoal, and pure white. Add statement pieces in your power colours - a royal blue blazer, an emerald green polo, a burgundy jumper. Accessories like ties, pocket squares, and scarves are a low-risk way to incorporate colour. Over time, you'll naturally gravitate toward colours that make you look and feel your best.", proTip: "Take screenshots of your power colours from Dripn to reference while shopping. Compare fabrics to ensure you're choosing cool-toned, clear versions rather than warm or muted ones." }
+    ]
+  },
+  {
     id: "fallback-1",
     subject: "Dripn Weekly: 2025 Fashion Trends That Are Here to Stay",
     headline: "2025 Fashion Trends That Are Here to Stay",
