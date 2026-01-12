@@ -91,7 +91,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
         id: Date.now().toString(), 
         uri: asset.uri, 
         type: isVideo ? 'video' : 'image',
-        duration: asset.duration,
+        duration: asset.duration ?? undefined,
       }]);
     }
   };
@@ -159,7 +159,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
         id: Date.now().toString(), 
         uri: result.assets[0].uri, 
         type: 'video',
-        duration: result.assets[0].duration,
+        duration: result.assets[0].duration ?? undefined,
       }]);
     }
   };

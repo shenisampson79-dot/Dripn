@@ -971,13 +971,44 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   }, [countrySearchQuery]);
 
   const detectLocation = useCallback(async () => {
+    const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+    
+    if (existingStatus !== 'granted') {
+      Alert.alert(
+        'Find Your Country',
+        'We use your location once to detect your country for local fashion trends and stores. Your exact location is never stored.',
+        [
+          { text: 'Select Manually', style: 'cancel' },
+          { 
+            text: 'Use Location', 
+            onPress: async () => {
+              setIsDetectingLocation(true);
+              try {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                if (status !== 'granted') {
+                  return;
+                }
+                await fetchLocationAndSetCountry();
+              } finally {
+                setIsDetectingLocation(false);
+              }
+            }
+          }
+        ]
+      );
+      return;
+    }
+    
     setIsDetectingLocation(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Location Access', 'Enable location to auto-detect your country, or select manually below.');
-        return;
-      }
+      await fetchLocationAndSetCountry();
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  }, []);
+
+  const fetchLocationAndSetCountry = useCallback(async () => {
+    try {
       const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
       const [address] = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
@@ -995,8 +1026,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       }
     } catch (error) {
       console.log('Location detection error:', error);
-    } finally {
-      setIsDetectingLocation(false);
     }
   }, []);
 

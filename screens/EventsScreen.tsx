@@ -179,10 +179,10 @@ export default function EventsScreen() {
       
       if (currentPermission.status === "denied" && !currentPermission.canAskAgain) {
         Alert.alert(
-          "Location Permission Required",
-          "Location access was previously denied. Please enable location in your device Settings to see events near you.",
+          "Enable Location",
+          "To find events near you, turn on location in Settings.",
           [
-            { text: "Cancel", style: "cancel" },
+            { text: "Not Now", style: "cancel" },
             { 
               text: "Open Settings", 
               onPress: () => {
@@ -196,19 +196,30 @@ export default function EventsScreen() {
         return;
       }
       
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      setLocationEnabled(status === "granted");
-      if (status === "granted") {
-        await fetchLocationAndEvents();
-      } else {
+      if (currentPermission.status !== "granted") {
         Alert.alert(
-          "Location Not Enabled",
-          "Enable location access to see personalized events near you and get directions."
+          "Find Events Near You",
+          "We'll use your location to show fashion events, pop-ups, and experiences happening nearby.",
+          [
+            { text: "Skip", style: "cancel" },
+            {
+              text: "Enable",
+              onPress: async () => {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                setLocationEnabled(status === "granted");
+                if (status === "granted") {
+                  await fetchLocationAndEvents();
+                }
+              }
+            }
+          ]
         );
+        return;
       }
+      
+      await fetchLocationAndEvents();
     } catch (error) {
       console.log("Location permission error:", error);
-      Alert.alert("Error", "Could not request location permission. Please try again.");
     }
   }, [fetchLocationAndEvents]);
 
