@@ -202,6 +202,11 @@ const CATEGORY_TILES: CategoryTile[] = [
   { id: "fashionReads", name: "Fashion Reads", icon: "book-open", pastelBg: "#3B82F6", description: "Expert fashion articles, styling tips, magazine looks, and in-depth guides.", screen: "FashionBlog" },
   { id: "offers", name: "Offers", icon: "tag", pastelBg: "#EF4444", description: "Exclusive daily deals and discounts from trusted fashion retailers.", screen: "Bargains" },
   { id: "community", name: "Community", icon: "users", pastelBg: "#14B8A6", description: "Events, people, and connections - discover fashion happenings and fellow enthusiasts.", screen: "Community" },
+  { id: "motionCoaching", name: "Presence", icon: "activity", pastelBg: "#7C3AED", description: "Analyze your posture, gait, and overall vibe. Get micro-coaching tips to elevate your presence.", screen: "MotionCoaching" },
+  { id: "wardrobeTwin", name: "Wardrobe Twin", icon: "grid", pastelBg: "#0EA5E9", description: "Your wardrobe's digital twin with health scores, capsule planning, and future projections.", screen: "WardrobeDigitalTwin" },
+  { id: "culturalStyle", name: "Style Diplomat", icon: "map", pastelBg: "#F97316", description: "Cultural dress codes and fashion etiquette for 5 countries. Perfect for travelers.", screen: "CulturalStyle" },
+  { id: "styleStories", name: "Style Stories", icon: "book", pastelBg: "#A855F7", description: "Create cinematic narratives about your fashion journey with AI-generated voice scripts.", screen: "StyleStories" },
+  { id: "collectiveInsights", name: "Intelligence", icon: "bar-chart-2", pastelBg: "#06B6D4", description: "Community trends, peer comparisons, and collective fashion intelligence.", screen: "CollectiveInsights" },
 ];
 
 const SECTION_NAV = [

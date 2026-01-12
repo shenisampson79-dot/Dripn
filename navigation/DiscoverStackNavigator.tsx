@@ -26,6 +26,11 @@ import BargainsScreen from "@/screens/BargainsScreen";
 import WishlistScreen from "@/screens/WishlistScreen";
 import SustainabilityScreen from "@/screens/SustainabilityScreen";
 import FashionTherapyScreen from "@/screens/FashionTherapyScreen";
+import MotionCoachingScreen from "@/screens/MotionCoachingScreen";
+import WardrobeDigitalTwinScreen from "@/screens/WardrobeDigitalTwinScreen";
+import CulturalStyleScreen from "@/screens/CulturalStyleScreen";
+import StyleStoriesScreen from "@/screens/StyleStoriesScreen";
+import CollectiveInsightsScreen from "@/screens/CollectiveInsightsScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -56,6 +61,11 @@ export type DiscoverStackParamList = {
   Wishlist: undefined;
   Sustainability: undefined;
   FashionTherapy: undefined;
+  MotionCoaching: undefined;
+  WardrobeDigitalTwin: undefined;
+  CulturalStyle: undefined;
+  StyleStories: undefined;
+  CollectiveInsights: undefined;
 };
 
 const Stack = createNativeStackNavigator<DiscoverStackParamList>();
@@ -196,6 +206,31 @@ export default function DiscoverStackNavigator() {
         name="FashionTherapy"
         component={FashionTherapyScreen}
         options={{ headerTitle: "Fashion Therapy", headerShown: false }}
+      />
+      <Stack.Screen
+        name="MotionCoaching"
+        component={MotionCoachingScreen}
+        options={{ headerTitle: "Presence Analysis" }}
+      />
+      <Stack.Screen
+        name="WardrobeDigitalTwin"
+        component={WardrobeDigitalTwinScreen}
+        options={{ headerTitle: "Wardrobe Twin" }}
+      />
+      <Stack.Screen
+        name="CulturalStyle"
+        component={CulturalStyleScreen}
+        options={{ headerTitle: "Style Diplomat" }}
+      />
+      <Stack.Screen
+        name="StyleStories"
+        component={StyleStoriesScreen}
+        options={{ headerTitle: "Style Stories" }}
+      />
+      <Stack.Screen
+        name="CollectiveInsights"
+        component={CollectiveInsightsScreen}
+        options={{ headerTitle: "Fashion Intelligence" }}
       />
     </Stack.Navigator>
   );
