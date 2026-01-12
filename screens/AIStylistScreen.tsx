@@ -1945,14 +1945,12 @@ export default function AIStylistScreen() {
           automaticallyAdjustKeyboardInsets
           style={styles.flatList}
         />
-        <View 
-          style={[
-            styles.inputBarAbsolute,
-            { bottom: tabBarHeight > 0 ? tabBarHeight : insets.bottom }
-          ]}
+        <KeyboardStickyView 
+          offset={{ closed: tabBarHeight > 0 ? tabBarHeight : insets.bottom }}
+          style={styles.inputBarAbsolute}
         >
           {renderInputBar()}
-        </View>
+        </KeyboardStickyView>
       </View>
     </KeyboardProvider>
   );

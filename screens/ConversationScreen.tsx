@@ -8,9 +8,8 @@ import {
   Image, 
   Alert,
   Modal,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
+import { KeyboardStickyView, KeyboardProvider } from 'react-native-keyboard-controller';
 import { Feather } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
@@ -315,88 +314,90 @@ export default function ConversationScreen({ navigation, route }: ConversationSc
   const groupedMessages = groupMessagesByDate(messages);
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: theme.backgroundDefault }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={100}
-    >
-      <FlatList
-        ref={flatListRef}
-        data={groupedMessages}
-        keyExtractor={(item) => item.date}
-        renderItem={({ item }) => (
-          <View>
-            {renderDateHeader(item.date)}
-            {item.messages.map((msg: Message) => (
-              <View key={msg.id}>{renderMessage({ item: msg })}</View>
-            ))}
-          </View>
-        )}
-        contentContainerStyle={[
-          styles.messagesList,
-          { paddingBottom: insets.bottom + 80 },
-        ]}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Feather name="message-circle" size={48} color={theme.tabIconDefault} />
-            <ThemedText type="body" style={styles.emptyText}>
-              No messages yet. Start the conversation!
-            </ThemedText>
-          </View>
-        }
-      />
-
-      {isBlocked ? (
-        <View style={[styles.blockedBanner, { backgroundColor: theme.backgroundSecondary }]}>
-          <Feather name="slash" size={18} color={theme.tabIconDefault} />
-          <ThemedText type="body" style={{ marginLeft: Spacing.sm, opacity: 0.7 }}>
-            You have blocked this user
-          </ThemedText>
-        </View>
-      ) : (
-        <View style={[
-          styles.inputContainer, 
-          { 
-            backgroundColor: theme.backgroundDefault,
-            paddingBottom: insets.bottom + Spacing.sm,
-            borderTopColor: theme.backgroundSecondary,
+    <KeyboardProvider>
+      <View style={[styles.container, { backgroundColor: theme.backgroundDefault }]}>
+        <FlatList
+          ref={flatListRef}
+          data={groupedMessages}
+          keyExtractor={(item) => item.date}
+          renderItem={({ item }) => (
+            <View>
+              {renderDateHeader(item.date)}
+              {item.messages.map((msg: Message) => (
+                <View key={msg.id}>{renderMessage({ item: msg })}</View>
+              ))}
+            </View>
+          )}
+          contentContainerStyle={[
+            styles.messagesList,
+            { paddingBottom: insets.bottom + 80 },
+          ]}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Feather name="message-circle" size={48} color={theme.tabIconDefault} />
+              <ThemedText type="body" style={styles.emptyText}>
+                No messages yet. Start the conversation!
+              </ThemedText>
+            </View>
           }
-        ]}>
-          <TextInput
-            style={[
-              styles.textInput,
+        />
+
+        <KeyboardStickyView offset={{ closed: insets.bottom }}>
+          {isBlocked ? (
+            <View style={[styles.blockedBanner, { backgroundColor: theme.backgroundSecondary }]}>
+              <Feather name="slash" size={18} color={theme.tabIconDefault} />
+              <ThemedText type="body" style={{ marginLeft: Spacing.sm, opacity: 0.7 }}>
+                You have blocked this user
+              </ThemedText>
+            </View>
+          ) : (
+            <View style={[
+              styles.inputContainer, 
               { 
-                backgroundColor: theme.backgroundSecondary,
-                color: theme.text,
+                backgroundColor: theme.backgroundDefault,
+                paddingBottom: Spacing.sm,
+                borderTopColor: theme.backgroundSecondary,
               }
-            ]}
-            placeholder="Type a message..."
-            placeholderTextColor={theme.tabIconDefault}
-            value={messageText}
-            onChangeText={setMessageText}
-            multiline
-            maxLength={1000}
-          />
-          <Pressable
-            onPress={handleSendMessage}
-            disabled={!messageText.trim()}
-            style={({ pressed }) => [
-              styles.sendButton,
-              { 
-                backgroundColor: messageText.trim() ? theme.link : theme.backgroundSecondary,
-                opacity: pressed ? 0.8 : 1,
-              }
-            ]}
-          >
-            <Feather 
-              name="send" 
-              size={20} 
-              color={messageText.trim() ? '#FFFFFF' : theme.tabIconDefault} 
-            />
-          </Pressable>
-        </View>
-      )}
+            ]}>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  { 
+                    backgroundColor: theme.backgroundSecondary,
+                    color: theme.text,
+                  }
+                ]}
+                placeholder="Type a message..."
+                placeholderTextColor={theme.tabIconDefault}
+                value={messageText}
+                onChangeText={setMessageText}
+                multiline
+                maxLength={1000}
+              />
+              <Pressable
+                onPress={handleSendMessage}
+                disabled={!messageText.trim()}
+                style={({ pressed }) => [
+                  styles.sendButton,
+                  { 
+                    backgroundColor: messageText.trim() ? theme.link : theme.backgroundSecondary,
+                    opacity: pressed ? 0.8 : 1,
+                  }
+                ]}
+              >
+                <Feather 
+                  name="send" 
+                  size={20} 
+                  color={messageText.trim() ? '#FFFFFF' : theme.tabIconDefault} 
+                />
+              </Pressable>
+            </View>
+          )}
+        </KeyboardStickyView>
 
       <Modal
         visible={showOptionsModal}
@@ -584,7 +585,8 @@ export default function ConversationScreen({ navigation, route }: ConversationSc
           </Pressable>
         </Pressable>
       </Modal>
-    </KeyboardAvoidingView>
+      </View>
+    </KeyboardProvider>
   );
 }
 

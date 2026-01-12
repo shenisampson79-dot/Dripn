@@ -3,7 +3,7 @@ import { StyleSheet, View, Pressable, TextInput, ActivityIndicator, Share } from
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
-import { ScreenScrollView } from "@/components/ScreenScrollView";
+import { ScreenKeyboardAwareScrollView } from "@/components/ScreenKeyboardAwareScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
@@ -144,7 +144,7 @@ export default function StyleStoriesScreen({ navigation }: StyleStoriesScreenPro
   };
 
   return (
-    <ScreenScrollView style={styles.container}>
+    <ScreenKeyboardAwareScrollView style={styles.container}>
       <Card style={styles.introCard}>
         <View style={styles.introHeader}>
           <View style={[styles.iconCircle, { backgroundColor: theme.link + "20" }]}>
@@ -367,7 +367,7 @@ export default function StyleStoriesScreen({ navigation }: StyleStoriesScreenPro
           </Pressable>
         </>
       )}
-    </ScreenScrollView>
+    </ScreenKeyboardAwareScrollView>
   );
 }
 

@@ -465,14 +465,14 @@ export default function SupportScreen() {
           }
         />
 
-        <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
+        <KeyboardStickyView offset={{ closed: safeAreaInsets.bottom }}>
           <View
             style={[
               styles.inputContainer,
               {
                 backgroundColor: theme.backgroundDefault,
                 borderTopColor: theme.tabIconDefault + '30',
-                paddingBottom: Math.max(paddingBottom, Spacing.md),
+                paddingBottom: Spacing.md,
               },
             ]}
           >
