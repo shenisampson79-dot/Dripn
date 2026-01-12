@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { StyleSheet, View, Pressable, TextInput, ActivityIndicator, Share } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -35,6 +35,13 @@ interface GeneratedStory {
   keyMoment: string;
 }
 
+interface StoryHistoryItem {
+  id: string;
+  createdAt: string;
+  templateId: string;
+  story: GeneratedStory;
+}
+
 const STORY_TEMPLATES: StoryTemplate[] = [
   { id: "origin", name: "The Outfit That Started It All", description: "The moment fashion clicked for you" },
   { id: "confidence", name: "The Day You Owned the Room", description: "When your outfit gave you superpowers" },
@@ -65,6 +72,35 @@ export default function StyleStoriesScreen({ navigation }: StyleStoriesScreenPro
   const [isGenerating, setIsGenerating] = useState(false);
   const [story, setStory] = useState<GeneratedStory | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<StoryHistoryItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const loadHistory = async () => {
+    try {
+      const data = await apiService.get<{ history: StoryHistoryItem[] }>("/api/style-stories/history");
+      setHistory(data.history || []);
+    } catch (err) {
+      console.log("No story history available");
+    }
+  };
+
+  const handleViewHistoryItem = (item: StoryHistoryItem) => {
+    setStory(item.story);
+    setSelectedTemplate(item.templateId);
+    setShowHistory(false);
+  };
+
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    } catch {
+      return dateStr;
+    }
+  };
 
   const handleGenerate = useCallback(async () => {
     if (!selectedTemplate) {
@@ -82,6 +118,7 @@ export default function StyleStoriesScreen({ navigation }: StyleStoriesScreenPro
         includeVoice: true,
       });
       setStory(data);
+      loadHistory();
     } catch (err: any) {
       setError(err.message || "Failed to generate story");
     } finally {
@@ -121,6 +158,44 @@ export default function StyleStoriesScreen({ navigation }: StyleStoriesScreenPro
           </View>
         </View>
       </Card>
+
+      {history.length > 0 && (
+        <Card style={styles.historyCard}>
+          <Pressable 
+            style={styles.historyHeader} 
+            onPress={() => setShowHistory(!showHistory)}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Feather name="clock" size={18} color={theme.link} />
+              <ThemedText type="body" style={{ fontWeight: "600", marginLeft: Spacing.sm }}>
+                Your Story Archive ({history.length})
+              </ThemedText>
+            </View>
+            <Feather name={showHistory ? "chevron-up" : "chevron-down"} size={20} color={theme.tabIconDefault} />
+          </Pressable>
+          {showHistory && (
+            <View style={{ marginTop: Spacing.md }}>
+              {history.slice(0, 5).map((item) => (
+                <Pressable
+                  key={item.id}
+                  style={[styles.historyItem, { backgroundColor: theme.backgroundSecondary }]}
+                  onPress={() => handleViewHistoryItem(item)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="caption" numberOfLines={1} style={{ fontWeight: "600" }}>
+                      {item.story?.title || "Untitled Story"}
+                    </ThemedText>
+                    <ThemedText type="small" style={{ color: theme.tabIconDefault, marginTop: 2 }}>
+                      {formatDate(item.createdAt)} - {STORY_TEMPLATES.find(t => t.id === item.templateId)?.name || "Custom"}
+                    </ThemedText>
+                  </View>
+                  <Feather name="chevron-right" size={16} color={theme.tabIconDefault} />
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </Card>
+      )}
 
       {!story ? (
         <>
@@ -431,5 +506,22 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     alignItems: "center",
+  },
+  historyCard: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+  },
+  historyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  historyItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.xs,
   },
 });

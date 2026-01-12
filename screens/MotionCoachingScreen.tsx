@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { StyleSheet, View, Pressable, TextInput, ActivityIndicator, ScrollView } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -43,12 +43,38 @@ interface MotionAnalysisResult {
   affirmation: string;
 }
 
+interface HistoryItem {
+  id: string;
+  createdAt: string;
+  motionDescription: string;
+  result: MotionAnalysisResult;
+}
+
 export default function MotionCoachingScreen({ navigation }: MotionCoachingScreenProps) {
   const { theme, isDark } = useTheme();
   const [motionDescription, setMotionDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<MotionAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const loadHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const data = await apiService.get<{ history: HistoryItem[] }>("/api/motion/history");
+      setHistory(data.history || []);
+    } catch (err) {
+      console.log("No history available");
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   const handleAnalyze = useCallback(async () => {
     if (!motionDescription.trim()) {
@@ -65,12 +91,27 @@ export default function MotionCoachingScreen({ navigation }: MotionCoachingScree
         analysisType: "general",
       });
       setResult(data);
+      loadHistory();
     } catch (err: any) {
       setError(err.message || "Analysis failed. Please try again.");
     } finally {
       setIsAnalyzing(false);
     }
   }, [motionDescription]);
+
+  const handleViewHistoryItem = (item: HistoryItem) => {
+    setResult(item.result);
+    setMotionDescription(item.motionDescription);
+    setShowHistory(false);
+  };
+
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    } catch {
+      return dateStr;
+    }
+  };
 
   const renderScoreBar = (score: number, label: string, color: string) => (
     <View style={styles.scoreRow}>
@@ -97,6 +138,44 @@ export default function MotionCoachingScreen({ navigation }: MotionCoachingScree
           </View>
         </View>
       </Card>
+
+      {history.length > 0 && (
+        <Card style={styles.historyCard}>
+          <Pressable 
+            style={styles.historyHeader} 
+            onPress={() => setShowHistory(!showHistory)}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Feather name="clock" size={18} color={theme.link} />
+              <ThemedText type="body" style={{ fontWeight: "600", marginLeft: Spacing.sm }}>
+                Previous Analyses ({history.length})
+              </ThemedText>
+            </View>
+            <Feather name={showHistory ? "chevron-up" : "chevron-down"} size={20} color={theme.tabIconDefault} />
+          </Pressable>
+          {showHistory && (
+            <View style={{ marginTop: Spacing.md }}>
+              {history.slice(0, 5).map((item) => (
+                <Pressable
+                  key={item.id}
+                  style={[styles.historyItem, { backgroundColor: theme.backgroundSecondary }]}
+                  onPress={() => handleViewHistoryItem(item)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="caption" numberOfLines={1}>
+                      {item.motionDescription}
+                    </ThemedText>
+                    <ThemedText type="small" style={{ color: theme.tabIconDefault, marginTop: 2 }}>
+                      {formatDate(item.createdAt)} - Vibe: {item.result?.vibeScore?.overallVibe || "N/A"}
+                    </ThemedText>
+                  </View>
+                  <Feather name="chevron-right" size={16} color={theme.tabIconDefault} />
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </Card>
+      )}
 
       <Card style={styles.inputCard}>
         <ThemedText type="body" style={{ marginBottom: Spacing.sm, fontWeight: "600" }}>
@@ -372,5 +451,22 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
     padding: Spacing.lg,
     borderRadius: BorderRadius.lg,
+  },
+  historyCard: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+  },
+  historyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  historyItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.xs,
   },
 });
