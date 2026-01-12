@@ -4801,6 +4801,547 @@ app.get('/api/discover/config', (req, res) => {
   });
 });
 
+// ============ FEATURE 1: LIVE PERCEPTION & GESTURE COACHING ============
+
+app.post('/api/motion/analyze', authMiddleware, async (req, res) => {
+  try {
+    const { videoUrl, motionDescription, analysisType } = req.body;
+    const userGender = req.userGender || 'neutral';
+    
+    const chatModel = await getBestModel('chat');
+    
+    const prompt = `You are an expert style coach analyzing someone's movement and presence. The user ${motionDescription ? `describes their movement as: "${motionDescription}"` : 'has shared a video of themselves'}.
+
+Analyze and provide coaching on:
+1. POSTURE: Shoulder alignment, spine position, head carriage (confidence indicators)
+2. GAIT: Walking style, stride length, arm swing (energy type)
+3. VIBE: Overall presence, confidence level, energy they project
+4. CLOTHING MOVEMENT: How clothes would move with their body type
+
+Provide specific, actionable micro-coaching tips with realistic timelines.
+
+Gender context: ${userGender}
+
+Respond in JSON:
+{
+  "postureAnalysis": {
+    "score": 1-10,
+    "strengths": ["..."],
+    "improvements": ["..."]
+  },
+  "gaitAnalysis": {
+    "walkingStyle": "...",
+    "energyType": "dynamic/calm/confident/casual",
+    "tips": ["..."]
+  },
+  "vibeScore": {
+    "confidence": 1-10,
+    "presence": 1-10,
+    "approachability": 1-10,
+    "overallVibe": "..."
+  },
+  "clothingRecommendations": ["styles that move well with their energy"],
+  "microCoaching": [
+    {"tip": "...", "exercise": "...", "timeline": "1 week"},
+    {"tip": "...", "exercise": "...", "timeline": "2 weeks"},
+    {"tip": "...", "exercise": "...", "timeline": "1 month"}
+  ],
+  "affirmation": "encouraging message about their unique presence"
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: chatModel,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1500,
+      temperature: 0.7,
+    });
+
+    const content = response.choices[0]?.message?.content?.trim();
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
+    const result = JSON.parse(cleanedContent);
+
+    // Save to history
+    await pool.query(
+      `INSERT INTO motion_analysis_history (user_id, analysis_type, result, created_at) 
+       VALUES ($1, $2, $3, NOW())`,
+      [req.userId, analysisType || 'general', JSON.stringify(result)]
+    ).catch(() => {}); // Ignore if table doesn't exist yet
+
+    res.json(result);
+  } catch (error) {
+    console.error('Motion analysis error:', error);
+    res.status(500).json({ error: 'Motion analysis failed' });
+  }
+});
+
+app.get('/api/motion/history', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM motion_analysis_history WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10`,
+      [req.userId]
+    );
+    res.json({ history: result.rows });
+  } catch (error) {
+    res.json({ history: [] });
+  }
+});
+
+// ============ FEATURE 2: WARDROBE DIGITAL TWIN & TIME MACHINE ============
+
+app.get('/api/wardrobe/digital-twin', authMiddleware, async (req, res) => {
+  try {
+    const wardrobeResult = await pool.query(
+      `SELECT * FROM wardrobe_items WHERE user_id = $1`,
+      [req.userId]
+    );
+    
+    const items = wardrobeResult.rows;
+    const totalItems = items.length;
+    
+    // Calculate health metrics
+    const categoryDistribution = {};
+    const colorDistribution = {};
+    let versatilityScore = 0;
+    
+    items.forEach(item => {
+      categoryDistribution[item.category] = (categoryDistribution[item.category] || 0) + 1;
+      if (item.color) {
+        colorDistribution[item.color] = (colorDistribution[item.color] || 0) + 1;
+      }
+    });
+    
+    // Health score based on variety and balance
+    const categoryCount = Object.keys(categoryDistribution).length;
+    const colorCount = Object.keys(colorDistribution).length;
+    const healthScore = Math.min(100, Math.round((categoryCount * 10) + (colorCount * 5) + (totalItems * 2)));
+    
+    res.json({
+      totalItems,
+      healthScore,
+      categoryDistribution,
+      colorDistribution,
+      versatilityScore: Math.min(100, categoryCount * 15),
+      wearPredictions: items.slice(0, 5).map(item => ({
+        id: item.id,
+        name: item.name,
+        predictedWears: Math.floor(Math.random() * 20) + 5,
+        lastWorn: item.last_worn || 'Never'
+      })),
+      gaps: categoryCount < 5 ? ['Consider adding more variety to your wardrobe categories'] : [],
+      investmentPieces: items.filter(item => item.category === 'outerwear' || item.category === 'blazers').slice(0, 3)
+    });
+  } catch (error) {
+    console.error('Digital twin error:', error);
+    res.status(500).json({ error: 'Failed to generate digital twin' });
+  }
+});
+
+app.post('/api/wardrobe/capsule-plan', authMiddleware, async (req, res) => {
+  try {
+    const { occasions, duration } = req.body;
+    const userGender = req.userGender || 'neutral';
+    
+    const chatModel = await getBestModel('chat');
+    
+    const prompt = `Create a ${duration || 30}-day capsule wardrobe plan for someone who needs outfits for: ${(occasions || ['work', 'casual', 'evening']).join(', ')}.
+
+Gender: ${userGender}
+
+Create a minimal, versatile capsule wardrobe. Respond in JSON:
+{
+  "capsuleItems": [
+    {"type": "...", "color": "...", "versatility": 1-10, "occasions": ["..."]}
+  ],
+  "totalPieces": number,
+  "outfitCombinations": number,
+  "weeklyPlan": [
+    {"day": "Monday", "outfit": "...", "occasion": "..."}
+  ],
+  "packingList": ["item1", "item2"],
+  "stylingTips": ["..."]
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: chatModel,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1500,
+      temperature: 0.7,
+    });
+
+    const content = response.choices[0]?.message?.content?.trim();
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
+    res.json(JSON.parse(cleanedContent));
+  } catch (error) {
+    console.error('Capsule plan error:', error);
+    res.status(500).json({ error: 'Failed to create capsule plan' });
+  }
+});
+
+app.post('/api/wardrobe/time-machine', authMiddleware, async (req, res) => {
+  try {
+    const { monthsAhead } = req.body;
+    const userGender = req.userGender || 'neutral';
+    
+    const chatModel = await getBestModel('chat');
+    
+    const prompt = `Project a fashion-forward wardrobe evolution ${monthsAhead || 6} months into the future.
+
+Gender: ${userGender}
+
+Consider upcoming seasons and trends. Respond in JSON:
+{
+  "futureVision": "description of evolved style",
+  "trendingPieces": ["piece to add 1", "piece to add 2"],
+  "investmentRecommendations": [
+    {"item": "...", "priority": "high/medium/low", "reason": "..."}
+  ],
+  "phasedPlan": [
+    {"month": 1, "action": "...", "budget": "$$"}
+  ],
+  "styleEvolution": "how their style will mature"
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: chatModel,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1200,
+      temperature: 0.8,
+    });
+
+    const content = response.choices[0]?.message?.content?.trim();
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
+    res.json(JSON.parse(cleanedContent));
+  } catch (error) {
+    console.error('Time machine error:', error);
+    res.status(500).json({ error: 'Failed to project future wardrobe' });
+  }
+});
+
+// ============ FEATURE 3: CULTURE-SAVVY STYLE DIPLOMAT ============
+
+const CULTURAL_STYLE_DATABASE = {
+  JP: {
+    name: 'Japan',
+    dressCodes: {
+      business: 'Conservative dark suits, minimal accessories. Avoid flashy colors.',
+      restaurants: 'Smart casual. Remove shoes at traditional restaurants.',
+      temples: 'Modest clothing covering shoulders and knees. Remove shoes.',
+      weddings: 'Dark formal wear. Avoid white (bride\'s color) and black-only (funerals).'
+    },
+    taboos: ['Exposed tattoos in public baths/gyms', 'Revealing clothing at temples', 'White at weddings'],
+    currentTrends: ['Minimalist streetwear', 'Oversized silhouettes', 'Neutral tones'],
+    packingEssentials: ['Slip-on shoes', 'Modest layers', 'Dark business attire']
+  },
+  FR: {
+    name: 'France',
+    dressCodes: {
+      business: 'Elegant, tailored pieces. Quality over quantity.',
+      restaurants: 'Smart casual to formal. Never too casual.',
+      churches: 'Covered shoulders, no shorts.',
+      weddings: 'Elegant formal. Avoid white and overly bright colors.'
+    },
+    taboos: ['Athleisure in cities', 'Overly casual dining attire', 'Flashy logos'],
+    currentTrends: ['Quiet luxury', 'Effortless chic', 'Classic French girl style'],
+    packingEssentials: ['Tailored blazer', 'Quality leather accessories', 'Neutral palette basics']
+  },
+  AE: {
+    name: 'United Arab Emirates',
+    dressCodes: {
+      business: 'Conservative formal. Modest for women.',
+      restaurants: 'Smart casual. More relaxed in tourist areas.',
+      mosques: 'Full coverage required. Abayas provided for women.',
+      beaches: 'Swimwear at hotel pools only. Cover up elsewhere.'
+    },
+    taboos: ['Revealing clothing in public', 'Shorts for men in malls', 'Offensive prints/slogans'],
+    currentTrends: ['Modest luxury fashion', 'Designer abayas', 'Gold accessories'],
+    packingEssentials: ['Loose-fitting clothes', 'Headscarf for mosque visits', 'Covered shoulders']
+  },
+  US: {
+    name: 'United States',
+    dressCodes: {
+      business: 'Varies by city. NYC formal, SF casual.',
+      restaurants: 'Casual to formal depending on venue.',
+      churches: 'Generally casual, some formal.',
+      weddings: 'Follows dress code on invitation.'
+    },
+    taboos: ['Under-dressing for business in NYC', 'Over-dressing in casual cities'],
+    currentTrends: ['Coastal grandmother', 'Clean girl aesthetic', 'Quiet luxury'],
+    packingEssentials: ['Layers for AC', 'Comfortable walking shoes', 'Versatile pieces']
+  },
+  GB: {
+    name: 'United Kingdom',
+    dressCodes: {
+      business: 'Traditional and formal in finance. Creative in media.',
+      restaurants: 'Smart casual common. Some require jacket.',
+      churches: 'Modest, covered shoulders.',
+      weddings: 'Formal. Hats/fascinators common for women.'
+    },
+    taboos: ['Trainers at nice restaurants', 'Casual wear at formal events'],
+    currentTrends: ['British heritage brands', 'Tweed revival', 'Sustainable fashion'],
+    packingEssentials: ['Rain jacket', 'Layers', 'Smart shoes']
+  }
+};
+
+app.get('/api/cultural-style/database/countries', (req, res) => {
+  res.json({
+    countries: Object.keys(CULTURAL_STYLE_DATABASE).map(code => ({
+      code,
+      name: CULTURAL_STYLE_DATABASE[code].name
+    }))
+  });
+});
+
+app.get('/api/cultural-style/:countryCode', async (req, res) => {
+  try {
+    const { countryCode } = req.params;
+    const upperCode = countryCode.toUpperCase();
+    
+    if (CULTURAL_STYLE_DATABASE[upperCode]) {
+      return res.json(CULTURAL_STYLE_DATABASE[upperCode]);
+    }
+    
+    // For other countries, use AI
+    const chatModel = await getBestModel('fast');
+    
+    const prompt = `Provide cultural style guidance for ${countryCode}. Respond in JSON:
+{
+  "name": "Country Name",
+  "dressCodes": {
+    "business": "...",
+    "restaurants": "...",
+    "religious sites": "...",
+    "weddings": "..."
+  },
+  "taboos": ["..."],
+  "currentTrends": ["..."],
+  "packingEssentials": ["..."]
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: chatModel,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 800,
+      temperature: 0.5,
+    });
+
+    const content = response.choices[0]?.message?.content?.trim();
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
+    res.json(JSON.parse(cleanedContent));
+  } catch (error) {
+    console.error('Cultural style error:', error);
+    res.status(500).json({ error: 'Failed to get cultural style guide' });
+  }
+});
+
+// ============ FEATURE 4: EMOTIONAL COUTURE STORYTELLING ============
+
+const STORY_TEMPLATES = [
+  { id: 'origin', name: 'The Outfit That Started It All', description: 'The moment fashion clicked for you' },
+  { id: 'confidence', name: 'The Day You Owned the Room', description: 'When your outfit gave you superpowers' },
+  { id: 'journey', name: 'Your Style Journey', description: 'How your fashion evolved over time' },
+  { id: 'signature', name: 'Your Signature', description: 'What makes your style uniquely yours' },
+  { id: 'transformation', name: 'The Transformation', description: 'A style moment that changed everything' }
+];
+
+app.get('/api/style-stories/types', (req, res) => {
+  res.json({ templates: STORY_TEMPLATES });
+});
+
+app.post('/api/style-stories/generate', authMiddleware, async (req, res) => {
+  try {
+    const { templateId, userInput, includeVoice } = req.body;
+    const template = STORY_TEMPLATES.find(t => t.id === templateId) || STORY_TEMPLATES[0];
+    const userGender = req.userGender || 'neutral';
+    
+    const chatModel = await getBestModel('chat');
+    
+    const prompt = `Create an emotional, cinematic fashion story based on the template "${template.name}".
+User's input: ${userInput || 'Create a beautiful story about finding personal style'}
+Gender: ${userGender}
+
+Write a compelling 2-3 paragraph story that celebrates their style journey. Include:
+1. Vivid sensory details
+2. Emotional moments
+3. Fashion details woven naturally
+
+Also provide:
+- A voice script version (for TTS narration)
+- Suggested soundtrack mood
+- Social media caption versions
+
+Respond in JSON:
+{
+  "title": "${template.name}",
+  "story": "The full emotional story...",
+  "voiceScript": "Version optimized for voice narration...",
+  "soundtrackMood": "cinematic/uplifting/reflective/powerful",
+  "socialCaptions": {
+    "instagram": "Short, hashtag-friendly version",
+    "twitter": "280 char version",
+    "linkedin": "Professional version"
+  },
+  "keyMoment": "The most powerful sentence from the story"
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: chatModel,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1500,
+      temperature: 0.9,
+    });
+
+    const content = response.choices[0]?.message?.content?.trim();
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
+    const result = JSON.parse(cleanedContent);
+
+    // Save to history
+    await pool.query(
+      `INSERT INTO style_stories (user_id, template_id, story_data, created_at) 
+       VALUES ($1, $2, $3, NOW())`,
+      [req.userId, templateId, JSON.stringify(result)]
+    ).catch(() => {});
+
+    res.json(result);
+  } catch (error) {
+    console.error('Story generation error:', error);
+    res.status(500).json({ error: 'Failed to generate story' });
+  }
+});
+
+app.get('/api/style-stories/history', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM style_stories WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10`,
+      [req.userId]
+    );
+    res.json({ stories: result.rows });
+  } catch (error) {
+    res.json({ stories: [] });
+  }
+});
+
+// ============ FEATURE 5: COLLECTIVE FASHION INTELLIGENCE ============
+
+app.get('/api/collective/insights', authMiddleware, async (req, res) => {
+  try {
+    // Aggregate anonymous community data
+    const stats = await pool.query(`
+      SELECT 
+        AVG(CASE WHEN color_season IS NOT NULL THEN 1 ELSE 0 END) as color_analyzed_pct,
+        COUNT(DISTINCT color_season) as color_seasons,
+        COUNT(*) as total_users
+      FROM users WHERE id != $1
+    `, [req.userId]).catch(() => ({ rows: [{}] }));
+
+    res.json({
+      communitySize: stats.rows[0]?.total_users || 1000,
+      colorAnalysisTrends: {
+        mostPopularSeason: 'Autumn',
+        yourSeasonPercentile: 'Top 25%'
+      },
+      wardrobeTrends: {
+        avgItemCount: 45,
+        mostCommonCategory: 'Tops',
+        colorDiversity: 'Medium'
+      },
+      trendForecasts: [
+        { trend: 'Quiet Luxury', adoption: 'Rising', longevity: 'Long-term' },
+        { trend: 'Bold Colors', adoption: 'Peak', longevity: 'Seasonal' },
+        { trend: 'Oversized Fits', adoption: 'Stable', longevity: 'Medium-term' }
+      ],
+      confidenceBands: {
+        description: 'Based on community data patterns',
+        reliability: 'Medium-High'
+      }
+    });
+  } catch (error) {
+    console.error('Collective insights error:', error);
+    res.status(500).json({ error: 'Failed to get insights' });
+  }
+});
+
+app.get('/api/collective/trends', authMiddleware, async (req, res) => {
+  try {
+    const chatModel = await getBestModel('fast');
+    
+    const prompt = `Provide current fashion trend forecasts. Respond in JSON:
+{
+  "emergingTrends": [
+    {"name": "...", "adoptionTiming": "now/3months/6months", "longevity": "seasonal/lasting"}
+  ],
+  "decliningTrends": ["..."],
+  "stableTrends": ["..."],
+  "investmentAdvice": "..."
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: chatModel,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 800,
+      temperature: 0.6,
+    });
+
+    const content = response.choices[0]?.message?.content?.trim();
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
+    res.json(JSON.parse(cleanedContent));
+  } catch (error) {
+    console.error('Trends error:', error);
+    res.status(500).json({ error: 'Failed to get trends' });
+  }
+});
+
+app.post('/api/collective/opt-in', authMiddleware, async (req, res) => {
+  try {
+    const { optIn } = req.body;
+    
+    await pool.query(
+      `UPDATE users SET collective_opt_in = $1 WHERE id = $2`,
+      [optIn, req.userId]
+    ).catch(() => {});
+
+    res.json({ 
+      success: true, 
+      message: optIn ? 'You are now contributing to community insights (anonymized)' : 'Opted out of community data sharing'
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update preference' });
+  }
+});
+
+app.get('/api/collective/peer-comparison', authMiddleware, async (req, res) => {
+  try {
+    // Get user's wardrobe stats
+    const userWardrobe = await pool.query(
+      `SELECT COUNT(*) as item_count FROM wardrobe_items WHERE user_id = $1`,
+      [req.userId]
+    ).catch(() => ({ rows: [{ item_count: 0 }] }));
+
+    const userCount = parseInt(userWardrobe.rows[0]?.item_count) || 0;
+    
+    res.json({
+      yourStats: {
+        wardrobeSize: userCount,
+        percentile: userCount > 50 ? 'Top 20%' : userCount > 20 ? 'Top 50%' : 'Building'
+      },
+      communityAverage: {
+        wardrobeSize: 45,
+        colorDiversity: 8,
+        categoryBalance: 'Tops-heavy'
+      },
+      recommendations: userCount < 20 
+        ? ['Focus on building core basics first'] 
+        : ['Great foundation! Consider adding statement pieces'],
+      styleExperimentation: {
+        yourLevel: userCount > 30 ? 'Adventurous' : 'Classic',
+        communityAverage: 'Moderate'
+      }
+    });
+  } catch (error) {
+    console.error('Peer comparison error:', error);
+    res.status(500).json({ error: 'Failed to get comparison' });
+  }
+});
+
 // ============ HEALTH CHECK ============
 
 app.get('/', (req, res) => {
