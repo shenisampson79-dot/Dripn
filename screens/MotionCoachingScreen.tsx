@@ -87,8 +87,8 @@ export default function MotionCoachingScreen({ navigation }: MotionCoachingScree
 
     try {
       const data = await apiService.post<MotionAnalysisResult>("/api/motion/analyze", {
-        motionDescription: motionDescription.trim(),
-        analysisType: "general",
+        videoDescription: motionDescription.trim(),
+        movementDescription: motionDescription.trim(),
       });
       setResult(data);
       loadHistory();
