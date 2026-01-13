@@ -17,6 +17,8 @@ import { Card } from "@/components/Card";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import apiService from "@/services/ApiService";
+import * as FileSystem from 'expo-file-system';
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
 
 type StreetStyleScannerScreenProps = {
@@ -40,44 +42,6 @@ interface OutfitAnalysis {
   occasions: string[];
   analyzedAt: Date;
 }
-
-const SAMPLE_ANALYSIS: Omit<OutfitAnalysis, "id" | "imageUri" | "analyzedAt"> = {
-  overallStyle: "Smart Casual",
-  confidence: 92,
-  items: [
-    {
-      name: "Tailored Blazer",
-      category: "Outerwear",
-      color: "Navy Blue",
-      estimatedPrice: "£120-200",
-      whereToBuy: ["Zara", "H&M", "ASOS"],
-    },
-    {
-      name: "Cotton T-Shirt",
-      category: "Tops",
-      color: "White",
-      estimatedPrice: "£20-40",
-      whereToBuy: ["Uniqlo", "COS", "Arket"],
-    },
-    {
-      name: "Slim Fit Chinos",
-      category: "Bottoms",
-      color: "Beige",
-      estimatedPrice: "£40-80",
-      whereToBuy: ["Gap", "Banana Republic", "Massimo Dutti"],
-    },
-    {
-      name: "Leather Loafers",
-      category: "Shoes",
-      color: "Brown",
-      estimatedPrice: "£80-150",
-      whereToBuy: ["Clarks", "Office", "Russell & Bromley"],
-    },
-  ],
-  colorPalette: ["#1E3A5F", "#FFFFFF", "#D4C4A8", "#8B4513"],
-  styleNotes: "A polished yet relaxed ensemble perfect for creative office environments or weekend brunches. The navy blazer adds structure while the neutral tones keep it approachable.",
-  occasions: ["Work", "Casual Friday", "Brunch", "Date Night"],
-};
 
 export default function StreetStyleScannerScreen({ navigation }: StreetStyleScannerScreenProps) {
   const { theme } = useTheme();
@@ -126,18 +90,45 @@ export default function StreetStyleScannerScreen({ navigation }: StreetStyleScan
   const analyzeImage = async (imageUri: string) => {
     setIsAnalyzing(true);
     
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    try {
+      let imageBase64: string | undefined;
+      
+      if (imageUri.startsWith('file://') || imageUri.startsWith('/')) {
+        const base64 = await FileSystem.readAsStringAsync(imageUri, {
+          encoding: 'base64',
+        });
+        imageBase64 = `data:image/jpeg;base64,${base64}`;
+      }
 
-    const newAnalysis: OutfitAnalysis = {
-      id: Date.now().toString(),
-      imageUri,
-      ...SAMPLE_ANALYSIS,
-      analyzedAt: new Date(),
-    };
+      const response = await apiService.streetStyleScan({
+        imageBase64,
+        imageUrl: imageBase64 ? undefined : imageUri,
+      });
 
-    setAnalysis(newAnalysis);
-    setScanHistory(prev => [newAnalysis, ...prev.slice(0, 4)]);
-    setIsAnalyzing(false);
+      if (response.success && response.analysis) {
+        const newAnalysis: OutfitAnalysis = {
+          id: Date.now().toString(),
+          imageUri,
+          overallStyle: response.analysis.overallStyle,
+          confidence: response.analysis.confidence,
+          items: response.analysis.items,
+          colorPalette: response.analysis.colorPalette,
+          styleNotes: response.analysis.styleNotes,
+          occasions: response.analysis.occasions,
+          analyzedAt: new Date(),
+        };
+
+        setAnalysis(newAnalysis);
+        setScanHistory(prev => [newAnalysis, ...prev.slice(0, 4)]);
+      } else {
+        Alert.alert('Analysis Failed', 'Could not analyze the image. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Street style scan error:', error);
+      Alert.alert('Error', error.message || 'Failed to analyze the outfit. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleReset = () => {

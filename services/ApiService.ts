@@ -1081,6 +1081,623 @@ class ApiService {
       body: data ? JSON.stringify(data) : undefined,
     });
   }
+
+  // ===== VISUAL SEARCH =====
+  async visualSearchMarketplace(data: {
+    imageUrl?: string;
+    imageBase64?: string;
+    includeOutOfStock?: boolean;
+    priceRange?: { min?: number; max?: number };
+    category?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      results: Array<{
+        id: string;
+        name: string;
+        brand: string;
+        price: number;
+        originalPrice?: number;
+        imageUrl: string;
+        store: string;
+        category: string;
+        matchPercentage: number;
+        color: string;
+        inStock: boolean;
+        affiliateUrl?: string;
+      }>;
+      analyzedCategory?: string;
+      analyzedColor?: string;
+    }>('/api/visual-search/marketplace', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async visualSearchIdentify(data: { imageUrl?: string; imageBase64?: string }) {
+    return this.request<{
+      success: boolean;
+      identification: {
+        brand: string;
+        priceEstimate: { low: number; high: number };
+        styleInfo: string;
+        category: string;
+        color: string;
+        material?: string;
+        confidence: number;
+      };
+    }>('/api/visual-search/identify', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async visualSearchByPhoto(data: { imageUrl?: string; imageBase64?: string }) {
+    return this.request<{
+      success: boolean;
+      items: Array<{
+        id: string;
+        name: string;
+        brand: string;
+        category: string;
+        color: string;
+        priceEstimate: { low: number; high: number };
+        confidence: number;
+        boundingBox?: { x: number; y: number; width: number; height: number };
+      }>;
+    }>('/api/visual-search/search-by-photo', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ===== FASHION NEWS FEED =====
+  async getNewsFeed(params?: { category?: string; limit?: number }) {
+    const query = new URLSearchParams();
+    if (params?.category) query.append('category', params.category);
+    if (params?.limit) query.append('limit', params.limit.toString());
+    return this.request<{
+      success: boolean;
+      articles: Array<{
+        id: string;
+        headline: string;
+        summary: string;
+        imageUrl: string;
+        source: string;
+        category: string;
+        publishedAt: string;
+        likes: number;
+        saved: boolean;
+        liked: boolean;
+      }>;
+    }>(`/api/news/feed${query.toString() ? `?${query}` : ''}`);
+  }
+
+  async getTrendingStyles() {
+    return this.request<{
+      success: boolean;
+      styles: Array<{
+        id: string;
+        name: string;
+        description: string;
+        imageUrl: string;
+        popularity: number;
+      }>;
+    }>('/api/news/trending-styles');
+  }
+
+  async getUpcomingEvents() {
+    return this.request<{
+      success: boolean;
+      events: Array<{
+        id: string;
+        title: string;
+        date: string;
+        location: string;
+        imageUrl?: string;
+        category: string;
+      }>;
+    }>('/api/news/events?upcoming=true');
+  }
+
+  async interactWithNews(newsId: string, action: 'like' | 'save' | 'share') {
+    return this.request<{ success: boolean }>(`/api/news/${newsId}/interact`, {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+    });
+  }
+
+  async analyzeTrend(topic: string) {
+    return this.request<{
+      success: boolean;
+      analysis: {
+        topic: string;
+        summary: string;
+        keyInsights: string[];
+        relatedStyles: string[];
+        celebrities: string[];
+        seasonality: string;
+      };
+    }>(`/api/news/analyze-trend?topic=${encodeURIComponent(topic)}`);
+  }
+
+  // ===== CONTEXTUAL HELP SYSTEM =====
+  async getHelpArticles(category?: string) {
+    return this.request<{
+      success: boolean;
+      articles: Array<{
+        slug: string;
+        title: string;
+        summary: string;
+        category: string;
+        readTime: number;
+      }>;
+    }>(`/api/help/articles${category ? `?category=${category}` : ''}`);
+  }
+
+  async getHelpArticle(slug: string) {
+    return this.request<{
+      success: boolean;
+      article: {
+        slug: string;
+        title: string;
+        content: string;
+        category: string;
+        relatedArticles: string[];
+      };
+    }>(`/api/help/articles/${slug}`);
+  }
+
+  async submitArticleFeedback(slug: string, helpful: boolean) {
+    return this.request<{ success: boolean }>(`/api/help/articles/${slug}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify({ helpful }),
+    });
+  }
+
+  async getScreenTips(screen: string, role?: string) {
+    const params = new URLSearchParams({ screen });
+    if (role) params.append('role', role);
+    return this.request<{
+      success: boolean;
+      tips: Array<{
+        key: string;
+        title: string;
+        message: string;
+        position: 'top' | 'bottom' | 'center';
+        dismissed: boolean;
+      }>;
+    }>(`/api/help/tips?${params}`);
+  }
+
+  async dismissTip(tipKey: string) {
+    return this.request<{ success: boolean }>(`/api/help/tips/${tipKey}/dismiss`, {
+      method: 'POST',
+    });
+  }
+
+  async getWalkthrough(id: string) {
+    return this.request<{
+      success: boolean;
+      walkthrough: {
+        id: string;
+        title: string;
+        steps: Array<{
+          stepNumber: number;
+          title: string;
+          description: string;
+          targetElement?: string;
+          action?: string;
+        }>;
+        currentStep: number;
+        completed: boolean;
+      };
+    }>(`/api/help/walkthroughs/${id}`);
+  }
+
+  async updateWalkthroughProgress(id: string, currentStep: number, completed: boolean) {
+    return this.request<{ success: boolean }>(`/api/help/walkthroughs/${id}/progress`, {
+      method: 'POST',
+      body: JSON.stringify({ currentStep, completed }),
+    });
+  }
+
+  async getFAQs(category?: string) {
+    return this.request<{
+      success: boolean;
+      faqs: Array<{
+        id: string;
+        question: string;
+        answer: string;
+        category: string;
+      }>;
+    }>(`/api/help/faqs${category ? `?category=${category}` : ''}`);
+  }
+
+  async askRubyHelp(question: string) {
+    return this.request<{
+      success: boolean;
+      answer: string;
+      relatedArticles?: string[];
+      suggestedActions?: string[];
+    }>('/api/help/ask-ruby', {
+      method: 'POST',
+      body: JSON.stringify({ question }),
+    });
+  }
+
+  // ===== CHALLENGE FORGE =====
+  async createForgeChallenge(data: {
+    title: string;
+    description: string;
+    category: string;
+    duration: number;
+    prizes?: string[];
+  }) {
+    return this.request<{
+      success: boolean;
+      challenge: {
+        id: string;
+        title: string;
+        status: string;
+      };
+    }>('/api/challenges/forge/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getForgeTemplates() {
+    return this.request<{
+      success: boolean;
+      templates: Array<{
+        id: string;
+        name: string;
+        description: string;
+        category: string;
+        suggestedDuration: number;
+      }>;
+    }>('/api/challenges/forge/templates');
+  }
+
+  // ===== MARKETPLACE =====
+  async getMarketplaceListings(params?: {
+    category?: string;
+    type?: 'sell' | 'swap' | 'rent';
+    priceMin?: number;
+    priceMax?: number;
+    page?: number;
+    limit?: number;
+  }) {
+    const query = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) query.append(key, value.toString());
+      });
+    }
+    return this.request<{
+      success: boolean;
+      listings: Array<{
+        id: string;
+        title: string;
+        description: string;
+        price: number;
+        type: 'sell' | 'swap' | 'rent';
+        category: string;
+        images: string[];
+        videoUrl?: string;
+        condition: string;
+        size: string;
+        sellerId: string;
+        sellerName: string;
+        sellerAvatar?: string;
+        createdAt: string;
+      }>;
+      total: number;
+      page: number;
+    }>(`/api/marketplace/listings${query.toString() ? `?${query}` : ''}`);
+  }
+
+  async createMarketplaceListing(data: {
+    title: string;
+    description: string;
+    price: number;
+    type: 'sell' | 'swap' | 'rent';
+    category: string;
+    images: string[];
+    videoUrl?: string;
+    condition: string;
+    size: string;
+    rentalPeriod?: number;
+  }) {
+    return this.request<{
+      success: boolean;
+      listing: { id: string };
+    }>('/api/marketplace/listings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async makeOffer(listingId: string, data: {
+    amount: number;
+    message?: string;
+    swapItemId?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      offer: { id: string; status: string };
+    }>(`/api/marketplace/listings/${listingId}/offers`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async respondToOffer(listingId: string, offerId: string, action: 'accept' | 'reject' | 'counter', counterAmount?: number) {
+    return this.request<{ success: boolean }>(`/api/marketplace/listings/${listingId}/offers/${offerId}`, {
+      method: 'POST',
+      body: JSON.stringify({ action, counterAmount }),
+    });
+  }
+
+  async initiateEscrow(listingId: string, offerId: string) {
+    return this.request<{
+      success: boolean;
+      escrow: {
+        id: string;
+        paymentUrl: string;
+        amount: number;
+        expiresAt: string;
+      };
+    }>(`/api/marketplace/escrow/initiate`, {
+      method: 'POST',
+      body: JSON.stringify({ listingId, offerId }),
+    });
+  }
+
+  async getRentalCalendar(listingId: string) {
+    return this.request<{
+      success: boolean;
+      availability: Array<{
+        date: string;
+        available: boolean;
+        price?: number;
+      }>;
+    }>(`/api/marketplace/listings/${listingId}/calendar`);
+  }
+
+  // ===== STREET STYLE SCANNER =====
+  async streetStyleScan(data: { imageUrl?: string; imageBase64?: string }) {
+    return this.request<{
+      success: boolean;
+      analysis: {
+        overallStyle: string;
+        confidence: number;
+        items: Array<{
+          name: string;
+          category: string;
+          color: string;
+          estimatedPrice: string;
+          whereToBuy: string[];
+        }>;
+        colorPalette: string[];
+        styleNotes: string;
+        occasions: string[];
+      };
+    }>('/api/street-style-scan', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ===== DREAM OUTFIT GENERATOR =====
+  async generateDreamOutfit(data: {
+    prompt: string;
+    style?: string;
+    occasion?: string;
+    gender?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      outfit: {
+        imageUrl: string;
+        description: string;
+        pieces: string[];
+        estimatedCost: string;
+      };
+    }>('/api/dream-outfit', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ===== USER PROFILES & SOCIAL =====
+  async getUserProfile(userId: string) {
+    return this.request<{
+      success: boolean;
+      user: {
+        id: string;
+        name: string;
+        avatar: string | null;
+        bio: string;
+        tier: string;
+        followersCount: number;
+        followingCount: number;
+        postsCount: number;
+        helpfulVotes: number;
+        thanksReceived: number;
+        country?: string;
+        stylePreferences?: string[];
+      };
+    }>(`/api/users/${userId}/profile`);
+  }
+
+  async getSuggestedFollows(params?: {
+    sizeRange?: string;
+    bodyShape?: string;
+    budgetRange?: string;
+    limit?: number;
+  }) {
+    const query = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) query.append(key, value.toString());
+      });
+    }
+    return this.request<{
+      success: boolean;
+      suggestions: Array<{
+        id: string;
+        name: string;
+        avatar?: string;
+        tier: string;
+        category: string;
+        matchReason: string;
+        followers: number;
+        isPopular?: boolean;
+      }>;
+    }>(`/api/users/suggested-follows${query.toString() ? `?${query}` : ''}`);
+  }
+
+  async getStyleSoulmates() {
+    return this.request<{
+      success: boolean;
+      soulmates: Array<{
+        id: string;
+        name: string;
+        avatar?: string;
+        tier: string;
+        matchPercentage: number;
+        styleMatchPercentage: number;
+        bodyMatchPercentage: number;
+        sharedStyles: string[];
+        sharedColors: string[];
+        compatibilityNote: string;
+      }>;
+    }>('/api/users/style-soulmates');
+  }
+
+  async followUser(userId: string) {
+    return this.request<{ success: boolean }>(`/api/users/${userId}/follow`, {
+      method: 'POST',
+    });
+  }
+
+  async unfollowUser(userId: string) {
+    return this.request<{ success: boolean }>(`/api/users/${userId}/unfollow`, {
+      method: 'POST',
+    });
+  }
+
+  async sendFriendRequest(userId: string) {
+    return this.request<{ success: boolean; requestId: string }>(`/api/users/${userId}/friend-request`, {
+      method: 'POST',
+    });
+  }
+
+  async respondToFriendRequest(requestId: string, action: 'accept' | 'decline') {
+    return this.request<{ success: boolean }>(`/api/friend-requests/${requestId}`, {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+    });
+  }
+
+  async getFriendRequests() {
+    return this.request<{
+      success: boolean;
+      incoming: Array<{
+        id: string;
+        fromUserId: string;
+        fromUserName: string;
+        fromUserAvatar?: string;
+        timestamp: string;
+      }>;
+      outgoing: Array<{
+        id: string;
+        toUserId: string;
+        toUserName: string;
+        timestamp: string;
+      }>;
+    }>('/api/friend-requests');
+  }
+
+  async getFriends() {
+    return this.request<{
+      success: boolean;
+      friends: Array<{
+        id: string;
+        name: string;
+        avatar?: string;
+        tier: string;
+        lastActive?: string;
+      }>;
+    }>('/api/friends');
+  }
+
+  // ===== SOCIAL STYLE SYNC =====
+  async analyzeSocialStyle(data: {
+    platform: 'instagram' | 'pinterest' | 'tiktok';
+    accessToken: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      analysis: {
+        detectedStyles: Array<{ name: string; percentage: number; color: string }>;
+        colorPalette: Array<{ hex: string; name: string; percentage: number }>;
+        trendInsights: Array<{ trend: string; count: number; icon: string }>;
+        wardrobeMatches: Array<{
+          id: string;
+          savedImage: string;
+          matchedItems: string[];
+          matchPercentage: number;
+          missingPieces: string[];
+        }>;
+        aiInsights: Array<{
+          title: string;
+          description: string;
+          icon: string;
+          actionLabel?: string;
+        }>;
+      };
+    }>('/api/social/analyze-style', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ===== WISHLIST & PRICE TRACKING =====
+  async getWishlistPrices(itemIds: string[]) {
+    return this.request<{
+      success: boolean;
+      prices: Record<string, {
+        currentPrice: number;
+        originalPrice: number;
+        priceHistory: Array<{ price: number; date: string; source: string }>;
+        isOnSale: boolean;
+        priceDropPercent: number;
+      }>;
+    }>('/api/wishlist/prices', {
+      method: 'POST',
+      body: JSON.stringify({ itemIds }),
+    });
+  }
+
+  async trackWishlistItem(data: {
+    productUrl: string;
+    name: string;
+    store: string;
+    currentPrice: number;
+    originalPrice: number;
+  }) {
+    return this.request<{
+      success: boolean;
+      itemId: string;
+      priceHistory: Array<{ price: number; date: string; source: string }>;
+    }>('/api/wishlist/track', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const apiService = new ApiService();

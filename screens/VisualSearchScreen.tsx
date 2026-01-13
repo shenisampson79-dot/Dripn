@@ -29,6 +29,8 @@ import { Spacing, BorderRadius, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
+import apiService from '@/services/ApiService';
+import * as FileSystem from 'expo-file-system';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
@@ -60,104 +62,6 @@ interface SearchState {
   analyzedCategory: string | null;
   analyzedColor: string | null;
 }
-
-const MOCK_SIMILAR_ITEMS: SimilarItem[] = [
-  {
-    id: 's1',
-    name: 'Silk Blend Blouse',
-    brand: 'Massimo Dutti',
-    price: 89.99,
-    originalPrice: 129.99,
-    imageUrl: 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=400',
-    store: 'Massimo Dutti',
-    category: 'Tops',
-    matchPercentage: 94,
-    color: 'Cream',
-  },
-  {
-    id: 's2',
-    name: 'Cotton Poplin Shirt',
-    brand: 'COS',
-    price: 69.00,
-    imageUrl: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400',
-    store: 'COS',
-    category: 'Tops',
-    matchPercentage: 89,
-    color: 'White',
-  },
-  {
-    id: 's3',
-    name: 'Linen Relaxed Fit',
-    brand: 'Arket',
-    price: 79.00,
-    originalPrice: 99.00,
-    imageUrl: 'https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=400',
-    store: 'Arket',
-    category: 'Tops',
-    matchPercentage: 86,
-    color: 'Beige',
-  },
-  {
-    id: 's4',
-    name: 'Oversized Blazer',
-    brand: 'Zara',
-    price: 119.00,
-    imageUrl: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400',
-    store: 'Zara',
-    category: 'Outerwear',
-    matchPercentage: 82,
-    color: 'Camel',
-  },
-  {
-    id: 's5',
-    name: 'Tailored Trousers',
-    brand: 'Mango',
-    price: 59.99,
-    originalPrice: 79.99,
-    imageUrl: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400',
-    store: 'Mango',
-    category: 'Bottoms',
-    matchPercentage: 78,
-    color: 'Black',
-  },
-  {
-    id: 's6',
-    name: 'Wool Midi Skirt',
-    brand: 'H&M Premium',
-    price: 49.99,
-    imageUrl: 'https://images.unsplash.com/photo-1583496661160-fb5886a0afe0?w=400',
-    store: 'H&M',
-    category: 'Bottoms',
-    matchPercentage: 75,
-    color: 'Brown',
-  },
-  {
-    id: 's7',
-    name: 'Cashmere Cardigan',
-    brand: 'Uniqlo',
-    price: 99.90,
-    imageUrl: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400',
-    store: 'Uniqlo',
-    category: 'Knitwear',
-    matchPercentage: 72,
-    color: 'Gray',
-  },
-  {
-    id: 's8',
-    name: 'Leather Ankle Boots',
-    brand: 'Vagabond',
-    price: 179.00,
-    originalPrice: 220.00,
-    imageUrl: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400',
-    store: 'Vagabond',
-    category: 'Shoes',
-    matchPercentage: 68,
-    color: 'Black',
-  },
-];
-
-const ANALYZED_COLORS = ['Cream', 'White', 'Beige', 'Black', 'Navy', 'Brown', 'Gray', 'Camel'];
-const ANALYZED_CATEGORIES = ['Tops', 'Bottoms', 'Dresses', 'Outerwear', 'Accessories', 'Shoes'];
 
 export default function VisualSearchScreen() {
   const { theme } = useTheme();
@@ -345,29 +249,66 @@ export default function VisualSearchScreen() {
 
     await incrementSearchUsage();
 
-    setTimeout(() => {
-      setSearchState(prev => ({
-        ...prev,
-        status: 'analyzing',
-      }));
-    }, 800);
+    setSearchState(prev => ({
+      ...prev,
+      status: 'analyzing',
+    }));
 
-    setTimeout(() => {
-      const randomColor = ANALYZED_COLORS[Math.floor(Math.random() * ANALYZED_COLORS.length)];
-      const randomCategory = ANALYZED_CATEGORIES[Math.floor(Math.random() * ANALYZED_CATEGORIES.length)];
+    try {
+      let imageBase64: string | undefined;
       
-      const shuffledResults = [...MOCK_SIMILAR_ITEMS]
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 6 + Math.floor(Math.random() * 3));
+      if (imageUri.startsWith('file://') || imageUri.startsWith('/')) {
+        const base64 = await FileSystem.readAsStringAsync(imageUri, {
+          encoding: 'base64',
+        });
+        imageBase64 = `data:image/jpeg;base64,${base64}`;
+      }
 
-      setSearchState({
-        status: 'results',
-        selectedImage: imageUri,
-        results: shuffledResults,
-        analyzedCategory: randomCategory,
-        analyzedColor: randomColor,
+      const response = await apiService.visualSearchMarketplace({
+        imageBase64,
+        imageUrl: imageBase64 ? undefined : imageUri,
       });
-    }, 2500);
+
+      if (response.success && response.results) {
+        setSearchState({
+          status: 'results',
+          selectedImage: imageUri,
+          results: response.results.map(item => ({
+            id: item.id,
+            name: item.name,
+            brand: item.brand,
+            price: item.price,
+            originalPrice: item.originalPrice,
+            imageUrl: item.imageUrl,
+            store: item.store,
+            category: item.category,
+            matchPercentage: item.matchPercentage,
+            color: item.color,
+          })),
+          analyzedCategory: response.analyzedCategory || null,
+          analyzedColor: response.analyzedColor || null,
+        });
+      } else {
+        Alert.alert('Search Failed', 'Could not find similar items. Please try again.');
+        setSearchState({
+          status: 'idle',
+          selectedImage: null,
+          results: [],
+          analyzedCategory: null,
+          analyzedColor: null,
+        });
+      }
+    } catch (error: any) {
+      console.error('Visual search error:', error);
+      Alert.alert('Error', error.message || 'Failed to search. Please try again.');
+      setSearchState({
+        status: 'idle',
+        selectedImage: null,
+        results: [],
+        analyzedCategory: null,
+        analyzedColor: null,
+      });
+    }
   };
 
   const handleClearSearch = () => {

@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { StyleSheet, View, Pressable, TextInput, ActivityIndicator, Image, ScrollView } from "react-native";
+import { StyleSheet, View, Pressable, TextInput, ActivityIndicator, Image, ScrollView, Alert } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,6 +16,7 @@ import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
+import apiService from "@/services/ApiService";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
 
 type DreamOutfitGeneratorScreenProps = {
@@ -52,30 +53,6 @@ const OCCASION_OPTIONS = [
   "Night out",
 ];
 
-const SAMPLE_OUTFITS: Omit<GeneratedOutfit, "id" | "generatedAt">[] = [
-  {
-    prompt: "Elegant evening dress for a summer gala",
-    imageUrl: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=400",
-    description: "A flowing emerald green silk gown with subtle gold accents, perfect for making a statement at any formal event.",
-    pieces: ["Emerald silk maxi dress", "Gold strappy heels", "Delicate gold necklace", "Satin clutch"],
-    estimatedCost: "£450-650",
-  },
-  {
-    prompt: "Smart casual outfit for weekend brunch",
-    imageUrl: "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400",
-    description: "A relaxed yet polished look combining comfort with style, ideal for a leisurely weekend morning.",
-    pieces: ["Cream linen blazer", "White cotton t-shirt", "High-waisted jeans", "Tan loafers"],
-    estimatedCost: "£180-280",
-  },
-  {
-    prompt: "Streetwear look with bold colors",
-    imageUrl: "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400",
-    description: "An urban-inspired ensemble that balances comfort with contemporary street fashion aesthetics.",
-    pieces: ["Oversized graphic hoodie", "Cargo pants", "Chunky sneakers", "Bucket hat"],
-    estimatedCost: "£200-350",
-  },
-];
-
 export default function DreamOutfitGeneratorScreen({ navigation }: DreamOutfitGeneratorScreenProps) {
   const { theme } = useTheme();
   const { tier } = useSubscription();
@@ -96,24 +73,40 @@ export default function DreamOutfitGeneratorScreen({ navigation }: DreamOutfitGe
     
     setIsGenerating(true);
     
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    try {
+      const fullPrompt = prompt || `${selectedStyle} style for ${selectedOccasion || "any occasion"}`;
+      
+      const response = await apiService.generateDreamOutfit({
+        prompt: fullPrompt,
+        style: selectedStyle || undefined,
+        occasion: selectedOccasion || undefined,
+        gender,
+      });
 
-    const randomSample = SAMPLE_OUTFITS[Math.floor(Math.random() * SAMPLE_OUTFITS.length)];
-    const newOutfit: GeneratedOutfit = {
-      id: Date.now().toString(),
-      prompt: prompt || `${selectedStyle} style for ${selectedOccasion || "any occasion"}`,
-      imageUrl: randomSample.imageUrl,
-      description: randomSample.description,
-      pieces: randomSample.pieces,
-      estimatedCost: randomSample.estimatedCost,
-      generatedAt: new Date(),
-    };
+      if (response.success && response.outfit) {
+        const newOutfit: GeneratedOutfit = {
+          id: Date.now().toString(),
+          prompt: fullPrompt,
+          imageUrl: response.outfit.imageUrl,
+          description: response.outfit.description,
+          pieces: response.outfit.pieces,
+          estimatedCost: response.outfit.estimatedCost,
+          generatedAt: new Date(),
+        };
 
-    setGeneratedOutfits(prev => [newOutfit, ...prev]);
-    setIsGenerating(false);
-    setPrompt("");
-    setSelectedStyle(null);
-    setSelectedOccasion(null);
+        setGeneratedOutfits(prev => [newOutfit, ...prev]);
+        setPrompt("");
+        setSelectedStyle(null);
+        setSelectedOccasion(null);
+      } else {
+        Alert.alert('Generation Failed', 'Could not generate the outfit. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Dream outfit generation error:', error);
+      Alert.alert('Error', error.message || 'Failed to generate outfit. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const renderGeneratedOutfit = (outfit: GeneratedOutfit) => (
