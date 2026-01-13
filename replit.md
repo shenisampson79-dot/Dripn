@@ -22,6 +22,7 @@ Key Features:
 - **Code Protection**: Includes ProGuard for Android, JavaScript obfuscation, and Hermes Engine.
 - **Dynamic Theming**: Six style themes with light/dark modes.
 - **Gender & Region Specificity**: UI, content, models, and advice are tailored based on user's gender and region.
+- **Cultural & Dress Code Preferences**: Supports religious/modest dress codes (hijab-friendly, tzniut, LDS-modest, hindu-traditional, sikh, amish-plain, modest-general), subculture styles (goth, emo, punk, cottagecore, dark-academia, light-academia, y2k, vintage, grunge, kawaii, streetwear, hypebeast, old-money, clean-girl, coastal-grandmother), with strictness levels (flexible, moderate, strict). Ruby and Max automatically respect these preferences in all recommendations.
 - **Fashion Accessories System**: AI advice includes recommendations for luxury bags, eyewear, belts, jewelry, watches, and winter accessories.
 - **Fashion Trend Intelligence System**: Curates global trend data for regional/gender-specific trends, items, influencers, colors, and style movements.
 - **Visual Outfit Inspiration System**: Pinterest-style feature with curated outfit libraries and future AI-generated images via DALL-E.

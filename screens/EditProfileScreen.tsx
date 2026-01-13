@@ -9,7 +9,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useAuth, SizeRange, BodyShape, BudgetRange } from "@/contexts/AuthContext";
+import { useAuth, SizeRange, BodyShape, BudgetRange, DressCodePreference, SubcultureStyle, DressCodeStrictness } from "@/contexts/AuthContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 const ALL_COUNTRIES = [
@@ -55,6 +55,42 @@ const BUDGET_OPTIONS: { id: BudgetRange; name: string }[] = [
   { id: "Luxury", name: "Luxury" },
 ];
 
+const DRESS_CODE_OPTIONS: { id: DressCodePreference; name: string }[] = [
+  { id: "hijab-friendly", name: "Hijab-Friendly" },
+  { id: "tzniut", name: "Tzniut" },
+  { id: "lds-modest", name: "LDS Modest" },
+  { id: "hindu-traditional", name: "Hindu Traditional" },
+  { id: "sikh", name: "Sikh" },
+  { id: "amish-plain", name: "Amish/Plain" },
+  { id: "modest-general", name: "Modest (General)" },
+  { id: "none", name: "No Preference" },
+];
+
+const SUBCULTURE_OPTIONS: { id: SubcultureStyle; name: string }[] = [
+  { id: "goth", name: "Goth" },
+  { id: "emo", name: "Emo" },
+  { id: "punk", name: "Punk" },
+  { id: "cottagecore", name: "Cottagecore" },
+  { id: "dark-academia", name: "Dark Academia" },
+  { id: "light-academia", name: "Light Academia" },
+  { id: "y2k", name: "Y2K" },
+  { id: "vintage", name: "Vintage" },
+  { id: "grunge", name: "Grunge" },
+  { id: "kawaii", name: "Kawaii" },
+  { id: "streetwear", name: "Streetwear" },
+  { id: "hypebeast", name: "Hypebeast" },
+  { id: "old-money", name: "Old Money" },
+  { id: "clean-girl", name: "Clean Girl" },
+  { id: "coastal-grandmother", name: "Coastal Grandmother" },
+  { id: "none", name: "No Subculture" },
+];
+
+const STRICTNESS_OPTIONS: { id: DressCodeStrictness; name: string; description: string }[] = [
+  { id: "flexible", name: "Flexible", description: "Prefer but open to alternatives" },
+  { id: "moderate", name: "Moderate", description: "Generally follow with some flexibility" },
+  { id: "strict", name: "Strict", description: "Always follow these guidelines" },
+];
+
 export default function EditProfileScreen({ navigation }: EditProfileScreenProps) {
   const { theme, isDark } = useTheme();
   const { user, updateProfile } = useAuth();
@@ -68,6 +104,22 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
   const [isSaving, setIsSaving] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
+
+  // Cultural style preferences
+  const [dressCodePreference, setDressCodePreference] = useState<DressCodePreference>(
+    user?.extendedPreferences?.culturalStyle?.dressCodePreference || null
+  );
+  const [religiousOrCulturalDressCode, setReligiousOrCulturalDressCode] = useState(
+    user?.extendedPreferences?.culturalStyle?.religiousOrCulturalDressCode || ""
+  );
+  const [subcultureStyle, setSubcultureStyle] = useState<SubcultureStyle>(
+    user?.extendedPreferences?.culturalStyle?.subcultureStyle || null
+  );
+  const [dressCodeStrictness, setDressCodeStrictness] = useState<DressCodeStrictness>(
+    user?.extendedPreferences?.culturalStyle?.dressCodeStrictness || null
+  );
+  const [showDressCodePicker, setShowDressCodePicker] = useState(false);
+  const [showSubculturePicker, setShowSubculturePicker] = useState(false);
 
   const filteredCountries = ALL_COUNTRIES.filter(c =>
     c.toLowerCase().includes(countrySearch.toLowerCase())
@@ -108,7 +160,16 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
         sizeRange,
         bodyShape,
         budgetRange,
-      });
+        extendedPreferences: {
+          ...user?.extendedPreferences,
+          culturalStyle: {
+            dressCodePreference,
+            religiousOrCulturalDressCode: religiousOrCulturalDressCode.trim() || null,
+            subcultureStyle,
+            dressCodeStrictness,
+          },
+        },
+      } as any);
       navigation.goBack();
     } catch (error) {
       Alert.alert("Error", "Failed to save profile. Please try again.");
@@ -197,7 +258,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
         presentationStyle="pageSheet"
         onRequestClose={() => setShowCountryPicker(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
           <View style={styles.modalHeader}>
             <ThemedText type="h2">Select Country</ThemedText>
             <Pressable
@@ -339,6 +400,226 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
         </View>
       </View>
 
+      {/* Cultural & Subculture Style Section */}
+      <View style={[styles.section, styles.culturalSection]}>
+        <ThemedText type="h2" style={styles.culturalSectionTitle}>
+          Cultural & Style Preferences
+        </ThemedText>
+        <ThemedText type="small" style={styles.sectionHint}>
+          Help Ruby and Max respect your dress code in all recommendations
+        </ThemedText>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h3" style={styles.sectionTitle}>
+          Dress Code Preference (Optional)
+        </ThemedText>
+        <ThemedText type="small" style={styles.sectionHint}>
+          Religious or modest dress guidelines
+        </ThemedText>
+        <Pressable
+          onPress={() => setShowDressCodePicker(true)}
+          style={[styles.pickerButton, { backgroundColor: theme.backgroundDefault }]}
+        >
+          <ThemedText type="body" style={{ color: dressCodePreference ? theme.text : theme.tabIconDefault }}>
+            {dressCodePreference 
+              ? DRESS_CODE_OPTIONS.find(d => d.id === dressCodePreference)?.name || "Select..." 
+              : "Select dress code preference..."}
+          </ThemedText>
+          <Feather name="chevron-down" size={18} color={theme.tabIconDefault} />
+        </Pressable>
+      </View>
+
+      <Modal
+        visible={showDressCodePicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowDressCodePicker(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+          <View style={styles.modalHeader}>
+            <ThemedText type="h2">Dress Code Preference</ThemedText>
+            <Pressable
+              onPress={() => setShowDressCodePicker(false)}
+              style={styles.closeButton}
+            >
+              <Feather name="x" size={24} color={theme.text} />
+            </Pressable>
+          </View>
+          <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
+            {DRESS_CODE_OPTIONS.map((option) => (
+              <Pressable
+                key={option.id}
+                onPress={() => {
+                  setDressCodePreference(option.id === "none" ? null : option.id);
+                  setShowDressCodePicker(false);
+                }}
+                style={({ pressed }) => [
+                  styles.countryItem,
+                  {
+                    backgroundColor: dressCodePreference === option.id ? theme.link : theme.backgroundDefault,
+                    opacity: pressed ? 0.8 : 1,
+                  },
+                ]}
+              >
+                <ThemedText
+                  type="body"
+                  style={{ color: dressCodePreference === option.id ? "#FFFFFF" : theme.text }}
+                >
+                  {option.name}
+                </ThemedText>
+                {dressCodePreference === option.id ? (
+                  <Feather name="check" size={18} color="#FFFFFF" />
+                ) : null}
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      <View style={styles.fieldContainer}>
+        <ThemedText type="small" style={styles.label}>
+          Personal Dress Code Details (Optional)
+        </ThemedText>
+        <ThemedText type="small" style={styles.sectionHint}>
+          Any specific requirements or preferences
+        </ThemedText>
+        <TextInput
+          style={[styles.textArea, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
+          value={religiousOrCulturalDressCode}
+          onChangeText={setReligiousOrCulturalDressCode}
+          placeholder="e.g., I prefer clothing that covers my arms and legs..."
+          placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
+          multiline
+          numberOfLines={3}
+          textAlignVertical="top"
+        />
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h3" style={styles.sectionTitle}>
+          Subculture Style (Optional)
+        </ThemedText>
+        <ThemedText type="small" style={styles.sectionHint}>
+          Your aesthetic or style movement
+        </ThemedText>
+        <Pressable
+          onPress={() => setShowSubculturePicker(true)}
+          style={[styles.pickerButton, { backgroundColor: theme.backgroundDefault }]}
+        >
+          <ThemedText type="body" style={{ color: subcultureStyle ? theme.text : theme.tabIconDefault }}>
+            {subcultureStyle 
+              ? SUBCULTURE_OPTIONS.find(s => s.id === subcultureStyle)?.name || "Select..." 
+              : "Select subculture style..."}
+          </ThemedText>
+          <Feather name="chevron-down" size={18} color={theme.tabIconDefault} />
+        </Pressable>
+      </View>
+
+      <Modal
+        visible={showSubculturePicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowSubculturePicker(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+          <View style={styles.modalHeader}>
+            <ThemedText type="h2">Subculture Style</ThemedText>
+            <Pressable
+              onPress={() => setShowSubculturePicker(false)}
+              style={styles.closeButton}
+            >
+              <Feather name="x" size={24} color={theme.text} />
+            </Pressable>
+          </View>
+          <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
+            {SUBCULTURE_OPTIONS.map((option) => (
+              <Pressable
+                key={option.id}
+                onPress={() => {
+                  setSubcultureStyle(option.id === "none" ? null : option.id);
+                  setShowSubculturePicker(false);
+                }}
+                style={({ pressed }) => [
+                  styles.countryItem,
+                  {
+                    backgroundColor: subcultureStyle === option.id ? theme.link : theme.backgroundDefault,
+                    opacity: pressed ? 0.8 : 1,
+                  },
+                ]}
+              >
+                <ThemedText
+                  type="body"
+                  style={{ color: subcultureStyle === option.id ? "#FFFFFF" : theme.text }}
+                >
+                  {option.name}
+                </ThemedText>
+                {subcultureStyle === option.id ? (
+                  <Feather name="check" size={18} color="#FFFFFF" />
+                ) : null}
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      <View style={styles.section}>
+        <ThemedText type="h3" style={styles.sectionTitle}>
+          Dress Code Strictness (Optional)
+        </ThemedText>
+        <ThemedText type="small" style={styles.sectionHint}>
+          How closely should recommendations follow your preferences?
+        </ThemedText>
+        <View style={styles.strictnessOptions}>
+          {STRICTNESS_OPTIONS.map((option) => (
+            <Pressable
+              key={option.id}
+              onPress={() => setDressCodeStrictness(dressCodeStrictness === option.id ? null : option.id)}
+              style={({ pressed }) => [
+                styles.strictnessOption,
+                {
+                  backgroundColor: dressCodeStrictness === option.id ? theme.link : theme.backgroundDefault,
+                  borderColor: dressCodeStrictness === option.id ? theme.link : theme.backgroundDefault,
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
+            >
+              <View style={styles.strictnessRadio}>
+                <View
+                  style={[
+                    styles.radioOuter,
+                    { borderColor: dressCodeStrictness === option.id ? "#FFFFFF" : theme.tabIconDefault },
+                  ]}
+                >
+                  {dressCodeStrictness === option.id ? (
+                    <View style={[styles.radioInner, { backgroundColor: "#FFFFFF" }]} />
+                  ) : null}
+                </View>
+                <View>
+                  <ThemedText
+                    type="body"
+                    style={{ 
+                      color: dressCodeStrictness === option.id ? "#FFFFFF" : theme.text,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {option.name}
+                  </ThemedText>
+                  <ThemedText
+                    type="small"
+                    style={{ 
+                      color: dressCodeStrictness === option.id ? "rgba(255,255,255,0.8)" : theme.tabIconDefault,
+                    }}
+                  >
+                    {option.description}
+                  </ThemedText>
+                </View>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
       <Button onPress={handleSave} disabled={isSaving} style={styles.saveButton}>
         {isSaving ? "Saving..." : "Save Changes"}
       </Button>
@@ -471,5 +752,59 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.xs,
+  },
+  culturalSection: {
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(128, 128, 128, 0.2)",
+  },
+  culturalSectionTitle: {
+    marginBottom: Spacing.xs,
+  },
+  pickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: Spacing.inputHeight,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.lg,
+  },
+  textArea: {
+    minHeight: 80,
+    borderWidth: 0,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    fontSize: Typography.body.fontSize,
+  },
+  strictnessOptions: {
+    gap: Spacing.sm,
+  },
+  strictnessOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+  },
+  strictnessRadio: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
 });

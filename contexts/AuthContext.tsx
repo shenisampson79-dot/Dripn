@@ -28,6 +28,11 @@ export type DripnGoal = 'dress-better' | 'meet-people' | 'find-offers' | 'get-in
 export type HeightUnit = 'cm' | 'ft';
 export type WeightUnit = 'kg' | 'lbs';
 export type StylistId = 'ruby' | 'max' | null;
+
+// Cultural dress code types
+export type DressCodePreference = 'hijab-friendly' | 'tzniut' | 'lds-modest' | 'hindu-traditional' | 'sikh' | 'amish-plain' | 'modest-general' | 'none' | null;
+export type SubcultureStyle = 'goth' | 'emo' | 'punk' | 'cottagecore' | 'dark-academia' | 'light-academia' | 'y2k' | 'vintage' | 'grunge' | 'kawaii' | 'streetwear' | 'hypebeast' | 'old-money' | 'clean-girl' | 'coastal-grandmother' | 'none' | null;
+export type DressCodeStrictness = 'flexible' | 'moderate' | 'strict' | null;
 export type RubyVoicePitch = 'mezzo-soprano';
 export type MaxVoiceRange = 'tenor' | 'baritone' | 'bass';
 export type VoicePitch = RubyVoicePitch | MaxVoiceRange;
@@ -50,6 +55,13 @@ export interface BodyMeasurements {
   weightUnit: WeightUnit;
 }
 
+export interface CulturalStylePreferences {
+  dressCodePreference: DressCodePreference;
+  religiousOrCulturalDressCode: string | null; // Free-text for personal dress code details
+  subcultureStyle: SubcultureStyle;
+  dressCodeStrictness: DressCodeStrictness;
+}
+
 export interface ExtendedPreferences {
   lifestyle: Lifestyle;
   favoriteBrands: string[];
@@ -60,6 +72,7 @@ export interface ExtendedPreferences {
   occasions: string[];
   favoriteShops: string[];
   usageGoals: DripnGoal[];
+  culturalStyle: CulturalStylePreferences;
 }
 
 export interface UserProfile {
@@ -156,6 +169,12 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
     occasions: [],
     favoriteShops: [],
     usageGoals: [],
+    culturalStyle: {
+      dressCodePreference: null,
+      religiousOrCulturalDressCode: null,
+      subcultureStyle: null,
+      dressCodeStrictness: null,
+    },
   },
   stylistPreferences: {
     selectedStylistId: null,

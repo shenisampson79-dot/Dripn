@@ -1068,6 +1068,12 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         occasions: [],
         favoriteShops,
         usageGoals,
+        culturalStyle: {
+          dressCodePreference: null,
+          religiousOrCulturalDressCode: null,
+          subcultureStyle: null,
+          dressCodeStrictness: null,
+        },
       },
     });
     navigation.replace("SuggestedFollows");
