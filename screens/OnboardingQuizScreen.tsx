@@ -170,6 +170,12 @@ export default function OnboardingQuizScreen({ navigation }: OnboardingQuizScree
         occasions,
         favoriteShops: user?.extendedPreferences?.favoriteShops || [],
         usageGoals: user?.extendedPreferences?.usageGoals || [],
+        culturalStyle: user?.extendedPreferences?.culturalStyle || {
+          dressCodePreference: null,
+          religiousOrCulturalDressCode: null,
+          subcultureStyle: null,
+          dressCodeStrictness: null,
+        },
       };
 
       await completeQuiz({

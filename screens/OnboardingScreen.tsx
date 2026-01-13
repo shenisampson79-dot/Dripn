@@ -12,7 +12,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, StyleTheme } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences, DripnGoal } from "@/contexts/AuthContext";
+import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences, DripnGoal, DressCodePreference, SubcultureStyle, DressCodeStrictness, CulturalStylePreferences } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getDefaultVoiceForStylist, getAccentsForLanguage } from "@/services/PersonalStylistService";
 import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
@@ -468,6 +468,9 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const [favoriteShops, setFavoriteShops] = useState<string[]>([]);
   const [usageGoals, setUsageGoals] = useState<DripnGoal[]>([]);
   const [shopSearchQuery, setShopSearchQuery] = useState("");
+  const [dressCodePreference, setDressCodePreference] = useState<DressCodePreference>(null);
+  const [subcultureStyle, setSubcultureStyle] = useState<SubcultureStyle>(null);
+  const [dressCodeStrictness, setDressCodeStrictness] = useState<DressCodeStrictness>(null);
   const [suggestedRetailers, setSuggestedRetailers] = useState<Retailer[]>([]);
   const [loadingRetailers, setLoadingRetailers] = useState(false);
   const [isBodyScanning, setIsBodyScanning] = useState(false);
@@ -520,7 +523,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     }
   }, [user?.stylistPreferences?.useNameInGreetings, user?.stylistPreferences?.namePronunciationConfirmed]);
 
-  const totalSteps = 7;
+  const totalSteps = 8;
   
   const suggestedShopNames = suggestedRetailers.map(r => r.name);
   const allAvailableShops = (suggestedRetailers.length > 0 
@@ -1069,10 +1072,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         favoriteShops,
         usageGoals,
         culturalStyle: {
-          dressCodePreference: null,
+          dressCodePreference,
           religiousOrCulturalDressCode: null,
-          subcultureStyle: null,
-          dressCodeStrictness: null,
+          subcultureStyle,
+          dressCodeStrictness,
         },
       },
     });
@@ -2085,6 +2088,191 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             </ScrollView>
           </View>
         );
+
+      case 7: {
+        const DRESS_CODE_OPTIONS: { id: DressCodePreference; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
+          { id: "none", name: "No Preference", description: "No specific religious or cultural dress requirements", icon: "check-circle" },
+          { id: "hijab-friendly", name: "Hijab-Friendly", description: "Modest fashion with hijab considerations", icon: "heart" },
+          { id: "tzniut", name: "Tzniut (Jewish Modesty)", description: "Traditional Jewish modesty standards", icon: "heart" },
+          { id: "lds-modest", name: "LDS Modest", description: "Modest clothing following LDS guidelines", icon: "heart" },
+          { id: "hindu-traditional", name: "Hindu Traditional", description: "Traditional Indian/Hindu attire options", icon: "heart" },
+          { id: "sikh", name: "Sikh", description: "Attire compatible with Sikh practices", icon: "heart" },
+          { id: "modest-general", name: "Modest (General)", description: "Generally modest clothing preferences", icon: "heart" },
+        ];
+
+        const SUBCULTURE_OPTIONS: { id: SubcultureStyle; name: string; icon: keyof typeof Feather.glyphMap }[] = [
+          { id: "none", name: "No Subculture", icon: "check-circle" },
+          { id: "goth", name: "Goth", icon: "moon" },
+          { id: "punk", name: "Punk", icon: "zap" },
+          { id: "cottagecore", name: "Cottagecore", icon: "sun" },
+          { id: "dark-academia", name: "Dark Academia", icon: "book" },
+          { id: "light-academia", name: "Light Academia", icon: "book-open" },
+          { id: "y2k", name: "Y2K", icon: "star" },
+          { id: "vintage", name: "Vintage", icon: "clock" },
+          { id: "grunge", name: "Grunge", icon: "music" },
+          { id: "streetwear", name: "Streetwear", icon: "trending-up" },
+          { id: "old-money", name: "Old Money", icon: "dollar-sign" },
+          { id: "clean-girl", name: "Clean Girl", icon: "droplet" },
+        ];
+
+        const STRICTNESS_OPTIONS: { id: DressCodeStrictness; name: string; description: string }[] = [
+          { id: "flexible", name: "Flexible", description: "General guidance, occasional exceptions okay" },
+          { id: "moderate", name: "Moderate", description: "Follow guidelines with some flexibility" },
+          { id: "strict", name: "Strict", description: "Always follow dress code requirements" },
+        ];
+
+        return (
+          <View style={styles.stepContent}>
+            <ThemedText type="h2" style={styles.stepTitle}>
+              {gender === 'man' ? "Style & Cultural Preferences" : "Style & Cultural Preferences"}
+            </ThemedText>
+            <ThemedText type="body" style={styles.stepSubtitle}>
+              {gender === 'man' 
+                ? "Help Ruby & Max understand your style boundaries (optional)"
+                : "Help Ruby & Max respect your style and cultural preferences (optional)"}
+            </ThemedText>
+
+            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+              <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
+                Religious/Modest Dress Code
+              </ThemedText>
+              <View style={styles.goalsContainer}>
+                {DRESS_CODE_OPTIONS.map((option) => {
+                  const isSelected = dressCodePreference === option.id;
+                  return (
+                    <Pressable
+                      key={option.id}
+                      onPress={() => setDressCodePreference(option.id)}
+                      style={({ pressed }) => [
+                        styles.goalOption,
+                        {
+                          backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
+                          borderColor: isSelected ? theme.link : theme.backgroundSecondary,
+                          opacity: pressed ? 0.8 : 1,
+                          paddingVertical: Spacing.sm,
+                        },
+                      ]}
+                    >
+                      <Feather
+                        name={option.icon}
+                        size={20}
+                        color={isSelected ? "#FFFFFF" : theme.text}
+                      />
+                      <View style={styles.goalTextContainer}>
+                        <ThemedText
+                          type="body"
+                          style={{ color: isSelected ? "#FFFFFF" : theme.text, fontWeight: "600" }}
+                        >
+                          {option.name}
+                        </ThemedText>
+                        <ThemedText
+                          type="small"
+                          style={{ color: isSelected ? "rgba(255,255,255,0.8)" : theme.tabIconDefault }}
+                        >
+                          {option.description}
+                        </ThemedText>
+                      </View>
+                      {isSelected ? (
+                        <View style={[styles.checkCircle, { backgroundColor: "rgba(255,255,255,0.3)" }]}>
+                          <Feather name="check" size={14} color="#FFFFFF" />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {dressCodePreference && dressCodePreference !== "none" ? (
+                <>
+                  <ThemedText type="h3" style={{ marginTop: Spacing.lg, marginBottom: Spacing.sm }}>
+                    How strictly should we follow this?
+                  </ThemedText>
+                  <View style={{ flexDirection: "row", gap: Spacing.sm, marginBottom: Spacing.lg }}>
+                    {STRICTNESS_OPTIONS.map((option) => {
+                      const isSelected = dressCodeStrictness === option.id;
+                      return (
+                        <Pressable
+                          key={option.id}
+                          onPress={() => setDressCodeStrictness(option.id)}
+                          style={({ pressed }) => [
+                            {
+                              flex: 1,
+                              padding: Spacing.md,
+                              borderRadius: BorderRadius.lg,
+                              backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
+                              borderWidth: 1,
+                              borderColor: isSelected ? theme.link : theme.backgroundSecondary,
+                              alignItems: "center",
+                              opacity: pressed ? 0.8 : 1,
+                            },
+                          ]}
+                        >
+                          <ThemedText
+                            type="body"
+                            style={{ color: isSelected ? "#FFFFFF" : theme.text, fontWeight: "600", marginBottom: 4 }}
+                          >
+                            {option.name}
+                          </ThemedText>
+                          <ThemedText
+                            type="small"
+                            style={{ color: isSelected ? "rgba(255,255,255,0.8)" : theme.tabIconDefault, textAlign: "center" }}
+                          >
+                            {option.description}
+                          </ThemedText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </>
+              ) : null}
+
+              <ThemedText type="h3" style={{ marginTop: Spacing.md, marginBottom: Spacing.sm }}>
+                Subculture/Aesthetic Style
+              </ThemedText>
+              <ThemedText type="small" style={{ marginBottom: Spacing.md, color: theme.tabIconDefault }}>
+                Optional: If you identify with a specific fashion subculture
+              </ThemedText>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginBottom: Spacing.xl }}>
+                {SUBCULTURE_OPTIONS.map((option) => {
+                  const isSelected = subcultureStyle === option.id;
+                  return (
+                    <Pressable
+                      key={option.id}
+                      onPress={() => setSubcultureStyle(option.id)}
+                      style={({ pressed }) => [
+                        {
+                          flexDirection: "row",
+                          alignItems: "center",
+                          paddingHorizontal: Spacing.md,
+                          paddingVertical: Spacing.sm,
+                          borderRadius: BorderRadius.full,
+                          backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
+                          borderWidth: 1,
+                          borderColor: isSelected ? theme.link : theme.backgroundSecondary,
+                          gap: Spacing.xs,
+                          opacity: pressed ? 0.8 : 1,
+                        },
+                      ]}
+                    >
+                      <Feather
+                        name={option.icon}
+                        size={16}
+                        color={isSelected ? "#FFFFFF" : theme.text}
+                      />
+                      <ThemedText
+                        type="small"
+                        style={{ color: isSelected ? "#FFFFFF" : theme.text }}
+                      >
+                        {option.name}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
+        );
+      }
 
       default:
         return null;
