@@ -165,65 +165,70 @@ const ALL_FEATURES: StylistFeature[] = [
   },
 ];
 
-const FAVORITES_KEY = "@stylist_favorites";
+const TILES_ORDER_KEY = "@stylist_tiles_order";
 
 export default function StylistHubScreen({ navigation }: StylistHubScreenProps) {
   const { theme } = useTheme();
   const { tier } = useSubscription();
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [tilesOrder, setTilesOrder] = useState<string[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
-    loadFavorites();
+    loadTilesOrder();
   }, []);
 
-  const loadFavorites = async () => {
+  const loadTilesOrder = async () => {
     try {
-      const stored = await AsyncStorage.getItem(FAVORITES_KEY);
+      const stored = await AsyncStorage.getItem(TILES_ORDER_KEY);
       if (stored) {
-        setFavorites(JSON.parse(stored));
+        setTilesOrder(JSON.parse(stored));
+      } else {
+        setTilesOrder(ALL_FEATURES.map(f => f.id));
       }
     } catch (error) {
-      console.error("Failed to load favorites:", error);
+      console.error("Failed to load tiles order:", error);
+      setTilesOrder(ALL_FEATURES.map(f => f.id));
     }
   };
 
-  const toggleFavorite = async (featureId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const newFavorites = favorites.includes(featureId)
-      ? favorites.filter(id => id !== featureId)
-      : [...favorites, featureId];
-    
-    setFavorites(newFavorites);
+  const saveTilesOrder = async (newOrder: string[]) => {
     try {
-      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(newFavorites));
+      await AsyncStorage.setItem(TILES_ORDER_KEY, JSON.stringify(newOrder));
     } catch (error) {
-      console.error("Failed to save favorites:", error);
+      console.error("Failed to save tiles order:", error);
     }
+  };
+
+  const moveTile = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= tilesOrder.length) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const newOrder = [...tilesOrder];
+    const [removed] = newOrder.splice(fromIndex, 1);
+    newOrder.splice(toIndex, 0, removed);
+    setTilesOrder(newOrder);
+    saveTilesOrder(newOrder);
   };
 
   const handleFeaturePress = (feature: StylistFeature) => {
-    if (isEditMode) {
-      toggleFavorite(feature.id);
-      return;
-    }
+    if (isEditMode) return;
     
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate(feature.screen);
   };
 
   const sortedFeatures = useCallback(() => {
+    if (tilesOrder.length === 0) return ALL_FEATURES;
     return [...ALL_FEATURES].sort((a, b) => {
-      const aFav = favorites.includes(a.id);
-      const bFav = favorites.includes(b.id);
-      if (aFav && !bFav) return -1;
-      if (!aFav && bFav) return 1;
-      return 0;
+      const aIndex = tilesOrder.indexOf(a.id);
+      const bIndex = tilesOrder.indexOf(b.id);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
     });
-  }, [favorites]);
+  }, [tilesOrder]);
 
-  const renderFeatureTile = (feature: StylistFeature) => {
-    const isFavorite = favorites.includes(feature.id);
+  const renderFeatureTile = (feature: StylistFeature, index: number) => {
+    const actualIndex = tilesOrder.indexOf(feature.id);
     
     return (
       <Pressable
@@ -235,7 +240,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
         }}
         style={({ pressed }) => [
           styles.featureTile,
-          { opacity: pressed ? 0.8 : 1 },
+          { opacity: pressed && !isEditMode ? 0.8 : 1 },
         ]}
       >
         <LinearGradient
@@ -261,19 +266,29 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
           ) : null}
           
           {isEditMode ? (
-            <Pressable
-              onPress={() => toggleFavorite(feature.id)}
-              style={[styles.favoriteButton, isFavorite && styles.favoriteButtonActive]}
-            >
-              <Feather
-                name={isFavorite ? "star" : "star"}
-                size={16}
-                color={isFavorite ? "#FFD700" : "rgba(255,255,255,0.6)"}
-              />
-            </Pressable>
-          ) : isFavorite ? (
-            <View style={styles.favoriteBadge}>
-              <Feather name="star" size={12} color="#FFD700" />
+            <View style={styles.reorderControls}>
+              <Pressable
+                onPress={() => moveTile(actualIndex, actualIndex - 1)}
+                style={styles.reorderButton}
+                disabled={actualIndex === 0}
+              >
+                <Feather 
+                  name="chevron-up" 
+                  size={14} 
+                  color={actualIndex === 0 ? "rgba(255,255,255,0.3)" : "#FFFFFF"} 
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => moveTile(actualIndex, actualIndex + 1)}
+                style={styles.reorderButton}
+                disabled={actualIndex === tilesOrder.length - 1}
+              >
+                <Feather 
+                  name="chevron-down" 
+                  size={14} 
+                  color={actualIndex === tilesOrder.length - 1 ? "rgba(255,255,255,0.3)" : "#FFFFFF"} 
+                />
+              </Pressable>
             </View>
           ) : null}
         </LinearGradient>
@@ -304,7 +319,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             ]}
           >
             <Feather
-              name={isEditMode ? "check" : "edit-2"}
+              name={isEditMode ? "check" : "move"}
               size={18}
               color={isEditMode ? "#FFFFFF" : theme.text}
             />
@@ -315,14 +330,14 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
           <View style={[styles.editHint, { backgroundColor: theme.link + "20" }]}>
             <Feather name="info" size={14} color={theme.link} />
             <ThemedText type="caption" style={{ color: theme.link, marginLeft: Spacing.xs }}>
-              Tap features to add to favorites - they'll appear at the top
+              Tap arrows to reorder your tools
             </ThemedText>
           </View>
         ) : null}
       </View>
 
       <View style={styles.featuresGrid}>
-        {sortedFeatures().map(renderFeatureTile)}
+        {sortedFeatures().map((feature, index) => renderFeatureTile(feature, index))}
       </View>
 
       <View style={styles.tipsSection}>
@@ -337,7 +352,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             <View style={styles.tipItem}>
               <View style={[styles.tipBullet, { backgroundColor: theme.link }]} />
               <ThemedText style={[styles.tipText, { color: theme.tabIconDefault }]}>
-                Long-press any tile to customize your favorites
+                Long-press any tile to reorder your tools
               </ThemedText>
             </View>
             <View style={styles.tipItem}>
@@ -432,24 +447,20 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: BorderRadius.sm,
   },
-  favoriteButton: {
+  reorderControls: {
     position: "absolute",
     top: Spacing.sm,
     left: Spacing.sm,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    flexDirection: "row",
+    gap: 4,
+  },
+  reorderButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: "rgba(0,0,0,0.3)",
     alignItems: "center",
     justifyContent: "center",
-  },
-  favoriteButtonActive: {
-    backgroundColor: "rgba(255,215,0,0.3)",
-  },
-  favoriteBadge: {
-    position: "absolute",
-    top: Spacing.sm,
-    left: Spacing.sm,
   },
   tipsSection: {
     marginTop: Spacing.md,

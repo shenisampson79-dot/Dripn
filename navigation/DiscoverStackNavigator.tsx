@@ -31,6 +31,7 @@ import WardrobeDigitalTwinScreen from "@/screens/WardrobeDigitalTwinScreen";
 import CulturalStyleScreen from "@/screens/CulturalStyleScreen";
 import StyleStoriesScreen from "@/screens/StyleStoriesScreen";
 import CollectiveInsightsScreen from "@/screens/CollectiveInsightsScreen";
+import GamesHubScreen from "@/screens/GamesHubScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -66,6 +67,13 @@ export type DiscoverStackParamList = {
   CulturalStyle: undefined;
   StyleStories: undefined;
   CollectiveInsights: undefined;
+  GamesHub: undefined;
+  StyleShowdown: undefined;
+  PriceCheck: undefined;
+  StyleQuiz: undefined;
+  MixMatch: undefined;
+  DailyStreak: undefined;
+  Leaderboard: undefined;
 };
 
 const Stack = createNativeStackNavigator<DiscoverStackParamList>();
@@ -231,6 +239,11 @@ export default function DiscoverStackNavigator() {
         name="CollectiveInsights"
         component={CollectiveInsightsScreen}
         options={{ headerTitle: "Fashion Intelligence" }}
+      />
+      <Stack.Screen
+        name="GamesHub"
+        component={GamesHubScreen}
+        options={{ headerTitle: "Style Games" }}
       />
     </Stack.Navigator>
   );

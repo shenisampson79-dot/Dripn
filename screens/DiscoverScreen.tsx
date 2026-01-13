@@ -9,6 +9,8 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Haptics from "expo-haptics";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -195,6 +197,7 @@ const CATEGORY_TILES: CategoryTile[] = [
   { id: "styleOfTheDay", name: "Style of Day", icon: "award", pastelBg: "#E85D75", description: "Your personalized daily outfit recommendation tailored to your style and region.", sectionId: "styleOfTheDay" },
   { id: "trends", name: "Trends", icon: "trending-up", pastelBg: "#6366F1", description: "What's hot right now in fashion with real-time trend analysis and weekly highlights.", sectionId: "trendScanner" },
   { id: "styleIcons", name: "Style Icons", icon: "star", pastelBg: "#F59E0B", description: "Get inspired by celebrities and top fashion influencers with AI-powered lookalike outfits.", sectionId: "celebrity" },
+  { id: "games", name: "Style Games", icon: "play", pastelBg: "#FF6B6B", description: "Play fun fashion games: Style Showdown, Price Check, Style Quiz, and more!", screen: "GamesHub" },
   { id: "challenges", name: "Challenges", icon: "flag", pastelBg: "#EC4899", description: "Join fun style challenges, compete with the community, and showcase your creativity.", screen: "StyleChallenges" },
   { id: "virtualTryOn", name: "Try-On", icon: "camera", pastelBg: "#8B5CF6", description: "Virtually try on clothes and see how they look on you before buying.", screen: "VirtualTryOn" },
   { id: "fashionTherapy", name: "Style Therapy", icon: "heart", pastelBg: "#F472B6", description: "Mood-based styling, body positivity affirmations, and wellness-focused outfit recommendations.", screen: "FashionTherapy" },
@@ -202,11 +205,7 @@ const CATEGORY_TILES: CategoryTile[] = [
   { id: "fashionReads", name: "Fashion Reads", icon: "book-open", pastelBg: "#3B82F6", description: "Expert fashion articles, styling tips, magazine looks, and in-depth guides.", screen: "FashionBlog" },
   { id: "offers", name: "Offers", icon: "tag", pastelBg: "#EF4444", description: "Exclusive daily deals and discounts from trusted fashion retailers.", screen: "Bargains" },
   { id: "community", name: "Community", icon: "users", pastelBg: "#14B8A6", description: "Events, people, and connections - discover fashion happenings and fellow enthusiasts.", screen: "Community" },
-  { id: "motionCoaching", name: "Presence", icon: "activity", pastelBg: "#7C3AED", description: "Analyze your posture, gait, and overall vibe. Get micro-coaching tips to elevate your presence.", screen: "MotionCoaching" },
-  { id: "wardrobeTwin", name: "Wardrobe Twin", icon: "grid", pastelBg: "#0EA5E9", description: "Your wardrobe's digital twin with health scores, capsule planning, and future projections.", screen: "WardrobeDigitalTwin" },
   { id: "culturalStyle", name: "Style Diplomat", icon: "map", pastelBg: "#F97316", description: "Cultural dress codes and fashion etiquette for 5 countries. Perfect for travelers.", screen: "CulturalStyle" },
-  { id: "styleStories", name: "Style Stories", icon: "book", pastelBg: "#A855F7", description: "Create cinematic narratives about your fashion journey with AI-generated voice scripts.", screen: "StyleStories" },
-  { id: "collectiveInsights", name: "Intelligence", icon: "bar-chart-2", pastelBg: "#06B6D4", description: "Community trends, peer comparisons, and collective fashion intelligence.", screen: "CollectiveInsights" },
 ];
 
 const SECTION_NAV = [
@@ -439,6 +438,57 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const [celebrityLooksGenderFilter, setCelebrityLooksGenderFilter] = useState<'user' | 'female' | 'male'>('user');
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [selectedTile, setSelectedTile] = useState<CategoryTile | null>(null);
+  const [tilesOrder, setTilesOrder] = useState<string[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  const TILES_ORDER_KEY = "@discover_tiles_order";
+
+  useEffect(() => {
+    loadTilesOrder();
+  }, []);
+
+  const loadTilesOrder = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(TILES_ORDER_KEY);
+      if (stored) {
+        setTilesOrder(JSON.parse(stored));
+      } else {
+        setTilesOrder(CATEGORY_TILES.map(t => t.id));
+      }
+    } catch (error) {
+      console.error("Failed to load tiles order:", error);
+      setTilesOrder(CATEGORY_TILES.map(t => t.id));
+    }
+  };
+
+  const saveTilesOrder = async (newOrder: string[]) => {
+    try {
+      await AsyncStorage.setItem(TILES_ORDER_KEY, JSON.stringify(newOrder));
+    } catch (error) {
+      console.error("Failed to save tiles order:", error);
+    }
+  };
+
+  const moveTile = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= tilesOrder.length) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const newOrder = [...tilesOrder];
+    const [removed] = newOrder.splice(fromIndex, 1);
+    newOrder.splice(toIndex, 0, removed);
+    setTilesOrder(newOrder);
+    saveTilesOrder(newOrder);
+  };
+
+  const sortedTiles = useCallback(() => {
+    if (tilesOrder.length === 0) return CATEGORY_TILES;
+    return [...CATEGORY_TILES].sort((a, b) => {
+      const aIndex = tilesOrder.indexOf(a.id);
+      const bIndex = tilesOrder.indexOf(b.id);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+  }, [tilesOrder]);
 
   const moreMenuItems = [
     { id: 'people', label: 'People', icon: 'users' as const, screen: 'Community' as const },
@@ -638,38 +688,106 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
 
   return (
     <>
-    <ScreenScrollView ref={scrollViewRef}>
-      {/* Browse Header */}
+    <ScreenScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent}>
+      {/* Browse Header - Left aligned with compass icon to distinguish from Stylist */}
       <View style={styles.browseHeader}>
-        <ThemedText type="h1" style={styles.browseTitle}>Browse</ThemedText>
-        <ThemedText type="body" style={[styles.browseSubtitle, { color: theme.tabIconDefault }]}>
-          Explore fashion inspiration and discover your style
-        </ThemedText>
-      </View>
-
-      {/* 3-Column Category Grid */}
-      <View style={styles.categoryGrid}>
-        {CATEGORY_TILES.map((tile) => (
+        <View style={styles.browseHeaderRow}>
+          <View style={styles.browseHeaderLeft}>
+            <View style={[styles.browseHeaderIcon, { backgroundColor: theme.link + "20" }]}>
+              <Feather name="compass" size={24} color={theme.link} />
+            </View>
+            <View>
+              <ThemedText type="h1" style={styles.browseTitle}>Discover</ThemedText>
+              <ThemedText style={[styles.browseSubtitle, { color: theme.tabIconDefault }]}>
+                Explore fashion inspiration
+              </ThemedText>
+            </View>
+          </View>
           <Pressable
-            key={tile.id}
-            onPress={() => handleCategoryTilePress(tile)}
-            style={({ pressed }) => [
-              styles.categoryTile,
-              { 
-                backgroundColor: tile.pastelBg,
-                opacity: pressed ? 0.8 : 1,
-                transform: [{ scale: pressed ? 0.97 : 1 }],
-              },
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setIsEditMode(!isEditMode);
+            }}
+            style={[
+              styles.editButton,
+              { backgroundColor: isEditMode ? theme.link : theme.backgroundDefault },
             ]}
           >
-            <View style={styles.categoryIconContainer}>
-              <Feather name={tile.icon} size={TILE_ICON_SIZE} color={TILE_TEXT_COLOR} />
-            </View>
-            <ThemedText style={[styles.categoryLabel, { color: TILE_TEXT_COLOR, fontSize: TILE_LABEL_SIZE }]}>
-              {tile.name}
-            </ThemedText>
+            <Feather
+              name={isEditMode ? "check" : "move"}
+              size={18}
+              color={isEditMode ? "#FFFFFF" : theme.text}
+            />
           </Pressable>
-        ))}
+        </View>
+        
+        {isEditMode ? (
+          <View style={[styles.editHint, { backgroundColor: theme.link + "20" }]}>
+            <Feather name="info" size={14} color={theme.link} />
+            <ThemedText style={[styles.editHintText, { color: theme.link }]}>
+              Tap arrows to reorder categories
+            </ThemedText>
+          </View>
+        ) : null}
+      </View>
+
+      {/* 2-Column Category Grid with reordering */}
+      <View style={styles.categoryGrid}>
+        {sortedTiles().map((tile, index) => {
+          const actualIndex = tilesOrder.indexOf(tile.id);
+          return (
+            <Pressable
+              key={tile.id}
+              onPress={() => !isEditMode && handleCategoryTilePress(tile)}
+              onLongPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setIsEditMode(true);
+              }}
+              style={({ pressed }) => [
+                styles.categoryTile,
+                { 
+                  backgroundColor: tile.pastelBg,
+                  opacity: pressed && !isEditMode ? 0.8 : 1,
+                  transform: [{ scale: pressed && !isEditMode ? 0.97 : 1 }],
+                },
+              ]}
+            >
+              <View style={styles.categoryIconContainer}>
+                <Feather name={tile.icon} size={TILE_ICON_SIZE} color={TILE_TEXT_COLOR} />
+              </View>
+              <ThemedText style={[styles.categoryLabel, { color: TILE_TEXT_COLOR, fontSize: TILE_LABEL_SIZE }]}>
+                {tile.name}
+              </ThemedText>
+              
+              {isEditMode ? (
+                <View style={styles.reorderControls}>
+                  <Pressable
+                    onPress={() => moveTile(actualIndex, actualIndex - 1)}
+                    style={styles.reorderButton}
+                    disabled={actualIndex === 0}
+                  >
+                    <Feather 
+                      name="chevron-up" 
+                      size={14} 
+                      color={actualIndex === 0 ? "rgba(255,255,255,0.3)" : "#FFFFFF"} 
+                    />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => moveTile(actualIndex, actualIndex + 1)}
+                    style={styles.reorderButton}
+                    disabled={actualIndex === tilesOrder.length - 1}
+                  >
+                    <Feather 
+                      name="chevron-down" 
+                      size={14} 
+                      color={actualIndex === tilesOrder.length - 1 ? "rgba(255,255,255,0.3)" : "#FFFFFF"} 
+                    />
+                  </Pressable>
+                </View>
+              ) : null}
+            </Pressable>
+          );
+        })}
       </View>
 
     </ScreenScrollView>
@@ -726,18 +844,69 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    padding: Spacing.lg,
+  },
   browseHeader: {
+    marginBottom: Spacing.lg,
+  },
+  browseHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  browseHeaderLeft: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingVertical: Spacing.lg,
-    marginBottom: Spacing.md,
+    gap: Spacing.md,
+  },
+  browseHeaderIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
   },
   browseTitle: {
     fontWeight: "700",
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
   browseSubtitle: {
-    textAlign: "center",
     opacity: 0.7,
+  },
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
+    gap: Spacing.xs,
+  },
+  editHintText: {
+    fontSize: 12,
+  },
+  reorderControls: {
+    position: "absolute",
+    top: Spacing.sm,
+    left: Spacing.sm,
+    flexDirection: "row",
+    gap: 4,
+  },
+  reorderButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   categoryGrid: {
     flexDirection: "row",
