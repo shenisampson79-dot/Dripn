@@ -63,10 +63,22 @@ export default function PriceCheckScreen({ navigation }: PriceCheckScreenProps) 
         apiService.getPriceCheckLeaderboard(),
       ]);
       
-      if (roundRes.success) {
-        setRound(roundRes.round);
+      if (roundRes.available && roundRes.round) {
+        const r = roundRes.round;
+        const totalPrice = r.outfit?.items?.reduce((sum: number, item: any) => sum + (item.price || 0), 0) || 0;
+        setRound({
+          id: String(r.id),
+          imageUrl: r.outfit?.imageUrl || "",
+          itemName: r.outfit?.name || "Mystery Outfit",
+          itemDescription: r.outfit?.funFact || r.category || "",
+          brand: r.outfit?.items?.[0]?.brand,
+          hints: r.outfit?.hint ? [r.outfit.hint] : [],
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          isRevealed: false,
+          actualPrice: totalPrice * 100,
+        });
       }
-      if (leaderboardRes.success) {
+      if (leaderboardRes.leaderboard && Array.isArray(leaderboardRes.leaderboard)) {
         setLeaderboard(leaderboardRes.leaderboard);
       }
     } catch (err: any) {

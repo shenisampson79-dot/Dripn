@@ -61,8 +61,19 @@ export default function MixMatchScreen({ navigation }: MixMatchScreenProps) {
       setLoading(true);
       setError(null);
       const response = await apiService.getActiveMixMatch();
-      if (response.success) {
-        setChallenges(response.challenges);
+      if (response.available && response.challenge) {
+        const c = response.challenge;
+        const mappedChallenge: Challenge = {
+          id: String(c.id),
+          title: c.theme || "Style Challenge",
+          description: c.stylingTip || "",
+          theme: c.theme || "",
+          requiredPieces: c.items?.map((item) => item.name) || [],
+          expiresAt: c.expiresAt,
+          entryCount: response.totalEntries || 0,
+          prizeDescription: c.occasion,
+        };
+        setChallenges([mappedChallenge]);
       }
     } catch (err: any) {
       setError(err.message || "Failed to load challenges");

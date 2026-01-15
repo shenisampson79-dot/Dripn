@@ -1756,18 +1756,19 @@ class ApiService {
   // Price Check
   async getActivePriceCheck() {
     return this.request<{
-      success: boolean;
+      available: boolean;
       round: {
-        id: string;
-        imageUrl: string;
-        itemName: string;
-        itemDescription: string;
-        brand?: string;
-        hints: string[];
-        expiresAt: string;
-        userGuess?: number;
-        actualPrice?: number;
-        isRevealed: boolean;
+        id: number;
+        outfit: {
+          name: string;
+          hint: string;
+          items: Array<{ name: string; brand: string; price: number; category: string }>;
+          style: string;
+          funFact: string;
+          imageUrl: string | null;
+        };
+        difficulty: string;
+        category: string;
       } | null;
     }>('/api/games/pricecheck');
   }
@@ -1803,16 +1804,16 @@ class ApiService {
   // Style DNA Quiz
   async getStyleDNAQuestions() {
     return this.request<{
-      success: boolean;
       questions: Array<{
         id: number;
         question: string;
         options: Array<{
-          id: number;
+          id: string;
           text: string;
-          imageUrl?: string;
+          traits?: string[];
         }>;
       }>;
+      totalQuestions: number;
     }>('/api/games/dna/questions');
   }
 
@@ -1844,17 +1845,20 @@ class ApiService {
   // Mix & Match
   async getActiveMixMatch() {
     return this.request<{
-      success: boolean;
-      challenges: Array<{
-        id: string;
-        title: string;
-        description: string;
+      available: boolean;
+      challenge: {
+        id: number;
+        items: Array<{ id: number; name: string; color: string; style: string; category: string }>;
         theme: string;
-        requiredPieces: string[];
+        stylingTip: string;
+        suggestedCombinations: number;
+        occasion: string;
+        isActive: boolean;
+        createdAt: string;
         expiresAt: string;
-        entryCount: number;
-        prizeDescription?: string;
-      }>;
+      } | null;
+      entries: any[];
+      totalEntries: number;
     }>('/api/games/mixmatch');
   }
 

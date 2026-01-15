@@ -51,8 +51,21 @@ export default function StyleShowdownScreen({ navigation }: StyleShowdownScreenP
       setLoading(true);
       setError(null);
       const response = await apiService.getActiveShowdowns();
-      if (response.success) {
-        setShowdowns(response.showdowns);
+      if (response.showdowns && Array.isArray(response.showdowns)) {
+        const mapped = response.showdowns.map((s: any) => ({
+          id: String(s.id),
+          title: s.theme || "Style Battle",
+          description: s.outfitA?.occasion || "",
+          options: [
+            { id: 1, imageUrl: s.outfitA?.imageUrl || "", label: s.outfitA?.name || "Option A", votes: s.votesA || 0 },
+            { id: 2, imageUrl: s.outfitB?.imageUrl || "", label: s.outfitB?.name || "Option B", votes: s.votesB || 0 },
+          ],
+          expiresAt: s.expiresAt,
+          totalVotes: s.totalVotes || 0,
+          outfitA: s.outfitA,
+          outfitB: s.outfitB,
+        }));
+        setShowdowns(mapped);
       }
     } catch (err: any) {
       setError(err.message || "Failed to load showdowns");

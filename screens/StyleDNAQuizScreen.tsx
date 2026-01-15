@@ -65,9 +65,18 @@ export default function StyleDNAQuizScreen({ navigation }: StyleDNAQuizScreenPro
       setLoading(true);
       setError(null);
       const response = await apiService.getStyleDNAQuestions();
-      if (response.success) {
-        setQuestions(response.questions);
-        setAnswers(new Array(response.questions.length).fill(-1));
+      if (response.questions && Array.isArray(response.questions)) {
+        const mapped = response.questions.map((q: any) => ({
+          id: q.id,
+          question: q.question,
+          options: q.options.map((o: any, idx: number) => ({
+            id: idx,
+            text: o.text,
+            imageUrl: o.imageUrl,
+          })),
+        }));
+        setQuestions(mapped);
+        setAnswers(new Array(mapped.length).fill(-1));
       }
     } catch (err: any) {
       setError(err.message || "Failed to load quiz");
