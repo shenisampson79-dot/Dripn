@@ -197,14 +197,12 @@ const CATEGORY_TILES: CategoryTile[] = [
   { id: "styleOfTheDay", name: "Style of Day", icon: "award", pastelBg: "#E85D75", description: "Your personalized daily outfit recommendation tailored to your style and region.", sectionId: "styleOfTheDay" },
   { id: "trends", name: "Trends", icon: "trending-up", pastelBg: "#6366F1", description: "What's hot right now in fashion with real-time trend analysis and weekly highlights.", sectionId: "trendScanner" },
   { id: "styleIcons", name: "Style Icons", icon: "star", pastelBg: "#F59E0B", description: "Get inspired by celebrities and top fashion influencers with AI-powered lookalike outfits.", sectionId: "celebrity" },
-  { id: "games", name: "Style Games", icon: "play", pastelBg: "#FF6B6B", description: "Play fun fashion games: Style Showdown, Price Check, Style Quiz, and more!", screen: "GamesHub" },
-  { id: "challenges", name: "Challenges", icon: "flag", pastelBg: "#EC4899", description: "Join fun style challenges, compete with the community, and showcase your creativity.", screen: "StyleChallenges" },
   { id: "virtualTryOn", name: "Try-On", icon: "camera", pastelBg: "#8B5CF6", description: "Virtually try on clothes and see how they look on you before buying.", screen: "VirtualTryOn" },
   { id: "fashionTherapy", name: "Style Therapy", icon: "heart", pastelBg: "#F472B6", description: "Mood-based styling, body positivity affirmations, and wellness-focused outfit recommendations.", screen: "FashionTherapy" },
   { id: "sustainability", name: "Eco Style", icon: "globe", pastelBg: "#10B981", description: "Discover sustainable fashion brands and eco-friendly styling tips.", screen: "Sustainability" },
   { id: "fashionReads", name: "Fashion Reads", icon: "book-open", pastelBg: "#3B82F6", description: "Expert fashion articles, styling tips, magazine looks, and in-depth guides.", screen: "FashionBlog" },
   { id: "offers", name: "Offers", icon: "tag", pastelBg: "#EF4444", description: "Exclusive daily deals and discounts from trusted fashion retailers.", screen: "Bargains" },
-  { id: "community", name: "Community", icon: "users", pastelBg: "#14B8A6", description: "Events, people, and connections - discover fashion happenings and fellow enthusiasts.", screen: "Community" },
+  { id: "events", name: "Events", icon: "calendar", pastelBg: "#14B8A6", description: "Discover fashion events near you with outfit suggestions.", screen: "Events" },
   { id: "culturalStyle", name: "Style Diplomat", icon: "map", pastelBg: "#F97316", description: "Cultural dress codes and fashion etiquette for 5 countries. Perfect for travelers.", screen: "CulturalStyle" },
 ];
 
@@ -214,7 +212,6 @@ const SECTION_NAV = [
   { id: "influencer", name: "Influencers", icon: "users" as const },
   { id: "magazine", name: "Magazines", icon: "book-open" as const },
   { id: "celebrity", name: "Celebrity", icon: "star" as const },
-  { id: "challenges", name: "Challenges", icon: "flag" as const },
   { id: "highlights", name: "Highlights", icon: "zap" as const },
   { id: "blog", name: "Blog", icon: "edit-3" as const },
 ];
@@ -612,8 +609,8 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
     return CELEBRITY_LOOKS.filter(look => look.gender === targetGender);
   }, [userGender, celebrityLooksGenderFilter]);
 
-  const handlePostPress = (postId: string) => {
-    navigation.navigate("PostDetail", { postId });
+  const handlePostPress = (_postId: string) => {
+    // Posts removed as part of decision-engine focus
   };
 
   const handleJoinChallenge = (challenge: Challenge) => {
