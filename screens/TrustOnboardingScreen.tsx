@@ -67,7 +67,15 @@ const POSITIONING_OPTIONS: OnboardingContent[] = [
 
 const TRUST_FRAMING_OPTIONS: OnboardingContent[] = [
   {
-    headline: "This isn't a feed. It's a decision engine.",
+    headline: "One question. One outfit. Done.",
+    bullets: [
+      { text: "No second-guessing" },
+      { text: "No infinite options" },
+      { text: "Just clarity" },
+    ],
+  },
+  {
+    headline: "A stylist who actually decides.",
     bullets: [
       { text: "One clear recommendation" },
       { text: "No scrolling, no trends" },
@@ -104,14 +112,6 @@ const TRUST_FRAMING_OPTIONS: OnboardingContent[] = [
       { text: "Success = you leaving quickly" },
       { text: "No engagement tricks" },
       { text: "Your time matters more than mine" },
-    ],
-  },
-  {
-    headline: "One question. One answer. Done.",
-    bullets: [
-      { text: "No second-guessing" },
-      { text: "No infinite options" },
-      { text: "Just clarity" },
     ],
   },
 ];
