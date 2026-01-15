@@ -178,6 +178,12 @@ function getRandomContent<T>(options: T[]): T {
   return options[Math.floor(Math.random() * options.length)];
 }
 
+const ALL_TRUST_MESSAGES: OnboardingContent[] = [
+  ...POSITIONING_OPTIONS,
+  ...TRUST_FRAMING_OPTIONS,
+  ...CONTROL_REASSURANCE_OPTIONS,
+];
+
 const HELP_OPTIONS: { id: HelpContext; label: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "what-to-wear-today", label: "What to wear today", icon: "sun" },
   { id: "event-outfit", label: "What to wear to an event", icon: "calendar" },
@@ -213,26 +219,18 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
   const [isGenerating, setIsGenerating] = useState(false);
   const videoRef = useRef<Video>(null);
   
-  const [positioningContent] = useState(() => getRandomContent(POSITIONING_OPTIONS));
-  const [trustFramingContent] = useState(() => getRandomContent(TRUST_FRAMING_OPTIONS));
-  const [controlContent] = useState(() => getRandomContent(CONTROL_REASSURANCE_OPTIONS));
+  const [trustMessage] = useState(() => getRandomContent(ALL_TRUST_MESSAGES));
   const [backgroundVideo] = useState(() => BACKGROUND_VIDEOS[Math.floor(Math.random() * BACKGROUND_VIDEOS.length)]);
   
-  const [positioningVariationId] = useState(() => `positioning_${POSITIONING_OPTIONS.indexOf(positioningContent) + 1}`);
-  const [trustVariationId] = useState(() => `trust_${TRUST_FRAMING_OPTIONS.indexOf(trustFramingContent) + 1}`);
-  const [controlVariationId] = useState(() => `control_${CONTROL_REASSURANCE_OPTIONS.indexOf(controlContent) + 1}`);
+  const [messageVariationId] = useState(() => `trust_${ALL_TRUST_MESSAGES.indexOf(trustMessage) + 1}`);
   
   const progressAnim = useSharedValue(0);
   
   useEffect(() => {
-    progressAnim.value = withSpring(step / 4, { damping: 20, stiffness: 100 });
+    progressAnim.value = withSpring(step / 2, { damping: 20, stiffness: 100 });
     
     if (step === 0) {
-      onboardingAnalyticsService.trackVariation(positioningVariationId, 'positioning', 'view');
-    } else if (step === 1) {
-      onboardingAnalyticsService.trackVariation(trustVariationId, 'trust', 'view');
-    } else if (step === 2) {
-      onboardingAnalyticsService.trackVariation(controlVariationId, 'control', 'view');
+      onboardingAnalyticsService.trackVariation(messageVariationId, 'trust', 'view');
     }
   }, [step]);
 
@@ -245,12 +243,12 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
     setIsGenerating(true);
     await AsyncStorage.setItem("dripn_initial_context", context);
     
-    onboardingAnalyticsService.trackVariation(positioningVariationId, 'positioning', 'complete', context as any);
-    onboardingAnalyticsService.storeInitialContext(context as any, positioningVariationId);
+    onboardingAnalyticsService.trackVariation(messageVariationId, 'trust', 'complete', context as any);
+    onboardingAnalyticsService.storeInitialContext(context as any, messageVariationId);
     
     setTimeout(() => {
       setIsGenerating(false);
-      setStep(4);
+      setStep(2);
     }, 1500);
   };
 
@@ -274,12 +272,19 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
             <View style={styles.stepContent}>
               <View style={styles.contentCard}>
                 <ThemedText type="h1" style={styles.headline}>
-                  {positioningContent.headline}
+                  {trustMessage.headline}
                 </ThemedText>
-                {positioningContent.subtext ? (
+                {trustMessage.subtext ? (
                   <ThemedText type="body" style={styles.subtext}>
-                    {positioningContent.subtext}
+                    {trustMessage.subtext}
                   </ThemedText>
+                ) : null}
+                {trustMessage.bullets ? (
+                  <View style={styles.bulletContainer}>
+                    {trustMessage.bullets.map((bullet, index) => (
+                      <BulletPoint key={index} text={bullet.text} theme={theme} icon={bullet.icon} />
+                    ))}
+                  </View>
                 ) : null}
               </View>
             </View>
@@ -292,64 +297,6 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
         );
 
       case 1:
-        return (
-          <Animated.View 
-            entering={SlideInRight.duration(300)} 
-            exiting={SlideOutLeft.duration(300)}
-            style={styles.stepContainer}
-          >
-            <View style={styles.stepContent}>
-              <View style={styles.contentCard}>
-                <ThemedText type="h1" style={styles.headline}>
-                  {trustFramingContent.headline}
-                </ThemedText>
-                {trustFramingContent.bullets ? (
-                  <View style={styles.bulletContainer}>
-                    {trustFramingContent.bullets.map((bullet, index) => (
-                      <BulletPoint key={index} text={bullet.text} theme={theme} icon={bullet.icon} />
-                    ))}
-                  </View>
-                ) : null}
-              </View>
-            </View>
-            <View style={styles.ctaContainer}>
-              <Button onPress={() => setStep(2)} style={styles.primaryButton}>
-                Continue
-              </Button>
-            </View>
-          </Animated.View>
-        );
-
-      case 2:
-        return (
-          <Animated.View 
-            entering={SlideInRight.duration(300)} 
-            exiting={SlideOutLeft.duration(300)}
-            style={styles.stepContainer}
-          >
-            <View style={styles.stepContent}>
-              <View style={styles.contentCard}>
-                <ThemedText type="h1" style={styles.headline}>
-                  {controlContent.headline}
-                </ThemedText>
-                {controlContent.bullets ? (
-                  <View style={styles.bulletContainer}>
-                    {controlContent.bullets.map((bullet, index) => (
-                      <BulletPoint key={index} text={bullet.text} theme={theme} icon={bullet.icon} />
-                    ))}
-                  </View>
-                ) : null}
-              </View>
-            </View>
-            <View style={styles.ctaContainer}>
-              <Button onPress={() => setStep(3)} style={styles.primaryButton}>
-                Continue
-              </Button>
-            </View>
-          </Animated.View>
-        );
-
-      case 3:
         return (
           <Animated.View 
             entering={SlideInRight.duration(300)} 
@@ -387,7 +334,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
           </Animated.View>
         );
 
-      case 4:
+      case 2:
         if (isGenerating) {
           return (
             <Animated.View 
@@ -565,22 +512,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   contentCard: {
-    backgroundColor: "rgba(0, 0, 0, 0.55)",
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    marginVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.lg,
   },
   headline: {
-    fontSize: 28,
-    lineHeight: 36,
+    fontSize: 30,
+    lineHeight: 38,
     marginBottom: Spacing.lg,
     color: "#FFFFFF",
-    fontWeight: "700",
+    fontWeight: "800",
+    textShadowColor: "rgba(0, 0, 0, 0.9)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 12,
   },
   subtext: {
-    fontSize: 17,
-    lineHeight: 24,
-    color: "rgba(255, 255, 255, 0.95)",
+    fontSize: 18,
+    lineHeight: 26,
+    color: "#FFFFFF",
+    fontWeight: "500",
+    textShadowColor: "rgba(0, 0, 0, 0.8)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
   },
   bulletContainer: {
     gap: Spacing.md,
@@ -592,11 +544,18 @@ const styles = StyleSheet.create({
   },
   bulletIcon: {
     width: 24,
+    textShadowColor: "rgba(0, 0, 0, 0.8)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   bulletText: {
     flex: 1,
-    fontSize: 16,
-    color: "rgba(255, 255, 255, 0.95)",
+    fontSize: 17,
+    color: "#FFFFFF",
+    fontWeight: "500",
+    textShadowColor: "rgba(0, 0, 0, 0.8)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
   },
   optionsContainer: {
     gap: Spacing.sm,
@@ -608,16 +567,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    borderColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   optionIcon: {
     marginRight: Spacing.md,
+    textShadowColor: "rgba(0, 0, 0, 0.6)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   optionText: {
     flex: 1,
     fontSize: 16,
     color: "#FFFFFF",
+    fontWeight: "500",
+    textShadowColor: "rgba(0, 0, 0, 0.7)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   loadingContainer: {
     flex: 1,
