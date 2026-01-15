@@ -23,6 +23,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { onboardingAnalyticsService } from "@/services/OnboardingAnalyticsService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -217,10 +218,22 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
   const [controlContent] = useState(() => getRandomContent(CONTROL_REASSURANCE_OPTIONS));
   const [backgroundVideo] = useState(() => BACKGROUND_VIDEOS[Math.floor(Math.random() * BACKGROUND_VIDEOS.length)]);
   
+  const [positioningVariationId] = useState(() => `positioning_${POSITIONING_OPTIONS.indexOf(positioningContent) + 1}`);
+  const [trustVariationId] = useState(() => `trust_${TRUST_FRAMING_OPTIONS.indexOf(trustFramingContent) + 1}`);
+  const [controlVariationId] = useState(() => `control_${CONTROL_REASSURANCE_OPTIONS.indexOf(controlContent) + 1}`);
+  
   const progressAnim = useSharedValue(0);
   
   useEffect(() => {
     progressAnim.value = withSpring(step / 4, { damping: 20, stiffness: 100 });
+    
+    if (step === 0) {
+      onboardingAnalyticsService.trackVariation(positioningVariationId, 'positioning', 'view');
+    } else if (step === 1) {
+      onboardingAnalyticsService.trackVariation(trustVariationId, 'trust', 'view');
+    } else if (step === 2) {
+      onboardingAnalyticsService.trackVariation(controlVariationId, 'control', 'view');
+    }
   }, [step]);
 
   const progressStyle = useAnimatedStyle(() => ({
@@ -231,6 +244,10 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
     setSelectedContext(context);
     setIsGenerating(true);
     await AsyncStorage.setItem("dripn_initial_context", context);
+    
+    onboardingAnalyticsService.trackVariation(positioningVariationId, 'positioning', 'complete', context as any);
+    onboardingAnalyticsService.storeInitialContext(context as any, positioningVariationId);
+    
     setTimeout(() => {
       setIsGenerating(false);
       setStep(4);
