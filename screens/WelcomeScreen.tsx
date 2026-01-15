@@ -40,9 +40,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
     }
   };
 
-  const backgroundVideo = isDark 
-    ? require("../assets/videos/champagne_gold_silk_flow.mp4")
-    : require("../assets/videos/seamless_looping_pale_silk.mp4");
+  const backgroundVideo = require("../assets/videos/woman_indecisive_outfit.mp4");
 
   return (
     <View style={styles.container}>
