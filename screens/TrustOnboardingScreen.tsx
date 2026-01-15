@@ -26,6 +26,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+const BACKGROUND_VIDEOS = [
+  require("../assets/videos/woman_pondering_outfits_on_bed.mp4"),
+  require("../assets/videos/woman_comparing_two_dresses_held_firmly.mp4"),
+  require("../assets/videos/woman_trying_tops_with_closed_mouth.mp4"),
+];
+
 type TrustOnboardingScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "TrustOnboarding">;
 };
@@ -209,6 +215,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
   const [positioningContent] = useState(() => getRandomContent(POSITIONING_OPTIONS));
   const [trustFramingContent] = useState(() => getRandomContent(TRUST_FRAMING_OPTIONS));
   const [controlContent] = useState(() => getRandomContent(CONTROL_REASSURANCE_OPTIONS));
+  const [backgroundVideo] = useState(() => BACKGROUND_VIDEOS[Math.floor(Math.random() * BACKGROUND_VIDEOS.length)]);
   
   const progressAnim = useSharedValue(0);
   
@@ -237,8 +244,6 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
   const handleLogin = () => {
     navigation.navigate("Auth", { mode: "login" });
   };
-
-  const backgroundVideo = require("../assets/videos/woman_indecisive_outfit.mp4");
 
   const renderStep = () => {
     switch (step) {

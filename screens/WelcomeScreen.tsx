@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { StyleSheet, View, Image, Pressable, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -11,6 +11,12 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 
+const BACKGROUND_VIDEOS = [
+  require("../assets/videos/woman_pondering_outfits_on_bed.mp4"),
+  require("../assets/videos/woman_comparing_two_dresses_held_firmly.mp4"),
+  require("../assets/videos/woman_trying_tops_with_closed_mouth.mp4"),
+];
+
 type WelcomeScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Welcome">;
 };
@@ -19,6 +25,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const videoRef = useRef<Video>(null);
+  const [backgroundVideo] = useState(() => BACKGROUND_VIDEOS[Math.floor(Math.random() * BACKGROUND_VIDEOS.length)]);
 
   useEffect(() => {
     if (Platform.OS === 'web' && videoRef.current) {
@@ -39,8 +46,6 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
       videoRef.current?.playAsync().catch(() => {});
     }
   };
-
-  const backgroundVideo = require("../assets/videos/woman_indecisive_outfit.mp4");
 
   return (
     <View style={styles.container}>
