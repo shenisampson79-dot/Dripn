@@ -61,23 +61,28 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
         onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
       />
 
-      <View style={[styles.content, { paddingTop: insets.top + Spacing["3xl"] }]}>
+      <View style={styles.overlay} />
+      
+      <View style={[styles.content, { paddingTop: insets.top + Spacing.md }]}>
         <View style={styles.logoContainer}>
-          <ThemedText type="h1" style={styles.brandName}>
-            Dripn
-          </ThemedText>
-          <Image
-            source={require("../assets/images/dripn-logo-icon.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <ThemedText type="body" style={styles.taglineBelow}>
-            style that flows
-          </ThemedText>
-          <ThemedText type="small" style={styles.tagline}>
-            Your personal AI stylist. Decide what to wear in seconds.
-          </ThemedText>
+          <View style={styles.logoRow}>
+            <Image
+              source={require("../assets/images/dripn-logo-icon.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <View style={styles.brandTextContainer}>
+              <ThemedText type="h1" style={styles.brandName}>
+                Dripn
+              </ThemedText>
+              <ThemedText type="small" style={styles.taglineBelow}>
+                style that flows
+              </ThemedText>
+            </View>
+          </View>
         </View>
+
+        <View style={styles.spacer} />
 
         <View style={styles.featuresContainer}>
           <FeatureItem
@@ -89,7 +94,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           />
           <FeatureItem
             icon="message-circle"
-            title="4 AI Stylists"
+            title="6 AI Stylists"
             description="Choose your vibe: supportive or straight-talking"
             theme={theme}
             isDark={isDark}
@@ -118,21 +123,6 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
         >
           Get Styled
         </Button>
-
-        <Pressable
-          onPress={() => navigation.navigate("Auth", { mode: "login" })}
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
-        >
-          <ThemedText type="body" style={styles.secondaryButtonText}>
-            Already have an account?{" "}
-            <ThemedText type="link" style={styles.linkText}>
-              Sign In
-            </ThemedText>
-          </ThemedText>
-        </Pressable>
       </View>
     </View>
   );
@@ -178,45 +168,52 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.35)",
+  },
   content: {
     flex: 1,
     paddingHorizontal: Spacing.xl,
   },
+  spacer: {
+    flex: 1,
+  },
   logoContainer: {
+    alignItems: "flex-start",
+    marginBottom: Spacing.sm,
+  },
+  logoRow: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: Spacing["3xl"],
-    marginTop: Spacing["2xl"],
+    gap: Spacing.md,
+  },
+  brandTextContainer: {
+    alignItems: "flex-start",
   },
   brandName: {
-    fontSize: 48,
+    fontSize: 32,
     fontWeight: "700",
-    textAlign: "center",
-    marginBottom: Spacing.md,
-    letterSpacing: 2,
-    textShadowColor: "rgba(0, 0, 0, 0.4)",
+    color: "#FFFFFF",
+    letterSpacing: 1,
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
   },
   logo: {
-    width: 120,
-    height: 120,
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.sm,
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.md,
   },
   taglineBelow: {
-    textAlign: "center",
+    color: "rgba(255, 255, 255, 0.9)",
     fontStyle: "italic",
-    marginBottom: Spacing.lg,
     letterSpacing: 1,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  tagline: {
-    textAlign: "center",
-    paddingHorizontal: Spacing.xl,
-    fontSize: 14,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowColor: "rgba(0, 0, 0, 0.4)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
@@ -240,30 +237,22 @@ const styles = StyleSheet.create({
   },
   featureTitle: {
     marginBottom: Spacing.xs,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    color: "#FFFFFF",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
   featureDescription: {
-    textShadowColor: "rgba(0, 0, 0, 0.25)",
+    color: "rgba(255, 255, 255, 0.9)",
+    textShadowColor: "rgba(0, 0, 0, 0.4)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   footer: {
     paddingHorizontal: Spacing.xl,
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   primaryButton: {
     width: "100%",
-  },
-  secondaryButton: {
-    alignItems: "center",
-    paddingVertical: Spacing.sm,
-  },
-  secondaryButtonText: {
-    textAlign: "center",
-  },
-  linkText: {
-    fontWeight: "600",
   },
 });
