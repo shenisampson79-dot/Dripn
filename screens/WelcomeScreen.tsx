@@ -94,7 +94,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           />
           <FeatureItem
             icon="message-circle"
-            title="6 AI Stylists"
+            title="4 AI Stylists"
             description="Choose your vibe: supportive or straight-talking"
             theme={theme}
             isDark={isDark}
