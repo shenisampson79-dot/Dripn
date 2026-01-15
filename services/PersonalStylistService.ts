@@ -230,6 +230,82 @@ export function getStylistSignOff(stylist: PersonalStylist, userName?: string | 
   return signOff.replace(/{name}/g, displayName);
 }
 
+export interface SecondOpinionResponse {
+  introduction: string;
+  votesAligned: string;
+  votesSplit: string;
+  votesDisagreed: string;
+  noVotesYet: string;
+  encouragement: string;
+}
+
+export function getSecondOpinionResponses(stylist: PersonalStylist, userName?: string | null): SecondOpinionResponse {
+  const name = userName || 'there';
+  
+  const responses: Record<string, SecondOpinionResponse> = {
+    ruby: {
+      introduction: `${name}, I asked a few people with similar style to yours what they'd choose. Here's what they said...`,
+      votesAligned: `See? They agree with me! You've got this, ${name}. Go with my pick confidently.`,
+      votesSplit: `Votes were a bit split, but the backup option is slightly safer for your setting — that's what I'd choose for you now.`,
+      votesDisagreed: `Interesting! They leaned toward the other option. For your context, I'd trust their instinct here.`,
+      noVotesYet: `No votes in yet, but my recommendation stands. Trust me on this one, ${name}!`,
+      encouragement: `This doesn't change my recommendation — it just adds reassurance. You've absolutely got this!`,
+    },
+    max: {
+      introduction: `Alright ${name}, I checked in with some people who have similar style. Here's the scoop...`,
+      votesAligned: `They're with me on this one! Looking good — go with confidence.`,
+      votesSplit: `Votes were close, but the backup option feels slightly safer for your situation. I'd go with that.`,
+      votesDisagreed: `Huh, they went the other way. For your setting, I think they've got a point. Go with it.`,
+      noVotesYet: `Still waiting on votes, but hey, you can trust my call on this one.`,
+      encouragement: `This is just for extra confidence — my pick stands either way. You've got this!`,
+    },
+    jade: {
+      introduction: `${name}. Asked people with similar style. Here's what they said.`,
+      votesAligned: `Told you. They agree. Wear it.`,
+      votesSplit: `Split votes. Backup option is the move. Done.`,
+      votesDisagreed: `They went the other way. Fine — for your context, that's the call.`,
+      noVotesYet: `No votes yet. Doesn't matter. My recommendation stands.`,
+      encouragement: `This just adds confirmation. Stop second-guessing.`,
+    },
+    marcus: {
+      introduction: `${name}. Got input from people with similar style. The verdict:`,
+      votesAligned: `They agree with me. Wear it. Next.`,
+      votesSplit: `Votes split. Backup option is safer. That's the call.`,
+      votesDisagreed: `They picked the other one. For your setting, I'd trust that. Go.`,
+      noVotesYet: `No votes. My call stands. Trust it.`,
+      encouragement: `This is backup data. The recommendation? Already made.`,
+    },
+  };
+  
+  return responses[stylist.id] || responses.ruby;
+}
+
+export function getStylistSecondOpinionCTA(stylist: PersonalStylist): string {
+  const ctas: Record<string, string> = {
+    ruby: "Want a quick confidence check?",
+    max: "Need a second opinion from the crowd?",
+    jade: "Want backup? Fine.",
+    marcus: "Need confirmation? Here.",
+  };
+  
+  return ctas[stylist.id] || "Want a quick second opinion?";
+}
+
+export function getStylistRecommendationStyle(stylist: PersonalStylist): {
+  primaryLabel: string;
+  backupLabel: string;
+  confidence: 'high' | 'medium';
+} {
+  const styles: Record<string, { primaryLabel: string; backupLabel: string; confidence: 'high' | 'medium' }> = {
+    ruby: { primaryLabel: "My Pick for You", backupLabel: "Lovely Alternative", confidence: 'medium' },
+    max: { primaryLabel: "My Recommendation", backupLabel: "Solid Backup", confidence: 'medium' },
+    jade: { primaryLabel: "Wear This", backupLabel: "Or This", confidence: 'high' },
+    marcus: { primaryLabel: "The Answer", backupLabel: "Backup", confidence: 'high' },
+  };
+  
+  return styles[stylist.id] || styles.ruby;
+}
+
 export default {
   STYLISTS,
   getStylistForUser,
@@ -238,4 +314,7 @@ export default {
   getAllStylists,
   formatStylistMessage,
   getStylistSignOff,
+  getSecondOpinionResponses,
+  getStylistSecondOpinionCTA,
+  getStylistRecommendationStyle,
 };

@@ -72,43 +72,36 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
             style that flows
           </ThemedText>
           <ThemedText type="small" style={styles.tagline}>
-            Your personal stylist and global fashion community
+            Your personal AI stylist. Decide what to wear in seconds.
           </ThemedText>
         </View>
 
         <View style={styles.featuresContainer}>
           <FeatureItem
-            icon="camera"
-            title="Share Your Style"
-            description="Post outfit photos and get real feedback"
+            icon="zap"
+            title="Instant Decisions"
+            description="Know what to wear in seconds, not hours"
             theme={theme}
             isDark={isDark}
           />
           <FeatureItem
             icon="message-circle"
-            title="Expert Advice"
-            description="Personal styling tips and community support"
+            title="4 AI Stylists"
+            description="Choose your vibe: supportive or straight-talking"
             theme={theme}
             isDark={isDark}
           />
           <FeatureItem
-            icon="heart"
-            title="Find Your Look"
-            description="Discover styles that match your personality"
+            icon="users"
+            title="Second Opinions"
+            description="Get quick feedback from people with similar style"
             theme={theme}
             isDark={isDark}
           />
           <FeatureItem
-            icon="tag"
-            title="Exclusive Offers"
-            description="Daily and weekly deals from top fashion brands"
-            theme={theme}
-            isDark={isDark}
-          />
-          <FeatureItem
-            icon="calendar"
-            title="Events Near You"
-            description="Discover events and get outfit suggestions"
+            icon="grid"
+            title="Your Digital Wardrobe"
+            description="Build once, get styled forever"
             theme={theme}
             isDark={isDark}
           />
@@ -117,10 +110,10 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.xl }]}>
         <Button
-          onPress={() => navigation.navigate("Auth", { mode: "signup" })}
+          onPress={() => navigation.navigate("TrustOnboarding")}
           style={styles.primaryButton}
         >
-          Get Started
+          Get Styled
         </Button>
 
         <Pressable

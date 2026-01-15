@@ -1,6 +1,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import WelcomeScreen from "@/screens/WelcomeScreen";
+import TrustOnboardingScreen from "@/screens/TrustOnboardingScreen";
 import AuthScreen from "@/screens/AuthScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
 import SuggestedFollowsScreen from "@/screens/SuggestedFollowsScreen";
@@ -9,6 +10,7 @@ import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
 export type AuthStackParamList = {
   Welcome: undefined;
+  TrustOnboarding: undefined;
   Auth: { mode: 'login' | 'signup' };
   Onboarding: undefined;
   SuggestedFollows: undefined;
@@ -32,6 +34,7 @@ export default function AuthStackNavigator({ initialRouteName = "Welcome" }: Aut
       }}
     >
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="TrustOnboarding" component={TrustOnboardingScreen} />
       <Stack.Screen name="Auth" component={AuthScreen} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="SuggestedFollows" component={SuggestedFollowsScreen} />
