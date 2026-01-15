@@ -19,6 +19,29 @@ Do not make changes to the file `Y`.
   - **Jade** (Female): Unapologetically honest, direct, no-nonsense
   - **Marcus** (Male): Blunt, decisive, straight-talking
 
+## Onboarding Flow
+The app uses a trust-first onboarding approach:
+
+### Pre-Signup (Trust Building)
+1. **Positioning**: "Stop overthinking what to wear"
+2. **Trust Framing**: "This isn't a feed. It's a decision engine"
+3. **Control Reassurance**: "You're always in control"
+4. **Context Capture**: Light preference gathering (what to wear today, event outfit, confidence, shopping smarter)
+5. **First Styling Win**: AI gives outfit recommendation WITHOUT requiring wardrobe
+
+### Post-Signup (Optional)
+- **Wardrobe Setup**: 3 options (DIY, Later, DFY) to respect user autonomy
+- Detailed preferences captured after signup, not before
+
+## Community Voting ("Second Opinion")
+A secondary feature for extra confidence, NOT the primary experience:
+- **Positioned as**: "Get a second opinion" (subtle CTA after AI recommendation)
+- **Time-boxed**: 45-minute voting window
+- **Curated voters**: People with similar style/body/occasion
+- **Predefined reasons only**: "More appropriate", "More flattering", "Feels safer" (no free text)
+- **AI interprets results**: Never show raw vote percentages alone
+- **Each stylist has personality-specific interpretations**: Ruby (warm), Max (supportive), Jade (direct), Marcus (blunt)
+
 ## Navigation Structure (Simplified)
 1. **Home** ("Today's Decision"): AI-driven daily outfit recommendations
 2. **Wardrobe**: Digital wardrobe management with outfit organization
@@ -77,7 +100,12 @@ The following features have been removed from navigation but their backend code 
 
 ## Important Files
 - `navigation/MainTabNavigator.tsx`: Main app navigation with 4-tab structure
+- `navigation/AuthStackNavigator.tsx`: Auth flow including trust onboarding
 - `navigation/WardrobeStackNavigator.tsx`: Wardrobe feature navigation
-- `services/PersonalStylistService.ts`: AI stylist persona configurations
+- `services/PersonalStylistService.ts`: AI stylist persona configurations with second opinion support
+- `services/CommunityVotingService.ts`: Community voting/second opinion service
 - `services/ApiService.ts`: Backend API integration
+- `screens/TrustOnboardingScreen.tsx`: Pre-signup trust-building flow
+- `screens/WardrobeSetupScreen.tsx`: Post-signup wardrobe setup options
 - `screens/DiscoverScreen.tsx`: "Today's Decision" home screen
+- `components/SecondOpinionButton.tsx`: "Get a second opinion" CTA component
