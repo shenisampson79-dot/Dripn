@@ -15,7 +15,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { StyleSheet, Modal } from "react-native";
-import { NavigationContainer, NavigationContainerRef } from "@react-navigation/native";
+import { NavigationContainer, NavigationContainerRef, useNavigation } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -24,7 +24,6 @@ import { StatusBar } from "expo-status-bar";
 import MainTabNavigator from "@/navigation/MainTabNavigator";
 import AuthStackNavigator from "@/navigation/AuthStackNavigator";
 import StylistStackNavigator from "@/navigation/StylistStackNavigator";
-import CreatePostScreen from "@/screens/CreatePostScreen";
 import { AppTour } from "@/components/AppTour";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -67,9 +66,9 @@ function NavigationContainerWithRef() {
 
 function AppContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const [showCreatePost, setShowCreatePost] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [portalMode, setPortalMode] = useState<PortalMode>(null);
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
     if (user && user.hasCompletedOnboarding && !user.hasSeenTour) {
@@ -89,20 +88,16 @@ function AppContent() {
     return <AuthStackNavigator initialRouteName="Onboarding" />;
   }
 
+  const handleAskStylist = () => {
+    navigation.navigate('StylistTab');
+  };
+
   return (
     <>
       <MainTabNavigator 
-        onCreatePost={() => setShowCreatePost(true)} 
+        onAskStylist={handleAskStylist} 
         onOpenPortal={setPortalMode}
       />
-      <Modal
-        visible={showCreatePost}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowCreatePost(false)}
-      >
-        <CreatePostScreen onClose={() => setShowCreatePost(false)} />
-      </Modal>
       <Modal
         visible={portalMode !== null}
         animationType="slide"

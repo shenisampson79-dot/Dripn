@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 
 import HomeStackNavigator from "@/navigation/HomeStackNavigator";
-import DiscoverStackNavigator from "@/navigation/DiscoverStackNavigator";
+import WardrobeStackNavigator from "@/navigation/WardrobeStackNavigator";
 import UserStylistStackNavigator from "@/navigation/UserStylistStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
 import { useTheme } from "@/hooks/useTheme";
@@ -28,17 +28,17 @@ export type MainTabParamList = {
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const TAB_CONFIG: { name: keyof MainTabParamList; icon: string; label: string }[] = [
-  { name: "HomeTab", icon: "home", label: "Feed" },
-  { name: "DiscoverTab", icon: "compass", label: "Discover" },
+  { name: "HomeTab", icon: "home", label: "Home" },
+  { name: "DiscoverTab", icon: "box", label: "Wardrobe" },
   { name: "StylistTab", icon: "scissors", label: "Stylist" },
   { name: "ProfileTab", icon: "user", label: "Profile" },
 ];
 
 interface CustomTabBarProps extends BottomTabBarProps {
-  onCreatePost: () => void;
+  onAskStylist: () => void;
 }
 
-function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTabBarProps) {
+function CustomTabBar({ state, descriptors, navigation, onAskStylist }: CustomTabBarProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -118,7 +118,7 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
 
         <View style={styles.centerButtonContainer}>
           <Pressable
-            onPress={onCreatePost}
+            onPress={onAskStylist}
             style={({ pressed }) => [
               styles.centerButton,
               {
@@ -128,7 +128,7 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
               },
             ]}
           >
-            <Feather name="plus" size={28} color="#FFFFFF" />
+            <Feather name="message-circle" size={26} color="#FFFFFF" />
           </Pressable>
         </View>
 
@@ -143,21 +143,21 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
 import type { PortalMode } from "@/App";
 
 interface MainTabNavigatorProps {
-  onCreatePost: () => void;
+  onAskStylist: () => void;
   onOpenPortal?: (mode: PortalMode) => void;
 }
 
-export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTabNavigatorProps) {
+export default function MainTabNavigator({ onAskStylist, onOpenPortal }: MainTabNavigatorProps) {
   return (
     <Tab.Navigator
       initialRouteName="HomeTab"
-      tabBar={(props) => <CustomTabBar {...props} onCreatePost={onCreatePost} />}
+      tabBar={(props) => <CustomTabBar {...props} onAskStylist={onAskStylist} />}
       screenOptions={{
         headerShown: false,
       }}
     >
       <Tab.Screen name="HomeTab" component={HomeStackNavigator} />
-      <Tab.Screen name="DiscoverTab" component={DiscoverStackNavigator} />
+      <Tab.Screen name="DiscoverTab" component={WardrobeStackNavigator} />
       <Tab.Screen name="StylistTab" component={UserStylistStackNavigator} />
       <Tab.Screen name="ProfileTab">
         {() => <ProfileStackNavigator onOpenPortal={onOpenPortal} />}
