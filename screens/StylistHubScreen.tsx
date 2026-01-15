@@ -8,7 +8,6 @@ import * as Haptics from "expo-haptics";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
-import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -319,7 +318,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             ]}
           >
             <Feather
-              name={isEditMode ? "check" : "move"}
+              name={isEditMode ? "check" : "edit-2"}
               size={18}
               color={isEditMode ? "#FFFFFF" : theme.text}
             />
@@ -338,37 +337,6 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
 
       <View style={styles.featuresGrid}>
         {sortedFeatures().map((feature, index) => renderFeatureTile(feature, index))}
-      </View>
-
-      <View style={styles.tipsSection}>
-        <Card style={styles.tipsCard}>
-          <View style={styles.tipsHeader}>
-            <Feather name="info" size={20} color={theme.link} />
-            <ThemedText type="h4" style={styles.tipsTitle}>
-              Quick Tips
-            </ThemedText>
-          </View>
-          <View style={styles.tipsList}>
-            <View style={styles.tipItem}>
-              <View style={[styles.tipBullet, { backgroundColor: theme.link }]} />
-              <ThemedText style={[styles.tipText, { color: theme.tabIconDefault }]}>
-                Long-press any tile to reorder your tools
-              </ThemedText>
-            </View>
-            <View style={styles.tipItem}>
-              <View style={[styles.tipBullet, { backgroundColor: theme.success }]} />
-              <ThemedText style={[styles.tipText, { color: theme.tabIconDefault }]}>
-                Start with My Wardrobe to get personalized advice
-              </ThemedText>
-            </View>
-            <View style={styles.tipItem}>
-              <View style={[styles.tipBullet, { backgroundColor: theme.warning }]} />
-              <ThemedText style={[styles.tipText, { color: theme.tabIconDefault }]}>
-                Use Voice Chat for hands-free styling help
-              </ThemedText>
-            </View>
-          </View>
-        </Card>
       </View>
     </ScreenScrollView>
   );
@@ -461,39 +429,5 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.3)",
     alignItems: "center",
     justifyContent: "center",
-  },
-  tipsSection: {
-    marginTop: Spacing.md,
-  },
-  tipsCard: {
-    padding: Spacing.lg,
-  },
-  tipsHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  tipsTitle: {
-    fontWeight: "600",
-  },
-  tipsList: {
-    gap: Spacing.sm,
-  },
-  tipItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Spacing.sm,
-  },
-  tipBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginTop: 6,
-  },
-  tipText: {
-    flex: 1,
-    fontSize: Typography.small.fontSize,
-    lineHeight: 18,
   },
 });
