@@ -32,6 +32,145 @@ type TrustOnboardingScreenProps = {
 
 type HelpContext = "what-to-wear-today" | "event-outfit" | "build-confidence" | "shop-smarter";
 
+interface OnboardingContent {
+  headline: string;
+  subtext?: string;
+  bullets?: { text: string; icon?: keyof typeof Feather.glyphMap }[];
+}
+
+const POSITIONING_OPTIONS: OnboardingContent[] = [
+  {
+    headline: "Stop overthinking what to wear.",
+    subtext: "An opinionated AI stylist that tells you what to wear — using your wardrobe when available.",
+  },
+  {
+    headline: "You've stared at your wardrobe for 20 minutes. Again.",
+    subtext: "Let's fix that. One clear answer, every time.",
+  },
+  {
+    headline: "Three outfits on the bed. Zero confidence in any of them.",
+    subtext: "Sound familiar? I'll tell you which one to wear.",
+  },
+  {
+    headline: "Running late because you changed twice.",
+    subtext: "Get dressed with certainty. First time, every time.",
+  },
+  {
+    headline: "The longer you look, the less you know.",
+    subtext: "Break the spiral. Get a clear answer in seconds.",
+  },
+  {
+    headline: "Your wardrobe isn't the problem. The decision is.",
+    subtext: "I make the call. You make the exit.",
+  },
+];
+
+const TRUST_FRAMING_OPTIONS: OnboardingContent[] = [
+  {
+    headline: "This isn't a feed. It's a decision engine.",
+    bullets: [
+      { text: "One clear recommendation" },
+      { text: "No scrolling, no trends" },
+      { text: "Designed to save time, not steal it" },
+    ],
+  },
+  {
+    headline: "No feed. No likes. No 'maybe this, maybe that.'",
+    bullets: [
+      { text: "Just: wear this" },
+      { text: "One answer, not twenty options" },
+      { text: "Get dressed and go" },
+    ],
+  },
+  {
+    headline: "You asked. I answer. That's it.",
+    bullets: [
+      { text: "No endless scrolling" },
+      { text: "No algorithm games" },
+      { text: "Just the outfit you need" },
+    ],
+  },
+  {
+    headline: "Built to get you out the door, not glued to a screen.",
+    bullets: [
+      { text: "Fast, decisive recommendations" },
+      { text: "No time-wasting features" },
+      { text: "Mission: get you dressed" },
+    ],
+  },
+  {
+    headline: "Other apps want your attention. I want you dressed and gone.",
+    bullets: [
+      { text: "Success = you leaving quickly" },
+      { text: "No engagement tricks" },
+      { text: "Your time matters more than mine" },
+    ],
+  },
+  {
+    headline: "One question. One answer. Done.",
+    bullets: [
+      { text: "No second-guessing" },
+      { text: "No infinite options" },
+      { text: "Just clarity" },
+    ],
+  },
+];
+
+const CONTROL_REASSURANCE_OPTIONS: OnboardingContent[] = [
+  {
+    headline: "You're always in control.",
+    bullets: [
+      { text: "You can ask for a second opinion", icon: "users" },
+      { text: "You can ignore any advice", icon: "x-circle" },
+      { text: "Nothing is posted publicly", icon: "lock" },
+    ],
+  },
+  {
+    headline: "Ignore me. Disagree with me. You're still the boss.",
+    bullets: [
+      { text: "My job is to recommend, not command", icon: "message-circle" },
+      { text: "Your style, your rules", icon: "user" },
+      { text: "I'm just here to help decide", icon: "check" },
+    ],
+  },
+  {
+    headline: "Your mirror moments stay between us.",
+    bullets: [
+      { text: "Photos never shared without permission", icon: "lock" },
+      { text: "No public profiles or feeds", icon: "eye-off" },
+      { text: "This is your private space", icon: "shield" },
+    ],
+  },
+  {
+    headline: "No one sees your outfit pics. Not even me judging your 2019 purchases.",
+    bullets: [
+      { text: "Your wardrobe stays private", icon: "lock" },
+      { text: "No social pressure here", icon: "users" },
+      { text: "Just honest, helpful advice", icon: "heart" },
+    ],
+  },
+  {
+    headline: "Take my advice or don't. I'm not keeping score.",
+    bullets: [
+      { text: "No guilt trips", icon: "smile" },
+      { text: "No passive-aggressive reminders", icon: "bell-off" },
+      { text: "Just here when you need me", icon: "coffee" },
+    ],
+  },
+  {
+    headline: "Private by default. Shared only if you say so.",
+    bullets: [
+      { text: "You control what's visible", icon: "eye" },
+      { text: "Your data, your choice", icon: "database" },
+      { text: "Trust built on transparency", icon: "shield" },
+    ],
+  },
+];
+
+function getRandomContent<T>(options: T[]): T {
+  return options[Math.floor(Math.random() * options.length)];
+}
+
 const HELP_OPTIONS: { id: HelpContext; label: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "what-to-wear-today", label: "What to wear today", icon: "sun" },
   { id: "event-outfit", label: "What to wear to an event", icon: "calendar" },
@@ -66,6 +205,10 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
   const [selectedContext, setSelectedContext] = useState<HelpContext | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const videoRef = useRef<Video>(null);
+  
+  const [positioningContent] = useState(() => getRandomContent(POSITIONING_OPTIONS));
+  const [trustFramingContent] = useState(() => getRandomContent(TRUST_FRAMING_OPTIONS));
+  const [controlContent] = useState(() => getRandomContent(CONTROL_REASSURANCE_OPTIONS));
   
   const progressAnim = useSharedValue(0);
   
@@ -110,11 +253,13 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
           >
             <View style={styles.stepContent}>
               <ThemedText type="h1" style={styles.headline}>
-                Stop overthinking what to wear.
+                {positioningContent.headline}
               </ThemedText>
-              <ThemedText type="body" style={styles.subtext}>
-                An opinionated AI stylist that tells you what to wear — using your wardrobe when available.
-              </ThemedText>
+              {positioningContent.subtext ? (
+                <ThemedText type="body" style={styles.subtext}>
+                  {positioningContent.subtext}
+                </ThemedText>
+              ) : null}
             </View>
             <View style={styles.ctaContainer}>
               <Button onPress={() => setStep(1)} style={styles.primaryButton}>
@@ -133,13 +278,15 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
           >
             <View style={styles.stepContent}>
               <ThemedText type="h1" style={styles.headline}>
-                This isn't a feed. It's a decision engine.
+                {trustFramingContent.headline}
               </ThemedText>
-              <View style={styles.bulletContainer}>
-                <BulletPoint text="One clear recommendation" theme={theme} />
-                <BulletPoint text="No scrolling, no trends" theme={theme} />
-                <BulletPoint text="Designed to save time, not steal it" theme={theme} />
-              </View>
+              {trustFramingContent.bullets ? (
+                <View style={styles.bulletContainer}>
+                  {trustFramingContent.bullets.map((bullet, index) => (
+                    <BulletPoint key={index} text={bullet.text} theme={theme} icon={bullet.icon} />
+                  ))}
+                </View>
+              ) : null}
             </View>
             <View style={styles.ctaContainer}>
               <Button onPress={() => setStep(2)} style={styles.primaryButton}>
@@ -158,13 +305,15 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
           >
             <View style={styles.stepContent}>
               <ThemedText type="h1" style={styles.headline}>
-                You're always in control.
+                {controlContent.headline}
               </ThemedText>
-              <View style={styles.bulletContainer}>
-                <BulletPoint text="You can ask for a second opinion" theme={theme} icon="users" />
-                <BulletPoint text="You can ignore any advice" theme={theme} icon="x-circle" />
-                <BulletPoint text="Nothing is posted publicly" theme={theme} icon="lock" />
-              </View>
+              {controlContent.bullets ? (
+                <View style={styles.bulletContainer}>
+                  {controlContent.bullets.map((bullet, index) => (
+                    <BulletPoint key={index} text={bullet.text} theme={theme} icon={bullet.icon} />
+                  ))}
+                </View>
+              ) : null}
             </View>
             <View style={styles.ctaContainer}>
               <Button onPress={() => setStep(3)} style={styles.primaryButton}>
