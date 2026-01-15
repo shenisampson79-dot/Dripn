@@ -368,10 +368,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
                 </View>
               </View>
 
-              <View style={[styles.recommendationCard, { 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
-                borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)',
-              }]}>
+              <View style={styles.recommendationCard}>
                 <ThemedText type="h2" style={styles.recommendationTitle}>
                   {recommendation?.recommendation}
                 </ThemedText>
@@ -379,9 +376,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
                   {recommendation?.explanation}
                 </ThemedText>
                 {recommendation?.backup ? (
-                  <View style={[styles.backupContainer, {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-                  }]}>
+                  <View style={styles.backupContainer}>
                     <ThemedText type="small" style={styles.backupLabel}>Backup option:</ThemedText>
                     <ThemedText type="small" style={styles.backupText}>{recommendation.backup}</ThemedText>
                   </View>
@@ -592,7 +587,11 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
   },
   loadingText: {
-    opacity: 0.8,
+    color: "#FFFFFF",
+    fontWeight: "500",
+    textShadowColor: "rgba(0, 0, 0, 0.8)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   recommendationHeader: {
     marginBottom: Spacing.lg,
@@ -609,37 +608,44 @@ const styles = StyleSheet.create({
   },
   recommendationCard: {
     padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
   },
   recommendationTitle: {
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 24,
+    lineHeight: 30,
     marginBottom: Spacing.md,
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
   recommendationExplanation: {
-    fontSize: 15,
-    lineHeight: 22,
-    opacity: 0.85,
+    fontSize: 16,
+    lineHeight: 24,
+    color: "rgba(255, 255, 255, 0.95)",
   },
   backupContainer: {
     marginTop: Spacing.lg,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
   backupLabel: {
     fontWeight: "600",
     marginBottom: Spacing.xs,
-    opacity: 0.7,
+    color: "rgba(255, 255, 255, 0.8)",
   },
   backupText: {
-    opacity: 0.85,
+    color: "rgba(255, 255, 255, 0.9)",
   },
   noWardrobeNote: {
     textAlign: "center",
     marginTop: Spacing.lg,
-    opacity: 0.7,
     fontStyle: "italic",
+    color: "#FFFFFF",
+    fontWeight: "500",
+    textShadowColor: "rgba(0, 0, 0, 0.8)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   ctaContainer: {
     gap: Spacing.md,
@@ -654,5 +660,9 @@ const styles = StyleSheet.create({
   },
   loginText: {
     textAlign: "center",
+    color: "#FFFFFF",
+    textShadowColor: "rgba(0, 0, 0, 0.7)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 });
