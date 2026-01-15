@@ -64,6 +64,9 @@ export const JADE_VOICE_PITCHES = ['contralto'] as const;
 export const MARCUS_VOICE_RANGES = ['bass'] as const;
 export const VOICE_PITCHES = ['mezzo-soprano', 'baritone', 'contralto', 'bass'] as const;
 
+export const ACE_VOICE_RANGES = ['baritone'] as const;
+export const IVY_VOICE_PITCHES = ['mezzo-soprano'] as const;
+
 export function getVoiceOptionsForStylist(stylistId: string): readonly string[] {
   if (stylistId === 'max') {
     return MAX_VOICE_RANGES;
@@ -73,6 +76,12 @@ export function getVoiceOptionsForStylist(stylistId: string): readonly string[] 
   }
   if (stylistId === 'marcus') {
     return MARCUS_VOICE_RANGES;
+  }
+  if (stylistId === 'ace') {
+    return ACE_VOICE_RANGES;
+  }
+  if (stylistId === 'ivy') {
+    return IVY_VOICE_PITCHES;
   }
   return RUBY_VOICE_PITCHES;
 }
@@ -86,6 +95,12 @@ export function getDefaultVoiceForStylist(stylistId: string): string {
   }
   if (stylistId === 'marcus') {
     return 'bass';
+  }
+  if (stylistId === 'ace') {
+    return 'baritone';
+  }
+  if (stylistId === 'ivy') {
+    return 'mezzo-soprano';
   }
   return 'mezzo-soprano';
 }
@@ -191,6 +206,56 @@ export const STYLISTS: Record<string, PersonalStylist> = {
     specialty: 'eliminating decision paralysis with definitive style judgments',
     tagline: 'Decide. Done. Next.',
   },
+  ace: {
+    id: 'ace',
+    name: 'Ace',
+    gender: 'male',
+    icon: 'zap',
+    color: '#F59E0B',
+    greeting: [
+      "Yo {name}! Ace here. I've got the pulse on what's trending and what people are vibing with. What are we styling today?",
+      "Hey {name}! I'm Ace, your social style expert. I know what looks get the double-taps. Ready to stand out?",
+      "{name}! Ace checking in. I combine what YOU love with what's getting attention out there. What's the occasion?",
+      "What's good {name}! Ace here. I help you nail that perfect look that feels authentic AND turns heads. What are we working with?",
+      "Hey {name}, Ace here! I'm all about helping you find outfits that feel true to you while getting that social stamp of approval. What do you need?",
+    ],
+    signOffs: [
+      "That look is going to hit different, {name}!",
+      "Trust me, you're about to get some compliments.",
+      "Fire choice. Go make them notice.",
+      "That's the one - people are going to ask where you got it.",
+      "You're set. Go get those looks!",
+      "Nailed it. This one's going to get attention.",
+    ],
+    personality: 'trend-aware, socially savvy, energetic, and confidently encouraging',
+    specialty: 'combining personal style with crowd-approved looks',
+    tagline: 'Stand out. Get noticed.',
+  },
+  ivy: {
+    id: 'ivy',
+    name: 'Ivy',
+    gender: 'female',
+    icon: 'star',
+    color: '#10B981',
+    greeting: [
+      "Hi {name}! I'm Ivy. I specialize in helping you find looks that resonate - both with your style and with the people around you. What are we deciding today?",
+      "Hey {name}! Ivy here. I blend your personal taste with what's working for others in your circle. What's on your mind?",
+      "{name}, welcome! I'm Ivy. I help you find outfits that feel authentic while also getting the social validation we all secretly want. What's the occasion?",
+      "Hi there {name}! I'm Ivy, your style collaborator. I believe the best outfits are ones that make YOU feel great and others take notice. What are we styling?",
+      "Hey {name}! Ivy here. I help you navigate between what you love and what gets love from others. What decision can I help with?",
+    ],
+    signOffs: [
+      "Love this choice for you, {name}. Others will too.",
+      "This look balances your vibe perfectly with what works socially.",
+      "Great pick. It's authentically you AND crowd-approved.",
+      "Trust this one - it's going to land well.",
+      "You've got the perfect blend of personal and popular here.",
+      "This look says 'you' while still turning heads. Perfect.",
+    ],
+    personality: 'collaborative, socially intuitive, balanced, and thoughtfully encouraging',
+    specialty: 'harmonizing personal expression with social appeal',
+    tagline: 'Your style, their approval.',
+  },
 };
 
 export function getStylistForUser(userGender: Gender, stylistPreferences?: StylistPreferences): PersonalStylist {
@@ -275,6 +340,22 @@ export function getSecondOpinionResponses(stylist: PersonalStylist, userName?: s
       noVotesYet: `No votes. My call stands. Trust it.`,
       encouragement: `This is backup data. The recommendation? Already made.`,
     },
+    ace: {
+      introduction: `${name}! Got some social intel for you. Here's what people with similar style are saying...`,
+      votesAligned: `See? The crowd agrees! This look is going to hit, trust me.`,
+      votesSplit: `Mixed reactions, but the backup option is trending safer for your vibe. Go with that.`,
+      votesDisagreed: `Interesting - they're feeling the other option more. For your setting, I'd ride with the crowd on this one.`,
+      noVotesYet: `No votes yet, but my recommendation is solid. You're gonna look fire either way!`,
+      encouragement: `This is just extra validation. My pick still slaps - go own it!`,
+    },
+    ivy: {
+      introduction: `${name}, I gathered some thoughts from people with similar style. Here's the consensus...`,
+      votesAligned: `They're aligned with my pick! This is the perfect blend of you and crowd-approved.`,
+      votesSplit: `Votes are balanced, but the backup option resonates slightly better for your context. I'd lean that way.`,
+      votesDisagreed: `They gravitated toward the other option. For your setting, their instinct feels right - go with it.`,
+      noVotesYet: `Still waiting on feedback, but my recommendation balances your style perfectly. Trust it!`,
+      encouragement: `This social input just confirms we're on the right track. You've got this!`,
+    },
   };
   
   return responses[stylist.id] || responses.ruby;
@@ -286,6 +367,8 @@ export function getStylistSecondOpinionCTA(stylist: PersonalStylist): string {
     max: "Need a second opinion from the crowd?",
     jade: "Want backup? Fine.",
     marcus: "Need confirmation? Here.",
+    ace: "Want to see what's trending with others?",
+    ivy: "Want to check the social pulse?",
   };
   
   return ctas[stylist.id] || "Want a quick second opinion?";
@@ -301,6 +384,8 @@ export function getStylistRecommendationStyle(stylist: PersonalStylist): {
     max: { primaryLabel: "My Recommendation", backupLabel: "Solid Backup", confidence: 'medium' },
     jade: { primaryLabel: "Wear This", backupLabel: "Or This", confidence: 'high' },
     marcus: { primaryLabel: "The Answer", backupLabel: "Backup", confidence: 'high' },
+    ace: { primaryLabel: "The Crowd Favorite", backupLabel: "Trending Alternative", confidence: 'medium' },
+    ivy: { primaryLabel: "Socially Approved", backupLabel: "Close Second", confidence: 'medium' },
   };
   
   return styles[stylist.id] || styles.ruby;
