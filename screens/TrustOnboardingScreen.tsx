@@ -272,14 +272,16 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
             style={styles.stepContainer}
           >
             <View style={styles.stepContent}>
-              <ThemedText type="h1" style={styles.headline}>
-                {positioningContent.headline}
-              </ThemedText>
-              {positioningContent.subtext ? (
-                <ThemedText type="body" style={styles.subtext}>
-                  {positioningContent.subtext}
+              <View style={styles.contentCard}>
+                <ThemedText type="h1" style={styles.headline}>
+                  {positioningContent.headline}
                 </ThemedText>
-              ) : null}
+                {positioningContent.subtext ? (
+                  <ThemedText type="body" style={styles.subtext}>
+                    {positioningContent.subtext}
+                  </ThemedText>
+                ) : null}
+              </View>
             </View>
             <View style={styles.ctaContainer}>
               <Button onPress={() => setStep(1)} style={styles.primaryButton}>
@@ -297,16 +299,18 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
             style={styles.stepContainer}
           >
             <View style={styles.stepContent}>
-              <ThemedText type="h1" style={styles.headline}>
-                {trustFramingContent.headline}
-              </ThemedText>
-              {trustFramingContent.bullets ? (
-                <View style={styles.bulletContainer}>
-                  {trustFramingContent.bullets.map((bullet, index) => (
-                    <BulletPoint key={index} text={bullet.text} theme={theme} icon={bullet.icon} />
-                  ))}
-                </View>
-              ) : null}
+              <View style={styles.contentCard}>
+                <ThemedText type="h1" style={styles.headline}>
+                  {trustFramingContent.headline}
+                </ThemedText>
+                {trustFramingContent.bullets ? (
+                  <View style={styles.bulletContainer}>
+                    {trustFramingContent.bullets.map((bullet, index) => (
+                      <BulletPoint key={index} text={bullet.text} theme={theme} icon={bullet.icon} />
+                    ))}
+                  </View>
+                ) : null}
+              </View>
             </View>
             <View style={styles.ctaContainer}>
               <Button onPress={() => setStep(2)} style={styles.primaryButton}>
@@ -324,16 +328,18 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
             style={styles.stepContainer}
           >
             <View style={styles.stepContent}>
-              <ThemedText type="h1" style={styles.headline}>
-                {controlContent.headline}
-              </ThemedText>
-              {controlContent.bullets ? (
-                <View style={styles.bulletContainer}>
-                  {controlContent.bullets.map((bullet, index) => (
-                    <BulletPoint key={index} text={bullet.text} theme={theme} icon={bullet.icon} />
-                  ))}
-                </View>
-              ) : null}
+              <View style={styles.contentCard}>
+                <ThemedText type="h1" style={styles.headline}>
+                  {controlContent.headline}
+                </ThemedText>
+                {controlContent.bullets ? (
+                  <View style={styles.bulletContainer}>
+                    {controlContent.bullets.map((bullet, index) => (
+                      <BulletPoint key={index} text={bullet.text} theme={theme} icon={bullet.icon} />
+                    ))}
+                  </View>
+                ) : null}
+              </View>
             </View>
             <View style={styles.ctaContainer}>
               <Button onPress={() => setStep(3)} style={styles.primaryButton}>
@@ -351,31 +357,31 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
             style={styles.stepContainer}
           >
             <View style={styles.stepContent}>
-              <ThemedText type="h1" style={styles.headline}>
-                What do you want help with right now?
-              </ThemedText>
-              <View style={styles.optionsContainer}>
-                {HELP_OPTIONS.map((option) => (
-                  <Pressable
-                    key={option.id}
-                    onPress={() => handleContextSelect(option.id)}
-                    style={({ pressed }) => [
-                      styles.optionButton,
-                      {
-                        backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                        borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
-                        opacity: pressed ? 0.8 : 1,
-                        transform: [{ scale: pressed ? 0.98 : 1 }],
-                      },
-                    ]}
-                  >
-                    <Feather name={option.icon} size={20} color={theme.link} style={styles.optionIcon} />
-                    <ThemedText type="body" style={styles.optionText}>
-                      {option.label}
-                    </ThemedText>
-                    <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
-                  </Pressable>
-                ))}
+              <View style={styles.contentCard}>
+                <ThemedText type="h1" style={styles.headline}>
+                  What do you want help with right now?
+                </ThemedText>
+                <View style={styles.optionsContainer}>
+                  {HELP_OPTIONS.map((option) => (
+                    <Pressable
+                      key={option.id}
+                      onPress={() => handleContextSelect(option.id)}
+                      style={({ pressed }) => [
+                        styles.optionButton,
+                        {
+                          opacity: pressed ? 0.8 : 1,
+                          transform: [{ scale: pressed ? 0.98 : 1 }],
+                        },
+                      ]}
+                    >
+                      <Feather name={option.icon} size={20} color="#FFFFFF" style={styles.optionIcon} />
+                      <ThemedText type="body" style={styles.optionText}>
+                        {option.label}
+                      </ThemedText>
+                      <Feather name="chevron-right" size={20} color="rgba(255,255,255,0.6)" />
+                    </Pressable>
+                  ))}
+                </View>
               </View>
             </View>
           </Animated.View>
@@ -502,7 +508,7 @@ interface BulletPointProps {
 function BulletPoint({ text, theme, icon }: BulletPointProps) {
   return (
     <View style={styles.bulletPoint}>
-      <Feather name={icon || "check"} size={18} color={theme.link} style={styles.bulletIcon} />
+      <Feather name={icon || "check"} size={18} color="#FFFFFF" style={styles.bulletIcon} />
       <ThemedText type="body" style={styles.bulletText}>{text}</ThemedText>
     </View>
   );
@@ -558,24 +564,26 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
   },
+  contentCard: {
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    marginVertical: Spacing.md,
+  },
   headline: {
-    fontSize: 32,
-    lineHeight: 40,
-    marginBottom: Spacing.xl,
-    textShadowColor: "rgba(0, 0, 0, 0.4)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    fontSize: 28,
+    lineHeight: 36,
+    marginBottom: Spacing.lg,
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
   subtext: {
-    fontSize: 18,
-    lineHeight: 26,
-    opacity: 0.9,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    fontSize: 17,
+    lineHeight: 24,
+    color: "rgba(255, 255, 255, 0.95)",
   },
   bulletContainer: {
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   bulletPoint: {
     flexDirection: "row",
@@ -587,22 +595,21 @@ const styles = StyleSheet.create({
   },
   bulletText: {
     flex: 1,
-    fontSize: 17,
-    textShadowColor: "rgba(0, 0, 0, 0.25)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.95)",
   },
   optionsContainer: {
-    gap: Spacing.md,
-    marginTop: Spacing.xl,
+    gap: Spacing.sm,
   },
   optionButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   optionIcon: {
     marginRight: Spacing.md,
@@ -610,6 +617,7 @@ const styles = StyleSheet.create({
   optionText: {
     flex: 1,
     fontSize: 16,
+    color: "#FFFFFF",
   },
   loadingContainer: {
     flex: 1,
