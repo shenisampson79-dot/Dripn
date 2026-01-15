@@ -1698,6 +1698,269 @@ class ApiService {
       body: JSON.stringify(data),
     });
   }
+
+  // ===== GAMES API =====
+
+  // Style Showdown
+  async getActiveShowdowns() {
+    return this.request<{
+      success: boolean;
+      showdowns: Array<{
+        id: string;
+        title: string;
+        description: string;
+        options: Array<{
+          id: number;
+          imageUrl: string;
+          label: string;
+          votes: number;
+        }>;
+        expiresAt: string;
+        totalVotes: number;
+        userVoted?: number;
+      }>;
+    }>('/api/games/showdowns');
+  }
+
+  async getShowdown(id: string) {
+    return this.request<{
+      success: boolean;
+      showdown: {
+        id: string;
+        title: string;
+        description: string;
+        options: Array<{
+          id: number;
+          imageUrl: string;
+          label: string;
+          votes: number;
+        }>;
+        expiresAt: string;
+        totalVotes: number;
+        userVoted?: number;
+      };
+    }>(`/api/games/showdowns/${id}`);
+  }
+
+  async voteShowdown(showdownId: string, optionId: number) {
+    return this.request<{
+      success: boolean;
+      message: string;
+      updatedVotes: Record<number, number>;
+    }>(`/api/games/showdowns/${showdownId}/vote`, {
+      method: 'POST',
+      body: JSON.stringify({ optionId }),
+    });
+  }
+
+  // Price Check
+  async getActivePriceCheck() {
+    return this.request<{
+      success: boolean;
+      round: {
+        id: string;
+        imageUrl: string;
+        itemName: string;
+        itemDescription: string;
+        brand?: string;
+        hints: string[];
+        expiresAt: string;
+        userGuess?: number;
+        actualPrice?: number;
+        isRevealed: boolean;
+      } | null;
+    }>('/api/games/price-check');
+  }
+
+  async submitPriceGuess(roundId: string, guess: number) {
+    return this.request<{
+      success: boolean;
+      message: string;
+      difference?: number;
+      points?: number;
+      rank?: number;
+    }>(`/api/games/price-check/${roundId}/guess`, {
+      method: 'POST',
+      body: JSON.stringify({ guess }),
+    });
+  }
+
+  async getPriceCheckLeaderboard() {
+    return this.request<{
+      success: boolean;
+      leaderboard: Array<{
+        userId: string;
+        name: string;
+        avatar?: string;
+        score: number;
+        rank: number;
+        accuracyRate: number;
+      }>;
+      userRank?: number;
+    }>('/api/games/price-check/leaderboard');
+  }
+
+  // Style DNA Quiz
+  async getStyleDNAQuestions() {
+    return this.request<{
+      success: boolean;
+      questions: Array<{
+        id: number;
+        question: string;
+        options: Array<{
+          id: number;
+          text: string;
+          imageUrl?: string;
+        }>;
+      }>;
+    }>('/api/games/style-dna/questions');
+  }
+
+  async submitStyleDNAAnswers(answers: number[]) {
+    return this.request<{
+      success: boolean;
+      result: {
+        tribe: string;
+        tribeDescription: string;
+        tribeIcon: string;
+        personalityBreakdown: Array<{
+          trait: string;
+          percentage: number;
+          color: string;
+        }>;
+        recommendations: Array<{
+          title: string;
+          description: string;
+          imageUrl?: string;
+        }>;
+        compatibleTribes: string[];
+      };
+    }>('/api/games/style-dna/submit', {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    });
+  }
+
+  // Mix & Match
+  async getActiveMixMatch() {
+    return this.request<{
+      success: boolean;
+      challenges: Array<{
+        id: string;
+        title: string;
+        description: string;
+        theme: string;
+        requiredPieces: string[];
+        expiresAt: string;
+        entryCount: number;
+        prizeDescription?: string;
+      }>;
+    }>('/api/games/mix-match');
+  }
+
+  async getMixMatchChallenge(id: string) {
+    return this.request<{
+      success: boolean;
+      challenge: {
+        id: string;
+        title: string;
+        description: string;
+        theme: string;
+        requiredPieces: string[];
+        expiresAt: string;
+        entryCount: number;
+        prizeDescription?: string;
+        hasSubmitted: boolean;
+      };
+    }>(`/api/games/mix-match/${id}`);
+  }
+
+  async submitMixMatchEntry(challengeId: string, data: { imageUrl: string; description: string }) {
+    return this.request<{
+      success: boolean;
+      entryId: string;
+      message: string;
+    }>(`/api/games/mix-match/${challengeId}/entry`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async voteMixMatchEntry(challengeId: string, entryId: string) {
+    return this.request<{
+      success: boolean;
+      message: string;
+    }>(`/api/games/mix-match/${challengeId}/vote`, {
+      method: 'POST',
+      body: JSON.stringify({ entryId }),
+    });
+  }
+
+  async getMixMatchEntries(challengeId: string) {
+    return this.request<{
+      success: boolean;
+      entries: Array<{
+        id: string;
+        userId: string;
+        userName: string;
+        userAvatar?: string;
+        imageUrl: string;
+        description: string;
+        votes: number;
+        submittedAt: string;
+      }>;
+    }>(`/api/games/mix-match/${challengeId}/entries`);
+  }
+
+  // Daily Challenge & Streak
+  async getDailyChallenge() {
+    return this.request<{
+      success: boolean;
+      challenge: {
+        id: string;
+        title: string;
+        description: string;
+        type: 'outfit' | 'vote' | 'share' | 'upload';
+        xpReward: number;
+        completed: boolean;
+        expiresAt: string;
+      } | null;
+    }>('/api/games/daily-challenge');
+  }
+
+  async getStreak() {
+    return this.request<{
+      success: boolean;
+      streak: {
+        currentStreak: number;
+        longestStreak: number;
+        lastActiveDate: string;
+        totalDaysActive: number;
+        streakFreezes: number;
+      };
+    }>('/api/games/streak');
+  }
+
+  // Global Leaderboard
+  async getGlobalLeaderboard() {
+    return this.request<{
+      success: boolean;
+      leaderboard: Array<{
+        userId: string;
+        name: string;
+        avatar?: string;
+        totalPoints: number;
+        rank: number;
+        tier: string;
+        gamesPlayed: number;
+      }>;
+      userStats?: {
+        rank: number;
+        totalPoints: number;
+        gamesPlayed: number;
+      };
+    }>('/api/games/leaderboard');
+  }
 }
 
 export const apiService = new ApiService();

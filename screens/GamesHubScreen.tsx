@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { StyleSheet, View, Pressable, Dimensions, Alert } from "react-native";
+import { StyleSheet, View, Pressable, Dimensions } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -14,6 +14,7 @@ import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
+import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
 
 type GamesHubScreenProps = {
@@ -41,7 +42,6 @@ const GAME_FEATURES: GameFeature[] = [
     icon: "zap",
     screen: "StyleShowdown",
     gradientColors: ["#FF6B6B", "#FF8E53"] as const,
-    comingSoon: true,
   },
   {
     id: "price-check",
@@ -50,7 +50,6 @@ const GAME_FEATURES: GameFeature[] = [
     icon: "dollar-sign",
     screen: "PriceCheck",
     gradientColors: ["#4ECDC4", "#44A08D"] as const,
-    comingSoon: true,
   },
   {
     id: "style-quiz",
@@ -59,7 +58,6 @@ const GAME_FEATURES: GameFeature[] = [
     icon: "help-circle",
     screen: "StyleQuiz",
     gradientColors: ["#A855F7", "#7C3AED"] as const,
-    comingSoon: true,
   },
   {
     id: "mix-match",
@@ -68,7 +66,6 @@ const GAME_FEATURES: GameFeature[] = [
     icon: "shuffle",
     screen: "MixMatch",
     gradientColors: ["#F59E0B", "#D97706"] as const,
-    comingSoon: true,
   },
   {
     id: "streak",
@@ -77,7 +74,6 @@ const GAME_FEATURES: GameFeature[] = [
     icon: "award",
     screen: "DailyStreak",
     gradientColors: ["#EC4899", "#DB2777"] as const,
-    comingSoon: true,
   },
   {
     id: "leaderboard",
@@ -86,7 +82,6 @@ const GAME_FEATURES: GameFeature[] = [
     icon: "bar-chart-2",
     screen: "Leaderboard",
     gradientColors: ["#6366F1", "#4F46E5"] as const,
-    comingSoon: true,
   },
 ];
 
@@ -102,7 +97,22 @@ export default function GamesHubScreen({ navigation }: GamesHubScreenProps) {
 
   useEffect(() => {
     loadGamesOrder();
+    fetchStreakData();
   }, []);
+
+  const fetchStreakData = async () => {
+    try {
+      const response = await apiService.getStreak();
+      if (response.success && response.streak) {
+        setStreakInfo({
+          currentStreak: response.streak.currentStreak,
+          longestStreak: response.streak.longestStreak,
+        });
+      }
+    } catch (error) {
+      console.log("Failed to fetch streak:", error);
+    }
+  };
 
   const loadGamesOrder = async () => {
     try {
@@ -137,10 +147,6 @@ export default function GamesHubScreen({ navigation }: GamesHubScreenProps) {
   };
 
   const handleGamePress = (game: GameFeature) => {
-    if (game.comingSoon) {
-      Alert.alert("Coming Soon", `${game.title} will be available soon!`);
-      return;
-    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate(game.screen as any);
   };

@@ -32,6 +32,12 @@ import CulturalStyleScreen from "@/screens/CulturalStyleScreen";
 import StyleStoriesScreen from "@/screens/StyleStoriesScreen";
 import CollectiveInsightsScreen from "@/screens/CollectiveInsightsScreen";
 import GamesHubScreen from "@/screens/GamesHubScreen";
+import StyleShowdownScreen from "@/screens/StyleShowdownScreen";
+import PriceCheckScreen from "@/screens/PriceCheckScreen";
+import StyleDNAQuizScreen from "@/screens/StyleDNAQuizScreen";
+import MixMatchScreen from "@/screens/MixMatchScreen";
+import DailyStreakScreen from "@/screens/DailyStreakScreen";
+import LeaderboardScreen from "@/screens/LeaderboardScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -244,6 +250,36 @@ export default function DiscoverStackNavigator() {
         name="GamesHub"
         component={GamesHubScreen}
         options={{ headerTitle: "Style Games" }}
+      />
+      <Stack.Screen
+        name="StyleShowdown"
+        component={StyleShowdownScreen}
+        options={{ headerTitle: "Style Showdown" }}
+      />
+      <Stack.Screen
+        name="PriceCheck"
+        component={PriceCheckScreen}
+        options={{ headerTitle: "Price Check" }}
+      />
+      <Stack.Screen
+        name="StyleQuiz"
+        component={StyleDNAQuizScreen}
+        options={{ headerTitle: "Style DNA Quiz" }}
+      />
+      <Stack.Screen
+        name="MixMatch"
+        component={MixMatchScreen}
+        options={{ headerTitle: "Mix & Match" }}
+      />
+      <Stack.Screen
+        name="DailyStreak"
+        component={DailyStreakScreen}
+        options={{ headerTitle: "Daily Streak" }}
+      />
+      <Stack.Screen
+        name="Leaderboard"
+        component={LeaderboardScreen}
+        options={{ headerTitle: "Leaderboard" }}
       />
     </Stack.Navigator>
   );
