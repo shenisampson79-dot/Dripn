@@ -1719,7 +1719,7 @@ class ApiService {
         totalVotes: number;
         userVoted?: number;
       }>;
-    }>('/api/games/showdowns');
+    }>('/api/games/showdown');
   }
 
   async getShowdown(id: string) {
@@ -1739,7 +1739,7 @@ class ApiService {
         totalVotes: number;
         userVoted?: number;
       };
-    }>(`/api/games/showdowns/${id}`);
+    }>(`/api/games/showdown/${id}`);
   }
 
   async voteShowdown(showdownId: string, optionId: number) {
@@ -1747,7 +1747,7 @@ class ApiService {
       success: boolean;
       message: string;
       updatedVotes: Record<number, number>;
-    }>(`/api/games/showdowns/${showdownId}/vote`, {
+    }>(`/api/games/showdown/${showdownId}/vote`, {
       method: 'POST',
       body: JSON.stringify({ optionId }),
     });
@@ -1769,7 +1769,7 @@ class ApiService {
         actualPrice?: number;
         isRevealed: boolean;
       } | null;
-    }>('/api/games/price-check');
+    }>('/api/games/pricecheck');
   }
 
   async submitPriceGuess(roundId: string, guess: number) {
@@ -1779,7 +1779,7 @@ class ApiService {
       difference?: number;
       points?: number;
       rank?: number;
-    }>(`/api/games/price-check/${roundId}/guess`, {
+    }>(`/api/games/pricecheck/${roundId}/guess`, {
       method: 'POST',
       body: JSON.stringify({ guess }),
     });
@@ -1797,7 +1797,7 @@ class ApiService {
         accuracyRate: number;
       }>;
       userRank?: number;
-    }>('/api/games/price-check/leaderboard');
+    }>('/api/games/pricecheck/leaderboard');
   }
 
   // Style DNA Quiz
@@ -1813,7 +1813,7 @@ class ApiService {
           imageUrl?: string;
         }>;
       }>;
-    }>('/api/games/style-dna/questions');
+    }>('/api/games/dna/questions');
   }
 
   async submitStyleDNAAnswers(answers: number[]) {
@@ -1835,7 +1835,7 @@ class ApiService {
         }>;
         compatibleTribes: string[];
       };
-    }>('/api/games/style-dna/submit', {
+    }>('/api/games/dna/submit', {
       method: 'POST',
       body: JSON.stringify({ answers }),
     });
@@ -1855,7 +1855,7 @@ class ApiService {
         entryCount: number;
         prizeDescription?: string;
       }>;
-    }>('/api/games/mix-match');
+    }>('/api/games/mixmatch');
   }
 
   async getMixMatchChallenge(id: string) {
@@ -1872,7 +1872,7 @@ class ApiService {
         prizeDescription?: string;
         hasSubmitted: boolean;
       };
-    }>(`/api/games/mix-match/${id}`);
+    }>(`/api/games/mixmatch/${id}`);
   }
 
   async submitMixMatchEntry(challengeId: string, data: { imageUrl: string; description: string }) {
@@ -1880,7 +1880,7 @@ class ApiService {
       success: boolean;
       entryId: string;
       message: string;
-    }>(`/api/games/mix-match/${challengeId}/entry`, {
+    }>(`/api/games/mixmatch/${challengeId}/entry`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -1890,9 +1890,8 @@ class ApiService {
     return this.request<{
       success: boolean;
       message: string;
-    }>(`/api/games/mix-match/${challengeId}/vote`, {
+    }>(`/api/games/mixmatch/entry/${entryId}/vote`, {
       method: 'POST',
-      body: JSON.stringify({ entryId }),
     });
   }
 
@@ -1909,7 +1908,7 @@ class ApiService {
         votes: number;
         submittedAt: string;
       }>;
-    }>(`/api/games/mix-match/${challengeId}/entries`);
+    }>(`/api/games/mixmatch/${challengeId}/entries`);
   }
 
   // Daily Challenge & Streak
