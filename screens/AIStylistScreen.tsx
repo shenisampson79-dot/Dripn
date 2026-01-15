@@ -52,6 +52,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const INPUT_CONTAINER_HEIGHT = 80;
+const TAB_BAR_HEIGHT = 56;
 
 const CHAT_STORAGE_KEY = '@dripn_ai_stylist_chat';
 const DAILY_MESSAGES_KEY = '@dripn_ai_daily_messages';
@@ -1937,7 +1938,7 @@ export default function AIStylistScreen() {
             styles.listContent,
             { 
               paddingTop: headerHeight + Spacing.md,
-              paddingBottom: INPUT_CONTAINER_HEIGHT + (tabBarHeight > 0 ? tabBarHeight : insets.bottom) + Spacing.md
+              paddingBottom: INPUT_CONTAINER_HEIGHT + TAB_BAR_HEIGHT + insets.bottom + Spacing.md
             }
           ]}
           keyboardShouldPersistTaps="handled"
@@ -1946,8 +1947,8 @@ export default function AIStylistScreen() {
           style={styles.flatList}
         />
         <KeyboardStickyView 
-          offset={{ closed: tabBarHeight > 0 ? tabBarHeight : insets.bottom }}
-          style={styles.inputBarAbsolute}
+          offset={{ closed: 0 }}
+          style={[styles.inputBarAbsolute, { bottom: TAB_BAR_HEIGHT + insets.bottom }]}
         >
           {renderInputBar()}
         </KeyboardStickyView>
