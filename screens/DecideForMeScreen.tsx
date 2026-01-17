@@ -55,6 +55,33 @@ const STYLE_CHIPS = [
   { id: "not_sure" as StyleDirection, label: "Not sure yet" },
 ];
 
+const FALLBACK_OUTFITS = [
+  {
+    outfit: "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white trainers for a modern finish.",
+    reasoning: "This classic combination works perfectly for your occasion and the current weather.",
+  },
+  {
+    outfit: "Try dark slim-fit jeans with a fitted crew neck jumper in navy or grey. Layer with a quality overcoat if it's cold.",
+    reasoning: "Smart casual that works for most occasions. Effortlessly put together.",
+  },
+  {
+    outfit: "Go for chinos in a neutral tone with a well-fitted Oxford shirt. Roll the sleeves for a relaxed but refined look.",
+    reasoning: "This versatile combination takes you from day to evening with ease.",
+  },
+  {
+    outfit: "Pair straight-leg trousers with a quality turtleneck in black or cream. Add loafers for a sophisticated edge.",
+    reasoning: "Minimalist and impactful. Fewer pieces, more intention.",
+  },
+  {
+    outfit: "Choose a midi skirt with a tucked-in silk blouse. Add heeled ankle boots and simple gold jewellery.",
+    reasoning: "Elegant without trying too hard. The silhouette does the work.",
+  },
+  {
+    outfit: "Opt for a relaxed linen shirt over well-fitted chinos. Espadrilles or leather sandals complete the look.",
+    reasoning: "Easy and breathable. Perfect when you want to look good without overthinking.",
+  },
+];
+
 export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
@@ -75,6 +102,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     options: { id: string; label: string }[];
   } | null>(null);
   const recommendationCountRef = useRef(0);
+  const outfitIndexRef = useRef(0);
+  const [isLoadingAnotherOption, setIsLoadingAnotherOption] = useState(false);
 
   useEffect(() => {
     fetchWeather();
@@ -326,16 +355,23 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   };
 
   const handleAnotherOption = async () => {
+    setIsLoadingAnotherOption(true);
     await recordInteraction("another_option");
-    if (selectedOccasion) {
-      setRecommendation(null);
-      handleOccasionSelect(selectedOccasion);
-    } else {
-      setSelectedOccasion(null);
-      setRecommendation(null);
-      setExpressionText("");
-      setStep("occasion");
-    }
+    
+    // Cycle to next outfit
+    outfitIndexRef.current = (outfitIndexRef.current + 1) % FALLBACK_OUTFITS.length;
+    const nextOutfit = FALLBACK_OUTFITS[outfitIndexRef.current];
+    
+    // Brief delay for visual feedback
+    setTimeout(() => {
+      setRecommendation({
+        outfit: nextOutfit.outfit,
+        reasoning: nextOutfit.reasoning,
+        stylistName: "Ruby",
+      });
+      setIsLoadingAnotherOption(false);
+      incrementRecommendationCount();
+    }, 400);
   };
 
   const handleSecondOpinion = async () => {
@@ -551,12 +587,26 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </Pressable>
 
         <Pressable
-          style={[styles.actionButton, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border, borderWidth: 1 }]}
+          style={[
+            styles.actionButton, 
+            { 
+              backgroundColor: isLoadingAnotherOption ? theme.link : theme.backgroundSecondary, 
+              borderColor: isLoadingAnotherOption ? theme.link : theme.border, 
+              borderWidth: 1,
+              opacity: isLoadingAnotherOption ? 0.8 : 1,
+            }
+          ]}
           onPress={handleAnotherOption}
+          disabled={isLoadingAnotherOption}
         >
-          <Feather name="refresh-cw" size={18} color={theme.text} />
-          <ThemedText type="body" style={[styles.actionButtonText, { color: theme.text }]}>
-            Another option
+          <Feather 
+            name="refresh-cw" 
+            size={18} 
+            color={isLoadingAnotherOption ? "#FFFFFF" : theme.text} 
+            style={isLoadingAnotherOption ? { transform: [{ rotate: '180deg' }] } : undefined}
+          />
+          <ThemedText type="body" style={[styles.actionButtonText, { color: isLoadingAnotherOption ? "#FFFFFF" : theme.text }]}>
+            {isLoadingAnotherOption ? "Loading..." : "Another option"}
           </ThemedText>
         </Pressable>
 
