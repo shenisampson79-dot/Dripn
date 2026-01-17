@@ -312,16 +312,60 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     }
   };
 
+  interface FarewellResponse {
+    stylist?: string;
+    message?: string;
+    cta?: string;
+    signupPrompt?: string;
+    browsingEnded?: boolean;
+    nextSteps?: Array<{ id: string; label: string; primary: boolean }>;
+  }
+
+  const showFarewellDialog = (farewell: FarewellResponse | null) => {
+    const message = farewell?.message || "That's all I've got for browsing mode...";
+    const signupPrompt = farewell?.signupPrompt || "Want to save these ideas and get recommendations from your actual wardrobe?";
+    
+    const buttons: any[] = [];
+    
+    if (farewell?.nextSteps) {
+      farewell.nextSteps.forEach(step => {
+        if (step.id === "signup") {
+          buttons.push({
+            text: step.label,
+            onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "farewell" }),
+            style: step.primary ? "default" : "cancel",
+          });
+        } else if (step.id === "restart") {
+          buttons.push({
+            text: step.label,
+            onPress: () => navigation.navigate("OnboardingEntry"),
+            style: "cancel",
+          });
+        }
+      });
+    } else {
+      buttons.push(
+        { text: "Create account", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "farewell" }) },
+        { text: "Start over", onPress: () => navigation.navigate("OnboardingEntry"), style: "cancel" }
+      );
+    }
+    
+    Alert.alert(
+      message,
+      signupPrompt,
+      buttons
+    );
+  };
+
   const checkGate = async () => {
     try {
-      const data = await apiService.post<{ showGate?: boolean }>("/api/onboarding/check-gate", {
-        recommendationCount: recommendationCountRef.current,
-      });
-      if (data?.showGate) {
-        navigation.navigate("SoftSignupGate", { fromPath: "browsing" });
+      const farewell = await apiService.get<FarewellResponse>("/api/onboarding/farewell?stylist=ruby");
+      if (farewell?.browsingEnded) {
+        showFarewellDialog(farewell);
       }
     } catch (error) {
-      console.log("Failed to check gate");
+      // Fallback to local farewell message
+      showFarewellDialog(null);
     }
   };
 
@@ -694,8 +738,14 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     navigation.navigate("StyleMeProperly");
   };
 
-  const handleJustBrowsing = () => {
-    navigation.navigate("OnboardingEntry");
+  const handleJustBrowsing = async () => {
+    try {
+      const farewell = await apiService.get<FarewellResponse>("/api/onboarding/farewell?stylist=ruby");
+      showFarewellDialog(farewell);
+    } catch (error) {
+      // Fallback to local farewell message
+      showFarewellDialog(null);
+    }
   };
 
   const renderOccasionStep = () => {
