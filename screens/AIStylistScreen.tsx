@@ -16,6 +16,7 @@ import {
   FlatList,
   Alert,
   Linking,
+  ScrollView,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -1758,8 +1759,7 @@ export default function AIStylistScreen() {
           </View>
         </View>
       ) : null}
-      {showQuickPrompts && !isTyping && messages.length <= 1 ? renderQuickPrompts() : null}
-      <View style={{ height: INPUT_CONTAINER_HEIGHT + Spacing.xl }} />
+      <View style={{ height: INPUT_CONTAINER_HEIGHT + (showQuickPrompts && !isTyping && messages.length <= 1 ? 100 : 0) + Spacing.xl }} />
     </>
   );
 
@@ -1850,6 +1850,36 @@ export default function AIStylistScreen() {
           }
         ]}
       >
+        {showQuickPrompts && !isTyping && messages.length <= 1 ? (
+          <View style={styles.quickPromptsInline}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.quickPromptsScrollContent}
+            >
+              {QUICK_PROMPTS.slice(0, 4).map((prompt) => (
+                <Pressable
+                  key={prompt.id}
+                  onPress={() => handleQuickPrompt(prompt.prompt)}
+                  disabled={!canSendMessage()}
+                  style={({ pressed }) => [
+                    styles.quickPromptChip,
+                    { 
+                      backgroundColor: theme.backgroundSecondary,
+                      borderColor: theme.backgroundTertiary,
+                      opacity: pressed ? 0.7 : canSendMessage() ? 1 : 0.5,
+                    },
+                  ]}
+                >
+                  <Feather name={prompt.icon} size={14} color={canSendMessage() ? theme.link : theme.tabIconDefault} />
+                  <ThemedText style={[styles.quickPromptChipLabel, !canSendMessage() && { color: theme.tabIconDefault }]}>
+                    {prompt.label}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
         {limitReached ? (
           <Animated.View 
             entering={FadeIn.duration(300)}
@@ -2206,6 +2236,26 @@ const styles = StyleSheet.create({
   },
   quickPromptLabel: {
     ...Typography.small,
+  },
+  quickPromptsInline: {
+    marginBottom: Spacing.sm,
+  },
+  quickPromptsScrollContent: {
+    paddingHorizontal: Spacing.xs,
+    gap: Spacing.sm,
+  },
+  quickPromptChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  quickPromptChipLabel: {
+    ...Typography.small,
+    fontSize: 12,
   },
   limitReachedBanner: {
     flexDirection: 'row',
