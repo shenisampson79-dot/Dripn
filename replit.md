@@ -152,8 +152,16 @@ The following backend endpoints are used for the onboarding flow:
 - `GET /api/onboarding/post-recommendation-ui` - Get button config & save behaviour
 - `GET /api/onboarding/tier-capabilities` - Get what each tier unlocks (includes founder doctrine/principles)
 - `GET /api/onboarding/signal-types` - Get signal types schema with triggers
-- `POST /api/onboarding/record-signal` - Record behavioural signal (signalType, stylistId, context)
+- `POST /api/onboarding/record-signal` - Record behavioural signal (deviceId, signalType, stylistId, context)
 - `GET /api/onboarding/dfy-job-info` - Get DFY job tracking status (pending/processing/completed/failed)
+
+### Style Direction (Gender-Safe) System
+- `GET /api/onboarding/gender-safe-defaults` - Get first prompt config with 4 intent options
+- `POST /api/onboarding/set-style-direction` - Set user's style direction { deviceId, styleDirection: "feminine"|"masculine"|"androgynous"|"not_sure", source: "chips" }
+- `GET /api/onboarding/get-style-direction?deviceId=xxx` - Check if user has set direction, returns { useGenderSafe: true/false }
+
+Style chips shown after first recommendation: Masculine / Feminine / Androgynous / Not sure yet
+Soft clarification message: "If you want, I can tailor this more closely — tell me a bit about what you usually wear."
 
 ### Signal Types for Upgrade Prompts
 | Signal | Triggers | Unlocks |
