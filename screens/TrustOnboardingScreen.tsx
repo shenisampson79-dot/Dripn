@@ -256,6 +256,18 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
     navigation.navigate("Auth", { mode: "login" });
   };
 
+  const handleGetStyled = async () => {
+    setStep(1);
+    setIsGenerating(true);
+    
+    onboardingAnalyticsService.trackVariation(messageVariationId, 'trust', 'complete', 'what-to-wear-today' as any);
+    
+    // Simulate brief loading for recommendation
+    setTimeout(() => {
+      setIsGenerating(false);
+    }, 1200);
+  };
+
   const renderStep = () => {
     switch (step) {
       case 0:
