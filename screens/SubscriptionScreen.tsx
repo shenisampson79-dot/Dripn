@@ -79,7 +79,7 @@ const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
 
 const PLAN_METADATA: Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean }> = {
   free: { name: "Free", period: "forever", description: "Get started with basic features" },
-  personal_stylist: { name: "Personal Stylist", period: "/month", description: "Your AI fashion advisor", popular: true },
+  personal_stylist: { name: "Personal Stylist", period: "/month", description: "Your AI fashion advisor" },
 };
 
 const getLocalizedPlans = (prices: { free: string; personal_stylist: string }): Plan[] => [
