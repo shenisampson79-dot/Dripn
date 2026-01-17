@@ -14,6 +14,9 @@ export interface GenderSafeDefaults {
     question: string;
     options: FirstPromptOption[];
   };
+  safeGarments?: string[];
+  avoidGarments?: string[];
+  systemConstraint?: string;
 }
 
 export interface StyleDirectionResponse {
@@ -43,7 +46,25 @@ class StyleDirectionService {
           { id: "smarter", label: "Buying less / shopping smarter", icon: "check-square" },
         ],
       },
+      safeGarments: [
+        "trousers", "jeans", "t-shirt", "shirt", "sweater", "hoodie", 
+        "jacket", "coat", "sneakers", "boots", "loafers", "blazer"
+      ],
+      avoidGarments: [
+        "dress", "skirt", "heels", "high heels", "stilettos", "gown",
+        "miniskirt", "crop top", "tube top", "bodycon"
+      ],
+      systemConstraint: "Until the user specifies their style direction, only recommend gender-neutral garments like trousers, jeans, shirts, t-shirts, sweaters, jackets, coats, sneakers, boots, and blazers. Avoid suggesting dresses, skirts, heels, or other gendered items until the user clarifies their preference.",
     };
+  }
+
+  async getGenderSafeConstraint(): Promise<string | null> {
+    const response = await this.getStyleDirection();
+    if (response.useGenderSafe) {
+      const defaults = await this.getGenderSafeDefaults();
+      return defaults.systemConstraint || this.getDefaultConfig().systemConstraint || null;
+    }
+    return null;
   }
 
   async setStyleDirection(
