@@ -110,6 +110,74 @@ class StyleDirectionService {
   getSoftClarificationMessage(): string {
     return "If you want, I can tailor this more closely — tell me a bit about what you usually wear.";
   }
+
+  async getFirstMessages(): Promise<{
+    message: string;
+    options: { id: string; label: string }[];
+  }> {
+    try {
+      const data = await apiService.get<{
+        message: string;
+        options: { id: string; label: string }[];
+      }>("/api/onboarding/first-messages");
+      return data || this.getDefaultFirstMessages();
+    } catch (error) {
+      console.log("Failed to fetch first messages");
+      return this.getDefaultFirstMessages();
+    }
+  }
+
+  private getDefaultFirstMessages() {
+    return {
+      message: "Tell me what you're dressing for — I'll decide the outfit.",
+      options: [
+        { id: "work", label: "Work" },
+        { id: "date", label: "Date" },
+        { id: "casual", label: "Casual" },
+        { id: "event", label: "Event" },
+        { id: "browsing", label: "Just browsing" },
+      ],
+    };
+  }
+
+  async recordStyleExpression(expression: string): Promise<boolean> {
+    try {
+      const deviceId = await onboardingSessionService.getDeviceId();
+      await apiService.post("/api/onboarding/record-style-expression", {
+        deviceId,
+        expression,
+      });
+      return true;
+    } catch (error) {
+      console.log("Failed to record style expression");
+      return false;
+    }
+  }
+
+  async getStyleExpression(): Promise<{
+    hasExpression: boolean;
+    hints?: string[];
+  }> {
+    try {
+      const deviceId = await onboardingSessionService.getDeviceId();
+      const data = await apiService.get<{
+        hasExpression: boolean;
+        hints?: string[];
+      }>(`/api/onboarding/get-style-expression?deviceId=${deviceId}`);
+      return data || { hasExpression: false };
+    } catch (error) {
+      console.log("Failed to get style expression");
+      return { hasExpression: false };
+    }
+  }
+
+  getCalibrationMessage(): string {
+    return "If you want me to dial this in, tell me anything you want me to know...";
+  }
+
+  getExpressionPlaceholder(): string {
+    return "I live in jeans and trainers";
+  }
 }
 
 export const styleDirectionService = new StyleDirectionService();

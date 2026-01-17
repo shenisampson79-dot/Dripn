@@ -21,20 +21,15 @@ type DecideForMeScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "DecideForMe">;
 };
 
-const OCCASIONS = [
-  { id: "work", label: "Work", icon: "briefcase" as const },
-  { id: "casual", label: "Casual day", icon: "coffee" as const },
-  { id: "date", label: "Date night", icon: "heart" as const },
-  { id: "event", label: "Special event", icon: "star" as const },
-  { id: "workout", label: "Workout", icon: "activity" as const },
-  { id: "brunch", label: "Brunch", icon: "sun" as const },
-];
+const OCCASION_ICONS: Record<string, "briefcase" | "heart" | "coffee" | "calendar" | "eye"> = {
+  work: "briefcase",
+  date: "heart",
+  casual: "coffee",
+  event: "calendar",
+  browsing: "eye",
+};
 
-const COMFORT_LEVELS = [
-  { id: "cozy", label: "Cozy & relaxed" },
-  { id: "polished", label: "Polished & put-together" },
-  { id: "bold", label: "Bold & expressive" },
-];
+const MAX_EXPRESSION_LENGTH = 280;
 
 interface WeatherData {
   temperature: number;
@@ -64,18 +59,21 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   
-  const [step, setStep] = useState<"occasion" | "comfort" | "loading" | "result">("occasion");
+  const [step, setStep] = useState<"occasion" | "loading" | "result">("occasion");
   const [selectedOccasion, setSelectedOccasion] = useState<string | null>(null);
-  const [selectedComfort, setSelectedComfort] = useState<string | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(true);
-  const [tweakText, setTweakText] = useState("");
+  const [expressionText, setExpressionText] = useState("");
   const [showSavePrompt, setShowSavePrompt] = useState(false);
   const [cachedOutfitsCount, setCachedOutfitsCount] = useState(0);
   const [showStyleChips, setShowStyleChips] = useState(false);
   const [selectedStyleDirection, setSelectedStyleDirection] = useState<StyleDirection | null>(null);
   const [styleDirectionSet, setStyleDirectionSet] = useState(false);
+  const [firstMessages, setFirstMessages] = useState<{
+    message: string;
+    options: { id: string; label: string }[];
+  } | null>(null);
   const recommendationCountRef = useRef(0);
 
   useEffect(() => {
@@ -83,7 +81,13 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     loadCachedOutfitsCount();
     loadRecommendationCount();
     checkStyleDirectionStatus();
+    loadFirstMessages();
   }, []);
+
+  const loadFirstMessages = async () => {
+    const messages = await styleDirectionService.getFirstMessages();
+    setFirstMessages(messages);
+  };
 
   const checkStyleDirectionStatus = async () => {
     try {
@@ -182,32 +186,26 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     }
   };
 
-  const handleOccasionSelect = (occasionId: string) => {
+  const handleOccasionSelect = async (occasionId: string) => {
     setSelectedOccasion(occasionId);
-    setStep("comfort");
-  };
-
-  const handleComfortSelect = async (comfortId: string) => {
-    setSelectedComfort(comfortId);
     setStep("loading");
 
     try {
       const data = await apiService.post<{ id?: string; recommendation?: string; reasoning?: string; stylistName?: string }>("/api/onboarding/quick-recommendation", {
-        occasion: selectedOccasion,
-        comfort: comfortId,
+        occasion: occasionId,
         weather: weather,
       });
 
       if (data) {
         setRecommendation({
           id: data.id,
-          outfit: data.recommendation || "Wear a black midi dress with ankle boots and a structured coat. Keep jewellery minimal.",
+          outfit: data.recommendation || "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white sneakers for a modern finish.",
           reasoning: data.reasoning || "This look balances comfort with style, perfect for your occasion.",
           stylistName: data.stylistName || "Ruby",
         });
       } else {
         setRecommendation({
-          outfit: "Wear a black midi dress with ankle boots and a structured coat. Keep jewellery minimal.",
+          outfit: "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white sneakers for a modern finish.",
           reasoning: "This classic combination works perfectly for your occasion and the current weather.",
           stylistName: "Ruby",
         });
@@ -216,7 +214,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       incrementRecommendationCount();
     } catch (error: unknown) {
       setRecommendation({
-        outfit: "Wear a black midi dress with ankle boots and a structured coat. Keep jewellery minimal.",
+        outfit: "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white sneakers for a modern finish.",
         reasoning: "This classic combination works perfectly for your occasion and the current weather.",
         stylistName: "Ruby",
       });
@@ -243,7 +241,6 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     await stylistUpgradeService.recordSignal("SAVE", recommendation?.stylistName?.toLowerCase(), {
       message: "User tapped save outfit",
       occasion: selectedOccasion,
-      comfort: selectedComfort,
     });
     
     setShowSavePrompt(true);
@@ -277,7 +274,6 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         ...recommendation,
         savedAt: new Date().toISOString(),
         occasion: selectedOccasion,
-        comfort: selectedComfort,
       });
       
       await AsyncStorage.setItem(CACHED_OUTFITS_KEY, JSON.stringify(outfits));
@@ -296,9 +292,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const handleAnotherOption = async () => {
     await recordInteraction("another_option");
     setSelectedOccasion(null);
-    setSelectedComfort(null);
     setRecommendation(null);
-    setTweakText("");
+    setExpressionText("");
     setStep("occasion");
   };
 
@@ -307,10 +302,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     navigation.navigate("SoftSignupGate", { fromPath: "second_opinion" });
   };
 
-  const handleTweakSubmit = async () => {
-    if (tweakText.trim()) {
-      await recordInteraction("tweak", tweakText.trim());
-      setTweakText("");
+  const handleExpressionSubmit = async () => {
+    if (expressionText.trim()) {
+      await styleDirectionService.recordStyleExpression(expressionText.trim());
+      await recordInteraction("style_expression", expressionText.trim());
     }
   };
 
@@ -322,106 +317,76 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     navigation.navigate("OnboardingEntry");
   };
 
-  const renderOccasionStep = () => (
-    <Animated.View entering={FadeIn} style={styles.stepContainer}>
-      <View style={styles.stylistMessage}>
-        <View style={[styles.avatarCircle, { backgroundColor: theme.link }]}>
-          <Feather name="message-circle" size={20} color="#FFFFFF" />
-        </View>
-        <View style={[styles.messageBubble, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="body" style={[styles.messageText, { color: theme.text }]}>
-            Tell me what the occasion is and I'll decide the outfit.
-          </ThemedText>
-        </View>
-      </View>
+  const renderOccasionStep = () => {
+    const options = firstMessages?.options || [
+      { id: "work", label: "Work" },
+      { id: "date", label: "Date" },
+      { id: "casual", label: "Casual" },
+      { id: "event", label: "Event" },
+      { id: "browsing", label: "Just browsing" },
+    ];
+    const message = firstMessages?.message || "Tell me what you're dressing for — I'll decide the outfit.";
 
-      {weather && !isLoadingWeather ? (
-        <Animated.View entering={FadeInDown.delay(200)} style={[styles.weatherBadge, { backgroundColor: theme.backgroundSecondary }]}>
-          <Feather name="cloud" size={16} color={theme.tabIconDefault} />
-          <ThemedText type="small" style={{ color: theme.tabIconDefault, marginLeft: Spacing.xs }}>
-            {weather.temperature}° in {weather.location}
-          </ThemedText>
-        </Animated.View>
-      ) : null}
+    return (
+      <Animated.View entering={FadeIn} style={styles.stepContainer}>
+        <View style={styles.stylistMessage}>
+          <View style={[styles.avatarCircle, { backgroundColor: theme.link }]}>
+            <Feather name="message-circle" size={20} color="#FFFFFF" />
+          </View>
+          <View style={[styles.messageBubble, { backgroundColor: theme.backgroundSecondary }]}>
+            <ThemedText type="body" style={[styles.messageText, { color: theme.text }]}>
+              {message}
+            </ThemedText>
+          </View>
+        </View>
 
-      <View style={styles.optionsGrid}>
-        {OCCASIONS.map((occasion, index) => (
-          <Animated.View 
-            key={occasion.id} 
-            entering={FadeInUp.delay(100 + index * 50)}
-            style={styles.optionWrapper}
-          >
-            <Pressable
-              style={({ pressed }) => [
-                styles.optionCard,
-                { 
-                  backgroundColor: selectedOccasion === occasion.id ? theme.link : theme.backgroundSecondary,
-                  opacity: pressed ? 0.9 : 1,
-                }
-              ]}
-              onPress={() => handleOccasionSelect(occasion.id)}
+        {weather && !isLoadingWeather ? (
+          <Animated.View entering={FadeInDown.delay(200)} style={[styles.weatherBadge, { backgroundColor: theme.backgroundSecondary }]}>
+            <Feather name="cloud" size={16} color={theme.tabIconDefault} />
+            <ThemedText type="small" style={{ color: theme.tabIconDefault, marginLeft: Spacing.xs }}>
+              {weather.temperature}° in {weather.location}
+            </ThemedText>
+          </Animated.View>
+        ) : null}
+
+        <View style={styles.optionsGrid}>
+          {options.map((option, index) => (
+            <Animated.View 
+              key={option.id} 
+              entering={FadeInUp.delay(100 + index * 50)}
+              style={styles.optionWrapper}
             >
-              <Feather 
-                name={occasion.icon} 
-                size={24} 
-                color={selectedOccasion === occasion.id ? "#FFFFFF" : theme.text} 
-              />
-              <ThemedText 
-                type="body" 
-                style={[
-                  styles.optionLabel,
-                  { color: selectedOccasion === occasion.id ? "#FFFFFF" : theme.text }
+              <Pressable
+                style={({ pressed }) => [
+                  styles.optionCard,
+                  { 
+                    backgroundColor: selectedOccasion === option.id ? theme.link : theme.backgroundSecondary,
+                    opacity: pressed ? 0.9 : 1,
+                  }
                 ]}
+                onPress={() => handleOccasionSelect(option.id)}
               >
-                {occasion.label}
-              </ThemedText>
-            </Pressable>
-          </Animated.View>
-        ))}
-      </View>
-    </Animated.View>
-  );
-
-  const renderComfortStep = () => (
-    <Animated.View entering={FadeIn} style={styles.stepContainer}>
-      <View style={styles.stylistMessage}>
-        <View style={[styles.avatarCircle, { backgroundColor: theme.link }]}>
-          <Feather name="message-circle" size={20} color="#FFFFFF" />
+                <Feather 
+                  name={OCCASION_ICONS[option.id] || "circle"} 
+                  size={24} 
+                  color={selectedOccasion === option.id ? "#FFFFFF" : theme.text} 
+                />
+                <ThemedText 
+                  type="body" 
+                  style={[
+                    styles.optionLabel,
+                    { color: selectedOccasion === option.id ? "#FFFFFF" : theme.text }
+                  ]}
+                >
+                  {option.label}
+                </ThemedText>
+              </Pressable>
+            </Animated.View>
+          ))}
         </View>
-        <View style={[styles.messageBubble, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="body" style={[styles.messageText, { color: theme.text }]}>
-            How do you want to feel today?
-          </ThemedText>
-        </View>
-      </View>
-
-      <View style={styles.comfortOptions}>
-        {COMFORT_LEVELS.map((comfort, index) => (
-          <Animated.View 
-            key={comfort.id} 
-            entering={FadeInUp.delay(100 + index * 100)}
-          >
-            <Pressable
-              style={({ pressed }) => [
-                styles.comfortCard,
-                { 
-                  backgroundColor: theme.backgroundSecondary,
-                  borderColor: selectedComfort === comfort.id ? theme.link : theme.border,
-                  borderWidth: selectedComfort === comfort.id ? 2 : 1,
-                  opacity: pressed ? 0.9 : 1,
-                }
-              ]}
-              onPress={() => handleComfortSelect(comfort.id)}
-            >
-              <ThemedText type="body" style={{ color: theme.text }}>
-                {comfort.label}
-              </ThemedText>
-            </Pressable>
-          </Animated.View>
-        ))}
-      </View>
-    </Animated.View>
-  );
+      </Animated.View>
+    );
+  };
 
   const renderLoadingStep = () => (
     <Animated.View entering={FadeIn} style={styles.loadingContainer}>
@@ -505,19 +470,25 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </Pressable>
       </Animated.View>
 
-      <Animated.View entering={FadeInDown.delay(300)} style={styles.tweakSection}>
-        <View style={[styles.tweakInputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+      <Animated.View entering={FadeInDown.delay(300)} style={styles.calibrationSection}>
+        <ThemedText type="body" style={[styles.calibrationMessage, { color: theme.tabIconDefault }]}>
+          {styleDirectionService.getCalibrationMessage()}
+        </ThemedText>
+        <View style={[styles.expressionInputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
           <TextInput
-            style={[styles.tweakInput, { color: theme.text }]}
-            placeholder="Want to tweak this? (optional)"
+            style={[styles.expressionInput, { color: theme.text }]}
+            placeholder={styleDirectionService.getExpressionPlaceholder()}
             placeholderTextColor={theme.tabIconDefault}
-            value={tweakText}
-            onChangeText={setTweakText}
-            onSubmitEditing={handleTweakSubmit}
-            returnKeyType="send"
+            value={expressionText}
+            onChangeText={(text) => setExpressionText(text.slice(0, MAX_EXPRESSION_LENGTH))}
+            onSubmitEditing={handleExpressionSubmit}
+            onBlur={handleExpressionSubmit}
+            returnKeyType="done"
+            multiline={false}
+            maxLength={MAX_EXPRESSION_LENGTH}
           />
-          {tweakText.trim() ? (
-            <Pressable onPress={handleTweakSubmit} style={styles.tweakSendButton}>
+          {expressionText.trim() ? (
+            <Pressable onPress={handleExpressionSubmit} style={styles.expressionSendButton}>
               <Feather name="send" size={18} color={theme.link} />
             </Pressable>
           ) : null}
@@ -601,7 +572,6 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         showsVerticalScrollIndicator={false}
       >
         {step === "occasion" ? renderOccasionStep() : null}
-        {step === "comfort" ? renderComfortStep() : null}
         {step === "loading" ? renderLoadingStep() : null}
         {step === "result" ? renderResultStep() : null}
       </ScreenScrollView>
@@ -685,14 +655,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "500",
   },
-  comfortOptions: {
-    gap: Spacing.md,
-  },
-  comfortCard: {
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    alignItems: "center",
-  },
   loadingContainer: {
     flex: 1,
     alignItems: "center",
@@ -732,10 +694,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  tweakSection: {
+  calibrationSection: {
     marginBottom: Spacing.lg,
   },
-  tweakInputContainer: {
+  calibrationMessage: {
+    fontSize: 15,
+    fontStyle: "italic",
+    marginBottom: Spacing.md,
+    textAlign: "center",
+  },
+  expressionInputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderRadius: BorderRadius.lg,
@@ -743,12 +711,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
-  tweakInput: {
+  expressionInput: {
     flex: 1,
     fontSize: 15,
     paddingVertical: 8,
   },
-  tweakSendButton: {
+  expressionSendButton: {
     padding: Spacing.sm,
   },
   ctaSection: {
