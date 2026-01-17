@@ -248,7 +248,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
     
     setTimeout(() => {
       setIsGenerating(false);
-      setStep(2);
+      setStep(1);
     }, 1500);
   };
 
@@ -419,7 +419,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
       />
 
       <View style={[styles.overlay, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.lg }]}>
-        {step > 0 && step < 4 ? (
+        {step > 0 && step < 3 ? (
           <View style={styles.header}>
             <Pressable onPress={() => setStep(step - 1)} style={styles.backButton}>
               <Feather name="arrow-left" size={24} color={theme.text} />
