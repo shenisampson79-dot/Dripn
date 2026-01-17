@@ -61,13 +61,19 @@ Dripn is developed using Expo React Native with TypeScript, leveraging React Nav
 - **Social Style Sync**: Style preferences from social connections
 - **Bargains of the Day**: Daily deals from trusted retailers
 - **Events Near You**: Location-based event discovery with outfit suggestions
-- **Virtual Try-On**: Replicate's IDM-VTON for AI try-on experiences
 - **Voice Services**: ElevenLabs TTS for all 4 AI stylist personas
 
 ### Removed Features (Backend Preserved)
 The following features have been removed from navigation but their backend code is preserved for potential future re-enablement:
 - Games Hub (Style Showdown, Price Check, Style DNA, Mix Match)
 - Community/Posts system
+
+### Temporarily Hidden Features (Backend Preserved - To Re-enable Later)
+The following features are hidden from the frontend UI but backend code remains intact:
+- **Cost-per-Wear**: Wardrobe value tracking
+- **Style Shuffle**: Outfit combination discovery
+- **Visual Search**: Find items from photos
+- **Virtual Try-On**: Replicate's IDM-VTON for AI try-on experiences
 - Friends Activity & Friend Requests
 - Direct Messages
 - Style Challenges
