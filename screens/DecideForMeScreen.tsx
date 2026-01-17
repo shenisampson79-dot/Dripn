@@ -481,6 +481,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     }
   };
 
+  // Store the latest save outfit hint for use in handleCreateAccount
+  const saveOutfitHintRef = useRef<OnCreateAccountHint | undefined>(undefined);
+
   const handleSaveOutfit = async () => {
     await recordInteraction("save_outfit");
     
@@ -489,12 +492,23 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       occasion: selectedOccasion,
     });
     
+    // Try to get onCreateAccount hint from backend
+    try {
+      const response = await apiService.post<{ onCreateAccount?: OnCreateAccountHint }>("/api/outfits/save", {
+        outfit: recommendation?.outfit,
+        occasion: selectedOccasion,
+      });
+      saveOutfitHintRef.current = response?.onCreateAccount;
+    } catch (error) {
+      saveOutfitHintRef.current = undefined;
+    }
+    
     setShowSavePrompt(true);
   };
 
   const handleCreateAccount = () => {
     setShowSavePrompt(false);
-    navigation.navigate("SoftSignupGate", { fromPath: "save_outfit" });
+    navigateToSignup(saveOutfitHintRef.current, "save_outfit");
   };
 
   const handleNotNow = async () => {
@@ -558,6 +572,12 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     }, 400);
   };
 
+  // Common response type for account creation hints
+  interface OnCreateAccountHint {
+    navigateTo?: string;
+    skipInterstitial?: boolean;
+  }
+
   // Vote request response type from backend
   interface VoteRequestResponse {
     requestId?: string;
@@ -568,13 +588,26 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     aiAdapted?: boolean;
     notificationsEnabled?: boolean;
     tier?: { urgentAvailable?: boolean };
+    onCreateAccount?: OnCreateAccountHint;
   }
+
+  // Helper to navigate based on onCreateAccount hint
+  const navigateToSignup = (hint?: OnCreateAccountHint, fromPath?: string) => {
+    if (hint?.navigateTo === "Signup" && hint?.skipInterstitial) {
+      // Navigate directly to Signup, skipping interstitial
+      navigation.navigate("Signup" as any);
+    } else {
+      // Show the soft signup gate with interstitial
+      navigation.navigate("SoftSignupGate", { fromPath: fromPath || "unknown" });
+    }
+  };
 
   const showSecondOpinionOptions = (response: VoteRequestResponse | null) => {
     const stylistMessage = response?.stylistMessage || 
       "Here's my take: this outfit works because it's balanced and easy to wear.\n\nIf you want, I can also get community input to sanity-check it.";
     
     const showUrgentOption = response?.tier?.urgentAvailable !== false;
+    const accountHint = response?.onCreateAccount;
     
     const buttons: any[] = [
       { 
@@ -593,14 +626,19 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       buttons.push({ 
         text: "I need feedback quickly", 
         onPress: () => {
-          Alert.alert(
-            "Fast feedback",
-            "Fast feedback needs an active audience. If you want that, I'll set this up properly.",
-            [
-              { text: "Not now", style: "cancel" },
-              { text: "Create account", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "second_opinion_urgent" }) },
-            ]
-          );
+          // Check if we should skip the interstitial
+          if (accountHint?.skipInterstitial) {
+            navigateToSignup(accountHint, "second_opinion_urgent");
+          } else {
+            Alert.alert(
+              "Fast feedback",
+              "Fast feedback needs an active audience. If you want that, I'll set this up properly.",
+              [
+                { text: "Not now", style: "cancel" },
+                { text: "Create account", onPress: () => navigateToSignup(accountHint, "second_opinion_urgent") },
+              ]
+            );
+          }
         },
         style: "default"
       });
