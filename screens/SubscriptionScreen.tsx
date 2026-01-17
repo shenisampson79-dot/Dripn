@@ -40,7 +40,7 @@ type DisplayTier = 'free' | 'personal_stylist';
 
 const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
   free: [
-    { text: "3 posts per month", included: true },
+    { text: "1 post per day", included: true },
     { text: "Community voting", included: true },
     { text: "Basic styling tips", included: true },
     { text: "Unlimited stylist advice", included: false },
@@ -78,9 +78,6 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     getRemainingAIAdvice, 
     getRemainingVoice,
     getRemainingPolls,
-    isTrialActive,
-    trialDaysRemaining,
-    startTrial,
     referralCode,
   } = useSubscription();
   
@@ -157,16 +154,6 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  const handleStartTrial = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    await startTrial();
-    Alert.alert(
-      "Trial Started",
-      "You now have 7 days of Premium access! Explore all the features.",
-      [{ text: "Let's Go" }]
-    );
   };
 
   const formatRemaining = (value: number): string => {
@@ -372,32 +359,6 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         </View>
       </View>
 
-      {!isTrialActive && user?.subscriptionTier === 'free' ? (
-        <Pressable 
-          onPress={handleStartTrial}
-          style={[styles.trialBanner, { backgroundColor: "rgba(184, 134, 11, 0.1)" }]}
-        >
-          <Feather name="gift" size={24} color={theme.link} />
-          <View style={styles.trialContent}>
-            <ThemedText type="h3">7-Day Free Trial</ThemedText>
-            <ThemedText type="small" style={styles.trialSubtitle}>
-              Tap to try Premium features free for 7 days
-            </ThemedText>
-          </View>
-          <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
-        </Pressable>
-      ) : isTrialActive ? (
-        <View style={[styles.trialBanner, { backgroundColor: "rgba(52, 199, 89, 0.1)" }]}>
-          <Feather name="clock" size={24} color={theme.success || "#34C759"} />
-          <View style={styles.trialContent}>
-            <ThemedText type="h3">Trial Active</ThemedText>
-            <ThemedText type="small" style={styles.trialSubtitle}>
-              {trialDaysRemaining} days remaining
-            </ThemedText>
-          </View>
-        </View>
-      ) : null}
-
       <View style={[styles.referralSection, { backgroundColor: theme.backgroundDefault }]}>
         <View style={styles.referralHeader}>
           <Feather name="users" size={20} color={theme.link} />
@@ -439,14 +400,17 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
 
         <View style={[styles.dfyCard, { backgroundColor: theme.backgroundDefault }]}>
           <View style={styles.dfyCardHeader}>
-            <View style={[styles.dfyBadge, { backgroundColor: theme.link + '20' }]}>
-              <Feather name="package" size={16} color={theme.link} />
+            <View style={[styles.dfyBadge, { backgroundColor: theme.backgroundSecondary }]}>
+              <Feather name="package" size={16} color={theme.text} />
             </View>
             <View style={styles.dfyCardTitleContainer}>
               <ThemedText type="h3">Outfit-Based Setup</ThemedText>
               <ThemedText type="caption" style={{ opacity: 0.7 }}>One-time purchase</ThemedText>
             </View>
-            <ThemedText type="h2" style={{ color: theme.link }}>{dfyPrices.outfit_setup}</ThemedText>
+          </View>
+          <View style={styles.dfyPriceContainer}>
+            <ThemedText type="h1" style={styles.dfyPrice}>{dfyPrices.outfit_setup}</ThemedText>
+            <ThemedText type="body" style={styles.dfyPricePeriod}>one-time</ThemedText>
           </View>
           <ThemedText type="body" style={styles.dfyDescription}>
             We'll photograph and catalog 5-7 of your favorite outfits, ready to mix and match.
@@ -466,10 +430,10 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
             </View>
           </View>
           <Pressable 
-            style={[styles.dfyButton, { backgroundColor: theme.link }]}
+            style={[styles.dfyButton, { backgroundColor: theme.backgroundSecondary, borderWidth: 1, borderColor: theme.tabIconDefault }]}
             onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
           >
-            <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Get Started</ThemedText>
+            <ThemedText type="body" style={{ fontWeight: '600' }}>Get Started</ThemedText>
           </Pressable>
         </View>
 
@@ -478,14 +442,17 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
             <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>Best Value</ThemedText>
           </View>
           <View style={styles.dfyCardHeader}>
-            <View style={[styles.dfyBadge, { backgroundColor: theme.link + '20' }]}>
-              <Feather name="grid" size={16} color={theme.link} />
+            <View style={[styles.dfyBadge, { backgroundColor: theme.backgroundSecondary }]}>
+              <Feather name="grid" size={16} color={theme.text} />
             </View>
             <View style={styles.dfyCardTitleContainer}>
               <ThemedText type="h3">Core Wardrobe Setup</ThemedText>
               <ThemedText type="caption" style={{ opacity: 0.7 }}>One-time purchase</ThemedText>
             </View>
-            <ThemedText type="h2" style={{ color: theme.link }}>{dfyPrices.wardrobe_setup}</ThemedText>
+          </View>
+          <View style={styles.dfyPriceContainer}>
+            <ThemedText type="h1" style={styles.dfyPrice}>{dfyPrices.wardrobe_setup}</ThemedText>
+            <ThemedText type="body" style={styles.dfyPricePeriod}>one-time</ThemedText>
           </View>
           <ThemedText type="body" style={styles.dfyDescription}>
             Complete digital wardrobe setup with up to 30 items, fully organized and ready for AI styling.
@@ -509,10 +476,10 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
             </View>
           </View>
           <Pressable 
-            style={[styles.dfyButton, { backgroundColor: theme.link }]}
+            style={[styles.dfyButton, { backgroundColor: theme.backgroundSecondary, borderWidth: 1, borderColor: theme.tabIconDefault }]}
             onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
           >
-            <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Get Started</ThemedText>
+            <ThemedText type="body" style={{ fontWeight: '600' }}>Get Started</ThemedText>
           </Pressable>
         </View>
       </View>
@@ -756,5 +723,16 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.xs,
+  },
+  dfyPriceContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: Spacing.sm,
+  },
+  dfyPrice: {
+    marginRight: 4,
+  },
+  dfyPricePeriod: {
+    opacity: 0.6,
   },
 });
