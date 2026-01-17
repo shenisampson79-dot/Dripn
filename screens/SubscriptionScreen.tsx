@@ -36,58 +36,36 @@ interface Plan {
   popular?: boolean;
 }
 
-const PLAN_FEATURES: Record<SubscriptionTier, PlanFeature[]> = {
+type DisplayTier = 'free' | 'personal_stylist';
+
+const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
   free: [
     { text: "3 posts per month", included: true },
     { text: "Community voting", included: true },
     { text: "Basic styling tips", included: true },
-    { text: "Standard feed", included: true },
     { text: "Unlimited stylist advice", included: false },
-    { text: "Priority support", included: false },
-    { text: "No ads", included: false },
+    { text: "Voice features", included: false },
+    { text: "Ad-free experience", included: false },
   ],
-  basic: [
-    { text: "20 posts per month", included: true },
-    { text: "Community voting", included: true },
-    { text: "Full styling advice", included: true },
-    { text: "Regional feed filters", included: true },
-    { text: "Voice comments", included: true },
-    { text: "Ad-free experience", included: true },
-    { text: "Priority support", included: false },
-  ],
-  premium: [
+  personal_stylist: [
     { text: "Unlimited outfit posts", included: true },
     { text: "Unlimited AI styling advice", included: true },
-    { text: "Unlimited voice comments", included: true },
-    { text: "3-minute video uploads", included: true },
-    { text: "Unlimited wardrobe items", included: true },
-    { text: "All feed filters + VIP events preview", included: true },
-    { text: "Priority support + Ad-free", included: true },
-  ],
-  vip: [
-    { text: "4 x 60 min video call styling session with a real-life pro stylist", included: true, bold: true },
-    { text: "Video calls with VIP members", included: true },
-    { text: "Unlimited posts", included: true },
-    { text: "Exclusive VIP badge", included: true },
-    { text: "Personal stylist (Ruby/Max)", included: true },
-    { text: "Early access to features", included: true },
-    { text: "Exclusive community events", included: true },
-    { text: "Completely ad-free", included: true },
+    { text: "Personal AI Stylist (Ruby, Max, or Ace)", included: true, bold: true },
+    { text: "Voice conversations with your stylist", included: true },
+    { text: "Wardrobe analysis & recommendations", included: true },
+    { text: "Priority support", included: true },
+    { text: "Ad-free experience", included: true },
   ],
 };
 
-const PLAN_METADATA: Record<SubscriptionTier, { name: string; period: string; description: string; popular?: boolean }> = {
+const PLAN_METADATA: Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean }> = {
   free: { name: "Free", period: "forever", description: "Get started with basic features" },
-  basic: { name: "Basic", period: "/month", description: "Perfect for style enthusiasts" },
-  premium: { name: "Premium", period: "/month", description: "For the fashion-forward", popular: true },
-  vip: { name: "VIP", period: "/month", description: "The ultimate style experience" },
+  personal_stylist: { name: "Personal Stylist", period: "/month", description: "Your AI fashion advisor", popular: true },
 };
 
-const getLocalizedPlans = (prices: { free: string; basic: string; premium: string; vip: string }): Plan[] => [
-  { id: "free", ...PLAN_METADATA.free, price: prices.free, features: PLAN_FEATURES.free },
-  { id: "basic", ...PLAN_METADATA.basic, price: prices.basic, features: PLAN_FEATURES.basic },
-  { id: "premium", ...PLAN_METADATA.premium, price: prices.premium, features: PLAN_FEATURES.premium },
-  { id: "vip", ...PLAN_METADATA.vip, price: prices.vip, features: PLAN_FEATURES.vip },
+const getLocalizedPlans = (prices: { free: string; personal_stylist: string }): Plan[] => [
+  { id: "free" as SubscriptionTier, ...PLAN_METADATA.free, price: prices.free, features: PLAN_FEATURES.free },
+  { id: "premium" as SubscriptionTier, ...PLAN_METADATA.personal_stylist, price: prices.personal_stylist, features: PLAN_FEATURES.personal_stylist },
 ];
 
 export default function SubscriptionScreen({ navigation }: SubscriptionScreenProps) {
@@ -110,11 +88,9 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     user?.subscriptionTier || "free"
   );
   const [isProcessing, setIsProcessing] = useState(false);
-  const [localizedPrices, setLocalizedPrices] = useState<{ free: string; basic: string; premium: string; vip: string }>({
-    free: "£0",
-    basic: "£4.99",
-    premium: "£9.99",
-    vip: "£9,999",
+  const [localizedPrices, setLocalizedPrices] = useState<{ free: string; personal_stylist: string }>({
+    free: "Free",
+    personal_stylist: "$9.99",
   });
 
   useEffect(() => {
@@ -200,7 +176,11 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
 
   const renderPlanCard = (plan: Plan) => {
     const isSelected = selectedPlan === plan.id;
-    const isCurrent = user?.subscriptionTier === plan.id;
+    const isPaidPlan = plan.id === 'premium';
+    const userOnPaidTier = user?.subscriptionTier && ['basic', 'premium', 'vip'].includes(user.subscriptionTier);
+    const isCurrent = plan.id === 'free' 
+      ? user?.subscriptionTier === 'free' 
+      : isPaidPlan && userOnPaidTier;
     const colors = SubscriptionColors[plan.id];
 
     return (
