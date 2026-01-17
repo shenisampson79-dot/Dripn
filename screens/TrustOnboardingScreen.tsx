@@ -1,28 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
-import { StyleSheet, View, Pressable, Dimensions, ActivityIndicator, Platform } from "react-native";
+import { StyleSheet, View, Dimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
-import Animated, { 
-  FadeIn, 
-  FadeOut, 
-  SlideInRight, 
-  SlideOutLeft,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  interpolate,
-} from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { Video, ResizeMode } from "expo-av";
 
-import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { onboardingAnalyticsService } from "@/services/OnboardingAnalyticsService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -36,8 +24,6 @@ const BACKGROUND_VIDEOS = [
 type TrustOnboardingScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "TrustOnboarding">;
 };
-
-type HelpContext = "what-to-wear-today" | "event-outfit" | "build-confidence" | "shop-smarter";
 
 interface OnboardingContent {
   headline: string;
@@ -184,39 +170,9 @@ const ALL_TRUST_MESSAGES: OnboardingContent[] = [
   ...CONTROL_REASSURANCE_OPTIONS,
 ];
 
-const HELP_OPTIONS: { id: HelpContext; label: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { id: "what-to-wear-today", label: "What to wear today", icon: "sun" },
-  { id: "event-outfit", label: "What to wear to an event", icon: "calendar" },
-  { id: "build-confidence", label: "Building confidence in my style", icon: "heart" },
-  { id: "shop-smarter", label: "Buying less / shopping smarter", icon: "shopping-bag" },
-];
-
-const SAMPLE_RECOMMENDATIONS: Record<HelpContext, { recommendation: string; explanation: string; backup?: string }> = {
-  "what-to-wear-today": {
-    recommendation: "A classic white button-down with dark jeans",
-    explanation: "This works because it's effortlessly polished, appropriate for almost any daytime setting, and makes you look put-together without trying too hard.",
-    backup: "Swap the jeans for chinos if you need something slightly dressier.",
-  },
-  "event-outfit": {
-    recommendation: "A tailored blazer over a simple tee with fitted trousers",
-    explanation: "This combination strikes the perfect balance: sophisticated enough for events, comfortable enough to enjoy yourself, and memorable without being overdone.",
-  },
-  "build-confidence": {
-    recommendation: "Start with well-fitted basics in neutral colors",
-    explanation: "Confidence comes from knowing what works on YOU. Fitted basics are foolproof because they let your personality shine through without overthinking.",
-  },
-  "shop-smarter": {
-    recommendation: "Focus on versatile pieces that work 3+ ways",
-    explanation: "Before buying anything, ask: 'Can I wear this to work, on a weekend, AND to dinner?' If yes, it's a smart investment.",
-  },
-};
-
 export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
-  const [step, setStep] = useState(0);
-  const [selectedContext, setSelectedContext] = useState<HelpContext | null>("what-to-wear-today");
-  const [isGenerating, setIsGenerating] = useState(false);
   const videoRef = useRef<Video>(null);
   
   const [trustMessage] = useState(() => getRandomContent(ALL_TRUST_MESSAGES));
@@ -224,156 +180,13 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
   
   const [messageVariationId] = useState(() => `trust_${ALL_TRUST_MESSAGES.indexOf(trustMessage) + 1}`);
   
-  const progressAnim = useSharedValue(0);
-  
   useEffect(() => {
-    progressAnim.value = withSpring(step / 2, { damping: 20, stiffness: 100 });
-    
-    if (step === 0) {
-      onboardingAnalyticsService.trackVariation(messageVariationId, 'trust', 'view');
-    }
-  }, [step]);
+    onboardingAnalyticsService.trackVariation(messageVariationId, 'trust', 'view');
+  }, []);
 
-  const progressStyle = useAnimatedStyle(() => ({
-    width: `${interpolate(progressAnim.value, [0, 1], [0, 100])}%`,
-  }));
-
-  const handleContextSelect = async (context: HelpContext) => {
-    setSelectedContext(context);
-    await AsyncStorage.setItem("dripn_initial_context", context);
-    
-    onboardingAnalyticsService.trackVariation(messageVariationId, 'trust', 'complete', context as any);
-    onboardingAnalyticsService.storeInitialContext(context as any, messageVariationId);
-    
-    navigation.navigate("OnboardingEntry");
-  };
-
-  const handleGetStarted = () => {
-    navigation.navigate("OnboardingEntry");
-  };
-
-  const handleLogin = () => {
-    navigation.navigate("Auth", { mode: "login" });
-  };
-
-  const handleGetStyled = async () => {
-    setStep(1);
-    setIsGenerating(true);
-    
+  const handleGetStyled = () => {
     onboardingAnalyticsService.trackVariation(messageVariationId, 'trust', 'complete', 'what-to-wear-today' as any);
-    
-    // Simulate brief loading for recommendation
-    setTimeout(() => {
-      setIsGenerating(false);
-    }, 1200);
-  };
-
-  const renderStep = () => {
-    switch (step) {
-      case 0:
-        return (
-          <Animated.View 
-            entering={FadeIn.duration(400)} 
-            exiting={SlideOutLeft.duration(300)}
-            style={styles.stepContainer}
-          >
-            <View style={styles.stepContent}>
-              <View style={styles.contentCard}>
-                <ThemedText type="h1" style={styles.headline}>
-                  {trustMessage.headline}
-                </ThemedText>
-                {trustMessage.subtext ? (
-                  <ThemedText type="body" style={styles.subtext}>
-                    {trustMessage.subtext}
-                  </ThemedText>
-                ) : null}
-                {trustMessage.bullets ? (
-                  <View style={styles.bulletContainer}>
-                    {trustMessage.bullets.map((bullet, index) => (
-                      <BulletPoint key={index} text={bullet.text} theme={theme} icon={bullet.icon} />
-                    ))}
-                  </View>
-                ) : null}
-              </View>
-            </View>
-            <View style={styles.ctaContainer}>
-              <Button onPress={handleGetStyled} style={styles.primaryButton}>
-                Get Styled
-              </Button>
-            </View>
-          </Animated.View>
-        );
-
-      case 1:
-        if (isGenerating) {
-          return (
-            <Animated.View 
-              entering={FadeIn.duration(300)}
-              style={styles.stepContainer}
-            >
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={theme.link} />
-                <ThemedText type="body" style={styles.loadingText}>
-                  Getting your first styling tip...
-                </ThemedText>
-              </View>
-            </Animated.View>
-          );
-        }
-
-        const recommendation = selectedContext ? SAMPLE_RECOMMENDATIONS[selectedContext] : null;
-
-        return (
-          <Animated.View 
-            entering={FadeIn.duration(400)} 
-            exiting={FadeOut.duration(300)}
-            style={styles.stepContainer}
-          >
-            <View style={styles.stepContent}>
-              <View style={styles.recommendationHeader}>
-                <View style={[styles.recommendedBadge, { backgroundColor: theme.link }]}>
-                  <ThemedText type="small" style={styles.recommendedBadgeText}>
-                    Your Stylist's Pick
-                  </ThemedText>
-                </View>
-              </View>
-
-              <View style={styles.recommendationCard}>
-                <ThemedText type="h2" style={styles.recommendationTitle}>
-                  {recommendation?.recommendation}
-                </ThemedText>
-                <ThemedText type="body" style={styles.recommendationExplanation}>
-                  {recommendation?.explanation}
-                </ThemedText>
-                {recommendation?.backup ? (
-                  <View style={styles.backupContainer}>
-                    <ThemedText type="small" style={styles.backupLabel}>Backup option:</ThemedText>
-                    <ThemedText type="small" style={styles.backupText}>{recommendation.backup}</ThemedText>
-                  </View>
-                ) : null}
-              </View>
-
-              <ThemedText type="small" style={styles.noWardrobeNote}>
-                This works even with zero wardrobe data.
-              </ThemedText>
-            </View>
-
-            <View style={styles.ctaContainer}>
-              <Button onPress={handleGetStarted} style={styles.primaryButton}>
-                I'll wear this
-              </Button>
-              <Pressable onPress={handleLogin} style={styles.loginLink}>
-                <ThemedText type="small" style={styles.loginText}>
-                  Already have an account? <ThemedText type="link">Sign in</ThemedText>
-                </ThemedText>
-              </Pressable>
-            </View>
-          </Animated.View>
-        );
-
-      default:
-        return null;
-    }
+    navigation.navigate("OnboardingEntry");
   };
 
   return (
@@ -389,23 +202,36 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
       />
 
       <View style={[styles.overlay, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.lg }]}>
-        {step === 1 ? (
-          <View style={styles.header}>
-            <Pressable onPress={() => setStep(step - 1)} style={styles.backButton}>
-              <Feather name="arrow-left" size={24} color={theme.text} />
-            </Pressable>
-            <View style={styles.progressBarContainer}>
-              <View style={[styles.progressBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }]}>
-                <Animated.View style={[styles.progressBarFill, { backgroundColor: theme.link }, progressStyle]} />
-              </View>
+        <View style={styles.headerSpacer} />
+        <Animated.View 
+          entering={FadeIn.duration(400)} 
+          style={styles.stepContainer}
+        >
+          <View style={styles.stepContent}>
+            <View style={styles.contentCard}>
+              <ThemedText type="h1" style={styles.headline}>
+                {trustMessage.headline}
+              </ThemedText>
+              {trustMessage.subtext ? (
+                <ThemedText type="body" style={styles.subtext}>
+                  {trustMessage.subtext}
+                </ThemedText>
+              ) : null}
+              {trustMessage.bullets ? (
+                <View style={styles.bulletContainer}>
+                  {trustMessage.bullets.map((bullet, index) => (
+                    <BulletPoint key={index} text={bullet.text} theme={theme} icon={bullet.icon} />
+                  ))}
+                </View>
+              ) : null}
             </View>
-            <View style={styles.placeholder} />
           </View>
-        ) : (
-          <View style={styles.headerSpacer} />
-        )}
-
-        {renderStep()}
+          <View style={styles.ctaContainer}>
+            <Button onPress={handleGetStyled} style={styles.primaryButton}>
+              Get Styled
+            </Button>
+          </View>
+        </Animated.View>
       </View>
     </View>
   );
