@@ -514,18 +514,96 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     }, 400);
   };
 
+  // Vote request response type from backend
+  interface VoteRequestResponse {
+    requestId?: string;
+    state?: "pending" | "partial" | "complete" | "expired";
+    stylistMessage?: string;
+    communitySummary?: string;
+    consensusType?: "positive" | "negative_adapt" | "negative_hold" | "split" | "uncertain" | "mixed";
+    aiAdapted?: boolean;
+    notificationsEnabled?: boolean;
+    tier?: { urgentAvailable?: boolean };
+  }
+
+  const showSecondOpinionOptions = (response: VoteRequestResponse | null) => {
+    const stylistMessage = response?.stylistMessage || 
+      "Here's my take: this outfit works because it's balanced and easy to wear.\n\nIf you want, I can also get community input to sanity-check it.";
+    
+    const showUrgentOption = response?.tier?.urgentAvailable !== false;
+    
+    const buttons: any[] = [
+      { 
+        text: "Community input (30-60 mins)", 
+        onPress: () => {
+          Alert.alert(
+            "Posted for feedback",
+            "I'll gather community input. Results aren't instant, but they're unbiased. Check back later.",
+            [{ text: "Got it" }]
+          );
+        }
+      },
+    ];
+    
+    if (showUrgentOption) {
+      buttons.push({ 
+        text: "I need feedback quickly", 
+        onPress: () => {
+          Alert.alert(
+            "Fast feedback",
+            "Fast feedback needs an active audience. If you want that, I'll set this up properly.",
+            [
+              { text: "Not now", style: "cancel" },
+              { text: "Create account", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "second_opinion_urgent" }) },
+            ]
+          );
+        },
+        style: "default"
+      });
+    }
+    
+    buttons.push({ text: "Not now", style: "cancel" });
+    
+    Alert.alert("Get a second opinion?", stylistMessage, buttons);
+  };
+
+  const showVoteResults = (response: VoteRequestResponse) => {
+    const { state, stylistMessage, communitySummary, aiAdapted } = response;
+    
+    if (state === "pending") {
+      Alert.alert(
+        "Waiting for feedback",
+        stylistMessage || "Still gathering community input. Check back soon.",
+        [{ text: "OK" }]
+      );
+    } else if (state === "partial") {
+      Alert.alert(
+        "Early reactions",
+        stylistMessage || "Some feedback is coming in. Here's what we're seeing so far.",
+        [{ text: "OK" }]
+      );
+    } else if (state === "complete") {
+      const title = aiAdapted ? "Community feedback (adjusted)" : "Community feedback";
+      Alert.alert(
+        title,
+        communitySummary || stylistMessage || "The community has weighed in.",
+        [{ text: "Got it" }]
+      );
+    } else if (state === "expired") {
+      Alert.alert(
+        "Feedback expired",
+        stylistMessage || "This request has expired. Start a new one if needed.",
+        [{ text: "OK" }]
+      );
+    }
+  };
+
   const handleSecondOpinion = async () => {
     setIsLoadingSecondOpinion(true);
     await recordInteraction("second_opinion");
     
     try {
-      const response = await apiService.post<{ 
-        requiresAuth?: boolean; 
-        stylistVerdict?: string;
-        communitySummary?: string;
-        topConcern?: string;
-        aiAdapted?: boolean;
-      }>("/api/community/vote-request", {
+      const response = await apiService.post<VoteRequestResponse>("/api/community/vote-request", {
         outfit: recommendation?.outfit,
         occasion: selectedOccasion,
         weather: weather,
@@ -533,73 +611,16 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       
       setIsLoadingSecondOpinion(false);
       
-      const stylistMessage = response?.stylistVerdict || 
-        "Here's my take: this outfit works because it's balanced and easy to wear.\n\nIf you want, I can also get community input to sanity-check it.";
-      
-      Alert.alert(
-        "Get a second opinion?",
-        stylistMessage,
-        [
-          { 
-            text: "Community input (30-60 mins)", 
-            onPress: () => {
-              Alert.alert(
-                "Posted for feedback",
-                "I'll gather community input. Results aren't instant, but they're unbiased. Check back later.",
-                [{ text: "Got it" }]
-              );
-            }
-          },
-          { 
-            text: "I need feedback quickly", 
-            onPress: () => {
-              Alert.alert(
-                "Fast feedback",
-                "Fast feedback needs an active audience. If you want that, I'll set this up properly.",
-                [
-                  { text: "Not now", style: "cancel" },
-                  { text: "Create account", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "second_opinion_urgent" }) },
-                ]
-              );
-            },
-            style: "default"
-          },
-          { text: "Not now", style: "cancel" },
-        ]
-      );
+      // If we have results already (returning user), show those
+      if (response?.state && response.state !== "pending") {
+        showVoteResults(response);
+      } else {
+        // New request - show options
+        showSecondOpinionOptions(response);
+      }
     } catch (error) {
       setIsLoadingSecondOpinion(false);
-      Alert.alert(
-        "Get a second opinion?",
-        "Here's my take: this outfit works because it's balanced and easy to wear.\n\nIf you want, I can also get community input to sanity-check it.",
-        [
-          { 
-            text: "Community input (30-60 mins)", 
-            onPress: () => {
-              Alert.alert(
-                "Posted for feedback",
-                "I'll gather community input. Results aren't instant, but they're unbiased. Check back later.",
-                [{ text: "Got it" }]
-              );
-            }
-          },
-          { 
-            text: "I need feedback quickly", 
-            onPress: () => {
-              Alert.alert(
-                "Fast feedback",
-                "Fast feedback needs an active audience. If you want that, I'll set this up properly.",
-                [
-                  { text: "Not now", style: "cancel" },
-                  { text: "Create account", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "second_opinion_urgent" }) },
-                ]
-              );
-            },
-            style: "default"
-          },
-          { text: "Not now", style: "cancel" },
-        ]
-      );
+      showSecondOpinionOptions(null);
     }
   };
 
