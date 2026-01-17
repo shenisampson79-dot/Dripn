@@ -170,17 +170,51 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === "granted") {
         const location = await Location.getCurrentPositionAsync({});
-        const data = await apiService.get<{ temperature: number; condition: string; location?: string }>(`/api/weather?lat=${location.coords.latitude}&lon=${location.coords.longitude}`);
-        if (data) {
+        const lat = location.coords.latitude;
+        const lon = location.coords.longitude;
+        
+        // Use Open-Meteo API (free, no API key required)
+        const weatherResponse = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+        );
+        const weatherData = await weatherResponse.json();
+        
+        if (weatherData.current_weather) {
+          const temp = Math.round(weatherData.current_weather.temperature);
+          const weatherCode = weatherData.current_weather.weathercode;
+          
+          // Map weather code to condition
+          let condition = "mild";
+          if (weatherCode <= 3) condition = "clear";
+          else if (weatherCode <= 48) condition = "cloudy";
+          else if (weatherCode <= 67) condition = "rainy";
+          else if (weatherCode <= 77) condition = "snowy";
+          else condition = "stormy";
+          
+          // Get location name using reverse geocoding
+          let locationName = "Your area";
+          try {
+            const geoResponse = await fetch(
+              `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&count=1`
+            );
+            const geoData = await geoResponse.json();
+            if (geoData.results && geoData.results.length > 0) {
+              locationName = geoData.results[0].name || geoData.results[0].admin1 || "Your area";
+            }
+          } catch {
+            // Keep default location name
+          }
+          
           setWeather({
-            temperature: data.temperature,
-            condition: data.condition,
-            location: data.location || "Your area",
+            temperature: temp,
+            condition,
+            location: locationName,
           });
         }
       }
     } catch (error: unknown) {
-      setWeather({ temperature: 18, condition: "mild", location: "Your area" });
+      // Fallback - don't show weather if we can't get it
+      setWeather(null);
     } finally {
       setIsLoadingWeather(false);
     }
