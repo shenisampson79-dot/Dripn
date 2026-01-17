@@ -518,17 +518,61 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     setIsLoadingSecondOpinion(true);
     await recordInteraction("second_opinion");
     
-    setTimeout(() => {
+    try {
+      const response = await apiService.post<{ 
+        requiresAuth?: boolean; 
+        aiOpinion?: string;
+        showOptions?: boolean;
+      }>("/api/community/vote-request", {
+        outfit: recommendation?.outfit,
+        occasion: selectedOccasion,
+        weather: weather,
+      });
+      
       setIsLoadingSecondOpinion(false);
+      
+      const aiMessage = response?.aiOpinion || 
+        `I'm confident about this recommendation. Community input can validate or challenge my choice — that usually takes 30–60 minutes.`;
+      
       Alert.alert(
-        "Get a Second Opinion",
-        "Post your outfit to the community and get votes from real people within 45 minutes. Create a free account to use this feature.",
+        "Second Opinion",
+        aiMessage,
         [
+          { 
+            text: "Get community input", 
+            onPress: () => {
+              if (response?.requiresAuth) {
+                navigation.navigate("SoftSignupGate", { fromPath: "second_opinion_slow" });
+              }
+            }
+          },
+          { 
+            text: "I need this quickly", 
+            onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "second_opinion_urgent" }),
+            style: "default"
+          },
           { text: "Not now", style: "cancel" },
-          { text: "Create account", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "second_opinion" }) },
         ]
       );
-    }, 300);
+    } catch (error) {
+      setIsLoadingSecondOpinion(false);
+      Alert.alert(
+        "Second Opinion",
+        "I'm confident about this recommendation. Community input can validate or challenge my choice — that usually takes 30–60 minutes.",
+        [
+          { 
+            text: "Get community input (no account)", 
+            onPress: () => {} 
+          },
+          { 
+            text: "I need this quickly", 
+            onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "second_opinion_urgent" }),
+            style: "default"
+          },
+          { text: "Not now", style: "cancel" },
+        ]
+      );
+    }
   };
 
   const [isSubmittingExpression, setIsSubmittingExpression] = useState(false);

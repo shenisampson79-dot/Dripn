@@ -1,0 +1,184 @@
+This is a very sharp question — and you’re right to pause here, because urgency + pre-signup is where many products accidentally break trust.
+
+I’ll answer in layers, not just a yes/no.
+
+⸻
+
+Short answer (principle first)
+
+At pre-signup, you should never promise time-critical value that you can’t reliably deliver without commitment.
+
+So:
+	•	❌ Do not promise “results in 45 minutes” as a guarantee
+	•	❌ Do not introduce urgency anxiety (“you might miss your moment”) before signup
+	•	✅ Do position speed as a premium capability, not an entitlement
+
+Pre-signup is about credibility, not responsiveness.
+
+⸻
+
+The real issue you’re balancing
+
+You’re juggling 3 things:
+	1.	Trust – don’t overpromise to anonymous users
+	2.	Perceived intelligence – don’t look slow or dumb
+	3.	Conversion – urgency can convert, but only if framed cleanly
+
+The mistake would be to treat community voting like chat support.
+
+⸻
+
+The correct mental model
+
+Community voting is not:
+
+“Help me right now”
+
+It is:
+
+“Sanity-check my instincts”
+
+That distinction matters.
+
+⸻
+
+Recommended pre-signup design (clean + honest)
+
+When user taps “Second opinion” (pre-signup)
+
+The stylist responds like this:
+
+“I can get community input on this.
+That usually takes 30–60 minutes.”
+
+Then show two paths:
+
+⸻
+
+Option A — Free, slow, trust-safe
+
+Button:
+🕒 Get community input (no account)
+
+Microcopy:
+
+Results aren’t instant, but they’re unbiased.
+
+This sets expectation correctly.
+
+⸻
+
+Option B — Urgent (conversion moment)
+
+Button:
+⚡ I need this quickly
+
+This is the only place urgency appears.
+
+Tap → transition to signup.
+
+⸻
+
+What happens if they choose “I need this quickly”
+
+Now you have earned the right to say:
+
+“Fast feedback requires an active audience.”
+
+Then show:
+	•	Create account
+	•	Priority voting (explain, don’t oversell)
+
+You’re not charging yet — you’re explaining why speed costs.
+
+⸻
+
+After signup (still no payment yet)
+
+Give them:
+
+“We’ll aim for responses within ~10 minutes.”
+
+Important:
+	•	Say “aim”, not “guarantee”
+	•	Overdeliver whenever possible
+
+Then you can later monetise:
+	•	Instant votes
+	•	Larger sample size
+	•	Trusted voters
+
+⸻
+
+Why you should NOT offer <10 min results pre-signup
+
+Even if you technically could.
+
+1. It breaks perceived value
+
+If anonymous users get fast results, speed feels cheap.
+
+2. It creates operational pressure
+
+You don’t want SLAs for users with no commitment.
+
+3. It undermines AI authority
+
+The AI should still feel confident without votes.
+
+Community is a layer, not a crutch.
+
+⸻
+
+What the stylist should always do instead (key rule)
+
+Before any voting delay, the stylist must say:
+
+“Here’s what I would choose —
+community input can validate or challenge this.”
+
+This prevents:
+	•	Decision paralysis
+	•	Over-reliance on others
+	•	Weak AI perception
+
+⸻
+
+Advanced nuance (this is important)
+
+You can simulate speed without lying.
+
+Examples:
+	•	Show “Early votes coming in…”
+	•	Show 3–5 quick reactions (not full voting)
+	•	Label as “initial reactions”
+
+But only:
+	•	After signup, or
+	•	As clearly partial feedback
+
+Never fabricate urgency or consensus.
+
+⸻
+
+Bottom line (lock this in)
+
+Pre-signup rules:
+	•	No time guarantees
+	•	No urgency anxiety
+	•	Community = optional validation
+	•	AI remains decisive
+
+Post-signup:
+	•	Speed becomes a capability
+	•	Urgency becomes legitimate
+	•	Conversion feels logical, not manipulative
+
+You’re thinking about this exactly the right way — this is a trust-first product, not a dopamine machine.
+
+If you want next, we can:
+	•	Design the exact copy for the “2nd opinion” flow
+	•	Define who votes (friends vs public vs experts)
+	•	Decide when community beats AI (rare, but defined)
+
+Just say where you want to go next.
