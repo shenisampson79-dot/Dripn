@@ -477,6 +477,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </View>
       </View>
 
+      <ThemedText type="small" style={[styles.disclaimerText, { color: theme.tabIconDefault }]}>
+        I'm choosing generally. With your wardrobe, I'd choose specifically.
+      </ThemedText>
+
       <Animated.View entering={FadeInDown.delay(200)} style={styles.actionButtonsRow}>
         <Pressable
           style={[styles.actionButton, { backgroundColor: theme.backgroundSecondary, borderColor: theme.link, borderWidth: 1 }]}
@@ -549,47 +553,6 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           </ThemedText>
         </Pressable>
       </Animated.View>
-
-      {showStyleChips && !styleDirectionSet ? (
-        <Animated.View entering={FadeIn} style={[styles.styleChipsOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
-          <View style={[styles.styleChipsCard, { backgroundColor: theme.backgroundDefault }]}>
-            <View style={styles.styleChipsHeader}>
-              <ThemedText type="h4" style={{ color: theme.text }}>
-                Tell me a bit about your style
-              </ThemedText>
-              <Pressable onPress={dismissStyleChips} style={styles.dismissButton}>
-                <Feather name="x" size={20} color={theme.tabIconDefault} />
-              </Pressable>
-            </View>
-            <ThemedText type="body" style={[styles.styleChipsSubtitle, { color: theme.tabIconDefault }]}>
-              If you want, I can tailor this more closely
-            </ThemedText>
-            
-            <View style={styles.styleChipsRow}>
-              {STYLE_CHIPS.map((chip) => (
-                <Pressable
-                  key={chip.id}
-                  style={[
-                    styles.styleChip,
-                    {
-                      backgroundColor: selectedStyleDirection === chip.id ? theme.link : theme.backgroundSecondary,
-                      borderColor: selectedStyleDirection === chip.id ? theme.link : theme.border,
-                    },
-                  ]}
-                  onPress={() => handleStyleChipSelect(chip.id)}
-                >
-                  <ThemedText
-                    type="body"
-                    style={{ color: selectedStyleDirection === chip.id ? "#FFFFFF" : theme.text }}
-                  >
-                    {chip.label}
-                  </ThemedText>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        </Animated.View>
-      ) : null}
 
       {showSavePrompt ? renderSavePrompt() : null}
     </Animated.View>
@@ -713,6 +676,12 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 26,
     fontWeight: "500",
+  },
+  disclaimerText: {
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.md,
+    fontStyle: "italic",
+    textAlign: "center",
   },
   actionButtonsRow: {
     flexDirection: "row",
