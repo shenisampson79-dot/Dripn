@@ -92,11 +92,16 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     free: "Free",
     personal_stylist: "$9.99",
   });
+  const [dfyPrices, setDfyPrices] = useState<{ outfit_setup: string; wardrobe_setup: string }>({
+    outfit_setup: "$19",
+    wardrobe_setup: "$39.99",
+  });
 
   useEffect(() => {
     const initCurrency = async () => {
       await currencyService.initialize();
       setLocalizedPrices(currencyService.getLocalizedPrices());
+      setDfyPrices(currencyService.getDFYPrices());
     };
     initCurrency();
   }, []);
@@ -424,6 +429,94 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         </Button>
       ) : null}
 
+      <View style={styles.dfySection}>
+        <ThemedText type="h2" style={styles.dfySectionTitle}>
+          Done-For-You Setup
+        </ThemedText>
+        <ThemedText type="body" style={styles.dfySectionSubtitle}>
+          Let us set up your digital wardrobe for you
+        </ThemedText>
+
+        <View style={[styles.dfyCard, { backgroundColor: theme.backgroundDefault }]}>
+          <View style={styles.dfyCardHeader}>
+            <View style={[styles.dfyBadge, { backgroundColor: theme.link + '20' }]}>
+              <Feather name="package" size={16} color={theme.link} />
+            </View>
+            <View style={styles.dfyCardTitleContainer}>
+              <ThemedText type="h3">Outfit-Based Setup</ThemedText>
+              <ThemedText type="caption" style={{ opacity: 0.7 }}>One-time purchase</ThemedText>
+            </View>
+            <ThemedText type="h2" style={{ color: theme.link }}>{dfyPrices.outfit_setup}</ThemedText>
+          </View>
+          <ThemedText type="body" style={styles.dfyDescription}>
+            We'll photograph and catalog 5-7 of your favorite outfits, ready to mix and match.
+          </ThemedText>
+          <View style={styles.dfyFeatures}>
+            <View style={styles.dfyFeatureRow}>
+              <Feather name="check" size={14} color={theme.success || "#34C759"} />
+              <ThemedText type="small">5-7 complete outfits catalogued</ThemedText>
+            </View>
+            <View style={styles.dfyFeatureRow}>
+              <Feather name="check" size={14} color={theme.success || "#34C759"} />
+              <ThemedText type="small">Category & formality tagging</ThemedText>
+            </View>
+            <View style={styles.dfyFeatureRow}>
+              <Feather name="check" size={14} color={theme.success || "#34C759"} />
+              <ThemedText type="small">Color & seasonality analysis</ThemedText>
+            </View>
+          </View>
+          <Pressable 
+            style={[styles.dfyButton, { backgroundColor: theme.link }]}
+            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+          >
+            <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Get Started</ThemedText>
+          </Pressable>
+        </View>
+
+        <View style={[styles.dfyCard, { backgroundColor: theme.backgroundDefault, borderColor: theme.link, borderWidth: 2 }]}>
+          <View style={[styles.dfyPopularBadge, { backgroundColor: theme.link }]}>
+            <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>Best Value</ThemedText>
+          </View>
+          <View style={styles.dfyCardHeader}>
+            <View style={[styles.dfyBadge, { backgroundColor: theme.link + '20' }]}>
+              <Feather name="grid" size={16} color={theme.link} />
+            </View>
+            <View style={styles.dfyCardTitleContainer}>
+              <ThemedText type="h3">Core Wardrobe Setup</ThemedText>
+              <ThemedText type="caption" style={{ opacity: 0.7 }}>One-time purchase</ThemedText>
+            </View>
+            <ThemedText type="h2" style={{ color: theme.link }}>{dfyPrices.wardrobe_setup}</ThemedText>
+          </View>
+          <ThemedText type="body" style={styles.dfyDescription}>
+            Complete digital wardrobe setup with up to 30 items, fully organized and ready for AI styling.
+          </ThemedText>
+          <View style={styles.dfyFeatures}>
+            <View style={styles.dfyFeatureRow}>
+              <Feather name="check" size={14} color={theme.success || "#34C759"} />
+              <ThemedText type="small">Up to 30 wardrobe items</ThemedText>
+            </View>
+            <View style={styles.dfyFeatureRow}>
+              <Feather name="check" size={14} color={theme.success || "#34C759"} />
+              <ThemedText type="small">Full categorization & tagging</ThemedText>
+            </View>
+            <View style={styles.dfyFeatureRow}>
+              <Feather name="check" size={14} color={theme.success || "#34C759"} />
+              <ThemedText type="small">Primary color extraction</ThemedText>
+            </View>
+            <View style={styles.dfyFeatureRow}>
+              <Feather name="check" size={14} color={theme.success || "#34C759"} />
+              <ThemedText type="small">Seasonality recommendations</ThemedText>
+            </View>
+          </View>
+          <Pressable 
+            style={[styles.dfyButton, { backgroundColor: theme.link }]}
+            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+          >
+            <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Get Started</ThemedText>
+          </Pressable>
+        </View>
+      </View>
+
       <View style={styles.finePrint}>
         <ThemedText type="small" style={styles.finePrintText}>
           Subscriptions auto-renew until canceled. You can cancel anytime in your account
@@ -603,5 +696,65 @@ const styles = StyleSheet.create({
   finePrintText: {
     textAlign: "center",
     opacity: 0.5,
+  },
+  dfySection: {
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.xl,
+  },
+  dfySectionTitle: {
+    marginBottom: Spacing.xs,
+  },
+  dfySectionSubtitle: {
+    opacity: 0.7,
+    marginBottom: Spacing.lg,
+  },
+  dfyCard: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+    position: 'relative',
+  },
+  dfyCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  dfyBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dfyCardTitleContainer: {
+    flex: 1,
+  },
+  dfyDescription: {
+    opacity: 0.8,
+    marginBottom: Spacing.md,
+  },
+  dfyFeatures: {
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  dfyFeatureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  dfyButton: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+  },
+  dfyPopularBadge: {
+    position: 'absolute',
+    top: -10,
+    right: Spacing.lg,
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.xs,
   },
 });

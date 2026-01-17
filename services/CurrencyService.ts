@@ -81,7 +81,16 @@ class CurrencyService {
   getPersonalStylistPrice(): string {
     return this.formatPrice(9.99);
   }
+
+  getDFYPrices(): { outfit_setup: string; wardrobe_setup: string } {
+    const symbol = this.getCurrencySymbol();
+    return {
+      outfit_setup: `${symbol}19`,
+      wardrobe_setup: `${symbol}39.99`,
+    };
+  }
 }
+
 
 export const currencyService = new CurrencyService();
 export default currencyService;
