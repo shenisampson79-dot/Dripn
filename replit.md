@@ -20,17 +20,38 @@ Do not make changes to the file `Y`.
   - **Marcus** (Male): Blunt, decisive, straight-talking
 
 ## Onboarding Flow
-The app uses a trust-first onboarding approach:
+The app uses a dual-path, trust-first onboarding approach that respects three user types: Explorers ("Let me see what this is"), Skeptics ("Convince me"), and High-intent adopters ("I already want this").
+
+### Navigation Flow
+Welcome → TrustOnboarding → OnboardingEntry → (DecideForMe OR StyleMeProperly) → SoftSignupGate
 
 ### Pre-Signup (Trust Building)
-1. **Positioning**: "Stop overthinking what to wear"
-2. **Trust Framing**: "This isn't a feed. It's a decision engine"
-3. **Control Reassurance**: "You're always in control"
-4. **Context Capture**: Light preference gathering (what to wear today, event outfit, confidence, shopping smarter)
-5. **First Styling Win**: AI gives outfit recommendation WITHOUT requiring wardrobe
+1. **WelcomeScreen**: Animated logo with "Your AI Stylists" value prop
+2. **TrustOnboardingScreen**: Rotating trust messages (18 variations) with progressive disclosure
+3. **OnboardingEntryScreen**: Dual-path entry point with two parallel CTAs:
+   - **"Decide for me"** (Low-intent path) → Quick recommendation, no commitment
+   - **"Style me properly"** (High-intent path) → Full setup journey
+
+### Low-Intent Path (DecideForMeScreen)
+1. Occasion selection (Quick question: "What's today?")
+2. Comfort level quick-pick (3 options)
+3. Auto-detect weather via location
+4. AI delivers instant recommendation WITHOUT signup
+5. After value delivered: "Yes, personalise it" → setup options, "I'm just browsing" → continue
+
+### High-Intent Path (StyleMeProperlyScreen)
+Three setup options:
+1. **Quick Start**: DIY wardrobe upload, build profile yourself
+2. **Inspirations Only**: Let AI learn from images you love
+3. **Done-For-You (DFY)**: Premium service (Core Wardrobe £39.99, Outfit-Based £19.99)
+
+### Soft Signup Gate (SoftSignupGateScreen)
+- Triggered ONLY after value delivered (never before)
+- Triggered on: return visits, follow-ups, saving outfits
+- NOT a blocker—users can continue browsing without signup
 
 ### Post-Signup (Optional)
-- **Wardrobe Setup**: 3 options (DIY, Later, DFY) to respect user autonomy
+- **WardrobeSetupScreen**: 3 options (DIY, Later, DFY) to respect user autonomy
 - Detailed preferences captured after signup, not before
 
 ## Community Voting ("Second Opinion")
@@ -106,12 +127,16 @@ The following features are hidden from the frontend UI but backend code remains 
 
 ## Important Files
 - `navigation/MainTabNavigator.tsx`: Main app navigation with 4-tab structure
-- `navigation/AuthStackNavigator.tsx`: Auth flow including trust onboarding
+- `navigation/AuthStackNavigator.tsx`: Auth flow including dual-path onboarding
 - `navigation/WardrobeStackNavigator.tsx`: Wardrobe feature navigation
 - `services/PersonalStylistService.ts`: AI stylist persona configurations with second opinion support
 - `services/CommunityVotingService.ts`: Community voting/second opinion service
-- `services/ApiService.ts`: Backend API integration
-- `screens/TrustOnboardingScreen.tsx`: Pre-signup trust-building flow
+- `services/ApiService.ts`: Backend API integration with generic get/post methods
+- `screens/TrustOnboardingScreen.tsx`: Pre-signup trust-building flow (18 rotating messages)
+- `screens/OnboardingEntryScreen.tsx`: Dual-path entry with "Decide for me" / "Style me properly"
+- `screens/DecideForMeScreen.tsx`: Low-intent path with quick AI recommendation
+- `screens/StyleMeProperlyScreen.tsx`: High-intent path with setup options (Quick Start, Inspirations, DFY)
+- `screens/SoftSignupGateScreen.tsx`: Value-first signup gate (triggered after recommendation)
 - `screens/WardrobeSetupScreen.tsx`: Post-signup wardrobe setup options
 - `screens/DiscoverScreen.tsx`: "Today's Decision" home screen
 - `components/SecondOpinionButton.tsx`: "Get a second opinion" CTA component
