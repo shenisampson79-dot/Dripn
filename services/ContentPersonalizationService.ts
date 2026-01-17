@@ -202,7 +202,8 @@ class ContentPersonalizationService {
     stylistName: string,
     gender?: Gender,
     preferences?: Partial<ExtendedPreferences>,
-    genderSafeConstraint?: string | null
+    genderSafeConstraint?: string | null,
+    styleExpressionHints?: string[]
   ): string {
     const config = this.getPersonalizedFeedConfig(goals, preferences, gender);
     
@@ -254,6 +255,13 @@ Tailor all advice for ${gender === 'man' ? 'men\'s' : gender === 'woman' ? 'wome
     if (genderSafeConstraint) {
       prompt += `\n## Gender-Safe Mode (IMPORTANT)
 ${genderSafeConstraint}
+`;
+    }
+
+    if (styleExpressionHints && styleExpressionHints.length > 0) {
+      prompt += `\n## User Style Preferences (CRITICAL - User's Own Words)
+The user has shared these personal style hints. Incorporate them into every recommendation:
+${styleExpressionHints.map(hint => `- ${hint}`).join('\n')}
 `;
     }
 

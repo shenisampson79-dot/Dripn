@@ -155,6 +155,23 @@ The following backend endpoints are used for the onboarding flow:
 - `POST /api/onboarding/record-signal` - Record behavioural signal (deviceId, signalType, stylistId, context)
 - `GET /api/onboarding/dfy-job-info` - Get DFY job tracking status (pending/processing/completed/failed)
 
+### First Messages & Occasion Selection
+- `GET /api/onboarding/first-messages` - Get entry message + 5 occasion options (Work, Date, Casual, Event, Just browsing)
+- Display: "Tell me what you're dressing for — I'll decide the outfit."
+
+### Style Expression System
+- `POST /api/onboarding/record-style-expression` - Record user's style expression { deviceId, expression: "I hate tight clothes, mostly wear jeans" }
+- `GET /api/onboarding/get-style-expression?deviceId=xxx` - Returns { hasExpression: true/false, hints: [...] }
+- Backend auto-extracts signals from expression text
+
+**Calibration Screen (After First Recommendation):**
+- Message: "If you want me to dial this in, tell me anything you want me to know..."
+- 3 buttons: Save outfit, Another option, Second opinion
+- Optional text input (single-line expanding, 280 char max)
+- Placeholder: "I live in jeans and trainers"
+- No "continue" gating, no red errors if empty
+- If skipped, stylist still delivers using defaults
+
 ### Style Direction (Gender-Safe) System
 - `GET /api/onboarding/gender-safe-defaults` - Get first prompt config with 4 intent options + safe/avoid garment lists
 - `POST /api/onboarding/set-style-direction` - Set user's style direction { deviceId, styleDirection: "feminine"|"masculine"|"androgynous"|"not_sure", source: "chips" }
@@ -164,7 +181,7 @@ The following backend endpoints are used for the onboarding flow:
 - When `useGenderSafe: true`, AI uses neutral garments only (trousers, jeans, shirts, jackets, sneakers, etc.)
 - Avoids gendered items (dresses, skirts, heels) until user sets style direction
 - `styleDirectionService.getGenderSafeConstraint()` returns the system constraint to inject into AI prompts
-- `contentPersonalizationService.generateAISystemPrompt()` accepts optional `genderSafeConstraint` parameter
+- `contentPersonalizationService.generateAISystemPrompt()` accepts optional `genderSafeConstraint` and `styleExpressionHints` parameters
 
 Style chips shown after first recommendation: Masculine / Feminine / Androgynous / Not sure yet
 Soft clarification message: "If you want, I can tailor this more closely — tell me a bit about what you usually wear."
