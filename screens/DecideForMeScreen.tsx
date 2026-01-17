@@ -228,18 +228,20 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       const data = await apiService.post<{ id?: string; recommendation?: string; reasoning?: string; stylistName?: string }>("/api/onboarding/quick-recommendation", {
         occasion: occasionId,
         weather: weather,
+        region: weather?.location || "UK",
+        styleExpression: expressionText.trim() || undefined,
       });
 
       if (data) {
         setRecommendation({
           id: data.id,
-          outfit: data.recommendation || "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white sneakers for a modern finish.",
+          outfit: data.recommendation || "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white trainers for a modern finish.",
           reasoning: data.reasoning || "This look balances comfort with style, perfect for your occasion.",
           stylistName: data.stylistName || "Ruby",
         });
       } else {
         setRecommendation({
-          outfit: "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white sneakers for a modern finish.",
+          outfit: "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white trainers for a modern finish.",
           reasoning: "This classic combination works perfectly for your occasion and the current weather.",
           stylistName: "Ruby",
         });
@@ -248,7 +250,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       incrementRecommendationCount();
     } catch (error: unknown) {
       setRecommendation({
-        outfit: "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white sneakers for a modern finish.",
+        outfit: "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white trainers for a modern finish.",
         reasoning: "This classic combination works perfectly for your occasion and the current weather.",
         stylistName: "Ruby",
       });
@@ -341,10 +343,42 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     navigation.navigate("SoftSignupGate", { fromPath: "second_opinion" });
   };
 
+  const [isSubmittingExpression, setIsSubmittingExpression] = useState(false);
+  
   const handleExpressionSubmit = async () => {
-    if (expressionText.trim()) {
-      await styleDirectionService.recordStyleExpression(expressionText.trim());
-      await recordInteraction("style_expression", expressionText.trim());
+    if (expressionText.trim() && !isSubmittingExpression) {
+      setIsSubmittingExpression(true);
+      try {
+        await styleDirectionService.recordStyleExpression(expressionText.trim());
+        await recordInteraction("style_expression", expressionText.trim());
+        
+        // Refetch recommendation with the new constraints
+        if (selectedOccasion) {
+          setStep("loading");
+          const data = await apiService.post<{ id?: string; recommendation?: string; reasoning?: string; stylistName?: string }>("/api/onboarding/quick-recommendation", {
+            occasion: selectedOccasion,
+            weather: weather,
+            region: weather?.location || "UK",
+            styleExpression: expressionText.trim(),
+          });
+          
+          if (data) {
+            setRecommendation({
+              id: data.id,
+              outfit: data.recommendation || recommendation?.outfit || "",
+              reasoning: data.reasoning || recommendation?.reasoning || "",
+              stylistName: data.stylistName || "Ruby",
+            });
+          }
+          setStep("result");
+        }
+        
+        setExpressionText("");
+      } catch (error) {
+        console.log("Failed to submit expression");
+      } finally {
+        setIsSubmittingExpression(false);
+      }
     }
   };
 
@@ -519,20 +553,25 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </ThemedText>
         <View style={[styles.expressionInputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
           <TextInput
-            style={[styles.expressionInput, { color: theme.text }]}
+            style={[styles.expressionInput, { color: theme.text, minHeight: 44, maxHeight: 120 }]}
             placeholder={styleDirectionService.getExpressionPlaceholder()}
             placeholderTextColor={theme.tabIconDefault}
             value={expressionText}
             onChangeText={(text) => setExpressionText(text.slice(0, MAX_EXPRESSION_LENGTH))}
+            returnKeyType="send"
+            blurOnSubmit={false}
             onSubmitEditing={handleExpressionSubmit}
-            onBlur={handleExpressionSubmit}
-            returnKeyType="done"
-            multiline={false}
+            multiline={true}
+            textAlignVertical="top"
             maxLength={MAX_EXPRESSION_LENGTH}
           />
           {expressionText.trim() ? (
-            <Pressable onPress={handleExpressionSubmit} style={styles.expressionSendButton}>
-              <Feather name="send" size={18} color={theme.link} />
+            <Pressable 
+              onPress={handleExpressionSubmit} 
+              style={styles.expressionSendButton}
+              disabled={isSubmittingExpression}
+            >
+              <Feather name="send" size={18} color={isSubmittingExpression ? theme.tabIconDefault : theme.link} />
             </Pressable>
           ) : null}
         </View>
