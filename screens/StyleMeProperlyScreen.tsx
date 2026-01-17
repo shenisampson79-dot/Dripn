@@ -78,17 +78,20 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
 
   const loadSetupOptions = async () => {
     try {
-      const data = await apiService.get<SetupOptionsResponse>("/api/onboarding/setup-options");
-      if (data) {
-        if (data.pageHeader) {
-          setPageHeader(data.pageHeader);
+      const [pageConfigData, setupOptionsData] = await Promise.all([
+        apiService.get<{ title: string; subtitle: string; footer: string }>("/api/onboarding/dfy-page-config"),
+        apiService.get<SetupOptionsResponse>("/api/onboarding/setup-options"),
+      ]);
+      
+      if (pageConfigData) {
+        setPageHeader({ title: pageConfigData.title, subtitle: pageConfigData.subtitle });
+        if (pageConfigData.footer) {
+          setFooterReassurance(pageConfigData.footer);
         }
-        if (data.tiers && data.tiers.length > 0) {
-          setTiers(data.tiers);
-        }
-        if (data.footerReassurance) {
-          setFooterReassurance(data.footerReassurance);
-        }
+      }
+      
+      if (setupOptionsData?.tiers && setupOptionsData.tiers.length > 0) {
+        setTiers(setupOptionsData.tiers);
       }
     } catch (error: unknown) {
       console.log("Using default DFY options");
@@ -97,12 +100,12 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
 
   const handleTierSelect = async (tierId: string) => {
     try {
-      await apiService.post("/api/onboarding/setup-choice", { choice: tierId });
+      await apiService.post("/api/onboarding/select-setup", { setup: tierId });
     } catch (error: unknown) {
-      console.log("Failed to track setup choice");
+      console.log("Failed to track setup selection");
     }
 
-    navigation.navigate("SoftSignupGate", { fromPath: tierId });
+    navigation.navigate("UploadInstructions", { type: tierId as "outfit" | "core" });
   };
 
   const handleSkip = () => {

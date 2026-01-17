@@ -54,7 +54,7 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
 
   const loadEntryData = async () => {
     try {
-      const data = await apiService.get<EntryData>("/api/onboarding/entry");
+      const data = await apiService.get<EntryData>("/api/onboarding/entry-paths");
       if (data) {
         setEntryData(data);
       }
@@ -73,9 +73,9 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
 
   const handleEntryChoice = async (entryPointId: string) => {
     try {
-      await apiService.post("/api/onboarding/entry-choice", { choice: entryPointId });
+      await apiService.post("/api/onboarding/select-path", { path: entryPointId });
     } catch (error) {
-      console.log("Failed to track entry choice");
+      console.log("Failed to track path selection");
     }
 
     if (entryPointId === "decide_for_me") {

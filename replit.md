@@ -116,8 +116,21 @@ The following features are hidden from the frontend UI but backend code remains 
 ## Onboarding API Endpoints
 The following backend endpoints are used for the onboarding flow:
 
+### Session Tracking
+- `POST /api/onboarding/session` (with device_id) - Create/resume session
+- `GET /api/onboarding/session/:deviceId` - Get current session state
+
+### Entry Path Selection
+- `GET /api/onboarding/entry-paths` - Get "Decide for me" vs "Style me properly" options
+- `POST /api/onboarding/select-path` - User selects entry path
+
 ### DFY Selection Screen
+- `GET /api/onboarding/dfy-page-config` - Page title, subtitle, footer for DFY selection screen
 - `GET /api/onboarding/setup-options` - Returns DFY tiers with title, tagline, price, turnaround, highlights
+- `POST /api/onboarding/select-setup` - User selects setup option
+
+### Step Tracking
+- `POST /api/onboarding/complete-step` - Mark onboarding step complete
 
 ### Post-Recommendation UI
 - `POST /api/onboarding/record-interaction` - Records user interactions (save_outfit, another_option, second_opinion, tweak)
@@ -127,15 +140,11 @@ The following backend endpoints are used for the onboarding flow:
 - Cache key: `dripn_cached_outfits`
 
 ### Upload Screens (Post-Payment)
-- `GET /api/onboarding/upload-instructions?type=core|outfit` - Returns upload guidance with tips, limits, examples
+- `GET /api/onboarding/upload-instructions/:type` - Returns upload guidance (type = core | outfit)
 
 ### Browsing Mode
 - `POST /api/onboarding/check-gate` - After 3 recommendations, checks if soft personalization prompt should show
 - Recommendation count tracked locally: `dripn_recommendation_count`
-
-### Session Tracking
-- `POST /api/onboarding/session` (with device_id)
-- `GET /api/onboarding/session/:deviceId`
 
 ## MVP DFY Tiering
 ### DFY Tier A — Outfit-Based Setup (£19)
