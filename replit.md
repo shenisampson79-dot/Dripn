@@ -1,7 +1,7 @@
 # Dripn - Fashion Decision Engine
 
 ## Overview
-Dripn is a mobile fashion decision-making app built with Expo React Native, aiming to provide instant, personalized outfit recommendations through AI stylists. Its primary goal is to help users quickly decide what to wear, focusing on efficiency and certainty rather than time-spent engagement. The app features 4 distinct AI stylist personalities, each with unique ElevenLabs TTS voices, to deliver a tailored decision-making experience. Dripn is designed as a decision-engine, not a social app, prioritizing immediate value delivery ("Ah, Sorted" moment).
+Dripn is a mobile fashion decision-making app built with Expo React Native, aiming to provide instant, personalized outfit recommendations through AI stylists. Its primary goal is to help users quickly decide what to wear, focusing on efficiency and certainty rather than time-spent engagement. The app features 3 distinct AI stylist personalities (Ruby, Max, Ace), each with unique ElevenLabs TTS voices, to deliver a tailored decision-making experience. Dripn is designed as a decision-engine, not a social app, prioritizing immediate value delivery ("Ah, Sorted" moment).
 
 ## User Preferences
 I prefer detailed explanations.
@@ -14,7 +14,7 @@ Dripn is developed using Expo React Native with TypeScript, incorporating React 
 ### Core Features
 - **Subscription Tiers**: Freemium model with Free, Basic, Premium, and VIP options.
 - **AI Fashion Advice**: Leverages GPT-4.1 for chat/vision and GPT-4.1-nano for rapid tasks.
-- **AI Stylists**: Four distinct personalities (Ruby, Max, Jade, Marcus) with ElevenLabs TTS voices.
+- **AI Stylists**: Three distinct personalities (Ruby, Max, Ace) with ElevenLabs TTS voices.
 - **Wardrobe Digital Twin**: AI-powered photo-based wardrobe management.
 - **Onboarding Flow**: Dual-path, trust-first onboarding for low-intent ("Decide for me") and high-intent ("Style me properly") users. A soft signup gate is triggered only after value delivery.
 - **Community Voting ("Second Opinion")**: A time-boxed (45-minute) feature for secondary validation, with AI interpreting results based on stylist personality.

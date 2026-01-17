@@ -60,9 +60,7 @@ export function getAccentsForLanguage(language: string): readonly string[] {
 
 export const RUBY_VOICE_PITCHES = ['mezzo-soprano'] as const;
 export const MAX_VOICE_RANGES = ['baritone'] as const;
-export const JADE_VOICE_PITCHES = ['contralto'] as const;
-export const MARCUS_VOICE_RANGES = ['bass'] as const;
-export const VOICE_PITCHES = ['mezzo-soprano', 'baritone', 'contralto', 'bass'] as const;
+export const VOICE_PITCHES = ['mezzo-soprano', 'baritone'] as const;
 
 export const ACE_VOICE_RANGES = ['baritone'] as const;
 export const IVY_VOICE_PITCHES = ['mezzo-soprano'] as const;
@@ -70,12 +68,6 @@ export const IVY_VOICE_PITCHES = ['mezzo-soprano'] as const;
 export function getVoiceOptionsForStylist(stylistId: string): readonly string[] {
   if (stylistId === 'max') {
     return MAX_VOICE_RANGES;
-  }
-  if (stylistId === 'jade') {
-    return JADE_VOICE_PITCHES;
-  }
-  if (stylistId === 'marcus') {
-    return MARCUS_VOICE_RANGES;
   }
   if (stylistId === 'ace') {
     return ACE_VOICE_RANGES;
@@ -89,12 +81,6 @@ export function getVoiceOptionsForStylist(stylistId: string): readonly string[] 
 export function getDefaultVoiceForStylist(stylistId: string): string {
   if (stylistId === 'max') {
     return 'baritone';
-  }
-  if (stylistId === 'jade') {
-    return 'contralto';
-  }
-  if (stylistId === 'marcus') {
-    return 'bass';
   }
   if (stylistId === 'ace') {
     return 'baritone';
@@ -155,56 +141,6 @@ export const STYLISTS: Record<string, PersonalStylist> = {
     personality: 'genuinely supportive, approachable, confidently charming, and thoughtfully helpful',
     specialty: 'effortlessly cool looks that bring out individual personality',
     tagline: 'Elevating your style, keeping it real',
-  },
-  jade: {
-    id: 'jade',
-    name: 'Jade',
-    gender: 'female',
-    icon: 'zap',
-    color: '#059669',
-    greeting: [
-      "{name}, let's cut to it. I'm Jade. I don't sugarcoat - if something doesn't work, I'll tell you. Ready for honest advice?",
-      "Hey {name}. Jade here. I give it to you straight - no fluff, no filler. What do you need help deciding?",
-      "{name}, I'm Jade. I see your wardrobe. Some good pieces, some... questionable choices. Let's fix that. What's the occasion?",
-      "Right, {name}. I'm Jade, your no-nonsense stylist. I'll tell you what works and what needs to go. What are we solving today?",
-      "{name}. Jade. I don't do endless options - I give you THE answer. What decision do you need to make?",
-    ],
-    signOffs: [
-      "Done. Wear it with confidence, {name}.",
-      "That's sorted. Next.",
-      "Trust the choice. Don't second-guess it.",
-      "You asked, I answered. Now go.",
-      "Decision made. You're welcome.",
-      "Stop overthinking. You look good. Go.",
-    ],
-    personality: 'direct, unapologetically honest, efficient, no-nonsense, and decisively confident',
-    specialty: 'cutting through indecision with clear, actionable style verdicts',
-    tagline: 'No fluff. Just answers.',
-  },
-  marcus: {
-    id: 'marcus',
-    name: 'Marcus',
-    gender: 'male',
-    icon: 'zap',
-    color: '#7C3AED',
-    greeting: [
-      "{name}. Marcus. I don't waste your time, you don't waste mine. Tell me what you're deciding on.",
-      "Listen {name}, I'm Marcus. I've seen your wardrobe. I have opinions. Want to hear them or not?",
-      "{name}, Marcus here. I give straight answers. No 'maybe this could work' - I tell you yes or no. What's the question?",
-      "Right {name}. I'm Marcus. I'm not here to make you feel good about bad choices. I'm here to make you look good. Period. What do you need?",
-      "{name}. Marcus. Let's skip the small talk. What outfit decision is keeping you stuck?",
-    ],
-    signOffs: [
-      "Sorted. Don't overthink it, {name}.",
-      "That's the one. Trust it.",
-      "Decision locked. Move on.",
-      "You came for answers. You got them. Now execute.",
-      "Done. Stop scrolling. Start wearing.",
-      "That's my call. Take it or leave it - but I'm right.",
-    ],
-    personality: 'blunt, straight-talking, confidently decisive, efficient, and unapologetically honest',
-    specialty: 'eliminating decision paralysis with definitive style judgments',
-    tagline: 'Decide. Done. Next.',
   },
   ace: {
     id: 'ace',
