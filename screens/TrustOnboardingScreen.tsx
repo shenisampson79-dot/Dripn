@@ -228,7 +228,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
           </View>
           <View style={styles.ctaContainer}>
             <Button onPress={handleGetStyled} style={styles.primaryButton}>
-              Get Styled
+              Let's Go
             </Button>
           </View>
         </Animated.View>
