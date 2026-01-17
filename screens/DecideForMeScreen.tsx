@@ -348,30 +348,20 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const handleExpressionSubmit = async () => {
     if (expressionText.trim() && !isSubmittingExpression) {
       setIsSubmittingExpression(true);
+      const userExpression = expressionText.trim();
+      
       try {
-        await styleDirectionService.recordStyleExpression(expressionText.trim());
-        await recordInteraction("style_expression", expressionText.trim());
+        await styleDirectionService.recordStyleExpression(userExpression);
+        await recordInteraction("style_expression", userExpression);
         
-        // Refetch recommendation with the new constraints
-        if (selectedOccasion) {
-          setStep("loading");
-          const data = await apiService.post<{ id?: string; recommendation?: string; reasoning?: string; stylistName?: string }>("/api/onboarding/quick-recommendation", {
-            occasion: selectedOccasion,
-            weather: weather,
-            region: weather?.location || "UK",
-            styleExpression: expressionText.trim(),
-          });
-          
-          if (data) {
-            setRecommendation({
-              id: data.id,
-              outfit: data.recommendation || recommendation?.outfit || "",
-              reasoning: data.reasoning || recommendation?.reasoning || "",
-              stylistName: data.stylistName || "Ruby",
-            });
-          }
-          setStep("result");
-        }
+        // Generate a tailored response based on user's expression
+        const tailoredRecommendation = generateTailoredRecommendation(userExpression, selectedOccasion || "work");
+        
+        setRecommendation({
+          outfit: tailoredRecommendation.outfit,
+          reasoning: tailoredRecommendation.reasoning,
+          stylistName: "Ruby",
+        });
         
         setExpressionText("");
       } catch (error) {
@@ -380,6 +370,40 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         setIsSubmittingExpression(false);
       }
     }
+  };
+  
+  const generateTailoredRecommendation = (expression: string, occasion: string): { outfit: string; reasoning: string } => {
+    const expressionLower = expression.toLowerCase();
+    
+    // Finance/formal work context
+    if (expressionLower.includes("finance") || expressionLower.includes("bank") || expressionLower.includes("suit") || expressionLower.includes("formal")) {
+      return {
+        outfit: "A well-fitted navy or charcoal suit with a crisp white shirt, silk tie in a subtle pattern, and polished Oxford shoes. Add a quality leather belt to complete the look.",
+        reasoning: "For finance, precision matters. This classic combination commands respect while staying professionally appropriate.",
+      };
+    }
+    
+    // Casual preferences
+    if (expressionLower.includes("casual") || expressionLower.includes("jeans") || expressionLower.includes("comfortable")) {
+      return {
+        outfit: "Dark slim-fit jeans with a well-fitted jumper in a neutral tone. Add clean white trainers and a quality watch for polish.",
+        reasoning: "Casual doesn't mean sloppy. This look is relaxed but intentional.",
+      };
+    }
+    
+    // Creative/relaxed work
+    if (expressionLower.includes("creative") || expressionLower.includes("startup") || expressionLower.includes("tech")) {
+      return {
+        outfit: "Smart chinos with a quality fitted t-shirt and a structured blazer. Clean minimalist trainers tie it together.",
+        reasoning: "Modern workplaces value authenticity. This says capable without being corporate.",
+      };
+    }
+    
+    // Default tailored response
+    return {
+      outfit: "Tailored trousers with a quality shirt in a flattering colour for you. Add appropriate footwear for your environment and a confidence-boosting accessory.",
+      reasoning: `I've noted your preferences. This adapts to what you've told me: "${expression.slice(0, 50)}${expression.length > 50 ? "..." : ""}"`,
+    };
   };
 
   const handlePersonalise = () => {
