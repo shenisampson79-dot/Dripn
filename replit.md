@@ -165,7 +165,7 @@ The following backend endpoints are used for the onboarding flow:
 - No urgency language, no countdowns
 - Match stylist's tone in copy
 - `unlocks` field determines next screen:
-  - `dfy_options` → Show DFY selection screen (£19/£35)
+  - `dfy_options` → Show DFY selection screen (£19/£39.99)
   - `subscription` → Show subscription banner (£9.99/month)
   - `premium_tiers` → Show post-MVP tiers (invite feel)
 
@@ -176,7 +176,7 @@ The following backend endpoints are used for the onboarding flow:
 - Turnaround: 24h
 - Purpose: Fast trust + usable stylist context
 
-### DFY Tier B — Core Wardrobe Setup (£35-£39)
+### DFY Tier B — Core Wardrobe Setup (£39.99)
 - Up to 30 items
 - Basic tagging (Categories + formality)
 - Turnaround: 24-48h

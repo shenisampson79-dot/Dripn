@@ -52,7 +52,7 @@ const DEFAULT_TIERS: DfyTier[] = [
     id: "core",
     title: "Core Wardrobe Setup",
     tagline: "Best if you want accurate recommendations",
-    price: "£39",
+    price: "£39.99",
     turnaround: "Ready in 24-48h",
     highlights: [
       "Upload up to 30 items",
