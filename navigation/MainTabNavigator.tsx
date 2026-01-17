@@ -35,10 +35,10 @@ const TAB_CONFIG: { name: keyof MainTabParamList; icon: string; label: string }[
 ];
 
 interface CustomTabBarProps extends BottomTabBarProps {
-  onAskStylist: () => void;
+  onCreatePost: () => void;
 }
 
-function CustomTabBar({ state, descriptors, navigation, onAskStylist }: CustomTabBarProps) {
+function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTabBarProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -118,7 +118,7 @@ function CustomTabBar({ state, descriptors, navigation, onAskStylist }: CustomTa
 
         <View style={styles.centerButtonContainer}>
           <Pressable
-            onPress={onAskStylist}
+            onPress={onCreatePost}
             style={({ pressed }) => [
               styles.centerButton,
               {
@@ -128,7 +128,7 @@ function CustomTabBar({ state, descriptors, navigation, onAskStylist }: CustomTa
               },
             ]}
           >
-            <Feather name="message-circle" size={26} color="#FFFFFF" />
+            <Feather name="plus" size={28} color="#FFFFFF" />
           </Pressable>
         </View>
 
@@ -143,15 +143,15 @@ function CustomTabBar({ state, descriptors, navigation, onAskStylist }: CustomTa
 import type { PortalMode } from "@/App";
 
 interface MainTabNavigatorProps {
-  onAskStylist: () => void;
+  onCreatePost: () => void;
   onOpenPortal?: (mode: PortalMode) => void;
 }
 
-export default function MainTabNavigator({ onAskStylist, onOpenPortal }: MainTabNavigatorProps) {
+export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTabNavigatorProps) {
   return (
     <Tab.Navigator
       initialRouteName="HomeTab"
-      tabBar={(props) => <CustomTabBar {...props} onAskStylist={onAskStylist} />}
+      tabBar={(props) => <CustomTabBar {...props} onCreatePost={onCreatePost} />}
       screenOptions={{
         headerShown: false,
       }}
