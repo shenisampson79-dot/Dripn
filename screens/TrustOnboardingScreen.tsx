@@ -253,7 +253,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
   };
 
   const handleGetStarted = () => {
-    navigation.navigate("Auth", { mode: "signup" });
+    navigation.navigate("OnboardingEntry");
   };
 
   const handleLogin = () => {
