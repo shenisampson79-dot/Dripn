@@ -219,6 +219,7 @@ const styles = StyleSheet.create({
   },
   featuresContainer: {
     gap: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
   featureItem: {
     flexDirection: "row",
