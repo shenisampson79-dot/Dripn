@@ -113,6 +113,53 @@ The following features are hidden from the frontend UI but backend code remains 
 - **Cultural & Dress Code Preferences**: Supports religious/modest dress codes and subculture styles
 - **Fashion Trend Intelligence**: Regional and gender-specific trend insights
 
+## Onboarding API Endpoints
+The following backend endpoints are used for the onboarding flow:
+
+### DFY Selection Screen
+- `GET /api/onboarding/setup-options` - Returns DFY tiers with title, tagline, price, turnaround, highlights
+
+### Post-Recommendation UI
+- `POST /api/onboarding/record-interaction` - Records user interactions (save_outfit, another_option, second_opinion, tweak)
+
+### Save Outfit Flow (Pre-Signup)
+- Outfits cached locally (max 3) before prompting account creation
+- Cache key: `dripn_cached_outfits`
+
+### Upload Screens (Post-Payment)
+- `GET /api/onboarding/upload-instructions?type=core|outfit` - Returns upload guidance with tips, limits, examples
+
+### Browsing Mode
+- `POST /api/onboarding/check-gate` - After 3 recommendations, checks if soft personalization prompt should show
+- Recommendation count tracked locally: `dripn_recommendation_count`
+
+### Session Tracking
+- `POST /api/onboarding/session` (with device_id)
+- `GET /api/onboarding/session/:deviceId`
+
+## MVP DFY Tiering
+### DFY Tier A — Outfit-Based Setup (£19)
+- 5-7 outfits uploaded
+- Extracts: Items, Style preferences, Colour palette
+- Turnaround: 24h
+- Purpose: Fast trust + usable stylist context
+
+### DFY Tier B — Core Wardrobe Setup (£35-£39)
+- Up to 30 items
+- Basic tagging (Categories + formality)
+- Turnaround: 24-48h
+- Purpose: Reliable AI styling without overwhelm
+- Copy: "This isn't a full wardrobe inventory — it's enough for your stylist to be accurate"
+
+### MVP Categorisation (Per Item)
+1. Category: Top, Bottom, Dress, Outerwear, Shoes, Accessory (optional)
+2. Formality band: Casual, Smart-casual, Formal
+3. Primary colour: One colour only (no palettes yet)
+4. Seasonality: Warm, Cold, All-season
+
+### NOT Needed at MVP
+- Brand, Price, Purchase date, Fabric composition, Fit metrics, SKU-level accuracy
+
 ## External Dependencies
 - **Stripe**: Subscription management and payment processing
 - **SendGrid**: Transactional emails and newsletters
