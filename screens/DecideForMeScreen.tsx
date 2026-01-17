@@ -234,6 +234,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const recommendationCountRef = useRef(0);
   const outfitIndexRef = useRef(0);
   const [isLoadingAnotherOption, setIsLoadingAnotherOption] = useState(false);
+  const [isLoadingSecondOpinion, setIsLoadingSecondOpinion] = useState(false);
 
   useEffect(() => {
     fetchWeather();
@@ -514,8 +515,20 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   };
 
   const handleSecondOpinion = async () => {
+    setIsLoadingSecondOpinion(true);
     await recordInteraction("second_opinion");
-    navigation.navigate("SoftSignupGate", { fromPath: "second_opinion" });
+    
+    setTimeout(() => {
+      setIsLoadingSecondOpinion(false);
+      Alert.alert(
+        "Get a Second Opinion",
+        "Post your outfit to the community and get votes from real people within 45 minutes. Create a free account to use this feature.",
+        [
+          { text: "Not now", style: "cancel" },
+          { text: "Create account", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "second_opinion" }) },
+        ]
+      );
+    }, 300);
   };
 
   const [isSubmittingExpression, setIsSubmittingExpression] = useState(false);
@@ -750,12 +763,21 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </Pressable>
 
         <Pressable
-          style={[styles.actionButton, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border, borderWidth: 1 }]}
+          style={[
+            styles.actionButton, 
+            { 
+              backgroundColor: isLoadingSecondOpinion ? theme.link : theme.backgroundSecondary, 
+              borderColor: isLoadingSecondOpinion ? theme.link : theme.border, 
+              borderWidth: 1,
+              opacity: isLoadingSecondOpinion ? 0.8 : 1,
+            }
+          ]}
           onPress={handleSecondOpinion}
+          disabled={isLoadingSecondOpinion}
         >
-          <Feather name="users" size={18} color={theme.text} />
-          <ThemedText type="body" style={[styles.actionButtonText, { color: theme.text }]}>
-            Second opinion
+          <Feather name="users" size={18} color={isLoadingSecondOpinion ? "#FFFFFF" : theme.text} />
+          <ThemedText type="body" style={[styles.actionButtonText, { color: isLoadingSecondOpinion ? "#FFFFFF" : theme.text }]}>
+            {isLoadingSecondOpinion ? "Loading..." : "Second opinion"}
           </ThemedText>
         </Pressable>
       </Animated.View>
