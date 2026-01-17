@@ -521,8 +521,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     try {
       const response = await apiService.post<{ 
         requiresAuth?: boolean; 
-        aiOpinion?: string;
-        showOptions?: boolean;
+        stylistVerdict?: string;
+        communitySummary?: string;
+        topConcern?: string;
+        aiAdapted?: boolean;
       }>("/api/community/vote-request", {
         outfit: recommendation?.outfit,
         occasion: selectedOccasion,
@@ -531,24 +533,35 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       
       setIsLoadingSecondOpinion(false);
       
-      const aiMessage = response?.aiOpinion || 
-        `I'm confident about this recommendation. Community input can validate or challenge my choice — that usually takes 30–60 minutes.`;
+      const stylistMessage = response?.stylistVerdict || 
+        "Here's my take: this outfit works because it's balanced and easy to wear.\n\nIf you want, I can also get community input to sanity-check it.";
       
       Alert.alert(
-        "Second Opinion",
-        aiMessage,
+        "Get a second opinion?",
+        stylistMessage,
         [
           { 
-            text: "Get community input", 
+            text: "Community input (30-60 mins)", 
             onPress: () => {
-              if (response?.requiresAuth) {
-                navigation.navigate("SoftSignupGate", { fromPath: "second_opinion_slow" });
-              }
+              Alert.alert(
+                "Posted for feedback",
+                "I'll gather community input. Results aren't instant, but they're unbiased. Check back later.",
+                [{ text: "Got it" }]
+              );
             }
           },
           { 
-            text: "I need this quickly", 
-            onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "second_opinion_urgent" }),
+            text: "I need feedback quickly", 
+            onPress: () => {
+              Alert.alert(
+                "Fast feedback",
+                "Fast feedback needs an active audience. If you want that, I'll set this up properly.",
+                [
+                  { text: "Not now", style: "cancel" },
+                  { text: "Create account", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "second_opinion_urgent" }) },
+                ]
+              );
+            },
             style: "default"
           },
           { text: "Not now", style: "cancel" },
@@ -557,16 +570,31 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     } catch (error) {
       setIsLoadingSecondOpinion(false);
       Alert.alert(
-        "Second Opinion",
-        "I'm confident about this recommendation. Community input can validate or challenge my choice — that usually takes 30–60 minutes.",
+        "Get a second opinion?",
+        "Here's my take: this outfit works because it's balanced and easy to wear.\n\nIf you want, I can also get community input to sanity-check it.",
         [
           { 
-            text: "Get community input (no account)", 
-            onPress: () => {} 
+            text: "Community input (30-60 mins)", 
+            onPress: () => {
+              Alert.alert(
+                "Posted for feedback",
+                "I'll gather community input. Results aren't instant, but they're unbiased. Check back later.",
+                [{ text: "Got it" }]
+              );
+            }
           },
           { 
-            text: "I need this quickly", 
-            onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "second_opinion_urgent" }),
+            text: "I need feedback quickly", 
+            onPress: () => {
+              Alert.alert(
+                "Fast feedback",
+                "Fast feedback needs an active audience. If you want that, I'll set this up properly.",
+                [
+                  { text: "Not now", style: "cancel" },
+                  { text: "Create account", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "second_opinion_urgent" }) },
+                ]
+              );
+            },
             style: "default"
           },
           { text: "Not now", style: "cancel" },
