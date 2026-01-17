@@ -55,32 +55,93 @@ const STYLE_CHIPS = [
   { id: "not_sure" as StyleDirection, label: "Not sure yet" },
 ];
 
-const FALLBACK_OUTFITS = [
+interface FallbackOutfit {
+  outfit: string;
+  reasoning: string;
+  occasions?: string[];
+  coldWeather?: boolean;
+  warmWeather?: boolean;
+}
+
+const FALLBACK_OUTFITS: FallbackOutfit[] = [
   {
     outfit: "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white trainers for a modern finish.",
-    reasoning: "This classic combination works perfectly for your occasion and the current weather.",
+    reasoning: "This classic combination works perfectly for your occasion. Smart enough for most settings, comfortable enough for all day.",
+    occasions: ["work", "casual", "event"],
   },
   {
-    outfit: "Try dark slim-fit jeans with a fitted crew neck jumper in navy or grey. Layer with a quality overcoat if it's cold.",
-    reasoning: "Smart casual that works for most occasions. Effortlessly put together.",
+    outfit: "Try dark slim-fit jeans with a fitted crew neck jumper in navy or grey. Layer with a quality overcoat.",
+    reasoning: "Smart casual that works for most occasions. The layers keep you warm without sacrificing style.",
+    occasions: ["casual", "date"],
+    coldWeather: true,
   },
   {
     outfit: "Go for chinos in a neutral tone with a well-fitted Oxford shirt. Roll the sleeves for a relaxed but refined look.",
     reasoning: "This versatile combination takes you from day to evening with ease.",
+    occasions: ["work", "casual", "date"],
+    warmWeather: true,
   },
   {
     outfit: "Pair straight-leg trousers with a quality turtleneck in black or cream. Add loafers for a sophisticated edge.",
     reasoning: "Minimalist and impactful. Fewer pieces, more intention.",
+    occasions: ["work", "date", "event"],
+    coldWeather: true,
   },
   {
-    outfit: "Choose a midi skirt with a tucked-in silk blouse. Add heeled ankle boots and simple gold jewellery.",
+    outfit: "Choose a flowy midi dress in a solid colour. Add heeled ankle boots and simple gold jewellery.",
     reasoning: "Elegant without trying too hard. The silhouette does the work.",
+    occasions: ["date", "event"],
   },
   {
-    outfit: "Opt for a relaxed linen shirt over well-fitted chinos. Espadrilles or leather sandals complete the look.",
+    outfit: "Opt for a relaxed linen shirt over well-fitted chinos. Leather loafers complete the look.",
     reasoning: "Easy and breathable. Perfect when you want to look good without overthinking.",
+    occasions: ["casual", "date"],
+    warmWeather: true,
+  },
+  {
+    outfit: "A well-fitted navy or charcoal suit with a crisp white shirt and polished Oxford shoes. Add a quality leather belt.",
+    reasoning: "Classic professional attire that commands respect. Timeless for a reason.",
+    occasions: ["work", "event"],
+  },
+  {
+    outfit: "Dark tailored jeans with a fitted cashmere jumper. Add clean leather Chelsea boots for a polished finish.",
+    reasoning: "Elevated casual that works for upscale venues. Comfortable yet refined.",
+    occasions: ["date", "event", "casual"],
+    coldWeather: true,
+  },
+  {
+    outfit: "Structured wide-leg trousers with a tucked-in silk camisole and a tailored blazer. Pointed-toe heels add polish.",
+    reasoning: "Modern power dressing. Makes a statement without saying a word.",
+    occasions: ["work", "event"],
+  },
+  {
+    outfit: "Lightweight cotton t-shirt in a neutral tone with well-fitted shorts and quality leather sandals.",
+    reasoning: "Summer simplicity done right. Cool, clean, and effortlessly put together.",
+    occasions: ["casual"],
+    warmWeather: true,
   },
 ];
+
+const getFilteredOutfits = (occasion: string | null, temperature: number | null): FallbackOutfit[] => {
+  let filtered = [...FALLBACK_OUTFITS];
+  
+  if (occasion) {
+    const occasionFiltered = filtered.filter(o => !o.occasions || o.occasions.includes(occasion));
+    if (occasionFiltered.length > 0) filtered = occasionFiltered;
+  }
+  
+  if (temperature !== null) {
+    if (temperature < 12) {
+      const coldFiltered = filtered.filter(o => o.coldWeather !== false && !o.warmWeather);
+      if (coldFiltered.length > 0) filtered = coldFiltered;
+    } else if (temperature > 20) {
+      const warmFiltered = filtered.filter(o => o.warmWeather !== false && !o.coldWeather);
+      if (warmFiltered.length > 0) filtered = warmFiltered;
+    }
+  }
+  
+  return filtered.length > 0 ? filtered : FALLBACK_OUTFITS;
+};
 
 export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps) {
   const insets = useSafeAreaInsets();
@@ -252,6 +313,12 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const handleOccasionSelect = async (occasionId: string) => {
     setSelectedOccasion(occasionId);
     setStep("loading");
+    
+    // Get context-aware fallback
+    const filteredOutfits = getFilteredOutfits(occasionId, weather?.temperature ?? null);
+    const randomIndex = Math.floor(Math.random() * filteredOutfits.length);
+    outfitIndexRef.current = randomIndex;
+    const fallbackOutfit = filteredOutfits[randomIndex];
 
     try {
       const data = await apiService.post<{ id?: string; recommendation?: string; reasoning?: string; stylistName?: string }>("/api/onboarding/quick-recommendation", {
@@ -261,17 +328,17 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         styleExpression: expressionText.trim() || undefined,
       });
 
-      if (data) {
+      if (data && data.recommendation) {
         setRecommendation({
           id: data.id,
-          outfit: data.recommendation || "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white trainers for a modern finish.",
+          outfit: data.recommendation,
           reasoning: data.reasoning || "This look balances comfort with style, perfect for your occasion.",
           stylistName: data.stylistName || "Ruby",
         });
       } else {
         setRecommendation({
-          outfit: "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white trainers for a modern finish.",
-          reasoning: "This classic combination works perfectly for your occasion and the current weather.",
+          outfit: fallbackOutfit.outfit,
+          reasoning: fallbackOutfit.reasoning,
           stylistName: "Ruby",
         });
       }
@@ -279,8 +346,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       incrementRecommendationCount();
     } catch (error: unknown) {
       setRecommendation({
-        outfit: "Wear tailored trousers with a crisp white shirt and a structured blazer. Add clean white trainers for a modern finish.",
-        reasoning: "This classic combination works perfectly for your occasion and the current weather.",
+        outfit: fallbackOutfit.outfit,
+        reasoning: fallbackOutfit.reasoning,
         stylistName: "Ruby",
       });
       setStep("result");
@@ -358,9 +425,12 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     setIsLoadingAnotherOption(true);
     await recordInteraction("another_option");
     
-    // Cycle to next outfit
-    outfitIndexRef.current = (outfitIndexRef.current + 1) % FALLBACK_OUTFITS.length;
-    const nextOutfit = FALLBACK_OUTFITS[outfitIndexRef.current];
+    // Get filtered outfits based on occasion and weather
+    const filteredOutfits = getFilteredOutfits(selectedOccasion, weather?.temperature ?? null);
+    
+    // Cycle to next outfit within filtered set
+    outfitIndexRef.current = (outfitIndexRef.current + 1) % filteredOutfits.length;
+    const nextOutfit = filteredOutfits[outfitIndexRef.current];
     
     // Brief delay for visual feedback
     setTimeout(() => {

@@ -17,30 +17,34 @@ interface ModelConfig {
 }
 
 const VISION_MODELS: ModelConfig[] = [
-  { id: 'gpt-4.1', priority: 1, capabilities: ['vision', 'text', 'reasoning'], maxTokens: 128000, supportsImages: true },
+  { id: 'gpt-4.5', priority: 1, capabilities: ['vision', 'text', 'reasoning'], maxTokens: 128000, supportsImages: true },
   { id: 'gpt-4.5-preview', priority: 2, capabilities: ['vision', 'text', 'reasoning'], maxTokens: 128000, supportsImages: true },
-  { id: 'gpt-4o', priority: 3, capabilities: ['vision', 'text'], maxTokens: 128000, supportsImages: true },
-  { id: 'gpt-4o-mini', priority: 4, capabilities: ['vision', 'text'], maxTokens: 128000, supportsImages: true },
-  { id: 'gpt-4-turbo', priority: 5, capabilities: ['vision', 'text'], maxTokens: 128000, supportsImages: true },
-  { id: 'gpt-4-vision-preview', priority: 6, capabilities: ['vision', 'text'], maxTokens: 128000, supportsImages: true },
+  { id: 'gpt-4.1', priority: 3, capabilities: ['vision', 'text', 'reasoning'], maxTokens: 128000, supportsImages: true },
+  { id: 'gpt-4o', priority: 4, capabilities: ['vision', 'text'], maxTokens: 128000, supportsImages: true },
+  { id: 'gpt-4o-mini', priority: 5, capabilities: ['vision', 'text'], maxTokens: 128000, supportsImages: true },
+  { id: 'gpt-4-turbo', priority: 6, capabilities: ['vision', 'text'], maxTokens: 128000, supportsImages: true },
+  { id: 'gpt-4-vision-preview', priority: 7, capabilities: ['vision', 'text'], maxTokens: 128000, supportsImages: true },
 ];
 
 const TEXT_MODELS: ModelConfig[] = [
-  { id: 'gpt-4.1', priority: 1, capabilities: ['text', 'reasoning'], maxTokens: 128000, supportsImages: false },
+  { id: 'gpt-4.5', priority: 1, capabilities: ['text', 'reasoning'], maxTokens: 128000, supportsImages: false },
   { id: 'gpt-4.5-preview', priority: 2, capabilities: ['text', 'reasoning'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4o', priority: 3, capabilities: ['text'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4-turbo', priority: 4, capabilities: ['text'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4', priority: 5, capabilities: ['text'], maxTokens: 8192, supportsImages: false },
-  { id: 'gpt-3.5-turbo', priority: 6, capabilities: ['text'], maxTokens: 16385, supportsImages: false },
+  { id: 'gpt-4.1', priority: 3, capabilities: ['text', 'reasoning'], maxTokens: 128000, supportsImages: false },
+  { id: 'gpt-4o', priority: 4, capabilities: ['text'], maxTokens: 128000, supportsImages: false },
+  { id: 'gpt-4-turbo', priority: 5, capabilities: ['text'], maxTokens: 128000, supportsImages: false },
+  { id: 'gpt-4', priority: 6, capabilities: ['text'], maxTokens: 8192, supportsImages: false },
+  { id: 'gpt-3.5-turbo', priority: 7, capabilities: ['text'], maxTokens: 16385, supportsImages: false },
 ];
 
 const REASONING_MODELS: ModelConfig[] = [
-  { id: 'o1', priority: 1, capabilities: ['reasoning', 'text'], maxTokens: 200000, supportsImages: false },
-  { id: 'o1-preview', priority: 2, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
-  { id: 'o1-mini', priority: 3, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4.1', priority: 4, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4.5-preview', priority: 5, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4o', priority: 6, capabilities: ['text'], maxTokens: 128000, supportsImages: false },
+  { id: 'o3', priority: 1, capabilities: ['reasoning', 'text'], maxTokens: 200000, supportsImages: false },
+  { id: 'o1', priority: 2, capabilities: ['reasoning', 'text'], maxTokens: 200000, supportsImages: false },
+  { id: 'o1-preview', priority: 3, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
+  { id: 'o1-mini', priority: 4, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
+  { id: 'gpt-4.5', priority: 5, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
+  { id: 'gpt-4.5-preview', priority: 6, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
+  { id: 'gpt-4.1', priority: 7, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
+  { id: 'gpt-4o', priority: 8, capabilities: ['text'], maxTokens: 128000, supportsImages: false },
 ];
 
 const VOICE_TRANSCRIPTION_MODELS: ModelConfig[] = [

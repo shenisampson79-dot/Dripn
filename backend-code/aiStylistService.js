@@ -5,9 +5,11 @@ const openai = new OpenAI({
 });
 
 const MODEL_PREFERENCE_ORDER = [
+  'gpt-4.5',
+  'gpt-4.5-preview',
+  'o3',
   'o1',
   'gpt-4.1',
-  'gpt-4.5-preview',
   'gpt-4o-2024-11-20',
   'gpt-4o',
   'gpt-4-turbo',
@@ -16,22 +18,25 @@ const MODEL_PREFERENCE_ORDER = [
 ];
 
 const MINI_MODEL_PREFERENCE_ORDER = [
+  'gpt-4.1-mini',
   'gpt-4o-mini-2024-07-18',
   'gpt-4o-mini',
   'gpt-4-turbo',
   'gpt-3.5-turbo',
 ];
 
-// Reasoning models for complex analysis tasks - o1 excels at deep reasoning
+// Reasoning models for complex analysis tasks
 const REASONING_MODEL_PREFERENCE_ORDER = [
+  'o3',
   'o1',
   'o1-2024-12-17',
   'o1-preview',
   'o1-preview-2024-09-12',
   'o1-mini',
   'o1-mini-2024-09-12',
-  'gpt-4.1',
+  'gpt-4.5',
   'gpt-4.5-preview',
+  'gpt-4.1',
   'gpt-4o',
 ];
 
