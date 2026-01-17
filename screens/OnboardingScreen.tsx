@@ -255,8 +255,6 @@ const POPULAR_SHOPS = [
 
 const DRIPN_GOALS: { id: DripnGoal; name: string; icon: keyof typeof Feather.glyphMap; description: string }[] = [
   { id: "dress-better", name: "Dress Better", icon: "star", description: "Improve my overall style and appearance" },
-  { id: "meet-people", name: "Meet People", icon: "users", description: "Connect with fashion-minded individuals" },
-  { id: "find-offers", name: "Find Deals", icon: "tag", description: "Discover great fashion bargains and sales" },
   { id: "get-inspired", name: "Get Inspired", icon: "eye", description: "Find new outfit ideas and style inspiration" },
   { id: "build-wardrobe", name: "Build Wardrobe", icon: "grid", description: "Create a versatile and cohesive wardrobe" },
   { id: "special-events", name: "Special Events", icon: "calendar", description: "Look amazing for parties, dates, and occasions" },
