@@ -15,6 +15,7 @@ import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { stylistUpgradeService } from "@/services/StylistUpgradeService";
+import { styleDirectionService, StyleDirection } from "@/services/StyleDirectionService";
 
 type DecideForMeScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "DecideForMe">;
@@ -50,6 +51,14 @@ interface Recommendation {
 
 const CACHED_OUTFITS_KEY = "dripn_cached_outfits";
 const RECOMMENDATION_COUNT_KEY = "dripn_recommendation_count";
+const STYLE_DIRECTION_SET_KEY = "dripn_style_direction_set";
+
+const STYLE_CHIPS = [
+  { id: "masculine" as StyleDirection, label: "Masculine" },
+  { id: "feminine" as StyleDirection, label: "Feminine" },
+  { id: "androgynous" as StyleDirection, label: "Androgynous" },
+  { id: "not_sure" as StyleDirection, label: "Not sure yet" },
+];
 
 export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps) {
   const insets = useSafeAreaInsets();
@@ -64,13 +73,42 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const [tweakText, setTweakText] = useState("");
   const [showSavePrompt, setShowSavePrompt] = useState(false);
   const [cachedOutfitsCount, setCachedOutfitsCount] = useState(0);
+  const [showStyleChips, setShowStyleChips] = useState(false);
+  const [selectedStyleDirection, setSelectedStyleDirection] = useState<StyleDirection | null>(null);
+  const [styleDirectionSet, setStyleDirectionSet] = useState(false);
   const recommendationCountRef = useRef(0);
 
   useEffect(() => {
     fetchWeather();
     loadCachedOutfitsCount();
     loadRecommendationCount();
+    checkStyleDirectionStatus();
   }, []);
+
+  const checkStyleDirectionStatus = async () => {
+    try {
+      const isSet = await AsyncStorage.getItem(STYLE_DIRECTION_SET_KEY);
+      if (isSet === "true") {
+        setStyleDirectionSet(true);
+      }
+    } catch (error) {
+      console.log("Failed to check style direction status");
+    }
+  };
+
+  const handleStyleChipSelect = async (direction: StyleDirection) => {
+    setSelectedStyleDirection(direction);
+    const success = await styleDirectionService.setStyleDirection(direction, "chips");
+    if (success) {
+      setStyleDirectionSet(true);
+      await AsyncStorage.setItem(STYLE_DIRECTION_SET_KEY, "true");
+      setTimeout(() => setShowStyleChips(false), 500);
+    }
+  };
+
+  const dismissStyleChips = () => {
+    setShowStyleChips(false);
+  };
 
   const loadCachedOutfitsCount = async () => {
     try {
@@ -97,6 +135,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     try {
       recommendationCountRef.current += 1;
       await AsyncStorage.setItem(RECOMMENDATION_COUNT_KEY, recommendationCountRef.current.toString());
+      
+      if (recommendationCountRef.current === 1 && !styleDirectionSet) {
+        setTimeout(() => setShowStyleChips(true), 1500);
+      }
       
       if (recommendationCountRef.current >= 3) {
         checkGate();
@@ -498,6 +540,47 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </Pressable>
       </Animated.View>
 
+      {showStyleChips && !styleDirectionSet ? (
+        <Animated.View entering={FadeIn} style={[styles.styleChipsOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
+          <View style={[styles.styleChipsCard, { backgroundColor: theme.backgroundDefault }]}>
+            <View style={styles.styleChipsHeader}>
+              <ThemedText type="h4" style={{ color: theme.text }}>
+                Tell me a bit about your style
+              </ThemedText>
+              <Pressable onPress={dismissStyleChips} style={styles.dismissButton}>
+                <Feather name="x" size={20} color={theme.tabIconDefault} />
+              </Pressable>
+            </View>
+            <ThemedText type="body" style={[styles.styleChipsSubtitle, { color: theme.tabIconDefault }]}>
+              If you want, I can tailor this more closely
+            </ThemedText>
+            
+            <View style={styles.styleChipsRow}>
+              {STYLE_CHIPS.map((chip) => (
+                <Pressable
+                  key={chip.id}
+                  style={[
+                    styles.styleChip,
+                    {
+                      backgroundColor: selectedStyleDirection === chip.id ? theme.link : theme.backgroundSecondary,
+                      borderColor: selectedStyleDirection === chip.id ? theme.link : theme.border,
+                    },
+                  ]}
+                  onPress={() => handleStyleChipSelect(chip.id)}
+                >
+                  <ThemedText
+                    type="body"
+                    style={{ color: selectedStyleDirection === chip.id ? "#FFFFFF" : theme.text }}
+                  >
+                    {chip.label}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </Animated.View>
+      ) : null}
+
       {showSavePrompt ? renderSavePrompt() : null}
     </Animated.View>
   );
@@ -716,5 +799,42 @@ const styles = StyleSheet.create({
   savePromptSecondary: {
     paddingVertical: Spacing.md,
     alignItems: "center",
+  },
+  styleChipsOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "flex-end",
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
+  styleChipsCard: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+  },
+  styleChipsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.xs,
+  },
+  dismissButton: {
+    padding: Spacing.xs,
+  },
+  styleChipsSubtitle: {
+    marginBottom: Spacing.lg,
+  },
+  styleChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  styleChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
   },
 });
