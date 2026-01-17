@@ -2277,9 +2277,26 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     }
   };
 
+  const handleBack = () => {
+    if (step > 0) {
+      setStep(step - 1);
+    } else {
+      navigation.goBack();
+    }
+  };
+
   return (
     <ThemedView style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.lg }]}>
+        <Pressable
+          onPress={handleBack}
+          style={({ pressed }) => [
+            styles.headerBackButton,
+            { opacity: pressed ? 0.7 : 1 },
+          ]}
+        >
+          <Feather name="arrow-left" size={24} color={theme.text} />
+        </Pressable>
         <View style={styles.progressContainer}>
           {Array.from({ length: totalSteps }).map((_, i) => (
             <View
@@ -2757,6 +2774,10 @@ const styles = StyleSheet.create({
     width: 32,
     height: 4,
     borderRadius: 2,
+  },
+  headerBackButton: {
+    padding: Spacing.sm,
+    marginRight: Spacing.sm,
   },
   skipButton: {
     paddingVertical: Spacing.sm,
