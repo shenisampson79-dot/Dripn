@@ -1,0 +1,94 @@
+import { apiService } from "./ApiService";
+import { onboardingSessionService } from "./OnboardingSessionService";
+
+export type StyleDirection = "masculine" | "feminine" | "androgynous" | "not_sure";
+
+export interface FirstPromptOption {
+  id: string;
+  label: string;
+  icon: string;
+}
+
+export interface GenderSafeDefaults {
+  firstPrompt: {
+    question: string;
+    options: FirstPromptOption[];
+  };
+}
+
+export interface StyleDirectionResponse {
+  useGenderSafe: boolean;
+  styleDirection?: StyleDirection;
+}
+
+class StyleDirectionService {
+  async getGenderSafeDefaults(): Promise<GenderSafeDefaults> {
+    try {
+      const data = await apiService.get<GenderSafeDefaults>("/api/onboarding/gender-safe-defaults");
+      return data || this.getDefaultConfig();
+    } catch (error) {
+      console.log("Failed to fetch gender-safe defaults");
+      return this.getDefaultConfig();
+    }
+  }
+
+  private getDefaultConfig(): GenderSafeDefaults {
+    return {
+      firstPrompt: {
+        question: "What do you want help with right now?",
+        options: [
+          { id: "today", label: "What to wear today", icon: "sun" },
+          { id: "event", label: "What to wear to an event", icon: "calendar" },
+          { id: "confidence", label: "Building confidence in my style", icon: "heart" },
+          { id: "smarter", label: "Buying less / shopping smarter", icon: "check-square" },
+        ],
+      },
+    };
+  }
+
+  async setStyleDirection(
+    styleDirection: StyleDirection,
+    source: "chips" | "chat" | "onboarding" = "chips"
+  ): Promise<boolean> {
+    try {
+      const deviceId = await onboardingSessionService.getDeviceId();
+      await apiService.post("/api/onboarding/set-style-direction", {
+        deviceId,
+        styleDirection,
+        source,
+      });
+      return true;
+    } catch (error) {
+      console.log("Failed to set style direction");
+      return false;
+    }
+  }
+
+  async getStyleDirection(): Promise<StyleDirectionResponse> {
+    try {
+      const deviceId = await onboardingSessionService.getDeviceId();
+      const data = await apiService.get<StyleDirectionResponse>(
+        `/api/onboarding/get-style-direction?deviceId=${deviceId}`
+      );
+      return data || { useGenderSafe: true };
+    } catch (error) {
+      console.log("Failed to get style direction");
+      return { useGenderSafe: true };
+    }
+  }
+
+  getStyleChips(): { id: StyleDirection; label: string }[] {
+    return [
+      { id: "masculine", label: "Masculine" },
+      { id: "feminine", label: "Feminine" },
+      { id: "androgynous", label: "Androgynous" },
+      { id: "not_sure", label: "Not sure yet" },
+    ];
+  }
+
+  getSoftClarificationMessage(): string {
+    return "If you want, I can tailor this more closely — tell me a bit about what you usually wear.";
+  }
+}
+
+export const styleDirectionService = new StyleDirectionService();
