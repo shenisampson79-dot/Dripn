@@ -215,7 +215,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const [step, setStep] = useState(0);
-  const [selectedContext, setSelectedContext] = useState<HelpContext | null>(null);
+  const [selectedContext, setSelectedContext] = useState<HelpContext | null>("what-to-wear-today");
   const [isGenerating, setIsGenerating] = useState(false);
   const videoRef = useRef<Video>(null);
   
@@ -240,16 +240,12 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
 
   const handleContextSelect = async (context: HelpContext) => {
     setSelectedContext(context);
-    setIsGenerating(true);
     await AsyncStorage.setItem("dripn_initial_context", context);
     
     onboardingAnalyticsService.trackVariation(messageVariationId, 'trust', 'complete', context as any);
     onboardingAnalyticsService.storeInitialContext(context as any, messageVariationId);
     
-    setTimeout(() => {
-      setIsGenerating(false);
-      setStep(1);
-    }, 1500);
+    navigation.navigate("OnboardingEntry");
   };
 
   const handleGetStarted = () => {
@@ -289,7 +285,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
               </View>
             </View>
             <View style={styles.ctaContainer}>
-              <Button onPress={() => setStep(1)} style={styles.primaryButton}>
+              <Button onPress={handleGetStyled} style={styles.primaryButton}>
                 Get Styled
               </Button>
             </View>
@@ -297,44 +293,6 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
         );
 
       case 1:
-        return (
-          <Animated.View 
-            entering={SlideInRight.duration(300)} 
-            exiting={SlideOutLeft.duration(300)}
-            style={styles.stepContainer}
-          >
-            <View style={styles.stepContent}>
-              <View style={styles.contentCard}>
-                <ThemedText type="h1" style={styles.headline}>
-                  What do you want help with right now?
-                </ThemedText>
-                <View style={styles.optionsContainer}>
-                  {HELP_OPTIONS.map((option) => (
-                    <Pressable
-                      key={option.id}
-                      onPress={() => handleContextSelect(option.id)}
-                      style={({ pressed }) => [
-                        styles.optionButton,
-                        {
-                          opacity: pressed ? 0.8 : 1,
-                          transform: [{ scale: pressed ? 0.98 : 1 }],
-                        },
-                      ]}
-                    >
-                      <Feather name={option.icon} size={20} color="#FFFFFF" style={styles.optionIcon} />
-                      <ThemedText type="body" style={styles.optionText}>
-                        {option.label}
-                      </ThemedText>
-                      <Feather name="chevron-right" size={20} color="rgba(255,255,255,0.6)" />
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            </View>
-          </Animated.View>
-        );
-
-      case 2:
         if (isGenerating) {
           return (
             <Animated.View 
@@ -419,7 +377,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
       />
 
       <View style={[styles.overlay, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.lg }]}>
-        {step > 0 && step < 3 ? (
+        {step === 1 ? (
           <View style={styles.header}>
             <Pressable onPress={() => setStep(step - 1)} style={styles.backButton}>
               <Feather name="arrow-left" size={24} color={theme.text} />
