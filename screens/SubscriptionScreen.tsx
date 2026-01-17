@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Pressable, Alert } from "react-native";
+import { StyleSheet, View, Pressable, Alert, Dimensions } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as WebBrowser from "expo-web-browser";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -15,6 +16,22 @@ import { useSubscription, SUBSCRIPTION_PLANS } from "@/contexts/SubscriptionCont
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+const LUXURY_COLORS = {
+  gold: '#C9A87C',
+  deepGold: '#A88B5C',
+  rose: '#E8B4B8',
+  berry: '#8B2F39',
+  violet: '#9B7EBD',
+  deepViolet: '#6B4E8D',
+  champagne: '#F5E6D3',
+  midnight: '#1A1A2E',
+  coral: '#E07A5F',
+  teal: '#2A9D8F',
+  emerald: '#059669',
+};
 
 type SubscriptionScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "Subscription">;
@@ -34,6 +51,8 @@ interface Plan {
   description: string;
   features: PlanFeature[];
   popular?: boolean;
+  gradientColors: readonly [string, string, ...string[]];
+  accentColor: string;
 }
 
 type DisplayTier = 'free' | 'personal_stylist';
@@ -64,12 +83,26 @@ const PLAN_METADATA: Record<DisplayTier, { name: string; period: string; descrip
 };
 
 const getLocalizedPlans = (prices: { free: string; personal_stylist: string }): Plan[] => [
-  { id: "free" as SubscriptionTier, ...PLAN_METADATA.free, price: prices.free, features: PLAN_FEATURES.free },
-  { id: "premium" as SubscriptionTier, ...PLAN_METADATA.personal_stylist, price: prices.personal_stylist, features: PLAN_FEATURES.personal_stylist },
+  { 
+    id: "free" as SubscriptionTier, 
+    ...PLAN_METADATA.free, 
+    price: prices.free, 
+    features: PLAN_FEATURES.free,
+    gradientColors: ['#2A2A3E', '#1A1A2E'] as const,
+    accentColor: LUXURY_COLORS.champagne,
+  },
+  { 
+    id: "premium" as SubscriptionTier, 
+    ...PLAN_METADATA.personal_stylist, 
+    price: prices.personal_stylist, 
+    features: PLAN_FEATURES.personal_stylist,
+    gradientColors: [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const,
+    accentColor: LUXURY_COLORS.gold,
+  },
 ];
 
 export default function SubscriptionScreen({ navigation }: SubscriptionScreenProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { user, updateProfile } = useAuth();
   const { 
     usage, 
@@ -166,14 +199,15 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     return Math.min(100, (used / limit) * 100);
   };
 
-  const renderPlanCard = (plan: Plan) => {
+  const usageColors = [LUXURY_COLORS.violet, LUXURY_COLORS.coral, LUXURY_COLORS.teal, LUXURY_COLORS.gold];
+
+  const renderPlanCard = (plan: Plan, index: number) => {
     const isSelected = selectedPlan === plan.id;
     const isPaidPlan = plan.id === 'premium';
     const userOnPaidTier = user?.subscriptionTier && ['basic', 'premium', 'vip'].includes(user.subscriptionTier);
     const isCurrent = plan.id === 'free' 
       ? user?.subscriptionTier === 'free' 
       : isPaidPlan && userOnPaidTier;
-    const colors = SubscriptionColors[plan.id];
 
     return (
       <Pressable
@@ -182,306 +216,330 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         style={({ pressed }) => [
           styles.planCard,
           {
-            backgroundColor: theme.backgroundDefault,
-            borderColor: isSelected ? theme.link : "transparent",
-            opacity: pressed ? 0.9 : 1,
+            borderColor: isSelected ? plan.accentColor : "transparent",
+            borderWidth: isSelected ? 2 : 0,
+            opacity: pressed ? 0.95 : 1,
+            transform: [{ scale: pressed ? 0.98 : 1 }],
           },
         ]}
       >
-        {plan.popular ? (
-          <View style={[styles.popularBadge, { backgroundColor: theme.link }]}>
-            <ThemedText type="caption" style={styles.popularText}>
-              Most Popular
-            </ThemedText>
-          </View>
-        ) : null}
-
-        <View style={styles.planHeader}>
-          <View
-            style={[
-              styles.planBadge,
-              { backgroundColor: 'backgroundStart' in colors ? colors.backgroundStart : colors.background },
-            ]}
-          >
-            <ThemedText type="small" style={{ color: colors.text, fontWeight: "600" }}>
-              {plan.name}
-            </ThemedText>
-          </View>
-          {isCurrent ? (
-            <View style={[styles.currentBadge, { backgroundColor: theme.success || "#34C759" }]}>
-              <ThemedText type="caption" style={styles.currentText}>
-                Current
+        <LinearGradient
+          colors={plan.gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.planGradient}
+        >
+          {plan.popular ? (
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.popularBadge}
+            >
+              <ThemedText type="caption" style={styles.popularText}>
+                Most Popular
               </ThemedText>
+            </LinearGradient>
+          ) : null}
+
+          <View style={styles.planHeader}>
+            <View style={[styles.planNameContainer, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+              <ThemedText type="h3" style={styles.planName}>
+                {plan.name}
+              </ThemedText>
+            </View>
+            {isCurrent ? (
+              <View style={[styles.currentBadge, { backgroundColor: LUXURY_COLORS.emerald }]}>
+                <ThemedText type="caption" style={styles.currentText}>
+                  Current
+                </ThemedText>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.priceContainer}>
+            <ThemedText type="h1" style={[styles.price, { color: '#FFFFFF' }]}>
+              {plan.price}
+            </ThemedText>
+            <ThemedText type="body" style={[styles.period, { color: 'rgba(255,255,255,0.7)' }]}>
+              {plan.period}
+            </ThemedText>
+          </View>
+
+          <ThemedText type="body" style={[styles.planDescription, { color: 'rgba(255,255,255,0.8)' }]}>
+            {plan.description}
+          </ThemedText>
+
+          <View style={styles.featuresContainer}>
+            {plan.features.map((feature, idx) => (
+              <View key={idx} style={styles.featureRow}>
+                <View style={[
+                  styles.featureIcon,
+                  { backgroundColor: feature.included ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)' }
+                ]}>
+                  <Feather
+                    name={feature.included ? "check" : "x"}
+                    size={12}
+                    color={feature.included ? plan.accentColor : 'rgba(255,255,255,0.3)'}
+                  />
+                </View>
+                <ThemedText
+                  type="small"
+                  style={[
+                    styles.featureText,
+                    { color: feature.included ? '#FFFFFF' : 'rgba(255,255,255,0.4)' },
+                    feature.bold && styles.featureBold,
+                  ]}
+                >
+                  {feature.text}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+
+          {isSelected && !isCurrent ? (
+            <View style={[styles.selectedIndicator, { backgroundColor: plan.accentColor }]}>
+              <Feather name="check" size={16} color={LUXURY_COLORS.midnight} />
             </View>
           ) : null}
-        </View>
-
-        <View style={styles.priceContainer}>
-          <ThemedText type="h1" style={styles.price}>
-            {plan.price}
-          </ThemedText>
-          <ThemedText type="body" style={styles.period}>
-            {plan.period}
-          </ThemedText>
-        </View>
-
-        <ThemedText type="body" style={styles.planDescription}>
-          {plan.description}
-        </ThemedText>
-
-        <View style={styles.featuresContainer}>
-          {plan.features.map((feature, index) => (
-            <View key={index} style={styles.featureRow}>
-              <Feather
-                name={feature.included ? "check" : "x"}
-                size={16}
-                color={feature.included ? theme.success || "#34C759" : theme.tabIconDefault}
-              />
-              <ThemedText
-                type="small"
-                style={[
-                  styles.featureText,
-                  !feature.included && styles.featureDisabled,
-                  feature.bold && styles.featureBold,
-                ]}
-              >
-                {feature.text}
-              </ThemedText>
-            </View>
-          ))}
-        </View>
-
-        {isSelected && !isCurrent ? (
-          <View style={[styles.selectedIndicator, { backgroundColor: theme.link }]}>
-            <Feather name="check" size={16} color="#FFFFFF" />
-          </View>
-        ) : null}
+        </LinearGradient>
       </Pressable>
     );
   };
 
   return (
-    <ScreenScrollView>
-      <View style={styles.header}>
-        <ThemedText type="h2" style={styles.headerTitle}>
-          Choose Your Plan
-        </ThemedText>
-        <ThemedText type="body" style={styles.headerSubtitle}>
-          Unlock more features and get personalized style advice
-        </ThemedText>
-      </View>
+    <ScreenScrollView style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}>
+      <LinearGradient
+        colors={isDark 
+          ? [LUXURY_COLORS.deepViolet, LUXURY_COLORS.berry, '#0D0B09'] 
+          : [LUXURY_COLORS.violet, LUXURY_COLORS.rose, '#FAF8F5']
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroGradient}
+      >
+        <View style={styles.heroContent}>
+          <View style={styles.heroIconContainer}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+              style={styles.heroIconGradient}
+            >
+              <Feather name="award" size={28} color={LUXURY_COLORS.midnight} />
+            </LinearGradient>
+          </View>
+          <ThemedText type="h1" style={styles.heroTitle}>
+            Elevate Your Style
+          </ThemedText>
+          <ThemedText type="body" style={styles.heroSubtitle}>
+            Unlock premium features and personalized AI styling
+          </ThemedText>
+        </View>
+      </LinearGradient>
 
-      <View style={[styles.usageSection, { backgroundColor: theme.backgroundDefault }]}>
-        <ThemedText type="h3" style={styles.usageTitle}>
-          Your Usage This Month
-        </ThemedText>
+      <View style={[styles.usageSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+        <View style={styles.usageTitleRow}>
+          <ThemedText type="h3" style={styles.usageTitle}>
+            Your Usage
+          </ThemedText>
+          <View style={[styles.usagePeriodBadge, { backgroundColor: LUXURY_COLORS.violet + '20' }]}>
+            <ThemedText type="caption" style={{ color: LUXURY_COLORS.violet }}>This Month</ThemedText>
+          </View>
+        </View>
         <View style={styles.usageGrid}>
-          <View style={styles.usageItem}>
-            <View style={styles.usageHeader}>
-              <Feather name="upload" size={16} color={theme.link} />
-              <ThemedText type="small">Posts</ThemedText>
+          {[
+            { icon: "upload", label: "Posts", remaining: getRemainingUploads(), used: usage.uploadsThisMonth, limit: limits.uploadsPerMonth },
+            { icon: "star", label: "Style Advice", remaining: getRemainingAIAdvice(), used: usage.aiAdviceThisMonth, limit: limits.aiAdvicePerMonth },
+            { icon: "mic", label: "Voice", remaining: limits.voiceCommentsPerMonth === 0 ? -1 : getRemainingVoice(), used: usage.voiceCommentsThisMonth, limit: limits.voiceCommentsPerMonth },
+            { icon: "bar-chart-2", label: "Polls", remaining: getRemainingPolls(), used: usage.comparisonPollsThisMonth, limit: limits.comparisonPollsPerMonth },
+          ].map((item, idx) => (
+            <View key={item.label} style={[styles.usageItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+              <View style={[styles.usageIconContainer, { backgroundColor: usageColors[idx] + '20' }]}>
+                <Feather name={item.icon as any} size={16} color={usageColors[idx]} />
+              </View>
+              <ThemedText type="small" style={styles.usageLabel}>{item.label}</ThemedText>
+              <View style={[styles.usageBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                <LinearGradient
+                  colors={[usageColors[idx], usageColors[idx] + '80']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[
+                    styles.usageProgress, 
+                    { width: `${getUsagePercent(item.used, item.limit)}%` }
+                  ]} 
+                />
+              </View>
+              <ThemedText type="caption" style={styles.usageRemaining}>
+                {item.remaining === -1 ? "Not available" : `${formatRemaining(item.remaining)} left`}
+              </ThemedText>
             </View>
-            <View style={[styles.usageBar, { backgroundColor: theme.backgroundSecondary }]}>
-              <View 
-                style={[
-                  styles.usageProgress, 
-                  { 
-                    backgroundColor: theme.link,
-                    width: `${getUsagePercent(usage.uploadsThisMonth, limits.uploadsPerMonth)}%` 
-                  }
-                ]} 
-              />
-            </View>
-            <ThemedText type="caption">
-              {formatRemaining(getRemainingUploads())} remaining
-            </ThemedText>
-          </View>
-          <View style={styles.usageItem}>
-            <View style={styles.usageHeader}>
-              <Feather name="star" size={16} color={theme.link} />
-              <ThemedText type="small">Style Advice</ThemedText>
-            </View>
-            <View style={[styles.usageBar, { backgroundColor: theme.backgroundSecondary }]}>
-              <View 
-                style={[
-                  styles.usageProgress, 
-                  { 
-                    backgroundColor: theme.link,
-                    width: `${getUsagePercent(usage.aiAdviceThisMonth, limits.aiAdvicePerMonth)}%` 
-                  }
-                ]} 
-              />
-            </View>
-            <ThemedText type="caption">
-              {formatRemaining(getRemainingAIAdvice())} remaining
-            </ThemedText>
-          </View>
-          <View style={styles.usageItem}>
-            <View style={styles.usageHeader}>
-              <Feather name="mic" size={16} color={theme.link} />
-              <ThemedText type="small">Voice</ThemedText>
-            </View>
-            <View style={[styles.usageBar, { backgroundColor: theme.backgroundSecondary }]}>
-              <View 
-                style={[
-                  styles.usageProgress, 
-                  { 
-                    backgroundColor: theme.link,
-                    width: `${getUsagePercent(usage.voiceCommentsThisMonth, limits.voiceCommentsPerMonth)}%` 
-                  }
-                ]} 
-              />
-            </View>
-            <ThemedText type="caption">
-              {limits.voiceCommentsPerMonth === 0 ? "Not available" : `${formatRemaining(getRemainingVoice())} remaining`}
-            </ThemedText>
-          </View>
-          <View style={styles.usageItem}>
-            <View style={styles.usageHeader}>
-              <Feather name="bar-chart-2" size={16} color={theme.link} />
-              <ThemedText type="small">Polls</ThemedText>
-            </View>
-            <View style={[styles.usageBar, { backgroundColor: theme.backgroundSecondary }]}>
-              <View 
-                style={[
-                  styles.usageProgress, 
-                  { 
-                    backgroundColor: theme.link,
-                    width: `${getUsagePercent(usage.comparisonPollsThisMonth, limits.comparisonPollsPerMonth)}%` 
-                  }
-                ]} 
-              />
-            </View>
-            <ThemedText type="caption">
-              {formatRemaining(getRemainingPolls())} remaining
-            </ThemedText>
-          </View>
-        </View>
-      </View>
-
-      <View style={[styles.referralSection, { backgroundColor: theme.backgroundDefault }]}>
-        <View style={styles.referralHeader}>
-          <Feather name="users" size={20} color={theme.link} />
-          <ThemedText type="h3">Invite Friends</ThemedText>
-        </View>
-        <ThemedText type="small" style={styles.referralSubtitle}>
-          Share your code and both get 5 extra posts when they sign up
-        </ThemedText>
-        <View style={[styles.referralCode, { backgroundColor: theme.backgroundSecondary }]}>
-          <ThemedText type="h3" style={{ letterSpacing: 2 }}>{referralCode}</ThemedText>
+          ))}
         </View>
       </View>
 
       <View style={styles.plansContainer}>
+        <ThemedText type="h2" style={styles.sectionTitle}>Choose Your Plan</ThemedText>
         {PLANS.map(renderPlanCard)}
       </View>
 
       {selectedPlan !== user?.subscriptionTier ? (
-        <Button
-          onPress={() => handleSelectPlan(selectedPlan)}
-          disabled={isProcessing}
-          style={styles.subscribeButton}
+        <LinearGradient
+          colors={selectedPlan === "free" 
+            ? [LUXURY_COLORS.champagne, LUXURY_COLORS.rose] 
+            : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.subscribeButtonGradient}
         >
-          {isProcessing
-            ? "Processing..."
-            : selectedPlan === "free"
-              ? "Downgrade to Free"
-              : `Start ${PLANS.find((p) => p.id === selectedPlan)?.name} Plan`}
-        </Button>
+          <Pressable
+            onPress={() => handleSelectPlan(selectedPlan)}
+            disabled={isProcessing}
+            style={styles.subscribeButtonInner}
+          >
+            <ThemedText type="body" style={styles.subscribeButtonText}>
+              {isProcessing
+                ? "Processing..."
+                : selectedPlan === "free"
+                  ? "Downgrade to Free"
+                  : `Start ${PLANS.find((p) => p.id === selectedPlan)?.name} Plan`}
+            </ThemedText>
+          </Pressable>
+        </LinearGradient>
       ) : null}
 
+      <View style={[styles.referralSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+        <LinearGradient
+          colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.referralIconContainer}
+        >
+          <Feather name="gift" size={20} color="#FFFFFF" />
+        </LinearGradient>
+        <View style={styles.referralContent}>
+          <ThemedText type="h3">Invite Friends</ThemedText>
+          <ThemedText type="small" style={{ opacity: 0.7 }}>
+            Share your code and both get 5 extra posts
+          </ThemedText>
+        </View>
+        <View style={[styles.referralCode, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+          <ThemedText type="h3" style={{ letterSpacing: 3, color: LUXURY_COLORS.teal }}>{referralCode}</ThemedText>
+        </View>
+      </View>
+
       <View style={styles.dfySection}>
-        <ThemedText type="h2" style={styles.dfySectionTitle}>
-          Done-For-You Setup
-        </ThemedText>
-        <ThemedText type="body" style={styles.dfySectionSubtitle}>
-          Let us set up your digital wardrobe for you
-        </ThemedText>
-
-        <View style={[styles.dfyCard, { backgroundColor: theme.backgroundDefault }]}>
-          <View style={styles.dfyCardHeader}>
-            <View style={[styles.dfyBadge, { backgroundColor: theme.backgroundSecondary }]}>
-              <Feather name="package" size={16} color={theme.text} />
-            </View>
-            <View style={styles.dfyCardTitleContainer}>
-              <ThemedText type="h3">Outfit-Based Setup</ThemedText>
-              <ThemedText type="caption" style={{ opacity: 0.7 }}>One-time purchase</ThemedText>
-            </View>
-          </View>
-          <View style={styles.dfyPriceContainer}>
-            <ThemedText type="h1" style={styles.dfyPrice}>{dfyPrices.outfit_setup}</ThemedText>
-            <ThemedText type="body" style={styles.dfyPricePeriod}>one-time</ThemedText>
-          </View>
-          <ThemedText type="body" style={styles.dfyDescription}>
-            We'll photograph and catalog 5-7 of your favorite outfits, ready to mix and match.
+        <View style={styles.dfySectionHeader}>
+          <ThemedText type="h2" style={styles.sectionTitle}>
+            Done-For-You Setup
           </ThemedText>
-          <View style={styles.dfyFeatures}>
-            <View style={styles.dfyFeatureRow}>
-              <Feather name="check" size={14} color={theme.success || "#34C759"} />
-              <ThemedText type="small">5-7 complete outfits catalogued</ThemedText>
-            </View>
-            <View style={styles.dfyFeatureRow}>
-              <Feather name="check" size={14} color={theme.success || "#34C759"} />
-              <ThemedText type="small">Category & formality tagging</ThemedText>
-            </View>
-            <View style={styles.dfyFeatureRow}>
-              <Feather name="check" size={14} color={theme.success || "#34C759"} />
-              <ThemedText type="small">Color & seasonality analysis</ThemedText>
-            </View>
-          </View>
-          <Pressable 
-            style={[styles.dfyButton, { backgroundColor: theme.backgroundSecondary, borderWidth: 1, borderColor: theme.tabIconDefault }]}
-            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-          >
-            <ThemedText type="body" style={{ fontWeight: '600' }}>Get Started</ThemedText>
-          </Pressable>
+          <ThemedText type="body" style={styles.dfySectionSubtitle}>
+            Let us set up your digital wardrobe for you
+          </ThemedText>
         </View>
 
-        <View style={[styles.dfyCard, { backgroundColor: theme.backgroundDefault, borderColor: theme.link, borderWidth: 2 }]}>
-          <View style={[styles.dfyPopularBadge, { backgroundColor: theme.link }]}>
-            <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>Best Value</ThemedText>
-          </View>
-          <View style={styles.dfyCardHeader}>
-            <View style={[styles.dfyBadge, { backgroundColor: theme.backgroundSecondary }]}>
-              <Feather name="grid" size={16} color={theme.text} />
-            </View>
-            <View style={styles.dfyCardTitleContainer}>
-              <ThemedText type="h3">Core Wardrobe Setup</ThemedText>
-              <ThemedText type="caption" style={{ opacity: 0.7 }}>One-time purchase</ThemedText>
-            </View>
-          </View>
-          <View style={styles.dfyPriceContainer}>
-            <ThemedText type="h1" style={styles.dfyPrice}>{dfyPrices.wardrobe_setup}</ThemedText>
-            <ThemedText type="body" style={styles.dfyPricePeriod}>one-time</ThemedText>
-          </View>
-          <ThemedText type="body" style={styles.dfyDescription}>
-            Complete digital wardrobe setup with up to 30 items, fully organized and ready for AI styling.
-          </ThemedText>
-          <View style={styles.dfyFeatures}>
-            <View style={styles.dfyFeatureRow}>
-              <Feather name="check" size={14} color={theme.success || "#34C759"} />
-              <ThemedText type="small">Up to 30 wardrobe items</ThemedText>
-            </View>
-            <View style={styles.dfyFeatureRow}>
-              <Feather name="check" size={14} color={theme.success || "#34C759"} />
-              <ThemedText type="small">Full categorization & tagging</ThemedText>
-            </View>
-            <View style={styles.dfyFeatureRow}>
-              <Feather name="check" size={14} color={theme.success || "#34C759"} />
-              <ThemedText type="small">Primary color extraction</ThemedText>
-            </View>
-            <View style={styles.dfyFeatureRow}>
-              <Feather name="check" size={14} color={theme.success || "#34C759"} />
-              <ThemedText type="small">Seasonality recommendations</ThemedText>
-            </View>
-          </View>
-          <Pressable 
-            style={[styles.dfyButton, { backgroundColor: theme.backgroundSecondary, borderWidth: 1, borderColor: theme.tabIconDefault }]}
-            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+        <Pressable style={styles.dfyCardWrapper}>
+          <LinearGradient
+            colors={isDark ? ['#2A2A3E', '#1E1E2E'] : ['#F8F4F0', '#F0EBE4']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.dfyCard}
           >
-            <ThemedText type="body" style={{ fontWeight: '600' }}>Get Started</ThemedText>
-          </Pressable>
-        </View>
+            <View style={styles.dfyCardHeader}>
+              <View style={[styles.dfyBadge, { backgroundColor: LUXURY_COLORS.coral + '20' }]}>
+                <Feather name="package" size={18} color={LUXURY_COLORS.coral} />
+              </View>
+              <View style={styles.dfyCardTitleContainer}>
+                <ThemedText type="h3">Outfit-Based Setup</ThemedText>
+                <ThemedText type="caption" style={{ opacity: 0.6 }}>One-time purchase</ThemedText>
+              </View>
+            </View>
+            <View style={styles.dfyPriceRow}>
+              <ThemedText type="h1" style={[styles.dfyPrice, { color: LUXURY_COLORS.coral }]}>{dfyPrices.outfit_setup}</ThemedText>
+            </View>
+            <ThemedText type="body" style={styles.dfyDescription}>
+              We'll photograph and catalog 5-7 of your favorite outfits, ready to mix and match.
+            </ThemedText>
+            <View style={styles.dfyFeatures}>
+              {["5-7 complete outfits catalogued", "Category & formality tagging", "Color & seasonality analysis"].map((feature, idx) => (
+                <View key={idx} style={styles.dfyFeatureRow}>
+                  <View style={[styles.dfyFeatureIcon, { backgroundColor: LUXURY_COLORS.coral + '20' }]}>
+                    <Feather name="check" size={12} color={LUXURY_COLORS.coral} />
+                  </View>
+                  <ThemedText type="small">{feature}</ThemedText>
+                </View>
+              ))}
+            </View>
+            <LinearGradient
+              colors={[LUXURY_COLORS.coral, '#C46A4F']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.dfyButtonGradient}
+            >
+              <Pressable 
+                style={styles.dfyButtonInner}
+                onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+              >
+                <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Get Started</ThemedText>
+              </Pressable>
+            </LinearGradient>
+          </LinearGradient>
+        </Pressable>
+
+        <Pressable style={styles.dfyCardWrapper}>
+          <LinearGradient
+            colors={[LUXURY_COLORS.gold + '15', LUXURY_COLORS.deepGold + '10']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.dfyCard, styles.dfyCardFeatured]}
+          >
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.dfyPopularBadge}
+            >
+              <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>Best Value</ThemedText>
+            </LinearGradient>
+            <View style={styles.dfyCardHeader}>
+              <View style={[styles.dfyBadge, { backgroundColor: LUXURY_COLORS.gold + '30' }]}>
+                <Feather name="grid" size={18} color={LUXURY_COLORS.gold} />
+              </View>
+              <View style={styles.dfyCardTitleContainer}>
+                <ThemedText type="h3">Core Wardrobe Setup</ThemedText>
+                <ThemedText type="caption" style={{ opacity: 0.6 }}>One-time purchase</ThemedText>
+              </View>
+            </View>
+            <View style={styles.dfyPriceRow}>
+              <ThemedText type="h1" style={[styles.dfyPrice, { color: LUXURY_COLORS.gold }]}>{dfyPrices.wardrobe_setup}</ThemedText>
+            </View>
+            <ThemedText type="body" style={styles.dfyDescription}>
+              Complete digital wardrobe setup with up to 30 items, fully organized and ready for AI styling.
+            </ThemedText>
+            <View style={styles.dfyFeatures}>
+              {["Up to 30 wardrobe items", "Full categorization & tagging", "Primary color extraction", "Seasonality recommendations"].map((feature, idx) => (
+                <View key={idx} style={styles.dfyFeatureRow}>
+                  <View style={[styles.dfyFeatureIcon, { backgroundColor: LUXURY_COLORS.gold + '30' }]}>
+                    <Feather name="check" size={12} color={LUXURY_COLORS.gold} />
+                  </View>
+                  <ThemedText type="small">{feature}</ThemedText>
+                </View>
+              ))}
+            </View>
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.dfyButtonGradient}
+            >
+              <Pressable 
+                style={styles.dfyButtonInner}
+                onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+              >
+                <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '600' }}>Get Started</ThemedText>
+              </Pressable>
+            </LinearGradient>
+          </LinearGradient>
+        </Pressable>
       </View>
 
       <View style={styles.finePrint}>
@@ -495,37 +553,80 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
 }
 
 const styles = StyleSheet.create({
-  header: {
+  heroGradient: {
+    marginHorizontal: -Spacing.lg,
+    marginTop: -Spacing.lg,
+    paddingTop: Spacing["2xl"],
+    paddingBottom: Spacing["2xl"],
+    paddingHorizontal: Spacing.lg,
+    borderBottomLeftRadius: BorderRadius.xl,
+    borderBottomRightRadius: BorderRadius.xl,
     marginBottom: Spacing.xl,
   },
-  headerTitle: {
-    marginBottom: Spacing.sm,
+  heroContent: {
+    alignItems: 'center',
   },
-  headerSubtitle: {
-    opacity: 0.7,
+  heroIconContainer: {
+    marginBottom: Spacing.md,
+  },
+  heroIconGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroTitle: {
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
+  },
+  heroSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
+  },
+  sectionTitle: {
+    marginBottom: Spacing.sm,
   },
   usageSection: {
     padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xl,
   },
-  usageTitle: {
+  usageTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: Spacing.md,
+  },
+  usageTitle: {},
+  usagePeriodBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
   },
   usageGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   usageItem: {
     flex: 1,
     minWidth: "45%",
-    gap: 4,
-  },
-  usageHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
     gap: 6,
+  },
+  usageIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  usageLabel: {
+    fontWeight: '600',
   },
   usageBar: {
     height: 6,
@@ -536,78 +637,53 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 3,
   },
-  trialBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
-  },
-  referralSection: {
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.xl,
-  },
-  referralHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
-  referralSubtitle: {
-    opacity: 0.7,
-    marginBottom: Spacing.md,
-  },
-  referralCode: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.sm,
-    alignItems: "center",
-  },
-  trialContent: {
-    flex: 1,
-  },
-  trialSubtitle: {
-    opacity: 0.7,
-    marginTop: 2,
+  usageRemaining: {
+    opacity: 0.6,
   },
   plansContainer: {
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   planCard: {
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
+    overflow: 'hidden',
+  },
+  planGradient: {
     padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    borderWidth: 2,
-    position: "relative",
-  },
-  popularBadge: {
-    position: "absolute",
-    top: -10,
-    right: Spacing.lg,
-    paddingVertical: 4,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.xs,
-  },
-  popularText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
+    borderRadius: BorderRadius.lg,
   },
   planHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.sm,
+    justifyContent: "space-between",
     marginBottom: Spacing.md,
   },
-  planBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.xs,
+  planNameContainer: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+  },
+  planName: {
+    color: '#FFFFFF',
+  },
+  popularBadge: {
+    position: "absolute",
+    top: 0,
+    right: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderBottomLeftRadius: BorderRadius.sm,
+    borderBottomRightRadius: BorderRadius.sm,
+    zIndex: 10,
+  },
+  popularText: {
+    color: LUXURY_COLORS.midnight,
+    fontWeight: "700",
   },
   currentBadge: {
-    paddingVertical: 4,
     paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.xs,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
   },
   currentText: {
     color: "#FFFFFF",
@@ -621,12 +697,9 @@ const styles = StyleSheet.create({
   price: {
     marginRight: 4,
   },
-  period: {
-    opacity: 0.6,
-  },
+  period: {},
   planDescription: {
-    opacity: 0.7,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   featuresContainer: {
     gap: Spacing.sm,
@@ -636,66 +709,108 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.sm,
   },
-  featureText: {},
-  featureDisabled: {
-    opacity: 0.5,
-    textDecorationLine: "line-through",
+  featureIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featureText: {
+    flex: 1,
   },
   featureBold: {
-    fontWeight: "700",
+    fontWeight: "600",
   },
   selectedIndicator: {
     position: "absolute",
-    top: Spacing.md,
-    right: Spacing.md,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: Spacing.lg,
+    left: Spacing.lg,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  subscribeButton: {
-    marginBottom: Spacing.lg,
-  },
-  finePrint: {
-    paddingVertical: Spacing.lg,
-  },
-  finePrintText: {
-    textAlign: "center",
-    opacity: 0.5,
-  },
-  dfySection: {
-    marginTop: Spacing.xl,
+  subscribeButtonGradient: {
+    borderRadius: BorderRadius.full,
     marginBottom: Spacing.xl,
   },
-  dfySectionTitle: {
-    marginBottom: Spacing.xs,
+  subscribeButtonInner: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    alignItems: 'center',
+  },
+  subscribeButtonText: {
+    color: LUXURY_COLORS.midnight,
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  referralSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xl,
+    gap: Spacing.md,
+  },
+  referralIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  referralContent: {
+    flex: 1,
+  },
+  referralCode: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  dfySection: {
+    marginBottom: Spacing.xl,
+  },
+  dfySectionHeader: {
+    marginBottom: Spacing.lg,
   },
   dfySectionSubtitle: {
     opacity: 0.7,
-    marginBottom: Spacing.lg,
+  },
+  dfyCardWrapper: {
+    marginBottom: Spacing.md,
   },
   dfyCard: {
     padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
-    position: 'relative',
+    borderRadius: BorderRadius.lg,
+  },
+  dfyCardFeatured: {
+    borderWidth: 2,
+    borderColor: LUXURY_COLORS.gold,
   },
   dfyCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   dfyBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dfyCardTitleContainer: {
     flex: 1,
+  },
+  dfyPriceRow: {
+    marginBottom: Spacing.sm,
+  },
+  dfyPrice: {
+    fontSize: 32,
+    fontWeight: '700',
   },
   dfyDescription: {
     opacity: 0.8,
@@ -710,29 +825,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  dfyButton: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
+  dfyFeatureIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dfyButtonGradient: {
     borderRadius: BorderRadius.full,
+  },
+  dfyButtonInner: {
+    paddingVertical: Spacing.md,
     alignItems: 'center',
   },
   dfyPopularBadge: {
     position: 'absolute',
-    top: -10,
+    top: -1,
     right: Spacing.lg,
-    paddingVertical: 4,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.xs,
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.md,
+    borderBottomLeftRadius: BorderRadius.sm,
+    borderBottomRightRadius: BorderRadius.sm,
+    zIndex: 10,
   },
-  dfyPriceContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: Spacing.sm,
+  finePrint: {
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
   },
-  dfyPrice: {
-    marginRight: 4,
-  },
-  dfyPricePeriod: {
-    opacity: 0.6,
+  finePrintText: {
+    opacity: 0.5,
+    textAlign: "center",
   },
 });
