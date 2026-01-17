@@ -201,7 +201,8 @@ class ContentPersonalizationService {
     goals: DripnGoal[],
     stylistName: string,
     gender?: Gender,
-    preferences?: Partial<ExtendedPreferences>
+    preferences?: Partial<ExtendedPreferences>,
+    genderSafeConstraint?: string | null
   ): string {
     const config = this.getPersonalizedFeedConfig(goals, preferences, gender);
     
@@ -247,6 +248,12 @@ For unknown shops, research their style aesthetic to give relevant recommendatio
     if (gender) {
       prompt += `\n## Gender Context
 Tailor all advice for ${gender === 'man' ? 'men\'s' : gender === 'woman' ? 'women\'s' : 'gender-neutral'} fashion.
+`;
+    }
+
+    if (genderSafeConstraint) {
+      prompt += `\n## Gender-Safe Mode (IMPORTANT)
+${genderSafeConstraint}
 `;
     }
 
