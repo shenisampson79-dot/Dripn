@@ -291,10 +291,15 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
   const handleAnotherOption = async () => {
     await recordInteraction("another_option");
-    setSelectedOccasion(null);
-    setRecommendation(null);
-    setExpressionText("");
-    setStep("occasion");
+    if (selectedOccasion) {
+      setRecommendation(null);
+      handleOccasionSelect(selectedOccasion);
+    } else {
+      setSelectedOccasion(null);
+      setRecommendation(null);
+      setExpressionText("");
+      setStep("occasion");
+    }
   };
 
   const handleSecondOpinion = async () => {
