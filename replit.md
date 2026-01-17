@@ -148,8 +148,12 @@ The following backend endpoints are used for the onboarding flow:
 
 ### Stylist Upgrade System
 - `GET /api/onboarding/stylist-upgrade-copy?stylistId=ruby&signalType=DEPTH` - Get personality-matched upgrade copy
+- `GET /api/onboarding/stylist-language?stylistId=ruby` - Get stylist language constraints (tone, vocabulary, avoidWords)
 - `GET /api/onboarding/post-recommendation-ui` - Get button config & save behaviour
-- `GET /api/onboarding/tier-capabilities` - Get what each tier unlocks
+- `GET /api/onboarding/tier-capabilities` - Get what each tier unlocks (includes founder doctrine/principles)
+- `GET /api/onboarding/signal-types` - Get signal types schema with triggers
+- `POST /api/onboarding/record-signal` - Record behavioural signal (signalType, stylistId, context)
+- `GET /api/onboarding/dfy-job-info` - Get DFY job tracking status (pending/processing/completed/failed)
 
 ### Signal Types for Upgrade Prompts
 | Signal | Triggers |

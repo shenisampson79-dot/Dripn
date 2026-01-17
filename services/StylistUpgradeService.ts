@@ -36,6 +36,35 @@ export interface TierCapabilities {
     capabilities: string[];
     limitations: string[];
   }[];
+  founderDoctrine?: {
+    principles: string[];
+  };
+}
+
+export interface StylistLanguage {
+  stylistId: string;
+  tone: string;
+  vocabulary: string[];
+  avoidWords: string[];
+  signaturePhrase?: string;
+}
+
+export interface SignalTypesResponse {
+  signals: {
+    type: SignalType;
+    triggers: string[];
+    description: string;
+  }[];
+}
+
+export interface DfyJobInfo {
+  jobId?: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  type: "outfit" | "core";
+  itemsUploaded?: number;
+  itemsProcessed?: number;
+  estimatedCompletion?: string;
+  turnaround: string;
 }
 
 const SIGNAL_TRIGGERS: Record<SignalType, string[]> = {
@@ -259,6 +288,99 @@ class StylistUpgradeService {
             limitations: [],
           },
         ],
+      };
+    }
+  }
+
+  async getStylistLanguage(stylistId: string): Promise<StylistLanguage | null> {
+    try {
+      const data = await apiService.get<StylistLanguage>(`/api/onboarding/stylist-language?stylistId=${stylistId}`);
+      return data;
+    } catch (error) {
+      console.log("Failed to fetch stylist language constraints");
+      return this.getDefaultStylistLanguage(stylistId);
+    }
+  }
+
+  private getDefaultStylistLanguage(stylistId: string): StylistLanguage {
+    const defaults: Record<string, StylistLanguage> = {
+      ruby: {
+        stylistId: "ruby",
+        tone: "warm, empathetic, encouraging",
+        vocabulary: ["darling", "lovely", "absolutely", "gorgeous"],
+        avoidWords: ["ugly", "terrible", "wrong"],
+        signaturePhrase: "You're going to look wonderful!",
+      },
+      max: {
+        stylistId: "max",
+        tone: "supportive, approachable, confidence-building",
+        vocabulary: ["great", "awesome", "solid choice", "looking good"],
+        avoidWords: ["bad", "wrong", "terrible"],
+        signaturePhrase: "You've got this!",
+      },
+      jade: {
+        stylistId: "jade",
+        tone: "direct, honest, no-nonsense",
+        vocabulary: ["works", "doesn't work", "better", "try this instead"],
+        avoidWords: ["maybe", "perhaps", "I think"],
+        signaturePhrase: "Trust me on this.",
+      },
+      marcus: {
+        stylistId: "marcus",
+        tone: "blunt, decisive, straight-talking",
+        vocabulary: ["done", "sorted", "next", "wear this"],
+        avoidWords: ["um", "maybe", "possibly"],
+        signaturePhrase: "That's the one. Go.",
+      },
+    };
+    return defaults[stylistId.toLowerCase()] || defaults.ruby;
+  }
+
+  async getSignalTypes(): Promise<SignalTypesResponse | null> {
+    try {
+      const data = await apiService.get<SignalTypesResponse>("/api/onboarding/signal-types");
+      return data;
+    } catch (error) {
+      console.log("Failed to fetch signal types");
+      return {
+        signals: [
+          { type: "DEPTH", triggers: ["plan my week", "what should I pack", "capsule wardrobe"], description: "User wants deeper planning" },
+          { type: "RELIANCE", triggers: ["thanks, that", "love it", "you're right"], description: "User trusts recommendations" },
+          { type: "FRUSTRATION", triggers: ["you're missing clothes", "you don't know what I own"], description: "User frustrated by limited info" },
+          { type: "AMBITION", triggers: ["magazine-level", "celebrity style"], description: "User wants elevated styling" },
+        ],
+      };
+    }
+  }
+
+  async recordSignal(signalType: SignalType, stylistId: string, context?: string): Promise<boolean> {
+    try {
+      await apiService.post("/api/onboarding/record-signal", {
+        signalType,
+        stylistId,
+        context,
+        timestamp: new Date().toISOString(),
+      });
+      return true;
+    } catch (error) {
+      console.log("Failed to record signal");
+      return false;
+    }
+  }
+
+  async getDfyJobInfo(jobId?: string): Promise<DfyJobInfo | null> {
+    try {
+      const endpoint = jobId 
+        ? `/api/onboarding/dfy-job-info?jobId=${jobId}`
+        : "/api/onboarding/dfy-job-info";
+      const data = await apiService.get<DfyJobInfo>(endpoint);
+      return data;
+    } catch (error) {
+      console.log("Failed to fetch DFY job info");
+      return {
+        status: "pending",
+        type: "outfit",
+        turnaround: "24h",
       };
     }
   }
