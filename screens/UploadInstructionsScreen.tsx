@@ -79,7 +79,8 @@ export default function UploadInstructionsScreen({ navigation, route }: UploadIn
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const uploadType = route.params?.type || "outfit";
-  const [instructions, setInstructions] = useState<UploadInstructions>(DEFAULT_INSTRUCTIONS[uploadType]);
+  const defaultInstructions = DEFAULT_INSTRUCTIONS[uploadType] || DEFAULT_INSTRUCTIONS.outfit;
+  const [instructions, setInstructions] = useState<UploadInstructions>(defaultInstructions);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -90,7 +91,21 @@ export default function UploadInstructionsScreen({ navigation, route }: UploadIn
     try {
       const data = await apiService.get<UploadInstructions>(`/api/onboarding/upload-instructions/${uploadType}`);
       if (data) {
-        setInstructions(data);
+        const mergedData: UploadInstructions = {
+          title: data.title || defaultInstructions.title,
+          subtitle: data.subtitle || defaultInstructions.subtitle,
+          tips: data.tips || defaultInstructions.tips,
+          limits: {
+            maxItems: data.limits?.maxItems || defaultInstructions.limits.maxItems,
+            formats: data.limits?.formats || defaultInstructions.limits.formats,
+            maxSize: data.limits?.maxSize || defaultInstructions.limits.maxSize,
+          },
+          examples: {
+            good: data.examples?.good || defaultInstructions.examples.good,
+            avoid: data.examples?.avoid || defaultInstructions.examples.avoid,
+          },
+        };
+        setInstructions(mergedData);
       }
     } catch (error) {
       console.log("Using default upload instructions");

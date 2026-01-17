@@ -146,6 +146,29 @@ The following backend endpoints are used for the onboarding flow:
 - `POST /api/onboarding/check-gate` - After 3 recommendations, checks if soft personalization prompt should show
 - Recommendation count tracked locally: `dripn_recommendation_count`
 
+### Stylist Upgrade System
+- `GET /api/onboarding/stylist-upgrade-copy?stylistId=ruby&signalType=DEPTH` - Get personality-matched upgrade copy
+- `GET /api/onboarding/post-recommendation-ui` - Get button config & save behaviour
+- `GET /api/onboarding/tier-capabilities` - Get what each tier unlocks
+
+### Signal Types for Upgrade Prompts
+| Signal | Triggers |
+|--------|----------|
+| DEPTH | "plan my week", "what should I pack", "capsule wardrobe" |
+| RELIANCE | Returns frequently, accepts recommendations, "thanks, that..." |
+| FRUSTRATION | "you're missing clothes", "you don't know what I own" |
+| AMBITION | "can you do what a real stylist does", "magazine-level outfits" |
+
+### Upgrade Card Behaviour
+- Cards slide up from bottom (bottom sheet)
+- Always dismissible
+- No urgency language, no countdowns
+- Match stylist's tone in copy
+- `unlocks` field determines next screen:
+  - `dfy_options` → Show DFY selection screen (£19/£35)
+  - `subscription` → Show subscription banner (£9.99/month)
+  - `premium_tiers` → Show post-MVP tiers (invite feel)
+
 ## MVP DFY Tiering
 ### DFY Tier A — Outfit-Based Setup (£19)
 - 5-7 outfits uploaded
