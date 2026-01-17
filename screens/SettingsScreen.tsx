@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Pressable, Alert, Linking, Platform, Switch, ActivityIndicator, Modal, ScrollView } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as WebBrowser from "expo-web-browser";
 
@@ -21,6 +22,20 @@ const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
 
+const LUXURY_COLORS = {
+  gold: '#C9A87C',
+  deepGold: '#A88B5C',
+  rose: '#E8B4B8',
+  berry: '#8B2F39',
+  violet: '#9B7EBD',
+  deepViolet: '#6B4E8D',
+  champagne: '#F5E6D3',
+  midnight: '#1A1A2E',
+  coral: '#E07A5F',
+  teal: '#2A9D8F',
+  emerald: '#059669',
+};
+
 type SettingsScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "Settings">;
   onOpenPortal?: (mode: PortalMode) => void;
@@ -34,6 +49,8 @@ interface SettingItemProps {
   showChevron?: boolean;
   danger?: boolean;
   theme: any;
+  isDark: boolean;
+  iconGradient?: readonly [string, string];
 }
 
 function SettingItem({
@@ -44,28 +61,39 @@ function SettingItem({
   showChevron = true,
   danger = false,
   theme,
+  isDark,
+  iconGradient,
 }: SettingItemProps) {
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.settingItem,
-        { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.8 : 1 },
+        { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF', opacity: pressed ? 0.8 : 1 },
       ]}
     >
-      <View style={styles.settingIconContainer}>
-        <Feather
-          name={icon}
-          size={20}
-          color={danger ? theme.error || "#FF3B30" : theme.text}
-        />
-      </View>
+      {iconGradient ? (
+        <LinearGradient
+          colors={iconGradient}
+          style={styles.settingIconGradient}
+        >
+          <Feather name={icon} size={16} color="#FFFFFF" />
+        </LinearGradient>
+      ) : (
+        <View style={[styles.settingIconContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+          <Feather
+            name={icon}
+            size={16}
+            color={danger ? "#FF3B30" : theme.text}
+          />
+        </View>
+      )}
       <View style={styles.settingContent}>
         <ThemedText
           type="body"
           style={[
             styles.settingTitle,
-            danger && { color: theme.error || "#FF3B30" },
+            danger && { color: "#FF3B30" },
           ]}
         >
           {title}
@@ -77,7 +105,7 @@ function SettingItem({
         ) : null}
       </View>
       {showChevron ? (
-        <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
+        <Feather name="chevron-right" size={18} color={theme.tabIconDefault} />
       ) : null}
     </Pressable>
   );
@@ -104,9 +132,10 @@ interface VIPTestModeItemProps {
   user: any;
   updateProfile: (data: any) => Promise<void>;
   theme: any;
+  isDark: boolean;
 }
 
-function VIPTestModeItem({ user, updateProfile, theme }: VIPTestModeItemProps) {
+function VIPTestModeItem({ user, updateProfile, theme, isDark }: VIPTestModeItemProps) {
   const [isLoading, setIsLoading] = useState(false);
   const isVIP = user?.subscriptionTier === 'vip';
 
@@ -133,20 +162,25 @@ function VIPTestModeItem({ user, updateProfile, theme }: VIPTestModeItemProps) {
       disabled={isLoading}
       style={({ pressed }) => [
         styles.settingItem,
-        { backgroundColor: theme.backgroundDefault, opacity: pressed || isLoading ? 0.7 : 1 },
+        { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF', opacity: pressed || isLoading ? 0.7 : 1 },
       ]}
     >
-      <View style={styles.settingIconContainer}>
-        {isLoading ? (
-          <ActivityIndicator size="small" color={theme.link} />
-        ) : (
-          <Feather name="award" size={20} color={isVIP ? theme.link : theme.text} />
-        )}
-      </View>
+      {isLoading ? (
+        <View style={[styles.settingIconContainer, { backgroundColor: LUXURY_COLORS.gold + '30' }]}>
+          <ActivityIndicator size="small" color={LUXURY_COLORS.gold} />
+        </View>
+      ) : (
+        <LinearGradient
+          colors={isVIP ? [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] : [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+          style={styles.settingIconGradient}
+        >
+          <Feather name="award" size={16} color={isVIP ? LUXURY_COLORS.midnight : "#FFFFFF"} />
+        </LinearGradient>
+      )}
       <View style={styles.settingContent}>
         <ThemedText
           type="body"
-          style={[styles.settingTitle, isVIP && { color: theme.link }]}
+          style={[styles.settingTitle, isVIP && { color: LUXURY_COLORS.gold }]}
         >
           {isVIP ? "VIP Mode Active" : "Enable VIP Test Mode"}
         </ThemedText>
@@ -154,13 +188,13 @@ function VIPTestModeItem({ user, updateProfile, theme }: VIPTestModeItemProps) {
           {isVIP ? "You have full VIP access" : "Unlock all VIP features for testing"}
         </ThemedText>
       </View>
-      <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
+      <Feather name="chevron-right" size={18} color={theme.tabIconDefault} />
     </Pressable>
   );
 }
 
 export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScreenProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { hasTrendColors, trendInfo, isLoading: trendLoading, refreshTrends } = useStyleTheme();
   const { user, logout, updateProfile } = useAuth();
   const { referralCode, totalReferrals, bonusAIRequests, shareReferral } = useReferral();
@@ -345,18 +379,45 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   };
 
   return (
-    <ScreenScrollView>
+    <ScreenScrollView style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}>
+      <LinearGradient
+        colors={isDark 
+          ? [LUXURY_COLORS.teal + '40', LUXURY_COLORS.emerald + '20', 'transparent'] 
+          : [LUXURY_COLORS.teal + '15', LUXURY_COLORS.emerald + '10', 'transparent']
+        }
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerContent}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+          >
+            <Feather name="arrow-left" size={20} color={theme.text} />
+          </Pressable>
+          <ThemedText type="h2">Settings</ThemedText>
+          <View style={{ width: 40 }} />
+        </View>
+      </LinearGradient>
+
       <View style={styles.section}>
-        <ThemedText type="h3" style={styles.sectionTitle}>
-          Account
-        </ThemedText>
-        <View style={styles.sectionContent}>
+        <View style={styles.sectionHeader}>
+          <LinearGradient
+            colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+            style={styles.sectionIcon}
+          >
+            <Feather name="user" size={12} color="#FFFFFF" />
+          </LinearGradient>
+          <ThemedText type="h4" style={styles.sectionTitle}>Account</ThemedText>
+        </View>
+        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="user"
             title="Edit Profile"
             subtitle={user?.name}
             onPress={() => navigation.navigate("EditProfile")}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
           />
           <SettingItem
             icon="credit-card"
@@ -364,6 +425,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             subtitle={user?.subscriptionTier === "free" ? "Free Plan" : `${user?.subscriptionTier} Plan`}
             onPress={() => navigation.navigate("Subscription")}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
           />
           <SettingItem
             icon="mail"
@@ -372,21 +435,31 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             onPress={() => {}}
             showChevron={false}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.coral, '#C46A4F']}
           />
         </View>
       </View>
 
       <View style={styles.section}>
-        <ThemedText type="h3" style={styles.sectionTitle}>
-          Preferences
-        </ThemedText>
-        <View style={styles.sectionContent}>
+        <View style={styles.sectionHeader}>
+          <LinearGradient
+            colors={[LUXURY_COLORS.rose, LUXURY_COLORS.coral]}
+            style={styles.sectionIcon}
+          >
+            <Feather name="heart" size={12} color="#FFFFFF" />
+          </LinearGradient>
+          <ThemedText type="h4" style={styles.sectionTitle}>Preferences</ThemedText>
+        </View>
+        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="heart"
             title="Style Theme"
             subtitle={STYLE_NAMES[user?.stylePreference || "luxury"]}
             onPress={handleChangeStyle}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.rose, LUXURY_COLORS.coral]}
           />
           <SettingItem
             icon="globe"
@@ -400,6 +473,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             }
             onPress={handleFeedPreference}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
           />
           <SettingItem
             icon="cpu"
@@ -407,6 +482,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             subtitle={user?.aiSuggestionsEnabled !== false ? "On - Get stylist advice" : "Off - Community only"}
             onPress={handleAISuggestions}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
           />
           <SettingItem
             icon="map-pin"
@@ -414,6 +491,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             subtitle={user?.country}
             onPress={() => {}}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.coral, '#C46A4F']}
           />
           <SettingItem
             icon="clipboard"
@@ -421,20 +500,26 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             subtitle={user?.hasCompletedQuiz ? "Retake quiz" : "Complete your style profile"}
             onPress={() => navigation.navigate("OnboardingQuiz")}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
           />
         </View>
       </View>
 
       <View style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            Trending Colors
-          </ThemedText>
+        <View style={styles.sectionHeader}>
+          <LinearGradient
+            colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+            style={styles.sectionIcon}
+          >
+            <Feather name="droplet" size={12} color={LUXURY_COLORS.midnight} />
+          </LinearGradient>
+          <ThemedText type="h4" style={styles.sectionTitle}>Trending Colors</ThemedText>
           {trendLoading || pantoneLoading ? (
-            <ActivityIndicator size="small" color={theme.tabIconDefault} />
+            <ActivityIndicator size="small" color={LUXURY_COLORS.gold} style={{ marginLeft: Spacing.sm }} />
           ) : null}
         </View>
-        <View style={[styles.sectionContent, { backgroundColor: theme.backgroundDefault }]}>
+        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <View style={styles.trendingColorsContainer}>
             {pantoneColor ? (
               <View style={styles.pantoneSection}>
@@ -442,11 +527,9 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                   Pantone Color of the Year {pantoneColor.year}
                 </ThemedText>
                 <View style={styles.colorRow}>
-                  <View
-                    style={[
-                      styles.colorSwatch,
-                      { backgroundColor: pantoneColor.hex },
-                    ]}
+                  <LinearGradient
+                    colors={[pantoneColor.hex, pantoneColor.hex]}
+                    style={styles.colorSwatchGradient}
                   />
                   <View style={styles.colorInfo}>
                     <ThemedText type="body" style={styles.colorName}>
@@ -472,11 +555,9 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                 <View style={styles.trendColorsRow}>
                   {trendInfo.colors.secondary ? (
                     <View style={styles.trendColorItem}>
-                      <View
-                        style={[
-                          styles.colorSwatchSmall,
-                          { backgroundColor: trendInfo.colors.secondary.hex },
-                        ]}
+                      <LinearGradient
+                        colors={[trendInfo.colors.secondary.hex, trendInfo.colors.secondary.hex]}
+                        style={styles.colorSwatchSmall}
                       />
                       <ThemedText type="caption" style={styles.colorLabel}>
                         Secondary
@@ -488,11 +569,9 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                   ) : null}
                   {trendInfo.colors.accent ? (
                     <View style={styles.trendColorItem}>
-                      <View
-                        style={[
-                          styles.colorSwatchSmall,
-                          { backgroundColor: trendInfo.colors.accent.hex },
-                        ]}
+                      <LinearGradient
+                        colors={[trendInfo.colors.accent.hex, trendInfo.colors.accent.hex]}
+                        style={styles.colorSwatchSmall}
                       />
                       <ThemedText type="caption" style={styles.colorLabel}>
                         Accent
@@ -514,18 +593,20 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                 <ThemedText type="small" style={styles.noTrendText}>
                   Using base theme colors
                 </ThemedText>
-                <Pressable
-                  onPress={refreshTrends}
-                  style={({ pressed }) => [
-                    styles.refreshButton,
-                    { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
-                  ]}
+                <LinearGradient
+                  colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+                  style={styles.refreshButtonGradient}
                 >
-                  <Feather name="refresh-cw" size={14} color={theme.link} />
-                  <ThemedText type="small" style={{ color: theme.link }}>
-                    Check for trends
-                  </ThemedText>
-                </Pressable>
+                  <Pressable
+                    onPress={refreshTrends}
+                    style={styles.refreshButtonInner}
+                  >
+                    <Feather name="refresh-cw" size={14} color="#FFFFFF" />
+                    <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '600' }}>
+                      Check for trends
+                    </ThemedText>
+                  </Pressable>
+                </LinearGradient>
               </View>
             ) : null}
           </View>
@@ -533,22 +614,31 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       </View>
 
       <View style={styles.section}>
-        <ThemedText type="h3" style={styles.sectionTitle}>
-          Invite Friends
-        </ThemedText>
-        <View style={styles.sectionContent}>
+        <View style={styles.sectionHeader}>
+          <LinearGradient
+            colors={[LUXURY_COLORS.coral, '#C46A4F']}
+            style={styles.sectionIcon}
+          >
+            <Feather name="gift" size={12} color="#FFFFFF" />
+          </LinearGradient>
+          <ThemedText type="h4" style={styles.sectionTitle}>Invite Friends</ThemedText>
+        </View>
+        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <Pressable
             onPress={handleShareReferral}
             style={({ pressed }) => [
               styles.settingItem,
-              { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.8 : 1 },
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF', opacity: pressed ? 0.8 : 1 },
             ]}
           >
-            <View style={styles.settingIconContainer}>
-              <Feather name="gift" size={20} color={theme.link} />
-            </View>
+            <LinearGradient
+              colors={[LUXURY_COLORS.coral, '#C46A4F']}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="gift" size={16} color="#FFFFFF" />
+            </LinearGradient>
             <View style={styles.settingContent}>
-              <ThemedText type="body" style={[styles.settingTitle, { color: theme.link }]}>
+              <ThemedText type="body" style={[styles.settingTitle, { color: LUXURY_COLORS.coral }]}>
                 Share Your Code: {referralCode}
               </ThemedText>
               <ThemedText type="small" style={styles.settingSubtitle}>
@@ -557,25 +647,29 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                   : "Invite friends and you both get 20 AI requests & 10% discount"}
               </ThemedText>
             </View>
-            <Feather name="share-2" size={20} color={theme.link} />
+            <Feather name="share-2" size={18} color={LUXURY_COLORS.coral} />
           </Pressable>
         </View>
       </View>
 
       <View style={styles.section}>
-        <ThemedText type="h3" style={styles.sectionTitle}>
-          Newsletter
-        </ThemedText>
-        <View style={styles.sectionContent}>
-          <View
-            style={[
-              styles.settingItem,
-              { backgroundColor: theme.backgroundDefault },
-            ]}
+        <View style={styles.sectionHeader}>
+          <LinearGradient
+            colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+            style={styles.sectionIcon}
           >
-            <View style={styles.settingIconContainer}>
-              <Feather name="mail" size={20} color={theme.text} />
-            </View>
+            <Feather name="mail" size={12} color="#FFFFFF" />
+          </LinearGradient>
+          <ThemedText type="h4" style={styles.sectionTitle}>Newsletter</ThemedText>
+        </View>
+        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="mail" size={16} color="#FFFFFF" />
+            </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
                 Fashion Updates
@@ -588,7 +682,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               value={isNewsletterSubscribed}
               onValueChange={handleNewsletterToggle}
               disabled={isNewsletterLoading}
-              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.teal }}
               thumbColor={isNewsletterSubscribed ? "#FFFFFF" : "#F4F4F4"}
             />
           </View>
@@ -596,19 +690,23 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       </View>
 
       <View style={styles.section}>
-        <ThemedText type="h3" style={styles.sectionTitle}>
-          Notifications
-        </ThemedText>
-        <View style={styles.sectionContent}>
-          <View
-            style={[
-              styles.settingItem,
-              { backgroundColor: theme.backgroundDefault },
-            ]}
+        <View style={styles.sectionHeader}>
+          <LinearGradient
+            colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+            style={styles.sectionIcon}
           >
-            <View style={styles.settingIconContainer}>
-              <Feather name="cloud" size={20} color={theme.text} />
-            </View>
+            <Feather name="bell" size={12} color="#FFFFFF" />
+          </LinearGradient>
+          <ThemedText type="h4" style={styles.sectionTitle}>Notifications</ThemedText>
+        </View>
+        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={['#3B82F6', '#2563EB']}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="cloud" size={16} color="#FFFFFF" />
+            </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
                 Weather-Based Styling
@@ -620,19 +718,17 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             <Switch
               value={notificationPrefs.weatherStyling}
               onValueChange={(value) => updatePreferences({ weatherStyling: value })}
-              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.violet }}
               thumbColor={notificationPrefs.weatherStyling ? "#FFFFFF" : "#F4F4F4"}
             />
           </View>
-          <View
-            style={[
-              styles.settingItem,
-              { backgroundColor: theme.backgroundDefault },
-            ]}
-          >
-            <View style={styles.settingIconContainer}>
-              <Feather name="tag" size={20} color={theme.text} />
-            </View>
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.emerald, '#059669']}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="tag" size={16} color="#FFFFFF" />
+            </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
                 Price Alerts
@@ -644,19 +740,17 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             <Switch
               value={notificationPrefs.priceAlerts}
               onValueChange={(value) => updatePreferences({ priceAlerts: value })}
-              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.violet }}
               thumbColor={notificationPrefs.priceAlerts ? "#FFFFFF" : "#F4F4F4"}
             />
           </View>
-          <View
-            style={[
-              styles.settingItem,
-              { backgroundColor: theme.backgroundDefault },
-            ]}
-          >
-            <View style={styles.settingIconContainer}>
-              <Feather name="trending-up" size={20} color={theme.text} />
-            </View>
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.coral, '#C46A4F']}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="trending-up" size={16} color="#FFFFFF" />
+            </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
                 Trend Notifications
@@ -668,19 +762,17 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             <Switch
               value={notificationPrefs.trendNotifications}
               onValueChange={(value) => updatePreferences({ trendNotifications: value })}
-              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.violet }}
               thumbColor={notificationPrefs.trendNotifications ? "#FFFFFF" : "#F4F4F4"}
             />
           </View>
-          <View
-            style={[
-              styles.settingItem,
-              { backgroundColor: theme.backgroundDefault },
-            ]}
-          >
-            <View style={styles.settingIconContainer}>
-              <Feather name="star" size={20} color={theme.text} />
-            </View>
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="star" size={16} color={LUXURY_COLORS.midnight} />
+            </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
                 Style of the Day
@@ -692,7 +784,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             <Switch
               value={notificationPrefs.styleOfTheDay}
               onValueChange={(value) => updatePreferences({ styleOfTheDay: value })}
-              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.violet }}
               thumbColor={notificationPrefs.styleOfTheDay ? "#FFFFFF" : "#F4F4F4"}
             />
           </View>
@@ -700,19 +792,23 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       </View>
 
       <View style={styles.section}>
-        <ThemedText type="h3" style={styles.sectionTitle}>
-          Voice & Language
-        </ThemedText>
-        <View style={styles.sectionContent}>
-          <View
-            style={[
-              styles.settingItem,
-              { backgroundColor: theme.backgroundDefault },
-            ]}
+        <View style={styles.sectionHeader}>
+          <LinearGradient
+            colors={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
+            style={styles.sectionIcon}
           >
-            <View style={styles.settingIconContainer}>
-              <Feather name="volume-2" size={20} color={theme.text} />
-            </View>
+            <Feather name="volume-2" size={12} color="#FFFFFF" />
+          </LinearGradient>
+          <ThemedText type="h4" style={styles.sectionTitle}>Voice & Language</ThemedText>
+        </View>
+        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="volume-2" size={16} color="#FFFFFF" />
+            </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
                 Voice Responses
@@ -724,7 +820,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             <Switch
               value={voiceSettings.ttsEnabled}
               onValueChange={(value) => updateVoiceSettings({ ttsEnabled: value })}
-              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.rose }}
               thumbColor={voiceSettings.ttsEnabled ? "#FFFFFF" : "#F4F4F4"}
             />
           </View>
@@ -734,6 +830,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             subtitle={SUPPORTED_LANGUAGES.find(l => l.code === voiceSettings.preferredLanguage)?.name || "English"}
             onPress={handleLanguageSelect}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
           />
           <SettingItem
             icon="fast-forward"
@@ -741,16 +839,16 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             subtitle={SPEED_OPTIONS.find(s => s.value === voiceSettings.voiceSpeed)?.label || "Normal"}
             onPress={handleSpeedSelect}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.coral, '#C46A4F']}
           />
-          <View
-            style={[
-              styles.settingItem,
-              { backgroundColor: theme.backgroundDefault },
-            ]}
-          >
-            <View style={styles.settingIconContainer}>
-              <Feather name="play-circle" size={20} color={theme.text} />
-            </View>
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="play-circle" size={16} color="#FFFFFF" />
+            </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
                 Auto-Play Responses
@@ -762,19 +860,17 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             <Switch
               value={voiceSettings.autoPlayResponses}
               onValueChange={(value) => updateVoiceSettings({ autoPlayResponses: value })}
-              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.teal }}
               thumbColor={voiceSettings.autoPlayResponses ? "#FFFFFF" : "#F4F4F4"}
             />
           </View>
-          <View
-            style={[
-              styles.settingItem,
-              { backgroundColor: theme.backgroundDefault },
-            ]}
-          >
-            <View style={styles.settingIconContainer}>
-              <Feather name="file-text" size={20} color={theme.text} />
-            </View>
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="file-text" size={16} color={LUXURY_COLORS.midnight} />
+            </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
                 Show Transcriptions
@@ -786,7 +882,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             <Switch
               value={voiceSettings.showTranscriptions}
               onValueChange={(value) => updateVoiceSettings({ showTranscriptions: value })}
-              trackColor={{ false: theme.tabIconDefault, true: theme.link }}
+              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.gold }}
               thumbColor={voiceSettings.showTranscriptions ? "#FFFFFF" : "#F4F4F4"}
             />
           </View>
@@ -794,16 +890,24 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       </View>
 
       <View style={styles.section}>
-        <ThemedText type="h3" style={styles.sectionTitle}>
-          Support
-        </ThemedText>
-        <View style={styles.sectionContent}>
+        <View style={styles.sectionHeader}>
+          <LinearGradient
+            colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+            style={styles.sectionIcon}
+          >
+            <Feather name="help-circle" size={12} color="#FFFFFF" />
+          </LinearGradient>
+          <ThemedText type="h4" style={styles.sectionTitle}>Support</ThemedText>
+        </View>
+        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="help-circle"
             title="Help & FAQ"
             subtitle="Browse questions and chat with Julia"
             onPress={() => navigation.navigate("Help")}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
           />
           <SettingItem
             icon="message-circle"
@@ -811,6 +915,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             subtitle="Get instant support from our assistant"
             onPress={handleSupport}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
           />
           <SettingItem
             icon="cpu"
@@ -818,49 +924,69 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             subtitle="View AI-generated feature suggestions"
             onPress={() => navigation.navigate("FeatureSuggestions")}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.coral, '#C46A4F']}
           />
           <SettingItem
             icon="file-text"
             title="Terms of Service"
             onPress={handleTerms}
             theme={theme}
+            isDark={isDark}
           />
           <SettingItem
             icon="shield"
             title="Privacy Policy"
             onPress={handlePrivacy}
             theme={theme}
+            isDark={isDark}
           />
         </View>
       </View>
 
       <View style={styles.section}>
-        <ThemedText type="h3" style={styles.sectionTitle}>
-          Company
-        </ThemedText>
-        <View style={styles.sectionContent}>
+        <View style={styles.sectionHeader}>
+          <LinearGradient
+            colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+            style={styles.sectionIcon}
+          >
+            <Feather name="briefcase" size={12} color={LUXURY_COLORS.midnight} />
+          </LinearGradient>
+          <ThemedText type="h4" style={styles.sectionTitle}>Company</ThemedText>
+        </View>
+        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="users"
             title="Partner With Us"
             subtitle="Stylists and brands enquiries"
             onPress={handlePartnerWithUs}
             theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
           />
         </View>
       </View>
 
       {onOpenPortal ? (
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            Staff Access
-          </ThemedText>
-          <View style={styles.sectionContent}>
+          <View style={styles.sectionHeader}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.berry, '#6B2430']}
+              style={styles.sectionIcon}
+            >
+              <Feather name="lock" size={12} color="#FFFFFF" />
+            </LinearGradient>
+            <ThemedText type="h4" style={styles.sectionTitle}>Staff Access</ThemedText>
+          </View>
+          <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
             <SettingItem
               icon="scissors"
               title="Stylist Portal"
               subtitle="Access stylist dashboard"
               onPress={() => onOpenPortal('stylist')}
               theme={theme}
+              isDark={isDark}
+              iconGradient={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
             />
             <SettingItem
               icon="shield"
@@ -868,42 +994,56 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               subtitle="Access admin dashboard"
               onPress={() => onOpenPortal('admin')}
               theme={theme}
+              isDark={isDark}
+              iconGradient={[LUXURY_COLORS.berry, '#6B2430']}
             />
           </View>
         </View>
       ) : null}
 
       <View style={styles.section}>
-        <ThemedText type="h3" style={styles.sectionTitle}>
-          Development
-        </ThemedText>
-        <View style={styles.sectionContent}>
+        <View style={styles.sectionHeader}>
+          <LinearGradient
+            colors={['#64748B', '#475569']}
+            style={styles.sectionIcon}
+          >
+            <Feather name="code" size={12} color="#FFFFFF" />
+          </LinearGradient>
+          <ThemedText type="h4" style={styles.sectionTitle}>Development</ThemedText>
+        </View>
+        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="image"
             title="Logo Preview"
             subtitle="View Dripn logo variations"
             onPress={() => navigation.navigate("LogoPreview")}
             theme={theme}
+            isDark={isDark}
           />
           <VIPTestModeItem
             user={user}
             updateProfile={updateProfile}
             theme={theme}
+            isDark={isDark}
           />
         </View>
       </View>
 
       <View style={styles.section}>
-        <ThemedText type="h3" style={styles.sectionTitle}>
-          Account Actions
-        </ThemedText>
-        <View style={styles.sectionContent}>
+        <View style={styles.sectionHeader}>
+          <View style={[styles.sectionIconPlain, { backgroundColor: 'rgba(255,59,48,0.15)' }]}>
+            <Feather name="alert-circle" size={12} color="#FF3B30" />
+          </View>
+          <ThemedText type="h4" style={styles.sectionTitle}>Account Actions</ThemedText>
+        </View>
+        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="log-out"
             title="Sign Out"
             onPress={handleLogout}
             showChevron={false}
             theme={theme}
+            isDark={isDark}
           />
           <SettingItem
             icon="trash-2"
@@ -912,14 +1052,20 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             showChevron={false}
             danger
             theme={theme}
+            isDark={isDark}
           />
         </View>
       </View>
 
       <View style={styles.footer}>
-        <ThemedText type="small" style={styles.versionText}>
-          Dripn v1.0.0
-        </ThemedText>
+        <LinearGradient
+          colors={[LUXURY_COLORS.gold + '30', 'transparent']}
+          style={styles.footerGradient}
+        >
+          <ThemedText type="small" style={styles.versionText}>
+            Dripn v1.0.0
+          </ThemedText>
+        </LinearGradient>
       </View>
 
       <Modal
@@ -932,15 +1078,26 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           style={styles.modalOverlay}
           onPress={closePickerModal}
         >
-          <View style={[styles.modalContent, { backgroundColor: theme.backgroundSecondary }]}>
-            <View style={styles.modalHeader}>
-              <ThemedText type="h3" style={styles.modalTitle}>
-                {pickerModal.type === 'language' ? 'Select Language' : 'Voice Speed'}
-              </ThemedText>
-              <Pressable onPress={closePickerModal} style={styles.modalCloseButton}>
-                <Feather name="x" size={24} color={theme.text} />
-              </Pressable>
-            </View>
+          <View style={[styles.modalContent, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={isDark 
+                ? [LUXURY_COLORS.violet + '30', 'transparent'] 
+                : [LUXURY_COLORS.violet + '15', 'transparent']
+              }
+              style={styles.modalHeaderGradient}
+            >
+              <View style={styles.modalHeader}>
+                <ThemedText type="h3" style={styles.modalTitle}>
+                  {pickerModal.type === 'language' ? 'Select Language' : 'Voice Speed'}
+                </ThemedText>
+                <Pressable 
+                  onPress={closePickerModal} 
+                  style={[styles.modalCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+                >
+                  <Feather name="x" size={20} color={theme.text} />
+                </Pressable>
+              </View>
+            </LinearGradient>
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
               {pickerModal.type === 'language' ? (
                 SUPPORTED_LANGUAGES.map((lang) => (
@@ -948,8 +1105,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                     key={lang.code}
                     style={({ pressed }) => [
                       styles.modalOption,
-                      { backgroundColor: pressed ? theme.backgroundDefault : 'transparent' },
-                      voiceSettings.preferredLanguage === lang.code && { backgroundColor: theme.link + '20' },
+                      { backgroundColor: pressed ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)') : 'transparent' },
+                      voiceSettings.preferredLanguage === lang.code && { backgroundColor: LUXURY_COLORS.violet + '20' },
                     ]}
                     onPress={() => {
                       updateVoiceSettings({ preferredLanguage: lang.code });
@@ -963,7 +1120,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                       {lang.nativeName}
                     </ThemedText>
                     {voiceSettings.preferredLanguage === lang.code ? (
-                      <Feather name="check" size={20} color={theme.link} />
+                      <Feather name="check" size={20} color={LUXURY_COLORS.violet} />
                     ) : null}
                   </Pressable>
                 ))
@@ -973,8 +1130,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                     key={speed.value}
                     style={({ pressed }) => [
                       styles.modalOption,
-                      { backgroundColor: pressed ? theme.backgroundDefault : 'transparent' },
-                      voiceSettings.voiceSpeed === speed.value && { backgroundColor: theme.link + '20' },
+                      { backgroundColor: pressed ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)') : 'transparent' },
+                      voiceSettings.voiceSpeed === speed.value && { backgroundColor: LUXURY_COLORS.violet + '20' },
                     ]}
                     onPress={() => {
                       updateVoiceSettings({ voiceSpeed: speed.value });
@@ -985,7 +1142,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                       {speed.label}
                     </ThemedText>
                     {voiceSettings.voiceSpeed === speed.value ? (
-                      <Feather name="check" size={20} color={theme.link} />
+                      <Feather name="check" size={20} color={LUXURY_COLORS.violet} />
                     ) : null}
                   </Pressable>
                 ))
@@ -999,17 +1156,51 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
 }
 
 const styles = StyleSheet.create({
+  headerGradient: {
+    paddingBottom: Spacing.xl,
+    marginBottom: Spacing.md,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   section: {
     marginBottom: Spacing.xl,
   },
-  sectionTitle: {
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: Spacing.md,
-    opacity: 0.7,
+    gap: Spacing.sm,
+  },
+  sectionIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionIconPlain: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitle: {
+    flex: 1,
   },
   sectionContent: {
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     overflow: "hidden",
-    gap: 1,
   },
   settingItem: {
     flexDirection: "row",
@@ -1018,14 +1209,24 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   settingIconContainer: {
-    width: 24,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
+    justifyContent: 'center',
+  },
+  settingIconGradient: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: 'center',
   },
   settingContent: {
     flex: 1,
   },
   settingTitle: {
-    fontWeight: "500",
+    fontWeight: "600",
   },
   settingSubtitle: {
     opacity: 0.6,
@@ -1035,14 +1236,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: Spacing.xl,
   },
+  footerGradient: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+  },
   versionText: {
     opacity: 0.5,
-  },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing.md,
   },
   trendingColorsContainer: {
     padding: Spacing.lg,
@@ -1060,10 +1260,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.md,
   },
-  colorSwatch: {
+  colorSwatchGradient: {
     width: 48,
     height: 48,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.md,
   },
   colorInfo: {
     flex: 1,
@@ -1078,7 +1278,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: "rgba(128, 128, 128, 0.2)",
+    borderTopColor: "rgba(128, 128, 128, 0.15)",
   },
   trendColorsRow: {
     flexDirection: "row",
@@ -1091,7 +1291,7 @@ const styles = StyleSheet.create({
   colorSwatchSmall: {
     width: 40,
     height: 40,
-    borderRadius: BorderRadius.xs,
+    borderRadius: BorderRadius.sm,
   },
   colorLabel: {
     opacity: 0.7,
@@ -1111,38 +1311,46 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     textAlign: "center",
   },
-  refreshButton: {
+  refreshButtonGradient: {
+    borderRadius: BorderRadius.full,
+  },
+  refreshButtonInner: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    borderTopLeftRadius: BorderRadius.lg,
-    borderTopRightRadius: BorderRadius.lg,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
     maxHeight: '70%',
     paddingBottom: Spacing.xl,
+  },
+  modalHeaderGradient: {
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(128, 128, 128, 0.2)',
   },
   modalTitle: {
     flex: 1,
   },
   modalCloseButton: {
-    padding: Spacing.sm,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalScrollView: {
     paddingHorizontal: Spacing.md,
@@ -1151,7 +1359,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.lg,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.md,
     marginVertical: 2,
   },
   modalOptionText: {

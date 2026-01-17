@@ -58,6 +58,19 @@ const TAB_BAR_HEIGHT = 56;
 const CHAT_STORAGE_KEY = '@dripn_ai_stylist_chat';
 const DAILY_MESSAGES_KEY = '@dripn_ai_daily_messages';
 
+const LUXURY_COLORS = {
+  gold: '#C9A87C',
+  deepGold: '#A88B5C',
+  rose: '#E8B4B8',
+  berry: '#8B2F39',
+  violet: '#9B7EBD',
+  deepViolet: '#6B4E8D',
+  coral: '#E07A5F',
+  teal: '#2A9D8F',
+  emerald: '#059669',
+  midnight: '#1A1A2E',
+};
+
 interface VoiceMessage {
   uri: string;
   duration: number;
@@ -1487,9 +1500,12 @@ export default function AIStylistScreen() {
         ]}
       >
         {!isUser ? (
-          <View style={[styles.avatarContainer, { backgroundColor: stylist.color }]}>
-            <Feather name={stylist.icon} size={16} color="#FFFFFF" />
-          </View>
+          <LinearGradient
+            colors={stylist.id === 'ruby' ? [LUXURY_COLORS.rose, LUXURY_COLORS.berry] : stylist.id === 'max' ? [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] : stylist.id === 'ace' ? [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] : [LUXURY_COLORS.coral, '#C46A4F']}
+            style={styles.avatarContainer}
+          >
+            <Feather name={stylist.icon} size={16} color={stylist.id === 'ace' ? LUXURY_COLORS.midnight : "#FFFFFF"} />
+          </LinearGradient>
         ) : null}
         
         <View
@@ -1537,9 +1553,12 @@ export default function AIStylistScreen() {
         </View>
         
         {isUser ? (
-          <View style={[styles.userAvatar, { backgroundColor: theme.success }]}>
+          <LinearGradient
+            colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+            style={styles.userAvatar}
+          >
             <Feather name="user" size={16} color="#FFFFFF" />
-          </View>
+          </LinearGradient>
         ) : null}
       </Animated.View>
     );
@@ -1611,17 +1630,30 @@ export default function AIStylistScreen() {
 
   const moodInfo = getMoodInfo();
 
+  const getStylistGradient = (): readonly [string, string] => {
+    switch (stylist.id) {
+      case 'ruby':
+        return [LUXURY_COLORS.rose, LUXURY_COLORS.berry] as const;
+      case 'max':
+        return [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const;
+      case 'ace':
+        return [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const;
+      default:
+        return [LUXURY_COLORS.coral, '#C46A4F'] as const;
+    }
+  };
+
   const renderHeader = () => (
     <View style={styles.headerContent}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <LinearGradient
-            colors={stylist.id === 'ruby' ? ['#E91E63', '#FF4081'] : [theme.link, theme.success]}
+            colors={getStylistGradient()}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.stylistIcon}
           >
-            <Feather name={stylist.icon} size={20} color="#FFFFFF" />
+            <Feather name={stylist.icon} size={20} color={stylist.id === 'ace' ? LUXURY_COLORS.midnight : "#FFFFFF"} />
           </LinearGradient>
           <View>
             <View style={styles.headerTitleRow}>
@@ -1683,7 +1715,7 @@ export default function AIStylistScreen() {
           style={[styles.upgradeTeaserCard]}
         >
           <LinearGradient
-            colors={stylist.id === 'ruby' ? ['#E91E63', '#FF4081'] : [theme.link, '#4ECDC4']}
+            colors={getStylistGradient()}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.upgradeTeaserGradient}
@@ -1705,7 +1737,7 @@ export default function AIStylistScreen() {
               ]}
             >
               <ThemedText style={styles.upgradeTeaserButtonText}>Upgrade Now</ThemedText>
-              <Feather name="arrow-right" size={16} color={stylist.id === 'ruby' ? '#E91E63' : theme.link} />
+              <Feather name="arrow-right" size={16} color={getStylistGradient()[0]} />
             </Pressable>
           </LinearGradient>
         </Animated.View>
@@ -1748,11 +1780,14 @@ export default function AIStylistScreen() {
     <>
       {isTyping ? (
         <View style={styles.typingContainer}>
-          <View style={[styles.avatarContainer, { backgroundColor: moodInfo ? moodInfo.color : (stylist.id === 'ruby' ? '#E91E63' : theme.link) }]}>
-            <Feather name={moodInfo ? moodInfo.icon : stylist.icon} size={16} color="#FFFFFF" />
-          </View>
+          <LinearGradient
+            colors={getStylistGradient()}
+            style={styles.avatarContainer}
+          >
+            <Feather name={moodInfo ? moodInfo.icon : stylist.icon} size={16} color={stylist.id === 'ace' ? LUXURY_COLORS.midnight : "#FFFFFF"} />
+          </LinearGradient>
           <View style={[styles.typingBubble, { backgroundColor: theme.backgroundSecondary }]}>
-            <ActivityIndicator size="small" color={moodInfo ? moodInfo.color : (stylist.id === 'ruby' ? '#E91E63' : theme.link)} />
+            <ActivityIndicator size="small" color={getStylistGradient()[0]} />
             <ThemedText style={[styles.typingText, { color: theme.tabIconDefault }]}>
               {getTypingMessage()}
             </ThemedText>
@@ -2431,6 +2466,6 @@ const styles = StyleSheet.create({
   upgradeTeaserButtonText: {
     ...Typography.body,
     fontWeight: '700',
-    color: '#E91E63',
+    color: LUXURY_COLORS.berry,
   },
 });

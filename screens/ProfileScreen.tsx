@@ -123,8 +123,8 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     <ScreenScrollView style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}>
       <LinearGradient
         colors={isDark 
-          ? [LUXURY_COLORS.deepViolet + '60', LUXURY_COLORS.berry + '30', 'transparent'] 
-          : [LUXURY_COLORS.violet + '30', LUXURY_COLORS.rose + '20', 'transparent']
+          ? [LUXURY_COLORS.gold + '50', LUXURY_COLORS.deepGold + '30', 'transparent'] 
+          : [LUXURY_COLORS.champagne, LUXURY_COLORS.gold + '20', 'transparent']
         }
         style={styles.heroGradient}
       >
