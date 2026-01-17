@@ -14,6 +14,7 @@ import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
 import { ScreenScrollView } from "@/components/ScreenScrollView";
+import { stylistUpgradeService } from "@/services/StylistUpgradeService";
 
 type DecideForMeScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "DecideForMe">;
@@ -196,6 +197,13 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
   const handleSaveOutfit = async () => {
     await recordInteraction("save_outfit");
+    
+    await stylistUpgradeService.recordSignal("SAVE", recommendation?.stylistName?.toLowerCase(), {
+      message: "User tapped save outfit",
+      occasion: selectedOccasion,
+      comfort: selectedComfort,
+    });
+    
     setShowSavePrompt(true);
   };
 

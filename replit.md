@@ -156,12 +156,14 @@ The following backend endpoints are used for the onboarding flow:
 - `GET /api/onboarding/dfy-job-info` - Get DFY job tracking status (pending/processing/completed/failed)
 
 ### Signal Types for Upgrade Prompts
-| Signal | Triggers |
-|--------|----------|
-| DEPTH | "plan my week", "what should I pack", "capsule wardrobe" |
-| RELIANCE | Returns frequently, accepts recommendations, "thanks, that..." |
-| FRUSTRATION | "you're missing clothes", "you don't know what I own" |
-| AMBITION | "can you do what a real stylist does", "magazine-level outfits" |
+| Signal | Triggers | Unlocks |
+|--------|----------|---------|
+| SAVE | User taps "Save outfit" button | Account creation |
+| FRUSTRATION | "you're missing clothes", "you don't know what I own" | DFY options |
+| RELIANCE | Accepts recommendations, "thanks, that..." | Subscription |
+| DEPTH | "plan my week", "what should I pack", "capsule wardrobe" | DFY options |
+| AMBITION | "can you do what a real stylist does", "magazine-level outfits" | Premium tiers |
+| RETURN | User returns after 24h+ | Subscription |
 
 ### Upgrade Card Behaviour
 - Cards slide up from bottom (bottom sheet)

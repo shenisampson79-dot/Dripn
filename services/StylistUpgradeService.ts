@@ -1,8 +1,18 @@
 import { apiService } from "./ApiService";
+import { onboardingSessionService } from "./OnboardingSessionService";
 
-export type SignalType = "DEPTH" | "RELIANCE" | "FRUSTRATION" | "AMBITION";
+export type SignalType = "SAVE" | "DEPTH" | "RELIANCE" | "FRUSTRATION" | "AMBITION" | "RETURN";
 
-export type UnlockType = "dfy_options" | "subscription" | "premium_tiers";
+export type UnlockType = "account_creation" | "dfy_options" | "subscription" | "premium_tiers";
+
+export const SIGNAL_UNLOCKS: Record<SignalType, UnlockType> = {
+  SAVE: "account_creation",
+  FRUSTRATION: "dfy_options",
+  RELIANCE: "subscription",
+  DEPTH: "dfy_options",
+  AMBITION: "premium_tiers",
+  RETURN: "subscription",
+};
 
 export interface UpgradeCopy {
   message: string;
@@ -67,7 +77,7 @@ export interface DfyJobInfo {
   turnaround: string;
 }
 
-const SIGNAL_TRIGGERS: Record<SignalType, string[]> = {
+const MESSAGE_SIGNAL_TRIGGERS: Partial<Record<SignalType, string[]>> = {
   DEPTH: [
     "plan my week",
     "what should i pack",
@@ -104,13 +114,15 @@ const SIGNAL_TRIGGERS: Record<SignalType, string[]> = {
 };
 
 class StylistUpgradeService {
-  detectSignal(userMessage: string): SignalType | null {
+  detectSignalFromMessage(userMessage: string): SignalType | null {
     const lowerMessage = userMessage.toLowerCase();
 
-    for (const [signalType, triggers] of Object.entries(SIGNAL_TRIGGERS)) {
-      for (const trigger of triggers) {
-        if (lowerMessage.includes(trigger)) {
-          return signalType as SignalType;
+    for (const [signalType, triggers] of Object.entries(MESSAGE_SIGNAL_TRIGGERS)) {
+      if (triggers) {
+        for (const trigger of triggers) {
+          if (lowerMessage.includes(trigger)) {
+            return signalType as SignalType;
+          }
         }
       }
     }
@@ -131,8 +143,21 @@ class StylistUpgradeService {
   }
 
   private getDefaultUpgradeCopy(stylistId: string, signalType: SignalType): UpgradeCopy {
-    const stylistMessages: Record<string, Record<SignalType, UpgradeCopy>> = {
+    const defaultCopy: UpgradeCopy = {
+      message: "Let's take your style to the next level!",
+      followUp: "Create an account to save your preferences.",
+      cta: ["Create account", "Maybe later"],
+      unlocks: SIGNAL_UNLOCKS[signalType] || "account_creation",
+    };
+
+    const stylistMessages: Record<string, Partial<Record<SignalType, UpgradeCopy>>> = {
       ruby: {
+        SAVE: {
+          message: "Oh, what a lovely outfit choice, darling!",
+          followUp: "Create an account to keep it forever...",
+          cta: ["Create account", "Not yet"],
+          unlocks: "account_creation",
+        },
         DEPTH: {
           message: "Oh, I'd absolutely love to help you plan that properly, darling...",
           followUp: "I can take care of the setup for you...",
@@ -143,7 +168,7 @@ class StylistUpgradeService {
           message: "I'm so glad you trust my taste!",
           followUp: "Imagine if I knew your entire wardrobe...",
           cta: ["Tell me more", "Not now"],
-          unlocks: "dfy_options",
+          unlocks: "subscription",
         },
         FRUSTRATION: {
           message: "You're absolutely right, I'm working with limited info here.",
@@ -155,10 +180,22 @@ class StylistUpgradeService {
           message: "Oh darling, I can definitely elevate your style!",
           followUp: "With your full wardrobe, we could create magic...",
           cta: ["Show me how", "Maybe later"],
-          unlocks: "dfy_options",
+          unlocks: "premium_tiers",
+        },
+        RETURN: {
+          message: "Welcome back, darling! I missed you!",
+          followUp: "Subscribe to get unlimited styling advice...",
+          cta: ["Subscribe", "Maybe later"],
+          unlocks: "subscription",
         },
       },
       max: {
+        SAVE: {
+          message: "Nice choice! That's going to look great!",
+          followUp: "Save it to your account for later...",
+          cta: ["Create account", "Skip for now"],
+          unlocks: "account_creation",
+        },
         DEPTH: {
           message: "I'd love to help you plan ahead!",
           followUp: "Let me set things up properly for you...",
@@ -169,7 +206,7 @@ class StylistUpgradeService {
           message: "Happy to help! And this is just the start.",
           followUp: "With your wardrobe uploaded, I can do so much more...",
           cta: ["Tell me more", "I'm good for now"],
-          unlocks: "dfy_options",
+          unlocks: "subscription",
         },
         FRUSTRATION: {
           message: "I hear you. I'm missing some pieces of the puzzle.",
@@ -181,10 +218,22 @@ class StylistUpgradeService {
           message: "Absolutely! I can help you level up your style.",
           followUp: "With your full wardrobe, we can work wonders...",
           cta: ["Show me", "Not now"],
-          unlocks: "dfy_options",
+          unlocks: "premium_tiers",
+        },
+        RETURN: {
+          message: "Good to see you again! Ready for more styling?",
+          followUp: "Subscribe for unlimited access...",
+          cta: ["Subscribe", "Not now"],
+          unlocks: "subscription",
         },
       },
       jade: {
+        SAVE: {
+          message: "Smart choice. You'll want to keep that one.",
+          followUp: "Create an account to save it.",
+          cta: ["Create account", "Pass"],
+          unlocks: "account_creation",
+        },
         DEPTH: {
           message: "Planning ahead? Smart. Let's do this properly.",
           followUp: "I'll need your wardrobe to give you real advice.",
@@ -195,7 +244,7 @@ class StylistUpgradeService {
           message: "Good. You're listening. That's step one.",
           followUp: "Step two: let me see what you actually own.",
           cta: ["Fine, show me", "Pass"],
-          unlocks: "dfy_options",
+          unlocks: "subscription",
         },
         FRUSTRATION: {
           message: "You're right. I don't have the full picture.",
@@ -207,10 +256,22 @@ class StylistUpgradeService {
           message: "Magazine-level? That requires proper intel.",
           followUp: "Give me your wardrobe and I'll give you results.",
           cta: ["Let's go", "Later"],
-          unlocks: "dfy_options",
+          unlocks: "premium_tiers",
+        },
+        RETURN: {
+          message: "Back for more? Good. Let's get serious.",
+          followUp: "Subscribe and I'll give you the real deal.",
+          cta: ["Subscribe", "Pass"],
+          unlocks: "subscription",
         },
       },
       marcus: {
+        SAVE: {
+          message: "That's the one. Save it.",
+          followUp: "Create an account to lock it in.",
+          cta: ["Create account", "Later"],
+          unlocks: "account_creation",
+        },
         DEPTH: {
           message: "Planning? Good. Let's get you sorted properly.",
           followUp: "I need to see what you're working with.",
@@ -221,7 +282,7 @@ class StylistUpgradeService {
           message: "Glad that worked. Imagine what I could do with more info.",
           followUp: "Upload your wardrobe and watch the magic.",
           cta: ["Show me how", "I'm fine"],
-          unlocks: "dfy_options",
+          unlocks: "subscription",
         },
         FRUSTRATION: {
           message: "Fair point. I'm flying blind here.",
@@ -233,16 +294,19 @@ class StylistUpgradeService {
           message: "High fashion? You'll need the full service for that.",
           followUp: "Let me set you up properly.",
           cta: ["Do it", "Maybe later"],
-          unlocks: "dfy_options",
+          unlocks: "premium_tiers",
+        },
+        RETURN: {
+          message: "You're back. Good call.",
+          followUp: "Subscribe and let's get to work.",
+          cta: ["Subscribe", "Later"],
+          unlocks: "subscription",
         },
       },
     };
 
     const stylistKey = stylistId.toLowerCase();
-    return (
-      stylistMessages[stylistKey]?.[signalType] ||
-      stylistMessages.ruby[signalType]
-    );
+    return stylistMessages[stylistKey]?.[signalType] || defaultCopy;
   }
 
   async getPostRecommendationUI(): Promise<PostRecommendationUI | null> {
@@ -353,18 +417,23 @@ class StylistUpgradeService {
     }
   }
 
-  async recordSignal(signalType: SignalType, stylistId: string, context?: string): Promise<boolean> {
+  async recordSignal(
+    signalType: SignalType, 
+    stylistId?: string, 
+    context?: { message?: string; [key: string]: unknown }
+  ): Promise<{ unlocks: UnlockType } | null> {
     try {
-      await apiService.post("/api/onboarding/record-signal", {
+      const deviceId = await onboardingSessionService.getDeviceId();
+      const data = await apiService.post<{ unlocks: UnlockType }>("/api/onboarding/record-signal", {
+        deviceId,
         signalType,
         stylistId,
         context,
-        timestamp: new Date().toISOString(),
       });
-      return true;
+      return data || { unlocks: SIGNAL_UNLOCKS[signalType] };
     } catch (error) {
       console.log("Failed to record signal");
-      return false;
+      return { unlocks: SIGNAL_UNLOCKS[signalType] };
     }
   }
 
