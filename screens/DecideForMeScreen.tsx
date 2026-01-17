@@ -600,9 +600,11 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
   const handleSecondOpinion = async () => {
     setIsLoadingSecondOpinion(true);
-    await recordInteraction("second_opinion");
     
     try {
+      // Record interaction (non-blocking, don't fail if backend unavailable)
+      recordInteraction("second_opinion").catch(() => {});
+      
       const response = await apiService.post<VoteRequestResponse>("/api/community/vote-request", {
         outfit: recommendation?.outfit,
         occasion: selectedOccasion,
@@ -620,6 +622,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       }
     } catch (error) {
       setIsLoadingSecondOpinion(false);
+      // Always show fallback dialog even if backend fails
       showSecondOpinionOptions(null);
     }
   };
