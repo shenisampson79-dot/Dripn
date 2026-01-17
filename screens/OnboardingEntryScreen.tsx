@@ -85,6 +85,22 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
     }
   };
 
+  const handleJustBrowsing = async () => {
+    try {
+      const response = await apiService.post<{ immediateChat?: boolean; browsingMode?: boolean }>("/api/onboarding/entry-choice", { 
+        choice: "just_browsing" 
+      });
+      
+      if (response?.immediateChat && response?.browsingMode) {
+        navigation.navigate("AskStylist" as never);
+      } else {
+        navigation.navigate("DecideForMe");
+      }
+    } catch (error) {
+      navigation.navigate("DecideForMe");
+    }
+  };
+
   const decideForMe = entryData?.entryPoints?.find(e => e.id === "decide_for_me");
   const styleMeProperly = entryData?.entryPoints?.find(e => e.id === "style_me_properly");
 
@@ -167,9 +183,11 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
             </View>
           </Pressable>
 
-          <ThemedText type="small" style={styles.trustText}>
-            {entryData?.trustBuilding || "See how it works before signing up"}
-          </ThemedText>
+          <Pressable onPress={handleJustBrowsing}>
+            <ThemedText type="small" style={[styles.trustText, { textDecorationLine: 'underline' }]}>
+              {entryData?.trustBuilding || "See how it works before signing up"}
+            </ThemedText>
+          </Pressable>
         </Animated.View>
       </View>
     </View>
