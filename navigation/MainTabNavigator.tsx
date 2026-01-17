@@ -10,28 +10,29 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 
-import HomeStackNavigator from "@/navigation/HomeStackNavigator";
 import WardrobeStackNavigator from "@/navigation/WardrobeStackNavigator";
 import UserStylistStackNavigator from "@/navigation/UserStylistStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
+import SettingsScreen from "@/screens/SettingsScreen";
+
 import { useTheme } from "@/hooks/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
 
 export type MainTabParamList = {
-  HomeTab: undefined;
-  DiscoverTab: undefined;
   StylistTab: undefined;
+  WardrobeTab: undefined;
   ProfileTab: undefined;
+  SettingsTab: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const TAB_CONFIG: { name: keyof MainTabParamList; icon: string; label: string }[] = [
-  { name: "HomeTab", icon: "home", label: "Home" },
-  { name: "DiscoverTab", icon: "box", label: "Wardrobe" },
   { name: "StylistTab", icon: "scissors", label: "Stylist" },
+  { name: "WardrobeTab", icon: "box", label: "Wardrobe" },
   { name: "ProfileTab", icon: "user", label: "Profile" },
+  { name: "SettingsTab", icon: "settings", label: "Settings" },
 ];
 
 interface CustomTabBarProps extends BottomTabBarProps {
@@ -150,17 +151,19 @@ interface MainTabNavigatorProps {
 export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTabNavigatorProps) {
   return (
     <Tab.Navigator
-      initialRouteName="HomeTab"
+      initialRouteName="StylistTab"
       tabBar={(props) => <CustomTabBar {...props} onCreatePost={onCreatePost} />}
       screenOptions={{
         headerShown: false,
       }}
     >
-      <Tab.Screen name="HomeTab" component={HomeStackNavigator} />
-      <Tab.Screen name="DiscoverTab" component={WardrobeStackNavigator} />
       <Tab.Screen name="StylistTab" component={UserStylistStackNavigator} />
+      <Tab.Screen name="WardrobeTab" component={WardrobeStackNavigator} />
       <Tab.Screen name="ProfileTab">
         {() => <ProfileStackNavigator onOpenPortal={onOpenPortal} />}
+      </Tab.Screen>
+      <Tab.Screen name="SettingsTab">
+        {(props) => <SettingsScreen {...props} onOpenPortal={onOpenPortal} />}
       </Tab.Screen>
     </Tab.Navigator>
   );
