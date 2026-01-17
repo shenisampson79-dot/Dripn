@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import { StyleSheet, View, Pressable, Image, Alert, ScrollView, ActivityIndicator, ImageSourcePropType } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -22,6 +23,20 @@ import { useOutfitFavorites, LikedOutfit } from "@/contexts/OutfitFavoritesConte
 import { getCategoryIcon } from "@/services/EventsService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
+
+const LUXURY_COLORS = {
+  gold: '#C9A87C',
+  deepGold: '#A88B5C',
+  rose: '#E8B4B8',
+  berry: '#8B2F39',
+  violet: '#9B7EBD',
+  deepViolet: '#6B4E8D',
+  champagne: '#F5E6D3',
+  midnight: '#1A1A2E',
+  coral: '#E07A5F',
+  teal: '#2A9D8F',
+  emerald: '#059669',
+};
 
 type RegionalModelType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
 
@@ -44,7 +59,7 @@ type ProfileScreenProps = {
 };
 
 export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScreenProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { user } = useAuth();
   const { posts, votePost, voteComparison, thankPost } = usePosts();
   const { limits } = useSubscription();
@@ -72,17 +87,12 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("VIPMembers");
   };
 
-
-  const getSubscriptionBadge = () => {
+  const getSubscriptionBadgeGradient = (): readonly [string, string] => {
     const tier = user?.subscriptionTier || "free";
-    const colors = SubscriptionColors[tier];
-    return (
-      <View style={[styles.subscriptionBadge, { backgroundColor: (colors as { backgroundStart?: string }).backgroundStart || colors.background }]}>
-        <ThemedText type="caption" style={{ color: colors.text, fontWeight: "600" }}>
-          {tier.charAt(0).toUpperCase() + tier.slice(1)}
-        </ThemedText>
-      </View>
-    );
+    if (tier === 'premium' || tier === 'vip') {
+      return [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const;
+    }
+    return [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const;
   };
 
   const getContributorBadge = () => {
@@ -90,204 +100,199 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     if (tier === "none") return null;
     const colors = ContributorColors[tier];
     return (
-      <View style={[styles.contributorBadge, { backgroundColor: colors.background }]}>
-        <Feather name="award" size={12} color={colors.text} />
-        <ThemedText type="caption" style={{ color: colors.text, fontWeight: "600" }}>
+      <LinearGradient
+        colors={[colors.background, colors.background]}
+        style={styles.contributorBadge}
+      >
+        <Feather name="award" size={10} color={colors.text} />
+        <ThemedText type="caption" style={{ color: colors.text, fontWeight: "600", fontSize: 11 }}>
           {colors.label}
         </ThemedText>
-      </View>
+      </LinearGradient>
     );
   };
 
+  const tabConfig = [
+    { key: 'posts', label: 'Posts', icon: 'grid', color: LUXURY_COLORS.violet },
+    { key: 'advice', label: 'Advice', icon: 'message-circle', color: LUXURY_COLORS.coral },
+    { key: 'outfits', label: 'Outfits', icon: 'bookmark', color: LUXURY_COLORS.gold },
+    { key: 'events', label: 'Events', icon: 'calendar', color: LUXURY_COLORS.teal },
+  ];
+
   return (
-    <ScreenScrollView>
-      <View style={styles.header}>
-        <Pressable
-          onPress={handleSettingsPress}
-          style={({ pressed }) => [
-            styles.settingsButton,
-            { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.8 : 1 },
-          ]}
-        >
-          <Feather name="settings" size={20} color={theme.text} />
-        </Pressable>
-      </View>
-
-      <View style={styles.profileSection}>
-        <Pressable onPress={handleEditProfilePress}>
-          <View style={[styles.avatarContainer, { backgroundColor: theme.backgroundDefault }]}>
-            {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatar} />
-            ) : (
-              <Feather name="user" size={48} color={theme.tabIconDefault} />
-            )}
-            <View style={[styles.editAvatarBadge, { backgroundColor: theme.link }]}>
-              <Feather name="edit-2" size={12} color="#FFFFFF" />
-            </View>
-          </View>
-        </Pressable>
-
-        <ThemedText type="h2" style={styles.userName}>
-          {user?.name || "Guest User"}
-        </ThemedText>
-
-        <View style={styles.badgesContainer}>
-          {getSubscriptionBadge()}
-          {getContributorBadge()}
-        </View>
-
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <ThemedText type="h3">{user?.postsCount || 0}</ThemedText>
-            <ThemedText type="small" style={styles.statLabel}>
-              Posts
-            </ThemedText>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <ThemedText type="h3">{user?.helpfulVotes || 0}</ThemedText>
-            <ThemedText type="small" style={styles.statLabel}>
-              Helpful
-            </ThemedText>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <ThemedText type="h3">{user?.thanksReceived || 0}</ThemedText>
-            <ThemedText type="small" style={styles.statLabel}>
-              Thanks
-            </ThemedText>
-          </View>
-        </View>
-
-        <Pressable
-          onPress={handleSubscriptionPress}
-          style={({ pressed }) => [
-            styles.upgradeButton,
-            { backgroundColor: theme.link, opacity: pressed ? 0.9 : 1 },
-          ]}
-        >
-          <Feather name="zap" size={18} color="#FFFFFF" />
-          <ThemedText type="body" style={styles.upgradeButtonText}>
-            {user?.subscriptionTier === "free" ? "Upgrade to Premium" : "Manage Subscription"}
-          </ThemedText>
-        </Pressable>
-
-        {limits.canMakeVideoCalls ? (
+    <ScreenScrollView style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}>
+      <LinearGradient
+        colors={isDark 
+          ? [LUXURY_COLORS.deepViolet + '60', LUXURY_COLORS.berry + '30', 'transparent'] 
+          : [LUXURY_COLORS.violet + '30', LUXURY_COLORS.rose + '20', 'transparent']
+        }
+        style={styles.heroGradient}
+      >
+        <View style={styles.header}>
+          <View style={{ width: 40 }} />
+          <ThemedText type="h3" style={{ opacity: 0.9 }}>Profile</ThemedText>
           <Pressable
-            onPress={handleVIPMembersPress}
+            onPress={handleSettingsPress}
             style={({ pressed }) => [
-              styles.vipCallButton,
-              { backgroundColor: '#F59E0B', opacity: pressed ? 0.9 : 1 },
+              styles.settingsButton,
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.8 : 1 },
             ]}
           >
-            <Feather name="video" size={18} color="#FFFFFF" />
+            <Feather name="settings" size={18} color={theme.text} />
+          </Pressable>
+        </View>
+
+        <View style={styles.profileSection}>
+          <Pressable onPress={handleEditProfilePress}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold + '40', LUXURY_COLORS.violet + '40']}
+              style={styles.avatarRing}
+            >
+              <View style={[styles.avatarContainer, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}>
+                {user?.avatar ? (
+                  <Image source={{ uri: user.avatar }} style={styles.avatar} />
+                ) : (
+                  <LinearGradient
+                    colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+                    style={styles.avatarPlaceholder}
+                  >
+                    <Feather name="user" size={36} color="#FFFFFF" />
+                  </LinearGradient>
+                )}
+              </View>
+            </LinearGradient>
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+              style={styles.editAvatarBadge}
+            >
+              <Feather name="edit-2" size={10} color={LUXURY_COLORS.midnight} />
+            </LinearGradient>
+          </Pressable>
+
+          <ThemedText type="h2" style={styles.userName}>
+            {user?.name || "Guest User"}
+          </ThemedText>
+
+          <View style={styles.badgesContainer}>
+            <LinearGradient
+              colors={getSubscriptionBadgeGradient()}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.subscriptionBadge}
+            >
+              <ThemedText type="caption" style={styles.subscriptionBadgeText}>
+                {(user?.subscriptionTier || 'free').charAt(0).toUpperCase() + (user?.subscriptionTier || 'free').slice(1)}
+              </ThemedText>
+            </LinearGradient>
+            {getContributorBadge()}
+          </View>
+        </View>
+      </LinearGradient>
+
+      <View style={[styles.statsSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+              style={styles.statIconContainer}
+            >
+              <Feather name="image" size={14} color="#FFFFFF" />
+            </LinearGradient>
+            <ThemedText type="h2" style={styles.statNumber}>{user?.postsCount || 0}</ThemedText>
+            <ThemedText type="caption" style={styles.statLabel}>Posts</ThemedText>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]} />
+          <View style={styles.statItem}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.coral, '#C46A4F']}
+              style={styles.statIconContainer}
+            >
+              <Feather name="thumbs-up" size={14} color="#FFFFFF" />
+            </LinearGradient>
+            <ThemedText type="h2" style={styles.statNumber}>{user?.helpfulVotes || 0}</ThemedText>
+            <ThemedText type="caption" style={styles.statLabel}>Helpful</ThemedText>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]} />
+          <View style={styles.statItem}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+              style={styles.statIconContainer}
+            >
+              <Feather name="heart" size={14} color={LUXURY_COLORS.midnight} />
+            </LinearGradient>
+            <ThemedText type="h2" style={styles.statNumber}>{user?.thanksReceived || 0}</ThemedText>
+            <ThemedText type="caption" style={styles.statLabel}>Thanks</ThemedText>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.actionsSection}>
+        <LinearGradient
+          colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.upgradeButtonGradient}
+        >
+          <Pressable
+            onPress={handleSubscriptionPress}
+            style={styles.upgradeButtonInner}
+          >
+            <Feather name="zap" size={18} color={LUXURY_COLORS.midnight} />
             <ThemedText type="body" style={styles.upgradeButtonText}>
-              VIP Video Calling
+              {user?.subscriptionTier === "free" ? "Upgrade to Personal Stylist" : "Manage Subscription"}
             </ThemedText>
           </Pressable>
-        ) : null}
+        </LinearGradient>
 
+        {limits.canMakeVideoCalls ? (
+          <LinearGradient
+            colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.vipButtonGradient}
+          >
+            <Pressable
+              onPress={handleVIPMembersPress}
+              style={styles.upgradeButtonInner}
+            >
+              <Feather name="video" size={18} color="#FFFFFF" />
+              <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
+                VIP Video Calling
+              </ThemedText>
+            </Pressable>
+          </LinearGradient>
+        ) : null}
       </View>
 
       <View style={styles.tabsContainer}>
-        <Pressable
-          onPress={() => setActiveTab("posts")}
-          style={[
-            styles.tab,
-            {
-              borderBottomColor: activeTab === "posts" ? theme.link : "transparent",
-            },
-          ]}
-        >
-          <Feather
-            name="grid"
-            size={20}
-            color={activeTab === "posts" ? theme.link : theme.tabIconDefault}
-          />
-          <ThemedText
-            type="body"
-            style={{
-              color: activeTab === "posts" ? theme.link : theme.tabIconDefault,
-              fontWeight: activeTab === "posts" ? "600" : "400",
-            }}
+        {tabConfig.map((tab) => (
+          <Pressable
+            key={tab.key}
+            onPress={() => setActiveTab(tab.key as any)}
+            style={styles.tabWrapper}
           >
-            My Posts
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          onPress={() => setActiveTab("advice")}
-          style={[
-            styles.tab,
-            {
-              borderBottomColor: activeTab === "advice" ? theme.link : "transparent",
-            },
-          ]}
-        >
-          <Feather
-            name="message-circle"
-            size={20}
-            color={activeTab === "advice" ? theme.link : theme.tabIconDefault}
-          />
-          <ThemedText
-            type="body"
-            style={{
-              color: activeTab === "advice" ? theme.link : theme.tabIconDefault,
-              fontWeight: activeTab === "advice" ? "600" : "400",
-            }}
-          >
-            Advice
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          onPress={() => setActiveTab("outfits")}
-          style={[
-            styles.tab,
-            {
-              borderBottomColor: activeTab === "outfits" ? theme.link : "transparent",
-            },
-          ]}
-        >
-          <Feather
-            name="bookmark"
-            size={20}
-            color={activeTab === "outfits" ? theme.link : theme.tabIconDefault}
-          />
-          <ThemedText
-            type="body"
-            style={{
-              color: activeTab === "outfits" ? theme.link : theme.tabIconDefault,
-              fontWeight: activeTab === "outfits" ? "600" : "400",
-              fontSize: 13,
-            }}
-          >
-            Outfits
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          onPress={() => setActiveTab("events")}
-          style={[
-            styles.tab,
-            {
-              borderBottomColor: activeTab === "events" ? theme.link : "transparent",
-            },
-          ]}
-        >
-          <Feather
-            name="calendar"
-            size={20}
-            color={activeTab === "events" ? theme.link : theme.tabIconDefault}
-          />
-          <ThemedText
-            type="body"
-            style={{
-              color: activeTab === "events" ? theme.link : theme.tabIconDefault,
-              fontWeight: activeTab === "events" ? "600" : "400",
-              fontSize: 13,
-            }}
-          >
-            Events
-          </ThemedText>
-        </Pressable>
+            {activeTab === tab.key ? (
+              <LinearGradient
+                colors={[tab.color, tab.color + '80']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.tabActive}
+              >
+                <Feather name={tab.icon as any} size={18} color="#FFFFFF" />
+                <ThemedText type="caption" style={styles.tabTextActive}>
+                  {tab.label}
+                </ThemedText>
+              </LinearGradient>
+            ) : (
+              <View style={[styles.tabInactive, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+                <Feather name={tab.icon as any} size={18} color={theme.tabIconDefault} />
+                <ThemedText type="caption" style={{ opacity: 0.7 }}>
+                  {tab.label}
+                </ThemedText>
+              </View>
+            )}
+          </Pressable>
+        ))}
       </View>
 
       <View style={styles.contentSection}>
@@ -308,7 +313,17 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Feather name="camera" size={48} color={theme.tabIconDefault} />
+              <LinearGradient
+                colors={[LUXURY_COLORS.violet + '30', LUXURY_COLORS.rose + '20']}
+                style={styles.emptyIconOuter}
+              >
+                <LinearGradient
+                  colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+                  style={styles.emptyIconInner}
+                >
+                  <Feather name="camera" size={28} color="#FFFFFF" />
+                </LinearGradient>
+              </LinearGradient>
               <ThemedText type="h3" style={styles.emptyTitle}>
                 No posts yet
               </ThemedText>
@@ -319,7 +334,17 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           )
         ) : activeTab === "advice" ? (
           <View style={styles.emptyState}>
-            <Feather name="message-circle" size={48} color={theme.tabIconDefault} />
+            <LinearGradient
+              colors={[LUXURY_COLORS.coral + '30', LUXURY_COLORS.rose + '20']}
+              style={styles.emptyIconOuter}
+            >
+              <LinearGradient
+                colors={[LUXURY_COLORS.coral, '#C46A4F']}
+                style={styles.emptyIconInner}
+              >
+                <Feather name="message-circle" size={28} color="#FFFFFF" />
+              </LinearGradient>
+            </LinearGradient>
             <ThemedText type="h3" style={styles.emptyTitle}>
               No advice given yet
             </ThemedText>
@@ -330,7 +355,12 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
         ) : activeTab === "outfits" ? (
           outfitsLoading ? (
             <View style={styles.emptyState}>
-              <ActivityIndicator size="large" color={theme.link} />
+              <LinearGradient
+                colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+                style={styles.loadingContainer}
+              >
+                <ActivityIndicator size="large" color={LUXURY_COLORS.midnight} />
+              </LinearGradient>
               <ThemedText type="body" style={styles.emptySubtitle}>
                 Loading liked outfits...
               </ThemedText>
@@ -338,24 +368,29 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           ) : likedOutfits.length > 0 ? (
             <View style={styles.outfitsContainer}>
               {likedOutfits.map((outfit) => (
-                <Card key={outfit.id} style={styles.likedOutfitCard}>
+                <View key={outfit.id} style={[styles.likedOutfitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
                   {outfit.outfitType === 'style_of_the_day' ? (
                     <>
                       <View style={styles.likedOutfitHeader}>
-                        <View style={[styles.likedOutfitBadge, { backgroundColor: theme.link }]}>
-                          <Feather name="star" size={12} color="#FFFFFF" />
-                          <ThemedText type="small" style={{ color: "#FFFFFF", fontWeight: "600" }}>
+                        <LinearGradient
+                          colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.likedOutfitBadge}
+                        >
+                          <Feather name="star" size={10} color={LUXURY_COLORS.midnight} />
+                          <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: "700", fontSize: 10 }}>
                             Style of the Day
                           </ThemedText>
-                        </View>
+                        </LinearGradient>
                         <Pressable
                           onPress={() => toggleOutfitLike(outfit)}
                           style={({ pressed }) => [
                             styles.unlikeButton,
-                            { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
+                            { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
                           ]}
                         >
-                          <Feather name="bookmark" size={16} color={theme.link} />
+                          <Feather name="bookmark" size={14} color={LUXURY_COLORS.gold} />
                         </Pressable>
                       </View>
                       <Image 
@@ -372,20 +407,25 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                   ) : outfit.outfitType === 'similar_outfit' ? (
                     <>
                       <View style={styles.likedOutfitHeader}>
-                        <View style={[styles.likedOutfitBadge, { backgroundColor: theme.success || '#10B981' }]}>
-                          <Feather name="grid" size={12} color="#FFFFFF" />
-                          <ThemedText type="small" style={{ color: "#FFFFFF", fontWeight: "600" }}>
+                        <LinearGradient
+                          colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.likedOutfitBadge}
+                        >
+                          <Feather name="grid" size={10} color="#FFFFFF" />
+                          <ThemedText type="caption" style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 10 }}>
                             Similar Outfit
                           </ThemedText>
-                        </View>
+                        </LinearGradient>
                         <Pressable
                           onPress={() => toggleOutfitLike(outfit)}
                           style={({ pressed }) => [
                             styles.unlikeButton,
-                            { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
+                            { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
                           ]}
                         >
-                          <Feather name="bookmark" size={16} color={theme.link} />
+                          <Feather name="bookmark" size={14} color={LUXURY_COLORS.teal} />
                         </Pressable>
                       </View>
                       {outfit.imageUri ? (
@@ -397,8 +437,8 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                       <ThemedText type="h3" style={styles.likedOutfitTitle}>
                         {outfit.title}
                       </ThemedText>
-                      <View style={[styles.styleTag, { backgroundColor: theme.backgroundSecondary }]}>
-                        <ThemedText type="small" style={{ opacity: 0.8 }}>
+                      <View style={[styles.styleTag, { backgroundColor: LUXURY_COLORS.teal + '20' }]}>
+                        <ThemedText type="small" style={{ color: LUXURY_COLORS.teal, fontWeight: '600' }}>
                           {outfit.style.charAt(0).toUpperCase() + outfit.style.slice(1)} Style
                         </ThemedText>
                       </View>
@@ -412,13 +452,16 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                     <>
                       <View style={styles.likedOutfitHeader}>
                         <View style={styles.likedOutfitUser}>
-                          <View style={[styles.likedOutfitAvatar, { backgroundColor: theme.backgroundSecondary }]}>
+                          <LinearGradient
+                            colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+                            style={styles.likedOutfitAvatar}
+                          >
                             {(outfit as any).userAvatar ? (
                               <Image source={{ uri: (outfit as any).userAvatar }} style={styles.likedOutfitAvatarImg} />
                             ) : (
-                              <Feather name="user" size={14} color={theme.tabIconDefault} />
+                              <Feather name="user" size={12} color="#FFFFFF" />
                             )}
-                          </View>
+                          </LinearGradient>
                           <ThemedText type="small" style={{ fontWeight: "600" }}>
                             {(outfit as any).userName}
                           </ThemedText>
@@ -427,10 +470,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                           onPress={() => toggleOutfitLike(outfit)}
                           style={({ pressed }) => [
                             styles.unlikeButton,
-                            { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
+                            { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
                           ]}
                         >
-                          <Feather name="bookmark" size={16} color={theme.link} />
+                          <Feather name="bookmark" size={14} color={LUXURY_COLORS.violet} />
                         </Pressable>
                       </View>
                       {(outfit as any).media?.[0]?.uri || (outfit as any).images?.[0]?.uri ? (
@@ -444,23 +487,38 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                       </ThemedText>
                     </>
                   )}
-                </Card>
+                </View>
               ))}
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Feather name="bookmark" size={48} color={theme.tabIconDefault} />
+              <LinearGradient
+                colors={[LUXURY_COLORS.gold + '30', LUXURY_COLORS.champagne + '40']}
+                style={styles.emptyIconOuter}
+              >
+                <LinearGradient
+                  colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+                  style={styles.emptyIconInner}
+                >
+                  <Feather name="bookmark" size={28} color={LUXURY_COLORS.midnight} />
+                </LinearGradient>
+              </LinearGradient>
               <ThemedText type="h3" style={styles.emptyTitle}>
                 No liked outfits
               </ThemedText>
               <ThemedText type="body" style={styles.emptySubtitle}>
-                Save outfits from Style of the Day or community posts to view them here
+                Save outfits from Style of the Day or community posts
               </ThemedText>
             </View>
           )
         ) : eventsLoading ? (
           <View style={styles.emptyState}>
-            <ActivityIndicator size="large" color={theme.link} />
+            <LinearGradient
+              colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+              style={styles.loadingContainer}
+            >
+              <ActivityIndicator size="large" color="#FFFFFF" />
+            </LinearGradient>
             <ThemedText type="body" style={styles.emptySubtitle}>
               Loading liked events...
             </ThemedText>
@@ -468,13 +526,16 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
         ) : likedEvents.length > 0 ? (
           <View style={styles.eventsContainer}>
             {likedEvents.map((event) => (
-              <Card key={event.id} style={styles.likedEventCard}>
+              <View key={event.id} style={[styles.likedEventCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
                 <View style={styles.likedEventHeader}>
-                  <View style={[styles.likedEventIcon, { backgroundColor: theme.backgroundSecondary }]}>
-                    <Feather name={getCategoryIcon(event.category) as any} size={18} color={theme.link} />
-                  </View>
+                  <LinearGradient
+                    colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+                    style={styles.likedEventIcon}
+                  >
+                    <Feather name={getCategoryIcon(event.category) as any} size={16} color="#FFFFFF" />
+                  </LinearGradient>
                   <View style={styles.likedEventText}>
-                    <ThemedText type="small" style={{ color: theme.link, fontWeight: "600" }}>
+                    <ThemedText type="caption" style={{ color: LUXURY_COLORS.teal, fontWeight: "600" }}>
                       {event.category}
                     </ThemedText>
                     <ThemedText type="h3" numberOfLines={1}>{event.title}</ThemedText>
@@ -483,10 +544,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                     onPress={() => toggleLike(event)}
                     style={({ pressed }) => [
                       styles.unlikeButton,
-                      { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
+                      { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
                     ]}
                   >
-                    <Feather name="heart" size={16} color="#E74C3C" />
+                    <Feather name="heart" size={14} color={LUXURY_COLORS.coral} />
                   </Pressable>
                 </View>
                 <View style={styles.likedEventDetails}>
@@ -509,24 +570,37 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                     {event.location}
                   </ThemedText>
                 </View>
-                <View style={[styles.likedEventOutfit, { backgroundColor: theme.backgroundSecondary }]}>
-                  <Feather name="star" size={12} color={theme.link} />
+                <LinearGradient
+                  colors={[LUXURY_COLORS.gold + '20', LUXURY_COLORS.champagne + '30']}
+                  style={styles.likedEventOutfit}
+                >
+                  <Feather name="star" size={12} color={LUXURY_COLORS.gold} />
                   <ThemedText type="small" style={{ marginLeft: 4, flex: 1 }} numberOfLines={2}>
-                    <ThemedText type="small" style={{ fontWeight: "600" }}>Wear: </ThemedText>
+                    <ThemedText type="small" style={{ fontWeight: "700", color: LUXURY_COLORS.gold }}>Wear: </ThemedText>
                     {event.outfitSuggestion}
                   </ThemedText>
-                </View>
-              </Card>
+                </LinearGradient>
+              </View>
             ))}
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Feather name="heart" size={48} color={theme.tabIconDefault} />
+            <LinearGradient
+              colors={[LUXURY_COLORS.teal + '30', LUXURY_COLORS.emerald + '20']}
+              style={styles.emptyIconOuter}
+            >
+              <LinearGradient
+                colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+                style={styles.emptyIconInner}
+              >
+                <Feather name="calendar" size={28} color="#FFFFFF" />
+              </LinearGradient>
+            </LinearGradient>
             <ThemedText type="h3" style={styles.emptyTitle}>
               No liked events
             </ThemedText>
             <ThemedText type="body" style={styles.emptySubtitle}>
-              Like events to save them here for easy access later
+              Like events to save them here for easy access
             </ThemedText>
           </View>
         )}
@@ -536,21 +610,33 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 }
 
 const styles = StyleSheet.create({
+  heroGradient: {
+    paddingBottom: Spacing.xl,
+  },
   header: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    marginBottom: Spacing.md,
+    justifyContent: "space-between",
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
   },
   settingsButton: {
     width: 40,
     height: 40,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.full,
     alignItems: "center",
     justifyContent: "center",
   },
   profileSection: {
     alignItems: "center",
-    marginBottom: Spacing.xl,
+  },
+  avatarRing: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
   },
   avatarContainer: {
     width: 100,
@@ -558,16 +644,23 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: Spacing.md,
+    overflow: 'hidden',
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
   },
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   editAvatarBadge: {
     position: "absolute",
-    bottom: 0,
+    bottom: Spacing.md,
     right: 0,
     width: 28,
     height: 28,
@@ -581,12 +674,16 @@ const styles = StyleSheet.create({
   badgesContainer: {
     flexDirection: "row",
     gap: Spacing.sm,
-    marginBottom: Spacing.lg,
   },
   subscriptionBadge: {
     paddingVertical: 4,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+  },
+  subscriptionBadgeText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 11,
   },
   contributorBadge: {
     flexDirection: "row",
@@ -594,139 +691,97 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 4,
     paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.xs,
+    borderRadius: BorderRadius.full,
+  },
+  statsSection: {
+    marginHorizontal: Spacing.lg,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    marginTop: -Spacing.md,
+    marginBottom: Spacing.lg,
   },
   statsRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: Spacing.lg,
+    justifyContent: 'center',
   },
   statItem: {
+    flex: 1,
     alignItems: "center",
-    paddingHorizontal: Spacing.xl,
+  },
+  statIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  statNumber: {
+    fontSize: 22,
   },
   statLabel: {
-    opacity: 0.7,
+    opacity: 0.6,
     marginTop: 2,
   },
   statDivider: {
     width: 1,
-    height: 32,
-    backgroundColor: "rgba(128,128,128,0.2)",
+    height: 50,
   },
-  upgradeButton: {
-    flexDirection: "row",
-    alignItems: "center",
+  actionsSection: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
     gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
+  },
+  upgradeButtonGradient: {
     borderRadius: BorderRadius.full,
   },
-  vipCallButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
+  vipButtonGradient: {
     borderRadius: BorderRadius.full,
-    marginTop: Spacing.sm,
   },
-  wardrobeButton: {
-    flexDirection: "row",
-    alignItems: "center",
+  upgradeButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.full,
-    marginTop: Spacing.sm,
-  },
-  therapyButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.full,
-    backgroundColor: "#EC4899",
-  },
-  weatherButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.full,
-    backgroundColor: "#3B82F6",
-  },
-  analyticsButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.full,
-    backgroundColor: "#8B5CF6",
-  },
-  styleDNAButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.full,
-    backgroundColor: "#10B981",
-  },
-  tryOnButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.full,
-    backgroundColor: "#8B5CF6",
-  },
-  colorAnalysisButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.full,
-    backgroundColor: "#EC4899",
-  },
-  bodyScannerButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.full,
-    backgroundColor: "#06B6D4",
   },
   upgradeButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-  wardrobeButtonText: {
-    fontWeight: "600",
+    color: LUXURY_COLORS.midnight,
+    fontWeight: "700",
   },
   tabsContainer: {
     flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(128,128,128,0.2)",
+    paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
     gap: Spacing.sm,
+  },
+  tabWrapper: {
+    flex: 1,
+  },
+  tabActive: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
     paddingVertical: Spacing.md,
-    borderBottomWidth: 2,
+    borderRadius: BorderRadius.md,
+  },
+  tabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  tabInactive: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
   },
   contentSection: {
     minHeight: 200,
+    paddingHorizontal: Spacing.lg,
   },
   postsContainer: {
     gap: Spacing.lg,
@@ -736,6 +791,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: Spacing["3xl"],
     gap: Spacing.md,
+  },
+  emptyIconOuter: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  emptyIconInner: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
   },
   emptyTitle: {
     textAlign: "center",
@@ -749,6 +827,12 @@ const styles = StyleSheet.create({
   },
   likedEventCard: {
     padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   likedEventHeader: {
     flexDirection: "row",
@@ -758,7 +842,7 @@ const styles = StyleSheet.create({
   likedEventIcon: {
     width: 36,
     height: 36,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.sm,
@@ -786,7 +870,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     padding: Spacing.sm,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.md,
     marginTop: Spacing.sm,
   },
   outfitsContainer: {
@@ -795,6 +879,12 @@ const styles = StyleSheet.create({
   likedOutfitCard: {
     padding: Spacing.md,
     overflow: "hidden",
+    borderRadius: BorderRadius.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   likedOutfitHeader: {
     flexDirection: "row",
@@ -808,7 +898,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 4,
     paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.xs,
+    borderRadius: BorderRadius.full,
   },
   likedOutfitUser: {
     flexDirection: "row",
@@ -821,6 +911,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    overflow: 'hidden',
   },
   likedOutfitAvatarImg: {
     width: 28,
@@ -830,7 +921,7 @@ const styles = StyleSheet.create({
   likedOutfitImage: {
     width: "100%",
     height: 200,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.md,
     marginBottom: Spacing.sm,
   },
   likedOutfitTitle: {
@@ -842,7 +933,7 @@ const styles = StyleSheet.create({
   styleTag: {
     paddingVertical: 4,
     paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.xs,
+    borderRadius: BorderRadius.full,
     marginBottom: Spacing.xs,
     alignSelf: 'flex-start',
   },

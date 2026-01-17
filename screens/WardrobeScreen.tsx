@@ -15,6 +15,7 @@ import { Feather } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
@@ -25,6 +26,33 @@ import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const ITEM_SIZE = (SCREEN_WIDTH - Spacing.xl * 2 - Spacing.md) / 2;
+
+const LUXURY_COLORS = {
+  gold: '#C9A87C',
+  deepGold: '#A88B5C',
+  rose: '#E8B4B8',
+  berry: '#8B2F39',
+  violet: '#9B7EBD',
+  deepViolet: '#6B4E8D',
+  champagne: '#F5E6D3',
+  midnight: '#1A1A2E',
+  coral: '#E07A5F',
+  teal: '#2A9D8F',
+  emerald: '#059669',
+};
+
+const CATEGORY_COLORS: Record<string, { gradient: readonly [string, string]; icon: string }> = {
+  'all': { gradient: [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const, icon: 'grid' },
+  'tops': { gradient: [LUXURY_COLORS.coral, '#C46A4F'] as const, icon: 'sun' },
+  'bottoms': { gradient: [LUXURY_COLORS.teal, LUXURY_COLORS.emerald] as const, icon: 'minimize-2' },
+  'dresses': { gradient: [LUXURY_COLORS.rose, '#D4949A'] as const, icon: 'heart' },
+  'outerwear': { gradient: ['#64748B', '#475569'] as const, icon: 'cloud' },
+  'shoes': { gradient: [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const, icon: 'disc' },
+  'bags': { gradient: [LUXURY_COLORS.berry, '#6B2430'] as const, icon: 'shopping-bag' },
+  'accessories': { gradient: ['#8B5CF6', '#7C3AED'] as const, icon: 'watch' },
+  'activewear': { gradient: ['#06B6D4', '#0891B2'] as const, icon: 'activity' },
+  'formal': { gradient: ['#1E293B', '#0F172A'] as const, icon: 'star' },
+};
 
 type WardrobeScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "Wardrobe">;
@@ -44,7 +72,7 @@ const CATEGORY_OPTIONS: Array<{ key: ClothingCategory | 'all'; label: string; ic
 ];
 
 export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { items, isLoading, deleteItem, toggleItemFavorite, markItemWorn } = useWardrobe();
   const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'all'>('all');
@@ -118,100 +146,129 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
 
   const renderCategoryTab = useCallback(({ item }: { item: typeof CATEGORY_OPTIONS[0] }) => {
     const isSelected = selectedCategory === item.key;
+    const colors = CATEGORY_COLORS[item.key] || CATEGORY_COLORS['all'];
+    
     return (
       <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setSelectedCategory(item.key);
         }}
-        style={[
-          styles.categoryTab,
-          {
-            backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
-          },
-        ]}
+        style={styles.categoryTabWrapper}
       >
-        <Feather
-          name={item.icon as any}
-          size={16}
-          color={isSelected ? "#FFFFFF" : theme.tabIconDefault}
-        />
-        <ThemedText
-          type="caption"
-          style={{ color: isSelected ? "#FFFFFF" : theme.text }}
-        >
-          {item.label}
-        </ThemedText>
+        {isSelected ? (
+          <LinearGradient
+            colors={colors.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.categoryTab}
+          >
+            <Feather name={item.icon as any} size={14} color="#FFFFFF" />
+            <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>
+              {item.label}
+            </ThemedText>
+          </LinearGradient>
+        ) : (
+          <View style={[styles.categoryTab, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+            <Feather name={item.icon as any} size={14} color={theme.tabIconDefault} />
+            <ThemedText type="caption">{item.label}</ThemedText>
+          </View>
+        )}
       </Pressable>
     );
-  }, [selectedCategory, theme]);
+  }, [selectedCategory, theme, isDark]);
 
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
     const hasProcessedImage = item.imageProcessed || item.aiAnalyzed;
+    const categoryColors = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['all'];
     
     return (
       <Pressable
         onPress={() => handleItemPress(item)}
         style={({ pressed }) => [
           styles.itemCard,
-          styles.itemCardShadow,
           {
             opacity: pressed ? 0.9 : 1,
             transform: [{ scale: pressed ? 0.98 : 1 }],
           },
         ]}
       >
-        <View style={styles.itemImageWrapper}>
+        <View style={[styles.itemImageWrapper, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}>
           <Image
             source={{ uri: item.imageUri }}
             style={styles.itemImage}
             contentFit={hasProcessedImage ? "contain" : "cover"}
             transition={200}
           />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.6)']}
+            style={styles.itemOverlay}
+          />
+          <View style={styles.itemInfoOverlay}>
+            <ThemedText type="caption" numberOfLines={1} style={styles.itemNameOverlay}>
+              {item.name}
+            </ThemedText>
+            <ThemedText type="caption" style={styles.itemWornText}>
+              Worn {item.timesWorn}x
+            </ThemedText>
+          </View>
         </View>
         {item.isFavorite ? (
-          <View style={[styles.favoriteIndicator, { backgroundColor: theme.link }]}>
-            <Feather name="heart" size={12} color="#FFFFFF" />
-          </View>
+          <LinearGradient
+            colors={[LUXURY_COLORS.rose, LUXURY_COLORS.coral]}
+            style={styles.favoriteIndicator}
+          >
+            <Feather name="heart" size={10} color="#FFFFFF" />
+          </LinearGradient>
         ) : null}
-        <View style={[styles.itemInfo, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
-          <ThemedText type="caption" numberOfLines={1} style={[styles.itemName, { color: '#1F2937' }]}>
-            {item.name}
-          </ThemedText>
-          <ThemedText type="caption" style={{ opacity: 0.6 }}>
-            Worn {item.timesWorn}x
-          </ThemedText>
+        <View style={styles.categoryIndicator}>
+          <LinearGradient
+            colors={categoryColors.gradient}
+            style={styles.categoryDot}
+          />
         </View>
       </Pressable>
     );
-  }, [theme]);
+  }, [theme, isDark]);
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIcon, { backgroundColor: theme.backgroundDefault }]}>
-        <Feather name="inbox" size={48} color={theme.tabIconDefault} />
-      </View>
-      <ThemedText type="h3" style={styles.emptyTitle}>
-        Your wardrobe is empty
+      <LinearGradient
+        colors={[LUXURY_COLORS.violet + '30', LUXURY_COLORS.rose + '20']}
+        style={styles.emptyIconContainer}
+      >
+        <LinearGradient
+          colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+          style={styles.emptyIconGradient}
+        >
+          <Feather name="inbox" size={32} color="#FFFFFF" />
+        </LinearGradient>
+      </LinearGradient>
+      <ThemedText type="h2" style={styles.emptyTitle}>
+        Your wardrobe awaits
       </ThemedText>
       <ThemedText type="body" style={styles.emptyText}>
-        Start building your digital closet by adding photos of your clothes
+        Start building your digital closet by adding photos of your favorite pieces
       </ThemedText>
-      <Pressable
-        onPress={handleQuickAdd}
-        style={[styles.emptyButton, { backgroundColor: theme.link }]}
+      <LinearGradient
+        colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.emptyButtonGradient}
       >
-        <Feather name="layers" size={20} color="#FFFFFF" />
-        <ThemedText type="body" style={styles.emptyButtonText}>
-          Quick Add Multiple Items
-        </ThemedText>
-      </Pressable>
+        <Pressable onPress={handleQuickAdd} style={styles.emptyButtonInner}>
+          <Feather name="layers" size={18} color={LUXURY_COLORS.midnight} />
+          <ThemedText type="body" style={styles.emptyButtonText}>
+            Quick Add Multiple Items
+          </ThemedText>
+        </Pressable>
+      </LinearGradient>
       <Pressable
         onPress={handleAddItem}
-        style={[styles.emptyButtonSecondary, { borderColor: theme.tabIconDefault }]}
+        style={[styles.emptyButtonSecondary, { borderColor: LUXURY_COLORS.gold }]}
       >
-        <Feather name="plus" size={20} color={theme.text} />
-        <ThemedText type="body" style={{ marginLeft: Spacing.sm }}>
+        <Feather name="plus" size={18} color={LUXURY_COLORS.gold} />
+        <ThemedText type="body" style={{ marginLeft: Spacing.sm, color: LUXURY_COLORS.gold }}>
           Add Single Item
         </ThemedText>
       </Pressable>
@@ -220,6 +277,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
 
   const renderItemModal = () => {
     if (!selectedItem) return null;
+    const categoryColors = CATEGORY_COLORS[selectedItem.category] || CATEGORY_COLORS['all'];
     
     return (
       <Modal
@@ -229,25 +287,33 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         onRequestClose={() => setShowItemModal(false)}
       >
         <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
-          <View style={[styles.modalHeader, { paddingTop: insets.top + Spacing.md }]}>
-            <Pressable
-              onPress={() => setShowItemModal(false)}
-              style={[styles.modalCloseButton, { backgroundColor: theme.backgroundDefault }]}
-            >
-              <Feather name="x" size={24} color={theme.text} />
-            </Pressable>
-            <ThemedText type="h3">Item Details</ThemedText>
-            <Pressable
-              onPress={() => handleToggleFavorite(selectedItem)}
-              style={[styles.modalCloseButton, { backgroundColor: theme.backgroundDefault }]}
-            >
-              <Feather
-                name={selectedItem.isFavorite ? "heart" : "heart"}
-                size={24}
-                color={selectedItem.isFavorite ? theme.link : theme.tabIconDefault}
-              />
-            </Pressable>
-          </View>
+          <LinearGradient
+            colors={isDark 
+              ? [categoryColors.gradient[0] + '40', 'transparent'] 
+              : [categoryColors.gradient[0] + '20', 'transparent']
+            }
+            style={styles.modalHeaderGradient}
+          >
+            <View style={[styles.modalHeader, { paddingTop: insets.top + Spacing.md }]}>
+              <Pressable
+                onPress={() => setShowItemModal(false)}
+                style={[styles.modalCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+              >
+                <Feather name="x" size={24} color={theme.text} />
+              </Pressable>
+              <ThemedText type="h3">Item Details</ThemedText>
+              <Pressable
+                onPress={() => handleToggleFavorite(selectedItem)}
+                style={[styles.modalCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+              >
+                <Feather
+                  name="heart"
+                  size={24}
+                  color={selectedItem.isFavorite ? LUXURY_COLORS.coral : theme.tabIconDefault}
+                />
+              </Pressable>
+            </View>
+          </LinearGradient>
 
           <FlatList
             data={[selectedItem]}
@@ -256,7 +322,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             showsVerticalScrollIndicator={false}
             renderItem={() => (
               <>
-                <View style={styles.modalImageWrapper}>
+                <View style={[styles.modalImageWrapper, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}>
                   <Image
                     source={{ uri: selectedItem.imageUri }}
                     style={styles.modalImage}
@@ -271,24 +337,41 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                   </ThemedText>
 
                   <View style={styles.modalTags}>
-                    <View style={[styles.modalTag, { backgroundColor: theme.backgroundDefault }]}>
-                      <Feather name="tag" size={14} color={theme.tabIconDefault} />
-                      <ThemedText type="caption">{CATEGORY_LABELS[selectedItem.category]}</ThemedText>
-                    </View>
-                    <View style={[styles.modalTag, { backgroundColor: theme.backgroundDefault }]}>
+                    <LinearGradient
+                      colors={categoryColors.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.modalTagGradient}
+                    >
+                      <Feather name="tag" size={12} color="#FFFFFF" />
+                      <ThemedText type="caption" style={{ color: '#FFFFFF' }}>{CATEGORY_LABELS[selectedItem.category]}</ThemedText>
+                    </LinearGradient>
+                    <View style={[styles.modalTag, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
                       <View style={[styles.colorDot, { backgroundColor: getColorHex(selectedItem.color) }]} />
                       <ThemedText type="caption">{selectedItem.color}</ThemedText>
                     </View>
                   </View>
 
-                  <Card elevation={2} style={styles.statsCard}>
+                  <View style={[styles.statsCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
                     <View style={styles.statsRow}>
                       <View style={styles.statItem}>
+                        <LinearGradient
+                          colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+                          style={styles.statIconContainer}
+                        >
+                          <Feather name="repeat" size={14} color="#FFFFFF" />
+                        </LinearGradient>
                         <ThemedText type="h3">{selectedItem.timesWorn}</ThemedText>
                         <ThemedText type="caption" style={{ opacity: 0.6 }}>Times Worn</ThemedText>
                       </View>
-                      <View style={styles.statDivider} />
+                      <View style={[styles.statDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
                       <View style={styles.statItem}>
+                        <LinearGradient
+                          colors={[LUXURY_COLORS.coral, '#C46A4F']}
+                          style={styles.statIconContainer}
+                        >
+                          <Feather name="calendar" size={14} color="#FFFFFF" />
+                        </LinearGradient>
                         <ThemedText type="h3">
                           {selectedItem.lastWorn 
                             ? new Date(selectedItem.lastWorn).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -298,54 +381,67 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                         <ThemedText type="caption" style={{ opacity: 0.6 }}>Last Worn</ThemedText>
                       </View>
                     </View>
-                  </Card>
+                  </View>
 
                   {selectedItem.brand ? (
                     <View style={styles.detailRow}>
-                      <Feather name="award" size={18} color={theme.tabIconDefault} />
+                      <View style={[styles.detailIcon, { backgroundColor: LUXURY_COLORS.gold + '20' }]}>
+                        <Feather name="award" size={16} color={LUXURY_COLORS.gold} />
+                      </View>
                       <ThemedText type="body">{selectedItem.brand}</ThemedText>
                     </View>
                   ) : null}
 
                   <View style={styles.detailRow}>
-                    <Feather name="sun" size={18} color={theme.tabIconDefault} />
+                    <View style={[styles.detailIcon, { backgroundColor: LUXURY_COLORS.coral + '20' }]}>
+                      <Feather name="sun" size={16} color={LUXURY_COLORS.coral} />
+                    </View>
                     <ThemedText type="body">
                       {selectedItem.seasons.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(", ")}
                     </ThemedText>
                   </View>
 
                   <View style={styles.detailRow}>
-                    <Feather name="calendar" size={18} color={theme.tabIconDefault} />
+                    <View style={[styles.detailIcon, { backgroundColor: LUXURY_COLORS.violet + '20' }]}>
+                      <Feather name="calendar" size={16} color={LUXURY_COLORS.violet} />
+                    </View>
                     <ThemedText type="body">
                       {selectedItem.occasions.map(o => o.charAt(0).toUpperCase() + o.slice(1).replace("-", " ")).join(", ")}
                     </ThemedText>
                   </View>
 
                   {selectedItem.notes ? (
-                    <View style={styles.notesSection}>
-                      <ThemedText type="small" style={{ opacity: 0.6 }}>Notes</ThemedText>
+                    <View style={[styles.notesSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+                      <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 4 }}>Notes</ThemedText>
                       <ThemedText type="body">{selectedItem.notes}</ThemedText>
                     </View>
                   ) : null}
                 </View>
 
                 <View style={[styles.modalActions, { paddingBottom: insets.bottom + Spacing.xl }]}>
-                  <Pressable
-                    onPress={() => handleMarkWorn(selectedItem)}
-                    style={[styles.actionButton, { backgroundColor: theme.link }]}
+                  <LinearGradient
+                    colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.actionButtonGradient}
                   >
-                    <Feather name="check-circle" size={20} color="#FFFFFF" />
-                    <ThemedText type="body" style={styles.actionButtonText}>
-                      Log Wear
-                    </ThemedText>
-                  </Pressable>
+                    <Pressable
+                      onPress={() => handleMarkWorn(selectedItem)}
+                      style={styles.actionButtonInner}
+                    >
+                      <Feather name="check-circle" size={18} color="#FFFFFF" />
+                      <ThemedText type="body" style={styles.actionButtonText}>
+                        Log Wear
+                      </ThemedText>
+                    </Pressable>
+                  </LinearGradient>
 
                   <Pressable
                     onPress={() => handleDeleteItem(selectedItem)}
                     style={[styles.actionButton, styles.deleteButton]}
                   >
-                    <Feather name="trash-2" size={20} color="#FF3B30" />
-                    <ThemedText type="body" style={[styles.actionButtonText, { color: "#FF3B30" }]}>
+                    <Feather name="trash-2" size={18} color="#FF3B30" />
+                    <ThemedText type="body" style={{ color: "#FF3B30", fontWeight: '600' }}>
                       Delete
                     </ThemedText>
                   </Pressable>
@@ -361,7 +457,12 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.backgroundRoot }]}>
-        <ActivityIndicator size="large" color={theme.link} />
+        <LinearGradient
+          colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+          style={styles.loadingIconContainer}
+        >
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </LinearGradient>
         <ThemedText type="body" style={{ marginTop: Spacing.lg }}>
           Loading your wardrobe...
         </ThemedText>
@@ -371,20 +472,29 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
+      <LinearGradient
+        colors={isDark 
+          ? [LUXURY_COLORS.deepViolet + '60', LUXURY_COLORS.midnight, theme.backgroundRoot] 
+          : [LUXURY_COLORS.violet + '20', LUXURY_COLORS.rose + '10', theme.backgroundRoot]
+        }
+        style={[styles.headerGradient, { paddingTop: insets.top + Spacing.md }]}
+      >
         <View style={styles.headerTop}>
           <Pressable
             onPress={() => navigation.goBack()}
-            style={[styles.backButton, { backgroundColor: theme.backgroundDefault }]}
+            style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
           >
             <Feather name="arrow-left" size={20} color={theme.text} />
           </Pressable>
-          <ThemedText type="h2">My Wardrobe</ThemedText>
-          <View style={styles.headerStats}>
-            <ThemedText type="caption" style={{ opacity: 0.7 }}>
-              {items.length} {items.length === 1 ? 'item' : 'items'}
-            </ThemedText>
+          <View style={styles.headerTitleContainer}>
+            <ThemedText type="h2">My Wardrobe</ThemedText>
+            <View style={[styles.itemCountBadge, { backgroundColor: LUXURY_COLORS.gold + '20' }]}>
+              <ThemedText type="caption" style={{ color: LUXURY_COLORS.gold, fontWeight: '600' }}>
+                {items.length} {items.length === 1 ? 'piece' : 'pieces'}
+              </ThemedText>
+            </View>
           </View>
+          <View style={{ width: 40 }} />
         </View>
 
         <FlatList
@@ -396,7 +506,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           style={styles.categoryTabs}
           contentContainerStyle={styles.categoryTabsContent}
         />
-      </View>
+      </LinearGradient>
 
       <FlatList
         data={filteredItems}
@@ -417,18 +527,18 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       <View style={[styles.fabContainer, { bottom: insets.bottom + 100 }]}>
         <Pressable
           onPress={handleQuickAdd}
-          style={[styles.fabSecondary, { backgroundColor: theme.backgroundDefault }]}
+          style={[styles.fabSecondary, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
         >
-          <Feather name="layers" size={20} color={theme.link} />
+          <Feather name="layers" size={20} color={LUXURY_COLORS.violet} />
         </Pressable>
-        <Pressable
-          onPress={handleAddItem}
-          style={[styles.fab, { backgroundColor: theme.link }]}
+        <LinearGradient
+          colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+          style={styles.fab}
         >
-          <View style={styles.fabInner}>
-            <View style={styles.fabShutter} />
-          </View>
-        </Pressable>
+          <Pressable onPress={handleAddItem} style={styles.fabInner}>
+            <Feather name="plus" size={28} color={LUXURY_COLORS.midnight} />
+          </Pressable>
+        </LinearGradient>
       </View>
     </View>
   );
@@ -463,14 +573,31 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  header: {
+  loadingIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerGradient: {
     paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.md,
   },
   headerTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: Spacing.lg,
+  },
+  headerTitleContainer: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  itemCountBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
   },
   backButton: {
     width: 40,
@@ -479,21 +606,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerStats: {
-    width: 60,
-    alignItems: "flex-end",
-  },
   categoryTabs: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   categoryTabsContent: {
     gap: Spacing.sm,
   },
+  categoryTabWrapper: {},
   categoryTab: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.xs,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
   },
@@ -507,44 +631,61 @@ const styles = StyleSheet.create({
   },
   itemCard: {
     width: ITEM_SIZE,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     overflow: "hidden",
-    backgroundColor: '#FFFFFF',
-  },
-  itemCardShadow: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
   },
   itemImageWrapper: {
     width: "100%",
-    height: ITEM_SIZE,
-    backgroundColor: '#FFFFFF',
-    borderRadius: BorderRadius.md,
+    height: ITEM_SIZE + 20,
+    borderRadius: BorderRadius.lg,
     overflow: "hidden",
   },
   itemImage: {
     width: "100%",
     height: "100%",
   },
+  itemOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+  },
+  itemInfoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: Spacing.sm,
+  },
+  itemNameOverlay: {
+    color: '#FFFFFF',
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  itemWornText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+  },
   favoriteIndicator: {
     position: "absolute",
     top: Spacing.sm,
     right: Spacing.sm,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
-  itemInfo: {
-    padding: Spacing.sm,
+  categoryIndicator: {
+    position: 'absolute',
+    top: Spacing.sm,
+    left: Spacing.sm,
   },
-  itemName: {
-    fontWeight: "600",
-    marginBottom: 2,
+  categoryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   emptyContainer: {
     flex: 1,
@@ -553,13 +694,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing["5xl"],
   },
-  emptyIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    alignItems: "center",
-    justifyContent: "center",
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: Spacing.xl,
+  },
+  emptyIconGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyTitle: {
     marginBottom: Spacing.md,
@@ -567,20 +715,23 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: "center",
-    opacity: 0.6,
+    opacity: 0.7,
     marginBottom: Spacing["2xl"],
   },
-  emptyButton: {
-    flexDirection: "row",
-    alignItems: "center",
+  emptyButtonGradient: {
+    borderRadius: BorderRadius.full,
+    marginBottom: Spacing.md,
+  },
+  emptyButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.sm,
     paddingHorizontal: Spacing["2xl"],
     paddingVertical: Spacing.lg,
-    borderRadius: BorderRadius.full,
   },
   emptyButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
+    color: LUXURY_COLORS.midnight,
+    fontWeight: "700",
   },
   emptyButtonSecondary: {
     flexDirection: "row",
@@ -588,8 +739,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing["2xl"],
     paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    marginTop: Spacing.md,
+    borderWidth: 2,
   },
   fabContainer: {
     position: "absolute",
@@ -616,37 +766,31 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
+    shadowColor: LUXURY_COLORS.gold,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 8,
   },
   fabInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#FFFFFF",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
   },
-  fabShutter: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 4,
-    borderColor: "#333",
-  },
   modalContainer: {
     flex: 1,
+  },
+  modalHeaderGradient: {
+    paddingBottom: Spacing.md,
   },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
   modalCloseButton: {
     width: 44,
@@ -661,14 +805,13 @@ const styles = StyleSheet.create({
   modalImageWrapper: {
     width: "100%",
     height: SCREEN_WIDTH - Spacing.xl * 2,
-    backgroundColor: '#FFFFFF',
     borderRadius: BorderRadius.lg,
     overflow: "hidden",
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
   },
   modalImage: {
     width: "100%",
@@ -686,6 +829,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.xl,
   },
+  modalTagGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
   modalTag: {
     flexDirection: "row",
     alignItems: "center",
@@ -700,6 +851,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   statsCard: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
     marginBottom: Spacing.xl,
   },
   statsRow: {
@@ -710,11 +863,19 @@ const styles = StyleSheet.create({
   statItem: {
     flex: 1,
     alignItems: "center",
+    gap: 4,
+  },
+  statIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   statDivider: {
     width: 1,
-    height: 40,
-    backgroundColor: "rgba(128, 128, 128, 0.2)",
+    height: 60,
     marginHorizontal: Spacing.lg,
   },
   detailRow: {
@@ -723,14 +884,33 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     marginBottom: Spacing.md,
   },
+  detailIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   notesSection: {
-    marginTop: Spacing.lg,
-    gap: Spacing.xs,
+    marginTop: Spacing.md,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
   },
   modalActions: {
     flexDirection: "row",
     gap: Spacing.md,
     marginTop: Spacing["2xl"],
+  },
+  actionButtonGradient: {
+    flex: 1,
+    borderRadius: BorderRadius.md,
+  },
+  actionButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.lg,
   },
   actionButton: {
     flex: 1,
