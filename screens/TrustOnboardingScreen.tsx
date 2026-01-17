@@ -98,7 +98,7 @@ const TRUST_FRAMING_OPTIONS: OnboardingContent[] = [
     ],
   },
   {
-    headline: "You asked. I answer. That's it.",
+    headline: "You ask. I answer. That's it.",
     bullets: [
       { text: "No endless scrolling" },
       { text: "No algorithm games" },
