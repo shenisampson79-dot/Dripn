@@ -12,97 +12,101 @@ import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const SPACING_XXL = 32;
 
 type StyleMeProperlyScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "StyleMeProperly">;
 };
 
-interface SetupOption {
+interface DfyTier {
   id: string;
   title: string;
-  description: string;
-  timeEstimate?: string;
-  price?: string;
-  isPaid: boolean;
-  icon: keyof typeof Feather.glyphMap;
+  tagline: string;
+  price: string;
+  turnaround: string;
+  highlights: string[];
 }
 
-const SETUP_OPTIONS: SetupOption[] = [
+interface SetupOptionsResponse {
+  pageHeader: {
+    title: string;
+    subtitle: string;
+  };
+  tiers: DfyTier[];
+  footerReassurance: string;
+}
+
+const DEFAULT_TIERS: DfyTier[] = [
   {
-    id: "quick_start",
-    title: "Quick Start",
-    description: "Upload 10-15 key items or recent outfits",
-    timeEstimate: "~5 minutes",
-    isPaid: false,
-    icon: "upload",
-  },
-  {
-    id: "inspirations_only",
-    title: "Inspirations Only",
-    description: "Style preferences, lifestyle, body comfort",
-    isPaid: false,
-    icon: "heart",
-  },
-  {
-    id: "done_for_you_outfit",
+    id: "outfit",
     title: "Outfit-Based Setup",
-    description: "Upload 5-7 outfits you already wear",
-    price: "£19.99",
-    isPaid: true,
-    icon: "camera",
+    tagline: "Best if you already know what you like",
+    price: "£19",
+    turnaround: "Ready in 24h",
+    highlights: [
+      "Upload outfits you wear",
+      "I learn your style",
+      "Fastest option",
+    ],
   },
   {
-    id: "done_for_you_core",
+    id: "core",
     title: "Core Wardrobe Setup",
-    description: "We digitise up to 30 items for you",
-    price: "£39.99",
-    isPaid: true,
-    icon: "gift",
+    tagline: "Best if you want accurate recommendations",
+    price: "£39",
+    turnaround: "Ready in 24-48h",
+    highlights: [
+      "Upload up to 30 items",
+      "Categorised & tagged",
+      "Strong foundation",
+    ],
   },
 ];
 
 export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const [dfyPricing, setDfyPricing] = useState<{ core: string; outfit: string } | null>(null);
+  const [pageHeader, setPageHeader] = useState({ 
+    title: "Want me to do this for you?", 
+    subtitle: "I'll set things up so your stylist works properly." 
+  });
+  const [tiers, setTiers] = useState<DfyTier[]>(DEFAULT_TIERS);
+  const [footerReassurance, setFooterReassurance] = useState("One-time setup · No subscription required");
 
   useEffect(() => {
-    loadDfyPricing();
+    loadSetupOptions();
   }, []);
 
-  const loadDfyPricing = async () => {
+  const loadSetupOptions = async () => {
     try {
-      const data = await apiService.get<{ corePrice?: string; outfitPrice?: string }>("/api/onboarding/dfy-options");
+      const data = await apiService.get<SetupOptionsResponse>("/api/onboarding/setup-options");
       if (data) {
-        setDfyPricing({
-          core: data.corePrice || "£39.99",
-          outfit: data.outfitPrice || "£19.99",
-        });
+        if (data.pageHeader) {
+          setPageHeader(data.pageHeader);
+        }
+        if (data.tiers && data.tiers.length > 0) {
+          setTiers(data.tiers);
+        }
+        if (data.footerReassurance) {
+          setFooterReassurance(data.footerReassurance);
+        }
       }
     } catch (error: unknown) {
-      console.log("Failed to load DFY pricing");
+      console.log("Using default DFY options");
     }
   };
 
-  const handleOptionSelect = async (optionId: string) => {
+  const handleTierSelect = async (tierId: string) => {
     try {
-      await apiService.post("/api/onboarding/setup-choice", { choice: optionId });
+      await apiService.post("/api/onboarding/setup-choice", { choice: tierId });
     } catch (error: unknown) {
       console.log("Failed to track setup choice");
     }
 
-    navigation.navigate("SoftSignupGate", { fromPath: optionId });
+    navigation.navigate("SoftSignupGate", { fromPath: tierId });
   };
 
-  const getOptionPrice = (option: SetupOption) => {
-    if (option.id === "done_for_you_core" && dfyPricing) {
-      return dfyPricing.core;
-    }
-    if (option.id === "done_for_you_outfit" && dfyPricing) {
-      return dfyPricing.outfit;
-    }
-    return option.price;
+  const handleSkip = () => {
+    navigation.navigate("OnboardingEntry");
   };
 
   return (
@@ -111,7 +115,6 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
         <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={theme.text} />
         </Pressable>
-        <ThemedText type="h3" style={{ color: theme.text }}>Style me properly</ThemedText>
         <View style={styles.backButton} />
       </View>
 
@@ -120,87 +123,95 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl }]}
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View entering={FadeIn} style={styles.stylistMessage}>
-          <View style={[styles.avatarCircle, { backgroundColor: theme.link }]}>
-            <Feather name="message-circle" size={20} color="#FFFFFF" />
-          </View>
-          <View style={[styles.messageBubble, { backgroundColor: theme.backgroundSecondary }]}>
-            <ThemedText type="body" style={[styles.messageText, { color: theme.text }]}>
-              I can give precise recommendations — I just need a bit of context first.
-            </ThemedText>
-          </View>
+        <Animated.View entering={FadeIn} style={styles.headerSection}>
+          <ThemedText type="h2" style={[styles.pageTitle, { color: theme.text }]}>
+            {pageHeader.title}
+          </ThemedText>
+          <ThemedText type="body" style={[styles.pageSubtitle, { color: theme.tabIconDefault }]}>
+            {pageHeader.subtitle}
+          </ThemedText>
         </Animated.View>
 
-        <ThemedText type="h3" style={[styles.sectionTitle, { color: theme.text }]}>
-          Let's make this precise
-        </ThemedText>
-
-        <View style={styles.optionsContainer}>
-          {SETUP_OPTIONS.map((option, index) => (
+        <View style={styles.tiersContainer}>
+          {tiers.map((tier, index) => (
             <Animated.View 
-              key={option.id}
-              entering={FadeInUp.delay(100 + index * 100)}
+              key={tier.id}
+              entering={FadeInUp.delay(100 + index * 150)}
             >
               <Pressable
                 style={({ pressed }) => [
-                  styles.optionCard,
+                  styles.tierCard,
                   { 
                     backgroundColor: theme.backgroundSecondary,
-                    borderColor: option.isPaid ? theme.link : theme.border,
-                    borderWidth: option.isPaid ? 2 : 1,
+                    borderColor: index === 0 ? theme.link : theme.border,
+                    borderWidth: index === 0 ? 2 : 1,
                     opacity: pressed ? 0.9 : 1,
                   }
                 ]}
-                onPress={() => handleOptionSelect(option.id)}
+                onPress={() => handleTierSelect(tier.id)}
               >
-                <View style={styles.optionHeader}>
-                  <View style={[styles.iconContainer, { backgroundColor: option.isPaid ? theme.link : theme.backgroundSecondary }]}>
+                {index === 0 ? (
+                  <View style={[styles.recommendedBadge, { backgroundColor: theme.link }]}>
+                    <Feather name="zap" size={12} color="#FFFFFF" />
+                    <ThemedText type="small" style={styles.recommendedText}>Fastest</ThemedText>
+                  </View>
+                ) : null}
+
+                <View style={styles.tierHeader}>
+                  <View style={[styles.tierIcon, { backgroundColor: index === 0 ? theme.link : theme.backgroundSecondary, borderColor: theme.border, borderWidth: index === 0 ? 0 : 1 }]}>
                     <Feather 
-                      name={option.icon} 
+                      name={index === 0 ? "camera" : "grid"} 
                       size={20} 
-                      color={option.isPaid ? "#FFFFFF" : theme.link} 
+                      color={index === 0 ? "#FFFFFF" : theme.link} 
                     />
                   </View>
-                  <View style={styles.optionTitleContainer}>
-                    <View style={styles.titleRow}>
-                      <ThemedText type="h3" style={[styles.optionTitle, { color: theme.text }]}>
-                        {option.title}
+                  <View style={styles.tierTitleContainer}>
+                    <ThemedText type="h3" style={[styles.tierTitle, { color: theme.text }]}>
+                      {tier.title}
+                    </ThemedText>
+                    <View style={styles.priceRow}>
+                      <ThemedText type="h3" style={[styles.tierPrice, { color: theme.link }]}>
+                        {tier.price}
                       </ThemedText>
-                      {!option.isPaid && (
-                        <View style={[styles.freeBadge, { backgroundColor: "#4CAF50" }]}>
-                          <ThemedText type="small" style={styles.freeBadgeText}>Free</ThemedText>
-                        </View>
-                      )}
+                      <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+                        {" · "}{tier.turnaround}
+                      </ThemedText>
                     </View>
-                    {option.timeEstimate && (
-                      <View style={styles.timeRow}>
-                        <Feather name="clock" size={12} color={theme.tabIconDefault} />
-                        <ThemedText type="small" style={{ color: theme.tabIconDefault, marginLeft: 4 }}>
-                          {option.timeEstimate}
-                        </ThemedText>
-                      </View>
-                    )}
-                    {option.isPaid && (
-                      <ThemedText type="small" style={{ color: theme.link, fontWeight: "600" }}>
-                        {getOptionPrice(option)}
-                      </ThemedText>
-                    )}
                   </View>
-                  <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
                 </View>
-                <ThemedText type="body" style={[styles.optionDescription, { color: theme.tabIconDefault }]}>
-                  {option.description}
+
+                <ThemedText type="body" style={[styles.tierTagline, { color: theme.tabIconDefault }]}>
+                  {tier.tagline}
                 </ThemedText>
+
+                <View style={styles.highlightsContainer}>
+                  {tier.highlights.map((highlight, idx) => (
+                    <View key={idx} style={styles.highlightRow}>
+                      <Feather name="check" size={16} color={theme.link} />
+                      <ThemedText type="body" style={[styles.highlightText, { color: theme.text }]}>
+                        {highlight}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
               </Pressable>
             </Animated.View>
           ))}
         </View>
 
-        <Animated.View entering={FadeInUp.delay(500)} style={styles.reassuranceContainer}>
-          <Feather name="shield" size={16} color={theme.tabIconDefault} />
-          <ThemedText type="small" style={[styles.reassuranceText, { color: theme.tabIconDefault }]}>
-            Early adopters feel respected here, not slowed down
-          </ThemedText>
+        <Animated.View entering={FadeInUp.delay(400)} style={styles.footerSection}>
+          <View style={styles.reassuranceRow}>
+            <Feather name="shield" size={16} color={theme.tabIconDefault} />
+            <ThemedText type="small" style={[styles.reassuranceText, { color: theme.tabIconDefault }]}>
+              {footerReassurance}
+            </ThemedText>
+          </View>
+
+          <Pressable onPress={handleSkip} style={styles.skipButton}>
+            <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+              I'll do it myself
+            </ThemedText>
+          </Pressable>
         </Animated.View>
       </ScrollView>
     </View>
@@ -229,93 +240,102 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.sm,
   },
-  stylistMessage: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+  headerSection: {
     marginBottom: Spacing.xl,
   },
-  avatarCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: Spacing.md,
+  pageTitle: {
+    fontSize: 26,
+    fontWeight: "700",
+    marginBottom: Spacing.sm,
   },
-  messageBubble: {
-    flex: 1,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-  },
-  messageText: {
+  pageSubtitle: {
     fontSize: 16,
     lineHeight: 24,
   },
-  sectionTitle: {
-    marginBottom: Spacing.lg,
+  tiersContainer: {
+    gap: Spacing.lg,
   },
-  optionsContainer: {
-    gap: Spacing.md,
-  },
-  optionCard: {
+  tierCard: {
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
+    position: "relative",
   },
-  optionHeader: {
+  recommendedBadge: {
+    position: "absolute",
+    top: -10,
+    right: Spacing.lg,
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    gap: 4,
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  recommendedText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
+  tierHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: Spacing.md,
+  },
+  tierIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.md,
   },
-  optionTitleContainer: {
+  tierTitleContainer: {
     flex: 1,
   },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  optionTitle: {
-    fontSize: 17,
-  },
-  freeBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-  },
-  freeBadgeText: {
-    color: "#FFFFFF",
+  tierTitle: {
+    fontSize: 18,
     fontWeight: "600",
-    fontSize: 11,
+    marginBottom: 4,
   },
-  timeRow: {
+  priceRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 2,
   },
-  optionDescription: {
+  tierPrice: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  tierTagline: {
     fontSize: 14,
-    lineHeight: 20,
-    marginLeft: 52,
+    marginBottom: Spacing.md,
+    fontStyle: "italic",
   },
-  reassuranceContainer: {
+  highlightsContainer: {
+    gap: Spacing.sm,
+  },
+  highlightRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginTop: SPACING_XXL,
     gap: Spacing.sm,
+  },
+  highlightText: {
+    fontSize: 15,
+  },
+  footerSection: {
+    marginTop: 32,
+    alignItems: "center",
+  },
+  reassuranceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
   reassuranceText: {
-    textAlign: "center",
     fontStyle: "italic",
+  },
+  skipButton: {
+    paddingVertical: Spacing.md,
   },
 });

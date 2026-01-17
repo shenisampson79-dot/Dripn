@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Pressable, ActivityIndicator, Platform, ScrollView } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { StyleSheet, View, Pressable, ActivityIndicator, TextInput, Alert, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 import * as Location from "expo-location";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
@@ -12,6 +13,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
+import { ScreenScrollView } from "@/components/ScreenScrollView";
 
 type DecideForMeScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "DecideForMe">;
@@ -39,10 +41,14 @@ interface WeatherData {
 }
 
 interface Recommendation {
+  id?: string;
   outfit: string;
   reasoning: string;
   stylistName: string;
 }
+
+const CACHED_OUTFITS_KEY = "dripn_cached_outfits";
+const RECOMMENDATION_COUNT_KEY = "dripn_recommendation_count";
 
 export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps) {
   const insets = useSafeAreaInsets();
@@ -54,10 +60,63 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(true);
+  const [tweakText, setTweakText] = useState("");
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [cachedOutfitsCount, setCachedOutfitsCount] = useState(0);
+  const recommendationCountRef = useRef(0);
 
   useEffect(() => {
     fetchWeather();
+    loadCachedOutfitsCount();
+    loadRecommendationCount();
   }, []);
+
+  const loadCachedOutfitsCount = async () => {
+    try {
+      const cached = await AsyncStorage.getItem(CACHED_OUTFITS_KEY);
+      if (cached) {
+        const outfits = JSON.parse(cached);
+        setCachedOutfitsCount(outfits.length);
+      }
+    } catch (error) {
+      console.log("Failed to load cached outfits count");
+    }
+  };
+
+  const loadRecommendationCount = async () => {
+    try {
+      const count = await AsyncStorage.getItem(RECOMMENDATION_COUNT_KEY);
+      recommendationCountRef.current = count ? parseInt(count, 10) : 0;
+    } catch (error) {
+      console.log("Failed to load recommendation count");
+    }
+  };
+
+  const incrementRecommendationCount = async () => {
+    try {
+      recommendationCountRef.current += 1;
+      await AsyncStorage.setItem(RECOMMENDATION_COUNT_KEY, recommendationCountRef.current.toString());
+      
+      if (recommendationCountRef.current >= 3) {
+        checkGate();
+      }
+    } catch (error) {
+      console.log("Failed to increment recommendation count");
+    }
+  };
+
+  const checkGate = async () => {
+    try {
+      const data = await apiService.post<{ showGate?: boolean }>("/api/onboarding/check-gate", {
+        recommendationCount: recommendationCountRef.current,
+      });
+      if (data?.showGate) {
+        navigation.navigate("SoftSignupGate", { fromPath: "browsing" });
+      }
+    } catch (error) {
+      console.log("Failed to check gate");
+    }
+  };
 
   const fetchWeather = async () => {
     try {
@@ -90,7 +149,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     setStep("loading");
 
     try {
-      const data = await apiService.post<{ recommendation?: string; reasoning?: string; stylistName?: string }>("/api/onboarding/quick-recommendation", {
+      const data = await apiService.post<{ id?: string; recommendation?: string; reasoning?: string; stylistName?: string }>("/api/onboarding/quick-recommendation", {
         occasion: selectedOccasion,
         comfort: comfortId,
         weather: weather,
@@ -98,6 +157,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
       if (data) {
         setRecommendation({
+          id: data.id,
           outfit: data.recommendation || "Wear a black midi dress with ankle boots and a structured coat. Keep jewellery minimal.",
           reasoning: data.reasoning || "This look balances comfort with style, perfect for your occasion.",
           stylistName: data.stylistName || "Ruby",
@@ -110,6 +170,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         });
       }
       setStep("result");
+      incrementRecommendationCount();
     } catch (error: unknown) {
       setRecommendation({
         outfit: "Wear a black midi dress with ankle boots and a structured coat. Keep jewellery minimal.",
@@ -117,6 +178,89 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         stylistName: "Ruby",
       });
       setStep("result");
+      incrementRecommendationCount();
+    }
+  };
+
+  const recordInteraction = async (action: string, details?: string) => {
+    try {
+      await apiService.post("/api/onboarding/record-interaction", {
+        action,
+        recommendationId: recommendation?.id,
+        details,
+      });
+    } catch (error) {
+      console.log("Failed to record interaction");
+    }
+  };
+
+  const handleSaveOutfit = async () => {
+    await recordInteraction("save_outfit");
+    setShowSavePrompt(true);
+  };
+
+  const handleCreateAccount = () => {
+    setShowSavePrompt(false);
+    navigation.navigate("SoftSignupGate", { fromPath: "save_outfit" });
+  };
+
+  const handleNotNow = async () => {
+    setShowSavePrompt(false);
+    
+    try {
+      const cached = await AsyncStorage.getItem(CACHED_OUTFITS_KEY);
+      const outfits = cached ? JSON.parse(cached) : [];
+      
+      if (outfits.length >= 3) {
+        Alert.alert(
+          "Create an account to save more",
+          "You've saved 3 outfits. Create a free account to keep them forever.",
+          [
+            { text: "Not now", style: "cancel" },
+            { text: "Create account", onPress: handleCreateAccount },
+          ]
+        );
+        return;
+      }
+      
+      outfits.push({
+        ...recommendation,
+        savedAt: new Date().toISOString(),
+        occasion: selectedOccasion,
+        comfort: selectedComfort,
+      });
+      
+      await AsyncStorage.setItem(CACHED_OUTFITS_KEY, JSON.stringify(outfits));
+      setCachedOutfitsCount(outfits.length);
+      
+      Alert.alert(
+        "Saved temporarily",
+        "This will disappear when you leave the app. Create an account to keep it forever.",
+        [{ text: "Got it" }]
+      );
+    } catch (error) {
+      console.log("Failed to cache outfit");
+    }
+  };
+
+  const handleAnotherOption = async () => {
+    await recordInteraction("another_option");
+    setSelectedOccasion(null);
+    setSelectedComfort(null);
+    setRecommendation(null);
+    setTweakText("");
+    setStep("occasion");
+  };
+
+  const handleSecondOpinion = async () => {
+    await recordInteraction("second_opinion");
+    navigation.navigate("SoftSignupGate", { fromPath: "second_opinion" });
+  };
+
+  const handleTweakSubmit = async () => {
+    if (tweakText.trim()) {
+      await recordInteraction("tweak", tweakText.trim());
+      setTweakText("");
     }
   };
 
@@ -141,14 +285,14 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </View>
       </View>
 
-      {weather && !isLoadingWeather && (
+      {weather && !isLoadingWeather ? (
         <Animated.View entering={FadeInDown.delay(200)} style={[styles.weatherBadge, { backgroundColor: theme.backgroundSecondary }]}>
           <Feather name="cloud" size={16} color={theme.tabIconDefault} />
           <ThemedText type="small" style={{ color: theme.tabIconDefault, marginLeft: Spacing.xs }}>
             {weather.temperature}° in {weather.location}
           </ThemedText>
         </Animated.View>
-      )}
+      ) : null}
 
       <View style={styles.optionsGrid}>
         {OCCASIONS.map((occasion, index) => (
@@ -238,6 +382,34 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     </Animated.View>
   );
 
+  const renderSavePrompt = () => (
+    <Animated.View entering={FadeIn} style={[styles.savePromptOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
+      <View style={[styles.savePromptCard, { backgroundColor: theme.backgroundDefault }]}>
+        <ThemedText type="h3" style={[styles.savePromptTitle, { color: theme.text }]}>
+          Keep this outfit?
+        </ThemedText>
+        <ThemedText type="body" style={[styles.savePromptSubtitle, { color: theme.tabIconDefault }]}>
+          Create a free account to save it forever
+        </ThemedText>
+        
+        <Button onPress={handleCreateAccount} style={[styles.savePromptButton, { backgroundColor: theme.link }]}>
+          Create account
+        </Button>
+        
+        <Pressable onPress={handleNotNow} style={styles.savePromptSecondary}>
+          <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+            Not now
+          </ThemedText>
+          {cachedOutfitsCount > 0 ? (
+            <ThemedText type="small" style={{ color: theme.tabIconDefault, marginTop: 4 }}>
+              ({3 - cachedOutfitsCount} saves left)
+            </ThemedText>
+          ) : null}
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
+
   const renderResultStep = () => (
     <Animated.View entering={FadeIn} style={styles.resultContainer}>
       <View style={styles.stylistMessage}>
@@ -251,7 +423,58 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </View>
       </View>
 
-      <Animated.View entering={FadeInDown.delay(300)} style={styles.ctaSection}>
+      <Animated.View entering={FadeInDown.delay(200)} style={styles.actionButtonsRow}>
+        <Pressable
+          style={[styles.actionButton, { backgroundColor: theme.backgroundSecondary, borderColor: theme.link, borderWidth: 1 }]}
+          onPress={handleSaveOutfit}
+        >
+          <Feather name="bookmark" size={18} color={theme.link} />
+          <ThemedText type="body" style={[styles.actionButtonText, { color: theme.link }]}>
+            Save outfit
+          </ThemedText>
+        </Pressable>
+
+        <Pressable
+          style={[styles.actionButton, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border, borderWidth: 1 }]}
+          onPress={handleAnotherOption}
+        >
+          <Feather name="refresh-cw" size={18} color={theme.text} />
+          <ThemedText type="body" style={[styles.actionButtonText, { color: theme.text }]}>
+            Another option
+          </ThemedText>
+        </Pressable>
+
+        <Pressable
+          style={[styles.actionButton, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border, borderWidth: 1 }]}
+          onPress={handleSecondOpinion}
+        >
+          <Feather name="users" size={18} color={theme.text} />
+          <ThemedText type="body" style={[styles.actionButtonText, { color: theme.text }]}>
+            Second opinion
+          </ThemedText>
+        </Pressable>
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.delay(300)} style={styles.tweakSection}>
+        <View style={[styles.tweakInputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+          <TextInput
+            style={[styles.tweakInput, { color: theme.text }]}
+            placeholder="Want to tweak this? (optional)"
+            placeholderTextColor={theme.tabIconDefault}
+            value={tweakText}
+            onChangeText={setTweakText}
+            onSubmitEditing={handleTweakSubmit}
+            returnKeyType="send"
+          />
+          {tweakText.trim() ? (
+            <Pressable onPress={handleTweakSubmit} style={styles.tweakSendButton}>
+              <Feather name="send" size={18} color={theme.link} />
+            </Pressable>
+          ) : null}
+        </View>
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.delay(400)} style={styles.ctaSection}>
         <ThemedText type="body" style={[styles.ctaPrompt, { color: theme.tabIconDefault }]}>
           Want this personalised to your wardrobe?
         </ThemedText>
@@ -266,6 +489,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           </ThemedText>
         </Pressable>
       </Animated.View>
+
+      {showSavePrompt ? renderSavePrompt() : null}
     </Animated.View>
   );
 
@@ -279,16 +504,16 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         <View style={styles.backButton} />
       </View>
 
-      <ScrollView 
+      <ScreenScrollView 
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl }]}
         showsVerticalScrollIndicator={false}
       >
-        {step === "occasion" && renderOccasionStep()}
-        {step === "comfort" && renderComfortStep()}
-        {step === "loading" && renderLoadingStep()}
-        {step === "result" && renderResultStep()}
-      </ScrollView>
+        {step === "occasion" ? renderOccasionStep() : null}
+        {step === "comfort" ? renderComfortStep() : null}
+        {step === "loading" ? renderLoadingStep() : null}
+        {step === "result" ? renderResultStep() : null}
+      </ScreenScrollView>
     </View>
   );
 }
@@ -397,8 +622,46 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontWeight: "500",
   },
+  actionButtonsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  tweakSection: {
+    marginBottom: Spacing.lg,
+  },
+  tweakInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  tweakInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 8,
+  },
+  tweakSendButton: {
+    padding: Spacing.sm,
+  },
   ctaSection: {
-    marginTop: Spacing["3xl"],
+    marginTop: Spacing.lg,
     alignItems: "center",
   },
   ctaPrompt: {
@@ -412,5 +675,38 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     paddingVertical: Spacing.md,
+  },
+  savePromptOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: Spacing.lg,
+  },
+  savePromptCard: {
+    width: "100%",
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    alignItems: "center",
+  },
+  savePromptTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: Spacing.sm,
+  },
+  savePromptSubtitle: {
+    textAlign: "center",
+    marginBottom: Spacing.xl,
+  },
+  savePromptButton: {
+    width: "100%",
+    marginBottom: Spacing.md,
+  },
+  savePromptSecondary: {
+    paddingVertical: Spacing.md,
+    alignItems: "center",
   },
 });
