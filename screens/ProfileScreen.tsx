@@ -130,7 +130,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
       >
         <View style={styles.header}>
           <View style={{ width: 40 }} />
-          <ThemedText type="h3" style={{ opacity: 0.9 }}>Profile</ThemedText>
+          <ThemedText type="h2">Profile</ThemedText>
           <Pressable
             onPress={handleSettingsPress}
             style={({ pressed }) => [

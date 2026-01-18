@@ -257,18 +257,20 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
     );
   };
 
+  const isDark = theme.backgroundDefault === '#0D0B09' || theme.backgroundDefault === '#000000' || theme.backgroundDefault.toLowerCase() === '#1a1a2e';
+
   return (
-    <ScreenScrollView contentContainerStyle={styles.container}>
-      <View style={styles.headerSection}>
-        <View style={styles.headerRow}>
-          <View>
-            <ThemedText type="h1" style={styles.title}>
-              Style Tools
-            </ThemedText>
-            <ThemedText style={[styles.subtitle, { color: theme.tabIconDefault }]}>
-              Your personal fashion assistant
-            </ThemedText>
-          </View>
+    <ScreenScrollView style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}>
+      <LinearGradient
+        colors={isDark 
+          ? [LuxuryColors.violet + '50', LuxuryColors.deepViolet + '30', 'transparent'] 
+          : [LuxuryColors.violet + '20', LuxuryColors.deepViolet + '10', 'transparent']
+        }
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerContent}>
+          <View style={{ width: 40 }} />
+          <ThemedText type="h2">Stylist</ThemedText>
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -276,7 +278,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             }}
             style={[
               styles.editButton,
-              { backgroundColor: isEditMode ? theme.link : theme.backgroundDefault },
+              { backgroundColor: isEditMode ? theme.link : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') },
             ]}
           >
             <Feather
@@ -286,19 +288,34 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             />
           </Pressable>
         </View>
-        
-        {isEditMode ? (
-          <View style={[styles.editHint, { backgroundColor: theme.link + "20" }]}>
-            <Feather name="info" size={14} color={theme.link} />
-            <ThemedText type="caption" style={{ color: theme.link, marginLeft: Spacing.xs }}>
-              Tap arrows to reorder your tools
-            </ThemedText>
-          </View>
-        ) : null}
-      </View>
+      </LinearGradient>
 
-      <View style={styles.featuresGrid}>
-        {sortedFeatures().map((feature, index) => renderFeatureTile(feature, index))}
+      <View style={styles.contentSection}>
+        <View style={styles.headerSection}>
+          <View style={styles.headerRow}>
+            <View>
+              <ThemedText type="h1" style={styles.title}>
+                Style Tools
+              </ThemedText>
+              <ThemedText style={[styles.subtitle, { color: theme.tabIconDefault }]}>
+                Your personal fashion assistant
+              </ThemedText>
+            </View>
+          </View>
+          
+          {isEditMode ? (
+            <View style={[styles.editHint, { backgroundColor: theme.link + "20" }]}>
+              <Feather name="info" size={14} color={theme.link} />
+              <ThemedText type="caption" style={{ color: theme.link, marginLeft: Spacing.xs }}>
+                Tap arrows to reorder your tools
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.featuresGrid}>
+          {sortedFeatures().map((feature, index) => renderFeatureTile(feature, index))}
+        </View>
       </View>
     </ScreenScrollView>
   );
@@ -306,6 +323,20 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
 
 const styles = StyleSheet.create({
   container: {
+    padding: Spacing.xl,
+    gap: Spacing.lg,
+  },
+  headerGradient: {
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.xl,
+  },
+  contentSection: {
     padding: Spacing.xl,
     gap: Spacing.lg,
   },

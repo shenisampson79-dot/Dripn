@@ -868,8 +868,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
   const renderLoadingStep = () => (
     <Animated.View entering={FadeIn} style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color={theme.link} />
-      <ThemedText type="body" style={[styles.loadingText, { color: theme.tabIconDefault }]}>
+      <ActivityIndicator size="large" color="#FFFFFF" />
+      <ThemedText type="body" style={[styles.loadingText, { color: 'rgba(255,255,255,0.8)' }]}>
         Ruby is deciding your outfit...
       </ThemedText>
     </Animated.View>
@@ -906,17 +906,23 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const renderResultStep = () => (
     <Animated.View entering={FadeIn} style={styles.resultContainer}>
       <View style={styles.stylistMessage}>
-        <View style={[styles.avatarCircle, { backgroundColor: "#E91E63" }]}>
+        <LinearGradient
+          colors={[ScreenGradients.ruby.primary[0], ScreenGradients.ruby.primary[1]]}
+          style={styles.avatarCircle}
+        >
           <ThemedText type="small" style={{ color: "#FFFFFF", fontWeight: "600" }}>R</ThemedText>
-        </View>
-        <View style={[styles.messageBubble, styles.resultBubble]}>
-          <ThemedText type="body" style={[styles.messageText, styles.recommendationText]}>
+        </LinearGradient>
+        <LinearGradient
+          colors={[`${ScreenGradients.ruby.primary[0]}50`, `${ScreenGradients.ruby.primary[1]}30`]}
+          style={[styles.messageBubble, { borderWidth: 1, borderColor: `${ScreenGradients.ruby.primary[0]}60` }]}
+        >
+          <ThemedText type="body" style={[styles.messageText, styles.recommendationText, { color: '#FFFFFF' }]}>
             {recommendation?.outfit}
           </ThemedText>
-        </View>
+        </LinearGradient>
       </View>
 
-      <ThemedText type="small" style={[styles.disclaimerText, { color: theme.tabIconDefault }]}>
+      <ThemedText type="small" style={[styles.disclaimerText, { color: 'rgba(255,255,255,0.7)' }]}>
         I'm choosing generally. With your wardrobe, I'd choose specifically.
       </ThemedText>
 
