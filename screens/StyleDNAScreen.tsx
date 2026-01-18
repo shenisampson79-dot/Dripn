@@ -7,11 +7,12 @@ import React, { useMemo } from "react";
 import { StyleSheet, View, Pressable } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
-import { Spacing, BorderRadius, StyleThemes, StyleTheme } from "@/constants/theme";
+import { Spacing, BorderRadius, StyleThemes, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useWardrobe, WardrobeItem, ClothingCategory, ClothingColor, ClothingOccasion, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";

@@ -7,7 +7,8 @@ import { ScreenKeyboardAwareScrollView } from "@/components/ScreenKeyboardAwareS
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";

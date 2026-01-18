@@ -12,7 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
-import { Spacing, BorderRadius, StyleThemes, StyleTheme } from "@/constants/theme";
+import { Spacing, BorderRadius, StyleThemes, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useStyleTheme } from "@/hooks/useStyleTheme";
 import { useSocial } from "@/contexts/SocialContext";

@@ -6,7 +6,8 @@ import { Feather } from "@expo/vector-icons";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing, BorderRadius, ContributorColors } from "@/constants/theme";
+import { Spacing, BorderRadius, ContributorColors, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocial } from "@/contexts/SocialContext";

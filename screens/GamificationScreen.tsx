@@ -20,12 +20,13 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { ScreenScrollView } from '@/components/ScreenScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Card } from '@/components/Card';
-import { Spacing, BorderRadius, Typography, Colors } from '@/constants/theme';
+import { Spacing, BorderRadius, Typography, Colors, LuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useStyleTheme } from '@/hooks/useStyleTheme';
 import { useGamification } from '@/contexts/GamificationContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';

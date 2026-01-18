@@ -11,8 +11,9 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { LinearGradient } from "expo-linear-gradient";
 import { useGamification } from "@/contexts/GamificationContext";
 import { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
 

@@ -17,7 +17,8 @@ import { KeyboardStickyView, KeyboardProvider } from 'react-native-keyboard-cont
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
-import { Spacing, BorderRadius, Typography } from '@/constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScreenInsets } from '@/hooks/useScreenInsets';

@@ -29,7 +29,7 @@ import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Card } from "@/components/Card";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useBodyProfile, ColorSeason, SkinToneData } from "@/contexts/BodyProfileContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";

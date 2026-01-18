@@ -19,8 +19,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { LinearGradient } from "expo-linear-gradient";
 import { useMessaging, Message, Report } from "@/contexts/MessagingContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
 

@@ -8,7 +8,8 @@ import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { ScreenKeyboardAwareScrollView } from "@/components/ScreenKeyboardAwareScrollView";
-import { Spacing, BorderRadius, Typography } from "@/constants/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useStylistAuth } from "@/contexts/StylistAuthContext";
 

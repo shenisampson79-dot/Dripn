@@ -2,10 +2,11 @@ import React, { useState, useCallback } from "react";
 import { StyleSheet, View, Pressable, Image, RefreshControl, ActivityIndicator } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { ScreenFlatList } from "@/components/ScreenFlatList";
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useSocial, ActivityItem, ActivityType } from "@/contexts/SocialContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";

@@ -8,7 +8,7 @@ import * as Haptics from "expo-haptics";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing, BorderRadius, Typography } from "@/constants/theme";
+import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";

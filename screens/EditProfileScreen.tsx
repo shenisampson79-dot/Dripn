@@ -3,11 +3,12 @@ import { StyleSheet, View, TextInput, Pressable, Alert, Image, ScrollView, Modal
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { ScreenKeyboardAwareScrollView } from "@/components/ScreenKeyboardAwareScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
-import { Spacing, BorderRadius, Typography } from "@/constants/theme";
+import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SizeRange, BodyShape, BudgetRange, DressCodePreference, SubcultureStyle, DressCodeStrictness } from "@/contexts/AuthContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";

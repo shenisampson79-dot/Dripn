@@ -8,7 +8,8 @@ import * as WebBrowser from "expo-web-browser";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { ScreenScrollView } from "@/components/ScreenScrollView";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from "@/hooks/useTheme";
 import apiService from "@/services/ApiService";
 

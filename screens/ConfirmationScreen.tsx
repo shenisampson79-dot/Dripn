@@ -16,8 +16,9 @@ import Animated, {
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { LinearGradient } from "expo-linear-gradient";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { onboardingSessionService } from "@/services/OnboardingSessionService";
 

@@ -12,12 +12,13 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { ScreenKeyboardAwareScrollView } from '@/components/ScreenKeyboardAwareScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Card } from '@/components/Card';
-import { Spacing, BorderRadius } from '@/constants/theme';
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useWardrobe, WardrobeItem, PlannedOutfit, PlannedEventType } from '@/contexts/WardrobeContext';
 import type { ProfileStackParamList } from '@/navigation/ProfileStackNavigator';

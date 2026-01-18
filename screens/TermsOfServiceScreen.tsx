@@ -2,7 +2,8 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing } from "@/constants/theme";
+import { Spacing, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function TermsOfServiceScreen() {
   return (

@@ -6,11 +6,12 @@ import { Feather } from "@expo/vector-icons";
 import { AudioModule } from "expo-audio";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
-import { Spacing, BorderRadius, StyleTheme } from "@/constants/theme";
+import { Spacing, BorderRadius, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences, DripnGoal, DressCodePreference, SubcultureStyle, DressCodeStrictness, CulturalStylePreferences } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";

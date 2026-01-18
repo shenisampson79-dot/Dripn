@@ -22,8 +22,9 @@ import * as Haptics from "expo-haptics";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { LinearGradient } from "expo-linear-gradient";
 import { useWardrobe, ClothingCategory, ClothingColor, ClothingSeason, ClothingOccasion } from "@/contexts/WardrobeContext";
 import {
   scanBulkItems,

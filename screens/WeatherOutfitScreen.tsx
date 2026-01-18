@@ -23,7 +23,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenScrollView } from '@/components/ScreenScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
-import { Spacing, BorderRadius } from '@/constants/theme';
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWardrobe } from '@/contexts/WardrobeContext';

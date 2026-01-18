@@ -25,7 +25,7 @@ import Animated, {
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
-import { Spacing, BorderRadius, Typography } from '@/constants/theme';
+import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
