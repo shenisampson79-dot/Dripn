@@ -198,6 +198,54 @@ class ApiService {
     });
   }
 
+  async getStylists() {
+    return this.request<{
+      stylists: Array<{
+        id: string;
+        name: string;
+        personality: string;
+        specialty: string;
+        tagline: string;
+        icon: string;
+        color: string;
+        isCurrent: boolean;
+      }>;
+    }>('/api/stylists');
+  }
+
+  async switchStylist(stylistId: string) {
+    return this.request<{
+      stylist: {
+        id: string;
+        name: string;
+        personality: string;
+        specialty: string;
+        tagline: string;
+        icon: string;
+        color: string;
+      };
+      message: string;
+    }>('/api/stylists/switch', {
+      method: 'POST',
+      body: JSON.stringify({ stylistId }),
+    });
+  }
+
+  async getCurrentStylist() {
+    return this.request<{
+      stylist: {
+        id: string;
+        name: string;
+        personality: string;
+        specialty: string;
+        tagline: string;
+        icon: string;
+        color: string;
+      };
+      messageCount: number;
+    }>('/api/stylists/current');
+  }
+
   async getPosts() {
     return this.request<any[]>('/api/posts');
   }

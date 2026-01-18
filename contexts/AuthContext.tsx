@@ -27,7 +27,7 @@ export type ShoppingFrequency = 'weekly' | 'monthly' | 'seasonal' | 'rarely' | n
 export type DripnGoal = 'dress-better' | 'meet-people' | 'find-offers' | 'get-inspired' | 'build-wardrobe' | 'special-events' | 'professional-image';
 export type HeightUnit = 'cm' | 'ft';
 export type WeightUnit = 'kg' | 'lbs';
-export type StylistId = 'ruby' | 'max' | null;
+export type StylistId = 'ruby' | 'max' | 'ace' | 'ivy' | null;
 
 // Cultural dress code types
 export type DressCodePreference = 'hijab-friendly' | 'tzniut' | 'lds-modest' | 'hindu-traditional' | 'sikh' | 'amish-plain' | 'modest-general' | 'none' | null;
