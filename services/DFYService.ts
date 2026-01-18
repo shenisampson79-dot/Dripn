@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StylistId } from '@/contexts/AuthContext';
 
+export type { StylistId };
+
 export type DFYTier = 'lite' | 'core';
 export type DFYOccasion = 'work' | 'holiday' | 'event' | 'casual' | 'browsing';
 

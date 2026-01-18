@@ -11,8 +11,12 @@ import VirtualTryOnScreen from "@/screens/VirtualTryOnScreen";
 import ColorAnalysisScreen from "@/screens/ColorAnalysisScreen";
 import BodyScannerScreen from "@/screens/BodyScannerScreen";
 import WeatherOutfitScreen from "@/screens/WeatherOutfitScreen";
+import DFYLookbookScreen from "@/screens/DFYLookbookScreen";
+import DFYModularWardrobeScreen from "@/screens/DFYModularWardrobeScreen";
+import DFYCalendarScreen from "@/screens/DFYCalendarScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
+import { DFYTier } from "@/services/DFYService";
 
 export type WardrobeStackParamList = {
   Wardrobe: undefined;
@@ -26,6 +30,9 @@ export type WardrobeStackParamList = {
   ColorAnalysis: undefined;
   BodyScanner: undefined;
   WeatherOutfit: undefined;
+  DFYLookbook: undefined;
+  DFYModularWardrobe: undefined;
+  DFYCalendar: { tier: DFYTier };
 };
 
 const Stack = createNativeStackNavigator<WardrobeStackParamList>();
@@ -122,6 +129,30 @@ export default function WardrobeStackNavigator() {
         component={WeatherOutfitScreen}
         options={{
           title: "Weather Outfits",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="DFYLookbook"
+        component={DFYLookbookScreen}
+        options={{
+          title: "My Lookbook",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="DFYModularWardrobe"
+        component={DFYModularWardrobeScreen}
+        options={{
+          title: "Modular Wardrobe",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="DFYCalendar"
+        component={DFYCalendarScreen}
+        options={{
+          title: "DFY Calendar",
           headerShown: false,
         }}
       />
