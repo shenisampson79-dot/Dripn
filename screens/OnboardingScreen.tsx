@@ -31,6 +31,54 @@ const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.gly
   { id: "prefer-not-to-say", name: "Prefer not to say", icon: "user-x" },
 ];
 
+const GENDER_COLORS: Record<Gender, { bg: string; border: string; icon: string }> = {
+  "woman": { bg: "#4A1942", border: "#EC4899", icon: "#F472B6" },
+  "man": { bg: "#1E3A5F", border: "#3B82F6", icon: "#60A5FA" },
+  "non-binary": { bg: "#4C1D95", border: "#A855F7", icon: "#C084FC" },
+  "prefer-not-to-say": { bg: "#374151", border: "#9CA3AF", icon: "#D1D5DB" },
+};
+
+const SIZE_COLORS: Record<string, { bg: string; border: string }> = {
+  "XS-S": { bg: "#1A4D2E", border: "#22C55E" },
+  "M-L": { bg: "#1E3A5F", border: "#3B82F6" },
+  "XL-2X": { bg: "#4C1D95", border: "#A855F7" },
+  "3X+": { bg: "#78350F", border: "#F59E0B" },
+};
+
+const BODY_SHAPE_COLORS: Record<string, { bg: string; border: string }> = {
+  "Hourglass": { bg: "#4A1942", border: "#EC4899" },
+  "Pear": { bg: "#1A4D2E", border: "#22C55E" },
+  "Apple": { bg: "#78350F", border: "#F59E0B" },
+  "Rectangle": { bg: "#1E3A5F", border: "#3B82F6" },
+  "Athletic": { bg: "#7C2D12", border: "#F97316" },
+  "Trapezoid": { bg: "#4C1D95", border: "#A855F7" },
+  "Inverted Triangle": { bg: "#0E7490", border: "#06B6D4" },
+  "Oval": { bg: "#065F46", border: "#10B981" },
+};
+
+const STYLE_COLORS: Record<string, { bg: string; border: string }> = {
+  "smart-casual": { bg: "#1E3A5F", border: "#3B82F6" },
+  "casual": { bg: "#1A4D2E", border: "#22C55E" },
+  "boho": { bg: "#78350F", border: "#F59E0B" },
+  "sporty": { bg: "#7C2D12", border: "#F97316" },
+  "business": { bg: "#374151", border: "#6B7280" },
+  "edgy": { bg: "#1F1F1F", border: "#EF4444" },
+  "streetwear": { bg: "#4C1D95", border: "#A855F7" },
+  "luxury": { bg: "#4A1942", border: "#EC4899" },
+  "minimalist": { bg: "#0F172A", border: "#64748B" },
+  "preppy": { bg: "#0E7490", border: "#06B6D4" },
+};
+
+const SHOP_CATEGORY_COLORS: Record<string, { bg: string; border: string }> = {
+  "Luxury": { bg: "#4A1942", border: "#EC4899" },
+  "Contemporary": { bg: "#4C1D95", border: "#A855F7" },
+  "Fast Fashion": { bg: "#7C2D12", border: "#F97316" },
+  "Sportswear": { bg: "#1A4D2E", border: "#22C55E" },
+  "Department Store": { bg: "#1E3A5F", border: "#3B82F6" },
+  "Online Only": { bg: "#0E7490", border: "#06B6D4" },
+  "default": { bg: "#374151", border: "#6B7280" },
+};
+
 const WOMEN_BODY_SHAPES: { id: BodyShape; name: string; description: string }[] = [
   { id: "Hourglass", name: "Hourglass", description: "Balanced shoulders and hips, defined waist" },
   { id: "Pear", name: "Pear", description: "Hips wider than shoulders" },
@@ -1279,41 +1327,49 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             </ThemedText>
             <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.genderOptions}>
-                {GENDER_OPTIONS.map((g) => (
-                  <Pressable
-                    key={g.id}
-                    onPress={() => setGender(g.id)}
-                    style={({ pressed }) => [
-                      styles.genderOption,
-                      {
-                        backgroundColor:
-                          gender === g.id ? theme.link : theme.backgroundDefault,
-                        borderColor:
-                          gender === g.id ? theme.link : theme.backgroundSecondary,
-                        opacity: pressed ? 0.8 : 1,
-                      },
-                    ]}
-                  >
-                    <Feather
-                      name={g.icon}
-                      size={24}
-                      color={gender === g.id ? "#FFFFFF" : theme.text}
-                    />
-                    <ThemedText
-                      type="h3"
-                      style={{
-                        color: gender === g.id ? "#FFFFFF" : theme.text,
-                      }}
+                {GENDER_OPTIONS.map((g) => {
+                  const genderColor = GENDER_COLORS[g.id];
+                  const isSelected = gender === g.id;
+                  return (
+                    <Pressable
+                      key={g.id}
+                      onPress={() => setGender(g.id)}
+                      style={({ pressed }) => [
+                        styles.genderOption,
+                        {
+                          backgroundColor: genderColor.bg,
+                          borderColor: isSelected ? "#FFFFFF" : genderColor.border,
+                          borderWidth: isSelected ? 3 : 2,
+                          opacity: pressed ? 0.85 : 1,
+                          shadowColor: genderColor.border,
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.4,
+                          shadowRadius: 8,
+                          elevation: 6,
+                        },
+                      ]}
                     >
-                      {g.name}
-                    </ThemedText>
-                    {gender === g.id ? (
-                      <View style={[styles.checkCircleSmall, { backgroundColor: "rgba(255,255,255,0.3)" }]}>
-                        <Feather name="check" size={14} color="#FFFFFF" />
-                      </View>
-                    ) : null}
-                  </Pressable>
-                ))}
+                      <Feather
+                        name={g.icon}
+                        size={24}
+                        color={genderColor.icon}
+                      />
+                      <ThemedText
+                        type="h3"
+                        style={{
+                          color: "#FFFFFF",
+                        }}
+                      >
+                        {g.name}
+                      </ThemedText>
+                      {isSelected ? (
+                        <View style={[styles.checkCircleSmall, { backgroundColor: "rgba(255,255,255,0.3)" }]}>
+                          <Feather name="check" size={14} color="#FFFFFF" />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
               </View>
             </ScrollView>
           </View>
@@ -1640,44 +1696,52 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             
             <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.styleOptions}>
-                {styleOptions.map((s) => (
-                  <Pressable
-                    key={s.id}
-                    onPress={() => setStylePreference(s.id)}
-                    style={({ pressed }) => [
-                      styles.styleOption,
-                      {
-                        borderColor:
-                          stylePreference === s.id
-                            ? theme.link
-                            : theme.backgroundSecondary,
-                        opacity: pressed ? 0.8 : 1,
-                      },
-                    ]}
-                  >
-                    <Image
-                      source={getStyleImage(s.id)}
-                      style={styles.styleImagePreview}
-                      resizeMode="cover"
-                    />
-                    <View style={styles.styleTextContainer}>
-                      <ThemedText type="h3">
-                        {s.name}
-                      </ThemedText>
-                      <ThemedText
-                        type="small"
-                        style={{ opacity: 0.7 }}
-                      >
-                        {s.description}
-                      </ThemedText>
-                    </View>
-                    {stylePreference === s.id ? (
-                      <View style={[styles.checkCircle, { backgroundColor: theme.link }]}>
-                        <Feather name="check" size={16} color="#FFFFFF" />
+                {styleOptions.map((s) => {
+                  const styleColor = STYLE_COLORS[s.id] || { bg: "#374151", border: "#6B7280" };
+                  const isSelected = stylePreference === s.id;
+                  return (
+                    <Pressable
+                      key={s.id}
+                      onPress={() => setStylePreference(s.id)}
+                      style={({ pressed }) => [
+                        styles.styleOption,
+                        {
+                          backgroundColor: styleColor.bg,
+                          borderColor: isSelected ? "#FFFFFF" : styleColor.border,
+                          borderWidth: isSelected ? 3 : 2,
+                          opacity: pressed ? 0.85 : 1,
+                          shadowColor: styleColor.border,
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.4,
+                          shadowRadius: 8,
+                          elevation: 6,
+                        },
+                      ]}
+                    >
+                      <Image
+                        source={getStyleImage(s.id)}
+                        style={styles.styleImagePreview}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.styleTextContainer}>
+                        <ThemedText type="h3" style={{ color: "#FFFFFF" }}>
+                          {s.name}
+                        </ThemedText>
+                        <ThemedText
+                          type="small"
+                          style={{ color: "rgba(255,255,255,0.7)" }}
+                        >
+                          {s.description}
+                        </ThemedText>
                       </View>
-                    ) : null}
-                  </Pressable>
-                ))}
+                      {isSelected ? (
+                        <View style={[styles.checkCircle, { backgroundColor: "rgba(255,255,255,0.3)" }]}>
+                          <Feather name="check" size={16} color="#FFFFFF" />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
               </View>
             </ScrollView>
           </View>
@@ -1779,29 +1843,39 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   Size Range
                 </ThemedText>
                 <View style={styles.optionsRow}>
-                  {SIZE_OPTIONS.map((size) => (
-                    <Pressable
-                      key={size}
-                      onPress={() => setSizeRange(sizeRange === size ? null : size)}
-                      style={({ pressed }) => [
-                        styles.optionChip,
-                        {
-                          backgroundColor:
-                            sizeRange === size ? theme.link : theme.backgroundDefault,
-                          opacity: pressed ? 0.8 : 1,
-                        },
-                      ]}
-                    >
-                      <ThemedText
-                        type="body"
-                        style={{
-                          color: sizeRange === size ? "#FFFFFF" : theme.text,
-                        }}
+                  {SIZE_OPTIONS.map((size) => {
+                    const sizeColor = SIZE_COLORS[size] || { bg: "#374151", border: "#6B7280" };
+                    const isSelected = sizeRange === size;
+                    return (
+                      <Pressable
+                        key={size}
+                        onPress={() => setSizeRange(sizeRange === size ? null : size)}
+                        style={({ pressed }) => [
+                          styles.optionChip,
+                          {
+                            backgroundColor: sizeColor.bg,
+                            borderWidth: isSelected ? 2 : 1,
+                            borderColor: isSelected ? "#FFFFFF" : sizeColor.border,
+                            opacity: pressed ? 0.85 : 1,
+                            shadowColor: sizeColor.border,
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 4,
+                            elevation: 4,
+                          },
+                        ]}
                       >
-                        {size}
-                      </ThemedText>
-                    </Pressable>
-                  ))}
+                        <ThemedText
+                          type="body"
+                          style={{
+                            color: "#FFFFFF",
+                          }}
+                        >
+                          {size}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
                 </View>
               </View>
 
@@ -1810,47 +1884,50 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   Body Shape
                 </ThemedText>
                 <View style={styles.bodyShapeOptions}>
-                  {getBodyShapeOptions().map((shape) => (
-                    <Pressable
-                      key={shape.id}
-                      onPress={() =>
-                        setBodyShape(bodyShape === shape.id ? null : shape.id)
-                      }
-                      style={({ pressed }) => [
-                        styles.bodyShapeOption,
-                        {
-                          backgroundColor:
-                            bodyShape === shape.id
-                              ? theme.link
-                              : theme.backgroundDefault,
-                          borderColor:
-                            bodyShape === shape.id
-                              ? theme.link
-                              : theme.backgroundSecondary,
-                          opacity: pressed ? 0.8 : 1,
-                        },
-                      ]}
-                    >
-                      <ThemedText
-                        type="body"
-                        style={{
-                          color: bodyShape === shape.id ? "#FFFFFF" : theme.text,
-                          fontWeight: "600",
-                        }}
+                  {getBodyShapeOptions().map((shape) => {
+                    const shapeColor = BODY_SHAPE_COLORS[shape.id] || { bg: "#374151", border: "#6B7280" };
+                    const isSelected = bodyShape === shape.id;
+                    return (
+                      <Pressable
+                        key={shape.id}
+                        onPress={() =>
+                          setBodyShape(bodyShape === shape.id ? null : shape.id)
+                        }
+                        style={({ pressed }) => [
+                          styles.bodyShapeOption,
+                          {
+                            backgroundColor: shapeColor.bg,
+                            borderColor: isSelected ? "#FFFFFF" : shapeColor.border,
+                            borderWidth: isSelected ? 3 : 2,
+                            opacity: pressed ? 0.85 : 1,
+                            shadowColor: shapeColor.border,
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.4,
+                            shadowRadius: 8,
+                            elevation: 6,
+                          },
+                        ]}
                       >
-                        {shape.name}
-                      </ThemedText>
-                      <ThemedText
-                        type="small"
-                        style={{
-                          color: bodyShape === shape.id ? "#FFFFFF" : theme.text,
-                          opacity: 0.7,
-                        }}
-                      >
-                        {shape.description}
-                      </ThemedText>
-                    </Pressable>
-                  ))}
+                        <ThemedText
+                          type="body"
+                          style={{
+                            color: "#FFFFFF",
+                            fontWeight: "600",
+                          }}
+                        >
+                          {shape.name}
+                        </ThemedText>
+                        <ThemedText
+                          type="small"
+                          style={{
+                            color: "rgba(255,255,255,0.7)",
+                          }}
+                        >
+                          {shape.description}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
                 </View>
               </View>
 
@@ -1991,6 +2068,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 {filteredShops.map((shop) => {
                   const isDisabled = favoriteShops.length >= 10;
                   const category = getRetailerCategory(shop);
+                  const shopColor = SHOP_CATEGORY_COLORS[category || "default"] || SHOP_CATEGORY_COLORS["default"];
                   return (
                     <Pressable
                       key={shop}
@@ -1999,16 +2077,21 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       style={({ pressed }) => [
                         styles.shopChip,
                         {
-                          backgroundColor: theme.backgroundDefault,
+                          backgroundColor: shopColor.bg,
                           borderWidth: 1,
-                          borderColor: theme.backgroundSecondary,
-                          opacity: isDisabled ? 0.4 : (pressed ? 0.8 : 1),
+                          borderColor: shopColor.border,
+                          opacity: isDisabled ? 0.4 : (pressed ? 0.85 : 1),
+                          shadowColor: shopColor.border,
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.25,
+                          shadowRadius: 4,
+                          elevation: 3,
                         },
                       ]}
                     >
-                      <ThemedText type="small" style={{ opacity: isDisabled ? 0.5 : 1 }}>{shop}</ThemedText>
+                      <ThemedText type="small" style={{ color: "#FFFFFF", opacity: isDisabled ? 0.5 : 1 }}>{shop}</ThemedText>
                       {category ? (
-                        <ThemedText type="small" style={{ opacity: 0.5, marginLeft: 4, fontSize: 10 }}>
+                        <ThemedText type="small" style={{ color: "rgba(255,255,255,0.6)", marginLeft: 4, fontSize: 10 }}>
                           {category}
                         </ThemedText>
                       ) : null}

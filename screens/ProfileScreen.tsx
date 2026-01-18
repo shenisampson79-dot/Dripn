@@ -120,25 +120,28 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   ];
 
   return (
-    <ScreenScrollView style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}>
+    <View style={{ flex: 1 }}>
       <LinearGradient
-        colors={isDark 
-          ? [LUXURY_COLORS.gold + '50', LUXURY_COLORS.deepGold + '30', 'transparent'] 
-          : [LUXURY_COLORS.champagne, LUXURY_COLORS.gold + '20', 'transparent']
-        }
-        style={styles.heroGradient}
-      >
+        colors={[
+          ScreenGradients.profile.primary[0],
+          ScreenGradients.profile.primary[1],
+          LuxuryColors.obsidian,
+        ]}
+        locations={[0, 0.35, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <ScreenScrollView style={{ backgroundColor: 'transparent' }}>
         <View style={styles.header}>
           <View style={{ width: 40 }} />
-          <ThemedText type="h2">Profile</ThemedText>
+          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>Profile</ThemedText>
           <Pressable
             onPress={handleSettingsPress}
             style={({ pressed }) => [
               styles.settingsButton,
-              { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.8 : 1 },
+              { backgroundColor: 'rgba(255,255,255,0.15)', opacity: pressed ? 0.8 : 1 },
             ]}
           >
-            <Feather name="settings" size={18} color={theme.text} />
+            <Feather name="settings" size={18} color="#FFFFFF" />
           </Pressable>
         </View>
 
@@ -169,7 +172,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             </LinearGradient>
           </Pressable>
 
-          <ThemedText type="h2" style={styles.userName}>
+          <ThemedText type="h2" style={[styles.userName, { color: '#FFFFFF' }]}>
             {user?.name || "Guest User"}
           </ThemedText>
 
@@ -187,44 +190,43 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             {getContributorBadge()}
           </View>
         </View>
-      </LinearGradient>
 
-      <View style={[styles.statsSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-              style={styles.statIconContainer}
-            >
-              <Feather name="image" size={14} color="#FFFFFF" />
-            </LinearGradient>
-            <ThemedText type="h2" style={styles.statNumber}>{user?.postsCount || 0}</ThemedText>
-            <ThemedText type="caption" style={styles.statLabel}>Posts</ThemedText>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]} />
-          <View style={styles.statItem}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.coral, '#C46A4F']}
-              style={styles.statIconContainer}
-            >
-              <Feather name="thumbs-up" size={14} color="#FFFFFF" />
-            </LinearGradient>
-            <ThemedText type="h2" style={styles.statNumber}>{user?.helpfulVotes || 0}</ThemedText>
-            <ThemedText type="caption" style={styles.statLabel}>Helpful</ThemedText>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]} />
-          <View style={styles.statItem}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-              style={styles.statIconContainer}
-            >
-              <Feather name="heart" size={14} color={LUXURY_COLORS.midnight} />
-            </LinearGradient>
-            <ThemedText type="h2" style={styles.statNumber}>{user?.thanksReceived || 0}</ThemedText>
-            <ThemedText type="caption" style={styles.statLabel}>Thanks</ThemedText>
+        <View style={[styles.statsSection, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+                style={styles.statIconContainer}
+              >
+                <Feather name="image" size={14} color="#FFFFFF" />
+              </LinearGradient>
+              <ThemedText type="h2" style={[styles.statNumber, { color: '#FFFFFF' }]}>{user?.postsCount || 0}</ThemedText>
+              <ThemedText type="caption" style={[styles.statLabel, { color: 'rgba(255,255,255,0.7)' }]}>Posts</ThemedText>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: 'rgba(255,255,255,0.2)' }]} />
+            <View style={styles.statItem}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.coral, '#C46A4F']}
+                style={styles.statIconContainer}
+              >
+                <Feather name="thumbs-up" size={14} color="#FFFFFF" />
+              </LinearGradient>
+              <ThemedText type="h2" style={[styles.statNumber, { color: '#FFFFFF' }]}>{user?.helpfulVotes || 0}</ThemedText>
+              <ThemedText type="caption" style={[styles.statLabel, { color: 'rgba(255,255,255,0.7)' }]}>Helpful</ThemedText>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: 'rgba(255,255,255,0.2)' }]} />
+            <View style={styles.statItem}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+                style={styles.statIconContainer}
+              >
+                <Feather name="heart" size={14} color={LUXURY_COLORS.midnight} />
+              </LinearGradient>
+              <ThemedText type="h2" style={[styles.statNumber, { color: '#FFFFFF' }]}>{user?.thanksReceived || 0}</ThemedText>
+              <ThemedText type="caption" style={[styles.statLabel, { color: 'rgba(255,255,255,0.7)' }]}>Thanks</ThemedText>
+            </View>
           </View>
         </View>
-      </View>
 
       <View style={styles.actionsSection}>
         <LinearGradient
@@ -604,8 +606,9 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             </ThemedText>
           </View>
         )}
-      </View>
-    </ScreenScrollView>
+        </View>
+      </ScreenScrollView>
+    </View>
   );
 }
 

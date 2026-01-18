@@ -260,17 +260,20 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
   const isDark = theme.backgroundDefault === '#0D0B09' || theme.backgroundDefault === '#000000' || theme.backgroundDefault.toLowerCase() === '#1a1a2e';
 
   return (
-    <ScreenScrollView style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}>
+    <View style={{ flex: 1 }}>
       <LinearGradient
-        colors={isDark 
-          ? [LuxuryColors.violet + '50', LuxuryColors.deepViolet + '30', 'transparent'] 
-          : [LuxuryColors.violet + '20', LuxuryColors.deepViolet + '10', 'transparent']
-        }
-        style={styles.headerGradient}
-      >
+        colors={[
+          ScreenGradients.stylistHub.primary[0],
+          ScreenGradients.stylistHub.primary[1],
+          LuxuryColors.obsidian,
+        ]}
+        locations={[0, 0.35, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <ScreenScrollView style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerContent}>
           <View style={{ width: 40 }} />
-          <ThemedText type="h2">Stylist</ThemedText>
+          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>Stylist</ThemedText>
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -278,7 +281,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             }}
             style={[
               styles.editButton,
-              { backgroundColor: isEditMode ? theme.link : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') },
+              { backgroundColor: isEditMode ? theme.link : 'rgba(255,255,255,0.15)' },
             ]}
           >
             <Feather
@@ -288,36 +291,36 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             />
           </Pressable>
         </View>
-      </LinearGradient>
 
-      <View style={styles.contentSection}>
-        <View style={styles.headerSection}>
-          <View style={styles.headerRow}>
-            <View>
-              <ThemedText type="h1" style={styles.title}>
-                Style Tools
-              </ThemedText>
-              <ThemedText style={[styles.subtitle, { color: theme.tabIconDefault }]}>
-                Your personal fashion assistant
-              </ThemedText>
+        <View style={styles.contentSection}>
+          <View style={styles.headerSection}>
+            <View style={styles.headerRow}>
+              <View>
+                <ThemedText type="h1" style={[styles.title, { color: LuxuryColors.gold }]}>
+                  Style Tools
+                </ThemedText>
+                <ThemedText style={[styles.subtitle, { color: 'rgba(255,255,255,0.7)' }]}>
+                  Your personal fashion assistant
+                </ThemedText>
+              </View>
             </View>
-          </View>
           
-          {isEditMode ? (
-            <View style={[styles.editHint, { backgroundColor: theme.link + "20" }]}>
-              <Feather name="info" size={14} color={theme.link} />
-              <ThemedText type="caption" style={{ color: theme.link, marginLeft: Spacing.xs }}>
-                Tap arrows to reorder your tools
-              </ThemedText>
-            </View>
-          ) : null}
-        </View>
+            {isEditMode ? (
+              <View style={[styles.editHint, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+                <Feather name="info" size={14} color="#FFFFFF" />
+                <ThemedText type="caption" style={{ color: '#FFFFFF', marginLeft: Spacing.xs }}>
+                  Tap arrows to reorder your tools
+                </ThemedText>
+              </View>
+            ) : null}
+          </View>
 
-        <View style={styles.featuresGrid}>
-          {sortedFeatures().map((feature, index) => renderFeatureTile(feature, index))}
+          <View style={styles.featuresGrid}>
+            {sortedFeatures().map((feature, index) => renderFeatureTile(feature, index))}
+          </View>
         </View>
-      </View>
-    </ScreenScrollView>
+      </ScreenScrollView>
+    </View>
   );
 }
 
