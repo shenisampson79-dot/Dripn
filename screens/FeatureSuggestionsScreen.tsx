@@ -59,13 +59,13 @@ function SuggestionCard({
   const getPriorityColors = () => {
     switch (suggestion.priority) {
       case 'high':
-        return { bg: `${theme.error || theme.primary}25`, text: theme.error || theme.primary };
+        return { bg: `${theme.error}25`, text: theme.error };
       case 'medium':
-        return { bg: `${theme.warning || theme.secondary}25`, text: theme.warning || theme.secondary };
+        return { bg: `${theme.warning}25`, text: theme.warning };
       case 'low':
-        return { bg: `${theme.success || theme.accent}25`, text: theme.success || theme.accent };
+        return { bg: `${theme.success}25`, text: theme.success };
       default:
-        return { bg: `${theme.primary}25`, text: theme.primary };
+        return { bg: `${theme.link}25`, text: theme.link };
     }
   };
 
@@ -74,15 +74,15 @@ function SuggestionCard({
       case 'new':
         return { bg: `${theme.link}25`, text: theme.link };
       case 'reviewed':
-        return { bg: `${theme.warning || theme.secondary}25`, text: theme.warning || theme.secondary };
+        return { bg: `${theme.warning}25`, text: theme.warning };
       case 'approved':
-        return { bg: `${theme.success || theme.accent}25`, text: theme.success || theme.accent };
+        return { bg: `${theme.success}25`, text: theme.success };
       case 'rejected':
-        return { bg: `${theme.error || theme.primary}25`, text: theme.error || theme.primary };
+        return { bg: `${theme.error}25`, text: theme.error };
       case 'implemented':
-        return { bg: `${theme.primary}25`, text: theme.primary };
+        return { bg: `${theme.info}25`, text: theme.info };
       default:
-        return { bg: `${theme.primary}25`, text: theme.primary };
+        return { bg: `${theme.link}25`, text: theme.link };
     }
   };
 
@@ -96,9 +96,9 @@ function SuggestionCard({
           <Feather
             name={categoryInfo?.icon as any || "star"}
             size={14}
-            color={theme.primary}
+            color={theme.link}
           />
-          <ThemedText type="small" style={{ color: theme.primary, marginLeft: 4 }}>
+          <ThemedText type="small" style={{ color: theme.link, marginLeft: 4 }}>
             {categoryInfo?.label || suggestion.category}
           </ThemedText>
         </View>
@@ -132,13 +132,13 @@ function SuggestionCard({
         </View>
       </View>
 
-      <ThemedText type="subtitle" style={styles.suggestionTitle}>
+      <ThemedText type="h4" style={styles.suggestionTitle}>
         {suggestion.title}
       </ThemedText>
 
       <ThemedText
         type="body"
-        style={[styles.suggestionDescription, { color: theme.textSecondary }]}
+        style={[styles.suggestionDescription, { opacity: 0.7 }]}
         numberOfLines={expanded ? undefined : 2}
       >
         {suggestion.description}
@@ -147,7 +147,7 @@ function SuggestionCard({
       {expanded ? (
         <View style={styles.expandedContent}>
           <View style={styles.detailRow}>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+            <ThemedText type="small" style={{ opacity: 0.7 }}>
               Rationale:
             </ThemedText>
             <ThemedText type="body" style={styles.detailText}>
@@ -156,7 +156,7 @@ function SuggestionCard({
           </View>
 
           <View style={styles.detailRow}>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+            <ThemedText type="small" style={{ opacity: 0.7 }}>
               User Benefit:
             </ThemedText>
             <ThemedText type="body" style={styles.detailText}>
@@ -166,7 +166,7 @@ function SuggestionCard({
 
           <View style={styles.metricsRow}>
             <View style={styles.metric}>
-              <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              <ThemedText type="small" style={{ opacity: 0.7 }}>
                 Impact
               </ThemedText>
               <ThemedText type="body" style={{ fontWeight: "600" }}>
@@ -175,7 +175,7 @@ function SuggestionCard({
               </ThemedText>
             </View>
             <View style={styles.metric}>
-              <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              <ThemedText type="small" style={{ opacity: 0.7 }}>
                 Complexity
               </ThemedText>
               <ThemedText type="body" style={{ fontWeight: "600" }}>
@@ -184,7 +184,7 @@ function SuggestionCard({
               </ThemedText>
             </View>
             <View style={styles.metric}>
-              <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              <ThemedText type="small" style={{ opacity: 0.7 }}>
                 Tier
               </ThemedText>
               <ThemedText type="body" style={{ fontWeight: "600" }}>
@@ -192,7 +192,7 @@ function SuggestionCard({
               </ThemedText>
             </View>
             <View style={styles.metric}>
-              <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              <ThemedText type="small" style={{ opacity: 0.7 }}>
                 AI Confidence
               </ThemedText>
               <ThemedText type="body" style={{ fontWeight: "600" }}>
@@ -203,7 +203,7 @@ function SuggestionCard({
 
           {suggestion.relatedTrends && suggestion.relatedTrends.length > 0 ? (
             <View style={styles.trendsSection}>
-              <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              <ThemedText type="small" style={{ opacity: 0.7 }}>
                 Related Trends:
               </ThemedText>
               <View style={styles.trendTags}>
@@ -212,10 +212,10 @@ function SuggestionCard({
                     key={idx}
                     style={[
                       styles.trendTag,
-                      { backgroundColor: `${theme.primary}20` },
+                      { backgroundColor: `${theme.link}20` },
                     ]}
                   >
-                    <ThemedText type="small" style={{ color: theme.primary }}>
+                    <ThemedText type="small" style={{ color: theme.link }}>
                       {trend}
                     </ThemedText>
                   </View>
@@ -232,7 +232,7 @@ function SuggestionCard({
             onPress={() => onVote(suggestion.id, true)}
             style={styles.voteButton}
           >
-            <Feather name="thumbs-up" size={18} color={theme.primary} />
+            <Feather name="thumbs-up" size={18} color={theme.link} />
           </Pressable>
           <ThemedText type="body" style={styles.voteCount}>
             {suggestion.votes}
@@ -241,13 +241,13 @@ function SuggestionCard({
             onPress={() => onVote(suggestion.id, false)}
             style={styles.voteButton}
           >
-            <Feather name="thumbs-down" size={18} color={theme.textSecondary} />
+            <Feather name="thumbs-down" size={18} color={theme.tabIconDefault} />
           </Pressable>
         </View>
         <Feather
           name={expanded ? "chevron-up" : "chevron-down"}
           size={20}
-          color={theme.textSecondary}
+          color={theme.tabIconDefault}
         />
       </View>
     </Card>
@@ -304,8 +304,8 @@ export default function FeatureSuggestionsScreen({
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={theme.primary} />
+      <View style={[styles.loadingContainer, { backgroundColor: theme.backgroundDefault }]}>
+        <ActivityIndicator size="large" color={theme.link} />
         <ThemedText type="body" style={{ marginTop: Spacing.md }}>
           Analyzing trends and feedback...
         </ThemedText>
@@ -315,27 +315,27 @@ export default function FeatureSuggestionsScreen({
 
   return (
     <ScreenScrollView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.backgroundDefault }]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={handleRefresh}
-          tintColor={theme.primary}
+          tintColor={theme.link}
         />
       }
     >
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <Feather name="cpu" size={24} color={theme.primary} />
-          <ThemedText type="title" style={styles.headerTitle}>
+          <Feather name="cpu" size={24} color={theme.link} />
+          <ThemedText type="h3" style={styles.headerTitle}>
             AI Feature Lab
           </ThemedText>
         </View>
-        <ThemedText type="body" style={{ color: theme.textSecondary }}>
+        <ThemedText type="body" style={{ opacity: 0.7 }}>
           Smart suggestions powered by trend analysis and member feedback
         </ThemedText>
         {lastAnalysis ? (
-          <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: Spacing.xs }}>
+          <ThemedText type="small" style={{ opacity: 0.7, marginTop: Spacing.xs }}>
             Last updated: {new Date(lastAnalysis).toLocaleDateString()}
           </ThemedText>
         ) : null}
@@ -344,26 +344,26 @@ export default function FeatureSuggestionsScreen({
       <Card elevation={2} style={styles.summaryCard}>
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <ThemedText type="title" style={{ color: theme.primary }}>
+            <ThemedText type="h3" style={{ color: theme.link }}>
               {summary.totalSuggestions}
             </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+            <ThemedText type="small" style={{ opacity: 0.7 }}>
               Total Ideas
             </ThemedText>
           </View>
           <View style={styles.summaryItem}>
-            <ThemedText type="title" style={{ color: theme.error || theme.primary }}>
+            <ThemedText type="h3" style={{ color: theme.error }}>
               {summary.byPriority.high || 0}
             </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+            <ThemedText type="small" style={{ opacity: 0.7 }}>
               High Priority
             </ThemedText>
           </View>
           <View style={styles.summaryItem}>
-            <ThemedText type="title" style={{ color: theme.link }}>
+            <ThemedText type="h3" style={{ color: theme.link }}>
               {summary.byStatus.new || 0}
             </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+            <ThemedText type="small" style={{ opacity: 0.7 }}>
               New Ideas
             </ThemedText>
           </View>
@@ -371,7 +371,7 @@ export default function FeatureSuggestionsScreen({
       </Card>
 
       <View style={styles.filterSection}>
-        <ThemedText type="subtitle" style={styles.filterTitle}>
+        <ThemedText type="h4" style={styles.filterTitle}>
           Filter by Category
         </ThemedText>
         <View style={styles.categoryFilters}>
@@ -381,15 +381,15 @@ export default function FeatureSuggestionsScreen({
               styles.categoryChip,
               {
                 backgroundColor: selectedCategory === null
-                  ? theme.primary
-                  : `${theme.primary}20`,
+                  ? theme.link
+                  : `${theme.link}20`,
               },
             ]}
           >
             <ThemedText
               type="small"
               style={{
-                color: selectedCategory === null ? "#fff" : theme.primary,
+                color: selectedCategory === null ? "#fff" : theme.link,
                 fontWeight: "600",
               }}
             >
@@ -404,20 +404,20 @@ export default function FeatureSuggestionsScreen({
                 styles.categoryChip,
                 {
                   backgroundColor: selectedCategory === cat.id
-                    ? theme.primary
-                    : `${theme.primary}20`,
+                    ? theme.link
+                    : `${theme.link}20`,
                 },
               ]}
             >
               <Feather
                 name={cat.icon as any}
                 size={12}
-                color={selectedCategory === cat.id ? "#fff" : theme.primary}
+                color={selectedCategory === cat.id ? "#fff" : theme.link}
               />
               <ThemedText
                 type="small"
                 style={{
-                  color: selectedCategory === cat.id ? "#fff" : theme.primary,
+                  color: selectedCategory === cat.id ? "#fff" : theme.link,
                   fontWeight: "600",
                   marginLeft: 4,
                 }}
@@ -430,13 +430,13 @@ export default function FeatureSuggestionsScreen({
       </View>
 
       <View style={styles.suggestionsSection}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>
+        <ThemedText type="h4" style={styles.sectionTitle}>
           Feature Suggestions ({filteredSuggestions.length})
         </ThemedText>
         {filteredSuggestions.length === 0 ? (
-          <View style={[styles.emptyState, { backgroundColor: theme.backgroundDefault }]}>
-            <Feather name="inbox" size={48} color={theme.textSecondary} />
-            <ThemedText type="body" style={{ color: theme.textSecondary, marginTop: Spacing.md }}>
+          <View style={[styles.emptyState, { backgroundColor: theme.backgroundSecondary }]}>
+            <Feather name="inbox" size={48} color={theme.tabIconDefault} />
+            <ThemedText type="body" style={{ opacity: 0.7, marginTop: Spacing.md }}>
               No suggestions in this category
             </ThemedText>
           </View>
@@ -457,8 +457,8 @@ export default function FeatureSuggestionsScreen({
       </View>
 
       <View style={styles.infoSection}>
-        <Feather name="info" size={16} color={theme.textSecondary} />
-        <ThemedText type="small" style={{ color: theme.textSecondary, marginLeft: Spacing.xs, flex: 1 }}>
+        <Feather name="info" size={16} color={theme.tabIconDefault} />
+        <ThemedText type="small" style={{ opacity: 0.7, marginLeft: Spacing.xs, flex: 1 }}>
           Suggestions are generated by analyzing fashion trends, user feedback patterns, and app usage data. Vote on ideas you like to help prioritize development.
         </ThemedText>
       </View>
