@@ -2,10 +2,11 @@ import React, { useState, useMemo } from "react";
 import { StyleSheet, View, Pressable, Image } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing, BorderRadius, ContributorColors } from "@/constants/theme";
+import { Spacing, BorderRadius, ContributorColors, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useSocial } from "@/contexts/SocialContext";
 import { useMessaging } from "@/contexts/MessagingContext";

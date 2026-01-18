@@ -8,7 +8,7 @@ import * as WebBrowser from "expo-web-browser";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing, BorderRadius, StyleTheme } from "@/constants/theme";
+import { Spacing, BorderRadius, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useStyleTheme } from "@/hooks/useStyleTheme";
 import { useAuth } from "@/contexts/AuthContext";

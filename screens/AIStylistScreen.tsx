@@ -38,7 +38,7 @@ import { KeyboardStickyView, KeyboardProvider } from 'react-native-keyboard-cont
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
-import { Spacing, BorderRadius, Typography } from '@/constants/theme';
+import { Spacing, BorderRadius, Typography, LuxuryColors as ThemeLuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useWardrobe, WardrobeItem, ClothingOccasion, ClothingSeason } from '@/contexts/WardrobeContext';

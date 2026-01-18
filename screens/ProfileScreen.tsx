@@ -13,7 +13,7 @@ import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { PostCard } from "@/components/PostCard";
 import { Card } from "@/components/Card";
-import { Spacing, BorderRadius, SubscriptionColors, ContributorColors } from "@/constants/theme";
+import { Spacing, BorderRadius, SubscriptionColors, ContributorColors, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePosts } from "@/contexts/PostsContext";
