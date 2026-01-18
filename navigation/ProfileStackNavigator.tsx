@@ -25,6 +25,10 @@ import ColorAnalysisScreen from "@/screens/ColorAnalysisScreen";
 import BodyScannerScreen from "@/screens/BodyScannerScreen";
 import PartnerScreen from "@/screens/PartnerScreen";
 import HelpScreen from "@/screens/HelpScreen";
+import ColdOpenScreen from "@/screens/ColdOpenScreen";
+import DFYComparisonScreen from "@/screens/DFYComparisonScreen";
+import DFYStylePlanScreen from "@/screens/DFYStylePlanScreen";
+import DFYExpiryScreen from "@/screens/DFYExpiryScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -55,6 +59,10 @@ export type ProfileStackParamList = {
   BodyScanner: undefined;
   Partner: undefined;
   Help: undefined;
+  ColdOpen: undefined;
+  DFYComparison: undefined;
+  DFYStylePlan: undefined;
+  DFYExpiry: undefined;
 };
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -268,6 +276,41 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={HelpScreen}
         options={{
           title: "Help & FAQ",
+        }}
+      />
+      <Stack.Screen
+        name="ColdOpen"
+        component={ColdOpenScreen}
+        options={{
+          title: "Get Started",
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="DFYComparison"
+        component={DFYComparisonScreen}
+        options={{
+          title: "Choose Your Setup",
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="DFYStylePlan"
+        component={DFYStylePlanScreen}
+        options={{
+          title: "Your Style Plan",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="DFYExpiry"
+        component={DFYExpiryScreen}
+        options={{
+          title: "Access Status",
+          headerShown: false,
+          presentation: "modal",
         }}
       />
     </Stack.Navigator>
