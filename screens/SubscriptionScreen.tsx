@@ -433,7 +433,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
             Done-For-You Setup
           </ThemedText>
           <ThemedText type="body" style={styles.dfySectionSubtitle}>
-            Let us set up your digital wardrobe for you
+            One solves now. The other solves every time after.
           </ThemedText>
         </View>
 
@@ -444,6 +444,9 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
             end={{ x: 1, y: 1 }}
             style={styles.dfyCard}
           >
+            <View style={[styles.dfyMentalModelBadge, { backgroundColor: 'rgba(224,122,95,0.15)' }]}>
+              <ThemedText type="caption" style={{ color: LUXURY_COLORS.coral, fontWeight: '600' }}>Tactical</ThemedText>
+            </View>
             <View style={styles.dfyCardHeader}>
               <View style={[styles.dfyBadge, { backgroundColor: LUXURY_COLORS.coral + '20' }]}>
                 <Feather name="package" size={18} color={LUXURY_COLORS.coral} />
@@ -457,15 +460,33 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
               <ThemedText type="h1" style={[styles.dfyPrice, { color: LUXURY_COLORS.coral }]}>{dfyPrices.outfit_setup}</ThemedText>
             </View>
             <ThemedText type="body" style={styles.dfyDescription}>
-              We'll photograph and catalog 5-7 of your favorite outfits, ready to mix and match.
+              Solve a specific problem, once. Upload photos of your outfits and I'll turn them into ready-to-wear looks for one occasion.
             </ThemedText>
             <View style={styles.dfyFeatures}>
-              {["5-7 complete outfits catalogued", "Category & formality tagging", "Color & seasonality analysis"].map((feature, idx) => (
+              {[
+                "You upload outfit photos",
+                "3-5 core outfits with rotations",
+                "One occasion (work, holiday, event)",
+                "14-day access window",
+                "Stylist-led adjustments only",
+                "Save outfits as static cards",
+              ].map((feature, idx) => (
                 <View key={idx} style={styles.dfyFeatureRow}>
                   <View style={[styles.dfyFeatureIcon, { backgroundColor: LUXURY_COLORS.coral + '20' }]}>
                     <Feather name="check" size={12} color={LUXURY_COLORS.coral} />
                   </View>
                   <ThemedText type="small">{feature}</ThemedText>
+                </View>
+              ))}
+              {[
+                "No wardrobe creation",
+                "No individual item editing",
+              ].map((feature, idx) => (
+                <View key={`excluded-${idx}`} style={styles.dfyFeatureRow}>
+                  <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                    <Feather name="x" size={12} color="rgba(255,255,255,0.3)" />
+                  </View>
+                  <ThemedText type="small" style={{ opacity: 0.5 }}>{feature}</ThemedText>
                 </View>
               ))}
             </View>
@@ -479,7 +500,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
                 style={styles.dfyButtonInner}
                 onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
               >
-                <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Get Started</ThemedText>
+                <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Style me for this</ThemedText>
               </Pressable>
             </LinearGradient>
           </LinearGradient>
@@ -498,7 +519,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
               end={{ x: 1, y: 0 }}
               style={styles.dfyPopularBadge}
             >
-              <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>Best Value</ThemedText>
+              <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>Structural</ThemedText>
             </LinearGradient>
             <View style={styles.dfyCardHeader}>
               <View style={[styles.dfyBadge, { backgroundColor: LUXURY_COLORS.gold + '30' }]}>
@@ -513,10 +534,19 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
               <ThemedText type="h1" style={[styles.dfyPrice, { color: LUXURY_COLORS.gold }]}>{dfyPrices.wardrobe_setup}</ThemedText>
             </View>
             <ThemedText type="body" style={styles.dfyDescription}>
-              Complete digital wardrobe setup with up to 30 items, fully organized and ready for AI styling.
+              Solve the system, not the moment. Photograph individual items and I'll organise your wardrobe so decisions get easier every time.
             </ThemedText>
             <View style={styles.dfyFeatures}>
-              {["Up to 30 wardrobe items", "Full categorization & tagging", "Primary color extraction", "Seasonality recommendations"].map((feature, idx) => (
+              {[
+                "You photograph individual items",
+                "Up to 30 wardrobe items",
+                "Proper categorisation & tagging",
+                "Wardrobe saved forever",
+                "30 days of active styling",
+                "Dynamic outfit generation",
+                "Swap & remix any piece",
+                "Less repetition, more variety",
+              ].map((feature, idx) => (
                 <View key={idx} style={styles.dfyFeatureRow}>
                   <View style={[styles.dfyFeatureIcon, { backgroundColor: LUXURY_COLORS.gold + '30' }]}>
                     <Feather name="check" size={12} color={LUXURY_COLORS.gold} />
@@ -535,7 +565,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
                 style={styles.dfyButtonInner}
                 onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
               >
-                <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '600' }}>Get Started</ThemedText>
+                <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '600' }}>Build my wardrobe</ThemedText>
               </Pressable>
             </LinearGradient>
           </LinearGradient>
@@ -788,6 +818,13 @@ const styles = StyleSheet.create({
   dfyCardFeatured: {
     borderWidth: 2,
     borderColor: LUXURY_COLORS.gold,
+  },
+  dfyMentalModelBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    marginBottom: Spacing.sm,
   },
   dfyCardHeader: {
     flexDirection: 'row',
