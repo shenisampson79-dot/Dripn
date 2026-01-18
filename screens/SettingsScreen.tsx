@@ -379,25 +379,27 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   };
 
   return (
-    <ScreenScrollView style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}>
+    <View style={{ flex: 1 }}>
       <LinearGradient
-        colors={isDark 
-          ? [LUXURY_COLORS.teal + '40', LUXURY_COLORS.emerald + '20', 'transparent'] 
-          : [LUXURY_COLORS.teal + '15', LUXURY_COLORS.emerald + '10', 'transparent']
-        }
-        style={styles.headerGradient}
-      >
+        colors={[
+          ScreenGradients.settings.primary[0],
+          ScreenGradients.settings.primary[1],
+          LuxuryColors.obsidian,
+        ]}
+        locations={[0, 0.35, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <ScreenScrollView style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerContent}>
           <Pressable
             onPress={() => navigation.goBack()}
-            style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
           >
-            <Feather name="arrow-left" size={20} color={theme.text} />
+            <Feather name="arrow-left" size={20} color="#FFFFFF" />
           </Pressable>
-          <ThemedText type="h2">Settings</ThemedText>
+          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>Settings</ThemedText>
           <View style={{ width: 40 }} />
         </View>
-      </LinearGradient>
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -1151,7 +1153,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           </View>
         </Pressable>
       </Modal>
-    </ScreenScrollView>
+      </ScreenScrollView>
+    </View>
   );
 }
 

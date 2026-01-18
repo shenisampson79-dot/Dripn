@@ -72,6 +72,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="Profile"
         options={{
           title: "Profile",
+          headerShown: false,
         }}
       >
         {(props) => <ProfileScreen {...props} onOpenPortal={onOpenPortal} />}
@@ -80,6 +81,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="Settings"
         options={{
           title: "Settings",
+          headerShown: false,
         }}
       >
         {(props) => <SettingsScreen {...props} onOpenPortal={onOpenPortal} />}

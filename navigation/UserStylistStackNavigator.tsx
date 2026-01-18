@@ -52,6 +52,7 @@ export default function UserStylistStackNavigator() {
         component={StylistHubScreen}
         options={{
           title: "Stylist",
+          headerShown: false,
         }}
       />
       <Stack.Screen

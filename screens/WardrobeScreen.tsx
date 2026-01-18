@@ -471,25 +471,28 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
       <LinearGradient
-        colors={isDark 
-          ? [LUXURY_COLORS.deepViolet + '60', LUXURY_COLORS.midnight, theme.backgroundRoot] 
-          : [LUXURY_COLORS.violet + '20', LUXURY_COLORS.rose + '10', theme.backgroundRoot]
-        }
-        style={[styles.headerGradient, { paddingTop: insets.top + Spacing.md }]}
-      >
+        colors={[
+          ScreenGradients.wardrobe.primary[0],
+          ScreenGradients.wardrobe.primary[1],
+          LuxuryColors.obsidian,
+        ]}
+        locations={[0, 0.35, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={[styles.headerGradient, { paddingTop: insets.top + Spacing.md }]}>
         <View style={styles.headerTop}>
           <Pressable
             onPress={() => navigation.goBack()}
-            style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
           >
-            <Feather name="arrow-left" size={20} color={theme.text} />
+            <Feather name="arrow-left" size={20} color="#FFFFFF" />
           </Pressable>
           <View style={styles.headerTitleContainer}>
-            <ThemedText type="h2">My Wardrobe</ThemedText>
-            <View style={[styles.itemCountBadge, { backgroundColor: LUXURY_COLORS.gold + '20' }]}>
-              <ThemedText type="caption" style={{ color: LUXURY_COLORS.gold, fontWeight: '600' }}>
+            <ThemedText type="h2" style={{ color: '#FFFFFF' }}>My Wardrobe</ThemedText>
+            <View style={[styles.itemCountBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>
                 {items.length} {items.length === 1 ? 'piece' : 'pieces'}
               </ThemedText>
             </View>
@@ -506,7 +509,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           style={styles.categoryTabs}
           contentContainerStyle={styles.categoryTabsContent}
         />
-      </LinearGradient>
+      </View>
 
       <FlatList
         data={filteredItems}
