@@ -123,8 +123,8 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     personal_stylist: "$9.99",
   });
   const [dfyPrices, setDfyPrices] = useState<{ outfit_setup: string; wardrobe_setup: string }>({
-    outfit_setup: "$19",
-    wardrobe_setup: "$39.99",
+    outfit_setup: "£19.99",
+    wardrobe_setup: "£39.99",
   });
 
   useEffect(() => {
@@ -439,27 +439,27 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
 
         <Pressable style={styles.dfyCardWrapper}>
           <LinearGradient
-            colors={isDark ? ['#2A2A3E', '#1E1E2E'] : ['#F8F4F0', '#F0EBE4']}
+            colors={[LUXURY_COLORS.coral, '#C46A4F']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.dfyCard}
           >
-            <View style={[styles.dfyMentalModelBadge, { backgroundColor: 'rgba(224,122,95,0.15)' }]}>
-              <ThemedText type="caption" style={{ color: LUXURY_COLORS.coral, fontWeight: '600' }}>Tactical</ThemedText>
+            <View style={[styles.dfyMentalModelBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>Tactical</ThemedText>
             </View>
             <View style={styles.dfyCardHeader}>
-              <View style={[styles.dfyBadge, { backgroundColor: LUXURY_COLORS.coral + '20' }]}>
-                <Feather name="package" size={18} color={LUXURY_COLORS.coral} />
+              <View style={[styles.dfyBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <Feather name="package" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.dfyCardTitleContainer}>
-                <ThemedText type="h3">Outfit-Based Setup</ThemedText>
-                <ThemedText type="caption" style={{ opacity: 0.6 }}>One-time purchase</ThemedText>
+                <ThemedText type="h3" style={{ color: '#FFFFFF' }}>Outfit-Based Setup</ThemedText>
+                <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.7)' }}>One-time purchase</ThemedText>
               </View>
             </View>
             <View style={styles.dfyPriceRow}>
-              <ThemedText type="h1" style={[styles.dfyPrice, { color: LUXURY_COLORS.coral }]}>{dfyPrices.outfit_setup}</ThemedText>
+              <ThemedText type="h1" style={[styles.dfyPrice, { color: '#FFFFFF' }]}>{dfyPrices.outfit_setup}</ThemedText>
             </View>
-            <ThemedText type="body" style={styles.dfyDescription}>
+            <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(255,255,255,0.9)' }]}>
               Solve a specific problem, once. Upload photos of your outfits and I'll turn them into ready-to-wear looks for one occasion.
             </ThemedText>
             <View style={styles.dfyFeatures}>
@@ -472,10 +472,10 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
                 "Save outfits as static cards",
               ].map((feature, idx) => (
                 <View key={idx} style={styles.dfyFeatureRow}>
-                  <View style={[styles.dfyFeatureIcon, { backgroundColor: LUXURY_COLORS.coral + '20' }]}>
-                    <Feather name="check" size={12} color={LUXURY_COLORS.coral} />
+                  <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                    <Feather name="check" size={12} color="#FFFFFF" />
                   </View>
-                  <ThemedText type="small">{feature}</ThemedText>
+                  <ThemedText type="small" style={{ color: '#FFFFFF' }}>{feature}</ThemedText>
                 </View>
               ))}
               {[
@@ -483,57 +483,47 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
                 "No individual item editing",
               ].map((feature, idx) => (
                 <View key={`excluded-${idx}`} style={styles.dfyFeatureRow}>
-                  <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
-                    <Feather name="x" size={12} color="rgba(255,255,255,0.3)" />
+                  <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                    <Feather name="x" size={12} color="rgba(255,255,255,0.4)" />
                   </View>
-                  <ThemedText type="small" style={{ opacity: 0.5 }}>{feature}</ThemedText>
+                  <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.5)' }}>{feature}</ThemedText>
                 </View>
               ))}
             </View>
-            <LinearGradient
-              colors={[LUXURY_COLORS.coral, '#C46A4F']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.dfyButtonGradient}
-            >
+            <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
               <Pressable 
                 style={styles.dfyButtonInner}
                 onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
               >
                 <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Style me for this</ThemedText>
               </Pressable>
-            </LinearGradient>
+            </View>
           </LinearGradient>
         </Pressable>
 
         <Pressable style={styles.dfyCardWrapper}>
           <LinearGradient
-            colors={[LUXURY_COLORS.gold + '15', LUXURY_COLORS.deepGold + '10']}
+            colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.dfyCard, styles.dfyCardFeatured]}
           >
-            <LinearGradient
-              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.dfyPopularBadge}
-            >
+            <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(26,26,46,0.3)' }]}>
               <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>Structural</ThemedText>
-            </LinearGradient>
+            </View>
             <View style={styles.dfyCardHeader}>
-              <View style={[styles.dfyBadge, { backgroundColor: LUXURY_COLORS.gold + '30' }]}>
-                <Feather name="grid" size={18} color={LUXURY_COLORS.gold} />
+              <View style={[styles.dfyBadge, { backgroundColor: 'rgba(26,26,46,0.2)' }]}>
+                <Feather name="grid" size={18} color={LUXURY_COLORS.midnight} />
               </View>
               <View style={styles.dfyCardTitleContainer}>
-                <ThemedText type="h3">Core Wardrobe Setup</ThemedText>
-                <ThemedText type="caption" style={{ opacity: 0.6 }}>One-time purchase</ThemedText>
+                <ThemedText type="h3" style={{ color: LUXURY_COLORS.midnight }}>Core Wardrobe Setup</ThemedText>
+                <ThemedText type="caption" style={{ color: 'rgba(26,26,46,0.6)' }}>One-time purchase</ThemedText>
               </View>
             </View>
             <View style={styles.dfyPriceRow}>
-              <ThemedText type="h1" style={[styles.dfyPrice, { color: LUXURY_COLORS.gold }]}>{dfyPrices.wardrobe_setup}</ThemedText>
+              <ThemedText type="h1" style={[styles.dfyPrice, { color: LUXURY_COLORS.midnight }]}>{dfyPrices.wardrobe_setup}</ThemedText>
             </View>
-            <ThemedText type="body" style={styles.dfyDescription}>
+            <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(26,26,46,0.85)' }]}>
               Solve the system, not the moment. Photograph individual items and I'll organise your wardrobe so decisions get easier every time.
             </ThemedText>
             <View style={styles.dfyFeatures}>
@@ -548,26 +538,21 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
                 "Less repetition, more variety",
               ].map((feature, idx) => (
                 <View key={idx} style={styles.dfyFeatureRow}>
-                  <View style={[styles.dfyFeatureIcon, { backgroundColor: LUXURY_COLORS.gold + '30' }]}>
-                    <Feather name="check" size={12} color={LUXURY_COLORS.gold} />
+                  <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(26,26,46,0.15)' }]}>
+                    <Feather name="check" size={12} color={LUXURY_COLORS.midnight} />
                   </View>
-                  <ThemedText type="small">{feature}</ThemedText>
+                  <ThemedText type="small" style={{ color: LUXURY_COLORS.midnight }}>{feature}</ThemedText>
                 </View>
               ))}
             </View>
-            <LinearGradient
-              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.dfyButtonGradient}
-            >
+            <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(26,26,46,0.2)' }]}>
               <Pressable 
                 style={styles.dfyButtonInner}
                 onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
               >
                 <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '600' }}>Build my wardrobe</ThemedText>
               </Pressable>
-            </LinearGradient>
+            </View>
           </LinearGradient>
         </Pressable>
       </View>

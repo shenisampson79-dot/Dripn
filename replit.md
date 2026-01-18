@@ -26,7 +26,7 @@ Dripn is developed using Expo React Native with TypeScript, incorporating React 
     - **AI Image Generation**: DALL-E 3 for outfit inspiration.
     - **Complex Analysis**: o1 Reasoning Models for deep fashion analysis (Premium/VIP tiers).
 - **Cultural & Regional Features**: UI, content, and advice tailored for gender, region, cultural dress codes, and trend intelligence.
-- **MVP DFY Tiering**: Offers two Done-For-You (DFY) tiers: Outfit-Based Setup (£19) for 5-7 outfits and Core Wardrobe Setup (£39.99) for up to 30 items, focusing on essential categorization (category, formality, primary color, seasonality).
+- **MVP DFY Tiering**: Offers two Done-For-You (DFY) tiers: Outfit-Based Setup (£19.99) for 3-5 outfits and Core Wardrobe Setup (£39.99) for up to 30 items, focusing on essential categorization (category, formality, primary color, seasonality).
 
 ### Navigation Structure
 The app features a 4-tab structure: Home ("Today's Decision"), Wardrobe, Ask Stylist (center button), and Profile.
