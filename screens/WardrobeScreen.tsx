@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -9,6 +9,7 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
@@ -22,7 +23,9 @@ import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useWardrobe, WardrobeItem, ClothingCategory, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
-import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import { useAuth } from "@/contexts/AuthContext";
+import { dfyService, DFYAccessStatus } from "@/services/DFYService";
+import type { WardrobeStackParamList } from "@/navigation/WardrobeStackNavigator";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const ITEM_SIZE = (SCREEN_WIDTH - Spacing.xl * 2 - Spacing.md) / 2;
@@ -55,7 +58,7 @@ const CATEGORY_COLORS: Record<string, { gradient: readonly [string, string]; ico
 };
 
 type WardrobeScreenProps = {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, "Wardrobe">;
+  navigation: NativeStackNavigationProp<WardrobeStackParamList, "Wardrobe">;
 };
 
 const CATEGORY_OPTIONS: Array<{ key: ClothingCategory | 'all'; label: string; icon: string }> = [
@@ -74,10 +77,22 @@ const CATEGORY_OPTIONS: Array<{ key: ClothingCategory | 'all'; label: string; ic
 export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const { items, isLoading, deleteItem, toggleItemFavorite, markItemWorn } = useWardrobe();
   const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'all'>('all');
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
   const [showItemModal, setShowItemModal] = useState(false);
+  const [dfyAccess, setDfyAccess] = useState<DFYAccessStatus | null>(null);
+
+  useEffect(() => {
+    const loadDFYAccess = async () => {
+      if (user?.id) {
+        const access = await dfyService.getDFYAccessStatus(user.id);
+        setDfyAccess(access);
+      }
+    };
+    loadDFYAccess();
+  }, [user?.id]);
 
   const filteredItems = selectedCategory === 'all' 
     ? items 
@@ -509,6 +524,123 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           style={styles.categoryTabs}
           contentContainerStyle={styles.categoryTabsContent}
         />
+
+        {dfyAccess?.hasAccess && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.dfyCardsScroll}
+            contentContainerStyle={styles.dfyCardsContent}
+          >
+            {dfyAccess.tier === 'lite' ? (
+              <>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    navigation.navigate('DFYLookbook');
+                  }}
+                  style={({ pressed }) => [styles.dfyCard, { opacity: pressed ? 0.9 : 1 }]}
+                >
+                  <LinearGradient
+                    colors={[LUXURY_COLORS.coral, '#C46A4F']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.dfyCardGradient}
+                  >
+                    <Feather name="book-open" size={20} color="#FFFFFF" />
+                    <View style={styles.dfyCardText}>
+                      <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                        My Lookbook
+                      </ThemedText>
+                      <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                        {dfyAccess.daysRemaining}d left
+                      </ThemedText>
+                    </View>
+                    <Feather name="chevron-right" size={16} color="rgba(255,255,255,0.6)" />
+                  </LinearGradient>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    navigation.navigate('DFYCalendar', { tier: 'lite' });
+                  }}
+                  style={({ pressed }) => [styles.dfyCard, { opacity: pressed ? 0.9 : 1 }]}
+                >
+                  <LinearGradient
+                    colors={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.dfyCardGradient}
+                  >
+                    <Feather name="calendar" size={20} color="#FFFFFF" />
+                    <View style={styles.dfyCardText}>
+                      <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                        14-Day Calendar
+                      </ThemedText>
+                      <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                        Daily outfits
+                      </ThemedText>
+                    </View>
+                    <Feather name="chevron-right" size={16} color="rgba(255,255,255,0.6)" />
+                  </LinearGradient>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    navigation.navigate('DFYModularWardrobe');
+                  }}
+                  style={({ pressed }) => [styles.dfyCard, { opacity: pressed ? 0.9 : 1 }]}
+                >
+                  <LinearGradient
+                    colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.dfyCardGradient}
+                  >
+                    <Feather name="grid" size={20} color={LUXURY_COLORS.midnight} />
+                    <View style={styles.dfyCardText}>
+                      <ThemedText type="small" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>
+                        Modular Wardrobe
+                      </ThemedText>
+                      <ThemedText type="caption" style={{ color: 'rgba(0,0,0,0.6)' }}>
+                        Mix & match
+                      </ThemedText>
+                    </View>
+                    <Feather name="chevron-right" size={16} color="rgba(0,0,0,0.4)" />
+                  </LinearGradient>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    navigation.navigate('DFYCalendar', { tier: 'core' });
+                  }}
+                  style={({ pressed }) => [styles.dfyCard, { opacity: pressed ? 0.9 : 1 }]}
+                >
+                  <LinearGradient
+                    colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.dfyCardGradient}
+                  >
+                    <Feather name="calendar" size={20} color="#FFFFFF" />
+                    <View style={styles.dfyCardText}>
+                      <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                        30-Day Calendar
+                      </ThemedText>
+                      <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                        {dfyAccess.daysRemaining}d left
+                      </ThemedText>
+                    </View>
+                    <Feather name="chevron-right" size={16} color="rgba(255,255,255,0.6)" />
+                  </LinearGradient>
+                </Pressable>
+              </>
+            )}
+          </ScrollView>
+        )}
       </View>
 
       <FlatList
@@ -616,6 +748,28 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   categoryTabWrapper: {},
+  dfyCardsScroll: {
+    marginTop: Spacing.sm,
+    marginHorizontal: -Spacing.xl,
+  },
+  dfyCardsContent: {
+    paddingHorizontal: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  dfyCard: {
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+  },
+  dfyCardGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
+  },
+  dfyCardText: {
+    flex: 1,
+  },
   categoryTab: {
     flexDirection: "row",
     alignItems: "center",
