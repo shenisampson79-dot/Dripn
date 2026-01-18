@@ -221,7 +221,27 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     const stylistId = user?.stylistPreferences?.selectedStylistId;
     if (stylistId === 'ruby') return [LUXURY_COLORS.rose, '#D4949A'];
     if (stylistId === 'max') return [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet];
+    if (stylistId === 'ace') return [LUXURY_COLORS.obsidian, '#1A1A1A'];
+    if (stylistId === 'ivy') return [LUXURY_COLORS.emerald, LUXURY_COLORS.teal];
     return [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold];
+  };
+
+  const getStylistIcon = (): string => {
+    const stylistId = user?.stylistPreferences?.selectedStylistId;
+    if (stylistId === 'ruby') return 'heart';
+    if (stylistId === 'max') return 'zap';
+    if (stylistId === 'ace') return 'target';
+    if (stylistId === 'ivy') return 'compass';
+    return 'star';
+  };
+
+  const getStylistName = (): string => {
+    const stylistId = user?.stylistPreferences?.selectedStylistId;
+    if (stylistId === 'ruby') return 'Ruby';
+    if (stylistId === 'max') return 'Max';
+    if (stylistId === 'ace') return 'Ace';
+    if (stylistId === 'ivy') return 'Ivy';
+    return 'Your Stylist';
   };
 
   const renderTypeSelection = () => (
@@ -419,14 +439,13 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           style={styles.stylistAvatar}
         >
           <Feather
-            name={user?.stylistPreferences?.selectedStylistId === 'ruby' ? 'heart' : 'zap'}
+            name={getStylistIcon() as any}
             size={28}
             color="#FFFFFF"
           />
         </LinearGradient>
         <ThemedText type="small" style={styles.stylistName}>
-          {user?.stylistPreferences?.selectedStylistId === 'ruby' ? 'Ruby' :
-           user?.stylistPreferences?.selectedStylistId === 'max' ? 'Max' : 'Your Stylist'}
+          {getStylistName()}
         </ThemedText>
       </View>
 

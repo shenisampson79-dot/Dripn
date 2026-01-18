@@ -4,7 +4,7 @@ export interface PersonalStylist {
   id: string;
   name: string;
   gender: 'female' | 'male';
-  icon: 'star' | 'zap';
+  icon: 'star' | 'zap' | 'target' | 'compass' | 'heart';
   color: string;
   greeting: string[];
   signOffs: string[];
@@ -96,7 +96,7 @@ export const STYLISTS: Record<string, PersonalStylist> = {
     id: 'ruby',
     name: 'Ruby',
     gender: 'female',
-    icon: 'star',
+    icon: 'heart',
     color: '#E91E63',
     greeting: [
       "Hello {name}! I'm Ruby, your personal stylist, and I'm genuinely delighted to meet you. I've been exploring your wardrobe and I'm already excited about the possibilities we can create together. What brings you here today?",
@@ -146,8 +146,8 @@ export const STYLISTS: Record<string, PersonalStylist> = {
     id: 'ace',
     name: 'Ace',
     gender: 'male',
-    icon: 'zap',
-    color: '#F59E0B',
+    icon: 'target',
+    color: '#0D0B09',
     greeting: [
       "{name}. Ace here. Let's skip the small talk - what are we styling?",
       "Hey {name}. Ace. Tell me the occasion and I'll tell you what to wear.",
@@ -171,8 +171,8 @@ export const STYLISTS: Record<string, PersonalStylist> = {
     id: 'ivy',
     name: 'Ivy',
     gender: 'female',
-    icon: 'star',
-    color: '#10B981',
+    icon: 'compass',
+    color: '#059669',
     greeting: [
       "{name}. Ivy. What's the occasion?",
       "Hey {name}. Ivy here. Skip the preamble - what do you need?",
