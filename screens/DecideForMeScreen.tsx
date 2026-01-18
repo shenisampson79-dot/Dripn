@@ -31,6 +31,14 @@ const OCCASION_ICONS: Record<string, "briefcase" | "heart" | "coffee" | "calenda
   browsing: "eye",
 };
 
+const OCCASION_COLORS: Record<string, { bg: string; border: string; icon: string }> = {
+  work: { bg: "#1E3A5F", border: "#3B82F6", icon: "#60A5FA" },
+  date: { bg: "#4A1942", border: "#EC4899", icon: "#F472B6" },
+  casual: { bg: "#1A4D2E", border: "#22C55E", icon: "#4ADE80" },
+  event: { bg: "#4C1D95", border: "#A855F7", icon: "#C084FC" },
+  browsing: { bg: "#78350F", border: "#F59E0B", icon: "#FBBF24" },
+};
+
 const MAX_EXPRESSION_LENGTH = 280;
 
 interface WeatherData {
@@ -865,41 +873,53 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         ) : null}
 
         <View style={styles.optionsGrid}>
-          {options.map((option, index) => (
-            <Animated.View 
-              key={option.id} 
-              entering={FadeInUp.delay(100 + index * 50)}
-              style={styles.optionWrapper}
-            >
-              <Pressable
-                style={({ pressed }) => [
-                  styles.optionCard,
-                  { 
-                    backgroundColor: selectedOccasion === option.id ? ScreenGradients.decideForMe.primary[1] : 'rgba(255,255,255,0.1)',
-                    borderWidth: selectedOccasion === option.id ? 2 : 1,
-                    borderColor: selectedOccasion === option.id ? '#FFFFFF' : 'rgba(255,255,255,0.2)',
-                    opacity: pressed ? 0.9 : 1,
-                  }
-                ]}
-                onPress={() => handleOccasionSelect(option.id)}
+          {options.map((option, index) => {
+            const occasionColor = OCCASION_COLORS[option.id] || { bg: "#2D2D2D", border: "#888888", icon: "#FFFFFF" };
+            const isSelected = selectedOccasion === option.id;
+            
+            return (
+              <Animated.View 
+                key={option.id} 
+                entering={FadeInUp.delay(100 + index * 50)}
+                style={styles.optionWrapper}
               >
-                <Feather 
-                  name={OCCASION_ICONS[option.id] || "circle"} 
-                  size={24} 
-                  color="#FFFFFF"
-                />
-                <ThemedText 
-                  type="body" 
-                  style={[
-                    styles.optionLabel,
-                    { color: '#FFFFFF' }
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.optionCard,
+                    { 
+                      backgroundColor: occasionColor.bg,
+                      borderWidth: isSelected ? 3 : 2,
+                      borderColor: isSelected ? '#FFFFFF' : occasionColor.border,
+                      opacity: pressed ? 0.85 : 1,
+                      shadowColor: occasionColor.border,
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.4,
+                      shadowRadius: 8,
+                      elevation: 6,
+                    }
                   ]}
+                  onPress={() => handleOccasionSelect(option.id)}
                 >
-                  {option.label}
-                </ThemedText>
-              </Pressable>
-            </Animated.View>
-          ))}
+                  <View style={[styles.occasionIconCircle, { backgroundColor: `${occasionColor.border}30` }]}>
+                    <Feather 
+                      name={OCCASION_ICONS[option.id] || "circle"} 
+                      size={26} 
+                      color={occasionColor.icon}
+                    />
+                  </View>
+                  <ThemedText 
+                    type="body" 
+                    style={[
+                      styles.optionLabel,
+                      { color: '#FFFFFF', fontWeight: '600' }
+                    ]}
+                  >
+                    {option.label}
+                  </ThemedText>
+                </Pressable>
+              </Animated.View>
+            );
+          })}
         </View>
       </Animated.View>
     );
@@ -1214,6 +1234,14 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     alignItems: "center",
     gap: Spacing.sm,
+  },
+  occasionIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.xs,
   },
   optionLabel: {
     fontSize: 15,
