@@ -98,7 +98,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
                   { backgroundColor: 'rgba(255,255,255,0.2)' }
                 ]}>
                   <ThemedText type="small" style={styles.mentalModelText}>
-                    {tier.mentalModel === 'tactical' ? 'Quick Wins' : 'Deep System'}
+                    {tier.mentalModel === 'tactical' ? 'Tactical' : 'Structural'}
                   </ThemedText>
                 </View>
               </View>
@@ -193,10 +193,10 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
 
         <View style={styles.content}>
           <ThemedText type="h1" style={styles.title}>
-            Choose your style setup
+            How would you like me to style you?
           </ThemedText>
           <ThemedText style={styles.subtitle}>
-            Both options are one-time purchases. No subscriptions, no hidden fees.
+            One solves now. The other solves every time after.
           </ThemedText>
 
           <View style={styles.tiersContainer}>
@@ -206,10 +206,10 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           <View style={styles.comparisonNote}>
             <Feather name="info" size={16} color="rgba(255,255,255,0.5)" />
             <ThemedText type="small" style={styles.comparisonNoteText}>
-              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Lite</ThemedText>
-              {" "}is tactical - quick wins for 2 weeks.{" "}
-              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Core</ThemedText>
-              {" "}is structural - your full wardrobe optimized for a month.
+              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Outfit-Based</ThemedText>
+              {" "}is tactical - solve this moment, once.{" "}
+              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Core Wardrobe</ThemedText>
+              {" "}is structural - I learn everything you own.
             </ThemedText>
           </View>
         </View>
@@ -224,7 +224,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           >
             <Pressable onPress={handleContinue} style={styles.continueButton}>
               <ThemedText type="body" style={styles.continueButtonText}>
-                Continue with {selectedTier === 'lite' ? 'Lite' : 'Core'}
+                {selectedTier === 'lite' ? 'Style me for this' : 'Build my wardrobe'}
               </ThemedText>
               <Feather
                 name="arrow-right"

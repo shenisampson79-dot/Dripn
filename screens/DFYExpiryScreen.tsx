@@ -124,15 +124,19 @@ export default function DFYExpiryScreen({ navigation }: DFYExpiryScreenProps) {
 
           <ThemedText type="h1" style={styles.title}>
             {isExpired 
-              ? `Your ${isLite ? 'Lite' : 'Core'} access has ended`
+              ? (isLite ? "Your style plan is complete" : "Your styling window has ended")
               : `${accessStatus.daysRemaining} days remaining`
             }
           </ThemedText>
 
           <ThemedText style={styles.subtitle}>
             {isExpired
-              ? "Here's what happened to your style setup"
-              : "Here's what will happen when your access ends"
+              ? (isLite 
+                  ? "I solved this moment. If you want me long-term, I need context."
+                  : "Your wardrobe is saved. Keep your stylist thinking.")
+              : (isLite && accessStatus.daysRemaining <= 3
+                  ? "I've been reusing the same pieces because I only styled a capsule."
+                  : "Here's what will happen when your access ends")
             }
           </ThemedText>
 
@@ -177,44 +181,43 @@ export default function DFYExpiryScreen({ navigation }: DFYExpiryScreenProps) {
                 <Feather name="arrow-up-circle" size={24} color={LUXURY_COLORS.midnight} />
                 <View style={styles.upgradeCardContent}>
                   <ThemedText type="h3" style={styles.upgradeCardTitle}>
-                    Upgrade to Core
+                    Build my wardrobe
                   </ThemedText>
                   <ThemedText style={styles.upgradeCardDescription}>
-                    Get 30 days of full wardrobe control, unlimited remixes, and item-level editing
+                    I can get much better if I learn everything you own - once.
                   </ThemedText>
                 </View>
                 <Pressable onPress={handleUpgradeToCore} style={styles.upgradeCardButton}>
                   <ThemedText type="body" style={styles.upgradeCardButtonText}>
-                    View Core
+                    Build it
                   </ThemedText>
                 </Pressable>
               </LinearGradient>
             </View>
           ) : null}
 
-          <View style={styles.renewCard}>
-            <View style={styles.renewCardContent}>
-              <ThemedText type="h3" style={styles.renewCardTitle}>
-                {isLite ? 'Renew Lite' : 'Renew Core'}
-              </ThemedText>
-              <ThemedText style={styles.renewCardDescription}>
-                Continue with another {isLite ? '14' : '30'} days of your current plan
-              </ThemedText>
-            </View>
-            <Pressable onPress={handleRenew} style={styles.renewButton}>
-              <LinearGradient
-                colors={isLite 
-                  ? [LUXURY_COLORS.teal, LUXURY_COLORS.emerald]
-                  : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
-                }
-                style={styles.renewButtonGradient}
-              >
-                <ThemedText type="body" style={styles.renewButtonText}>
-                  Renew - {isLite ? '£19' : '£39.99'}
+          {!isLite && (
+            <View style={styles.renewCard}>
+              <View style={styles.renewCardContent}>
+                <ThemedText type="h3" style={styles.renewCardTitle}>
+                  Keep my stylist active
                 </ThemedText>
-              </LinearGradient>
-            </Pressable>
-          </View>
+                <ThemedText style={styles.renewCardDescription}>
+                  Your wardrobe is saved. Subscription keeps your stylist thinking.
+                </ThemedText>
+              </View>
+              <Pressable onPress={handleRenew} style={styles.renewButton}>
+                <LinearGradient
+                  colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+                  style={styles.renewButtonGradient}
+                >
+                  <ThemedText type="body" style={styles.renewButtonText}>
+                    Subscribe
+                  </ThemedText>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          )}
 
           <Pressable onPress={() => navigation.goBack()} style={styles.continueButton}>
             <ThemedText style={styles.continueButtonText}>

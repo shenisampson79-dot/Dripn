@@ -115,73 +115,73 @@ const COLD_OPEN_KEY = '@dripn_cold_open';
 
 const OBJECTION_RESPONSES: DFYObjectionResponse[] = [
   {
-    id: 'price-1',
-    objection: "It's too expensive",
+    id: 'repeat-1',
+    objection: "Why do outfits repeat items?",
     stylistId: 'ruby',
-    response: "I totally get that, darling. But think about it - how much time do you spend every morning staring at your wardrobe? That's worth something. Lite gives you 14 days of 'just grab and go' for less than a fancy coffee a day.",
-    category: 'price',
-  },
-  {
-    id: 'price-2',
-    objection: "It's too expensive",
-    stylistId: 'max',
-    response: "Fair point. Here's how I see it though - you're not just paying for outfit picks. You're buying back decision fatigue. Core is an investment in your daily confidence.",
-    category: 'price',
-  },
-  {
-    id: 'value-1',
-    objection: "I can do this myself",
-    stylistId: 'ruby',
-    response: "Of course you can, love! But the question is - are you? If picking outfits was easy for you, you wouldn't be here. Let me take that mental load off you.",
+    response: "Because I styled a capsule for one moment - not your whole wardrobe. That's the magic of a tight capsule, darling!",
     category: 'value',
   },
   {
-    id: 'value-2',
-    objection: "I can do this myself",
+    id: 'repeat-2',
+    objection: "Why do outfits repeat items?",
     stylistId: 'max',
-    response: "No doubt. But there's a difference between 'can' and 'doing it efficiently'. I'm here to eliminate the friction, not replace your taste.",
+    response: "Because I styled a capsule for one moment - not your whole wardrobe. Smart repetition is intentional, not lazy.",
     category: 'value',
   },
   {
-    id: 'time-1',
-    objection: "I don't have time to take photos",
+    id: 'edit-1',
+    objection: "Why can't I edit outfits myself?",
     stylistId: 'ruby',
-    response: "That's exactly why Lite exists, hun! Just snap your whole outfit in one go - literally 30 seconds. No need to photograph every piece individually.",
+    response: "Because I took responsibility for the decisions, love. If you want control, we should build your wardrobe properly with Core.",
+    category: 'value',
+  },
+  {
+    id: 'edit-2',
+    objection: "Why can't I edit outfits myself?",
+    stylistId: 'max',
+    response: "Because I took responsibility for the decisions. If you want control, we should build your wardrobe properly.",
+    category: 'value',
+  },
+  {
+    id: 'expiry-1',
+    objection: "Why does styling stop after 14 days?",
+    stylistId: 'ruby',
+    response: "Because this setup solved one situation, hun. Ongoing styling is an active service - your wardrobe is saved whenever you're ready!",
     category: 'time',
   },
   {
-    id: 'time-2',
-    objection: "I don't have time to take photos",
+    id: 'expiry-2',
+    objection: "Why does styling stop after 14 days?",
     stylistId: 'max',
-    response: "Got it. Lite's designed for that - one outfit photo, done. Core is for when you've got a bit more time and want the full wardrobe breakdown.",
+    response: "Because this setup solved one situation. Ongoing styling is an active service.",
     category: 'time',
   },
   {
-    id: 'trust-1',
-    objection: "How do I know you'll get my style?",
+    id: 'subscribe-1',
+    objection: "Why should I subscribe if my wardrobe is saved?",
     stylistId: 'ruby',
-    response: "Great question, darling! That's what the cold open is for - tell me what you're getting dressed for, any struggles, and I'll prove myself with your first day's outfit. No commitment until you see the magic.",
-    category: 'trust',
-  },
-  {
-    id: 'trust-2',
-    objection: "How do I know you'll get my style?",
-    stylistId: 'max',
-    response: "Valid concern. We start with understanding your occasions and challenges. Each outfit comes with my reasoning so you can see I actually get you. The feedback loop helps me dial in even more.",
-    category: 'trust',
-  },
-  {
-    id: 'comparison-1',
-    objection: "What's the difference between Lite and Core?",
-    stylistId: 'ruby',
-    response: "Lite is your quick fix - 14 days of ready-to-wear outfits from photos you already have. Core is the full glow-up - I digitize your whole wardrobe and create a 30-day capsule with unlimited remix potential.",
+    response: "Saving is passive, darling. Styling is active. Your wardrobe is ready - keep me thinking!",
     category: 'comparison',
   },
   {
-    id: 'comparison-2',
-    objection: "What's the difference between Lite and Core?",
+    id: 'subscribe-2',
+    objection: "Why should I subscribe if my wardrobe is saved?",
     stylistId: 'max',
-    response: "Lite = tactical. Quick wins for 2 weeks. Core = structural. Your entire wardrobe mapped and optimized for a month. Think of it as renting vs owning your style system.",
+    response: "Saving is passive. Styling is active. Your wardrobe is ready. Keep me thinking.",
+    category: 'comparison',
+  },
+  {
+    id: 'lite-again-1',
+    objection: "Can I just keep doing Lite?",
+    stylistId: 'ruby',
+    response: "You can - but I'll keep guessing instead of learning, love. Lite solves now. Core solves every time after.",
+    category: 'comparison',
+  },
+  {
+    id: 'lite-again-2',
+    objection: "Can I just keep doing Lite?",
+    stylistId: 'max',
+    response: "You can - but you'll keep paying to solve the same problem again. Lite solves now. Core solves every time after.",
     category: 'comparison',
   },
 ];
@@ -189,43 +189,43 @@ const OBJECTION_RESPONSES: DFYObjectionResponse[] = [
 const COMPARISON_TIERS: DFYComparisonTier[] = [
   {
     id: 'lite',
-    name: 'Lite',
-    tagline: 'Quick style wins',
+    name: 'Outfit-Based Setup',
+    tagline: 'Outfits for this moment. Zero thinking.',
     price: '£19',
     mentalModel: 'tactical',
-    description: '14 days of ready-to-wear outfits from your existing wardrobe photos',
+    description: 'Solve a specific problem, once. I\'ll take what you send and turn it into ready-to-wear looks.',
     features: [
-      { text: '14-day style plan', included: true },
-      { text: '5-7 curated outfits', included: true },
-      { text: 'Outfit photo upload', included: true },
-      { text: 'Love/Not me/Adjust actions', included: true },
-      { text: 'Stylist personality matching', included: true },
-      { text: 'Individual item editing', included: false },
-      { text: 'Wardrobe digitization', included: false },
-      { text: 'Unlimited remixes', included: false },
+      { text: '3-5 core outfits with rotations', included: true },
+      { text: 'One occasion (work, holiday, event)', included: true },
+      { text: '14-day access window', included: true },
+      { text: 'Stylist-led adjustments', included: true },
+      { text: 'Save outfits as static cards', included: true },
+      { text: 'No wardrobe creation', included: false },
+      { text: 'No individual item editing', included: false },
+      { text: 'No future learning', included: false },
     ],
     deliveryDays: 14,
     itemLimit: null,
-    outfitCount: 7,
+    outfitCount: 5,
     photoType: 'outfit',
     editAccess: false,
   },
   {
     id: 'core',
-    name: 'Core',
-    tagline: 'Full wardrobe transformation',
+    name: 'Core Wardrobe Setup',
+    tagline: 'A stylist who understands what you own.',
     price: '£39.99',
     mentalModel: 'structural',
-    description: 'Complete wardrobe digitization with 30-day personalized style system',
+    description: 'Solve the system, not the moment. I\'ll organise your wardrobe so decisions get easier every time.',
     features: [
-      { text: '30-day style plan', included: true },
-      { text: 'Up to 30 wardrobe items', included: true },
-      { text: 'Individual item photography', included: true },
-      { text: 'AI-powered item analysis', included: true },
-      { text: 'Color & style matching', included: true },
+      { text: 'Up to 30 individual items', included: true },
+      { text: 'Proper categorisation', included: true },
+      { text: 'Wardrobe saved forever', included: true },
+      { text: '30 days of active styling', included: true },
+      { text: 'Dynamic outfit generation', included: true },
       { text: 'Swap & remix any piece', included: true },
-      { text: 'Full wardrobe digitization', included: true },
-      { text: 'Unlimited outfit variations', included: true },
+      { text: 'Less repetition, more variety', included: true },
+      { text: 'Planning & seasonality', included: true },
     ],
     deliveryDays: 30,
     itemLimit: 30,
@@ -236,29 +236,27 @@ const COMPARISON_TIERS: DFYComparisonTier[] = [
 ];
 
 const LITE_WHAT_STAYS = [
-  'Your 14-day outfit history',
-  'Saved outfits you loved',
-  'Style notes and learnings',
-  'Ability to purchase Core anytime',
+  'Saved outfits (view-only)',
+  'Style learnings from this plan',
+  'Ability to upgrade to Core anytime',
 ];
 
 const LITE_WHAT_STOPS = [
-  'Daily outfit recommendations',
-  'Stylist adjustments',
-  'New outfit suggestions',
+  'New outfits',
+  'Adjustments',
+  'Rotations',
 ];
 
 const CORE_WHAT_STAYS = [
-  'Your digitized wardrobe',
-  'All outfit history',
-  'Style DNA analysis',
-  'Saved outfits and favorites',
+  'Your digitised wardrobe (forever)',
+  'All saved outfits',
+  'Item categorisation',
 ];
 
 const CORE_WHAT_STOPS = [
   'New outfit recommendations',
-  'Stylist remix suggestions',
-  'Priority support',
+  'Dynamic remixing',
+  'Proactive suggestions',
 ];
 
 const UPGRADE_TRIGGERS: Record<string, UpgradePathTrigger> = {
@@ -266,25 +264,31 @@ const UPGRADE_TRIGGERS: Record<string, UpgradePathTrigger> = {
     featureRequested: 'Swap this item',
     requiredTier: 'core',
     stylistId: 'ruby',
-    message: "Love that you want to remix! Swapping individual items is a Core feature - it needs your whole wardrobe mapped. Want me to tell you more?",
+    message: "I can do that properly if I learn your wardrobe once. Want to build it?",
   },
   edit_outfit: {
     featureRequested: 'Edit this outfit',
     requiredTier: 'core',
     stylistId: 'max',
-    message: "Editing requires individual item data. With Core, I can break down every piece and rebuild outfits your way. Interested?",
+    message: "I can get much better if I learn everything you own - once.",
   },
   add_item: {
     featureRequested: 'Add new item',
     requiredTier: 'core',
     stylistId: 'ruby',
-    message: "Adding items to your digital wardrobe is part of the Core experience. It's where the real magic happens, darling!",
+    message: "That would change the job I'm doing. Core is where I learn everything you own.",
   },
   remix: {
     featureRequested: 'Create remix',
     requiredTier: 'core',
     stylistId: 'max',
-    message: "Remixes need your full wardrobe in the system. Core gives you unlimited combinations from all your pieces.",
+    message: "I've been reusing the same pieces because I only styled a capsule. Want me to learn your full wardrobe?",
+  },
+  more_variety: {
+    featureRequested: 'More variety',
+    requiredTier: 'core',
+    stylistId: 'ruby',
+    message: "I've been reusing the same pieces because I only styled a capsule. Build your wardrobe once and I'll stop guessing.",
   },
 };
 
@@ -520,14 +524,41 @@ class DFYService {
     const startDate = new Date().toISOString();
     const expiryDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
 
-    const mockOutfits: DFYOutfit[] = Array.from({ length: 7 }, (_, i) => ({
+    const STYLIST_NOTES = {
+      ruby: [
+        "This look is effortlessly chic, darling. You'll feel put together without trying too hard.",
+        "Love how this balances comfort and style - very you!",
+        "This combo is giving understated elegance. Trust me on this one.",
+        "Here's a look that works harder than it appears to. Easy win!",
+        "Layered for flexibility - you can dress this up or down as the day unfolds.",
+      ],
+      max: [
+        "Clean lines, neutral base. This reads confident without being loud.",
+        "Balanced effort and comfort. You'll feel put together without feeling overdone.",
+        "This outfit does the thinking for you. Grab and go.",
+        "Smart casual done right. Works in more situations than you'd expect.",
+        "Timeless choice that won't date. Good investment in looking good.",
+      ],
+      ace: [
+        "This look says 'I know what I'm doing' without saying a word.",
+        "Effortless balance of style and function. You'll feel good all day.",
+        "A versatile combo that adapts to whatever your day throws at you.",
+        "Sharp but not overdone. Perfect for your occasion.",
+        "This one's a quiet confidence builder. Trust the process.",
+      ],
+    };
+
+    const validStylistId = stylistId && stylistId in STYLIST_NOTES ? stylistId : 'ruby';
+    const notes = STYLIST_NOTES[validStylistId as keyof typeof STYLIST_NOTES];
+
+    const mockOutfits: DFYOutfit[] = Array.from({ length: 5 }, (_, i) => ({
       id: `outfit-${i + 1}`,
-      dayNumber: (i * 2) + 1,
-      title: `Day ${(i * 2) + 1} Look`,
-      description: `A curated outfit for your ${['work', 'casual', 'event', 'casual', 'work', 'holiday', 'event'][i]} occasion`,
+      dayNumber: (i * 3) + 1,
+      title: i === 0 ? "Today's Look" : `Day ${(i * 3) + 1} Look`,
+      description: `A curated outfit rotated for your 14-day plan`,
       items: [],
-      occasion: ['work', 'casual', 'event', 'casual', 'work', 'holiday', 'event'][i] as DFYOccasion,
-      stylistNote: `This look brings out your best features while keeping you comfortable for the day ahead.`,
+      occasion: 'work' as DFYOccasion,
+      stylistNote: notes[i % notes.length],
       stylistId,
       userReaction: null,
       saved: false,
@@ -549,6 +580,30 @@ class DFYService {
     await this.activateDFYAccess(userId, 'lite');
 
     return delivery;
+  }
+
+  getDayNudgeCopy(nudgeType: 'day12' | 'day25' | 'expired', tier: DFYTier): { headline: string; subtext: string; cta: string } {
+    if (nudgeType === 'day12') {
+      return {
+        headline: "I've been reusing the same pieces because I only styled a capsule.",
+        subtext: "Build your wardrobe once and I'll stop guessing.",
+        cta: "Build my wardrobe",
+      };
+    }
+    if (nudgeType === 'day25') {
+      return {
+        headline: "I'll pause soon unless you keep me active.",
+        subtext: "Your wardrobe is saved. Subscription keeps your stylist thinking.",
+        cta: "Keep my stylist active",
+      };
+    }
+    return {
+      headline: tier === 'lite' ? "Your style plan is complete" : "Your styling window has ended",
+      subtext: tier === 'lite' 
+        ? "I solved this moment. If you want me long-term, I need context."
+        : "Your wardrobe is saved. Keep your stylist thinking.",
+      cta: tier === 'lite' ? "Build my wardrobe" : "Subscribe",
+    };
   }
 }
 
