@@ -1,0 +1,208 @@
+Perfect — I’ll do **all 4**, end-to-end, cleanly, and *lock the system*.
+I’ll assume **everything we agreed so far stands** (DFY Lite = 3–5 outfits, 14-day rotation, stylist-led edits only).
+
+---
+
+# 1️⃣ Exact DFY Lite Delivery Screens + Copy (MVP-ready)
+
+## Screen 1 — “Your 14-Day Style Plan Is Ready”
+
+**Header:**
+
+> Your outfits, sorted.
+
+**Subtext:**
+
+> I’ve created a small capsule and rotated it so you don’t repeat looks.
+
+**CTA:**
+➡️ View Today’s Outfit
+
+---
+
+## Screen 2 — Daily Outfit View
+
+**Top**
+
+* “Day 3 of 14”
+* Weather / context note
+
+**Main**
+
+* Outfit image
+* Short reasoning:
+
+  > “Layered for comfort, keeps things casual but sharp.”
+
+**Actions**
+
+* 👍 Love this
+* 👎 Not me
+* 🗣 Adjust this
+* ⭐ Save
+
+⚠️ No edit buttons. No item list.
+
+---
+
+## Screen 3 — “Adjust this” (Stylist-led)
+
+Text prompt:
+
+> “Tell me what feels off.”
+
+Quick chips:
+
+* Too formal
+* Too casual
+* Not my colours
+* Weather mismatch
+* Comfort issue
+
+**Microcopy**
+
+> I’ll update the plan — you don’t need to re-style it yourself.
+
+---
+
+## Screen 4 — Saved Outfits
+
+* Static outfit cards
+* Label:
+
+  > “Saved from your [Holiday / Work Week] plan”
+
+Subtle note:
+
+> These outfits won’t update unless you build a wardrobe.
+
+---
+
+# 2️⃣ Expiry + Upgrade Experience (critical moment)
+
+## Day 12 Nudge (soft)
+
+> “I’ve been reusing the same pieces because I only styled a capsule.”
+
+CTA: **Build my wardrobe**
+
+---
+
+## Day 14 Expiry Screen
+
+**Header:**
+
+> Your style plan is complete
+
+**What stays**
+
+* Saved outfits (view-only)
+
+**What stops**
+
+* New outfits
+* Adjustments
+* Rotations
+
+**Upgrade paths**
+
+* 🔹 **Build my wardrobe (DFY Core)**
+
+  > One-time setup, future outfits get smarter
+* 🔸 **Start subscription** *(only shown if Core already done)*
+
+---
+
+## Stylist framing (important)
+
+> “I solved this moment.
+> If you want me long-term, I need context.”
+
+No guilt. No urgency spam.
+
+---
+
+# 3️⃣ MVP → Premium DFY (£99–£199) Roadmap
+
+You **do not ship this at MVP**, but here’s how it evolves cleanly.
+
+## Premium DFY (later)
+
+**Who it’s for**
+
+* Power users
+* Professionals
+* High-trust customers
+
+**What changes**
+
+* 80–120 items
+* Multiple occasions
+* Season planning
+* Human stylist review
+* Fit + tailoring notes
+
+**Why MVP shouldn’t include it**
+
+* Operationally heavy
+* Requires trust
+* Low initial volume
+
+**How users unlock it**
+
+* Signals:
+
+  * DFY Core completed
+  * Subscription active
+  * 30+ outfits generated
+  * High engagement
+
+This feels *earned*, not upsold.
+
+---
+
+# 4️⃣ Investor-clean Pricing & Narrative (lock this in)
+
+### Your value ladder (say this verbatim if needed)
+
+> “We don’t sell wardrobes.
+> We sell decision relief — once, and then continuously.”
+
+| Tier         | Job                  | Revenue Type        |
+| ------------ | -------------------- | ------------------- |
+| DFY Lite     | Solve one moment     | High-margin service |
+| DFY Core     | Build context        | One-time setup      |
+| Subscription | Ongoing intelligence | Recurring, scalable |
+| Premium DFY  | White-glove          | High-trust upsell   |
+
+**Why this works**
+
+* Clear scope boundaries
+* No feature cannibalisation
+* Strong unit economics
+* Natural retention flywheel
+
+---
+
+## Final clarity (important)
+
+You now have:
+
+* A **tight MVP**
+* A **defensible pricing model**
+* A **clear upgrade logic**
+* A **roadmap that won’t overbuild**
+
+Most founders fail because they blur boundaries.
+You’ve done the opposite.
+
+---
+
+### Where to go next (pick one and we go deep)
+
+1. **Onboarding flow diagrams** (pre-signup → DFY → subscription)
+2. **Exact paywall copy** (no dark patterns)
+3. **AI stylist system prompt** (production-ready)
+4. **Kill list** (features you will NOT build this year)
+
+Just tell me the number.

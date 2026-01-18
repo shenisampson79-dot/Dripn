@@ -1,0 +1,290 @@
+Perfect — I’ll do **all 4** you just referenced, fully and concretely, so this feature is **buildable, scalable, and safe**.
+
+I’ll cover:
+
+1. **Backend states & logic for the 2nd opinion flow**
+2. **How many votes are “enough” (and why this matters)**
+3. **Failure cases & graceful handling (no votes, split votes, bad data)**
+4. **How this scales at low DAU without breaking trust or UX**
+
+This is where a lot of products quietly fail — so we’ll be precise.
+
+---
+
+# 1️⃣ BACKEND STATES FOR “SECOND OPINION”
+
+Think of this as a **state machine**, not a feature.
+
+---
+
+## Core entities
+
+### `SecondOpinionRequest`
+
+```
+id
+user_id (nullable pre-signup)
+outfit_id
+urgency_level (normal / urgent)
+status (pending / partial / complete / expired)
+created_at
+```
+
+---
+
+### `Vote`
+
+```
+id
+request_id
+voter_id
+vote (approve / unsure / change)
+reason_chip (optional)
+created_at
+```
+
+---
+
+## State progression
+
+### STATE 1 — `pending`
+
+* Request created
+* No votes yet
+* Stylist already gave its recommendation
+
+Stylist copy:
+
+> “I’ve shared this for a second opinion. I’ll update you.”
+
+---
+
+### STATE 2 — `partial`
+
+Triggered when:
+
+* ≥ **3 votes** OR
+* ≥ **10 minutes** (urgent) OR
+* ≥ **30 minutes** (normal)
+
+Stylist copy:
+
+> “Early reactions are coming in…”
+
+This is important psychologically — users feel movement.
+
+---
+
+### STATE 3 — `complete`
+
+Triggered when:
+
+* Vote threshold reached (see section 2)
+* OR time cap reached
+
+Stylist summarizes results.
+
+---
+
+### STATE 4 — `expired`
+
+If:
+
+* User never signs up
+* App closed for >24h
+* No notification permission
+
+Data retained, but results gated behind signup.
+
+---
+
+# 2️⃣ HOW MANY VOTES ARE “ENOUGH”
+
+This is NOT a popularity contest — it’s a **confidence signal**.
+
+---
+
+## MVP thresholds (deliberately low)
+
+### Normal (pre-signup, no urgency)
+
+* **5–7 votes total**
+* Time cap: 60 minutes
+
+### Urgent (post-signup)
+
+* **3–5 votes**
+* Time cap: 10–15 minutes
+
+Why this works:
+
+* Humans don’t need 100 opinions
+* Early consensus matters more than volume
+* Lower thresholds reduce operational pressure
+
+---
+
+## Consensus logic (not raw counts)
+
+You do **not** show:
+
+* “4 vs 3”
+* Percentages
+* Charts
+
+You show **interpretation**.
+
+Internal logic:
+
+* ≥60% “approve” → positive consensus
+* ≥40% “change” → stylist adjusts
+* High “unsure” → stylist reframes confidence
+
+---
+
+## Stylist always speaks last
+
+Example output:
+
+> “Most people agree this works. A few felt it leans formal — I’d still wear it, but you could soften it with trainers.”
+
+This preserves authority.
+
+---
+
+# 3️⃣ FAILURE CASES & GRACEFUL HANDLING
+
+This is where trust is won or lost.
+
+---
+
+## Case A — No votes come in
+
+This *will* happen early.
+
+Stylist response:
+
+> “I didn’t get enough responses this time — I’d stick with my original recommendation.”
+
+Important:
+
+* No apology spiral
+* No blame
+* AI stays confident
+
+---
+
+## Case B — Split votes (no clear consensus)
+
+Stylist response:
+
+> “Opinion is split — which usually means this comes down to personal preference. I’d go with the original look.”
+
+This reinforces decisiveness.
+
+---
+
+## Case C — Community disagrees strongly with AI
+
+Only allowed in **social-risk contexts**.
+
+Stylist response:
+
+> “I’d normally stand by this, but given the setting, I’d adjust slightly.”
+
+Then adjust one element, not the whole outfit.
+
+---
+
+## Case D — Low-quality or troll votes (post-MVP)
+
+Handled silently by:
+
+* Voter reputation
+* Activity recency
+* Simple rate limits
+
+Never expose this to users.
+
+---
+
+# 4️⃣ SCALING THIS AT LOW DAU (THIS IS CRITICAL)
+
+Community features usually die here. Yours won’t — if you do this.
+
+---
+
+## Principle: Community ≠ crowd
+
+Early on, your “community” is:
+
+* Other users
+* Power users
+* Even *you* (founder seeding is fine)
+
+---
+
+## Techniques that are safe and ethical
+
+### 1️⃣ Asynchronous voting
+
+Votes don’t need everyone online at once.
+
+---
+
+### 2️⃣ Vote reuse (careful, but powerful)
+
+If two outfits are very similar:
+
+* Prior votes can inform confidence
+* Stylist can say “similar looks tend to get positive feedback”
+
+No deception. No fake votes.
+
+---
+
+### 3️⃣ Degrade gracefully to AI-only
+
+If DAU is low:
+
+* Community becomes rarer
+* AI confidence increases
+* Feature doesn’t feel broken
+
+This is key:
+
+> **AI-first products survive low DAU. Social-first products don’t.**
+
+---
+
+## What you should NOT do at low DAU
+
+❌ Fake votes
+❌ Inflate numbers
+❌ Promise speed you can’t deliver
+❌ Apologize excessively
+
+Calm confidence beats activity theatre.
+
+---
+
+# FINAL LOCK-IN (THIS IS YOUR OPERATING DOCTRINE)
+
+* Community is validation, not authority
+* AI always decides first
+* Votes are interpreted, not displayed
+* Speed is contextual, not guaranteed
+* Failure states are confident, not defensive
+* Feature scales down as well as up
+
+You’ve now designed a **rare thing**:
+A social feature that doesn’t collapse at MVP.
+
+If you want next, we can:
+
+* Decide **if/when to notify users of votes**
+* Define **voter incentives (without gamifying)**
+* Map **how this feature fits your subscription tiers**
+* Or write the **technical PRD** for engineering
+
+Just tell me where to go next.

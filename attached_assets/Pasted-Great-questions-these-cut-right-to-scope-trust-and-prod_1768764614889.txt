@@ -1,0 +1,326 @@
+Great questions — these cut right to **scope, trust, and product integrity**. I’ll answer them **clearly and decisively first**, then I’ll do **all 4** you asked for afterward.
+
+---
+
+# PART 1 — Answering your two questions clearly
+
+---
+
+## Q1. If DFY is one use case, what is the duration and what happens to the content?
+
+This is where many apps get muddled — so we’ll be precise.
+
+### 🔑 Core principle
+
+**DFY is a service, not a subscription.**
+But the *output* of that service must still obey product rules.
+
+---
+
+### ✅ DFY Lite (£19.99) — *One-use-case, time-limited, non-compounding*
+
+**Duration**
+
+* Access window: **14 days**
+
+  * Enough to use outfits
+  * Not long enough to feel permanent
+* After 14 days:
+
+  * Outfits are **view-only**
+  * Editing, regeneration, and reuse are locked
+
+**Saving outfits**
+
+* Yes, users **can save** outfits
+* BUT:
+
+  * Saved outfits are **static images/cards**
+  * Items are **not extracted into a reusable wardrobe**
+  * The stylist does *not* learn from them long-term
+
+Think of it as:
+
+> “A styled lookbook, not a wardrobe.”
+
+This avoids user anger while preserving upgrade incentive.
+
+---
+
+### ✅ DFY Core (£39–£49) — *Persistent wardrobe intelligence*
+
+**Duration**
+
+* Permanent
+* Items live in the user’s wardrobe
+* Stylist can reference them forever (with subscription)
+
+**Saving outfits**
+
+* Full save
+* Editable
+* Re-mixable
+* Used for future advice
+
+---
+
+### ❌ What you should NOT do
+
+* Do **not** delete DFY Lite outfits → causes distrust
+* Do **not** let Lite outfits feed the AI memory → destroys Core value
+* Do **not** allow Lite regeneration after window ends
+
+---
+
+### Simple user-facing explanation
+
+> “DFY Lite gives you ready-made outfits for a specific moment.
+> DFY Core teaches your stylist what you own so it keeps working for you.”
+
+That’s intuitive.
+
+---
+
+## Q2. During setup — individual item photos vs full outfit photos?
+
+### Short answer:
+
+**You must support both — but with strict rules.**
+
+---
+
+## The correct approach (this is important)
+
+### 🟢 Individual item photos (PRIMARY input)
+
+**Required for:**
+
+* DFY Core
+* Any persistent wardrobe
+* Accurate mix & match
+* AI learning
+
+**Why**
+
+* Clean edges
+* Category clarity
+* Fabric + colour accuracy
+* Enables future recombination
+
+This is **non-negotiable** for Core.
+
+---
+
+### 🟡 Full outfit / mirror selfies (SECONDARY input)
+
+**Allowed for:**
+
+* DFY Lite
+* Inspiration
+* Context understanding
+* Fit feedback
+
+**But with a constraint**
+
+* Outfit photos are treated as:
+
+  * “Reference looks”
+  * Not decomposed reliably
+* The stylist may ask:
+
+  > “Can you also upload individual items from this outfit?”
+
+---
+
+### 🔴 What you should NOT promise
+
+* Do not promise accurate wardrobe extraction from mirror selfies
+* Do not say “just upload outfits, we’ll handle it” (AI isn’t there yet)
+
+---
+
+### Clear in-product copy (use this verbatim if you want)
+
+> **Best results:** Photograph individual items
+> **Optional:** Upload full outfits for inspiration or fit feedback
+
+This manages expectations and protects quality.
+
+---
+
+# PART 2 — Now I’ll do **all 4** you asked for earlier
+
+You asked for:
+
+1. DFY comparison screen redesign
+2. Upgrade paths (Lite → Core → Subscription)
+3. Unit economics stress-test (human + AI)
+4. User objections & how the stylist handles them
+
+Let’s go.
+
+---
+
+## 1️⃣ DFY Comparison Screen (Non-arbitrageable)
+
+### DFY Lite — £19.99
+
+**Headline:**
+
+> “Outfits for one moment. Zero thinking.”
+
+**Includes**
+
+* 3–5 complete outfits
+* 1 use case (e.g. work week, trip, event)
+* 14-day access
+* Static saved outfits
+* No wardrobe creation
+* No long-term learning
+
+**CTA:**
+
+> “Style me for this”
+
+---
+
+### DFY Core — £39–£49
+
+**Headline:**
+
+> “A stylist who understands what you own.”
+
+**Includes**
+
+* Up to 30 individual items
+* Categorised wardrobe
+* Reusable outfits
+* Persistent AI memory
+* Future styling powered by your clothes
+
+**CTA:**
+
+> “Build my wardrobe”
+
+---
+
+💡 Notice:
+
+* No item math comparison
+* No “more outfits” language
+* Completely different mental models
+
+---
+
+## 2️⃣ Upgrade Paths (clean, ethical, effective)
+
+### DFY Lite → DFY Core
+
+Trigger moments:
+
+* “Want me to reuse this jacket in future looks?”
+* “I’m repeating items because I don’t know your wardrobe.”
+
+Upgrade copy:
+
+> “Upgrade once and I’ll stop guessing.”
+
+---
+
+### DFY Core → Subscription (£9.99)
+
+Trigger moments:
+
+* 3rd outfit request
+* Seasonal shift
+* Event planning
+
+Upgrade copy:
+
+> “I already know your wardrobe. Keep me active.”
+
+---
+
+## 3️⃣ Unit economics (realistic MVP numbers)
+
+### DFY Lite (£19.99)
+
+* AI-only or minimal human QA
+* Cost per job:
+
+  * AI: ~£0.50–£1
+  * QA (optional): £1–£2
+* Gross margin: **85–90%**
+
+---
+
+### DFY Core (£39–£49)
+
+* Human-assisted tagging (MVP)
+* Cost:
+
+  * Tagger: £6–£10 (30 items @ ~£0.30)
+  * QA: £2–£3
+  * AI: £1
+* Total cost: ~£10–£14
+* Gross margin: **65–75%**
+
+Healthy for bootstrapping.
+
+---
+
+## 4️⃣ User objections & stylist responses (critical)
+
+### Objection 1:
+
+> “Why can’t I reuse my Lite outfits forever?”
+
+Stylist reply:
+
+> “Because I styled them without knowing everything you own.
+> If you want consistency, I need context.”
+
+---
+
+### Objection 2:
+
+> “Can’t I just keep doing Lite?”
+
+Stylist reply:
+
+> “You can — but I’ll keep guessing instead of learning.”
+
+---
+
+### Objection 3:
+
+> “Why do you need individual item photos?”
+
+Stylist reply:
+
+> “Because great outfits come from recombining details — not guessing them.”
+
+This builds trust instead of defensiveness.
+
+---
+
+## Final founder-level takeaway
+
+You’ve now achieved something rare:
+
+* No tier cannibalises another
+* No feature feels scammy
+* No AI promise exceeds reality
+* Value compounds upward naturally
+
+You are **not** building a wardrobe app.
+You are building a **decision system with fashion as the domain**.
+
+If you want next, we can:
+
+* Design the **exact setup screens**
+* Write **paywall copy**
+* Map **MVP → Series A product evolution**
+* Or stress-test **investor objections**
+
+Just tell me where to go next.

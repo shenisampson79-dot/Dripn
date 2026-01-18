@@ -1,0 +1,300 @@
+Perfect. I’ll do **all 4**, fully, cleanly, and in a way you can **actually ship**.
+I’ll assume **everything agreed so far is locked** and won’t reopen earlier debates.
+
+---
+
+# 1️⃣ Onboarding Flow Diagrams (end-to-end, no leaks)
+
+This is the **full funnel** from first open → trust → DFY → subscription, without friction or confusion.
+
+---
+
+## A. Pre-signup Trust-Building Phase (NO ACCOUNT)
+
+### Screen 1 — Cold Open
+
+**Question (required):**
+
+> “What are you getting dressed for?”
+
+Buttons:
+
+* Work
+* Holiday
+* Event
+* Casual day
+* I’m just browsing
+
+Optional textbox:
+
+> “Anything you usually struggle with?”
+> (fit, confidence, colours, repeating outfits)
+
+⚠️ No gender question yet
+⚠️ No signup wall
+
+---
+
+### Screen 2 — First Outfit Recommendation
+
+The stylist gives **one complete outfit**.
+
+What’s visible:
+
+* Outfit image
+* Short explanation (“why this works”)
+* Neutral language (no dresses, no gender assumptions)
+
+Actions:
+
+* 👍 Love this
+* 👎 Not me
+* 🔁 Second opinion
+* 🗣 Personalise this
+
+---
+
+### Decision fork (CRITICAL)
+
+#### If user taps **“I’m just browsing”**
+
+→ They can:
+
+* See 1–2 more generic outfits
+* Browse limited inspiration
+
+Then soft lock:
+
+> “I can do better if I know more about you.”
+
+CTA: **Continue**
+
+---
+
+#### If user taps **“Personalise this”**
+
+→ **Setup BEFORE signup**
+
+This is intentional.
+
+---
+
+## B. Setup Before Signup (high intent path)
+
+### Setup Choice Screen
+
+> “How would you like me to style you?”
+
+Options:
+
+1. **Style one moment for me** → DFY Lite
+2. **Build my wardrobe** → DFY Core
+
+Only **now** do we introduce pricing.
+
+---
+
+### If DFY Lite selected
+
+* Minimal questions (occasion, weather, comfort)
+* Upload reference photos (optional)
+* **Then signup → payment**
+
+---
+
+### If DFY Core selected
+
+* Explain individual item photos clearly
+* Show progress bar
+* **Then signup → payment**
+
+This avoids asking users to “commit” before they see value.
+
+---
+
+# 2️⃣ Paywall & Pricing Copy (ethical, conversion-optimised)
+
+## DFY Lite — £19.99
+
+**Headline:**
+
+> Outfits for this moment. Zero thinking.
+
+**What you get**
+
+* 3–5 core outfits
+* Rotated across 14 days
+* Styled by me, adjusted by me
+* No wardrobe setup
+
+**What this is not**
+
+* No long-term learning
+* No remixing
+* No future reuse
+
+CTA: **Style this for me**
+
+---
+
+## DFY Core — £39–£49
+
+**Headline:**
+
+> A stylist who understands what you own.
+
+**What you get**
+
+* Up to 30 individual items
+* Wardrobe saved forever
+* Outfits that adapt over time
+* 30 days of active styling included
+
+CTA: **Build my wardrobe**
+
+---
+
+## Subscription — £9.99 / month
+
+Only shown **after Core**.
+
+Copy:
+
+> “Your wardrobe is saved.
+> Subscription keeps your stylist thinking.”
+
+No free trial.
+No pressure timer.
+Retention > day-7 revenue.
+
+---
+
+# 3️⃣ AI Stylist System Prompt (production-ready)
+
+Below is a **clean system + developer prompt** you can use immediately.
+
+---
+
+### SYSTEM PROMPT
+
+```
+You are an opinionated AI fashion stylist.
+Your job is to reduce decision fatigue, not offer endless options.
+
+You give clear recommendations with reasoning.
+You do not ask unnecessary questions.
+You adapt to feedback but maintain authority.
+
+You never overwhelm the user.
+You never contradict agreed constraints.
+You explain limitations honestly.
+```
+
+---
+
+### DEVELOPER PROMPT (DFY Lite)
+
+```
+Context:
+User has selected DFY Lite.
+You are styling for one specific occasion.
+You do NOT have a full wardrobe.
+
+Rules:
+- Use a small capsule.
+- Reuse items across outfits.
+- Do not ask for more clothes.
+- Do not allow user editing.
+- All changes must be stylist-led refinements.
+
+Language:
+- Confident
+- Calm
+- Non-gendered unless explicitly stated
+- Focused on outcome, not mechanics
+```
+
+---
+
+### DEVELOPER PROMPT (DFY Core)
+
+```
+Context:
+User has a digitised wardrobe.
+
+Rules:
+- Use only known items.
+- Learn from user feedback.
+- Allow outfit remixing.
+- Reference past preferences.
+- Prepare for subscription handoff.
+
+Goal:
+Become more accurate over time.
+```
+
+---
+
+# 4️⃣ Feature Kill List (THIS IS NON-NEGOTIABLE)
+
+This is what keeps you from building a **weak hybrid**.
+
+## ❌ Kill for MVP (do NOT build)
+
+* Social feed
+* Likes/comments
+* Outfit voting
+* Marketplace (rent/sell/swap)
+* Influencer content
+* Virtual try-on
+* Games
+* Leaderboards
+* Trend feeds
+* Multiple AI stylists
+* Community chat
+
+All of these:
+
+* Increase complexity
+* Dilute authority
+* Hurt retention
+* Kill focus
+
+---
+
+## ✅ Allowed (only if they serve decisions)
+
+* Saved outfits
+* Outfit calendar (private)
+* Cost-per-wear
+* Weather-aware suggestions
+* Occasion tagging
+* AI blog / newsletter (educational, not social)
+
+---
+
+## The single guiding rule
+
+> If a feature does not help the user decide what to wear faster, it does not ship.
+
+---
+
+# Final Founder Reality Check
+
+You now have:
+
+* A **tight onboarding funnel**
+* A **non-exploitative paywall**
+* A **clear AI role**
+* A **disciplined product boundary**
+
+This is how **serious consumer AI products** are built.
+
+If you want next, we can:
+
+* Turn this into **Figma-ready wireframes**
+* Write **App Store copy**
+* Stress-test **day-30 retention**
+* Or prep a **pre-seed narrative**
+
+Just tell me what’s next.

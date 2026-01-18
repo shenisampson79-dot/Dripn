@@ -1,0 +1,336 @@
+Excellent — I’ll do **all 4**, fully and concretely, and I’ll tie them **directly back to your AI-first, trust-first product philosophy** so nothing drifts into social-app chaos.
+
+The four you asked for are:
+
+1. **If / when to notify users about votes (and how)**
+2. **Voter incentives (without turning this into a game or social network)**
+3. **How “Second Opinion” fits into pricing & subscription tiers**
+4. **A clean technical PRD engineers can actually build from**
+
+---
+
+# 1️⃣ WHEN & HOW TO NOTIFY USERS ABOUT VOTES
+
+### Core principle
+
+**Notifications should reduce anxiety, not create anticipation.**
+
+You are not running DoorDash or WhatsApp.
+Silence is often better than noise.
+
+---
+
+## Notification rules (lock these in)
+
+### Pre-signup users
+
+❌ **No push notifications**
+❌ No emails
+❌ No “come back now” urgency
+
+Why:
+
+* They didn’t commit
+* Notifications feel invasive
+* Apple reviewers dislike this
+
+**Instead:**
+Results are shown **only if they return** — and gated by signup.
+
+This creates *passive conversion*, not pressure.
+
+---
+
+### Post-signup users (non-urgent)
+
+✅ **One notification max**
+
+Trigger:
+
+* Status moves from `partial → complete`
+
+Copy:
+
+> “Your second opinion is ready.”
+
+That’s it. No emojis. No hype.
+
+---
+
+### Urgent requests (post-signup only)
+
+Optional, user-controlled.
+
+Trigger options:
+
+* First reactions in
+* Final summary ready
+
+Copy example:
+
+> “Early feedback is in — want to check?”
+
+Important:
+
+* Never more than **2 notifications per request**
+* User can mute future updates
+
+---
+
+## What you NEVER notify for
+
+❌ Each individual vote
+❌ “Someone disagreed”
+❌ “New reaction” spam
+
+You are not Slack.
+
+---
+
+# 2️⃣ VOTER INCENTIVES (WITHOUT GAMIFICATION)
+
+This is subtle but extremely important.
+
+### Principle
+
+**People vote because it feels useful — not because they earn points.**
+
+---
+
+## MVP incentives (light, invisible)
+
+### 1️⃣ Reciprocity (primary)
+
+If you vote occasionally:
+
+* Your own second opinions get faster responses
+* Your requests are prioritised *slightly*
+
+No leaderboard. No explicit promise.
+
+Stylist language:
+
+> “Thanks for helping out — I’ll prioritise your requests when I can.”
+
+That’s enough.
+
+---
+
+### 2️⃣ Taste reinforcement
+
+Voters feel:
+
+> “I have good style judgement.”
+
+This is intrinsic motivation.
+
+You reinforce it quietly:
+
+* “Your input helped someone decide”
+
+No numbers attached.
+
+---
+
+## What to avoid at MVP (hard no)
+
+❌ Points
+❌ Badges
+❌ Leaderboards
+❌ “Top stylist” titles
+❌ XP systems
+
+These:
+
+* Attract low-quality votes
+* Turn fashion into noise
+* Destroy trust
+
+---
+
+## Post-MVP (optional, very light)
+
+If you *must*:
+
+* Private reputation score
+* Used only for vote weighting
+* Never shown publicly
+
+This keeps quality high without social pressure.
+
+---
+
+# 3️⃣ HOW “SECOND OPINION” FITS PRICING & TIERS
+
+This is where you monetise **calm reassurance**, not anxiety.
+
+---
+
+## Free (Pre-signup / Free users)
+
+* Can request second opinion
+* Slow (30–60 min)
+* Low vote count
+* No notifications
+
+Purpose:
+
+> Prove the concept exists
+
+---
+
+## Signed-up, Free Tier
+
+* Occasional second opinions
+* Standard speed
+* No urgency option
+* Limited frequency
+
+Purpose:
+
+> Reinforce trust, not dependency
+
+---
+
+## Subscription (£9.99)
+
+This is where it becomes valuable.
+
+Includes:
+
+* Faster vote routing
+* Urgent option
+* Notifications
+* Fewer “no response” cases
+
+You don’t sell it as:
+
+> “More votes”
+
+You sell it as:
+
+> “Fewer moments of doubt.”
+
+---
+
+## DFY tiers
+
+Second opinion is:
+
+* Rarely needed
+* Mostly redundant
+
+Why?
+Because confidence is higher.
+
+This is good:
+
+> DFY reduces reliance on social validation.
+
+---
+
+# 4️⃣ TECHNICAL PRD (ENGINEER-READY)
+
+This is intentionally clean and scoped.
+
+---
+
+## Feature: Second Opinion (MVP)
+
+### Goal
+
+Provide optional community validation without undermining AI authority or requiring high DAU.
+
+---
+
+## Functional Requirements
+
+### User
+
+* Can request second opinion on an outfit
+* Can choose normal or urgent (post-signup only)
+* Receives summarized feedback via stylist
+
+---
+
+### System
+
+* Creates `SecondOpinionRequest`
+* Routes to eligible voters
+* Collects lightweight votes
+* Determines completion state
+* Generates stylist summary
+
+---
+
+## Non-Goals (explicit)
+
+* No comments
+* No messaging
+* No profiles
+* No public feeds
+* No real-time chat
+
+---
+
+## Vote Routing Logic (MVP)
+
+Eligible voters:
+
+* Recently active users
+* Not overloaded
+* Optional style alignment later
+
+Routing cap:
+
+* Max 15 users notified
+* Stop once threshold reached
+
+---
+
+## Failure Handling
+
+| Case         | Behaviour                 |
+| ------------ | ------------------------- |
+| No votes     | AI stands by decision     |
+| Split votes  | AI reframes & decides     |
+| Low DAU      | Feature degrades silently |
+| User offline | Results shown on return   |
+
+---
+
+## Analytics to Track
+
+* % of users requesting second opinion
+* Conversion after second opinion
+* Time to first vote
+* AI vs community disagreement rate
+* Retention impact
+
+If this doesn’t move retention, you cut or shrink it.
+
+---
+
+# FINAL PRODUCT TRUTH (THIS IS IMPORTANT)
+
+This feature works because:
+
+* It **respects urgency without manufacturing it**
+* It **keeps AI in charge**
+* It **scales down gracefully**
+* It **monetises reassurance, not insecurity**
+
+You’ve designed a *rare* social feature that:
+
+* Doesn’t require virality
+* Doesn’t collapse at low DAU
+* Doesn’t corrupt your core value proposition
+
+If you want next, we can:
+
+* Stress-test this with **100 DAU vs 10k DAU**
+* Decide whether this feature ships at **v1 or v1.1**
+* Write the **founder story explaining why you added it**
+* Or create a **feature kill list** so scope doesn’t creep
+
+Just tell me where to go next.

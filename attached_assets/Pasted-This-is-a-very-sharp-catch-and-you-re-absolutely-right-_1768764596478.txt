@@ -1,0 +1,197 @@
+This is a **very sharp catch**, and you’re absolutely right to flag it.
+If you shipped it as described **without reframing**, smart users *would* arbitrage it.
+
+But the fix is **not** to remove the £19.99 tier — it’s to **redefine what “value” means** in each tier so they are **non-substitutable**, not just differently priced.
+
+Let’s go step by step.
+
+---
+
+## 1️⃣ You’re correct: as stated, it *is* arbitrageable
+
+If DFY Lite =
+
+> “5–7 complete outfits”
+
+And DFY Core =
+
+> “Up to 30 items”
+
+Then a savvy user thinks:
+
+> “7 outfits × 4–5 items = 28–35 items — I’ll take the cheaper one.”
+
+That means:
+
+* Price signal is broken
+* Core tier looks overpriced
+* You invite resentment later
+
+So yes — **this must be fixed**.
+
+---
+
+## 2️⃣ The real distinction should NOT be item count
+
+This is the key insight.
+
+**Users don’t actually value item counts.**
+They value:
+
+* Coverage
+* Reusability
+* Planning
+* Reduced repetition
+
+So the tiers must differ on **scope and permanence**, not raw numbers.
+
+---
+
+## 3️⃣ Correct tier reframing (THIS IS THE FIX)
+
+### DFY £19.99 → **Outfit-Based Setup**
+
+> “Solve a specific problem, once.”
+
+**What the user gets:**
+
+* 3–5 outfits (not 7)
+* Built for **one context**
+
+  * Work week
+  * Holiday
+  * Event series
+* Items may repeat across outfits
+* Items **not saved as a wardrobe**
+* No combinatorial logic
+* No future reuse unless upgraded
+
+**How it’s positioned:**
+
+> “I’ll take what you send and turn it into ready-to-wear looks.”
+
+This is **tactical** value.
+
+---
+
+### DFY Core (£39–£49) → **Wardrobe Intelligence**
+
+> “Solve the system, not the moment.”
+
+**What the user gets:**
+
+* Up to 30 *unique* items
+* Proper categorisation
+* Items persist as a wardrobe
+* Outfits generated dynamically
+* Less repetition
+* Planning, rotation, seasonality
+
+**How it’s positioned:**
+
+> “I’ll organise your wardrobe so decisions get easier every time.”
+
+This is **structural** value.
+
+---
+
+## 4️⃣ Why this removes arbitrage completely
+
+Even if:
+
+* Outfit tier touches 20–25 items
+* Core tier only does 30
+
+They are **not interchangeable**, because:
+
+| DFY Lite         | DFY Core              |
+| ---------------- | --------------------- |
+| One-off          | Ongoing               |
+| Fixed outfits    | Infinite combinations |
+| No memory        | Persistent memory     |
+| No planning      | Planning enabled      |
+| Context-specific | Lifestyle-wide        |
+
+Smart users will understand:
+
+> “One solves *now*. The other solves *forever*.”
+
+No resentment. No regret.
+
+---
+
+## 5️⃣ How to describe this in user-facing copy (important)
+
+### DFY Lite copy:
+
+> “Perfect if you need a few outfits and don’t want to think about it.”
+
+Avoid mentioning item counts entirely.
+
+---
+
+### DFY Core copy:
+
+> “Best if you want the stylist to understand what you own and reuse it intelligently.”
+
+Again — no item math.
+
+---
+
+## 6️⃣ Founder-level pricing psychology (this is key)
+
+You are not selling:
+
+* Labour
+* Photos
+* Tags
+* Counts
+
+You are selling:
+
+* **Cognitive relief**
+* **Future time saved**
+* **Confidence that compounds**
+
+Once you frame it this way, users don’t game the system — they self-select.
+
+---
+
+## 7️⃣ Final recommendation (lock this in)
+
+### Do this:
+
+* Reduce DFY Lite to **3–5 outfits**
+* Scope it to **one use-case**
+* Make items **non-persistent**
+* Remove item counts from marketing copy
+
+### Keep:
+
+* DFY Core as the *only* way to build a real wardrobe
+* Persistent memory behind the higher tier
+
+---
+
+## The litmus test
+
+If a smart user asks:
+
+> “Can I just do Lite repeatedly instead of Core?”
+
+Your answer should be:
+
+> “You can — but you’ll keep paying to solve the same problem again.”
+
+That’s when the pricing logic is correct.
+
+---
+
+If you want next, we can:
+
+* Redesign the **DFY comparison screen**
+* Decide **upgrade paths from Lite → Core**
+* Stress-test margins with real tagging costs
+* Or simulate **user objections and how the stylist responds**
+
+Just say where to go next.

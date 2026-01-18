@@ -1,0 +1,282 @@
+Great — I’ll do **all 4**, clearly, deeply, and in a way that keeps your product **trust-first**, **operationally sane**, and **conversion-smart**.
+
+I’ll cover:
+
+1. **Exact copy + UX for the “2nd opinion” flow (pre-signup → post-signup)**
+2. **Who votes, how voting works, and how to avoid it feeling random**
+3. **When community input is allowed to override the AI (rare, defined cases)**
+4. **How this feature converts without damaging authority or speed expectations**
+
+---
+
+# 1️⃣ EXACT “SECOND OPINION” FLOW (COPY + UX)
+
+This is where most products go wrong. The stylist must **stay in control**.
+
+---
+
+## PRE-SIGNUP: User taps “Second opinion”
+
+### Stylist response (always first)
+
+> Here’s my take: this outfit works because it’s balanced and easy to wear.
+>
+> If you want, I can also get community input to sanity-check it.
+
+This ensures:
+
+* AI remains authoritative
+* Community is framed as *validation*, not decision-making
+
+---
+
+### Then show a choice card (not a modal)
+
+**Title:**
+Get a second opinion?
+
+**Option A — Free, no signup**
+🕒 *Community input (30–60 mins)*
+Microcopy:
+
+> Good for reassurance, not urgency.
+
+**Option B — Urgent**
+⚡ *I need feedback quickly*
+
+No prices. No dark patterns.
+
+---
+
+## If they choose Option A (pre-signup, slow)
+
+* Outfit is posted anonymously
+* No ETA promise beyond a range
+* User can close the app
+* If they return later, results are shown **only if they sign up**
+
+This creates **soft deferred conversion**.
+
+---
+
+## If they choose Option B (urgent)
+
+### Transition message (still stylist-led)
+
+> Fast feedback needs an active audience.
+>
+> If you want that, I’ll set this up properly.
+
+**CTA:**
+
+* Create account
+
+No payment yet.
+
+---
+
+## POST-SIGNUP (first urgent use)
+
+Stylist says:
+
+> I’ll aim to get early reactions within ~10 minutes.
+>
+> I’ll update you as they come in.
+
+Key:
+
+* “Aim”, not guarantee
+* Overdeliver whenever possible
+
+---
+
+# 2️⃣ WHO VOTES & HOW IT WORKS (WITHOUT FEELING RANDOM)
+
+Community voting only works if users **trust the voters**.
+
+---
+
+## MVP VOTER TYPES (DO NOT OVERBUILD)
+
+### Tier 1 — Active users (default)
+
+* Recently used app
+* Have saved outfits
+* Have interacted with stylist
+
+These users:
+
+* Are invested
+* Give better feedback
+* Are online
+
+---
+
+### Tier 2 — Style-aligned users (post-MVP)
+
+* Similar preferences
+* Similar past saves
+* Similar vibe
+
+Not needed at MVP, but design for it.
+
+---
+
+## Voting format (simple, fast)
+
+Each voter sees:
+
+> “Which outfit works better?”
+
+* 👍 Yes, wear it
+* 🤔 Not sure
+* 👎 I’d change it
+
+Optional one-tap reason chips:
+
+* Too formal
+* Too boring
+* Too loud
+* Looks uncomfortable
+
+No essays. No comments at MVP.
+
+---
+
+## Output shown to user
+
+Not raw votes.
+
+The stylist summarizes:
+
+> “Most people agree this works, but a few felt it was a bit formal.”
+
+This keeps:
+
+* Clarity
+* Authority
+* No chaos
+
+---
+
+# 3️⃣ WHEN COMMUNITY CAN OVERRIDE THE AI (VERY RARE)
+
+This is **non-negotiable**.
+
+### Rule:
+
+> The AI is the primary decision-maker.
+> Community only overrides in **social-risk scenarios**.
+
+---
+
+## Allowed override cases
+
+### ✅ High-stakes social context
+
+* Weddings
+* Job interviews
+* First dates
+* Cultural events
+
+If community strongly disagrees, stylist says:
+
+> “I’d still wear this — but given the setting, I’d adjust slightly.”
+
+The AI adapts, not abdicates.
+
+---
+
+## Disallowed override cases
+
+❌ Everyday wear
+❌ Casual outfits
+❌ Low-stakes errands
+❌ Personal taste conflicts
+
+In these cases:
+
+> “This comes down to preference — I’d stick with my original choice.”
+
+This preserves confidence.
+
+---
+
+# 4️⃣ HOW THIS FEATURE CONVERTS (WITHOUT FEELING MANIPULATIVE)
+
+This is the subtle part.
+
+---
+
+## What community voting *really* sells
+
+Not speed.
+Not social proof.
+
+It sells:
+
+* Reassurance
+* Reduced anxiety
+* Confidence in public settings
+
+That’s why it converts **after trust**, not before.
+
+---
+
+## Conversion moments baked in
+
+### Moment 1 — Urgency Path
+
+“I need this quickly” → signup
+
+### Moment 2 — Deferred Results
+
+User returns to see votes → signup
+
+### Moment 3 — Repeated Use
+
+User relies on community → subscription
+
+---
+
+## What you NEVER sell here
+
+❌ “More votes”
+❌ “Better people”
+❌ “Unlock community”
+
+You sell:
+
+> “Consistency and speed when it matters.”
+
+---
+
+## Subscription positioning (later)
+
+> “With your stylist, you get faster feedback and fewer decisions to second-guess.”
+
+Notice:
+
+* No mention of community explicitly
+* Focus on emotional outcome
+
+---
+
+# FINAL PRODUCT TRUTH (THIS IS THE CORE)
+
+* Pre-signup = credibility, not urgency
+* AI decides first, always
+* Community validates, never replaces
+* Speed is earned, not given
+* Urgency converts only when justified
+
+You’re building something **calm, confident, and adult** — which is exactly why it will stand out.
+
+If you want next, we can:
+
+* Write the **exact backend states** for voting
+* Decide **how many votes = “enough”**
+* Test **failure cases (no votes, split votes)**
+* Or map **how this scales with low DAU**
+
+Just tell me where to go next.

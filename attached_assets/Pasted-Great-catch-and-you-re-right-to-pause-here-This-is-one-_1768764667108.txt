@@ -1,0 +1,258 @@
+Great catch — and you’re right to pause here. This is one of those details that, if fuzzy, creates user frustration and support burden.
+
+I’ll answer the question **very clearly first**, then I’ll do **all 4** exactly as promised.
+
+---
+
+## First: who can edit during DFY Lite?
+
+### Short answer
+
+👉 **Only the stylist can edit. Not the user.**
+
+This is intentional and important.
+
+---
+
+## Why the user should NOT be able to edit in DFY Lite
+
+DFY Lite is positioned as:
+
+> *“I don’t want to think — just tell me what to wear.”*
+
+If users can:
+
+* Swap items freely
+* Remix outfits
+* Add/remove pieces
+
+Then DFY Lite quietly turns into:
+
+* A light wardrobe builder
+* A pseudo-Core tier
+* A support nightmare
+
+That breaks your value ladder.
+
+---
+
+## What “editing” actually means in DFY Lite
+
+### ✅ What IS allowed (Stylist-led)
+
+During the 14-day window, the **stylist** can:
+
+* Replace an item if user says:
+
+  > “I don’t wear heels”
+* Adjust formality
+* Adjust weather assumptions
+* Swap colours within the same capsule
+* Regenerate an outfit variation
+
+This feels like:
+
+> “Refinement”, not “construction”.
+
+---
+
+### ❌ What is NOT allowed
+
+* User manually editing outfits
+* Drag-and-drop remixing
+* Adding new items
+* Saving items to wardrobe
+
+---
+
+### How you explain this to users (important)
+
+Use language like:
+
+> “Tell me what feels off — I’ll adjust.”
+
+Not:
+
+> “Edit your outfit.”
+
+This reinforces the **stylist-as-authority** dynamic.
+
+---
+
+## What about DFY Core?
+
+Different story.
+
+### In DFY Core:
+
+* User **can** edit outfits
+* Items are modular
+* Stylist learns from changes
+* This reinforces the upgrade logic
+
+---
+
+Now that’s clear, let’s do **all 4**.
+
+---
+
+# 1️⃣ DFY Lite Delivery Experience (14-day rotation UX)
+
+### Core principle
+
+**Show variety without showing mechanics.**
+
+---
+
+### Recommended UI pattern
+
+**Day-based rotation view**
+
+* “Day 1 – Outfit A (variation 1)”
+* “Day 2 – Outfit B (variation 1)”
+* “Day 3 – Outfit A (variation 2)”
+* …
+
+Users feel:
+
+> “I’m not repeating myself.”
+
+Even though items repeat.
+
+---
+
+### User actions allowed
+
+* 👍 “Love this”
+* 👎 “Not me”
+* 🗣 “Adjust this” (opens text input)
+* ⭐ Save outfit (static)
+
+No edit buttons. No item lists.
+
+---
+
+# 2️⃣ Upgrade Paths (Lite → Core → Subscription)
+
+### DFY Lite → DFY Core
+
+**Triggered when user says:**
+
+* “Can I swap this top?”
+* “What else can I wear with these trousers?”
+* “I have more clothes than this”
+
+**Stylist response (automated but human-feeling):**
+
+> “I can do that properly if I learn your wardrobe once.”
+
+CTA:
+
+> **Build my wardrobe**
+
+---
+
+### DFY Core → Subscription
+
+Triggered by:
+
+* Day 25 reminder
+* New event request
+* Seasonal change
+
+Copy:
+
+> “Your wardrobe is saved.
+> Keep your stylist active.”
+
+---
+
+# 3️⃣ MVP Unit Economics (refined with editing clarity)
+
+### DFY Lite (£19.99)
+
+* AI generates base capsule + rotations
+* Stylist “edits” = regeneration, not manual labour
+* Optional human QA only if needed
+
+**Cost**
+
+* AI: £0.80–£1
+* QA buffer: £1–£2
+  **Margin:** ~85–90%
+
+---
+
+### DFY Core (£39–£49)
+
+* Human-assisted tagging
+* True item-level intelligence
+
+**Cost**
+
+* £10–£14 all-in
+  **Margin:** 65–75%
+
+Subscription later = near 90% margin.
+
+---
+
+# 4️⃣ Objections & Confusion — preemptively solved
+
+### “Why can’t I edit outfits myself?”
+
+Stylist:
+
+> “Because I styled these as a capsule.
+> If you want control, we should build your wardrobe properly.”
+
+---
+
+### “Why can’t I add more clothes?”
+
+Stylist:
+
+> “That would change the job I’m doing.
+> DFY Core is where I learn everything you own.”
+
+---
+
+### “This feels restrictive”
+
+Stylist:
+
+> “It’s designed to remove decisions — not add them.”
+
+That reframes restriction as **relief**.
+
+---
+
+## Final founder-level clarity (this is important)
+
+You now have:
+
+* DFY Lite = **authoritative, stylist-led**
+* DFY Core = **collaborative**
+* Subscription = **ongoing intelligence**
+
+The editing rules reinforce:
+
+* Product boundaries
+* Pricing logic
+* User trust
+* Operational sanity
+
+You’re designing this *correctly*.
+
+---
+
+### Where to go next
+
+If you want, next we can:
+
+* Design the **exact “Adjust this” flow**
+* Write the **microcopy that prevents confusion**
+* Simulate **user rage scenarios**
+* Or design the **post-14-day expiry screen**
+
+Just tell me.

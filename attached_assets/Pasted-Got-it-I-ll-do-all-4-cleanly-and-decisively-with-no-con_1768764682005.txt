@@ -1,0 +1,226 @@
+Got it 👍
+I’ll do **all 4**, cleanly and decisively, with **no contradictions**, aligned to your final DFY Lite decision (3–5 outfits, 14-day rotation, stylist-led edits only).
+
+---
+
+# 1️⃣ DFY Lite Delivery Experience (what the user actually experiences)
+
+## Goal
+
+Create **maximum perceived value** while:
+
+* Avoiding wardrobe creation
+* Avoiding user editing
+* Avoiding scope creep
+
+---
+
+## Structure: “14-Day Style Plan”
+
+### What the user sees
+
+* A **14-day view**, not “3–5 outfits”
+* Each day shows:
+
+  * “Today’s look”
+  * Weather/context note
+  * Why it works
+
+Behind the scenes:
+
+* 3–5 core outfits
+* Variations created by:
+
+  * Layering
+  * Shoe swaps
+  * Accessories
+  * Jacket on/off
+
+**Psychology:**
+They feel styled *every day*, not “sold 3 outfits”.
+
+---
+
+## Allowed user actions
+
+* 👍 Love this
+* 👎 Not me
+* 🗣 “Adjust this” (text input)
+* ⭐ Save outfit (static card)
+
+## NOT allowed
+
+* Editing items
+* Swapping pieces
+* Adding clothes
+* Seeing item lists
+
+---
+
+## Editing (important clarification)
+
+* **Only the stylist edits**
+* Edits = regeneration / refinement
+* Language used:
+
+  > “Tell me what feels off — I’ll fix it.”
+
+Never call it “editing”.
+
+---
+
+# 2️⃣ Upgrade Paths (designed to feel inevitable, not forced)
+
+---
+
+## DFY Lite → DFY Core
+
+### Trigger moments (very deliberate)
+
+* User asks:
+
+  * “Can I swap this top?”
+  * “What else can I wear with these trousers?”
+  * “I have more clothes than this”
+* Or after Day 7:
+
+  > “I’m reusing the same pieces because I only styled a capsule.”
+
+### Stylist message
+
+> “I can get much better if I learn everything you own — once.”
+
+### CTA
+
+**Build my wardrobe**
+
+No discounts. No pressure. Just logic.
+
+---
+
+## DFY Core → Subscription (£9.99)
+
+### What they already have
+
+* Wardrobe saved forever
+* Outfits saved
+* 30 days of active styling included
+
+### Trigger moments
+
+* Day 25 reminder
+* New event request
+* Season change
+
+### Copy
+
+> “Your wardrobe is ready.
+> Keep your stylist active.”
+
+This feels fair because:
+
+* They already got value
+* You’re charging for *thinking*, not storage
+
+---
+
+# 3️⃣ Unit Economics (MVP-safe, investor-clean)
+
+---
+
+## DFY Lite (£19.99)
+
+### Costs
+
+* AI generation + variations: £0.80–£1.20
+* Optional QA buffer: £1–£2
+
+**Total cost:** ~£2–£3
+**Gross margin:** **85–90%**
+
+No humans required at scale.
+
+---
+
+## DFY Core (£39–£49)
+
+### Costs
+
+* Human-assisted tagging (≤30 items): £6–£10
+* QA + corrections: £2–£3
+* AI reasoning: ~£1
+
+**Total cost:** ~£10–£14
+**Gross margin:** **65–75%**
+
+Subscription afterward:
+
+* ~90% margin
+* Pure compounding value
+
+This is **excellent** for a bootstrapped MVP.
+
+---
+
+# 4️⃣ Objections, confusion & how the stylist handles them
+
+These responses should be **baked into the product**, not left to support.
+
+---
+
+### “Why do outfits repeat items?”
+
+> “Because I styled a capsule for one moment — not your whole wardrobe.”
+
+---
+
+### “Why can’t I edit outfits myself?”
+
+> “Because I took responsibility for the decisions.
+> If you want control, we should build your wardrobe properly.”
+
+---
+
+### “Why does styling stop after 14 days?”
+
+> “Because this setup solved one situation.
+> Ongoing styling is an active service.”
+
+---
+
+### “Why should I subscribe if my wardrobe is already saved?”
+
+> “Saving is passive. Styling is active.”
+
+That sentence alone is gold.
+
+---
+
+## Final founder-level validation
+
+You now have:
+
+* **DFY Lite** → decision relief, high margin, zero complexity
+* **DFY Core** → foundation, trust, long-term lock-in
+* **Subscription** → intelligence, retention, compounding value
+
+Each tier:
+
+* Has a clear job
+* Has clear boundaries
+* Cannot be gamed
+* Naturally pushes users upward
+
+This is **not** a wardrobe app.
+It’s a **decision engine with fashion as the interface**.
+
+---
+
+### Where we can go next (pick one)
+
+1. Exact **copy + screens** for DFY Lite delivery
+2. The **post-14-day expiry experience**
+3. Mapping **MVP → Premium DFY (£99–£199)**
+4. Investor-ready **pricing & narrative slide**
+
+Just say the word.

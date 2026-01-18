@@ -1,0 +1,272 @@
+Excellent questions — you’re thinking like a founder who is protecting **trust, margin, and long-term retention** at the same time. I’ll answer **both questions clearly first**, then I’ll do **all 4** as requested.
+
+---
+
+# PART 1 — Direct answers to your two questions
+
+---
+
+## 1️⃣ What is the duration of DFY Core if the user does NOT have a subscription?
+
+### Short answer
+
+**DFY Core has permanent setup, but time-limited “active intelligence.”**
+
+This distinction is crucial.
+
+---
+
+### ✅ What the user keeps forever (even without subscription)
+
+* Their **digitised wardrobe** (up to 30 items)
+* Item photos, categories, colours, notes
+* Any outfits created during DFY Core delivery (static saved outfits)
+
+This avoids *“I paid and lost access”* anger.
+
+---
+
+### ⏳ What expires without subscription
+
+After **30 days** (recommended):
+
+* ❌ No new outfits generated
+* ❌ No dynamic remixing
+* ❌ No proactive suggestions
+* ❌ No seasonal updates
+
+The stylist becomes:
+
+> “Dormant but ready.”
+
+---
+
+### How you explain it (very important)
+
+In-app copy:
+
+> “Your wardrobe is saved.
+> To keep styling active, start a subscription.”
+
+This feels fair and professional.
+
+---
+
+### Why this works
+
+* DFY Core is a **setup fee**, not a rental
+* Subscription is for **ongoing thinking**
+* Users don’t feel extorted
+* Conversion happens naturally when they want *more advice*
+
+---
+
+## 2️⃣ Should DFY Lite be increased to 7 outfits because it lasts 14 days?
+
+You’re right to question this — and the answer is **yes, but with a condition**.
+
+---
+
+### The real issue is NOT number of outfits
+
+It’s **perceived coverage vs structural value**.
+
+You want DFY Lite to feel:
+
+* Generous
+* Complete
+* Still clearly inferior to Core
+
+---
+
+### ✅ The correct move
+
+**Increase DFY Lite to:**
+
+* **5–7 outfits**
+* BUT lock it to:
+
+  * One occasion
+  * One capsule
+  * High item reuse
+
+---
+
+### The key constraint (this protects Core)
+
+You must ensure:
+
+* Heavy repetition of items across outfits
+* No wardrobe-level understanding
+* No “smart recombination” language
+
+Think:
+
+> “Here are 7 ways to wear *this small set*.”
+
+Not:
+
+> “Here’s a flexible wardrobe.”
+
+---
+
+### Why this does NOT cannibalise DFY Core
+
+Because Core delivers:
+
+* Breadth (more categories)
+* Depth (less repetition)
+* Future reuse
+* Ongoing intelligence
+
+Even if Lite *touches* 25 items, it never *understands* them.
+
+---
+
+### Recommended DFY Lite framing
+
+> “Enough outfits so you never repeat a look — without building a wardrobe.”
+
+That sentence alone kills arbitrage.
+
+---
+
+# PART 2 — Now I’ll do **all 4** (updated with this clarity)
+
+---
+
+## 1️⃣ Final DFY Tier Definitions (clean & locked)
+
+### DFY Lite — £19.99
+
+**Purpose:** Solve *one moment*
+
+* 5–7 outfits
+* One use case (holiday, work week, event)
+* 14-day active window
+* Static saved outfits
+* Items reused heavily
+* No wardrobe extraction
+* No future learning
+
+---
+
+### DFY Core — £39–£49
+
+**Purpose:** Build the foundation
+
+* Up to 30 individual items
+* Proper categorisation
+* Persistent wardrobe
+* Outfits saved permanently
+* 30 days of active styling without subscription
+* Dormant stylist afterward
+
+---
+
+## 2️⃣ Upgrade Paths (now even cleaner)
+
+### DFY Lite → DFY Core
+
+Trigger:
+
+> “Want me to stop reusing the same pieces and get smarter?”
+
+Upgrade promise:
+
+> “I’ll learn your whole wardrobe once.”
+
+---
+
+### DFY Core → Subscription (£9.99)
+
+Trigger moments:
+
+* After day 30
+* Seasonal change
+* New event request
+
+Upgrade copy:
+
+> “Your wardrobe is ready. Keep me thinking.”
+
+---
+
+## 3️⃣ Updated unit economics (with 7 outfits)
+
+### DFY Lite
+
+* Mostly AI
+* Optional QA
+* Cost:
+
+  * AI: £0.80–£1.20
+  * QA: £1–£2
+* Margin: **85%+**
+
+Even with 7 outfits, this stays extremely profitable.
+
+---
+
+### DFY Core
+
+* Human-in-the-loop
+* Cost remains:
+
+  * £10–£14 total
+* Margin: **65–75%**
+
+Subscription then compounds profit.
+
+---
+
+## 4️⃣ User objections & answers (updated)
+
+### “Why do Lite outfits repeat items?”
+
+Stylist:
+
+> “Because I styled them for one moment, not your whole wardrobe.”
+
+---
+
+### “Why can’t I keep getting new outfits without subscribing?”
+
+Stylist:
+
+> “Because ongoing styling is an active service — your wardrobe is saved whenever you’re ready.”
+
+---
+
+### “Why would I upgrade if Lite worked?”
+
+Stylist:
+
+> “Because Lite solves *now*. Core solves *every time after*.”
+
+---
+
+## Final founder takeaway (important)
+
+You’ve now achieved:
+
+* DFY Lite = **generous but shallow**
+* DFY Core = **foundational but incomplete**
+* Subscription = **where intelligence lives**
+
+That’s a **perfect value ladder**.
+
+Nothing feels scammy.
+Nothing feels arbitrary.
+Nothing feels overbuilt.
+
+---
+
+If you want next, we can:
+
+* Design the **exact post-DFY Core expiry screen**
+* Write the **subscription nudge copy**
+* Decide **how many free outfits Core gets before lock**
+* Or map **MVP → Premium DFY (£199) later**
+
+Just tell me where to go next.
