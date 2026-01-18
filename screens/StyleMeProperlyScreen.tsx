@@ -114,17 +114,19 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? LuxuryColors.obsidian : '#FAF8F5' }]}>
+    <View style={styles.container}>
       <LinearGradient
-        colors={isDark 
-          ? [ScreenGradients.styleMeProperly.primary[0] + '40', ScreenGradients.styleMeProperly.primary[1] + '20', 'transparent']
-          : [ScreenGradients.styleMeProperly.primary[0] + '15', ScreenGradients.styleMeProperly.primary[1] + '10', 'transparent']
-        }
-        style={styles.headerGradient}
+        colors={[
+          ScreenGradients.styleMeProperly.primary[0],
+          ScreenGradients.styleMeProperly.primary[1],
+          LuxuryColors.obsidian,
+        ]}
+        locations={[0, 0.4, 1]}
+        style={StyleSheet.absoluteFill}
       />
       <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
-        <Pressable onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-          <Feather name="arrow-left" size={24} color={theme.text} />
+        <Pressable onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+          <Feather name="arrow-left" size={24} color="#FFFFFF" />
         </Pressable>
         <View style={styles.backButton} />
       </View>
@@ -135,10 +137,10 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
         showsVerticalScrollIndicator={false}
       >
         <Animated.View entering={FadeIn} style={styles.headerSection}>
-          <ThemedText type="h2" style={[styles.pageTitle, { color: theme.text }]}>
+          <ThemedText type="h2" style={[styles.pageTitle, { color: '#FFFFFF' }]}>
             {pageHeader.title}
           </ThemedText>
-          <ThemedText type="body" style={[styles.pageSubtitle, { color: theme.tabIconDefault }]}>
+          <ThemedText type="body" style={[styles.pageSubtitle, { color: 'rgba(255,255,255,0.8)' }]}>
             {pageHeader.subtitle}
           </ThemedText>
         </Animated.View>
@@ -153,8 +155,8 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
                 style={({ pressed }) => [
                   styles.tierCard,
                   { 
-                    backgroundColor: theme.backgroundSecondary,
-                    borderColor: index === 0 ? theme.link : theme.border,
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    borderColor: index === 0 ? LuxuryColors.gold : 'rgba(255,255,255,0.2)',
                     borderWidth: index === 0 ? 2 : 1,
                     opacity: pressed ? 0.9 : 1,
                   }
@@ -162,44 +164,44 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
                 onPress={() => handleTierSelect(tier.id)}
               >
                 {index === 0 ? (
-                  <View style={[styles.recommendedBadge, { backgroundColor: theme.link }]}>
+                  <View style={[styles.recommendedBadge, { backgroundColor: LuxuryColors.gold }]}>
                     <Feather name="zap" size={12} color="#FFFFFF" />
                     <ThemedText type="small" style={styles.recommendedText}>Fastest</ThemedText>
                   </View>
                 ) : null}
 
                 <View style={styles.tierHeader}>
-                  <View style={[styles.tierIcon, { backgroundColor: index === 0 ? theme.link : theme.backgroundSecondary, borderColor: theme.border, borderWidth: index === 0 ? 0 : 1 }]}>
+                  <View style={[styles.tierIcon, { backgroundColor: index === 0 ? LuxuryColors.gold : 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: index === 0 ? 0 : 1 }]}>
                     <Feather 
                       name={index === 0 ? "camera" : "grid"} 
                       size={20} 
-                      color={index === 0 ? "#FFFFFF" : theme.link} 
+                      color="#FFFFFF"
                     />
                   </View>
                   <View style={styles.tierTitleContainer}>
-                    <ThemedText type="h3" style={[styles.tierTitle, { color: theme.text }]}>
+                    <ThemedText type="h3" style={[styles.tierTitle, { color: '#FFFFFF' }]}>
                       {tier.title}
                     </ThemedText>
                     <View style={styles.priceRow}>
-                      <ThemedText type="h3" style={[styles.tierPrice, { color: theme.link }]}>
+                      <ThemedText type="h3" style={[styles.tierPrice, { color: LuxuryColors.gold }]}>
                         {tier.price}
                       </ThemedText>
-                      <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+                      <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.7)' }}>
                         {" · "}{tier.turnaround}
                       </ThemedText>
                     </View>
                   </View>
                 </View>
 
-                <ThemedText type="body" style={[styles.tierTagline, { color: theme.tabIconDefault }]}>
+                <ThemedText type="body" style={[styles.tierTagline, { color: 'rgba(255,255,255,0.8)' }]}>
                   {tier.tagline}
                 </ThemedText>
 
                 <View style={styles.highlightsContainer}>
                   {tier.highlights.map((highlight, idx) => (
                     <View key={idx} style={styles.highlightRow}>
-                      <Feather name="check" size={16} color={theme.link} />
-                      <ThemedText type="body" style={[styles.highlightText, { color: theme.text }]}>
+                      <Feather name="check" size={16} color={LuxuryColors.gold} />
+                      <ThemedText type="body" style={[styles.highlightText, { color: '#FFFFFF' }]}>
                         {highlight}
                       </ThemedText>
                     </View>
@@ -212,14 +214,14 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
 
         <Animated.View entering={FadeInUp.delay(400)} style={styles.footerSection}>
           <View style={styles.reassuranceRow}>
-            <Feather name="shield" size={16} color={theme.tabIconDefault} />
-            <ThemedText type="small" style={[styles.reassuranceText, { color: theme.tabIconDefault }]}>
+            <Feather name="shield" size={16} color="rgba(255,255,255,0.6)" />
+            <ThemedText type="small" style={[styles.reassuranceText, { color: 'rgba(255,255,255,0.6)' }]}>
               {footerReassurance}
             </ThemedText>
           </View>
 
           <Pressable onPress={handleSkip} style={styles.skipButton}>
-            <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
+            <ThemedText type="body" style={{ color: 'rgba(255,255,255,0.7)' }}>
               I'll do it myself
             </ThemedText>
           </Pressable>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, View, Pressable, ActivityIndicator, TextInput, Alert, Platform } from "react-native";
+import { StyleSheet, View, Pressable, ActivityIndicator, TextInput, Alert, Platform, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -17,6 +17,7 @@ import { apiService } from "@/services/ApiService";
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { stylistUpgradeService } from "@/services/StylistUpgradeService";
 import { styleDirectionService, StyleDirection } from "@/services/StyleDirectionService";
+import { getStyleRuleForOccasion, generateOutfitImage } from "@/services/OutfitImageService";
 
 type DecideForMeScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "DecideForMe">;
@@ -43,6 +44,12 @@ interface Recommendation {
   outfit: string;
   reasoning: string;
   stylistName: string;
+}
+
+interface StyleAdvice {
+  styleRule: string;
+  explanation: string;
+  imageUrl: string | null;
 }
 
 const CACHED_OUTFITS_KEY = "dripn_cached_outfits";
@@ -236,6 +243,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const outfitIndexRef = useRef(0);
   const [isLoadingAnotherOption, setIsLoadingAnotherOption] = useState(false);
   const [isLoadingSecondOpinion, setIsLoadingSecondOpinion] = useState(false);
+  const [styleAdvice, setStyleAdvice] = useState<StyleAdvice | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   useEffect(() => {
     fetchWeather();
@@ -428,12 +437,19 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const handleOccasionSelect = async (occasionId: string) => {
     setSelectedOccasion(occasionId);
     setStep("loading");
+    setStyleAdvice(null);
+    
+    // Get style rule immediately for the occasion
+    const { styleRule, explanation } = getStyleRuleForOccasion(occasionId);
+    setStyleAdvice({ styleRule, explanation, imageUrl: null });
     
     // Get context-aware fallback
     const filteredOutfits = getFilteredOutfits(occasionId, weather?.temperature ?? null);
     const randomIndex = Math.floor(Math.random() * filteredOutfits.length);
     outfitIndexRef.current = randomIndex;
     const fallbackOutfit = filteredOutfits[randomIndex];
+
+    let outfitDescription = fallbackOutfit.outfit;
 
     try {
       const data = await apiService.post<{ id?: string; recommendation?: string; reasoning?: string; stylistName?: string }>("/api/onboarding/quick-recommendation", {
@@ -444,6 +460,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       });
 
       if (data && data.recommendation) {
+        outfitDescription = data.recommendation;
         setRecommendation({
           id: data.id,
           outfit: data.recommendation,
@@ -459,6 +476,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       }
       setStep("result");
       incrementRecommendationCount();
+      
+      // Generate outfit image in background
+      generateOutfitImageAsync(outfitDescription, occasionId);
     } catch (error: unknown) {
       setRecommendation({
         outfit: fallbackOutfit.outfit,
@@ -467,6 +487,25 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       });
       setStep("result");
       incrementRecommendationCount();
+      
+      // Generate outfit image in background
+      generateOutfitImageAsync(outfitDescription, occasionId);
+    }
+  };
+
+  const generateOutfitImageAsync = async (outfitDescription: string, occasionId: string) => {
+    setIsGeneratingImage(true);
+    try {
+      const result = await generateOutfitImage(outfitDescription, occasionId);
+      setStyleAdvice(prev => ({
+        styleRule: prev?.styleRule || result.styleRule,
+        explanation: prev?.explanation || result.explanation,
+        imageUrl: result.imageUrl,
+      }));
+    } catch (error) {
+      console.log("Failed to generate outfit image");
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -922,6 +961,47 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </LinearGradient>
       </View>
 
+      {styleAdvice?.imageUrl || isGeneratingImage ? (
+        <Animated.View entering={FadeInDown.delay(100)} style={styles.outfitImageContainer}>
+          {isGeneratingImage && !styleAdvice?.imageUrl ? (
+            <View style={styles.imageLoadingContainer}>
+              <ActivityIndicator size="small" color={LuxuryColors.gold} />
+              <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.7)', marginTop: Spacing.sm }}>
+                Visualizing your outfit...
+              </ThemedText>
+            </View>
+          ) : styleAdvice?.imageUrl ? (
+            <Image 
+              source={{ uri: styleAdvice.imageUrl }} 
+              style={styles.outfitImage}
+              resizeMode="cover"
+            />
+          ) : null}
+        </Animated.View>
+      ) : null}
+
+      {styleAdvice ? (
+        <Animated.View entering={FadeInDown.delay(150)} style={styles.styleAdviceContainer}>
+          <LinearGradient
+            colors={[`${LuxuryColors.gold}30`, `${LuxuryColors.deepGold}20`]}
+            style={styles.styleRuleCard}
+          >
+            <View style={styles.styleRuleHeader}>
+              <Feather name="star" size={14} color={LuxuryColors.gold} />
+              <ThemedText type="small" style={{ color: LuxuryColors.gold, fontWeight: '600', marginLeft: Spacing.xs }}>
+                Style Rule
+              </ThemedText>
+            </View>
+            <ThemedText type="body" style={styles.styleRuleText}>
+              {styleAdvice.styleRule}
+            </ThemedText>
+            <ThemedText type="small" style={styles.styleExplanationText}>
+              {styleAdvice.explanation}
+            </ThemedText>
+          </LinearGradient>
+        </Animated.View>
+      ) : null}
+
       <ThemedText type="small" style={[styles.disclaimerText, { color: 'rgba(255,255,255,0.7)' }]}>
         I'm choosing generally. With your wardrobe, I'd choose specifically.
       </ThemedText>
@@ -1158,6 +1238,50 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 26,
     fontWeight: "500",
+  },
+  outfitImageContainer: {
+    marginVertical: Spacing.md,
+    alignItems: "center",
+  },
+  imageLoadingContainer: {
+    height: 200,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: BorderRadius.lg,
+    width: "100%",
+  },
+  outfitImage: {
+    width: "100%",
+    height: 280,
+    borderRadius: BorderRadius.lg,
+  },
+  styleAdviceContainer: {
+    marginBottom: Spacing.md,
+  },
+  styleRuleCard: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: "rgba(201, 168, 124, 0.3)",
+  },
+  styleRuleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  styleRuleText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: "500",
+    marginBottom: Spacing.sm,
+  },
+  styleExplanationText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
+    lineHeight: 20,
+    fontStyle: "italic",
   },
   disclaimerText: {
     marginTop: Spacing.sm,
