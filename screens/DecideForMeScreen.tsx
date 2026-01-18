@@ -800,20 +800,26 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     return (
       <Animated.View entering={FadeIn} style={styles.stepContainer}>
         <View style={styles.stylistMessage}>
-          <View style={[styles.avatarCircle, { backgroundColor: theme.link }]}>
+          <LinearGradient
+            colors={[ScreenGradients.ruby.primary[0], ScreenGradients.ruby.primary[1]]}
+            style={styles.avatarCircle}
+          >
             <Feather name="message-circle" size={20} color="#FFFFFF" />
-          </View>
-          <View style={[styles.messageBubble, { backgroundColor: theme.backgroundSecondary }]}>
-            <ThemedText type="body" style={[styles.messageText, { color: theme.text }]}>
+          </LinearGradient>
+          <LinearGradient
+            colors={[`${ScreenGradients.ruby.primary[0]}40`, `${ScreenGradients.ruby.primary[1]}25`]}
+            style={[styles.messageBubble, { borderWidth: 1, borderColor: `${ScreenGradients.ruby.primary[0]}50` }]}
+          >
+            <ThemedText type="body" style={[styles.messageText, { color: '#FFFFFF' }]}>
               {message}
             </ThemedText>
-          </View>
+          </LinearGradient>
         </View>
 
         {weather && !isLoadingWeather ? (
-          <Animated.View entering={FadeInDown.delay(200)} style={[styles.weatherBadge, { backgroundColor: theme.backgroundSecondary }]}>
-            <Feather name="cloud" size={16} color={theme.tabIconDefault} />
-            <ThemedText type="small" style={{ color: theme.tabIconDefault, marginLeft: Spacing.xs }}>
+          <Animated.View entering={FadeInDown.delay(200)} style={[styles.weatherBadge, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+            <Feather name="cloud" size={16} color="#FFFFFF" />
+            <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: Spacing.xs }}>
               {weather.temperature}° in {weather.location}
             </ThemedText>
           </Animated.View>
@@ -830,7 +836,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
                 style={({ pressed }) => [
                   styles.optionCard,
                   { 
-                    backgroundColor: selectedOccasion === option.id ? theme.link : theme.backgroundSecondary,
+                    backgroundColor: selectedOccasion === option.id ? ScreenGradients.decideForMe.primary[1] : 'rgba(255,255,255,0.1)',
+                    borderWidth: selectedOccasion === option.id ? 2 : 1,
+                    borderColor: selectedOccasion === option.id ? '#FFFFFF' : 'rgba(255,255,255,0.2)',
                     opacity: pressed ? 0.9 : 1,
                   }
                 ]}
@@ -839,13 +847,13 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
                 <Feather 
                   name={OCCASION_ICONS[option.id] || "circle"} 
                   size={24} 
-                  color={selectedOccasion === option.id ? "#FFFFFF" : theme.text} 
+                  color="#FFFFFF"
                 />
                 <ThemedText 
                   type="body" 
                   style={[
                     styles.optionLabel,
-                    { color: selectedOccasion === option.id ? "#FFFFFF" : theme.text }
+                    { color: '#FFFFFF' }
                   ]}
                 >
                   {option.label}
@@ -1018,12 +1026,21 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundDefault }]}>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={[
+          ScreenGradients.decideForMe.primary[0],
+          ScreenGradients.decideForMe.primary[1],
+          LuxuryColors.obsidian,
+        ]}
+        locations={[0, 0.35, 1]}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={theme.text} />
+        <Pressable onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+          <Feather name="arrow-left" size={24} color="#FFFFFF" />
         </Pressable>
-        <ThemedText type="h3" style={{ color: theme.text }}>Decide for me</ThemedText>
+        <ThemedText type="h3" style={{ color: '#FFFFFF' }}>Decide for me</ThemedText>
         <View style={styles.backButton} />
       </View>
 
