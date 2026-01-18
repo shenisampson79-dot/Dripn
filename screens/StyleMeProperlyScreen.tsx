@@ -4,9 +4,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
@@ -64,7 +65,7 @@ const DEFAULT_TIERS: DfyTier[] = [
 
 export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScreenProps) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const [pageHeader, setPageHeader] = useState({ 
     title: "Want me to do this for you?", 
     subtitle: "I'll set things up so your stylist works properly." 
@@ -113,9 +114,16 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundDefault }]}>
+    <View style={[styles.container, { backgroundColor: isDark ? LuxuryColors.obsidian : '#FAF8F5' }]}>
+      <LinearGradient
+        colors={isDark 
+          ? [ScreenGradients.styleMeProperly.primary[0] + '40', ScreenGradients.styleMeProperly.primary[1] + '20', 'transparent']
+          : [ScreenGradients.styleMeProperly.primary[0] + '15', ScreenGradients.styleMeProperly.primary[1] + '10', 'transparent']
+        }
+        style={styles.headerGradient}
+      />
       <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+        <Pressable onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
           <Feather name="arrow-left" size={24} color={theme.text} />
         </Pressable>
         <View style={styles.backButton} />
@@ -225,6 +233,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 280,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -235,6 +250,7 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },

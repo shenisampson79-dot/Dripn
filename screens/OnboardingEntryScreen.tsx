@@ -8,7 +8,7 @@ import { Video, ResizeMode } from "expo-av";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 const SPACING_XXL = 32;
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
@@ -120,9 +120,14 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
       )}
 
       <LinearGradient
-        colors={["transparent", "rgba(0,0,0,0.7)", "rgba(0,0,0,0.9)"]}
+        colors={[
+          "transparent", 
+          `${ScreenGradients.onboardingEntry.primary[0]}90`,
+          `${ScreenGradients.onboardingEntry.primary[1]}CC`,
+          "rgba(0,0,0,0.95)"
+        ]}
         style={StyleSheet.absoluteFillObject}
-        locations={[0, 0.5, 1]}
+        locations={[0, 0.4, 0.7, 1]}
       />
 
       <View style={[styles.content, { paddingTop: insets.top + SPACING_XXL }]}>
@@ -145,42 +150,60 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
             style={({ pressed }) => [
               styles.ctaButton,
               styles.primaryCta,
-              { backgroundColor: theme.link, opacity: pressed ? 0.9 : 1 }
+              { opacity: pressed ? 0.9 : 1 }
             ]}
             onPress={() => handleEntryChoice("decide_for_me")}
           >
-            <View style={styles.ctaContent}>
-              <View style={styles.ctaTextContainer}>
-                <ThemedText type="h3" style={styles.ctaLabel}>
-                  {decideForMe?.label || "Decide for me"}
-                </ThemedText>
-                <ThemedText type="small" style={styles.ctaSubtitle}>
-                  {decideForMe?.subtitle || "Fast, confident advice"}
-                </ThemedText>
+            <LinearGradient
+              colors={ScreenGradients.decideForMe.primary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.ctaGradient}
+            >
+              <View style={styles.ctaContent}>
+                <View style={styles.ctaTextContainer}>
+                  <ThemedText type="h3" style={styles.ctaLabel}>
+                    {decideForMe?.label || "Decide for me"}
+                  </ThemedText>
+                  <ThemedText type="small" style={styles.ctaSubtitle}>
+                    {decideForMe?.subtitle || "Fast, confident advice"}
+                  </ThemedText>
+                </View>
+                <View style={styles.ctaIconWrapper}>
+                  <Feather name="zap" size={24} color="#FFFFFF" />
+                </View>
               </View>
-              <Feather name="zap" size={24} color="#FFFFFF" />
-            </View>
+            </LinearGradient>
           </Pressable>
 
           <Pressable
             style={({ pressed }) => [
               styles.ctaButton,
               styles.secondaryCta,
-              { borderColor: "rgba(255,255,255,0.4)", opacity: pressed ? 0.9 : 1 }
+              { opacity: pressed ? 0.9 : 1 }
             ]}
             onPress={() => handleEntryChoice("style_me_properly")}
           >
-            <View style={styles.ctaContent}>
-              <View style={styles.ctaTextContainer}>
-                <ThemedText type="h3" style={styles.ctaLabel}>
-                  {styleMeProperly?.label || "Style me properly"}
-                </ThemedText>
-                <ThemedText type="small" style={[styles.ctaSubtitle, { opacity: 0.8 }]}>
-                  {styleMeProperly?.subtitle || "Using my wardrobe & preferences"}
-                </ThemedText>
+            <LinearGradient
+              colors={ScreenGradients.styleMeProperly.primary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.ctaGradient}
+            >
+              <View style={styles.ctaContent}>
+                <View style={styles.ctaTextContainer}>
+                  <ThemedText type="h3" style={styles.ctaLabel}>
+                    {styleMeProperly?.label || "Style me properly"}
+                  </ThemedText>
+                  <ThemedText type="small" style={[styles.ctaSubtitle, { opacity: 0.9 }]}>
+                    {styleMeProperly?.subtitle || "Using my wardrobe & preferences"}
+                  </ThemedText>
+                </View>
+                <View style={styles.ctaIconWrapper}>
+                  <Feather name="grid" size={24} color="#FFFFFF" />
+                </View>
               </View>
-              <Feather name="grid" size={24} color="#FFFFFF" />
-            </View>
+            </LinearGradient>
           </Pressable>
 
           <Pressable onPress={handleJustBrowsing}>
@@ -238,15 +261,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   primaryCta: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowColor: "#DB2777",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
   secondaryCta: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderWidth: 1,
+    shadowColor: "#7C3AED",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  ctaGradient: {
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+  },
+  ctaIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   ctaContent: {
     flexDirection: "row",

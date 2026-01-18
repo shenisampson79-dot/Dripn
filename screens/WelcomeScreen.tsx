@@ -4,10 +4,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 
@@ -61,7 +62,16 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
         onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
       />
 
-      <View style={styles.overlay} />
+      <LinearGradient
+        colors={[
+          "transparent",
+          `${ScreenGradients.welcome.primary[0]}70`,
+          `${ScreenGradients.welcome.primary[1]}A0`,
+          "rgba(0,0,0,0.9)"
+        ]}
+        style={styles.overlay}
+        locations={[0, 0.3, 0.6, 1]}
+      />
       
       <View style={[styles.content, { paddingTop: insets.top + Spacing.md }]}>
         <View style={styles.logoContainer}>
@@ -136,15 +146,24 @@ interface FeatureItemProps {
   isDark: boolean;
 }
 
+const FEATURE_GRADIENTS: Record<string, readonly [string, string]> = {
+  zap: [LuxuryColors.coral, LuxuryColors.magenta],
+  'message-circle': [LuxuryColors.violet, LuxuryColors.deepViolet],
+  users: [LuxuryColors.teal, LuxuryColors.emerald],
+  grid: [LuxuryColors.gold, LuxuryColors.deepGold],
+};
+
 function FeatureItem({ icon, title, description, theme, isDark }: FeatureItemProps) {
+  const gradientColors = FEATURE_GRADIENTS[icon] || [LuxuryColors.violet, LuxuryColors.deepViolet];
+  
   return (
     <View style={styles.featureItem}>
-      <View style={[
-        styles.featureIcon, 
-        { backgroundColor: isDark ? 'rgba(26, 23, 20, 0.9)' : 'rgba(240, 235, 228, 0.9)' }
-      ]}>
-        <Feather name={icon} size={24} color={theme.link} />
-      </View>
+      <LinearGradient
+        colors={gradientColors}
+        style={styles.featureIcon}
+      >
+        <Feather name={icon} size={22} color="#FFFFFF" />
+      </LinearGradient>
       <View style={styles.featureText}>
         <ThemedText type="h3" style={styles.featureTitle}>
           {title}

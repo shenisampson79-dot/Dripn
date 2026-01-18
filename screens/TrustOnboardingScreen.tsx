@@ -5,10 +5,11 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Video, ResizeMode } from "expo-av";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { onboardingAnalyticsService } from "@/services/OnboardingAnalyticsService";
@@ -201,6 +202,17 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
         isMuted
       />
 
+      <LinearGradient
+        colors={[
+          "transparent",
+          `${ScreenGradients.trustOnboarding.primary[0]}80`,
+          `${ScreenGradients.trustOnboarding.primary[1]}CC`,
+          "rgba(0,0,0,0.95)"
+        ]}
+        style={styles.gradientOverlay}
+        locations={[0, 0.35, 0.6, 1]}
+      />
+
       <View style={[styles.overlay, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.lg }]}>
         <View style={styles.headerSpacer} />
         <Animated.View 
@@ -227,9 +239,16 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
             </View>
           </View>
           <View style={styles.ctaContainer}>
-            <Button onPress={handleGetStyled} style={styles.primaryButton}>
-              Let's Go
-            </Button>
+            <LinearGradient
+              colors={ScreenGradients.trustOnboarding.primary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.ctaGradient}
+            >
+              <Button onPress={handleGetStyled} style={styles.primaryButton}>
+                Let's Go
+              </Button>
+            </LinearGradient>
           </View>
         </Animated.View>
       </View>
@@ -246,7 +265,12 @@ interface BulletPointProps {
 function BulletPoint({ text, theme, icon }: BulletPointProps) {
   return (
     <View style={styles.bulletPoint}>
-      <Feather name={icon || "check"} size={18} color="#FFFFFF" style={styles.bulletIcon} />
+      <LinearGradient
+        colors={ScreenGradients.trustOnboarding.secondary}
+        style={styles.bulletIconWrapper}
+      >
+        <Feather name={icon || "check"} size={14} color="#FFFFFF" />
+      </LinearGradient>
       <ThemedText type="body" style={styles.bulletText}>{text}</ThemedText>
     </View>
   );
@@ -257,6 +281,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   backgroundVideo: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  gradientOverlay: {
     position: "absolute",
     top: 0,
     left: 0,
@@ -338,6 +369,17 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.8)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,
+  },
+  bulletIconWrapper: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ctaGradient: {
+    borderRadius: BorderRadius.lg,
+    overflow: "hidden",
   },
   bulletText: {
     flex: 1,
