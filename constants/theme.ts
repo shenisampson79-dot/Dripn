@@ -370,3 +370,229 @@ export const ContributorColors = {
     label: 'Fashion Guru',
   },
 };
+
+// DRIPN LUXURY COLOR SYSTEM - Master Palette
+// A comprehensive, fashion-forward color system for a legendary trendsetting app
+export const LuxuryColors = {
+  // Core Luxury Palette
+  gold: '#C9A87C',
+  deepGold: '#A88B5C',
+  champagne: '#F5E6D3',
+  rose: '#E8B4B8',
+  berry: '#8B2F39',
+  deepBerry: '#6B2430',
+  violet: '#9B7EBD',
+  deepViolet: '#6B4E8D',
+  royalViolet: '#5B3D7A',
+  coral: '#E07A5F',
+  deepCoral: '#C46A4F',
+  teal: '#2A9D8F',
+  emerald: '#059669',
+  deepEmerald: '#047857',
+  midnight: '#1A1A2E',
+  obsidian: '#0D0B09',
+  
+  // Fashion Accent Colors
+  blush: '#F4C2C2',
+  peach: '#FFCBA4',
+  lavender: '#B8A9C9',
+  sage: '#9CAF88',
+  navy: '#1E3A5F',
+  electric: '#7C3AED',
+  magenta: '#DB2777',
+  amber: '#F59E0B',
+  crimson: '#DC2626',
+  sapphire: '#2563EB',
+  turquoise: '#14B8A6',
+  bronze: '#CD7F32',
+  platinum: '#E5E4E2',
+  
+  // Gradient Intensities (for light/dark mode adjustments)
+  overlay: {
+    light: 'rgba(255,255,255,0.95)',
+    medium: 'rgba(255,255,255,0.8)',
+    subtle: 'rgba(255,255,255,0.6)',
+  },
+  shadow: {
+    light: 'rgba(0,0,0,0.1)',
+    medium: 'rgba(0,0,0,0.3)',
+    heavy: 'rgba(0,0,0,0.6)',
+  },
+};
+
+// Screen-Specific Gradient Palettes - Each screen gets a unique identity
+export const ScreenGradients = {
+  // Onboarding Flow - Progressive journey colors
+  onboardingEntry: {
+    primary: ['#8B2F39', '#DB2777'] as const,      // Berry to Magenta - Bold first impression
+    secondary: ['#6B4E8D', '#9B7EBD'] as const,    // Deep to Light Violet
+    accent: '#C9A87C',
+  },
+  welcome: {
+    primary: ['#1E3A5F', '#2A9D8F'] as const,      // Navy to Teal - Trust & Innovation
+    secondary: ['#C9A87C', '#E8B4B8'] as const,    // Gold to Rose
+    accent: '#FFFFFF',
+  },
+  trustOnboarding: {
+    primary: ['#6B4E8D', '#9B7EBD'] as const,      // Royal Violet gradient
+    secondary: ['#E8B4B8', '#F4C2C2'] as const,    // Rose to Blush
+    accent: '#C9A87C',
+  },
+  decideForMe: {
+    primary: ['#E07A5F', '#DB2777'] as const,      // Coral to Magenta - Energy & Action
+    secondary: ['#F59E0B', '#E07A5F'] as const,    // Amber to Coral
+    accent: '#FFFFFF',
+  },
+  styleMeProperly: {
+    primary: ['#9B7EBD', '#7C3AED'] as const,      // Violet to Electric - Premium feel
+    secondary: ['#2563EB', '#14B8A6'] as const,    // Sapphire to Turquoise
+    accent: '#C9A87C',
+  },
+  softSignupGate: {
+    primary: ['#C9A87C', '#A88B5C'] as const,      // Gold gradient - Conversion focus
+    secondary: ['#8B2F39', '#6B2430'] as const,    // Berry depth
+    accent: '#FFFFFF',
+  },
+  
+  // Main App Screens
+  home: {
+    primary: ['#1A1A2E', '#2A9D8F'] as const,      // Midnight to Teal - Signature hero
+    secondary: ['#C9A87C', '#E07A5F'] as const,    // Gold to Coral
+    accent: '#9B7EBD',
+  },
+  wardrobe: {
+    primary: ['#9B7EBD', '#E8B4B8'] as const,      // Violet to Rose - Feminine luxury
+    secondary: ['#6B4E8D', '#8B2F39'] as const,    // Deep violet to Berry
+    accent: '#C9A87C',
+  },
+  profile: {
+    primary: ['#C9A87C', '#F5E6D3'] as const,      // Gold to Champagne - Personal luxury
+    secondary: ['#A88B5C', '#8B2F39'] as const,    // Deep Gold to Berry
+    accent: '#9B7EBD',
+  },
+  settings: {
+    primary: ['#2A9D8F', '#059669'] as const,      // Teal to Emerald - Fresh & clear
+    secondary: ['#14B8A6', '#047857'] as const,    // Turquoise to Deep Emerald
+    accent: '#C9A87C',
+  },
+  
+  // Stylist Screens - Each AI has unique identity
+  stylistHub: {
+    primary: ['#6B4E8D', '#9B7EBD'] as const,      // Violet base for hub
+    secondary: ['#E8B4B8', '#8B2F39'] as const,    // Rose to Berry
+    accent: '#C9A87C',
+  },
+  ruby: {
+    primary: ['#E8B4B8', '#8B2F39'] as const,      // Rose to Berry - Warm & nurturing
+    secondary: ['#F4C2C2', '#6B2430'] as const,
+    accent: '#C9A87C',
+  },
+  max: {
+    primary: ['#9B7EBD', '#6B4E8D'] as const,      // Violet gradient - Bold & direct
+    secondary: ['#7C3AED', '#5B3D7A'] as const,
+    accent: '#E8B4B8',
+  },
+  ace: {
+    primary: ['#C9A87C', '#A88B5C'] as const,      // Gold gradient - Trendsetter
+    secondary: ['#F59E0B', '#CD7F32'] as const,    // Amber to Bronze
+    accent: '#1A1A2E',
+  },
+  julia: {
+    primary: ['#2A9D8F', '#059669'] as const,      // Teal to Emerald - Support persona
+    secondary: ['#14B8A6', '#047857'] as const,
+    accent: '#C9A87C',
+  },
+  
+  // Feature Screens - Distinct experiences
+  discover: {
+    primary: ['#7C3AED', '#DB2777'] as const,      // Electric to Magenta - Vibrant exploration
+    secondary: ['#2563EB', '#14B8A6'] as const,
+    accent: '#F59E0B',
+  },
+  gamesHub: {
+    primary: ['#F59E0B', '#E07A5F'] as const,      // Amber to Coral - Playful energy
+    secondary: ['#DC2626', '#DB2777'] as const,
+    accent: '#7C3AED',
+  },
+  styleDNA: {
+    primary: ['#E8B4B8', '#9B7EBD'] as const,      // Rose to Violet - Personal & warm
+    secondary: ['#F4C2C2', '#B8A9C9'] as const,
+    accent: '#C9A87C',
+  },
+  events: {
+    primary: ['#1E3A5F', '#7C3AED'] as const,      // Navy to Electric - Event excitement
+    secondary: ['#2563EB', '#DB2777'] as const,
+    accent: '#F59E0B',
+  },
+  community: {
+    primary: ['#14B8A6', '#2A9D8F'] as const,      // Turquoise to Teal - Social connection
+    secondary: ['#059669', '#9CAF88'] as const,
+    accent: '#E8B4B8',
+  },
+  
+  // Utility Screens
+  help: {
+    primary: ['#2563EB', '#14B8A6'] as const,      // Sapphire to Turquoise - Calming support
+    secondary: ['#1E3A5F', '#2A9D8F'] as const,
+    accent: '#C9A87C',
+  },
+  auth: {
+    primary: ['#1A1A2E', '#6B4E8D'] as const,      // Midnight to Violet - Premium secure
+    secondary: ['#8B2F39', '#DB2777'] as const,
+    accent: '#C9A87C',
+  },
+  subscription: {
+    primary: ['#C9A87C', '#8B2F39'] as const,      // Gold to Berry - Luxury conversion
+    secondary: ['#9B7EBD', '#7C3AED'] as const,
+    accent: '#F5E6D3',
+  },
+  
+  // Special Feature Screens
+  virtualTryOn: {
+    primary: ['#DB2777', '#7C3AED'] as const,      // Magenta to Electric - Tech forward
+    secondary: ['#E07A5F', '#F59E0B'] as const,
+    accent: '#14B8A6',
+  },
+  colorAnalysis: {
+    primary: ['#E8B4B8', '#F59E0B'] as const,      // Rose to Amber - Color spectrum
+    secondary: ['#9B7EBD', '#2A9D8F'] as const,
+    accent: '#8B2F39',
+  },
+  dreamOutfit: {
+    primary: ['#7C3AED', '#DB2777'] as const,      // Electric to Magenta - Creative
+    secondary: ['#9B7EBD', '#E8B4B8'] as const,
+    accent: '#C9A87C',
+  },
+  weatherOutfit: {
+    primary: ['#2563EB', '#14B8A6'] as const,      // Sapphire to Turquoise - Sky & nature
+    secondary: ['#F59E0B', '#E07A5F'] as const,   // Warm sun colors
+    accent: '#FFFFFF',
+  },
+  sustainability: {
+    primary: ['#9CAF88', '#059669'] as const,      // Sage to Emerald - Eco-conscious
+    secondary: ['#2A9D8F', '#047857'] as const,
+    accent: '#C9A87C',
+  },
+  bargains: {
+    primary: ['#DC2626', '#F59E0B'] as const,      // Crimson to Amber - Deals & excitement
+    secondary: ['#E07A5F', '#DB2777'] as const,
+    accent: '#FFFFFF',
+  },
+  wishlist: {
+    primary: ['#E8B4B8', '#DB2777'] as const,      // Rose to Magenta - Desire & love
+    secondary: ['#F4C2C2', '#8B2F39'] as const,
+    accent: '#C9A87C',
+  },
+  
+  // Admin & Professional
+  stylistPortal: {
+    primary: ['#1E3A5F', '#2A9D8F'] as const,      // Navy to Teal - Professional
+    secondary: ['#6B4E8D', '#9B7EBD'] as const,
+    accent: '#C9A87C',
+  },
+  adminPortal: {
+    primary: ['#8B2F39', '#1A1A2E'] as const,      // Berry to Midnight - Authority
+    secondary: ['#6B2430', '#0D0B09'] as const,
+    accent: '#C9A87C',
+  },
+};
