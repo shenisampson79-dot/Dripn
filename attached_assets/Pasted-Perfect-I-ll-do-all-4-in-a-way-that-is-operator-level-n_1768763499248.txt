@@ -1,0 +1,299 @@
+Perfect — I’ll do **all 4** in a way that is **operator-level**, not theoretical.
+I’ll be explicit about **what ships at MVP**, **what is deferred**, and **why each decision protects authority, retention, and margins**.
+
+---
+
+# 1️⃣ Community Voting v2 (only after trust is built)
+
+This is the **correct** way to add community input *without* weakening the stylist.
+
+---
+
+## ❌ What you must NOT do
+
+* No open social feed
+* No likes/comments chaos
+* No “what do you think?” framing
+* No community replacing the stylist
+
+That leads to a weak hybrid.
+
+---
+
+## ✅ What Community Voting *is*
+
+Community voting is:
+
+> **A confidence reinforcement layer**, not a decision engine.
+
+The stylist always decides first.
+
+---
+
+## When it unlocks
+
+Only after **one of these signals**:
+
+* User has asked the stylist ≥ 5 decisions
+* OR user is a paid subscriber
+* OR user has completed DFY Lite/Core
+
+This ensures:
+
+> Users trust the stylist *before* seeing others’ opinions.
+
+---
+
+## UX Flow (clean & controlled)
+
+### Step 1 — Stylist decides (always first)
+
+> “Wear Outfit B. It’s more balanced for the event.”
+
+Then, *optionally*:
+
+Button:
+
+> “See how others would vote”
+
+---
+
+### Step 2 — Community vote (time-boxed)
+
+* 2 options max
+* Anonymous votes
+* No comments
+* No usernames
+
+Displayed as:
+
+> “73% chose Outfit B”
+
+---
+
+### Step 3 — Stylist reframes the result
+
+This is critical.
+
+If community agrees:
+
+> “Good instinct — most people see what I see.”
+
+If community disagrees:
+
+> “The alternative is more popular, but popularity isn’t always the right choice for *you*.”
+
+Authority preserved.
+
+---
+
+## Monetization
+
+* ❌ Free tier: no community voting
+* ✅ Paid tier: included
+* 🔮 Future: “Priority votes in under 10 mins” (£0.99)
+
+---
+
+# 2️⃣ Exact In-App Copy for Limits, Nudges & Paywalls
+
+This is where most apps lose trust. You won’t.
+
+---
+
+## Free tier — decision limit copy
+
+When user hits 1 post/day:
+
+> “That’s your decision for today.
+> Your stylist is here whenever you’re ready.”
+
+Button:
+
+> “Unlock unlimited decisions”
+
+No guilt. No pressure.
+
+---
+
+## Second opinion locked (free)
+
+User taps “Second opinion”:
+
+> “Second opinions are part of your personal stylist plan.”
+
+Button:
+
+> “Upgrade”
+
+---
+
+## Community voting locked
+
+> “Community votes are available once your stylist knows you better.”
+
+This implies **progress**, not a paywall.
+
+---
+
+## Upgrade CTA (core message)
+
+> “Outfits shouldn’t take this much thinking.”
+
+That’s your north star.
+
+---
+
+# 3️⃣ Failure States (this is where trust is won or lost)
+
+You *must* design these upfront.
+
+---
+
+## A. Bad photo quality
+
+If image is unclear:
+
+> “I can’t see this clearly enough to make a confident call.
+> Try one clean photo — natural light works best.”
+
+Never guess. Authority means knowing when not to decide.
+
+---
+
+## B. Too many options
+
+If user uploads 4+ items:
+
+> “Give me your top two or three — too many options makes decisions worse.”
+
+You are teaching better behaviour.
+
+---
+
+## C. No context at all
+
+If user provides nothing:
+
+Stylist still answers:
+
+> “Based on what I can see, choose Option A.
+> If you want a sharper call, add where you’re wearing this.”
+
+Never block.
+
+---
+
+## D. Contradictory constraints
+
+Example: “Formal wedding” + gym trainers
+
+> “These don’t match the setting.
+> If comfort matters more than formality, say the word.”
+
+Calm correction, not judgment.
+
+---
+
+# 4️⃣ Retention Uplift Model (why this feature matters)
+
+This feature is not “nice to have”.
+It is **retention infrastructure**.
+
+---
+
+## Without “+ Decision” button
+
+Typical pattern:
+
+* User opens app only before events
+* 1–2 uses/week
+* Subscription feels optional
+
+---
+
+## With “+ Decision” button
+
+New habit loop:
+
+* Shopping → ask stylist
+* Dressing → ask stylist
+* Doubt → ask stylist
+
+This creates:
+
+* **Daily micro-use**
+* Emotional reliance
+* Reduced churn
+
+---
+
+## Expected retention impact (conservative)
+
+| Metric                     | Without | With + Button |
+| -------------------------- | ------- | ------------- |
+| Weekly active usage        | 1–2     | 5–7           |
+| 30-day retention           | ~25%    | 40–50%        |
+| “Can’t live without” users | Low     | High          |
+
+This is how you justify:
+
+> £9.99/month without hesitation.
+
+---
+
+## Why this feature does NOT change pricing (yet)
+
+You don’t raise price when value increases silently.
+You raise price when *expectation* changes.
+
+This feature:
+
+* Makes the current price feel cheap
+* Increases conversion
+* Reduces churn
+
+Later (post-PMF):
+
+* Introduce **£14.99 Pro**
+* Or add paid add-ons (priority, deep analysis, shopping links)
+
+---
+
+# Final Founder Guidance (important)
+
+This “+” feature does something rare:
+
+It **removes taste decisions**, not just outfits.
+
+You’re not building:
+
+* a wardrobe app
+* a fashion feed
+* a styling assistant
+
+You’re building:
+
+> **A decision authority people trust when they’re unsure.**
+
+That’s defensible.
+That’s sticky.
+That’s monetizable.
+
+---
+
+## Next moves (strongly recommended order)
+
+1. Lock **stylist response rules** in code (no “it depends”)
+2. Design **+ button UI** with zero friction
+3. Ship without community voting (v1)
+4. Add voting only after trust signals
+
+If you want, next I can:
+
+* Write **exact AI prompt logic** for this feature
+* Design the **bottom nav & modal wireframes**
+* Simulate **abuse cases at scale**
+* Draft **investor narrative** around “decision outsourcing”
+
+Just tell me where you want to go next.

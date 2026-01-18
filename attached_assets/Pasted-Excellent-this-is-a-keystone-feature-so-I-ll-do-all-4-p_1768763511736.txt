@@ -1,0 +1,334 @@
+Excellent — this is a **keystone feature**, so I’ll do **all 4 properly** and lock it into your product without breaking authority, pricing, or ops.
+
+I’ll structure this so you could hand it to:
+
+* a designer
+* an AI engineer
+* and yourself as founder
+  and everyone would agree what “right” looks like.
+
+---
+
+# 1️⃣ Exact “+” Button UX Flow (authoritative, fast, habit-forming)
+
+## Placement
+
+* **Large “+” button**, centre of bottom nav
+* Always visible
+* One-tap access
+
+This visually reinforces:
+
+> “When in doubt, ask me.”
+
+---
+
+## Step-by-step flow
+
+### Step 1 — Tap “+”
+
+Modal opens with **one sentence**:
+
+> “What decision can I help you with?”
+
+Options (cards, not text links):
+
+* 🛍 Choosing what to buy
+* 👕 What should I wear?
+* 🎯 Outfit for an event
+* 🤔 Quick sanity check
+
+No social language. No “post”.
+
+---
+
+### Step 2 — Upload / Select
+
+User can:
+
+* Upload **1–3 images max**
+* OR paste a product link
+* OR choose from saved outfits (if they have a wardrobe)
+
+Microcopy:
+
+> “Two or three options is perfect.”
+
+This prevents overload and keeps cost down.
+
+---
+
+### Step 3 — Context (optional, fast)
+
+One optional text box:
+
+> “Anything I should know?”
+
+Quick chips:
+
+* Comfort
+* Versatility
+* Budget
+* Trendy vs timeless
+* Work-appropriate
+
+No long forms. No questionnaires.
+
+---
+
+### Step 4 — Stylist Decision (the moment of authority)
+
+The stylist responds with:
+
+* **One clear choice**
+* Short reasoning (2–3 lines)
+* Optional “what this says about you” framing
+
+Example:
+
+> “Go with Option B.
+> It’ll work in more situations and won’t feel dated in six months.”
+
+Buttons:
+
+* 👍 That helps
+* 🔁 Second opinion *(if available)*
+* ⭐ Save
+
+---
+
+# 2️⃣ Stylist Response Templates (non-negotiable rules)
+
+These templates are critical — they prevent the AI from becoming wishy-washy.
+
+---
+
+## Core response structure (always the same)
+
+1. **Decision first**
+2. **Reason second**
+3. **Confidence reinforcement third**
+
+---
+
+### Template: Shopping decision
+
+> “Choose Option A.
+> It’s more versatile and you’ll wear it more often.
+> The other option looks good, but it’s harder to justify long-term.”
+
+---
+
+### Template: Outfit choice
+
+> “Wear Outfit 2.
+> It balances effort and comfort better for this event.
+> You’ll feel put together without feeling overdone.”
+
+---
+
+### Template: Sanity check
+
+> “Your instinct is right.
+> This works for the setting and doesn’t try too hard.”
+
+---
+
+### Forbidden language (hard rules)
+
+* ❌ “It depends”
+* ❌ “You could go either way”
+* ❌ “Both are great”
+* ❌ Long explanations
+
+Authority > exhaustiveness.
+
+---
+
+# 3️⃣ Second Opinion Logic (without undermining authority)
+
+This is subtle — done wrong, it destroys trust.
+
+---
+
+## Who gets second opinions?
+
+* ❌ Free tier: **No**
+* ✅ Paid Personal Stylist: **Yes**
+* ❌ DFY Lite/Core alone: **No** (unless subscribed)
+
+This protects subscription value.
+
+---
+
+## What “second opinion” actually is
+
+⚠️ Important:
+It is **NOT** a different stylist personality.
+It is **NOT** the community (yet).
+
+It is:
+
+> The same stylist, reassessing with a stricter lens.
+
+---
+
+## Second opinion framing (copy)
+
+When user taps “Second opinion”:
+
+> “I’ll sanity-check this with a stricter filter.”
+
+---
+
+## Second opinion response rules
+
+### Case 1: Stylist agrees
+
+> “I stand by my first choice.
+> The alternative is trendier, but less you.”
+
+This **strengthens authority**.
+
+---
+
+### Case 2: Stylist changes mind (rare)
+
+> “On second thought, Option B is the safer buy.
+> It’ll integrate better with what you already wear.”
+
+Admitting revision **increases trust** when rare.
+
+---
+
+## Hard constraint
+
+* Only **one** second opinion per decision
+* No looping
+
+---
+
+# 4️⃣ Abuse, Latency & Cost Stress-Test (founder-critical)
+
+This feature *can* blow up costs if unmanaged — here’s how you control it.
+
+---
+
+## A. Abuse prevention
+
+### Free tier limits
+
+* 1 decision / day
+* Max 2 images
+* No second opinion
+* No history
+
+### Paid tier soft limits
+
+* Unlimited decisions
+* But:
+
+  * 3 images max
+  * No batch uploads
+  * Cooldown if spam detected
+
+---
+
+## B. Latency expectations (set trust)
+
+### Default SLA (shown subtly)
+
+> “Usually replies in under a minute.”
+
+Don’t promise seconds. Reliability > speed.
+
+---
+
+### If delayed
+
+Stylist says:
+
+> “Give me a moment — I want to get this right.”
+
+Humanises delay.
+
+---
+
+## C. Cost control (AI + ops)
+
+### Average decision cost (AI)
+
+* Image + reasoning: ~£0.05–£0.15 per request (at scale)
+
+Even with:
+
+* 5 decisions/day/user
+* 10k active subscribers
+
+This is still very healthy margin.
+
+---
+
+### Why this feature scales well
+
+* Short prompts
+* Limited images
+* No long memory writes
+* No human-in-the-loop
+
+This is **high retention, low marginal cost** — the holy grail.
+
+---
+
+# How this fits the stylist’s “mind”
+
+You should explicitly define this internally:
+
+> “My job is to make decisions feel lighter, not perfect.”
+
+The stylist is:
+
+* Decisive
+* Calm
+* Slightly opinionated
+* Not democratic
+* Not insecure
+
+Over time, users will stop asking:
+
+> “What do you think?”
+
+And start thinking:
+
+> “I’ll just ask.”
+
+That’s product-market fit.
+
+---
+
+## Final founder verdict
+
+This feature:
+
+* Does **not** change your pricing (it strengthens it)
+* Makes £9.99 feel obvious
+* Dramatically increases daily usage
+* Trains users to outsource taste
+* Reinforces the stylist as authority
+
+This is exactly the kind of feature that turns:
+
+> “Nice app”
+> into
+> “I can’t live without this.”
+
+---
+
+### Where to go next (pick one)
+
+1. Define **community voting v2** (only after trust is built)
+2. Write **exact in-app copy** for limits & nudges
+3. Design **failure states** (bad photo, unclear options)
+4. Model **retention uplift** from this feature
+
+Say the word.

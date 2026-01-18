@@ -25,6 +25,7 @@ import MainTabNavigator from "@/navigation/MainTabNavigator";
 import AuthStackNavigator from "@/navigation/AuthStackNavigator";
 import StylistStackNavigator from "@/navigation/StylistStackNavigator";
 import CreatePostScreen from "@/screens/CreatePostScreen";
+import AskStylistScreen from "@/screens/AskStylistScreen";
 import { AppTour } from "@/components/AppTour";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -69,6 +70,7 @@ function AppContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [showTour, setShowTour] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [showAskStylist, setShowAskStylist] = useState(false);
   const [portalMode, setPortalMode] = useState<PortalMode>(null);
   const navigation = useNavigation<any>();
 
@@ -91,7 +93,7 @@ function AppContent() {
   }
 
   const handleCreatePost = () => {
-    setShowCreatePost(true);
+    setShowAskStylist(true);
   };
 
   return (
@@ -120,6 +122,16 @@ function AppContent() {
         onRequestClose={() => setShowCreatePost(false)}
       >
         <CreatePostScreen onClose={() => setShowCreatePost(false)} />
+      </Modal>
+      <Modal
+        visible={showAskStylist}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowAskStylist(false)}
+      >
+        <AskStylistScreen 
+          navigation={{ goBack: () => setShowAskStylist(false), navigate: () => {} } as any} 
+        />
       </Modal>
       <AppTour 
         visible={showTour} 

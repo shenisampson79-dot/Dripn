@@ -29,6 +29,7 @@ import ColdOpenScreen from "@/screens/ColdOpenScreen";
 import DFYComparisonScreen from "@/screens/DFYComparisonScreen";
 import DFYStylePlanScreen from "@/screens/DFYStylePlanScreen";
 import DFYExpiryScreen from "@/screens/DFYExpiryScreen";
+import AskStylistScreen from "@/screens/AskStylistScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -63,6 +64,7 @@ export type ProfileStackParamList = {
   DFYComparison: undefined;
   DFYStylePlan: undefined;
   DFYExpiry: undefined;
+  AskStylist: undefined;
 };
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -311,6 +313,15 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
           title: "Access Status",
           headerShown: false,
           presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="AskStylist"
+        component={AskStylistScreen}
+        options={{
+          title: "Ask the Stylist",
+          headerShown: false,
+          presentation: "fullScreenModal",
         }}
       />
     </Stack.Navigator>
