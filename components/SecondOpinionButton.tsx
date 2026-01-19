@@ -14,9 +14,11 @@ import {
   VotingResult,
   OutfitOption,
   VoteReason,
+  ExpressResultsInfo,
 } from "@/services/CommunityVotingService";
 import { decisionService, CommunityVotingEligibility } from "@/services/DecisionService";
 import { dfyService } from "@/services/DFYService";
+import { currencyService } from "@/services/CurrencyService";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface SecondOpinionButtonProps {
@@ -45,6 +47,14 @@ export function SecondOpinionButton({
   const [timeRemaining, setTimeRemaining] = useState({ minutes: 0, seconds: 0, expired: false });
   const [eligibility, setEligibility] = useState<CommunityVotingEligibility | null>(null);
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(true);
+  const [showSpeedChoice, setShowSpeedChoice] = useState(false);
+  const [expressInfo, setExpressInfo] = useState<ExpressResultsInfo | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  useEffect(() => {
+    const symbol = currencyService.getCurrencySymbol();
+    setExpressInfo(CommunityVotingService.getExpressResultsInfo(symbol));
+  }, []);
 
   useEffect(() => {
     const checkEligibility = async () => {
@@ -97,27 +107,42 @@ export function SecondOpinionButton({
       setShowLockedModal(true);
       return;
     }
-    handleStartVoting();
+    setShowSpeedChoice(true);
+    setShowModal(true);
   };
 
-  const handleStartVoting = async () => {
+  const handleStartVoting = async (isExpress: boolean = false) => {
     if (!user?.id) return;
     
+    setShowSpeedChoice(false);
     setIsLoading(true);
     try {
       const newSession = await CommunityVotingService.createVotingSession(
         user.id,
         outfitOptions,
         aiRecommendedOptionId,
-        { occasion, description: `Outfit decision for ${occasion || "today"}` }
+        { occasion, description: `Outfit decision for ${occasion || "today"}` },
+        isExpress
       );
       setSession(newSession);
-      setShowModal(true);
     } catch (error) {
       console.error("Error creating voting session:", error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleExpressChoice = async () => {
+    setIsProcessingPayment(true);
+    try {
+      await handleStartVoting(true);
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const handleStandardChoice = async () => {
+    await handleStartVoting(false);
   };
 
   const handleUpgradePress = () => {
@@ -224,13 +249,97 @@ export function SecondOpinionButton({
   };
 
   const renderModalContent = () => {
-    if (isLoading) {
+    if (isLoading || isProcessingPayment) {
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.link} />
           <ThemedText type="body" style={styles.loadingText}>
-            {result ? "Checking results..." : "Setting up your confidence check..."}
+            {isProcessingPayment ? "Processing..." : result ? "Checking results..." : "Setting up your confidence check..."}
           </ThemedText>
+        </View>
+      );
+    }
+
+    if (showSpeedChoice && expressInfo) {
+      return (
+        <View style={styles.speedChoiceContainer}>
+          <View style={styles.speedChoiceHeader}>
+            <ThemedText type="h2" style={styles.speedChoiceTitle}>
+              How quickly do you need this?
+            </ThemedText>
+            <ThemedText type="body" style={[styles.speedChoiceSubtitle, { color: theme.tabIconDefault }]}>
+              Choose your results speed
+            </ThemedText>
+          </View>
+
+          <View style={styles.speedOptionsContainer}>
+            <Pressable 
+              onPress={handleExpressChoice}
+              style={({ pressed }) => [
+                styles.speedOption,
+                styles.expressOption,
+                { 
+                  backgroundColor: isDark ? 'rgba(201,168,124,0.15)' : 'rgba(201,168,124,0.1)',
+                  borderColor: '#C9A87C',
+                  opacity: pressed ? 0.8 : 1,
+                }
+              ]}
+            >
+              <View style={styles.speedOptionHeader}>
+                <View style={[styles.speedBadge, { backgroundColor: '#C9A87C' }]}>
+                  <Feather name="zap" size={14} color="#FFFFFF" />
+                  <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700', marginLeft: 4 }}>
+                    EXPRESS
+                  </ThemedText>
+                </View>
+                <ThemedText type="h3" style={{ color: '#C9A87C' }}>
+                  {expressInfo.formattedPrice}
+                </ThemedText>
+              </View>
+              <ThemedText type="h3" style={styles.speedOptionTitle}>
+                Results in ~{expressInfo.waitTimeMinutes} minutes
+              </ThemedText>
+              <ThemedText type="small" style={[styles.speedOptionDesc, { color: theme.tabIconDefault }]}>
+                Skip the wait and get your community verdict faster
+              </ThemedText>
+            </Pressable>
+
+            <Pressable 
+              onPress={handleStandardChoice}
+              style={({ pressed }) => [
+                styles.speedOption,
+                { 
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                  borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                  opacity: pressed ? 0.8 : 1,
+                }
+              ]}
+            >
+              <View style={styles.speedOptionHeader}>
+                <View style={[styles.speedBadge, { backgroundColor: theme.tabIconDefault }]}>
+                  <Feather name="clock" size={14} color="#FFFFFF" />
+                  <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700', marginLeft: 4 }}>
+                    STANDARD
+                  </ThemedText>
+                </View>
+                <ThemedText type="h3" style={{ color: theme.link }}>
+                  Free
+                </ThemedText>
+              </View>
+              <ThemedText type="h3" style={styles.speedOptionTitle}>
+                Results in ~{expressInfo.standardWaitMinutes} minutes
+              </ThemedText>
+              <ThemedText type="small" style={[styles.speedOptionDesc, { color: theme.tabIconDefault }]}>
+                We'll notify you when votes are in
+              </ThemedText>
+            </Pressable>
+          </View>
+
+          <Pressable onPress={() => setShowModal(false)} style={styles.skipLink}>
+            <ThemedText type="small" style={styles.skipText}>
+              Maybe later
+            </ThemedText>
+          </Pressable>
         </View>
       );
     }
@@ -618,5 +727,48 @@ const styles = StyleSheet.create({
   lockedDismiss: {
     alignItems: "center",
     paddingVertical: Spacing.md,
+  },
+  speedChoiceContainer: {
+    flex: 1,
+  },
+  speedChoiceHeader: {
+    marginBottom: Spacing.xl,
+  },
+  speedChoiceTitle: {
+    marginBottom: Spacing.sm,
+  },
+  speedChoiceSubtitle: {
+    opacity: 0.8,
+  },
+  speedOptionsContainer: {
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  speedOption: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+  },
+  expressOption: {
+    borderWidth: 2,
+  },
+  speedOptionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  speedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+  },
+  speedOptionTitle: {
+    marginBottom: Spacing.xs,
+  },
+  speedOptionDesc: {
+    opacity: 0.8,
   },
 });

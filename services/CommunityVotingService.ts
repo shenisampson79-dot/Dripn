@@ -20,6 +20,14 @@ export interface VotingSession {
   context?: string;
   status: "pending" | "voting" | "completed" | "expired";
   aiRecommendedOptionId: string;
+  isExpress?: boolean;
+}
+
+export interface ExpressResultsInfo {
+  price: number;
+  formattedPrice: string;
+  waitTimeMinutes: number;
+  standardWaitMinutes: number;
 }
 
 export interface Vote {
@@ -61,6 +69,8 @@ const VOTING_REASONS: { id: VoteReason; label: string }[] = [
 
 const VOTE_LIMIT_PER_DAY = 10;
 const VOTING_WINDOW_MINUTES = 45;
+const EXPRESS_VOTING_MINUTES = 5;
+const EXPRESS_RESULTS_PRICE = 1.99;
 
 class CommunityVotingServiceClass {
   private baseUrl: string;
@@ -73,14 +83,25 @@ class CommunityVotingServiceClass {
     return VOTING_REASONS;
   }
 
+  getExpressResultsInfo(currencySymbol: string = "£"): ExpressResultsInfo {
+    return {
+      price: EXPRESS_RESULTS_PRICE,
+      formattedPrice: `${currencySymbol}${EXPRESS_RESULTS_PRICE.toFixed(2)}`,
+      waitTimeMinutes: EXPRESS_VOTING_MINUTES,
+      standardWaitMinutes: VOTING_WINDOW_MINUTES,
+    };
+  }
+
   async createVotingSession(
     userId: string,
     outfitOptions: OutfitOption[],
     aiRecommendedOptionId: string,
-    context?: { occasion?: string; description?: string }
+    context?: { occasion?: string; description?: string },
+    isExpress: boolean = false
   ): Promise<VotingSession> {
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + VOTING_WINDOW_MINUTES * 60 * 1000);
+    const windowMinutes = isExpress ? EXPRESS_VOTING_MINUTES : VOTING_WINDOW_MINUTES;
+    const expiresAt = new Date(now.getTime() + windowMinutes * 60 * 1000);
 
     const session: VotingSession = {
       id: `vs_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -92,6 +113,7 @@ class CommunityVotingServiceClass {
       context: context?.description,
       status: "voting",
       aiRecommendedOptionId,
+      isExpress,
     };
 
     await AsyncStorage.setItem(`voting_session_${session.id}`, JSON.stringify(session));
