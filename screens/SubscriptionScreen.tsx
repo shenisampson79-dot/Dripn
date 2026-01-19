@@ -559,8 +559,15 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
 
       <View style={styles.finePrint}>
         <ThemedText type="small" style={styles.finePrintText}>
-          Subscriptions auto-renew until canceled. You can cancel anytime in your account
-          settings. By subscribing, you agree to our Terms of Service.
+          Subscriptions auto-renew until canceled. You can{' '}
+          <ThemedText
+            type="small"
+            style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
+            onPress={() => navigation.navigate('CancelSubscription')}
+          >
+            cancel anytime
+          </ThemedText>
+          {' '}in your account settings. By subscribing, you agree to our Terms of Service.
         </ThemedText>
       </View>
     </ScreenScrollView>
