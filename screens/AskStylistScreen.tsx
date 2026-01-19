@@ -29,6 +29,25 @@ import {
   DecisionAccessStatus,
   SecondOpinionResponse,
 } from "@/services/DecisionService";
+import { apiService } from "@/services/ApiService";
+import { ScrollView, ActivityIndicator } from "react-native";
+
+interface FashionRule {
+  id: number;
+  title: string;
+  content: string;
+  category: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  gender: 'all' | 'women' | 'men';
+  tags: string[];
+  colorSwatches?: Array<{ name: string; hex: string }>;
+}
+
+interface FashionCategory {
+  name: string;
+  count: number;
+  topics: string[];
+}
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -65,12 +84,66 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   const [secondOpinion, setSecondOpinion] = useState<SecondOpinionResponse | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
+  const [fashionRules, setFashionRules] = useState<FashionRule[]>([]);
+  const [dailyRule, setDailyRule] = useState<FashionRule | null>(null);
+  const [categories, setCategories] = useState<FashionCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isLoadingRules, setIsLoadingRules] = useState(false);
+  const [showBlogSection, setShowBlogSection] = useState(false);
+
   const decisionTypes = decisionService.getDecisionTypes();
   const contextChips = decisionService.getContextChips();
 
   useEffect(() => {
     checkAccess();
+    loadFashionBlog();
   }, []);
+
+  const loadFashionBlog = async () => {
+    try {
+      const [dailyRes, categoriesRes] = await Promise.all([
+        apiService.getDailyFashionRule(),
+        apiService.getFashionRuleCategories(),
+      ]);
+      setDailyRule(dailyRes as FashionRule);
+      setCategories(categoriesRes.categories || []);
+    } catch (error) {
+      setDailyRule({
+        id: 1,
+        title: "The 60-30-10 Color Rule",
+        content: "Use 60% dominant color, 30% secondary, and 10% accent for a balanced, stylish outfit.",
+        category: "Color Theory",
+        difficulty: "Beginner",
+        gender: "all",
+        tags: ["color", "basics"],
+        colorSwatches: [
+          { name: "Dominant", hex: "#1E3A8A" },
+          { name: "Secondary", hex: "#6B7280" },
+          { name: "Accent", hex: "#F59E0B" },
+        ],
+      });
+      setCategories([
+        { name: "Color Theory", count: 10, topics: ["60-30-10 rule", "complementary colors"] },
+        { name: "Fit & Tailoring", count: 8, topics: ["One loose/one fitted", "shoulder seams"] },
+        { name: "Proportions", count: 7, topics: ["Third piece rule", "1/3-2/3 ratio"] },
+        { name: "Pattern Mixing", count: 6, topics: ["Scale variation", "stripes as neutrals"] },
+        { name: "Styling Formulas", count: 8, topics: ["Jeans+tee+blazer", "French tuck"] },
+      ]);
+    }
+  };
+
+  const loadRulesByCategory = async (category: string) => {
+    setIsLoadingRules(true);
+    setSelectedCategory(category);
+    try {
+      const res = await apiService.getFashionRules({ category });
+      setFashionRules(res.rules || []);
+    } catch (error) {
+      setFashionRules([]);
+    } finally {
+      setIsLoadingRules(false);
+    }
+  };
 
   const checkAccess = async () => {
     if (!user?.id) return;
@@ -284,6 +357,154 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           <ThemedText type="small" style={styles.limitText}>
             {decisionService.getLimitCopy(user?.subscriptionTier || 'free').subtitle}
           </ThemedText>
+        </View>
+      ) : null}
+
+      {dailyRule ? (
+        <View style={styles.blogSection}>
+          <View style={styles.blogHeader}>
+            <Feather name="book-open" size={20} color={LUXURY_COLORS.gold} />
+            <ThemedText type="h3" style={styles.blogTitle}>
+              Fashion Rules
+            </ThemedText>
+          </View>
+
+          <View style={styles.dailyRuleCard}>
+            <View style={styles.dailyRuleBadge}>
+              <Feather name="sun" size={12} color="#FFFFFF" />
+              <ThemedText type="small" style={styles.dailyRuleBadgeText}>
+                Today's Tip
+              </ThemedText>
+            </View>
+            <View style={styles.ruleNumberContainer}>
+              <ThemedText style={styles.ruleNumber}>#{dailyRule.id}</ThemedText>
+            </View>
+            <ThemedText type="body" style={styles.dailyRuleTitle}>
+              {dailyRule.title}
+            </ThemedText>
+            <ThemedText type="small" style={styles.dailyRuleContent}>
+              {dailyRule.content}
+            </ThemedText>
+            {dailyRule.colorSwatches && dailyRule.colorSwatches.length > 0 ? (
+              <View style={styles.colorSwatches}>
+                {dailyRule.colorSwatches.map((swatch, idx) => (
+                  <View key={idx} style={styles.swatchItem}>
+                    <View style={[styles.swatch, { backgroundColor: swatch.hex }]} />
+                    <ThemedText type="small" style={styles.swatchLabel}>{swatch.name}</ThemedText>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            <View style={styles.ruleMeta}>
+              <View style={[styles.difficultyBadge, { 
+                backgroundColor: dailyRule.difficulty === 'Beginner' ? '#22C55E' : 
+                  dailyRule.difficulty === 'Intermediate' ? '#F59E0B' : '#EF4444' 
+              }]}>
+                <ThemedText type="small" style={styles.difficultyText}>
+                  {dailyRule.difficulty}
+                </ThemedText>
+              </View>
+              <ThemedText type="small" style={styles.categoryTag}>
+                {dailyRule.category}
+              </ThemedText>
+            </View>
+          </View>
+
+          <Pressable
+            onPress={() => setShowBlogSection(!showBlogSection)}
+            style={({ pressed }) => [
+              styles.exploreCategoriesButton,
+              { opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <ThemedText type="body" style={styles.exploreCategoriesText}>
+              {showBlogSection ? 'Hide Categories' : `Explore All ${categories.reduce((sum, c) => sum + c.count, 0)} Rules`}
+            </ThemedText>
+            <Feather 
+              name={showBlogSection ? "chevron-up" : "chevron-down"} 
+              size={18} 
+              color={LUXURY_COLORS.gold} 
+            />
+          </Pressable>
+
+          {showBlogSection ? (
+            <View style={styles.categoriesContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryTabs}>
+                {categories.map((cat) => (
+                  <Pressable
+                    key={cat.name}
+                    onPress={() => loadRulesByCategory(cat.name)}
+                    style={({ pressed }) => [
+                      styles.categoryTab,
+                      selectedCategory === cat.name && styles.categoryTabActive,
+                      { opacity: pressed ? 0.8 : 1 },
+                    ]}
+                  >
+                    <ThemedText 
+                      type="small" 
+                      style={[
+                        styles.categoryTabText,
+                        selectedCategory === cat.name && styles.categoryTabTextActive,
+                      ]}
+                    >
+                      {cat.name} ({cat.count})
+                    </ThemedText>
+                  </Pressable>
+                ))}
+              </ScrollView>
+
+              {isLoadingRules ? (
+                <ActivityIndicator color={LUXURY_COLORS.gold} style={{ marginTop: Spacing.lg }} />
+              ) : fashionRules.length > 0 ? (
+                <View style={styles.rulesListContainer}>
+                  {fashionRules.map((rule, index) => (
+                    <View key={rule.id} style={styles.ruleItem}>
+                      <View style={styles.ruleItemNumber}>
+                        <ThemedText style={styles.ruleItemNumberText}>#{rule.id}</ThemedText>
+                      </View>
+                      <View style={styles.ruleItemContent}>
+                        <ThemedText type="body" style={styles.ruleItemTitle}>
+                          {rule.title}
+                        </ThemedText>
+                        <ThemedText type="small" style={styles.ruleItemDescription}>
+                          {rule.content}
+                        </ThemedText>
+                        {rule.colorSwatches && rule.colorSwatches.length > 0 ? (
+                          <View style={styles.miniSwatches}>
+                            {rule.colorSwatches.map((swatch, idx) => (
+                              <View 
+                                key={idx} 
+                                style={[styles.miniSwatch, { backgroundColor: swatch.hex }]} 
+                              />
+                            ))}
+                          </View>
+                        ) : null}
+                        <View style={styles.ruleItemMeta}>
+                          <View style={[styles.miniDifficultyBadge, { 
+                            backgroundColor: rule.difficulty === 'Beginner' ? '#22C55E' : 
+                              rule.difficulty === 'Intermediate' ? '#F59E0B' : '#EF4444' 
+                          }]}>
+                            <ThemedText type="small" style={styles.miniDifficultyText}>
+                              {rule.difficulty}
+                            </ThemedText>
+                          </View>
+                          {rule.gender !== 'all' ? (
+                            <ThemedText type="small" style={styles.genderTag}>
+                              {rule.gender === 'men' ? "Men's" : "Women's"}
+                            </ThemedText>
+                          ) : null}
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : selectedCategory ? (
+                <ThemedText type="small" style={styles.noRulesText}>
+                  Select a category to view rules
+                </ThemedText>
+              ) : null}
+            </View>
+          ) : null}
         </View>
       ) : null}
     </View>
@@ -909,5 +1130,210 @@ const styles = StyleSheet.create({
   },
   maybeLaterText: {
     color: 'rgba(0,0,0,0.5)',
+  },
+  blogSection: {
+    marginTop: Spacing["2xl"],
+    paddingTop: Spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  blogHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  blogTitle: {
+    color: '#FFFFFF',
+  },
+  dailyRuleCard: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: LUXURY_COLORS.gold,
+  },
+  dailyRuleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    backgroundColor: LUXURY_COLORS.gold,
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    alignSelf: 'flex-start',
+    marginBottom: Spacing.sm,
+  },
+  dailyRuleBadgeText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  ruleNumberContainer: {
+    marginBottom: Spacing.xs,
+  },
+  ruleNumber: {
+    color: LUXURY_COLORS.gold,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  dailyRuleTitle: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    marginBottom: Spacing.xs,
+  },
+  dailyRuleContent: {
+    color: 'rgba(255,255,255,0.8)',
+    lineHeight: 20,
+    marginBottom: Spacing.md,
+  },
+  colorSwatches: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  swatchItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  swatch: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  swatchLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 10,
+  },
+  ruleMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  difficultyBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  difficultyText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 11,
+  },
+  categoryTag: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+  },
+  exploreCategoriesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(201,168,124,0.3)',
+  },
+  exploreCategoriesText: {
+    color: LUXURY_COLORS.gold,
+  },
+  categoriesContainer: {
+    marginTop: Spacing.lg,
+  },
+  categoryTabs: {
+    flexDirection: 'row',
+    marginBottom: Spacing.md,
+  },
+  categoryTab: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: BorderRadius.full,
+    marginRight: Spacing.sm,
+  },
+  categoryTabActive: {
+    backgroundColor: LUXURY_COLORS.gold,
+  },
+  categoryTabText: {
+    color: 'rgba(255,255,255,0.7)',
+  },
+  categoryTabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  rulesListContainer: {
+    gap: Spacing.md,
+  },
+  ruleItem: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    gap: Spacing.md,
+  },
+  ruleItemNumber: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(201,168,124,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ruleItemNumberText: {
+    color: LUXURY_COLORS.gold,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  ruleItemContent: {
+    flex: 1,
+  },
+  ruleItemTitle: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  ruleItemDescription: {
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 18,
+    marginBottom: Spacing.sm,
+  },
+  miniSwatches: {
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: Spacing.sm,
+  },
+  miniSwatch: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  ruleItemMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  miniDifficultyBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: BorderRadius.full,
+  },
+  miniDifficultyText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 10,
+  },
+  genderTag: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 11,
+  },
+  noRulesText: {
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+    marginTop: Spacing.lg,
   },
 });

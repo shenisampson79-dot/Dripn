@@ -279,6 +279,54 @@ class ApiService {
     });
   }
 
+  async getFashionRules(params?: {
+    category?: string;
+    difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
+    gender?: 'all' | 'women' | 'men';
+    tag?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.difficulty) queryParams.append('difficulty', params.difficulty);
+    if (params?.gender) queryParams.append('gender', params.gender);
+    if (params?.tag) queryParams.append('tag', params.tag);
+    const query = queryParams.toString();
+    return this.request<{
+      rules: Array<{
+        id: number;
+        title: string;
+        content: string;
+        category: string;
+        difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+        gender: 'all' | 'women' | 'men';
+        tags: string[];
+        colorSwatches?: Array<{ name: string; hex: string }>;
+      }>;
+      total: number;
+    }>(`/api/fashion-rules${query ? `?${query}` : ''}`);
+  }
+
+  async getDailyFashionRule() {
+    return this.request<{
+      id: number;
+      title: string;
+      content: string;
+      category: string;
+      difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+      colorSwatches?: Array<{ name: string; hex: string }>;
+    }>('/api/fashion-rules/daily');
+  }
+
+  async getFashionRuleCategories() {
+    return this.request<{
+      categories: Array<{
+        name: string;
+        count: number;
+        topics: string[];
+      }>;
+    }>('/api/fashion-rules/categories');
+  }
+
   async getPosts() {
     return this.request<any[]>('/api/posts');
   }
