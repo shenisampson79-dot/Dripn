@@ -17,6 +17,14 @@ import { apiService } from "@/services/ApiService";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const BACKGROUND_VIDEOS = [
+  require("../assets/videos/black_woman_indecisive_in_store.mp4"),
+  require("../assets/videos/black_woman_choosing_clothes_indecisively.mp4"),
+  require("../assets/videos/white_woman_indecisive_in_store.mp4"),
+  require("../assets/videos/indian_woman_choosing_clothes_indecisively.mp4"),
+  require("../assets/videos/asian_woman_indecisive_in_store.mp4"),
+  require("../assets/videos/white_woman_wardrobe_indecision_scene.mp4"),
+  require("../assets/videos/black_man_indecisive_in_store.mp4"),
+  require("../assets/videos/asian_man_indecisive_in_store.mp4"),
   require("../assets/videos/woman_pondering_outfits_on_bed.mp4"),
   require("../assets/videos/woman_comparing_two_dresses_held_firmly.mp4"),
   require("../assets/videos/woman_trying_tops_with_closed_mouth.mp4"),
