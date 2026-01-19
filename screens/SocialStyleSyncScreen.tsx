@@ -69,7 +69,6 @@ interface AIInsight {
 }
 
 const SOCIAL_ACCOUNTS: SocialAccount[] = [
-  { id: "instagram", name: "Instagram", icon: "instagram", color: "#E4405F", connected: false },
   { id: "pinterest", name: "Pinterest", icon: "grid", color: "#E60023", connected: false },
   { id: "tiktok", name: "TikTok", icon: "video", color: "#000000", connected: false },
 ];
@@ -314,8 +313,6 @@ export default function SocialStyleSyncScreen({ navigation }: SocialStyleSyncScr
 
   const renderBrandIcon = (accountId: string) => {
     switch (accountId) {
-      case "instagram":
-        return <Ionicons name="logo-instagram" size={20} color="#FFFFFF" />;
       case "pinterest":
         return <Ionicons name="logo-pinterest" size={20} color="#FFFFFF" />;
       case "tiktok":
@@ -481,7 +478,7 @@ export default function SocialStyleSyncScreen({ navigation }: SocialStyleSyncScr
     <ScreenScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerSection}>
         <LinearGradient
-          colors={["#E4405F", "#5851DB", "#E60023"]}
+          colors={["#E60023", "#BD081C", "#CB2027"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerIcon}
@@ -588,7 +585,7 @@ export default function SocialStyleSyncScreen({ navigation }: SocialStyleSyncScr
           <Feather name="image" size={48} color={theme.tabIconDefault} />
           <ThemedText type="h4" style={styles.emptyTitle}>Connect to Get Started</ThemedText>
           <ThemedText style={[styles.emptyText, { color: theme.tabIconDefault }]}>
-            Link your Instagram or Pinterest to analyze your saved posts and discover your unique style DNA
+            Link your Pinterest to analyze your saved posts and discover your unique style DNA
           </ThemedText>
         </Card>
       ) : null}
