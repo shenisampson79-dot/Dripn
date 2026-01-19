@@ -133,6 +133,15 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
         >
           Get Styled
         </Button>
+        
+        <Pressable 
+          onPress={() => navigation.navigate("Auth", { mode: "login" })}
+          style={styles.signInButton}
+        >
+          <ThemedText type="body" style={styles.signInText}>
+            Already have an account? <ThemedText type="body" style={styles.signInLink}>Sign In</ThemedText>
+          </ThemedText>
+        </Pressable>
       </View>
     </View>
   );
@@ -274,5 +283,20 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     width: "100%",
+  },
+  signInButton: {
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+  },
+  signInText: {
+    color: "rgba(255, 255, 255, 0.8)",
+    textShadowColor: "rgba(0, 0, 0, 0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  signInLink: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    textDecorationLine: "underline",
   },
 });
