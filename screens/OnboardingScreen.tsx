@@ -518,6 +518,8 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const [dressCodePreference, setDressCodePreference] = useState<DressCodePreference>(null);
   const [subcultureStyle, setSubcultureStyle] = useState<SubcultureStyle>(null);
   const [dressCodeStrictness, setDressCodeStrictness] = useState<DressCodeStrictness>(null);
+  const [religiousOrCulturalDressCode, setReligiousOrCulturalDressCode] = useState<string>("");
+  const [subcultureDescription, setSubcultureDescription] = useState<string>("");
   const [suggestedRetailers, setSuggestedRetailers] = useState<Retailer[]>([]);
   const [loadingRetailers, setLoadingRetailers] = useState(false);
   const [isBodyScanning, setIsBodyScanning] = useState(false);
@@ -1120,8 +1122,9 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         usageGoals,
         culturalStyle: {
           dressCodePreference,
-          religiousOrCulturalDressCode: null,
+          religiousOrCulturalDressCode: dressCodePreference === "other" ? religiousOrCulturalDressCode || null : null,
           subcultureStyle,
+          subcultureDescription: subcultureStyle === "other" ? subcultureDescription || null : null,
           dressCodeStrictness,
         },
       },
@@ -2180,6 +2183,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           { id: "hindu-traditional", name: "Hindu Traditional", description: "Traditional Indian/Hindu attire options", icon: "heart" },
           { id: "sikh", name: "Sikh", description: "Attire compatible with Sikh practices", icon: "heart" },
           { id: "modest-general", name: "Modest (General)", description: "Generally modest clothing preferences", icon: "heart" },
+          { id: "other", name: "Other", description: "Tell us about your religious or cultural dress code", icon: "edit-2" },
         ];
 
         const SUBCULTURE_OPTIONS: { id: SubcultureStyle; name: string; icon: keyof typeof Feather.glyphMap }[] = [
@@ -2195,6 +2199,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           { id: "streetwear", name: "Streetwear", icon: "trending-up" },
           { id: "old-money", name: "Old Money", icon: "dollar-sign" },
           { id: "clean-girl", name: "Clean Girl", icon: "droplet" },
+          { id: "other", name: "Other", icon: "edit-2" },
         ];
 
         const STRICTNESS_OPTIONS: { id: DressCodeStrictness; name: string; description: string }[] = [
@@ -2264,6 +2269,31 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 })}
               </View>
 
+              {dressCodePreference === "other" ? (
+                <View style={{ marginTop: Spacing.md, marginBottom: Spacing.md }}>
+                  <TextInput
+                    style={{
+                      backgroundColor: theme.backgroundDefault,
+                      borderWidth: 1,
+                      borderColor: theme.border,
+                      borderRadius: BorderRadius.lg,
+                      padding: Spacing.md,
+                      color: theme.text,
+                      minHeight: 80,
+                    }}
+                    placeholder="e.g., Amish Plain Dress, Buddhist robes, Rastafarian..."
+                    placeholderTextColor={theme.tabIconDefault}
+                    value={religiousOrCulturalDressCode}
+                    onChangeText={setReligiousOrCulturalDressCode}
+                    multiline
+                    textAlignVertical="top"
+                  />
+                  <ThemedText type="small" style={{ marginTop: Spacing.xs, color: theme.tabIconDefault }}>
+                    Our AI will research this to give you appropriate suggestions
+                  </ThemedText>
+                </View>
+              ) : null}
+
               {dressCodePreference && dressCodePreference !== "none" ? (
                 <>
                   <ThemedText type="h3" style={{ marginTop: Spacing.lg, marginBottom: Spacing.sm }}>
@@ -2314,7 +2344,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               <ThemedText type="small" style={{ marginBottom: Spacing.md, color: theme.tabIconDefault }}>
                 Optional: If you identify with a specific fashion subculture
               </ThemedText>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginBottom: Spacing.xl }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginBottom: Spacing.md }}>
                 {SUBCULTURE_OPTIONS.map((option) => {
                   const isSelected = subcultureStyle === option.id;
                   return (
@@ -2351,6 +2381,31 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   );
                 })}
               </View>
+
+              {subcultureStyle === "other" ? (
+                <View style={{ marginBottom: Spacing.xl }}>
+                  <TextInput
+                    style={{
+                      backgroundColor: theme.backgroundDefault,
+                      borderWidth: 1,
+                      borderColor: theme.border,
+                      borderRadius: BorderRadius.lg,
+                      padding: Spacing.md,
+                      color: theme.text,
+                      minHeight: 80,
+                    }}
+                    placeholder="e.g., Afrofuturism, Normcore, Gorpcore..."
+                    placeholderTextColor={theme.tabIconDefault}
+                    value={subcultureDescription}
+                    onChangeText={setSubcultureDescription}
+                    multiline
+                    textAlignVertical="top"
+                  />
+                  <ThemedText type="small" style={{ marginTop: Spacing.xs, color: theme.tabIconDefault }}>
+                    Our AI will research this to understand your aesthetic
+                  </ThemedText>
+                </View>
+              ) : null}
             </ScrollView>
           </View>
         );

@@ -30,8 +30,8 @@ export type WeightUnit = 'kg' | 'lbs';
 export type StylistId = 'ruby' | 'max' | 'ace' | 'ivy' | null;
 
 // Cultural dress code types
-export type DressCodePreference = 'hijab-friendly' | 'tzniut' | 'lds-modest' | 'hindu-traditional' | 'sikh' | 'amish-plain' | 'modest-general' | 'none' | null;
-export type SubcultureStyle = 'goth' | 'emo' | 'punk' | 'cottagecore' | 'dark-academia' | 'light-academia' | 'y2k' | 'vintage' | 'grunge' | 'kawaii' | 'streetwear' | 'hypebeast' | 'old-money' | 'clean-girl' | 'coastal-grandmother' | 'none' | null;
+export type DressCodePreference = 'hijab-friendly' | 'tzniut' | 'lds-modest' | 'hindu-traditional' | 'sikh' | 'amish-plain' | 'modest-general' | 'other' | 'none' | null;
+export type SubcultureStyle = 'goth' | 'emo' | 'punk' | 'cottagecore' | 'dark-academia' | 'light-academia' | 'y2k' | 'vintage' | 'grunge' | 'kawaii' | 'streetwear' | 'hypebeast' | 'old-money' | 'clean-girl' | 'coastal-grandmother' | 'other' | 'none' | null;
 export type DressCodeStrictness = 'flexible' | 'moderate' | 'strict' | null;
 export type RubyVoicePitch = 'mezzo-soprano';
 export type MaxVoiceRange = 'tenor' | 'baritone' | 'bass';
@@ -59,6 +59,7 @@ export interface CulturalStylePreferences {
   dressCodePreference: DressCodePreference;
   religiousOrCulturalDressCode: string | null; // Free-text for personal dress code details
   subcultureStyle: SubcultureStyle;
+  subcultureDescription: string | null; // Free-text for custom subculture description
   dressCodeStrictness: DressCodeStrictness;
 }
 
@@ -173,6 +174,7 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
       dressCodePreference: null,
       religiousOrCulturalDressCode: null,
       subcultureStyle: null,
+      subcultureDescription: null,
       dressCodeStrictness: null,
     },
   },
