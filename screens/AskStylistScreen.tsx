@@ -132,7 +132,11 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         apiService.getDailyFashionRule(),
         apiService.getFashionRuleCategories(),
       ]);
-      setDailyRule(dailyRes as FashionRule);
+      if (dailyRes && dailyRes.id && dailyRes.title) {
+        setDailyRule(dailyRes as FashionRule);
+      } else {
+        throw new Error('Invalid daily rule response');
+      }
       setCategories(categoriesRes.categories || []);
     } catch (error) {
       setDailyRule({
@@ -589,9 +593,13 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
                 </View>
               ) : selectedCategory ? (
                 <ThemedText type="small" style={styles.noRulesText}>
+                  No rules found in this category
+                </ThemedText>
+              ) : (
+                <ThemedText type="small" style={styles.noRulesText}>
                   Select a category to view rules
                 </ThemedText>
-              ) : null}
+              )}
             </View>
           ) : null}
         </View>
