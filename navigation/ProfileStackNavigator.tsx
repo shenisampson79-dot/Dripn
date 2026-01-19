@@ -30,6 +30,7 @@ import DFYComparisonScreen from "@/screens/DFYComparisonScreen";
 import DFYStylePlanScreen from "@/screens/DFYStylePlanScreen";
 import DFYExpiryScreen from "@/screens/DFYExpiryScreen";
 import AskStylistScreen from "@/screens/AskStylistScreen";
+import CancelSubscriptionScreen from "@/screens/CancelSubscriptionScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -65,6 +66,7 @@ export type ProfileStackParamList = {
   DFYStylePlan: undefined;
   DFYExpiry: undefined;
   AskStylist: undefined;
+  CancelSubscription: undefined;
 };
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -322,6 +324,15 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
           title: "Ask the Stylist",
           headerShown: false,
           presentation: "fullScreenModal",
+        }}
+      />
+      <Stack.Screen
+        name="CancelSubscription"
+        component={CancelSubscriptionScreen}
+        options={{
+          title: "Cancel Subscription",
+          headerShown: false,
+          presentation: "modal",
         }}
       />
     </Stack.Navigator>

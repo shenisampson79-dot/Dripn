@@ -246,6 +246,39 @@ class ApiService {
     }>('/api/stylists/current');
   }
 
+  async startSubscriptionCancellation() {
+    return this.request<{
+      stylist: string;
+      stylistName: string;
+      message: string;
+      feedbackPrompt: string;
+      cancellationReasons: Array<{ value: string; label: string }>;
+    }>('/api/subscription/cancel/start');
+  }
+
+  async submitCancellationFeedback(data: {
+    reason: string;
+    feedback?: string;
+    wouldReturn?: boolean;
+  }) {
+    return this.request<{ success: boolean }>('/api/subscription/cancel/feedback', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async completeCancellation() {
+    return this.request<{
+      stylistName: string;
+      farewellMessage: string;
+      reactivationOffer: {
+        options: Array<{ type: string; label: string; price: string }>;
+      };
+    }>('/api/subscription/cancel/complete', {
+      method: 'POST',
+    });
+  }
+
   async getPosts() {
     return this.request<any[]>('/api/posts');
   }
