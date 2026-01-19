@@ -49,6 +49,29 @@ interface FashionCategory {
   topics: string[];
 }
 
+interface ColorTrend {
+  id?: string;
+  name: string;
+  hexCode: string;
+  pantoneCode?: string;
+  season?: string;
+  year?: number;
+  description?: string;
+  pairingColors: string[];
+  bestFor: string[];
+  undertone?: 'warm' | 'cool' | 'neutral';
+}
+
+interface ColorOfTheYear {
+  name: string;
+  hexCode: string;
+  pantoneCode?: string;
+  description: string;
+  pairingColors: string[];
+  bestFor: string[];
+  year: number;
+}
+
 const LUXURY_COLORS = {
   gold: '#C9A87C',
   deepGold: '#A88B5C',
@@ -91,6 +114,10 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   const [isLoadingRules, setIsLoadingRules] = useState(false);
   const [showBlogSection, setShowBlogSection] = useState(false);
 
+  const [colorOfTheYear, setColorOfTheYear] = useState<ColorOfTheYear | null>(null);
+  const [seasonalPalette, setSeasonalPalette] = useState<ColorTrend[]>([]);
+  const [showColorTrends, setShowColorTrends] = useState(false);
+
   const decisionTypes = decisionService.getDecisionTypes();
   const contextChips = decisionService.getContextChips();
 
@@ -128,6 +155,68 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         { name: "Proportions", count: 7, topics: ["Third piece rule", "1/3-2/3 ratio"] },
         { name: "Pattern Mixing", count: 6, topics: ["Scale variation", "stripes as neutrals"] },
         { name: "Styling Formulas", count: 8, topics: ["Jeans+tee+blazer", "French tuck"] },
+      ]);
+    }
+
+    try {
+      const colorTrendsRes = await apiService.getCurrentColorTrends();
+      setColorOfTheYear(colorTrendsRes.colorOfTheYear);
+      setSeasonalPalette(colorTrendsRes.seasonalPalette || []);
+    } catch (error) {
+      setColorOfTheYear({
+        name: "Mocha Mousse",
+        hexCode: "#A47864",
+        pantoneCode: "PANTONE 17-1230",
+        description: "A warm, earthy brown that evokes comfort and timeless elegance.",
+        pairingColors: ["#FFFFFF", "#000000", "#D4A574", "#8B7355"],
+        bestFor: ["Warm", "Neutral"],
+        year: 2025,
+      });
+      setSeasonalPalette([
+        {
+          id: "1",
+          name: "Butter Cream",
+          hexCode: "#F5E6C8",
+          pantoneCode: "PANTONE 13-0720",
+          season: "Spring",
+          year: 2026,
+          description: "A soft, creamy yellow that brings warmth and optimism.",
+          pairingColors: ["#A47864", "#6B5B4F", "#FFFFFF"],
+          bestFor: ["Warm", "Neutral"],
+        },
+        {
+          id: "2",
+          name: "Sage Mist",
+          hexCode: "#B8C4A8",
+          pantoneCode: "PANTONE 15-6316",
+          season: "Spring",
+          year: 2026,
+          description: "A calming, muted green perfect for fresh spring looks.",
+          pairingColors: ["#FFFFFF", "#F5E6C8", "#6B7355"],
+          bestFor: ["Cool", "Neutral"],
+        },
+        {
+          id: "3",
+          name: "Dusty Rose",
+          hexCode: "#D4A5A5",
+          pantoneCode: "PANTONE 15-1614",
+          season: "Spring",
+          year: 2026,
+          description: "A romantic, muted pink that flatters all skin tones.",
+          pairingColors: ["#FFFFFF", "#000000", "#C9A87C"],
+          bestFor: ["Warm", "Cool"],
+        },
+        {
+          id: "4",
+          name: "Ocean Depth",
+          hexCode: "#2E5A6B",
+          pantoneCode: "PANTONE 19-4241",
+          season: "Spring",
+          year: 2026,
+          description: "A sophisticated teal that adds depth to any outfit.",
+          pairingColors: ["#FFFFFF", "#F5E6C8", "#C9A87C"],
+          bestFor: ["Cool", "Neutral"],
+        },
       ]);
     }
   };
@@ -503,6 +592,117 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
                   Select a category to view rules
                 </ThemedText>
               ) : null}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      {colorOfTheYear ? (
+        <View style={styles.colorTrendsSection}>
+          <View style={styles.blogHeader}>
+            <Feather name="droplet" size={20} color={LUXURY_COLORS.gold} />
+            <ThemedText type="h3" style={styles.blogTitle}>
+              Color Trends
+            </ThemedText>
+          </View>
+
+          <View style={styles.colorOfYearCard}>
+            <View style={styles.colorOfYearBadge}>
+              <Feather name="award" size={12} color="#FFFFFF" />
+              <ThemedText type="small" style={styles.colorOfYearBadgeText}>
+                COLOR OF THE YEAR {colorOfTheYear.year}
+              </ThemedText>
+            </View>
+            <View style={styles.colorOfYearContent}>
+              <View style={[styles.colorOfYearSwatch, { backgroundColor: colorOfTheYear.hexCode }]} />
+              <View style={styles.colorOfYearInfo}>
+                <ThemedText type="body" style={styles.colorOfYearName}>
+                  {colorOfTheYear.name}
+                </ThemedText>
+                <ThemedText type="small" style={styles.colorOfYearHex}>
+                  {colorOfTheYear.hexCode}
+                </ThemedText>
+                {colorOfTheYear.pantoneCode ? (
+                  <ThemedText type="small" style={styles.colorOfYearPantone}>
+                    {colorOfTheYear.pantoneCode}
+                  </ThemedText>
+                ) : null}
+              </View>
+            </View>
+            <ThemedText type="small" style={styles.colorOfYearDescription}>
+              {colorOfTheYear.description}
+            </ThemedText>
+            <View style={styles.pairingSection}>
+              <ThemedText type="small" style={styles.pairingLabel}>
+                Pairs with:
+              </ThemedText>
+              <View style={styles.pairingSwatches}>
+                {colorOfTheYear.pairingColors.map((color, idx) => (
+                  <View 
+                    key={idx} 
+                    style={[styles.pairingSwatch, { backgroundColor: color }]} 
+                  />
+                ))}
+              </View>
+            </View>
+            <View style={styles.bestForSection}>
+              <ThemedText type="small" style={styles.bestForLabel}>
+                Best for:
+              </ThemedText>
+              <ThemedText type="small" style={styles.bestForValue}>
+                {colorOfTheYear.bestFor.join(' & ')}
+              </ThemedText>
+            </View>
+          </View>
+
+          <Pressable
+            onPress={() => setShowColorTrends(!showColorTrends)}
+            style={({ pressed }) => [
+              styles.exploreCategoriesButton,
+              { opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <ThemedText type="body" style={styles.exploreCategoriesText}>
+              {showColorTrends ? 'Hide Seasonal Palette' : `This Season's Palette (${seasonalPalette.length})`}
+            </ThemedText>
+            <Feather 
+              name={showColorTrends ? "chevron-up" : "chevron-down"} 
+              size={18} 
+              color={LUXURY_COLORS.gold} 
+            />
+          </Pressable>
+
+          {showColorTrends ? (
+            <View style={styles.seasonalPaletteGrid}>
+              {seasonalPalette.map((color) => (
+                <View key={color.id} style={styles.seasonalColorCard}>
+                  <View style={[styles.seasonalColorSwatch, { backgroundColor: color.hexCode }]} />
+                  <View style={styles.seasonalColorInfo}>
+                    <ThemedText type="body" style={styles.seasonalColorName}>
+                      {color.name}
+                    </ThemedText>
+                    <ThemedText type="small" style={styles.seasonalColorHex}>
+                      {color.hexCode}
+                    </ThemedText>
+                    {color.pantoneCode ? (
+                      <ThemedText type="small" style={styles.seasonalColorPantone}>
+                        {color.pantoneCode}
+                      </ThemedText>
+                    ) : null}
+                    <View style={styles.seasonalPairingSwatches}>
+                      {color.pairingColors.slice(0, 3).map((pc, idx) => (
+                        <View 
+                          key={idx} 
+                          style={[styles.miniPairingSwatch, { backgroundColor: pc }]} 
+                        />
+                      ))}
+                    </View>
+                    <ThemedText type="small" style={styles.seasonalBestFor}>
+                      {color.bestFor.join(' & ')}
+                    </ThemedText>
+                  </View>
+                </View>
+              ))}
             </View>
           ) : null}
         </View>
@@ -1335,5 +1535,156 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
     textAlign: 'center',
     marginTop: Spacing.lg,
+  },
+  colorTrendsSection: {
+    marginTop: Spacing["2xl"],
+    paddingTop: Spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  colorOfYearCard: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: '#A47864',
+  },
+  colorOfYearBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    backgroundColor: '#A47864',
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    alignSelf: 'flex-start',
+    marginBottom: Spacing.md,
+  },
+  colorOfYearBadgeText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+  colorOfYearContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  colorOfYearSwatch: {
+    width: 64,
+    height: 64,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  colorOfYearInfo: {
+    flex: 1,
+  },
+  colorOfYearName: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 18,
+    marginBottom: 2,
+  },
+  colorOfYearHex: {
+    color: 'rgba(255,255,255,0.7)',
+    fontFamily: 'monospace',
+    marginBottom: 2,
+  },
+  colorOfYearPantone: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 11,
+  },
+  colorOfYearDescription: {
+    color: 'rgba(255,255,255,0.8)',
+    lineHeight: 18,
+    marginBottom: Spacing.md,
+  },
+  pairingSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  pairingLabel: {
+    color: 'rgba(255,255,255,0.6)',
+  },
+  pairingSwatches: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  pairingSwatch: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  bestForSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  bestForLabel: {
+    color: 'rgba(255,255,255,0.6)',
+  },
+  bestForValue: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  seasonalPaletteGrid: {
+    marginTop: Spacing.lg,
+    gap: Spacing.md,
+  },
+  seasonalColorCard: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    gap: Spacing.md,
+  },
+  seasonalColorSwatch: {
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  seasonalColorInfo: {
+    flex: 1,
+  },
+  seasonalColorName: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  seasonalColorHex: {
+    color: 'rgba(255,255,255,0.6)',
+    fontFamily: 'monospace',
+    fontSize: 11,
+  },
+  seasonalColorPantone: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    marginBottom: 4,
+  },
+  seasonalPairingSwatches: {
+    flexDirection: 'row',
+    gap: 4,
+    marginVertical: 4,
+  },
+  miniPairingSwatch: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  seasonalBestFor: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
   },
 });

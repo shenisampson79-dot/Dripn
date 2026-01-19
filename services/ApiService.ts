@@ -317,6 +317,65 @@ class ApiService {
     }>('/api/fashion-rules/daily');
   }
 
+  async getCurrentColorTrends(params?: {
+    season?: string;
+    year?: number;
+    undertone?: 'warm' | 'cool' | 'neutral';
+    trendType?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.season) queryParams.append('season', params.season);
+    if (params?.year) queryParams.append('year', params.year.toString());
+    if (params?.undertone) queryParams.append('undertone', params.undertone);
+    if (params?.trendType) queryParams.append('trendType', params.trendType);
+    const query = queryParams.toString();
+    return this.request<{
+      colorOfTheYear: {
+        name: string;
+        hexCode: string;
+        pantoneCode?: string;
+        description: string;
+        pairingColors: string[];
+        bestFor: string[];
+        year: number;
+      };
+      seasonalPalette: Array<{
+        id: string;
+        name: string;
+        hexCode: string;
+        pantoneCode?: string;
+        season: string;
+        year: number;
+        trendType: string;
+        description: string;
+        pairingColors: string[];
+        bestFor: string[];
+        undertone?: 'warm' | 'cool' | 'neutral';
+      }>;
+    }>(`/api/color-trends/current${query ? `?${query}` : ''}`);
+  }
+
+  async getPersonalizedColorTrends() {
+    return this.request<{
+      undertone: 'warm' | 'cool' | 'neutral';
+      recommendedColors: Array<{
+        id: string;
+        name: string;
+        hexCode: string;
+        pantoneCode?: string;
+        description: string;
+        pairingColors: string[];
+        bestFor: string[];
+        matchScore: number;
+      }>;
+      avoidColors: Array<{
+        name: string;
+        hexCode: string;
+        reason: string;
+      }>;
+    }>('/api/color-trends/personalized');
+  }
+
   async getFashionRuleCategories() {
     return this.request<{
       categories: Array<{
