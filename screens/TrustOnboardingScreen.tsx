@@ -198,7 +198,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
         style={styles.backgroundVideo}
         resizeMode={ResizeMode.COVER}
         shouldPlay
-        isLooping={false}
+        isLooping
         isMuted
       />
 
