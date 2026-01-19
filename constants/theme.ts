@@ -339,12 +339,6 @@ export const SubscriptionColors = {
     backgroundEnd: '#764ba2',
     text: '#FFFFFF',
   },
-  vip: {
-    background: 'linear-gradient(135deg, #D4AF37 0%, #B8860B 100%)',
-    backgroundStart: '#D4AF37',
-    backgroundEnd: '#B8860B',
-    text: '#FFFFFF',
-  },
 };
 
 // Contributor tier colors

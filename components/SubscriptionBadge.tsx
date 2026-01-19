@@ -13,19 +13,20 @@ interface SubscriptionBadgeProps {
 
 export function SubscriptionBadge({ tier, small = false }: SubscriptionBadgeProps) {
   const colors = SubscriptionColors[tier];
-  const label = tier.charAt(0).toUpperCase() + tier.slice(1);
+  const label = tier === "premium" ? "Premium" : tier.charAt(0).toUpperCase() + tier.slice(1);
 
-  if (tier === "premium" || tier === "vip") {
+  if (tier === "premium") {
+    const premiumColors = SubscriptionColors.premium;
     return (
       <LinearGradient
-        colors={[colors.backgroundStart || colors.background, colors.backgroundEnd || colors.background]}
+        colors={[premiumColors.backgroundStart, premiumColors.backgroundEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.badge, small && styles.badgeSmall]}
       >
         <ThemedText
           type="caption"
-          style={[styles.text, small && styles.textSmall, { color: colors.text }]}
+          style={[styles.text, small && styles.textSmall, { color: premiumColors.text }]}
         >
           {label}
         </ThemedText>
