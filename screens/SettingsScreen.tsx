@@ -129,70 +129,6 @@ interface PantoneColor {
   description?: string;
 }
 
-interface VIPTestModeItemProps {
-  user: any;
-  updateProfile: (data: any) => Promise<void>;
-  theme: any;
-  isDark: boolean;
-}
-
-function VIPTestModeItem({ user, updateProfile, theme, isDark }: VIPTestModeItemProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const isVIP = user?.subscriptionTier === 'vip';
-
-  const handlePress = async () => {
-    if (isVIP) {
-      Alert.alert("VIP Mode", "You already have VIP access. To downgrade, visit the Subscription screen.");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await updateProfile({ subscriptionTier: 'vip' });
-      Alert.alert("VIP Enabled", "You now have VIP access for testing. Enjoy the personal stylist chat and all premium features!");
-    } catch (error) {
-      Alert.alert("Error", "Failed to enable VIP mode. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <Pressable
-      onPress={handlePress}
-      disabled={isLoading}
-      style={({ pressed }) => [
-        styles.settingItem,
-        { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF', opacity: pressed || isLoading ? 0.7 : 1 },
-      ]}
-    >
-      {isLoading ? (
-        <View style={[styles.settingIconContainer, { backgroundColor: LUXURY_COLORS.gold + '30' }]}>
-          <ActivityIndicator size="small" color={LUXURY_COLORS.gold} />
-        </View>
-      ) : (
-        <LinearGradient
-          colors={isVIP ? [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] : [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-          style={styles.settingIconGradient}
-        >
-          <Feather name="award" size={16} color={isVIP ? LUXURY_COLORS.midnight : "#FFFFFF"} />
-        </LinearGradient>
-      )}
-      <View style={styles.settingContent}>
-        <ThemedText
-          type="body"
-          style={[styles.settingTitle, isVIP && { color: LUXURY_COLORS.gold }]}
-        >
-          {isVIP ? "VIP Mode Active" : "Enable VIP Test Mode"}
-        </ThemedText>
-        <ThemedText type="small" style={styles.settingSubtitle}>
-          {isVIP ? "You have full VIP access" : "Unlock all VIP features for testing"}
-        </ThemedText>
-      </View>
-      <Feather name="chevron-right" size={18} color={theme.tabIconDefault} />
-    </Pressable>
-  );
-}
 
 export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScreenProps) {
   const { theme, isDark } = useTheme();
@@ -321,18 +257,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     navigation.navigate("StyleExplorer");
   };
 
-  const handleFeedPreference = () => {
-    Alert.alert(
-      "Feed Preference",
-      "Choose your default feed:",
-      [
-        { text: "Global", onPress: () => updateProfile({ feedPreference: "global" }) },
-        { text: "Prioritize My Region", onPress: () => updateProfile({ feedPreference: "regional" }) },
-        { text: "Local Only", onPress: () => updateProfile({ feedPreference: "local" }) },
-        { text: "Cancel", style: "cancel" },
-      ]
-    );
-  };
 
   const handleAISuggestions = () => {
     const isEnabled = user?.aiSuggestionsEnabled !== false;
@@ -463,21 +387,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             theme={theme}
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.rose, LUXURY_COLORS.coral]}
-          />
-          <SettingItem
-            icon="globe"
-            title="Feed Preference"
-            subtitle={
-              user?.feedPreference === "global"
-                ? "Global"
-                : user?.feedPreference === "regional"
-                  ? "My Region"
-                  : "Local Only"
-            }
-            onPress={handleFeedPreference}
-            theme={theme}
-            isDark={isDark}
-            iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
           />
           <SettingItem
             icon="cpu"
@@ -1020,12 +929,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             title="Logo Preview"
             subtitle="View Dripn logo variations"
             onPress={() => navigation.navigate("LogoPreview")}
-            theme={theme}
-            isDark={isDark}
-          />
-          <VIPTestModeItem
-            user={user}
-            updateProfile={updateProfile}
             theme={theme}
             isDark={isDark}
           />
