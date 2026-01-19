@@ -13,7 +13,7 @@ import { BlurView } from "expo-blur";
 import WardrobeStackNavigator from "@/navigation/WardrobeStackNavigator";
 import UserStylistStackNavigator from "@/navigation/UserStylistStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
-import SettingsScreen from "@/screens/SettingsScreen";
+import SettingsStackNavigator from "@/navigation/SettingsStackNavigator";
 
 import { useTheme } from "@/hooks/useTheme";
 import { ThemedText } from "@/components/ThemedText";
@@ -163,7 +163,7 @@ export default function MainTabNavigator({ onCreatePost, onOpenPortal }: MainTab
         {() => <ProfileStackNavigator onOpenPortal={onOpenPortal} />}
       </Tab.Screen>
       <Tab.Screen name="SettingsTab">
-        {(props) => <SettingsScreen {...props} onOpenPortal={onOpenPortal} />}
+        {() => <SettingsStackNavigator onOpenPortal={onOpenPortal} />}
       </Tab.Screen>
     </Tab.Navigator>
   );

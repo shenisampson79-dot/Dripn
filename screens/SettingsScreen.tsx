@@ -20,6 +20,7 @@ import colorTrendService from "@/services/ColorTrendService";
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import type { SettingsStackParamList } from "@/navigation/SettingsStackNavigator";
 import type { PortalMode } from "@/App";
 
 const LUXURY_COLORS = {
@@ -37,7 +38,7 @@ const LUXURY_COLORS = {
 };
 
 type SettingsScreenProps = {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, "Settings">;
+  navigation: NativeStackNavigationProp<ProfileStackParamList | SettingsStackParamList, "Settings">;
   onOpenPortal?: (mode: PortalMode) => void;
 };
 
