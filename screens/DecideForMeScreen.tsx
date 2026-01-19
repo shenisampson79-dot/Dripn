@@ -964,25 +964,44 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
   const renderResultStep = () => (
     <Animated.View entering={FadeIn} style={styles.resultContainer}>
-      <View style={styles.stylistMessage}>
+      <Animated.View entering={FadeInDown.delay(100)} style={styles.outfitRecommendationCard}>
         <LinearGradient
           colors={[ScreenGradients.ruby.primary[0], ScreenGradients.ruby.primary[1]]}
-          style={styles.avatarCircle}
+          style={styles.recommendationCardGradient}
         >
-          <ThemedText type="small" style={{ color: "#FFFFFF", fontWeight: "600" }}>R</ThemedText>
+          <View style={styles.recommendationCardHeader}>
+            <View style={styles.rubyAvatarSmall}>
+              <Feather name="heart" size={16} color="#FFFFFF" />
+            </View>
+            <View style={styles.recommendationHeaderText}>
+              <ThemedText type="h4" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                Ruby's Pick
+              </ThemedText>
+              <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                Your outfit recommendation
+              </ThemedText>
+            </View>
+          </View>
+          
+          <View style={styles.recommendationCardBody}>
+            <ThemedText type="body" style={styles.recommendationCardText}>
+              {recommendation?.outfit}
+            </ThemedText>
+          </View>
+          
+          {recommendation?.reasoning ? (
+            <View style={styles.recommendationReasoningSection}>
+              <Feather name="info" size={14} color="rgba(255,255,255,0.7)" />
+              <ThemedText type="small" style={styles.recommendationReasoningText}>
+                {recommendation.reasoning}
+              </ThemedText>
+            </View>
+          ) : null}
         </LinearGradient>
-        <LinearGradient
-          colors={[`${ScreenGradients.ruby.primary[0]}50`, `${ScreenGradients.ruby.primary[1]}30`]}
-          style={[styles.messageBubble, { borderWidth: 1, borderColor: `${ScreenGradients.ruby.primary[0]}60` }]}
-        >
-          <ThemedText type="body" style={[styles.messageText, styles.recommendationText, { color: '#FFFFFF' }]}>
-            {recommendation?.outfit}
-          </ThemedText>
-        </LinearGradient>
-      </View>
+      </Animated.View>
 
       {styleAdvice?.imageUrl || isGeneratingImage ? (
-        <Animated.View entering={FadeInDown.delay(100)} style={styles.outfitImageContainer}>
+        <Animated.View entering={FadeInDown.delay(200)} style={styles.outfitImageContainer}>
           {isGeneratingImage && !styleAdvice?.imageUrl ? (
             <View style={styles.imageLoadingContainer}>
               <ActivityIndicator size="small" color={LuxuryColors.gold} />
@@ -1001,7 +1020,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       ) : null}
 
       {styleAdvice ? (
-        <Animated.View entering={FadeInDown.delay(150)} style={styles.styleAdviceContainer}>
+        <Animated.View entering={FadeInDown.delay(300)} style={styles.styleAdviceContainer}>
           <LinearGradient
             colors={[`${LuxuryColors.gold}30`, `${LuxuryColors.deepGold}20`]}
             style={styles.styleRuleCard}
@@ -1266,6 +1285,57 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 26,
     fontWeight: "500",
+  },
+  outfitRecommendationCard: {
+    marginBottom: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    overflow: "hidden",
+    elevation: 8,
+  },
+  recommendationCardGradient: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+  },
+  recommendationCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
+  rubyAvatarSmall: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.sm,
+  },
+  recommendationHeaderText: {
+    flex: 1,
+  },
+  recommendationCardBody: {
+    marginBottom: Spacing.md,
+  },
+  recommendationCardText: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    lineHeight: 26,
+    fontWeight: "500",
+  },
+  recommendationReasoningSection: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.xs,
+  },
+  recommendationReasoningText: {
+    flex: 1,
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
+    lineHeight: 19,
+    fontStyle: "italic",
   },
   outfitImageContainer: {
     marginVertical: Spacing.md,
