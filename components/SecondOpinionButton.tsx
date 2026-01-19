@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Pressable, Modal, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -14,6 +15,8 @@ import {
   OutfitOption,
   VoteReason,
 } from "@/services/CommunityVotingService";
+import { decisionService, CommunityVotingEligibility } from "@/services/DecisionService";
+import { dfyService } from "@/services/DFYService";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface SecondOpinionButtonProps {
@@ -33,11 +36,42 @@ export function SecondOpinionButton({
 }: SecondOpinionButtonProps) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
   const [showModal, setShowModal] = useState(false);
+  const [showLockedModal, setShowLockedModal] = useState(false);
   const [session, setSession] = useState<VotingSession | null>(null);
   const [result, setResult] = useState<VotingResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState({ minutes: 0, seconds: 0, expired: false });
+  const [eligibility, setEligibility] = useState<CommunityVotingEligibility | null>(null);
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(true);
+
+  useEffect(() => {
+    const checkEligibility = async () => {
+      if (!user?.id) {
+        setIsCheckingEligibility(false);
+        return;
+      }
+      
+      try {
+        const dfyAccess = await dfyService.checkDFYAccess(user.id);
+        const hasDFYCompleted = dfyAccess.hasAccess || dfyAccess.tier !== null;
+        const eligibilityResult = await decisionService.checkCommunityVotingEligibility(
+          user.id,
+          user.subscriptionTier || 'free',
+          hasDFYCompleted
+        );
+        setEligibility(eligibilityResult);
+      } catch (error) {
+        console.error("Error checking eligibility:", error);
+        setEligibility({ eligible: false, reason: "Unable to check access", decisionsCompleted: 0, requiredDecisions: 5 });
+      } finally {
+        setIsCheckingEligibility(false);
+      }
+    };
+    
+    checkEligibility();
+  }, [user?.id, user?.subscriptionTier]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -58,6 +92,14 @@ export function SecondOpinionButton({
     };
   }, [session]);
 
+  const handleButtonPress = () => {
+    if (!eligibility?.eligible) {
+      setShowLockedModal(true);
+      return;
+    }
+    handleStartVoting();
+  };
+
   const handleStartVoting = async () => {
     if (!user?.id) return;
     
@@ -76,6 +118,92 @@ export function SecondOpinionButton({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleUpgradePress = () => {
+    setShowLockedModal(false);
+    navigation.navigate("ProfileStack", { screen: "Subscription" });
+  };
+
+  const renderLockedModal = () => {
+    const decisionsLeft = eligibility ? eligibility.requiredDecisions - eligibility.decisionsCompleted : 5;
+    
+    return (
+      <Modal
+        visible={showLockedModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowLockedModal(false)}
+      >
+        <View style={styles.lockedModalOverlay}>
+          <View style={[styles.lockedModalContent, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}>
+            <Pressable onPress={() => setShowLockedModal(false)} style={styles.lockedModalClose}>
+              <Feather name="x" size={24} color={theme.text} />
+            </Pressable>
+            
+            <View style={[styles.lockedIconContainer, { backgroundColor: theme.link + '20' }]}>
+              <Feather name="lock" size={28} color={theme.link} />
+            </View>
+            
+            <ThemedText type="h2" style={styles.lockedTitle}>
+              Community voting unlocks soon
+            </ThemedText>
+            
+            <ThemedText type="body" style={[styles.lockedDescription, { color: theme.tabIconDefault }]}>
+              {decisionService.getSecondOpinionLockedCopy()}
+            </ThemedText>
+            
+            <View style={[styles.lockedOptionsContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+              <View style={styles.lockedOption}>
+                <View style={[styles.lockedOptionIcon, { backgroundColor: theme.link + '20' }]}>
+                  <Feather name="star" size={16} color={theme.link} />
+                </View>
+                <View style={styles.lockedOptionText}>
+                  <ThemedText type="small" style={{ fontWeight: '600' }}>Subscribe to Personal Stylist</ThemedText>
+                  <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>Instant access to community voting</ThemedText>
+                </View>
+              </View>
+              
+              <View style={styles.lockedOptionDivider} />
+              
+              <View style={styles.lockedOption}>
+                <View style={[styles.lockedOptionIcon, { backgroundColor: theme.link + '20' }]}>
+                  <Feather name="target" size={16} color={theme.link} />
+                </View>
+                <View style={styles.lockedOptionText}>
+                  <ThemedText type="small" style={{ fontWeight: '600' }}>Complete {decisionsLeft} more decision{decisionsLeft !== 1 ? 's' : ''}</ThemedText>
+                  <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
+                    {eligibility?.decisionsCompleted || 0} of 5 decisions completed
+                  </ThemedText>
+                </View>
+              </View>
+              
+              <View style={styles.lockedOptionDivider} />
+              
+              <View style={styles.lockedOption}>
+                <View style={[styles.lockedOptionIcon, { backgroundColor: theme.link + '20' }]}>
+                  <Feather name="package" size={16} color={theme.link} />
+                </View>
+                <View style={styles.lockedOptionText}>
+                  <ThemedText type="small" style={{ fontWeight: '600' }}>Complete DFY setup</ThemedText>
+                  <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>Unlock with Outfit or Wardrobe Setup</ThemedText>
+                </View>
+              </View>
+            </View>
+            
+            <Button onPress={handleUpgradePress} style={styles.lockedUpgradeButton}>
+              View subscription options
+            </Button>
+            
+            <Pressable onPress={() => setShowLockedModal(false)} style={styles.lockedDismiss}>
+              <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+                Maybe later
+              </ThemedText>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    );
   };
 
   const handleCheckResults = async () => {
@@ -221,20 +349,29 @@ export function SecondOpinionButton({
     );
   };
 
+  const isLocked = !isCheckingEligibility && !eligibility?.eligible;
+
   return (
     <>
       <Pressable
-        onPress={handleStartVoting}
-        disabled={isLoading}
+        onPress={handleButtonPress}
+        disabled={isLoading || isCheckingEligibility}
         style={({ pressed }) => [
           styles.secondOpinionButton,
-          { opacity: pressed ? 0.7 : 1 },
+          { opacity: pressed || isCheckingEligibility ? 0.7 : 1 },
         ]}
       >
-        <ThemedText type="small" style={[styles.secondOpinionText, { color: theme.tabIconDefault }]}>
-          Want a quick second opinion?
-        </ThemedText>
+        <View style={styles.secondOpinionRow}>
+          {isLocked ? (
+            <Feather name="lock" size={12} color={theme.tabIconDefault} style={{ marginRight: Spacing.xs }} />
+          ) : null}
+          <ThemedText type="small" style={[styles.secondOpinionText, { color: theme.tabIconDefault }]}>
+            {isLocked ? "Unlock community voting" : "Want a quick second opinion?"}
+          </ThemedText>
+        </View>
       </Pressable>
+
+      {renderLockedModal()}
 
       <Modal
         visible={showModal}
@@ -405,5 +542,81 @@ const styles = StyleSheet.create({
   },
   resultButton: {
     marginTop: Spacing.xl,
+  },
+  secondOpinionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  lockedModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.xl,
+  },
+  lockedModalContent: {
+    width: "100%",
+    maxWidth: 400,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    paddingTop: Spacing["2xl"],
+  },
+  lockedModalClose: {
+    position: "absolute",
+    top: Spacing.md,
+    right: Spacing.md,
+    padding: Spacing.sm,
+    zIndex: 1,
+  },
+  lockedIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "center",
+    marginBottom: Spacing.lg,
+  },
+  lockedTitle: {
+    textAlign: "center",
+    marginBottom: Spacing.sm,
+  },
+  lockedDescription: {
+    textAlign: "center",
+    marginBottom: Spacing.xl,
+  },
+  lockedOptionsContainer: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  lockedOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+    gap: Spacing.md,
+  },
+  lockedOptionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  lockedOptionText: {
+    flex: 1,
+    gap: 2,
+  },
+  lockedOptionDivider: {
+    height: 1,
+    backgroundColor: "rgba(128,128,128,0.2)",
+    marginVertical: Spacing.xs,
+  },
+  lockedUpgradeButton: {
+    width: "100%",
+  },
+  lockedDismiss: {
+    alignItems: "center",
+    paddingVertical: Spacing.md,
   },
 });

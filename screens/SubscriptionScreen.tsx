@@ -60,8 +60,8 @@ type DisplayTier = 'free' | 'personal_stylist';
 const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
   free: [
     { text: "1 post per day", included: true },
-    { text: "Community voting", included: true },
     { text: "Basic styling tips", included: true },
+    { text: "Community voting (after 5 decisions)", included: true },
     { text: "Unlimited stylist advice", included: false },
     { text: "Voice features", included: false },
     { text: "Ad-free experience", included: false },
@@ -70,6 +70,7 @@ const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
     { text: "Unlimited outfit posts", included: true },
     { text: "Unlimited AI styling advice", included: true },
     { text: "Personal AI Stylist (Ruby, Max, or Ace)", included: true, bold: true },
+    { text: "Community voting (instant access)", included: true, bold: true },
     { text: "Voice conversations with your stylist", included: true },
     { text: "Wardrobe analysis & recommendations", included: true },
     { text: "Priority support", included: true },
