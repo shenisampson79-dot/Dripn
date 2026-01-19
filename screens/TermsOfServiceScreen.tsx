@@ -46,16 +46,16 @@ export default function TermsOfServiceScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Are at least 13 years of age (or the minimum age in your jurisdiction)
+              Are at least 13 years of age (or the minimum age in your jurisdiction).
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Have the legal capacity to enter into these Terms
+              Have the legal capacity to enter into these Terms.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Agree to comply with all applicable laws and regulations
+              Agree to comply with all applicable laws and regulations.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Have read and understood our Privacy Policy
+              Have read and understood our Privacy Policy.
             </ThemedText>
           </View>
         </View>
@@ -69,22 +69,22 @@ export default function TermsOfServiceScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Post outfit photos and videos for feedback
+              Post outfit photos and videos for feedback.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Receive AI-powered fashion recommendations
+              Receive AI-powered fashion recommendations.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Engage with a community of fashion enthusiasts
+              Engage with a community of fashion enthusiasts.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Access personalized styling advice based on preferences
+              Access personalized styling advice based on preferences.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Discover fashion deals, events, and trends
+              Discover fashion deals, events, and trends.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Subscribe to premium features for enhanced experiences
+              Subscribe to premium features for enhanced experiences.
             </ThemedText>
           </View>
         </View>
@@ -129,16 +129,13 @@ export default function TermsOfServiceScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Free: Limited uploads and AI advice requests
+              Free: Limited uploads and AI advice requests.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Basic: Increased uploads and AI requests
+              Basic: Increased uploads and AI requests.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Premium: Unlimited uploads, priority AI, and video posts
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              VIP: All premium features plus personal stylist sessions and video calling
+              Premium (Personal Stylist): Unlimited uploads, priority AI, video posts, personal stylist chat, and exclusive features.
             </ThemedText>
           </View>
 
@@ -184,22 +181,22 @@ export default function TermsOfServiceScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Violate any law or infringe on third-party rights
+              Violate any law or infringe on third-party rights.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Contain nudity, sexually explicit material, or adult content
+              Contain nudity, sexually explicit material, or adult content.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Promote violence, hatred, discrimination, or harassment
+              Promote violence, hatred, discrimination, or harassment.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Include spam, misleading information, or commercial solicitation
+              Include spam, misleading information, or commercial solicitation.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Impersonate others or misrepresent your identity
+              Impersonate others or misrepresent your identity.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Contain malware, viruses, or harmful code
+              Contain malware, viruses, or harmful code.
             </ThemedText>
           </View>
 
@@ -218,16 +215,16 @@ export default function TermsOfServiceScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Social media promotional reels and posts
+              Social media promotional reels and posts.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Marketing campaigns and advertisements
+              Marketing campaigns and advertisements.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              App Store and Google Play Store promotional materials
+              App Store and Google Play Store promotional materials.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Website and blog content showcasing community style
+              Website and blog content showcasing community style.
             </ThemedText>
           </View>
           <ThemedText type="body" style={styles.paragraph}>
@@ -244,28 +241,28 @@ export default function TermsOfServiceScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Use the Service for any unlawful purpose
+              Use the Service for any unlawful purpose.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Harass, bully, or intimidate other users
+              Harass, bully, or intimidate other users.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Attempt to gain unauthorized access to the Service or other accounts
+              Attempt to gain unauthorized access to the Service or other accounts.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Reverse engineer, decompile, or disassemble any part of the Service
+              Reverse engineer, decompile, or disassemble any part of the Service.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Use automated systems or bots without our written consent
+              Use automated systems or bots without our written consent.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Collect user information without consent
+              Collect user information without consent.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Interfere with or disrupt the Service or servers
+              Interfere with or disrupt the Service or servers.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Circumvent security measures or usage limits
+              Circumvent security measures or usage limits.
             </ThemedText>
           </View>
         </View>
@@ -306,16 +303,16 @@ export default function TermsOfServiceScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              AI advice is for informational and entertainment purposes
+              AI advice is for informational and entertainment purposes.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Recommendations are suggestions, not professional styling services
+              Recommendations are suggestions, not professional styling services.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              You are responsible for your own fashion choices and purchases
+              You are responsible for your own fashion choices and purchases.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              AI recommendations may vary and are not guaranteed to be accurate
+              AI recommendations may vary and are not guaranteed to be accurate.
             </ThemedText>
           </View>
         </View>
@@ -412,7 +409,7 @@ export default function TermsOfServiceScreen() {
               Severability: If any provision is found unenforceable, the remaining provisions remain in effect.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Waiver: Our failure to enforce any right does not constitute a waiver.
+              Waiver: Our failure to enforce any right does not constitute a waiver of that right.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
               Assignment: You may not assign these Terms without our consent. We may assign our rights freely.

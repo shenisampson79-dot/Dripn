@@ -50,19 +50,19 @@ export default function PrivacyPolicyScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Account information: name, email address, password, gender, and country
+              Account information: name, email address, password, gender, and country.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Profile information: profile photo, style preferences, body measurements, and fashion interests
+              Profile information: profile photo, style preferences, body measurements, and fashion interests.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Content: photos, videos, outfit posts, comments, and voice recordings you share
+              Content: photos, videos, outfit posts, comments, and voice recordings you share.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Communications: messages, feedback, and support requests
+              Communications: messages, feedback, and support requests.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Payment information: billing details processed securely through Stripe
+              Payment information: billing details processed securely through Stripe.
             </ThemedText>
           </View>
 
@@ -74,16 +74,16 @@ export default function PrivacyPolicyScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Device information: device type, operating system, unique device identifiers
+              Device information: device type, operating system, and unique device identifiers.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Usage data: features used, interactions, time spent, and preferences
+              Usage data: features used, interactions, time spent, and preferences.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Location data: approximate location based on IP address or precise location if you grant permission
+              Location data: approximate location based on IP address or precise location if you grant permission.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Camera and photo library access: only when you choose to upload content
+              Camera and photo library access: only when you choose to upload content.
             </ThemedText>
           </View>
 
@@ -104,28 +104,28 @@ export default function PrivacyPolicyScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Provide, maintain, and improve the Dripn Service
+              Provide, maintain, and improve the Dripn Service.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Personalize your experience with AI-powered fashion recommendations
+              Personalize your experience with AI-powered fashion recommendations.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Process subscriptions and payments securely
+              Process subscriptions and payments securely.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Display regionally and gender-appropriate fashion content
+              Display regionally and gender-appropriate fashion content.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Send notifications about your account, posts, and community activity
+              Send notifications about your account, posts, and community activity.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Respond to your inquiries and provide customer support
+              Respond to your inquiries and provide customer support.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Detect, prevent, and address fraud, abuse, and security issues
+              Detect, prevent, and address fraud, abuse, and security issues.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Comply with legal obligations and enforce our Terms of Service
+              Comply with legal obligations and enforce our Terms of Service.
             </ThemedText>
           </View>
         </View>
@@ -139,13 +139,13 @@ export default function PrivacyPolicyScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Your outfit photos may be analyzed to provide styling suggestions
+              Your outfit photos may be analysed to provide styling suggestions.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Your style preferences and history inform personalized recommendations
+              Your style preferences and history inform personalised recommendations.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              We do not use your photos to train AI models without explicit consent
+              We do not use your photos to train AI models without explicit consent.
             </ThemedText>
           </View>
           <ThemedText type="body" style={styles.paragraph}>
@@ -162,19 +162,19 @@ export default function PrivacyPolicyScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              With service providers: Payment processors (Stripe), email services (SendGrid), analytics, and cloud hosting providers who assist in operating our Service
+              With service providers: Payment processors (Stripe), email services (SendGrid), analytics, and cloud hosting providers who assist in operating our Service.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              With the community: Content you post publicly is visible to other users
+              With the community: Content you post publicly is visible to other users.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              For legal reasons: When required by law, court order, or to protect rights and safety
+              For legal reasons: When required by law, court order, or to protect rights and safety.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Business transfers: In connection with a merger, acquisition, or sale of assets
+              Business transfers: In connection with a merger, acquisition, or sale of assets.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              With your consent: When you authorize us to share information
+              With your consent: When you authorise us to share information.
             </ThemedText>
           </View>
         </View>
@@ -188,13 +188,13 @@ export default function PrivacyPolicyScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Most data is deleted within 30 days
+              Most data is deleted within 30 days.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Some data may be retained for legal, security, or fraud prevention purposes
+              Some data may be retained for legal, security, or fraud prevention purposes.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Anonymized data may be retained for analytics
+              Anonymised data may be retained for analytics.
             </ThemedText>
           </View>
         </View>
@@ -208,22 +208,22 @@ export default function PrivacyPolicyScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Access: Request a copy of your personal data
+              Access: Request a copy of your personal data.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Correction: Update or correct inaccurate information
+              Correction: Update or correct inaccurate information.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Deletion: Request deletion of your account and data
+              Deletion: Request deletion of your account and data.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Portability: Receive your data in a portable format
+              Portability: Receive your data in a portable format.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Opt-out: Disable marketing communications and AI suggestions
+              Opt-out: Disable marketing communications and AI suggestions.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Restriction: Limit how we process your data
+              Restriction: Limit how we process your data.
             </ThemedText>
           </View>
           <ThemedText type="body" style={styles.paragraph}>
@@ -240,16 +240,16 @@ export default function PrivacyPolicyScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Encryption of data in transit and at rest
+              Encryption of data in transit and at rest.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Secure authentication and access controls
+              Secure authentication and access controls.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Regular security assessments and monitoring
+              Regular security assessments and monitoring.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              PCI-compliant payment processing through Stripe
+              PCI-compliant payment processing through Stripe.
             </ThemedText>
           </View>
           <ThemedText type="body" style={styles.paragraph}>
