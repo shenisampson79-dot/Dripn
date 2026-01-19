@@ -33,6 +33,8 @@ export type StylistId = 'ruby' | 'max' | 'ace' | 'ivy' | null;
 export type DressCodePreference = 'hijab-friendly' | 'tzniut' | 'lds-modest' | 'hindu-traditional' | 'sikh' | 'amish-plain' | 'modest-general' | 'other' | 'none' | null;
 export type SubcultureStyle = 'goth' | 'emo' | 'punk' | 'cottagecore' | 'dark-academia' | 'light-academia' | 'y2k' | 'vintage' | 'grunge' | 'kawaii' | 'streetwear' | 'hypebeast' | 'old-money' | 'clean-girl' | 'coastal-grandmother' | 'other' | 'none' | null;
 export type DressCodeStrictness = 'flexible' | 'moderate' | 'strict' | null;
+export type FitPreference = 'Fitted' | 'Tailored' | 'Relaxed' | 'Oversized' | null;
+export type BodyArea = 'Arms' | 'Shoulders' | 'Chest' | 'Waist' | 'Hips' | 'Legs' | 'Back' | 'Neck' | 'Tummy' | 'Thighs';
 export type RubyVoicePitch = 'mezzo-soprano';
 export type MaxVoiceRange = 'tenor' | 'baritone' | 'bass';
 export type VoicePitch = RubyVoicePitch | MaxVoiceRange;
@@ -63,6 +65,17 @@ export interface CulturalStylePreferences {
   dressCodeStrictness: DressCodeStrictness;
 }
 
+export interface BodyFitPreferences {
+  fitPreference: FitPreference;
+  confidentAreas: BodyArea[];
+  preferToMinimize: BodyArea[];
+}
+
+export interface ColorPreferences {
+  favoriteColors: string[];
+  avoidColors: string[];
+}
+
 export interface ExtendedPreferences {
   lifestyle: Lifestyle;
   favoriteBrands: string[];
@@ -74,6 +87,8 @@ export interface ExtendedPreferences {
   favoriteShops: string[];
   usageGoals: DripnGoal[];
   culturalStyle: CulturalStylePreferences;
+  bodyFitPreferences: BodyFitPreferences;
+  colorChoices: ColorPreferences;
 }
 
 export interface UserProfile {
@@ -176,6 +191,15 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
       subcultureStyle: null,
       subcultureDescription: null,
       dressCodeStrictness: null,
+    },
+    bodyFitPreferences: {
+      fitPreference: null,
+      confidentAreas: [],
+      preferToMinimize: [],
+    },
+    colorChoices: {
+      favoriteColors: [],
+      avoidColors: [],
     },
   },
   stylistPreferences: {

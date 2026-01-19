@@ -13,7 +13,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences, DripnGoal, DressCodePreference, SubcultureStyle, DressCodeStrictness, CulturalStylePreferences } from "@/contexts/AuthContext";
+import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences, DripnGoal, DressCodePreference, SubcultureStyle, DressCodeStrictness, CulturalStylePreferences, FitPreference, BodyArea } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getDefaultVoiceForStylist, getAccentsForLanguage } from "@/services/PersonalStylistService";
 import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
@@ -272,6 +272,47 @@ const STYLE_OPTIONS_MALE: { id: StyleTheme; name: string; description: string }[
 
 const SIZE_OPTIONS: SizeRange[] = ["XS-S", "M-L", "XL-2X", "3X+"];
 
+const FIT_PREFERENCE_OPTIONS: { id: FitPreference; name: string }[] = [
+  { id: "Fitted", name: "Fitted" },
+  { id: "Tailored", name: "Tailored" },
+  { id: "Relaxed", name: "Relaxed" },
+  { id: "Oversized", name: "Oversized" },
+];
+
+const CONFIDENT_AREAS: BodyArea[] = ['Arms', 'Shoulders', 'Chest', 'Waist', 'Hips', 'Legs', 'Back', 'Neck'];
+
+const MINIMIZE_AREAS: BodyArea[] = ['Arms', 'Shoulders', 'Chest', 'Tummy', 'Waist', 'Hips', 'Thighs', 'Legs', 'Back'];
+
+const FAVORITE_COLORS: { hex: string; name: string }[] = [
+  { hex: '#000000', name: 'Black' },
+  { hex: '#FFFFFF', name: 'White' },
+  { hex: '#1F2937', name: 'Charcoal' },
+  { hex: '#6B7280', name: 'Grey' },
+  { hex: '#1E3A8A', name: 'Navy' },
+  { hex: '#3B82F6', name: 'Blue' },
+  { hex: '#0EA5E9', name: 'Sky Blue' },
+  { hex: '#14B8A6', name: 'Teal' },
+  { hex: '#10B981', name: 'Emerald' },
+  { hex: '#22C55E', name: 'Green' },
+  { hex: '#84CC16', name: 'Lime' },
+  { hex: '#EAB308', name: 'Yellow' },
+  { hex: '#F97316', name: 'Orange' },
+  { hex: '#EF4444', name: 'Red' },
+  { hex: '#EC4899', name: 'Pink' },
+  { hex: '#D946EF', name: 'Fuchsia' },
+  { hex: '#A855F7', name: 'Purple' },
+  { hex: '#8B5CF6', name: 'Violet' },
+  { hex: '#78350F', name: 'Brown' },
+  { hex: '#D4A574', name: 'Tan' },
+];
+
+const AVOID_COLORS: string[] = [
+  'Neon colors', 'Pastels', 'Bright yellows', 'Bright oranges', 'Hot pink', 'Lime green',
+  'Mustard', 'Burgundy', 'Olive', 'Coral', 'Turquoise', 'Gold', 'Silver', 'Metallics',
+  'Animal prints', 'Florals', 'Stripes', 'Plaids', 'Polka dots', 'Camouflage',
+  'Tie-dye', 'Ombre', "I'm open to all colors!",
+];
+
 const BUDGET_OPTIONS: { id: BudgetRange; name: string }[] = [
   { id: "Budget", name: "Budget-Friendly" },
   { id: "Mid-Range", name: "Mid-Range" },
@@ -507,6 +548,11 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const [sizeRange, setSizeRange] = useState<SizeRange>(null);
   const [bodyShape, setBodyShape] = useState<BodyShape>(null);
   const [budgetRange, setBudgetRange] = useState<BudgetRange>(null);
+  const [fitPreference, setFitPreference] = useState<FitPreference>(null);
+  const [confidentAreas, setConfidentAreas] = useState<BodyArea[]>([]);
+  const [preferToMinimize, setPreferToMinimize] = useState<BodyArea[]>([]);
+  const [favoriteColors, setFavoriteColors] = useState<string[]>([]);
+  const [avoidColors, setAvoidColors] = useState<string[]>([]);
   const [selectedStylistId, setSelectedStylistId] = useState<StylistId>(null);
   const [stylistLanguage, setStylistLanguage] = useState<string>("English");
   const [stylistAccent, setStylistAccent] = useState<string>("American");
@@ -1126,6 +1172,15 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           subcultureStyle,
           subcultureDescription: subcultureStyle === "other" ? subcultureDescription || null : null,
           dressCodeStrictness,
+        },
+        bodyFitPreferences: {
+          fitPreference,
+          confidentAreas,
+          preferToMinimize,
+        },
+        colorChoices: {
+          favoriteColors,
+          avoidColors,
         },
       },
     });
@@ -1936,6 +1991,137 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
               <View style={styles.optionalSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>
+                  Fit Preference
+                </ThemedText>
+                <View style={styles.optionsRow}>
+                  {FIT_PREFERENCE_OPTIONS.map((fit) => {
+                    const isSelected = fitPreference === fit.id;
+                    return (
+                      <Pressable
+                        key={fit.id}
+                        onPress={() => setFitPreference(fitPreference === fit.id ? null : fit.id)}
+                        style={({ pressed }) => [
+                          styles.optionChip,
+                          {
+                            backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
+                            opacity: pressed ? 0.8 : 1,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          type="body"
+                          style={{ color: isSelected ? "#FFFFFF" : theme.text }}
+                        >
+                          {fit.name}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={styles.optionalSection}>
+                <ThemedText type="h3" style={styles.sectionLabel}>
+                  Areas You Feel Confident About
+                </ThemedText>
+                <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
+                  Select all that apply - stylists will highlight these
+                </ThemedText>
+                <View style={styles.multiSelectGrid}>
+                  {CONFIDENT_AREAS.map((area) => {
+                    const isSelected = confidentAreas.includes(area);
+                    return (
+                      <Pressable
+                        key={area}
+                        onPress={() => {
+                          if (isSelected) {
+                            setConfidentAreas(confidentAreas.filter(a => a !== area));
+                          } else {
+                            setConfidentAreas([...confidentAreas, area]);
+                          }
+                        }}
+                        style={({ pressed }) => [
+                          styles.multiSelectChip,
+                          {
+                            backgroundColor: isSelected ? '#10B981' : theme.backgroundDefault,
+                            borderColor: isSelected ? '#10B981' : theme.border,
+                            opacity: pressed ? 0.8 : 1,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          type="small"
+                          style={{ color: isSelected ? "#FFFFFF" : theme.text }}
+                        >
+                          {area}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={styles.optionalSection}>
+                <ThemedText type="h3" style={styles.sectionLabel}>
+                  Areas to Minimize
+                </ThemedText>
+                <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
+                  Stylists will suggest flattering options for these
+                </ThemedText>
+                <View style={styles.multiSelectGrid}>
+                  {MINIMIZE_AREAS.map((area) => {
+                    const isSelected = preferToMinimize.includes(area);
+                    return (
+                      <Pressable
+                        key={area}
+                        onPress={() => {
+                          if (isSelected) {
+                            setPreferToMinimize(preferToMinimize.filter(a => a !== area));
+                          } else {
+                            setPreferToMinimize([...preferToMinimize, area]);
+                          }
+                        }}
+                        style={({ pressed }) => [
+                          styles.multiSelectChip,
+                          {
+                            backgroundColor: isSelected ? '#F97316' : theme.backgroundDefault,
+                            borderColor: isSelected ? '#F97316' : theme.border,
+                            opacity: pressed ? 0.8 : 1,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          type="small"
+                          style={{ color: isSelected ? "#FFFFFF" : theme.text }}
+                        >
+                          {area}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                  <Pressable
+                    onPress={() => setPreferToMinimize([])}
+                    style={({ pressed }) => [
+                      styles.multiSelectChip,
+                      {
+                        backgroundColor: preferToMinimize.length === 0 ? '#22C55E' : theme.backgroundDefault,
+                        borderColor: preferToMinimize.length === 0 ? '#22C55E' : theme.border,
+                        opacity: pressed ? 0.8 : 1,
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      type="small"
+                      style={{ color: preferToMinimize.length === 0 ? "#FFFFFF" : theme.text }}
+                    >
+                      I'm happy with everything!
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={styles.optionalSection}>
+                <ThemedText type="h3" style={styles.sectionLabel}>
                   Budget Range
                 </ThemedText>
                 <View style={styles.optionsRow}>
@@ -1966,6 +2152,89 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       </ThemedText>
                     </Pressable>
                   ))}
+                </View>
+              </View>
+
+              <View style={styles.optionalSection}>
+                <ThemedText type="h3" style={styles.sectionLabel}>
+                  Favorite Colors
+                </ThemedText>
+                <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
+                  Select colors you love to wear
+                </ThemedText>
+                <View style={styles.colorGrid}>
+                  {FAVORITE_COLORS.map((color) => {
+                    const isSelected = favoriteColors.includes(color.hex);
+                    return (
+                      <Pressable
+                        key={color.hex}
+                        onPress={() => {
+                          if (isSelected) {
+                            setFavoriteColors(favoriteColors.filter(c => c !== color.hex));
+                          } else {
+                            setFavoriteColors([...favoriteColors, color.hex]);
+                          }
+                        }}
+                        style={({ pressed }) => [
+                          styles.colorSwatch,
+                          {
+                            backgroundColor: color.hex,
+                            borderWidth: isSelected ? 3 : 1,
+                            borderColor: isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.3)',
+                            opacity: pressed ? 0.8 : 1,
+                          },
+                        ]}
+                      >
+                        {isSelected ? (
+                          <Feather name="check" size={16} color={color.hex === '#FFFFFF' ? '#000000' : '#FFFFFF'} />
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={styles.optionalSection}>
+                <ThemedText type="h3" style={styles.sectionLabel}>
+                  Colors to Avoid
+                </ThemedText>
+                <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
+                  Stylists will skip these in recommendations
+                </ThemedText>
+                <View style={styles.multiSelectGrid}>
+                  {AVOID_COLORS.map((colorName) => {
+                    const isSelected = avoidColors.includes(colorName);
+                    const isOpenToAll = colorName === "I'm open to all colors!";
+                    return (
+                      <Pressable
+                        key={colorName}
+                        onPress={() => {
+                          if (isOpenToAll) {
+                            setAvoidColors([colorName]);
+                          } else if (isSelected) {
+                            setAvoidColors(avoidColors.filter(c => c !== colorName));
+                          } else {
+                            setAvoidColors([...avoidColors.filter(c => c !== "I'm open to all colors!"), colorName]);
+                          }
+                        }}
+                        style={({ pressed }) => [
+                          styles.multiSelectChip,
+                          {
+                            backgroundColor: isSelected ? (isOpenToAll ? '#22C55E' : '#EF4444') : theme.backgroundDefault,
+                            borderColor: isSelected ? (isOpenToAll ? '#22C55E' : '#EF4444') : theme.border,
+                            opacity: pressed ? 0.8 : 1,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          type="small"
+                          style={{ color: isSelected ? "#FFFFFF" : theme.text }}
+                        >
+                          {colorName}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
                 </View>
               </View>
             </ScrollView>
@@ -3100,6 +3369,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.sm,
+  },
+  multiSelectGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  multiSelectChip: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  colorGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  colorSwatch: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
   },
   bodyShapeOptions: {
     gap: Spacing.sm,
