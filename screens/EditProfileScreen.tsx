@@ -64,7 +64,6 @@ const DRESS_CODE_OPTIONS: { id: DressCodePreference; name: string }[] = [
   { id: "sikh", name: "Sikh" },
   { id: "amish-plain", name: "Amish/Plain" },
   { id: "modest-general", name: "Modest (General)" },
-  { id: "none", name: "No Preference" },
 ];
 
 const SUBCULTURE_OPTIONS: { id: SubcultureStyle; name: string }[] = [
@@ -83,7 +82,6 @@ const SUBCULTURE_OPTIONS: { id: SubcultureStyle; name: string }[] = [
   { id: "old-money", name: "Old Money" },
   { id: "clean-girl", name: "Clean Girl" },
   { id: "coastal-grandmother", name: "Coastal Grandmother" },
-  { id: "none", name: "No Subculture" },
 ];
 
 const STRICTNESS_OPTIONS: { id: DressCodeStrictness; name: string; description: string }[] = [

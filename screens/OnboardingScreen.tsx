@@ -2445,7 +2445,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
       case 7: {
         const DRESS_CODE_OPTIONS: { id: DressCodePreference; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
-          { id: "none", name: "No Preference", description: "No specific religious or cultural dress requirements", icon: "check-circle" },
           { id: "hijab-friendly", name: "Hijab-Friendly", description: "Modest fashion with hijab considerations", icon: "heart" },
           { id: "tzniut", name: "Tzniut (Jewish Modesty)", description: "Traditional Jewish modesty standards", icon: "heart" },
           { id: "lds-modest", name: "LDS Modest", description: "Modest clothing following LDS guidelines", icon: "heart" },
@@ -2456,7 +2455,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         ];
 
         const SUBCULTURE_OPTIONS: { id: SubcultureStyle; name: string; icon: keyof typeof Feather.glyphMap }[] = [
-          { id: "none", name: "No Subculture", icon: "check-circle" },
           { id: "goth", name: "Goth", icon: "moon" },
           { id: "punk", name: "Punk", icon: "zap" },
           { id: "cottagecore", name: "Cottagecore", icon: "sun" },
