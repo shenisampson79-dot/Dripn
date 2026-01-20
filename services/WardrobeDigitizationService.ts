@@ -291,142 +291,68 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
 }
 
 export async function extractProductFromText(text: string): Promise<ProductLinkResult> {
-  if (!OPENAI_API_KEY) {
+  try {
+    const { apiService } = await import('./ApiService');
+    const result = await apiService.extractFromUrl(text);
+    
+    if (result.success && result.item) {
+      const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+      const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
+
+      return {
+        success: true,
+        productName: result.item.name,
+        brand: result.item.brand,
+        price: result.item.price,
+        currency: 'GBP',
+        imageUrl: result.item.imageUri,
+        productUrl: result.item.sourceUrl,
+        category: validCategories.includes(result.item.category as ClothingCategory) ? result.item.category as ClothingCategory : undefined,
+        color: validColors.includes(result.item.color as ClothingColor) ? result.item.color as ClothingColor : undefined,
+        retailer: new URL(text).hostname.replace('www.', ''),
+      };
+    }
+    
     return {
       success: false,
-      error: 'AI extraction is not available.',
-    };
-  }
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: PRODUCT_EXTRACTION_PROMPT,
-          },
-          {
-            role: 'user',
-            content: `Extract product information from the following:\n\n${text}`,
-          },
-        ],
-        max_tokens: 600,
-        temperature: 0.2,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Product extraction failed');
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content?.trim();
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
-    const product = JSON.parse(cleanedContent);
-
-    const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-    const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
-
-    return {
-      success: true,
-      productName: product.productName,
-      brand: product.brand,
-      price: typeof product.price === 'number' ? product.price : parseFloat(product.price) || undefined,
-      currency: product.currency || 'USD',
-      originalPrice: typeof product.originalPrice === 'number' ? product.originalPrice : parseFloat(product.originalPrice) || undefined,
-      description: product.description,
-      category: validCategories.includes(product.category) ? product.category : undefined,
-      color: validColors.includes(product.color) ? product.color : undefined,
-      size: product.size,
-      material: product.material,
-      retailer: product.retailer,
-      inStock: product.inStock,
+      error: 'Could not extract product information from this URL.',
     };
   } catch (error: any) {
     console.error('Product extraction error:', error);
     return {
       success: false,
-      error: error.message || 'Failed to extract product information.',
+      error: error.message || 'Failed to extract product information. Try copying the full product page content instead.',
     };
   }
 }
 
 export async function extractProductFromImage(imageUri: string): Promise<ProductLinkResult> {
-  if (!OPENAI_API_KEY) {
-    return {
-      success: false,
-      error: 'AI extraction is not available.',
-    };
-  }
-
   try {
+    const { apiService } = await import('./ApiService');
     const base64Image = await convertImageToBase64(imageUri);
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: PRODUCT_EXTRACTION_PROMPT,
-          },
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'Extract product information from this screenshot:' },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:image/jpeg;base64,${base64Image}`,
-                  detail: 'high',
-                },
-              },
-            ],
-          },
-        ],
-        max_tokens: 600,
-        temperature: 0.2,
-      }),
-    });
+    const result = await apiService.extractFromScreenshot(base64Image);
+    
+    if (result.success && result.item) {
+      const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+      const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
 
-    if (!response.ok) {
-      throw new Error('Product extraction failed');
+      return {
+        success: true,
+        productName: result.item.name,
+        brand: result.item.brand,
+        price: result.item.price,
+        currency: 'GBP',
+        imageUrl: result.item.imageUri,
+        category: validCategories.includes(result.item.category as ClothingCategory) ? result.item.category as ClothingCategory : undefined,
+        color: validColors.includes(result.item.color as ClothingColor) ? result.item.color as ClothingColor : undefined,
+        retailer: result.item.retailer,
+      };
     }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content?.trim();
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
-    const product = JSON.parse(cleanedContent);
-
-    const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-    const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
-
+    
     return {
-      success: true,
-      productName: product.productName,
-      brand: product.brand,
-      price: typeof product.price === 'number' ? product.price : parseFloat(product.price) || undefined,
-      currency: product.currency || 'USD',
-      originalPrice: typeof product.originalPrice === 'number' ? product.originalPrice : parseFloat(product.originalPrice) || undefined,
-      description: product.description,
-      category: validCategories.includes(product.category) ? product.category : undefined,
-      color: validColors.includes(product.color) ? product.color : undefined,
-      size: product.size,
-      material: product.material,
-      retailer: product.retailer,
-      inStock: product.inStock,
+      success: false,
+      error: 'Could not extract product information from this screenshot.',
     };
   } catch (error: any) {
     console.error('Product image extraction error:', error);

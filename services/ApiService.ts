@@ -2322,10 +2322,30 @@ class ApiService {
         color?: string;
         category?: string;
         sourceUrl: string;
+        retailer?: string;
       };
     }>('/api/wardrobe/extract-from-url', {
       method: 'POST',
       body: JSON.stringify({ url }),
+    });
+  }
+
+  // Screenshot Extraction for Wardrobe
+  async extractFromScreenshot(base64Image: string) {
+    return this.request<{
+      success: boolean;
+      item: {
+        name: string;
+        imageUri: string;
+        brand?: string;
+        price?: number;
+        color?: string;
+        category?: string;
+        retailer?: string;
+      };
+    }>('/api/wardrobe/extract-from-screenshot', {
+      method: 'POST',
+      body: JSON.stringify({ image: base64Image }),
     });
   }
 
