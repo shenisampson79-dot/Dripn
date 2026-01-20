@@ -586,3 +586,180 @@ export const ScreenGradients = {
     accent: '#C9A87C',
   },
 };
+
+// Minimalist Screen Gradients - Subtle, neutral alternatives
+export const MinimalistGradients = {
+  // Onboarding Flow - Subtle neutrals
+  onboardingEntry: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  welcome: {
+    primary: ['#1A1A2E', '#0D0B09'] as const,
+    secondary: ['#2D2D3A', '#1A1A2E'] as const,
+    accent: '#FFFFFF',
+  },
+  trustOnboarding: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  decideForMe: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#FFFFFF',
+  },
+  styleMeProperly: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  softSignupGate: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#FFFFFF',
+  },
+  
+  // Main App Screens
+  home: {
+    primary: ['#1A1A2E', '#0D0B09'] as const,
+    secondary: ['#2D2D3A', '#1A1A2E'] as const,
+    accent: '#E5E4E2',
+  },
+  wardrobe: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  profile: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  settings: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  
+  // Stylist Screens - Subtle variations
+  stylistHub: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  ruby: {
+    primary: ['#3A2D2D', '#2E1A1A'] as const,
+    secondary: ['#4A3D3D', '#3A2D2D'] as const,
+    accent: '#E5E4E2',
+  },
+  max: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  ace: {
+    primary: ['#3A3A2D', '#2E2E1A'] as const,
+    secondary: ['#4A4A3D', '#3A3A2D'] as const,
+    accent: '#1A1A2E',
+  },
+  julia: {
+    primary: ['#2D3A3A', '#1A2E2E'] as const,
+    secondary: ['#3D4A4A', '#2D3A3A'] as const,
+    accent: '#E5E4E2',
+  },
+  
+  // Feature Screens
+  discover: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  gamesHub: {
+    primary: ['#3A3A2D', '#2E2E1A'] as const,
+    secondary: ['#4A4A3D', '#3A3A2D'] as const,
+    accent: '#E5E4E2',
+  },
+  styleDNA: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  events: {
+    primary: ['#1A1A2E', '#0D0B09'] as const,
+    secondary: ['#2D2D3A', '#1A1A2E'] as const,
+    accent: '#E5E4E2',
+  },
+  community: {
+    primary: ['#2D3A3A', '#1A2E2E'] as const,
+    secondary: ['#3D4A4A', '#2D3A3A'] as const,
+    accent: '#E5E4E2',
+  },
+  
+  // Utility Screens
+  help: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  auth: {
+    primary: ['#1A1A2E', '#0D0B09'] as const,
+    secondary: ['#2D2D3A', '#1A1A2E'] as const,
+    accent: '#E5E4E2',
+  },
+  subscription: {
+    primary: ['#C9A87C', '#8B2F39'] as const,
+    secondary: ['#9B7EBD', '#7C3AED'] as const,
+    accent: '#F5E6D3',
+  },
+  
+  // Special Feature Screens
+  virtualTryOn: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  colorAnalysis: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  dreamOutfit: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#E5E4E2',
+  },
+  weatherOutfit: {
+    primary: ['#2D2D3A', '#1A1A2E'] as const,
+    secondary: ['#3D3D4A', '#2D2D3A'] as const,
+    accent: '#FFFFFF',
+  },
+  sustainability: {
+    primary: ['#2D3A2D', '#1A2E1A'] as const,
+    secondary: ['#3D4A3D', '#2D3A2D'] as const,
+    accent: '#E5E4E2',
+  },
+  bargains: {
+    primary: ['#3A2D2D', '#2E1A1A'] as const,
+    secondary: ['#4A3D3D', '#3A2D2D'] as const,
+    accent: '#FFFFFF',
+  },
+  wishlist: {
+    primary: ['#3A2D2D', '#2E1A1A'] as const,
+    secondary: ['#4A3D3D', '#3A2D2D'] as const,
+    accent: '#E5E4E2',
+  },
+  
+  // Admin & Professional
+  stylistPortal: {
+    primary: ['#1A1A2E', '#0D0B09'] as const,
+    secondary: ['#2D2D3A', '#1A1A2E'] as const,
+    accent: '#E5E4E2',
+  },
+  adminPortal: {
+    primary: ['#1A1A2E', '#0D0B09'] as const,
+    secondary: ['#2D2D3A', '#1A1A2E'] as const,
+    accent: '#E5E4E2',
+  },
+};

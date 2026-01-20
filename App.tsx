@@ -50,6 +50,7 @@ import { MessagingProvider } from "@/contexts/MessagingContext";
 import { VoiceSettingsProvider } from "@/contexts/VoiceSettingsContext";
 import { BodyProfileProvider } from "@/contexts/BodyProfileContext";
 import { TranslationProvider } from "@/contexts/TranslationContext";
+import { ColorSchemeProvider } from "@/contexts/ColorSchemeContext";
 
 export type PortalMode = 'stylist' | 'admin' | null;
 
@@ -167,7 +168,9 @@ export default function App() {
                                               <VoiceSettingsProvider>
                                                 <TranslationProvider>
                                                   <BodyProfileProvider>
-                                                    <NavigationContainerWithRef />
+                                                    <ColorSchemeProvider>
+                                                      <NavigationContainerWithRef />
+                                                    </ColorSchemeProvider>
                                                   </BodyProfileProvider>
                                                 </TranslationProvider>
                                               </VoiceSettingsProvider>

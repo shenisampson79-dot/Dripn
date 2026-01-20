@@ -18,6 +18,7 @@ import { useVoiceSettings, SUPPORTED_LANGUAGES, SPEED_OPTIONS } from "@/contexts
 import { apiService } from "@/services/ApiService";
 import colorTrendService from "@/services/ColorTrendService";
 import dfyService, { DFYAccessStatus, DFYTier } from "@/services/DFYService";
+import { useColorScheme, ColorSchemeMode } from "@/contexts/ColorSchemeContext";
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -138,8 +139,9 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const { referralCode, totalReferrals, bonusAIRequests, shareReferral } = useReferral();
   const { preferences: notificationPrefs, updatePreferences } = useSmartNotifications();
   const { settings: voiceSettings, updateSettings: updateVoiceSettings } = useVoiceSettings();
+  const { colorScheme, setColorScheme } = useColorScheme();
   const [isNewsletterSubscribed, setIsNewsletterSubscribed] = useState(false);
-  const [pickerModal, setPickerModal] = useState<{ type: 'language' | 'speed' | null; visible: boolean }>({ type: null, visible: false });
+  const [pickerModal, setPickerModal] = useState<{ type: 'language' | 'speed' | 'colorScheme' | null; visible: boolean }>({ type: null, visible: false });
   const [isNewsletterLoading, setIsNewsletterLoading] = useState(false);
   const [pantoneColor, setPantoneColor] = useState<PantoneColor | null>(null);
   const [pantoneLoading, setPantoneLoading] = useState(true);
@@ -316,9 +318,18 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     setPickerModal({ type: 'speed', visible: true });
   };
 
+  const handleColorSchemeSelect = () => {
+    setPickerModal({ type: 'colorScheme', visible: true });
+  };
+
   const closePickerModal = () => {
     setPickerModal({ type: null, visible: false });
   };
+
+  const COLOR_SCHEME_OPTIONS: { value: ColorSchemeMode; label: string; description: string }[] = [
+    { value: 'colorful', label: 'Colorful', description: 'Vibrant gradients and bold colors' },
+    { value: 'minimalist', label: 'Minimalist', description: 'Subtle, understated tones' },
+  ];
 
   const handleDFYToggle = async (tier: DFYTier, value: boolean) => {
     if (!user?.id) return;
