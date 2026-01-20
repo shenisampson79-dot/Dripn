@@ -1,12 +1,15 @@
-import Constants from 'expo-constants';
+/**
+ * Copyright (c) 2025 Dripn. All rights reserved.
+ * Proprietary and confidential.
+ */
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
 
 interface OutfitImageResult {
   imageUrl: string | null;
   styleRule: string;
   explanation: string;
 }
-
-const REPLICATE_API_TOKEN = Constants.expoConfig?.extra?.REPLICATE_API_TOKEN || process.env.REPLICATE_API_TOKEN;
 
 const STYLE_RULES: Record<string, string[]> = {
   work: [
@@ -83,9 +86,8 @@ export async function generateOutfitImage(
   const styleRule = getRandomItem(styleRules);
   const explanation = getRandomItem(explanations);
   
-  // Skip image generation if no API token available
-  if (!REPLICATE_API_TOKEN) {
-    console.log("No Replicate API token available, skipping image generation");
+  if (!API_URL) {
+    console.log("No backend API URL configured, skipping image generation");
     return {
       imageUrl: null,
       styleRule,
@@ -94,40 +96,25 @@ export async function generateOutfitImage(
   }
   
   try {
-    const prompt = `Professional fashion photography, ${outfitDescription}, worn by a stylish person, full body shot, clean background, high fashion editorial style, soft studio lighting, 8k quality, realistic`;
-    
-    // Use fetch instead of Replicate SDK for React Native compatibility
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
+    const response = await fetch(`${API_URL}/api/ai/generate-outfit-image`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json",
-        "Prefer": "wait",
       },
       body: JSON.stringify({
-        version: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-        input: {
-          prompt,
-          negative_prompt: "cartoon, anime, illustration, drawing, low quality, blurry, deformed, ugly, bad anatomy",
-          width: 768,
-          height: 1024,
-          num_outputs: 1,
-          guidance_scale: 7.5,
-          num_inference_steps: 30,
-        },
+        outfitDescription,
+        occasion,
       }),
     });
     
     if (!response.ok) {
-      throw new Error(`Replicate API error: ${response.status}`);
+      throw new Error(`Backend API error: ${response.status}`);
     }
     
     const result = await response.json();
-    const output = result.output;
-    const imageUrl = Array.isArray(output) ? output[0] : null;
     
     return {
-      imageUrl: typeof imageUrl === 'string' ? imageUrl : null,
+      imageUrl: result.imageUrl || null,
       styleRule,
       explanation,
     };
