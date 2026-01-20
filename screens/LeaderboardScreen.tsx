@@ -85,9 +85,7 @@ export default function LeaderboardScreen({ navigation }: LeaderboardScreenProps
 
   const getTierColor = (tier: string) => {
     switch (tier.toLowerCase()) {
-      case 'vip': return "#A855F7";
       case 'premium': return "#F59E0B";
-      case 'basic': return "#3B82F6";
       default: return theme.tabIconDefault;
     }
   };

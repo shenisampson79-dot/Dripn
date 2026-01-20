@@ -66,7 +66,7 @@ export default function DreamOutfitGeneratorScreen({ navigation }: DreamOutfitGe
   const [generatedOutfits, setGeneratedOutfits] = useState<GeneratedOutfit[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  const isPremium = tier === "premium" || tier === "vip";
+  const isPremium = tier === "premium";
 
   const handleGenerate = async () => {
     if (!prompt.trim() && !selectedStyle) return;

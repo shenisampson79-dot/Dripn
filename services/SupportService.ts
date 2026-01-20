@@ -195,11 +195,11 @@ class SupportService {
     const signOff = 'Happy to help!';
 
     if (lowerMessage.includes('subscription') || lowerMessage.includes('plan') || lowerMessage.includes('upgrade')) {
-      return `Great question about subscriptions! Dripn offers four tiers:\n\n- **Free**: Basic features with limited AI advice\n- **Basic**: More uploads and AI requests\n- **Premium**: Unlimited features and priority support\n- **VIP**: Everything plus real-life stylist video sessions\n\nYou can upgrade anytime in Settings > Subscription. ${signOff}`;
+      return `Great question about subscriptions! Dripn offers two tiers:\n\n- **Free**: Basic features with limited AI advice\n- **Premium (Personal Stylist)**: Unlimited features, priority support, video sessions with stylists, and exclusive trend insights\n\nYou can upgrade anytime in Settings > Subscription. ${signOff}`;
     }
 
-    if (lowerMessage.includes('stylist') || lowerMessage.includes('video call') || lowerMessage.includes('vip')) {
-      return `VIP members get exclusive access to real-life stylist video sessions! That's 4 one-hour sessions per month with professional fashion stylists.\n\nTo access this, you'll need to upgrade to VIP tier. Once subscribed, you can book sessions from your Profile screen. ${signOff}`;
+    if (lowerMessage.includes('stylist') || lowerMessage.includes('video call')) {
+      return `Premium members get exclusive access to real-life stylist video sessions! That's 4 one-hour sessions per month with professional fashion stylists.\n\nTo access this, you'll need to upgrade to Premium tier. Once subscribed, you can book sessions from your Profile screen. ${signOff}`;
     }
 
     if (lowerMessage.includes('wardrobe') || lowerMessage.includes('closet')) {

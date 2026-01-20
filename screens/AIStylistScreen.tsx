@@ -1598,7 +1598,7 @@ export default function AIStylistScreen() {
   
   const remainingMessages = getRemainingMessages();
   const showLimitWarning = remainingMessages !== Infinity && remainingMessages <= 3;
-  const showUpgradeTeaser = remainingMessages !== Infinity && remainingMessages <= 10 && (tier === 'free' || tier === 'basic');
+  const showUpgradeTeaser = remainingMessages !== Infinity && remainingMessages <= 10 && tier === 'free';
   const limitReached = !canSendMessage();
   
   const getUpgradeTeaserMessage = () => {

@@ -71,7 +71,7 @@ export default function VisualSearchScreen() {
   const { paddingTop } = useScreenInsets();
   const navigation = useNavigation();
   
-  const isPaidTier = tier === 'basic' || tier === 'premium' || tier === 'vip';
+  const isPaidTier = tier === 'premium';
 
   const [searchState, setSearchState] = useState<SearchState>({
     status: 'idle',

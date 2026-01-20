@@ -66,7 +66,7 @@ export interface TrendInsight {
   category: string;
   source: string;
   date: string;
-  tierAccess: "free" | "basic" | "premium" | "vip";
+  tierAccess: "free" | "premium";
 }
 
 const UK_TRENDS: RegionalTrends = {
@@ -1766,7 +1766,7 @@ export class TrendInsightsService {
   static async generateTrendInsights(
     country: string,
     gender: "male" | "female",
-    subscriptionTier: "free" | "basic" | "premium" | "vip"
+    subscriptionTier: "free" | "premium"
   ): Promise<TrendInsight[]> {
     const trends = await this.getTrendsForRegion(country);
     if (!trends) return [];
@@ -1785,7 +1785,7 @@ export class TrendInsightsService {
         category: item.category,
         source: trends.publications[0]?.name || "Style Experts",
         date: new Date().toISOString().split("T")[0],
-        tierAccess: item.hotLevel >= 5 ? "free" : "basic",
+        tierAccess: item.hotLevel >= 5 ? "free" : "premium",
       });
     });
 
@@ -1800,11 +1800,11 @@ export class TrendInsightsService {
         category: "Influencer",
         source: topInfluencer.platform,
         date: new Date().toISOString().split("T")[0],
-        tierAccess: "basic",
+        tierAccess: "premium",
       });
     }
 
-    if ((subscriptionTier === "premium" || subscriptionTier === "vip") && trends.styleMovements.length > 0) {
+    if (subscriptionTier === "premium" && trends.styleMovements.length > 0) {
       const movement = trends.styleMovements[0];
       insights.push({
         id: "style-movement",
@@ -1819,7 +1819,7 @@ export class TrendInsightsService {
       });
     }
 
-    if (subscriptionTier === "vip") {
+    if (subscriptionTier === "premium") {
       const colors = trends.colorPalette.slice(0, 3);
       insights.push({
         id: "color-forecast",
@@ -1830,7 +1830,7 @@ export class TrendInsightsService {
         category: "Colour Trends",
         source: "Colour Analysts",
         date: new Date().toISOString().split("T")[0],
-        tierAccess: "vip",
+        tierAccess: "premium",
       });
     }
 

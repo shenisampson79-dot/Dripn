@@ -329,10 +329,6 @@ export const SubscriptionColors = {
     background: '#E0E0E0',
     text: '#666666',
   },
-  basic: {
-    background: '#3D8BFF',
-    text: '#FFFFFF',
-  },
   premium: {
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     backgroundStart: '#667eea',

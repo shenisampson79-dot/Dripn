@@ -56,7 +56,7 @@ export default function StreetStyleScannerScreen({ navigation }: StreetStyleScan
   
   const cameraRef = useRef<CameraView>(null);
 
-  const isPremium = tier === "premium" || tier === "vip";
+  const isPremium = tier === "premium";
 
   const handleTakePhoto = async () => {
     if (cameraRef.current) {

@@ -114,24 +114,8 @@ const TIER_LIMITS: Record<SubscriptionTier, DecisionLimits> = {
     hasHistory: false,
     hasCommunityVoting: false,
   },
-  basic: {
-    tier: 'basic',
-    decisionsPerDay: 3,
-    maxImages: 3,
-    hasSecondOpinion: false,
-    hasHistory: true,
-    hasCommunityVoting: false,
-  },
   premium: {
     tier: 'premium',
-    decisionsPerDay: 'unlimited',
-    maxImages: 3,
-    hasSecondOpinion: true,
-    hasHistory: true,
-    hasCommunityVoting: true,
-  },
-  vip: {
-    tier: 'vip',
     decisionsPerDay: 'unlimited',
     maxImages: 3,
     hasSecondOpinion: true,
@@ -283,7 +267,7 @@ class DecisionService {
     hasDFYCompleted: boolean
   ): Promise<CommunityVotingEligibility> {
     const totalDecisions = await this.getTotalDecisions(userId);
-    const isPaid = tier === 'premium' || tier === 'vip';
+    const isPaid = tier === 'premium';
 
     const eligible = totalDecisions >= 5 || isPaid || hasDFYCompleted;
 

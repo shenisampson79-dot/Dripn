@@ -205,7 +205,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
   const renderPlanCard = (plan: Plan, index: number) => {
     const isSelected = selectedPlan === plan.id;
     const isPaidPlan = plan.id === 'premium';
-    const userOnPaidTier = user?.subscriptionTier && ['basic', 'premium'].includes(user.subscriptionTier);
+    const userOnPaidTier = user?.subscriptionTier === 'premium';
     const isCurrent = plan.id === 'free' 
       ? user?.subscriptionTier === 'free' 
       : isPaidPlan && userOnPaidTier;

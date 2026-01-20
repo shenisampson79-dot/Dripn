@@ -39,7 +39,7 @@ export interface Post {
   userId: string;
   userName: string;
   userAvatar: string | null;
-  userSubscriptionTier: 'free' | 'basic' | 'premium' | 'vip';
+  userSubscriptionTier: 'free' | 'premium';
   type: PostType;
   media: PostMedia[];
   images: PostMedia[];
@@ -104,7 +104,7 @@ const SAMPLE_POSTS: Post[] = [
     userId: 'ai-stylist',
     userName: 'Dripn AI',
     userAvatar: null,
-    userSubscriptionTier: 'vip',
+    userSubscriptionTier: 'premium',
     type: 'standard',
     media: [{ id: '1-1', uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600', type: 'image' }],
     images: [{ id: '1-1', uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600', type: 'image' }],
@@ -150,7 +150,7 @@ const SAMPLE_POSTS: Post[] = [
     userId: 'user-3',
     userName: 'Marcus Pro',
     userAvatar: null,
-    userSubscriptionTier: 'basic',
+    userSubscriptionTier: 'free',
     type: 'standard',
     media: [{ id: '3-1', uri: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600', type: 'image' }],
     images: [{ id: '3-1', uri: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600', type: 'image' }],

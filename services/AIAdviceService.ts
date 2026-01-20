@@ -1021,7 +1021,7 @@ async function generateAdvice(
   isPremium: boolean, 
   userCountry?: string, 
   userGender?: string,
-  subscriptionTier: 'free' | 'basic' | 'premium' | 'vip' = 'free',
+  subscriptionTier: 'free' | 'premium' = 'free',
   userGoals: DripnGoal[] = [],
   extendedPrefs?: Partial<ExtendedPreferences>
 ): Promise<AIAdviceResult> {
@@ -1105,15 +1105,15 @@ async function generateAdvice(
         TrendInsightsService.getCulturalNotesForRegion(userCountry),
       ]);
 
-      const itemLimit = subscriptionTier === 'vip' ? 5 : subscriptionTier === 'premium' ? 4 : 2;
-      const influencerLimit = subscriptionTier === 'vip' ? 5 : subscriptionTier === 'premium' ? 3 : 1;
+      const itemLimit = subscriptionTier === 'premium' ? 5 : 2;
+      const influencerLimit = subscriptionTier === 'premium' ? 4 : 1;
 
       trendInsights = {
         hotItems: hotItems.slice(0, itemLimit),
         recommendedInfluencers: influencers.slice(0, influencerLimit),
-        colorTrends: subscriptionTier === 'vip' ? colorTrends : colorTrends.slice(0, 3),
-        styleMovement: subscriptionTier === 'premium' || subscriptionTier === 'vip' ? styleMovements[0] : undefined,
-        culturalNotes: subscriptionTier === 'vip' || subscriptionTier === 'premium' ? culturalNotes : culturalNotes.slice(0, 2),
+        colorTrends: subscriptionTier === 'premium' ? colorTrends : colorTrends.slice(0, 3),
+        styleMovement: subscriptionTier === 'premium' ? styleMovements[0] : undefined,
+        culturalNotes: subscriptionTier === 'premium' ? culturalNotes : culturalNotes.slice(0, 2),
         publications: publications.map(p => ({ name: p.name, focus: p.focus })),
       };
 
@@ -1123,20 +1123,20 @@ async function generateAdvice(
         suggestions.push(hotItemTip);
       }
 
-      if (influencers.length > 0 && subscriptionTier !== 'basic') {
+      if (influencers.length > 0) {
         const topInfluencer = influencers[0];
         const influencerTip = `Follow ${topInfluencer.name} (${topInfluencer.handle}) for ${topInfluencer.specialty.slice(0, 2).join(' and ')} inspiration.`;
         suggestions.push(influencerTip);
       }
 
-      if (colorTrends.length > 0 && subscriptionTier === 'vip') {
+      if (colorTrends.length > 0 && subscriptionTier === 'premium') {
         const trendingColor = colorTrends[0];
         const colorTip = `2025/2026 Colour Forecast: ${trendingColor.name} is the colour of the moment for ${trendingColor.usage.slice(0, 2).join(' and ')}.`;
         suggestions.push(colorTip);
       }
 
-      if (subscriptionTier === 'vip') {
-        suggestions.push(`VIP Early Access: Get tomorrow's trends today! These insights are 4-6 weeks ahead of mainstream fashion coverage.`);
+      if (subscriptionTier === 'premium') {
+        suggestions.push(`Premium Early Access: Get tomorrow's trends today! These insights are 4-6 weeks ahead of mainstream fashion coverage.`);
       }
     } catch (error) {
       console.warn('Failed to fetch trend insights:', error);
@@ -1246,7 +1246,7 @@ export async function getAIFashionAdvice(
   isPremiumUser: boolean = false,
   userCountry?: string,
   userGender?: string,
-  subscriptionTier: 'free' | 'basic' | 'premium' | 'vip' = 'free',
+  subscriptionTier: 'free' | 'premium' = 'free',
   userGoals: DripnGoal[] = [],
   extendedPrefs?: Partial<ExtendedPreferences>
 ): Promise<AIAdviceResult> {
@@ -1347,7 +1347,7 @@ export function getStyleOfTheDayContent(country: string, userGender?: string): {
 export async function getTrendInsightsForUser(
   country: string,
   gender: 'male' | 'female',
-  subscriptionTier: 'free' | 'basic' | 'premium' | 'vip'
+  subscriptionTier: 'free' | 'premium'
 ): Promise<{
   hotItems: TrendingItem[];
   influencers: FashionInfluencer[];
@@ -1372,18 +1372,18 @@ export async function getTrendInsightsForUser(
       TrendInsightsService.getPublicationsForRegion(country, gender),
     ]);
 
-    const itemLimit = subscriptionTier === 'vip' ? 5 : subscriptionTier === 'premium' ? 4 : 2;
-    const influencerLimit = subscriptionTier === 'vip' ? 5 : subscriptionTier === 'premium' ? 3 : 1;
+    const itemLimit = subscriptionTier === 'premium' ? 5 : 2;
+    const influencerLimit = subscriptionTier === 'premium' ? 4 : 1;
 
     return {
       hotItems: hotItems.slice(0, itemLimit),
       influencers: influencers.slice(0, influencerLimit),
-      colorTrends: subscriptionTier === 'vip' ? colorTrends : colorTrends.slice(0, 3),
-      styleMovements: subscriptionTier === 'vip' || subscriptionTier === 'premium' ? styleMovements : styleMovements.slice(0, 1),
-      culturalNotes: subscriptionTier === 'vip' || subscriptionTier === 'premium' ? culturalNotes : culturalNotes.slice(0, 2),
+      colorTrends: subscriptionTier === 'premium' ? colorTrends : colorTrends.slice(0, 3),
+      styleMovements: subscriptionTier === 'premium' ? styleMovements : styleMovements.slice(0, 1),
+      culturalNotes: subscriptionTier === 'premium' ? culturalNotes : culturalNotes.slice(0, 2),
       publications,
       globalTrendingBrands: TrendInsightsService.getGlobalTrendingBrands(gender),
-      colorForecast2025: subscriptionTier === 'vip' ? TrendInsightsService.get2025ColorTrends() : TrendInsightsService.get2025ColorTrends().slice(0, 4),
+      colorForecast2025: subscriptionTier === 'premium' ? TrendInsightsService.get2025ColorTrends() : TrendInsightsService.get2025ColorTrends().slice(0, 4),
     };
   } catch (error) {
     console.warn('Failed to fetch trend insights:', error);

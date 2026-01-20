@@ -62,7 +62,7 @@ export default function EventsScreen() {
   const [surpriseEvent, setSurpriseEvent] = useState<Event | null>(null);
   const [showSurpriseModal, setShowSurpriseModal] = useState(false);
 
-  const isVip = user?.subscriptionTier === "vip";
+  const isPremium = user?.subscriptionTier === "premium";
 
   const forYouEvents = useMemo(() => {
     if (!hasSetPreferences || preferences.interests.length === 0) return [];
@@ -97,7 +97,7 @@ export default function EventsScreen() {
     
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
-    const availableEvents = events.filter(e => !e.isVipOnly || isVip);
+    const availableEvents = events.filter(e => !e.isVipOnly || isPremium);
     if (availableEvents.length === 0) return;
     
     const randomIndex = Math.floor(Math.random() * availableEvents.length);
@@ -105,10 +105,10 @@ export default function EventsScreen() {
     
     setSurpriseEvent(randomEvent);
     setShowSurpriseModal(true);
-  }, [events, isVip]);
+  }, [events, isPremium]);
 
   const categories = EventsService.getCategories(events);
-  const filteredEvents = EventsService.filterEvents(events, selectedCategory, isVip);
+  const filteredEvents = EventsService.filterEvents(events, selectedCategory, isPremium);
 
   const fetchLocationAndEvents = useCallback(async () => {
     try {

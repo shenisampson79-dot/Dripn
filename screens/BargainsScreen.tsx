@@ -42,8 +42,7 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedDealForShare, setSelectedDealForShare] = useState<BargainDeal | null>(null);
 
-  const isVip = user?.subscriptionTier === "vip";
-  const isPremium = user?.subscriptionTier === "premium" || isVip;
+  const isPremium = user?.subscriptionTier === "premium";
 
   const isItemInWishlist = (dealId: string) => {
     return wishlistItems.some(item => item.dealId === dealId || item.productUrl === dealId);
@@ -66,7 +65,7 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
       currencyCode: deal.currencyCode,
       notifyOnSale: true,
       notifyAtTargetPrice: false,
-      gender: (deal.genderCategory as 'male' | 'female' | 'unisex') || 'unisex',
+      gender: deal.gender || 'unisex',
     });
   };
 
@@ -149,7 +148,7 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
     };
   }, []);
 
-  const filteredBargains = BargainsService.filterDeals(deals, selectedCategory, isVip, user?.gender || undefined);
+  const filteredBargains = BargainsService.filterDeals(deals, selectedCategory, isPremium, user?.gender || undefined);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -337,7 +336,7 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
                 ) : null}
                 {getBrandEcoRating(deal.brand).ecoRating !== 'unknown' ? (
                   <View style={[styles.ecoBadge, { backgroundColor: getEcoRatingColor(getBrandEcoRating(deal.brand).ecoRating) + '20' }]}>
-                    <Feather name="leaf" size={12} color={getEcoRatingColor(getBrandEcoRating(deal.brand).ecoRating)} />
+                    <Feather name="globe" size={12} color={getEcoRatingColor(getBrandEcoRating(deal.brand).ecoRating)} />
                     <ThemedText type="small" style={{ marginLeft: 4, color: getEcoRatingColor(getBrandEcoRating(deal.brand).ecoRating) }}>
                       Eco: {getBrandEcoRating(deal.brand).ecoRating}
                     </ThemedText>

@@ -206,7 +206,7 @@ export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) 
     );
   };
 
-  if (!limits.canMakeVideoCalls && tier !== 'vip') {
+  if (!limits.canMakeVideoCalls && tier !== 'premium') {
     return (
       <ScreenFlatList
         data={[]}

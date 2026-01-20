@@ -497,7 +497,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
     currencyService.initialize().then(() => setCurrencyInitialized(true));
   }, []);
 
-  const isPremium = tier === "premium" || tier === "vip";
+  const isPremium = tier === "premium";
 
   const userRegion = useMemo(() => {
     return getRegionFromCountry(user?.country || 'United States');
@@ -632,7 +632,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
     const items = isPremium ? look.luxuryItems : look.budgetItems;
     const priceLabel = isPremium ? "Luxury" : "Budget-Friendly";
     const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
-    const formatPrice = (price: number) => currencyService.formatPrice(currencyService.convertFromGBP(price));
+    const formatPrice = (price: number) => currencyService.formatPrice(price);
     
     Alert.alert(
       `Get the ${look.styleName} Look`,

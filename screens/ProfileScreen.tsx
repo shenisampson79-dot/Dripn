@@ -89,7 +89,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
   const getSubscriptionBadgeGradient = (): readonly [string, string] => {
     const tier = user?.subscriptionTier || "free";
-    if (tier === 'premium' || tier === 'vip') {
+    if (tier === 'premium') {
       return [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const;
     }
     return [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const;

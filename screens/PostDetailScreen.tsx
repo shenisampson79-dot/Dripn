@@ -167,7 +167,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      const isPremium = tier !== "free" && tier !== "basic";
+      const isPremium = tier === "premium";
       const advice = await getAIFashionAdvice(
         post.images[0]?.uri || "",
         post.description,

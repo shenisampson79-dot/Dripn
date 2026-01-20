@@ -73,7 +73,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
   const { bodyProfile, scanBody, isScanning, hasBodyProfile, saveBodyProfile } = useBodyProfile();
   const { tier } = useSubscription();
   
-  const isPremium = tier === "premium" || tier === "vip";
+  const isPremium = tier === "premium";
   
   const [permission, requestPermission] = useCameraPermissions();
   const [showCamera, setShowCamera] = useState(false);

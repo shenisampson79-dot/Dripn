@@ -13,7 +13,7 @@ export interface MagazineInspiration {
   gender: "male" | "female" | "unisex";
   region: string;
   imageDescription: string;
-  tierAccess: "free" | "basic" | "premium" | "vip";
+  tierAccess: "free" | "premium";
 }
 
 const MUSIC_MAGAZINE_INSPIRATIONS: MagazineInspiration[] = [
@@ -81,7 +81,7 @@ const MUSIC_MAGAZINE_INSPIRATIONS: MagazineInspiration[] = [
     gender: "female",
     region: "Global",
     imageDescription: "Dua Lipa in retro Y2K inspired look",
-    tierAccess: "basic",
+    tierAccess: "premium",
   },
   {
     id: "music-4",
@@ -103,7 +103,7 @@ const MUSIC_MAGAZINE_INSPIRATIONS: MagazineInspiration[] = [
     gender: "male",
     region: "UK",
     imageDescription: "Fred Again.. in vintage sportswear",
-    tierAccess: "basic",
+    tierAccess: "premium",
   },
   {
     id: "music-5",
@@ -260,7 +260,7 @@ const LIFESTYLE_MAGAZINE_INSPIRATIONS: MagazineInspiration[] = [
     gender: "female",
     region: "North America",
     imageDescription: "Sydney Sweeney in classic LBD",
-    tierAccess: "basic",
+    tierAccess: "premium",
   },
   {
     id: "lifestyle-4",
@@ -282,7 +282,7 @@ const LIFESTYLE_MAGAZINE_INSPIRATIONS: MagazineInspiration[] = [
     gender: "male",
     region: "Global",
     imageDescription: "Jacob Elordi in tailored suit",
-    tierAccess: "basic",
+    tierAccess: "premium",
   },
   {
     id: "lifestyle-5",
@@ -348,7 +348,7 @@ const LIFESTYLE_MAGAZINE_INSPIRATIONS: MagazineInspiration[] = [
     gender: "female",
     region: "UK",
     imageDescription: "Lady Kitty Spencer in elegant midi dress",
-    tierAccess: "vip",
+    tierAccess: "premium",
   },
   {
     id: "lifestyle-8",
@@ -414,7 +414,7 @@ const LIFESTYLE_MAGAZINE_INSPIRATIONS: MagazineInspiration[] = [
     gender: "male",
     region: "Global",
     imageDescription: "Ryan Gosling in pastel pink suit",
-    tierAccess: "basic",
+    tierAccess: "premium",
   },
 ];
 
@@ -452,8 +452,8 @@ class MagazineInspirationServiceClass {
     );
   }
 
-  getByTier(tier: "free" | "basic" | "premium" | "vip"): MagazineInspiration[] {
-    const tierHierarchy = { free: 0, basic: 1, premium: 2, vip: 3 };
+  getByTier(tier: "free" | "premium"): MagazineInspiration[] {
+    const tierHierarchy = { free: 0, premium: 1 };
     const userTierLevel = tierHierarchy[tier];
     return this.allInspirations.filter(
       item => tierHierarchy[item.tierAccess] <= userTierLevel
@@ -462,12 +462,12 @@ class MagazineInspirationServiceClass {
 
   getFilteredInspirations(
     gender: "male" | "female",
-    tier: "free" | "basic" | "premium" | "vip",
+    tier: "free" | "premium",
     type?: "music" | "lifestyle" | "fashion"
   ): MagazineInspiration[] {
     let results = this.getByGender(gender);
     
-    const tierHierarchy = { free: 0, basic: 1, premium: 2, vip: 3 };
+    const tierHierarchy = { free: 0, premium: 1 };
     const userTierLevel = tierHierarchy[tier];
     results = results.filter(item => tierHierarchy[item.tierAccess] <= userTierLevel);
     
@@ -478,7 +478,7 @@ class MagazineInspirationServiceClass {
     return results;
   }
 
-  getRandomInspiration(gender: "male" | "female", tier: "free" | "basic" | "premium" | "vip"): MagazineInspiration | null {
+  getRandomInspiration(gender: "male" | "female", tier: "free" | "premium"): MagazineInspiration | null {
     const available = this.getFilteredInspirations(gender, tier);
     if (available.length === 0) return null;
     return available[Math.floor(Math.random() * available.length)];

@@ -23,7 +23,7 @@ export interface FeatureSuggestion {
   userBenefit: string;
   implementationComplexity: 'simple' | 'moderate' | 'complex';
   estimatedImpact: 'high' | 'medium' | 'low';
-  targetTier: 'all' | 'basic' | 'premium' | 'vip';
+  targetTier: 'all' | 'premium';
   createdAt: string;
   status: 'new' | 'reviewed' | 'approved' | 'rejected' | 'implemented';
   votes: number;
@@ -399,7 +399,7 @@ For each suggestion, provide:
         userBenefit: 'Never be caught unprepared for weather changes - always dressed appropriately for the conditions.',
         implementationComplexity: 'moderate',
         estimatedImpact: 'high',
-        targetTier: 'basic',
+        targetTier: 'premium',
         createdAt: now,
         status: 'new',
         votes: 0,
@@ -435,7 +435,7 @@ For each suggestion, provide:
         userBenefit: 'Discover the colors that make you look your best and shop with confidence.',
         implementationComplexity: 'moderate',
         estimatedImpact: 'high',
-        targetTier: 'basic',
+        targetTier: 'premium',
         createdAt: now,
         status: 'new',
         votes: 0,
@@ -525,7 +525,7 @@ For each suggestion, provide:
         userBenefit: 'Make smarter fashion investments by knowing which trends are worth buying into.',
         implementationComplexity: 'complex',
         estimatedImpact: 'medium',
-        targetTier: 'vip',
+        targetTier: 'premium',
         createdAt: now,
         status: 'new',
         votes: 0,
