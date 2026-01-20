@@ -363,7 +363,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       });
     } else {
       buttons.push(
-        { text: "Create account", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "farewell" }) },
+        { text: "Yes, save them", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "farewell" }) },
         { text: "Start over", onPress: () => navigation.navigate("OnboardingEntry"), style: "cancel" }
       );
     }
