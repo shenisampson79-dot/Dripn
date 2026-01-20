@@ -393,6 +393,14 @@ class DFYService {
     }));
   }
 
+  async clearDFYAccess(userId: string): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(`${DFY_ACCESS_KEY}_${userId}`);
+    } catch (error) {
+      console.error('Error clearing DFY access:', error);
+    }
+  }
+
   async getDFYDelivery(userId: string): Promise<DFYDelivery | null> {
     try {
       const data = await AsyncStorage.getItem(`${DFY_DELIVERY_KEY}_${userId}`);

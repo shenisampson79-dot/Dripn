@@ -17,6 +17,7 @@ import { useSmartNotifications } from "@/contexts/SmartNotificationsContext";
 import { useVoiceSettings, SUPPORTED_LANGUAGES, SPEED_OPTIONS } from "@/contexts/VoiceSettingsContext";
 import { apiService } from "@/services/ApiService";
 import colorTrendService from "@/services/ColorTrendService";
+import dfyService, { DFYAccessStatus, DFYTier } from "@/services/DFYService";
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -142,6 +143,22 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const [isNewsletterLoading, setIsNewsletterLoading] = useState(false);
   const [pantoneColor, setPantoneColor] = useState<PantoneColor | null>(null);
   const [pantoneLoading, setPantoneLoading] = useState(true);
+  const [dfyAccess, setDfyAccess] = useState<DFYAccessStatus | null>(null);
+  const [dfyLoading, setDfyLoading] = useState(false);
+
+  const loadDFYAccess = async () => {
+    if (!user?.id) return;
+    try {
+      const status = await dfyService.getDFYAccessStatus(user.id);
+      setDfyAccess(status);
+    } catch (error) {
+      console.error('Error loading DFY access:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadDFYAccess();
+  }, [user?.id]);
 
   useEffect(() => {
     const loadNewsletterStatus = async () => {
@@ -301,6 +318,27 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
 
   const closePickerModal = () => {
     setPickerModal({ type: null, visible: false });
+  };
+
+  const handleDFYToggle = async (tier: DFYTier, value: boolean) => {
+    if (!user?.id) return;
+    setDfyLoading(true);
+    try {
+      if (value) {
+        if (dfyAccess?.hasAccess && dfyAccess.tier !== tier) {
+          await dfyService.clearDFYAccess(user.id);
+        }
+        await dfyService.activateDFYAccess(user.id, tier);
+      } else {
+        await dfyService.clearDFYAccess(user.id);
+      }
+      await loadDFYAccess();
+    } catch (error) {
+      console.error('Error toggling DFY access:', error);
+      Alert.alert('Error', 'Could not update DFY access. Please try again.');
+    } finally {
+      setDfyLoading(false);
+    }
   };
 
   return (
@@ -799,6 +837,52 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             theme={theme}
             isDark={isDark}
           />
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.coral, '#C46A4F']}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="book-open" size={16} color="#FFFFFF" />
+            </LinearGradient>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                DFY Lite Access
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                {dfyAccess?.tier === 'lite' ? `${dfyAccess.daysRemaining}d remaining` : 'Test 14-day Lookbook'}
+              </ThemedText>
+            </View>
+            <Switch
+              value={dfyAccess?.tier === 'lite' && dfyAccess?.hasAccess}
+              onValueChange={(value) => handleDFYToggle('lite', value)}
+              disabled={dfyLoading}
+              trackColor={{ false: isDark ? '#333' : '#E0E0E0', true: LUXURY_COLORS.coral }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="grid" size={16} color={LUXURY_COLORS.midnight} />
+            </LinearGradient>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                DFY Core Access
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                {dfyAccess?.tier === 'core' ? `${dfyAccess.daysRemaining}d remaining` : 'Test 30-day Modular Wardrobe'}
+              </ThemedText>
+            </View>
+            <Switch
+              value={dfyAccess?.tier === 'core' && dfyAccess?.hasAccess}
+              onValueChange={(value) => handleDFYToggle('core', value)}
+              disabled={dfyLoading}
+              trackColor={{ false: isDark ? '#333' : '#E0E0E0', true: LUXURY_COLORS.gold }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
         </View>
       </View>
 
