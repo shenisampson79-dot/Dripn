@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { StyleSheet, View, Pressable, TextInput, ScrollView, Switch, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
@@ -175,7 +176,17 @@ export default function OnboardingQuizScreen({ navigation }: OnboardingQuizScree
           dressCodePreference: null,
           religiousOrCulturalDressCode: null,
           subcultureStyle: null,
+          subcultureDescription: null,
           dressCodeStrictness: null,
+        },
+        bodyFitPreferences: user?.extendedPreferences?.bodyFitPreferences || {
+          fitPreference: null,
+          confidentAreas: [],
+          preferToMinimize: [],
+        },
+        colorChoices: user?.extendedPreferences?.colorChoices || {
+          favoriteColors: [],
+          avoidColors: [],
         },
       };
 
@@ -753,32 +764,38 @@ export default function OnboardingQuizScreen({ navigation }: OnboardingQuizScree
 
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Pressable onPress={step > 0 ? handleBack : () => navigation.goBack()} style={styles.backButton}>
-          <Feather name={step > 0 ? "arrow-left" : "x"} size={24} color={theme.text} />
-        </Pressable>
-        <ThemedText type="h3" style={styles.headerTitle}>
-          Style Quiz
-        </ThemedText>
-        <Pressable onPress={handleSkip} style={styles.skipButton}>
-          <ThemedText type="body" style={{ color: theme.link }}>
-            Skip
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Pressable onPress={step > 0 ? handleBack : () => navigation.goBack()} style={styles.backButton}>
+            <Feather name={step > 0 ? "arrow-left" : "x"} size={24} color={theme.text} />
+          </Pressable>
+          <ThemedText type="h3" style={styles.headerTitle}>
+            Style Quiz
           </ThemedText>
-        </Pressable>
-      </View>
+          <Pressable onPress={handleSkip} style={styles.skipButton}>
+            <ThemedText type="body" style={{ color: theme.link }}>
+              Skip
+            </ThemedText>
+          </Pressable>
+        </View>
 
-      {renderProgressBar()}
+        {renderProgressBar()}
 
-      {renderStep()}
+        {renderStep()}
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.lg }]}>
-        <Button
-          onPress={handleNext}
-          disabled={!canProceed() || isSubmitting}
-        >
-          {step === TOTAL_STEPS - 1 ? "Complete Quiz" : "Continue"}
-        </Button>
-      </View>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.lg }]}>
+          <Button
+            onPress={handleNext}
+            disabled={!canProceed() || isSubmitting}
+          >
+            {step === TOTAL_STEPS - 1 ? "Complete Quiz" : "Continue"}
+          </Button>
+        </View>
+      </KeyboardAwareScrollView>
     </ThemedView>
   );
 }
@@ -786,6 +803,9 @@ export default function OnboardingQuizScreen({ navigation }: OnboardingQuizScree
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   header: {
     flexDirection: "row",

@@ -1,10 +1,18 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { StyleSheet, View, Pressable, Dimensions } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withRepeat, 
+  withSequence, 
+  withTiming,
+  cancelAnimation,
+} from "react-native-reanimated";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -188,73 +196,86 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
     });
   }, [tilesOrder]);
 
-  const renderFeatureTile = (feature: StylistFeature, index: number) => {
-    const actualIndex = tilesOrder.indexOf(feature.id);
+  const AnimatedTile = ({ feature, index }: { feature: StylistFeature; index: number }) => {
+    const rotation = useSharedValue(0);
+    const scale = useSharedValue(1);
+    
+    useEffect(() => {
+      if (isEditMode) {
+        const randomOffset = Math.random() * 100;
+        rotation.value = withRepeat(
+          withSequence(
+            withTiming(-2, { duration: 100 + randomOffset }),
+            withTiming(2, { duration: 200 }),
+            withTiming(-2, { duration: 200 }),
+            withTiming(0, { duration: 100 })
+          ),
+          -1,
+          false
+        );
+        scale.value = withTiming(0.95, { duration: 150 });
+      } else {
+        cancelAnimation(rotation);
+        rotation.value = withTiming(0, { duration: 100 });
+        scale.value = withTiming(1, { duration: 150 });
+      }
+    }, [isEditMode]);
+    
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [
+        { rotate: `${rotation.value}deg` },
+        { scale: scale.value },
+      ],
+    }));
     
     return (
-      <Pressable
-        key={feature.id}
-        onPress={() => handleFeaturePress(feature)}
-        onLongPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          setIsEditMode(true);
-        }}
-        style={({ pressed }) => [
-          styles.featureTile,
-          { opacity: pressed && !isEditMode ? 0.8 : 1 },
-        ]}
-      >
-        <LinearGradient
-          colors={feature.gradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.tileGradient}
+      <Animated.View style={animatedStyle}>
+        <Pressable
+          onPress={() => handleFeaturePress(feature)}
+          onLongPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            setIsEditMode(true);
+          }}
+          style={({ pressed }) => [
+            styles.featureTile,
+            { opacity: pressed && !isEditMode ? 0.8 : 1 },
+          ]}
         >
-          <View style={styles.tileContent}>
-            <Feather name={feature.icon} size={32} color="#FFFFFF" />
-            <ThemedText type="body" style={styles.tileTitle}>
-              {feature.title}
-            </ThemedText>
-            <ThemedText type="caption" style={styles.tileDescription}>
-              {feature.description}
-            </ThemedText>
-          </View>
-          
-          {feature.premium && tier === "free" ? (
-            <View style={styles.premiumBadge}>
-              <Feather name="star" size={10} color="#FFFFFF" />
+          <LinearGradient
+            colors={feature.gradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.tileGradient}
+          >
+            <View style={styles.tileContent}>
+              <Feather name={feature.icon} size={32} color="#FFFFFF" />
+              <ThemedText type="body" style={styles.tileTitle}>
+                {feature.title}
+              </ThemedText>
+              <ThemedText type="caption" style={styles.tileDescription}>
+                {feature.description}
+              </ThemedText>
             </View>
-          ) : null}
-          
-          {isEditMode ? (
-            <View style={styles.reorderControls}>
-              <Pressable
-                onPress={() => moveTile(actualIndex, actualIndex - 1)}
-                style={styles.reorderButton}
-                disabled={actualIndex === 0}
-              >
-                <Feather 
-                  name="chevron-up" 
-                  size={14} 
-                  color={actualIndex === 0 ? "rgba(255,255,255,0.3)" : "#FFFFFF"} 
-                />
-              </Pressable>
-              <Pressable
-                onPress={() => moveTile(actualIndex, actualIndex + 1)}
-                style={styles.reorderButton}
-                disabled={actualIndex === tilesOrder.length - 1}
-              >
-                <Feather 
-                  name="chevron-down" 
-                  size={14} 
-                  color={actualIndex === tilesOrder.length - 1 ? "rgba(255,255,255,0.3)" : "#FFFFFF"} 
-                />
-              </Pressable>
-            </View>
-          ) : null}
-        </LinearGradient>
-      </Pressable>
+            
+            {feature.premium && tier === "free" ? (
+              <View style={styles.premiumBadge}>
+                <Feather name="star" size={10} color="#FFFFFF" />
+              </View>
+            ) : null}
+            
+            {isEditMode ? (
+              <View style={styles.dragHandle}>
+                <Feather name="move" size={16} color="rgba(255,255,255,0.8)" />
+              </View>
+            ) : null}
+          </LinearGradient>
+        </Pressable>
+      </Animated.View>
     );
+  };
+
+  const renderFeatureTile = (feature: StylistFeature, index: number) => {
+    return <AnimatedTile key={feature.id} feature={feature} index={index} />;
   };
 
   const isDark = theme.backgroundDefault === '#0D0B09' || theme.backgroundDefault === '#000000' || theme.backgroundDefault.toLowerCase() === '#1a1a2e';
@@ -309,7 +330,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
               <View style={[styles.editHint, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
                 <Feather name="info" size={14} color="#FFFFFF" />
                 <ThemedText type="caption" style={{ color: '#FFFFFF', marginLeft: Spacing.xs }}>
-                  Tap arrows to reorder your tools
+                  Long press any tile to customize your layout
                 </ThemedText>
               </View>
             ) : null}
@@ -411,18 +432,14 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: BorderRadius.sm,
   },
-  reorderControls: {
+  dragHandle: {
     position: "absolute",
     top: Spacing.sm,
     left: Spacing.sm,
-    flexDirection: "row",
-    gap: 4,
-  },
-  reorderButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.4)",
     alignItems: "center",
     justifyContent: "center",
   },
