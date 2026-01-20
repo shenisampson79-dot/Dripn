@@ -1184,7 +1184,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         },
       },
     });
-    navigation.replace("SuggestedFollows");
+    navigation.replace("StyleQuizOnboarding");
   };
 
   const renderStep = () => {
