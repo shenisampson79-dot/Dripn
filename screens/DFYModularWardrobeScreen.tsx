@@ -185,7 +185,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
           </View>
           <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
             <Pressable
-              onPress={() => handleRotateCategory(key)}
+              onPress={() => handleRotateCategory(key as ModularCategory)}
               style={[styles.rotateButton, { backgroundColor: gradient[0] + '20' }]}
             >
               <Feather name="refresh-cw" size={18} color={gradient[0]} />
@@ -205,7 +205,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
               const isSelected = selected?.id === item.id;
               return (
                 <Pressable
-                  onPress={() => handleItemSelect(key, item)}
+                  onPress={() => handleItemSelect(key as ModularCategory, item)}
                   style={({ pressed }) => [
                     styles.itemCard,
                     { opacity: pressed ? 0.9 : 1 },

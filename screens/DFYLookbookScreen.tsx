@@ -38,10 +38,11 @@ const LUXURY_COLORS = {
   obsidian: '#0D0B09',
 };
 
-const STYLIST_COLORS: Record<StylistId, { gradient: readonly [string, string]; accent: string }> = {
+const STYLIST_COLORS: Record<NonNullable<StylistId>, { gradient: readonly [string, string]; accent: string }> = {
   ruby: { gradient: [LUXURY_COLORS.rose, LUXURY_COLORS.berry] as const, accent: LUXURY_COLORS.rose },
   max: { gradient: ['#64748B', '#475569'] as const, accent: '#64748B' },
   ace: { gradient: [LUXURY_COLORS.teal, LUXURY_COLORS.emerald] as const, accent: LUXURY_COLORS.teal },
+  ivy: { gradient: [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const, accent: LUXURY_COLORS.violet },
 };
 
 type DFYLookbookScreenProps = {

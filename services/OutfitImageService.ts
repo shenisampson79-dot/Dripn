@@ -3,7 +3,7 @@
  * Proprietary and confidential.
  */
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
+import { apiService } from './ApiService';
 
 interface OutfitImageResult {
   imageUrl: string | null;
@@ -86,32 +86,8 @@ export async function generateOutfitImage(
   const styleRule = getRandomItem(styleRules);
   const explanation = getRandomItem(explanations);
   
-  if (!API_URL) {
-    console.log("No backend API URL configured, skipping image generation");
-    return {
-      imageUrl: null,
-      styleRule,
-      explanation,
-    };
-  }
-  
   try {
-    const response = await fetch(`${API_URL}/api/ai/generate-outfit-image`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        outfitDescription,
-        occasion,
-      }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Backend API error: ${response.status}`);
-    }
-    
-    const result = await response.json();
+    const result = await apiService.generateOutfitImage(outfitDescription, occasion);
     
     return {
       imageUrl: result.imageUrl || null,

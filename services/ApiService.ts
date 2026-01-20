@@ -2152,6 +2152,213 @@ class ApiService {
       };
     }>('/api/games/leaderboard');
   }
+
+  // Clueless-style Wardrobe View
+  async getCluelessWardrobeView() {
+    return this.request<{
+      success: boolean;
+      categories: Array<{
+        type: string;
+        label: string;
+        items: Array<{
+          id: string;
+          name: string;
+          imageUri: string;
+          color: string;
+          brand?: string;
+        }>;
+        totalCount: number;
+      }>;
+    }>('/api/wardrobe/clueless-view');
+  }
+
+  async getWardrobeByType(itemType: 'owned' | 'inspiration' | 'wishlist') {
+    return this.request<{
+      success: boolean;
+      items: Array<{
+        id: string;
+        name: string;
+        imageUri: string;
+        category: string;
+        color: string;
+        brand?: string;
+        source?: string;
+        sourceUrl?: string;
+      }>;
+    }>(`/api/wardrobe/by-type/${itemType}`);
+  }
+
+  // Lookbooks API
+  async getLookbooks() {
+    return this.request<{
+      success: boolean;
+      lookbooks: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        coverImageUri?: string;
+        outfitCount: number;
+        createdAt: string;
+        updatedAt: string;
+        isDefault?: boolean;
+      }>;
+    }>('/api/lookbooks');
+  }
+
+  async getLookbook(lookbookId: string) {
+    return this.request<{
+      success: boolean;
+      lookbook: {
+        id: string;
+        name: string;
+        description?: string;
+        coverImageUri?: string;
+        outfits: Array<{
+          id: string;
+          name: string;
+          imageUri?: string;
+          items: Array<{
+            id: string;
+            name: string;
+            imageUri: string;
+            category: string;
+          }>;
+          occasion?: string;
+          notes?: string;
+          createdAt: string;
+        }>;
+        createdAt: string;
+        updatedAt: string;
+      };
+    }>(`/api/lookbooks/${lookbookId}`);
+  }
+
+  async createLookbook(data: { name: string; description?: string }) {
+    return this.request<{
+      success: boolean;
+      lookbook: {
+        id: string;
+        name: string;
+        description?: string;
+        createdAt: string;
+      };
+    }>('/api/lookbooks', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateLookbook(lookbookId: string, data: { name?: string; description?: string }) {
+    return this.request<{
+      success: boolean;
+      lookbook: {
+        id: string;
+        name: string;
+        description?: string;
+        updatedAt: string;
+      };
+    }>(`/api/lookbooks/${lookbookId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteLookbook(lookbookId: string) {
+    return this.request<{ success: boolean }>(`/api/lookbooks/${lookbookId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async addOutfitToLookbook(lookbookId: string, outfitData: {
+    name: string;
+    itemIds: string[];
+    occasion?: string;
+    notes?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      outfit: {
+        id: string;
+        name: string;
+        createdAt: string;
+      };
+    }>(`/api/lookbooks/${lookbookId}/outfits`, {
+      method: 'POST',
+      body: JSON.stringify(outfitData),
+    });
+  }
+
+  // Tour System
+  async getTourStatus() {
+    return this.request<{
+      success: boolean;
+      tourCompleted: boolean;
+      tourSkipped: boolean;
+      currentStep?: number;
+    }>('/api/tour/status');
+  }
+
+  async completeTour() {
+    return this.request<{ success: boolean }>('/api/tour/complete', {
+      method: 'POST',
+    });
+  }
+
+  async skipTour() {
+    return this.request<{ success: boolean }>('/api/tour/skip', {
+      method: 'POST',
+    });
+  }
+
+  // URL Extraction for Wardrobe
+  async extractFromUrl(url: string) {
+    return this.request<{
+      success: boolean;
+      item: {
+        name: string;
+        imageUri: string;
+        brand?: string;
+        price?: number;
+        color?: string;
+        category?: string;
+        sourceUrl: string;
+      };
+    }>('/api/wardrobe/extract-from-url', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    });
+  }
+
+  // Tester Mode
+  async getTesterStatus() {
+    return this.request<{
+      success: boolean;
+      isTester: boolean;
+      testerSince?: string;
+      features?: string[];
+    }>('/api/tester/status');
+  }
+
+  async grantTesterAccess(code: string) {
+    return this.request<{
+      success: boolean;
+      message: string;
+    }>('/api/tester/grant', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+  }
+
+  // AI Outfit Image Generation (via backend)
+  async generateOutfitImage(outfitDescription: string, occasion: string) {
+    return this.request<{
+      success: boolean;
+      imageUrl: string | null;
+    }>('/api/ai/generate-outfit-image', {
+      method: 'POST',
+      body: JSON.stringify({ outfitDescription, occasion }),
+    });
+  }
 }
 
 export const apiService = new ApiService();

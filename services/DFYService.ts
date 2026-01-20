@@ -313,6 +313,10 @@ class DFYService {
     }
   }
 
+  async getDFYAccessStatus(userId: string): Promise<DFYAccessStatus> {
+    return this.checkDFYAccess(userId);
+  }
+
   async checkDFYAccess(userId: string): Promise<DFYAccessStatus> {
     try {
       const accessData = await AsyncStorage.getItem(`${DFY_ACCESS_KEY}_${userId}`);
