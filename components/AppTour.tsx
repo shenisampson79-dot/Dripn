@@ -28,34 +28,34 @@ interface TourStep {
 
 const TOUR_STEPS: TourStep[] = [
   {
-    icon: "users",
-    title: "Welcome to the Community!",
-    description: "Get style advice from real people who share your fashion sense. Post your outfits and receive feedback from members around the world.",
-    highlight: "You're not alone on your style journey",
+    icon: "award",
+    title: "Welcome to Dripn!",
+    description: "Your personal fashion decision engine. Get instant, confident outfit decisions from AI stylists who learn your style and help you look your best.",
+    highlight: "Decide what to wear in seconds",
   },
   {
     icon: "star",
-    title: "Personal Stylist Included",
-    description: "By default, you'll receive personalized style advice from your personal stylist (Ruby or Max) alongside community feedback. You can turn off style suggestions anytime in Settings if you prefer advice only from real community members.",
-    highlight: "Settings > Style Suggestions",
+    title: "Meet Your Stylists",
+    description: "Choose from 4 unique AI stylists: Ruby (bold & glamorous), Max (clean & minimal), Ace (street-smart), and Ivy (eco-conscious). Each brings their own personality to your styling advice.",
+    highlight: "Find your perfect style match",
   },
   {
-    icon: "camera",
-    title: "Share Your Style",
-    description: "Tap the + button to post outfit photos or create comparison polls. Ask for advice on specific items or get feedback on your complete look.",
-    highlight: "Tap + to create your first post",
+    icon: "grid",
+    title: "Build Your Wardrobe",
+    description: "Add your clothes to create a digital wardrobe. Your stylist will learn what you own and suggest outfits that actually work with your pieces.",
+    highlight: "Tap Wardrobe to get started",
   },
   {
-    icon: "heart",
-    title: "Help Others Too",
-    description: "Vote on outfits, leave helpful comments, and earn Contributor status. The more you help, the more visibility your posts get!",
-    highlight: "Give advice to earn recognition",
+    icon: "message-circle",
+    title: "Ask Your Stylist",
+    description: "Stuck on what to wear? Just ask! Your stylist gives instant outfit decisions based on the occasion, weather, and your personal style. No more outfit paralysis.",
+    highlight: "Tap Ask Stylist for instant advice",
   },
   {
-    icon: "star",
+    icon: "check-circle",
     title: "You're All Set!",
-    description: "Explore the Discover tab for trending styles, check out challenges, and start building your fashion community. Have fun!",
-    highlight: "Let's get started",
+    description: "Explore your Home for today's decision, manage your Wardrobe, and chat with your stylist anytime. Welcome to effortless style decisions!",
+    highlight: "Let's get you sorted",
   },
 ];
 
