@@ -1930,29 +1930,6 @@ export default function AIStylistScreen() {
         </Animated.View>
       ) : null}
       
-      {wardrobeItems.length === 0 ? (
-        <Card elevation={2} style={styles.emptyWardrobeCard}>
-          <View style={styles.emptyWardrobeContent}>
-            <View style={[styles.emptyWardrobeIcon, { backgroundColor: theme.warning + '20' }]}>
-              <Feather name="inbox" size={24} color={theme.warning} />
-            </View>
-            <ThemedText style={styles.emptyWardrobeTitle}>Add items to your wardrobe</ThemedText>
-            <ThemedText style={[styles.emptyWardrobeText, { color: theme.tabIconDefault }]}>
-              For personalized outfit suggestions, photograph your clothes first
-            </ThemedText>
-            <Pressable
-              onPress={navigateToWardrobe}
-              style={({ pressed }) => [
-                styles.addWardrobeButton,
-                { backgroundColor: theme.link, opacity: pressed ? 0.8 : 1 },
-              ]}
-            >
-              <Feather name="plus" size={16} color="#FFFFFF" />
-              <ThemedText style={styles.addWardrobeButtonText}>Open Wardrobe</ThemedText>
-            </Pressable>
-          </View>
-        </Card>
-      ) : null}
     </View>
   );
   
