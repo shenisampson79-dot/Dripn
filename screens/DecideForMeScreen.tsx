@@ -230,7 +230,7 @@ const getFilteredOutfits = (occasion: string | null, temperature: number | null)
 
 export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   
   const [step, setStep] = useState<"occasion" | "loading" | "result">("occasion");
   const [selectedOccasion, setSelectedOccasion] = useState<string | null>(null);
@@ -1003,9 +1003,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       {styleAdvice?.imageUrl || isGeneratingImage ? (
         <Animated.View entering={FadeInDown.delay(200)} style={styles.outfitImageContainer}>
           {isGeneratingImage && !styleAdvice?.imageUrl ? (
-            <View style={styles.imageLoadingContainer}>
-              <ActivityIndicator size="small" color={LuxuryColors.gold} />
-              <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.7)', marginTop: Spacing.sm }}>
+            <View style={[styles.imageLoadingContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
+              <ActivityIndicator size="small" color={isDark ? LuxuryColors.gold : LuxuryColors.deepGold} />
+              <ThemedText type="small" style={{ color: isDark ? 'rgba(255,255,255,0.7)' : '#6B7280', marginTop: Spacing.sm }}>
                 Visualizing your outfit...
               </ThemedText>
             </View>
@@ -1021,27 +1021,32 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
       {styleAdvice ? (
         <Animated.View entering={FadeInDown.delay(300)} style={styles.styleAdviceContainer}>
-          <LinearGradient
-            colors={[`${LuxuryColors.gold}30`, `${LuxuryColors.deepGold}20`]}
-            style={styles.styleRuleCard}
+          <View
+            style={[
+              styles.styleRuleCard,
+              { 
+                backgroundColor: isDark ? `${LuxuryColors.gold}20` : `${LuxuryColors.gold}15`,
+                borderColor: isDark ? `${LuxuryColors.gold}40` : `${LuxuryColors.deepGold}50`,
+              }
+            ]}
           >
             <View style={styles.styleRuleHeader}>
-              <Feather name="star" size={14} color={LuxuryColors.gold} />
-              <ThemedText type="small" style={{ color: LuxuryColors.gold, fontWeight: '600', marginLeft: Spacing.xs }}>
+              <Feather name="star" size={14} color={isDark ? LuxuryColors.gold : LuxuryColors.deepGold} />
+              <ThemedText type="small" style={{ color: isDark ? LuxuryColors.gold : LuxuryColors.deepGold, fontWeight: '600', marginLeft: Spacing.xs }}>
                 Style Rule
               </ThemedText>
             </View>
-            <ThemedText type="body" style={styles.styleRuleText}>
+            <ThemedText type="body" style={[styles.styleRuleText, { color: isDark ? '#FFFFFF' : '#1F2937' }]}>
               {styleAdvice.styleRule}
             </ThemedText>
-            <ThemedText type="small" style={styles.styleExplanationText}>
+            <ThemedText type="small" style={[styles.styleExplanationText, { color: isDark ? 'rgba(255,255,255,0.7)' : '#4B5563' }]}>
               {styleAdvice.explanation}
             </ThemedText>
-          </LinearGradient>
+          </View>
         </Animated.View>
       ) : null}
 
-      <ThemedText type="small" style={[styles.disclaimerText, { color: 'rgba(255,255,255,0.7)' }]}>
+      <ThemedText type="small" style={[styles.disclaimerText, { color: isDark ? 'rgba(255,255,255,0.7)' : '#6B7280' }]}>
         I'm choosing generally. With your wardrobe, I'd choose specifically.
       </ThemedText>
 
@@ -1345,7 +1350,6 @@ const styles = StyleSheet.create({
     height: 200,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
     borderRadius: BorderRadius.lg,
     width: "100%",
   },
@@ -1369,14 +1373,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   styleRuleText: {
-    color: "#FFFFFF",
     fontSize: 15,
     lineHeight: 22,
     fontWeight: "500",
     marginBottom: Spacing.sm,
   },
   styleExplanationText: {
-    color: "rgba(255,255,255,0.7)",
     fontSize: 13,
     lineHeight: 20,
     fontStyle: "italic",
