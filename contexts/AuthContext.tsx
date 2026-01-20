@@ -16,7 +16,7 @@ import { apiService } from '@/services/ApiService';
 WebBrowser.maybeCompleteAuthSession();
 
 export type Gender = 'woman' | 'man' | 'non-binary' | 'prefer-not-to-say' | null;
-export type SizeRange = 'XS-S' | 'M-L' | 'XL-2X' | '3X+' | null;
+export type SizeRange = 'XS-S' | 'S-M' | 'M-L' | 'L-XL' | 'XL-2X' | '3X+' | null;
 export type BodyShape = 'Hourglass' | 'Pear' | 'Apple' | 'Rectangle' | 'Athletic' | 'Inverted Triangle' | 'Trapezoid' | 'Oval' | null;
 export type BudgetRange = 'Budget' | 'Mid-Range' | 'Premium' | 'Luxury' | null;
 export type SubscriptionTier = 'free' | 'premium';

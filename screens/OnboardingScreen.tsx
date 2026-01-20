@@ -40,7 +40,9 @@ const GENDER_COLORS: Record<Gender, { bg: string; border: string; icon: string }
 
 const SIZE_COLORS: Record<string, { bg: string; border: string }> = {
   "XS-S": { bg: "#1A4D2E", border: "#22C55E" },
+  "S-M": { bg: "#0E7490", border: "#06B6D4" },
   "M-L": { bg: "#1E3A5F", border: "#3B82F6" },
+  "L-XL": { bg: "#4A1942", border: "#EC4899" },
   "XL-2X": { bg: "#4C1D95", border: "#A855F7" },
   "3X+": { bg: "#78350F", border: "#F59E0B" },
 };
@@ -270,7 +272,7 @@ const STYLE_OPTIONS_MALE: { id: StyleTheme; name: string; description: string }[
   { id: "edgy", name: "Edgy", description: "Bold, alternative, dramatic" },
 ];
 
-const SIZE_OPTIONS: SizeRange[] = ["XS-S", "M-L", "XL-2X", "3X+"];
+const SIZE_OPTIONS: SizeRange[] = ["XS-S", "S-M", "M-L", "L-XL", "XL-2X", "3X+"];
 
 const FIT_PREFERENCE_OPTIONS: { id: FitPreference; name: string }[] = [
   { id: "Fitted", name: "Fitted" },
