@@ -1,14 +1,12 @@
-import Replicate from "replicate";
-
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
+import Constants from 'expo-constants';
 
 interface OutfitImageResult {
   imageUrl: string | null;
   styleRule: string;
   explanation: string;
 }
+
+const REPLICATE_API_TOKEN = Constants.expoConfig?.extra?.REPLICATE_API_TOKEN || process.env.REPLICATE_API_TOKEN;
 
 const STYLE_RULES: Record<string, string[]> = {
   work: [
@@ -85,12 +83,29 @@ export async function generateOutfitImage(
   const styleRule = getRandomItem(styleRules);
   const explanation = getRandomItem(explanations);
   
+  // Skip image generation if no API token available
+  if (!REPLICATE_API_TOKEN) {
+    console.log("No Replicate API token available, skipping image generation");
+    return {
+      imageUrl: null,
+      styleRule,
+      explanation,
+    };
+  }
+  
   try {
     const prompt = `Professional fashion photography, ${outfitDescription}, worn by a stylish person, full body shot, clean background, high fashion editorial style, soft studio lighting, 8k quality, realistic`;
     
-    const output = await replicate.run(
-      "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-      {
+    // Use fetch instead of Replicate SDK for React Native compatibility
+    const response = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${REPLICATE_API_TOKEN}`,
+        "Content-Type": "application/json",
+        "Prefer": "wait",
+      },
+      body: JSON.stringify({
+        version: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
         input: {
           prompt,
           negative_prompt: "cartoon, anime, illustration, drawing, low quality, blurry, deformed, ugly, bad anatomy",
@@ -100,9 +115,15 @@ export async function generateOutfitImage(
           guidance_scale: 7.5,
           num_inference_steps: 30,
         },
-      }
-    );
+      }),
+    });
     
+    if (!response.ok) {
+      throw new Error(`Replicate API error: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    const output = result.output;
     const imageUrl = Array.isArray(output) ? output[0] : null;
     
     return {

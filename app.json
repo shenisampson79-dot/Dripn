@@ -82,6 +82,9 @@
     "jsEngine": "hermes",
     "experiments": {
       "reactCompiler": true
+    },
+    "extra": {
+      "REPLICATE_API_TOKEN": "${REPLICATE_API_TOKEN}"
     }
   }
 }
