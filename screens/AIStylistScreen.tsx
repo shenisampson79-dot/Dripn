@@ -578,6 +578,42 @@ function generateAIResponse(
     }
   }
   
+  // CATCH-ALL CONVERSATIONAL RESPONSE - Handle ANY message that doesn't have outfit intent
+  // This ensures stylists build relationships and answer questions BEFORE checking wardrobe
+  // Wardrobe checks should ONLY happen when user specifically asks for outfit suggestions
+  if (!hasOutfitIntent) {
+    // The user is asking something conversational - engage with them!
+    // This covers: casual chat, questions about life/relationships/politics/anything, 
+    // random topics, getting to know each other, etc.
+    
+    const conversationalResponses = isMaleStylist ? [
+      "That's a great question! I appreciate you wanting to chat about it. I'm genuinely happy to talk through things with you - that's part of what makes our connection real. What's on your mind about it?",
+      "I hear you! I'm always up for a good conversation, whether it's about style or life in general. Tell me more about what you're thinking.",
+      "That's interesting! I love that we can chat about anything. Building a relationship goes beyond just fashion - it's about getting to know each other. What's your take on it?",
+      "Good question! I'm here for whatever's on your mind. Sometimes the best conversations happen when we just let them flow naturally. What are you feeling about that?",
+      "I appreciate you sharing that with me. Part of being a good stylist is understanding who you are as a person - your thoughts, your life, what matters to you. So I'm all ears.",
+      "That's a fair point to bring up! I may be a fashion guy at heart, but I'm genuinely interested in getting to know you. What else is on your mind?",
+      "You know what? I appreciate that you feel comfortable bringing that up with me. It's these kinds of conversations that help me understand you better. Tell me more.",
+      "I'm listening! Sometimes the most interesting conversations have nothing to do with clothes. What's going on with you?",
+      "I like that you're sharing your thoughts with me. Getting to know each other is important - it helps me understand your vibe beyond just what you wear. What's up?",
+      "That's the kind of thing I appreciate you bringing up. Our conversations help me understand who you are, and that makes me a better stylist for you. What's your perspective?",
+    ] : [
+      "Oh, I love that you're sharing this with me, gorgeous! These conversations help me understand you as a person, not just your style. Tell me more, darling.",
+      "That's such an interesting thing to bring up, beautiful! I'm always here to chat about whatever's on your heart. What's your feeling about it?",
+      "I appreciate you opening up to me, love! Getting to know you beyond fashion is what makes our relationship special. What else is on your mind?",
+      "That's a lovely question, sweetheart! Part of what makes me a good stylist is understanding who you truly are. I'm genuinely interested - tell me more.",
+      "Oh darling, I love that we can talk about anything! These kinds of conversations help me connect with you on a deeper level. What's going on with you?",
+      "That's something I genuinely appreciate you sharing, gorgeous! Understanding your thoughts and feelings helps me be a better friend and stylist to you. What are you thinking?",
+      "I'm so glad you feel comfortable bringing that up with me, beautiful! Our chats about life are just as important as our style conversations. What's on your heart?",
+      "Oh, I love this! These conversations are what make our connection real, darling. Tell me what's been on your mind.",
+      "That's wonderful that you're sharing this with me, love! I treasure these moments where we can just be ourselves and chat. What's your take on it?",
+      "I'm here for whatever you want to talk about, gorgeous! Whether it's fashion or life, I'm genuinely interested in you. What would you like to explore?",
+    ];
+    
+    return { content: conversationalResponses[Math.floor(Math.random() * conversationalResponses.length)] };
+  }
+  
+  // FROM HERE ON: User has outfit intent - now we can check wardrobe status
   const ownedItems = wardrobeItems.filter(item => !item.origin || item.origin === 'owned');
   const inspirationItems = wardrobeItems.filter(item => item.origin === 'inspiration');
   const wishlistItems = wardrobeItems.filter(item => item.origin === 'wishlist');
