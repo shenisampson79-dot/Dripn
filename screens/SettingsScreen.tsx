@@ -389,15 +389,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             iconGradient={[LUXURY_COLORS.rose, LUXURY_COLORS.coral]}
           />
           <SettingItem
-            icon="cpu"
-            title="Style Suggestions"
-            subtitle={user?.aiSuggestionsEnabled !== false ? "On - Get stylist advice" : "Off - Community only"}
-            onPress={handleAISuggestions}
-            theme={theme}
-            isDark={isDark}
-            iconGradient={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-          />
-          <SettingItem
             icon="map-pin"
             title="Country"
             subtitle={user?.country}
@@ -564,42 +555,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         </View>
       </View>
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <LinearGradient
-            colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
-            style={styles.sectionIcon}
-          >
-            <Feather name="mail" size={12} color="#FFFFFF" />
-          </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>Newsletter</ThemedText>
-        </View>
-        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
-          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
-              style={styles.settingIconGradient}
-            >
-              <Feather name="mail" size={16} color="#FFFFFF" />
-            </LinearGradient>
-            <View style={styles.settingContent}>
-              <ThemedText type="body" style={styles.settingTitle}>
-                Fashion Updates
-              </ThemedText>
-              <ThemedText type="small" style={styles.settingSubtitle}>
-                Get weekly style tips and trend alerts
-              </ThemedText>
-            </View>
-            <Switch
-              value={isNewsletterSubscribed}
-              onValueChange={handleNewsletterToggle}
-              disabled={isNewsletterLoading}
-              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.teal }}
-              thumbColor={isNewsletterSubscribed ? "#FFFFFF" : "#F4F4F4"}
-            />
-          </View>
-        </View>
-      </View>
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -612,28 +567,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <ThemedText type="h4" style={styles.sectionTitle}>Notifications</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
-          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={['#3B82F6', '#2563EB']}
-              style={styles.settingIconGradient}
-            >
-              <Feather name="cloud" size={16} color="#FFFFFF" />
-            </LinearGradient>
-            <View style={styles.settingContent}>
-              <ThemedText type="body" style={styles.settingTitle}>
-                Weather-Based Styling
-              </ThemedText>
-              <ThemedText type="small" style={styles.settingSubtitle}>
-                Get outfit suggestions based on local weather
-              </ThemedText>
-            </View>
-            <Switch
-              value={notificationPrefs.weatherStyling}
-              onValueChange={(value) => updatePreferences({ weatherStyling: value })}
-              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.violet }}
-              thumbColor={notificationPrefs.weatherStyling ? "#FFFFFF" : "#F4F4F4"}
-            />
-          </View>
           <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
             <LinearGradient
               colors={[LUXURY_COLORS.emerald, '#059669']}
@@ -656,50 +589,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               thumbColor={notificationPrefs.priceAlerts ? "#FFFFFF" : "#F4F4F4"}
             />
           </View>
-          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.coral, '#C46A4F']}
-              style={styles.settingIconGradient}
-            >
-              <Feather name="trending-up" size={16} color="#FFFFFF" />
-            </LinearGradient>
-            <View style={styles.settingContent}>
-              <ThemedText type="body" style={styles.settingTitle}>
-                Trend Notifications
-              </ThemedText>
-              <ThemedText type="small" style={styles.settingSubtitle}>
-                Stay updated on the latest fashion trends
-              </ThemedText>
-            </View>
-            <Switch
-              value={notificationPrefs.trendNotifications}
-              onValueChange={(value) => updatePreferences({ trendNotifications: value })}
-              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.violet }}
-              thumbColor={notificationPrefs.trendNotifications ? "#FFFFFF" : "#F4F4F4"}
-            />
-          </View>
-          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-              style={styles.settingIconGradient}
-            >
-              <Feather name="star" size={16} color={LUXURY_COLORS.midnight} />
-            </LinearGradient>
-            <View style={styles.settingContent}>
-              <ThemedText type="body" style={styles.settingTitle}>
-                Style of the Day
-              </ThemedText>
-              <ThemedText type="small" style={styles.settingSubtitle}>
-                Daily personalized outfit inspiration
-              </ThemedText>
-            </View>
-            <Switch
-              value={notificationPrefs.styleOfTheDay}
-              onValueChange={(value) => updatePreferences({ styleOfTheDay: value })}
-              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.violet }}
-              thumbColor={notificationPrefs.styleOfTheDay ? "#FFFFFF" : "#F4F4F4"}
-            />
-          </View>
         </View>
       </View>
 
@@ -714,28 +603,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <ThemedText type="h4" style={styles.sectionTitle}>Voice & Language</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
-          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
-              style={styles.settingIconGradient}
-            >
-              <Feather name="volume-2" size={16} color="#FFFFFF" />
-            </LinearGradient>
-            <View style={styles.settingContent}>
-              <ThemedText type="body" style={styles.settingTitle}>
-                Voice Responses
-              </ThemedText>
-              <ThemedText type="small" style={styles.settingSubtitle}>
-                Hear Max & Ruby speak their advice
-              </ThemedText>
-            </View>
-            <Switch
-              value={voiceSettings.ttsEnabled}
-              onValueChange={(value) => updateVoiceSettings({ ttsEnabled: value })}
-              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.rose }}
-              thumbColor={voiceSettings.ttsEnabled ? "#FFFFFF" : "#F4F4F4"}
-            />
-          </View>
           <SettingItem
             icon="globe"
             title="Language"
