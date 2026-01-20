@@ -427,6 +427,157 @@ function generateAIResponse(
     };
   }
   
+  // GENERAL FASHION KNOWLEDGE - Answer these questions WITHOUT requiring wardrobe data
+  const colorMatchPatterns = [
+    'blue and green', 'green and blue',
+    'blue and brown', 'brown and blue',
+    'black and navy', 'navy and black',
+    'red and pink', 'pink and red',
+    'orange and red', 'red and orange',
+    'purple and pink', 'pink and purple',
+    'grey and beige', 'beige and grey', 'gray and beige', 'beige and gray',
+    'do these colors', 'does this color', 'do these colours', 'does this colour',
+    'good match', 'bad match', 'work together', 'go together', 'clash',
+    'can i wear', 'should i wear', 'is it ok to wear', 'is it okay to wear',
+  ];
+  
+  const isColorMatchQuestion = colorMatchPatterns.some(p => lowerMessage.includes(p)) ||
+    (lowerMessage.includes('match') && (lowerMessage.includes('color') || lowerMessage.includes('colour'))) ||
+    (lowerMessage.includes('pair') && (lowerMessage.includes('color') || lowerMessage.includes('colour')));
+  
+  // Detect specific color mentions for contextual responses
+  const colorMentions = {
+    blue: lowerMessage.includes('blue'),
+    green: lowerMessage.includes('green'),
+    red: lowerMessage.includes('red'),
+    pink: lowerMessage.includes('pink'),
+    orange: lowerMessage.includes('orange'),
+    yellow: lowerMessage.includes('yellow'),
+    purple: lowerMessage.includes('purple'),
+    black: lowerMessage.includes('black'),
+    white: lowerMessage.includes('white'),
+    brown: lowerMessage.includes('brown'),
+    beige: lowerMessage.includes('beige'),
+    grey: lowerMessage.includes('grey') || lowerMessage.includes('gray'),
+    navy: lowerMessage.includes('navy'),
+  };
+  
+  const mentionedColors = Object.entries(colorMentions).filter(([_, mentioned]) => mentioned).map(([color]) => color);
+  const isDateContext = lowerMessage.includes('date') || lowerMessage.includes('romantic') || lowerMessage.includes('dinner');
+  const isWorkContext = lowerMessage.includes('work') || lowerMessage.includes('office') || lowerMessage.includes('professional');
+  const isCasualContext = lowerMessage.includes('casual') || lowerMessage.includes('everyday') || lowerMessage.includes('weekend');
+  
+  if (isColorMatchQuestion && mentionedColors.length >= 2) {
+    // Specific color pairing advice
+    const color1 = mentionedColors[0];
+    const color2 = mentionedColors[1];
+    
+    // Color pairing knowledge base
+    const colorPairings: Record<string, Record<string, { works: boolean; advice: string }>> = {
+      blue: {
+        green: { works: true, advice: "Blue and green absolutely work together - they're analogous colors on the color wheel, creating a harmonious, natural look. For a date, I'd suggest a navy or rich blue with a deep forest green for sophistication, or lighter shades for a fresh, relaxed vibe." },
+        brown: { works: true, advice: "Blue and brown is a classic, timeless combination. Think of it like denim and leather - it's a no-brainer. The earthiness of brown grounds the coolness of blue beautifully." },
+        white: { works: true, advice: "Blue and white is crisp, clean, and always looks fresh. It's a fail-safe combination that works for any occasion." },
+        black: { works: true, advice: "Blue and black can be tricky, but done right it's striking. The key is contrast - pair a bright or light blue with black, avoiding navy with black unless you're going for that intentional tonal look." },
+        pink: { works: true, advice: "Blue and pink is a beautiful, unexpected pairing. It's modern and fresh - just balance the intensity of both colors for the best effect." },
+        orange: { works: true, advice: "Blue and orange are complementary colors - they create maximum visual impact together. It's bold but balanced, perfect for making a statement." },
+        red: { works: true, advice: "Blue and red is classic and patriotic, but also sophisticated when the shades are right. Navy and burgundy is particularly elegant." },
+        grey: { works: true, advice: "Blue and grey is understated elegance. It's professional, polished, and universally flattering." },
+      },
+      green: {
+        blue: { works: true, advice: "Green and blue work beautifully together - they're neighboring colors on the color wheel. This combination feels natural and calming, like a forest meeting the sky." },
+        brown: { works: true, advice: "Green and brown is an earthy, organic pairing straight from nature. It's grounding, sophisticated, and incredibly easy to wear." },
+        white: { works: true, advice: "Green and white is fresh and clean. It's a beautiful combination that feels crisp and natural." },
+        pink: { works: true, advice: "Green and pink is a gorgeous, fresh combination - think of roses in a garden. The key is matching the intensity of both colors." },
+        orange: { works: true, advice: "Green and orange is bold and energetic. It's nature-inspired and works particularly well in autumn." },
+        black: { works: true, advice: "Green and black is sleek and sophisticated. It works for both casual and dressy occasions." },
+      },
+      red: {
+        pink: { works: true, advice: "Red and pink can be gorgeous together if you choose the right tones. Try burgundy with blush, or cherry red with dusty rose for a modern, romantic look." },
+        black: { works: true, advice: "Red and black is dramatic, powerful, and incredibly chic. It's perfect for making a bold statement." },
+        white: { works: true, advice: "Red and white is crisp and classic. It's fresh, eye-catching, and works beautifully for both casual and formal settings." },
+        navy: { works: true, advice: "Red and navy is a sophisticated, preppy combination. It's polished without being boring." },
+      },
+      black: {
+        navy: { works: true, advice: "Black and navy was once considered a faux pas, but it's now embraced in fashion. The trick is intentionality - make sure it looks deliberate, not accidental. Rich, deep navy with jet black looks sleek and modern." },
+        white: { works: true, advice: "Black and white is the most classic combination in fashion. It's timeless, elegant, and works for literally any occasion." },
+        brown: { works: true, advice: "Black and brown is absolutely acceptable now - it's rich and sophisticated. Just ensure there's enough contrast between the shades." },
+      },
+    };
+    
+    let colorAdvice = '';
+    const pairing = colorPairings[color1]?.[color2] || colorPairings[color2]?.[color1];
+    
+    if (pairing) {
+      colorAdvice = pairing.advice;
+      if (isDateContext) {
+        colorAdvice += " For a date specifically, this combination can definitely work to make you look put-together and stylish.";
+      } else if (isWorkContext) {
+        colorAdvice += " For work, just ensure the shades are polished and professional.";
+      }
+    } else {
+      colorAdvice = `${color1.charAt(0).toUpperCase() + color1.slice(1)} and ${color2} can definitely work together! The key is balancing the tones and intensities. Neutral colors like black, white, or beige can help bridge more contrasting combinations.`;
+      if (isDateContext) {
+        colorAdvice += " For a date, confidence is what really makes an outfit work - if you feel good in it, you'll look good in it.";
+      }
+    }
+    
+    const colorMatchResponses = isMaleStylist ? [
+      `Great question! ${colorAdvice}`,
+      `I love that you're thinking about color coordination - it makes such a difference. ${colorAdvice}`,
+      `Absolutely a fair question to ask! ${colorAdvice}`,
+      `${colorAdvice} The fact that you're thinking about this shows good style instincts.`,
+    ] : [
+      `What a lovely question, gorgeous! ${colorAdvice}`,
+      `I adore that you're thinking about color coordination, darling! ${colorAdvice}`,
+      `Such a great question, beautiful! ${colorAdvice}`,
+      `${colorAdvice} You clearly have wonderful style instincts, love!`,
+    ];
+    
+    return { content: colorMatchResponses[Math.floor(Math.random() * colorMatchResponses.length)] };
+  }
+  
+  // General fashion advice questions that don't need wardrobe
+  const generalFashionPatterns = [
+    'what colors go with', 'what colour goes with', 'what colors match', 'what colours match',
+    'best colors for', 'best colours for', 'what to wear to', 'what should i wear to',
+    'is it appropriate to wear', 'can you wear', 'dress code for', 'outfit for',
+    'how do i style', 'tips for dressing', 'fashion advice', 'style advice',
+    'smart casual', 'business casual', 'black tie', 'cocktail attire',
+    'what goes with', 'how to accessorize', 'how to accessorise',
+  ];
+  
+  const isGeneralFashionQuestion = generalFashionPatterns.some(p => lowerMessage.includes(p));
+  
+  if (isGeneralFashionQuestion) {
+    // Contextual fashion advice for occasions
+    if (isDateContext) {
+      const dateAdvice = isMaleStylist ? [
+        "For a date, the goal is to look put-together without trying too hard. Fitted clothes in darker or richer colors tend to photograph well and look sophisticated. A well-fitted button-up with nice jeans or chinos, quality shoes, and minimal accessories is a solid foundation. The key is confidence - wear something you feel good in.",
+        "Date night outfits work best when they're a polished version of your everyday style. You want to look like yourself, just a bit elevated. Stick to clothes that fit well, colors that flatter you, and make sure you're comfortable - nothing kills a vibe like constantly adjusting your clothes.",
+        "Here's my date night formula: one statement piece (like a great jacket or interesting shirt), neutral supporting pieces, and clean, quality footwear. Avoid anything too complicated - simplicity often reads as confidence and style.",
+      ] : [
+        "For a date, darling, you want to feel like the best version of yourself! Rich colors, elegant silhouettes, and details that make you feel special all work beautifully. A gorgeous dress or a lovely top with well-fitted jeans - whatever makes you feel confident and radiant.",
+        "Date night is all about feeling beautiful and comfortable, gorgeous! I'd suggest something that flatters your figure without being too revealing, in colors that make your skin glow. A touch of sparkle or a beautiful accessory can elevate the whole look.",
+        "Here's my secret for date outfits, love: wear something that makes YOU feel amazing. When you feel beautiful, it shows in everything from your posture to your smile. Comfort matters too - you want to focus on the moment, not fidgeting with your clothes!",
+      ];
+      return { content: dateAdvice[Math.floor(Math.random() * dateAdvice.length)] };
+    }
+    
+    if (isWorkContext) {
+      const workAdvice = isMaleStylist ? [
+        "Professional dressing is about projecting competence while expressing your personal style within appropriate boundaries. Stick to well-fitted pieces in neutral or muted colors, quality fabrics, and minimal patterns. A good blazer, crisp shirts, and well-tailored trousers are your foundation.",
+        "For work, the formula is pretty straightforward: fit is everything, neutrals are your friends, and quality matters more than quantity. Make sure your clothes are clean, pressed, and well-maintained. Small details like good shoes and a nice watch speak volumes.",
+        "Work style should make you feel confident and capable. Start with classic pieces - blazers, button-downs, tailored pants - and build from there. The goal is looking polished without being distracting from the work itself.",
+      ] : [
+        "Professional style is about feeling powerful and put-together, gorgeous! Quality fabrics, good tailoring, and a cohesive color palette will take you far. A beautiful blazer, elegant blouses, and well-fitted trousers or skirts form a perfect foundation.",
+        "For work, darling, aim for polished sophistication. Structured pieces, quality fabrics, and thoughtful accessories make all the difference. You want to command respect while still expressing your beautiful personal style.",
+        "Work wardrobe essentials include tailored blazers, elegant blouses, well-fitted bottoms, and quality shoes, love. Stick to a cohesive color palette and invest in pieces that make you feel both professional and fabulous!",
+      ];
+      return { content: workAdvice[Math.floor(Math.random() * workAdvice.length)] };
+    }
+  }
+  
   const ownedItems = wardrobeItems.filter(item => !item.origin || item.origin === 'owned');
   const inspirationItems = wardrobeItems.filter(item => item.origin === 'inspiration');
   const wishlistItems = wardrobeItems.filter(item => item.origin === 'wishlist');
