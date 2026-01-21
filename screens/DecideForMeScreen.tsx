@@ -363,7 +363,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       });
     } else {
       buttons.push(
-        { text: "Yes, save them", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "farewell" }) },
+        { text: "Save my picks", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "farewell" }) },
         { text: "Start over", onPress: () => navigation.navigate("OnboardingEntry"), style: "cancel" }
       );
     }
@@ -572,7 +572,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           "You've saved 3 outfits. Create a free account to keep them forever.",
           [
             { text: "Not now", style: "cancel" },
-            { text: "Create account", onPress: handleCreateAccount },
+            { text: "Sign up to save", onPress: handleCreateAccount },
           ]
         );
         return;
@@ -683,7 +683,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
               "Fast feedback needs an active audience. If you want that, I'll set this up properly.",
               [
                 { text: "Not now", style: "cancel" },
-                { text: "Create account", onPress: () => navigateToSignup(accountHint, "second_opinion_urgent") },
+                { text: "Sign up to save", onPress: () => navigateToSignup(accountHint, "second_opinion_urgent") },
               ]
             );
           }
@@ -825,13 +825,21 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   };
 
   const handleJustBrowsing = async () => {
-    try {
-      const farewell = await apiService.get<FarewellResponse>("/api/onboarding/farewell?stylist=ruby");
-      showFarewellDialog(farewell);
-    } catch (error) {
-      // Fallback to local farewell message
-      showFarewellDialog(null);
-    }
+    Alert.alert(
+      "That's all I've got for browsing mode - but it was lovely to help!",
+      "Come back anytime, and if you want to go deeper, I'll be here.",
+      [
+        { 
+          text: "Save my picks", 
+          onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "browsing" }) 
+        },
+        { 
+          text: "Start over", 
+          onPress: () => navigation.navigate("OnboardingEntry"),
+          style: "cancel"
+        },
+      ]
+    );
   };
 
   const renderOccasionStep = () => {
@@ -945,7 +953,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </ThemedText>
         
         <Button onPress={handleCreateAccount} style={[styles.savePromptButton, { backgroundColor: theme.link }]}>
-          Create account
+          Sign up to save
         </Button>
         
         <Pressable onPress={handleNotNow} style={styles.savePromptSecondary}>

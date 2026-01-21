@@ -64,6 +64,9 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
       case "done_for_you_outfit":
       case "done_for_you_core":
         return "Create an account to complete your setup.";
+      case "browsing":
+      case "farewell":
+        return "Save your style picks for next time?";
       default:
         return "Want me to remember this for next time?";
     }
@@ -135,7 +138,7 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
             onPress={handleCreateAccount} 
             style={[styles.primaryButton, { backgroundColor: theme.link }]}
           >
-            Create account
+            {fromPath === "browsing" || fromPath === "farewell" ? "Save my picks" : "Sign up to save"}
           </Button>
 
           <Pressable onPress={handleContinueWithoutSaving} style={styles.secondaryButton}>
