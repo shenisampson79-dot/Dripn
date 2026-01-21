@@ -17,6 +17,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { PostCard } from "@/components/PostCard";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { usePosts } from "@/contexts/PostsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";

@@ -25,19 +25,7 @@ import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { SettingsStackParamList } from "@/navigation/SettingsStackNavigator";
 import type { PortalMode } from "@/App";
 
-const LUXURY_COLORS = {
-  gold: '#C9A87C',
-  deepGold: '#A88B5C',
-  rose: '#E8B4B8',
-  berry: '#8B2F39',
-  violet: '#9B7EBD',
-  deepViolet: '#6B4E8D',
-  champagne: '#F5E6D3',
-  midnight: '#1A1A2E',
-  coral: '#E07A5F',
-  teal: '#2A9D8F',
-  emerald: '#059669',
-};
+// LUXURY_COLORS now dynamically set from palette in component
 
 type SettingsScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList | SettingsStackParamList, "Settings">;
@@ -139,7 +127,23 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const { referralCode, totalReferrals, bonusAIRequests, shareReferral } = useReferral();
   const { preferences: notificationPrefs, updatePreferences } = useSmartNotifications();
   const { settings: voiceSettings, updateSettings: updateVoiceSettings } = useVoiceSettings();
-  const { colorScheme, setColorScheme } = useColorScheme();
+  const { colorScheme, setColorScheme, palette } = useColorScheme();
+  
+  // Dynamic colors from palette
+  const LUXURY_COLORS = {
+    gold: palette.gold,
+    deepGold: palette.deepGold,
+    rose: palette.rose,
+    berry: palette.berry,
+    violet: palette.violet,
+    deepViolet: palette.deepViolet,
+    champagne: '#F5E6D3',
+    midnight: '#1A1A2E',
+    coral: palette.coral,
+    teal: palette.teal,
+    emerald: palette.emerald,
+  };
+  
   const [isNewsletterSubscribed, setIsNewsletterSubscribed] = useState(false);
   const [pickerModal, setPickerModal] = useState<{ type: 'language' | 'speed' | 'colorScheme' | null; visible: boolean }>({ type: null, visible: false });
   const [isNewsletterLoading, setIsNewsletterLoading] = useState(false);

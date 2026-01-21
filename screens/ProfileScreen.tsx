@@ -15,6 +15,7 @@ import { PostCard } from "@/components/PostCard";
 import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, SubscriptionColors, ContributorColors, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePosts } from "@/contexts/PostsContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -24,19 +25,7 @@ import { getCategoryIcon } from "@/services/EventsService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
 
-const LUXURY_COLORS = {
-  gold: '#C9A87C',
-  deepGold: '#A88B5C',
-  rose: '#E8B4B8',
-  berry: '#8B2F39',
-  violet: '#9B7EBD',
-  deepViolet: '#6B4E8D',
-  champagne: '#F5E6D3',
-  midnight: '#1A1A2E',
-  coral: '#E07A5F',
-  teal: '#2A9D8F',
-  emerald: '#059669',
-};
+// Using palette from ColorSchemeContext for dynamic theming
 
 type RegionalModelType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
 
@@ -60,12 +49,28 @@ type ProfileScreenProps = {
 
 export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScreenProps) {
   const { theme, isDark } = useTheme();
+  const { palette } = useColorScheme();
   const { user } = useAuth();
   const { posts, votePost, voteComparison, thankPost } = usePosts();
   const { limits } = useSubscription();
   const { getLikedEvents, toggleLike, isLoading: eventsLoading } = useEventsFavorites();
   const { getLikedOutfits, toggleOutfitLike, isOutfitLiked, isLoading: outfitsLoading } = useOutfitFavorites();
   const [activeTab, setActiveTab] = useState<"posts" | "advice" | "outfits" | "events">("posts");
+
+  // Dynamic colors from palette
+  const LUXURY_COLORS = {
+    gold: palette.gold,
+    deepGold: palette.deepGold,
+    rose: palette.rose,
+    berry: palette.berry,
+    violet: palette.violet,
+    deepViolet: palette.deepViolet,
+    champagne: '#F5E6D3',
+    midnight: '#1A1A2E',
+    coral: palette.coral,
+    teal: palette.teal,
+    emerald: palette.emerald,
+  };
 
   const userPosts = posts.filter((p) => p.userId === user?.id);
   const likedEvents = getLikedEvents();
@@ -750,7 +755,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   upgradeButtonText: {
-    color: LUXURY_COLORS.midnight,
+    color: LuxuryColors.midnight,
     fontWeight: "700",
   },
   tabsContainer: {

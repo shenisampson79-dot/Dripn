@@ -10,6 +10,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useColorScheme, SchemePalette } from "@/contexts/ColorSchemeContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { videoRandomizer } from "@/services/VideoRandomizerService";
 
@@ -20,6 +21,7 @@ type WelcomeScreenProps = {
 export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
+  const { palette } = useColorScheme();
   const videoRef = useRef<Video>(null);
   const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo());
 
@@ -96,6 +98,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
             description="Know what to wear in seconds, not hours"
             theme={theme}
             isDark={isDark}
+            palette={palette}
           />
           <FeatureItem
             icon="message-circle"
@@ -103,6 +106,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
             description="Choose your vibe: supportive or straight-talking"
             theme={theme}
             isDark={isDark}
+            palette={palette}
           />
           <FeatureItem
             icon="users"
@@ -110,6 +114,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
             description="Get quick feedback from people with similar style"
             theme={theme}
             isDark={isDark}
+            palette={palette}
           />
           <FeatureItem
             icon="grid"
@@ -117,6 +122,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
             description="Build once, get styled forever"
             theme={theme}
             isDark={isDark}
+            palette={palette}
           />
         </View>
       </View>
@@ -148,17 +154,17 @@ interface FeatureItemProps {
   description: string;
   theme: any;
   isDark: boolean;
+  palette: SchemePalette;
 }
 
-const FEATURE_GRADIENTS: Record<string, readonly [string, string]> = {
-  zap: [LuxuryColors.coral, LuxuryColors.magenta],
-  'message-circle': [LuxuryColors.violet, LuxuryColors.deepViolet],
-  users: [LuxuryColors.teal, LuxuryColors.emerald],
-  grid: [LuxuryColors.gold, LuxuryColors.deepGold],
-};
-
-function FeatureItem({ icon, title, description, theme, isDark }: FeatureItemProps) {
-  const gradientColors = FEATURE_GRADIENTS[icon] || [LuxuryColors.violet, LuxuryColors.deepViolet];
+function FeatureItem({ icon, title, description, theme, isDark, palette }: FeatureItemProps) {
+  const FEATURE_GRADIENTS: Record<string, readonly [string, string]> = {
+    zap: [palette.coral, palette.magenta],
+    'message-circle': [palette.violet, palette.deepViolet],
+    users: [palette.teal, palette.emerald],
+    grid: [palette.gold, palette.deepGold],
+  };
+  const gradientColors = FEATURE_GRADIENTS[icon] || [palette.violet, palette.deepViolet];
   
   return (
     <View style={styles.featureItem}>
