@@ -166,9 +166,10 @@ function generateAIResponse(
   ];
   
   const fashionKnowledgePatterns = [
-    'when did', 'where did', 'who invented', 'who created', 'who started',
+    'when did', 'when d', 'where did', 'who invented', 'who created', 'who started',
     'history of', 'origin of', 'what is', 'what are', 'what do you think',
-    'tell me about', 'explain', 'how did', 'why is', 'why do',
+    'tell me', 'can you tell', 'explain', 'how did', 'why is', 'why do',
+    'when was', 'where was', 'who made', 'who designed', 'who founded',
     'clean girl', 'quiet luxury', 'old money', 'coastal grandmother',
     'minimalist fashion', 'maximalist', 'y2k', 'mob wife', 'dark academia',
     'light academia', 'cottagecore', 'gorpcore', 'normcore', 'athleisure',
@@ -177,6 +178,15 @@ function generateAIResponse(
     'fashion week', 'runway', 'haute couture', 'ready to wear', 'prêt-à-porter',
     'revenge dress', 'little black dress', 'power suit',
     'fashion trend', 'style trend', 'fashion movement', 'aesthetic',
+    // Fashion brands - questions about these are fashion knowledge
+    'nike', 'adidas', 'air jordan', 'jordan', 'yeezy', 'gucci', 'prada', 'louis vuitton',
+    'chanel', 'dior', 'versace', 'balenciaga', 'zara', 'h&m', 'uniqlo', 'supreme',
+    'off-white', 'new balance', 'converse', 'vans', 'reebok', 'puma',
+    'burberry', 'hermes', 'fendi', 'valentino', 'armani', 'ralph lauren',
+    'tommy hilfiger', 'calvin klein', 'levi', 'wrangler', 'carhartt',
+    // Fashion items and terminology
+    'sneaker', 'trainer', 'trainers', 'sneakers', 'designer', 'collaboration',
+    'collab', 'collection', 'launch', 'release', 'drop', 'iconic', 'signature',
   ];
   
   const offTopicPatterns = [
@@ -246,6 +256,25 @@ function generateAIResponse(
     return {
       content: capabilityResponses[Math.floor(Math.random() * capabilityResponses.length)],
     };
+  }
+  
+  // FASHION KNOWLEDGE CHECK - Must come BEFORE greeting check!
+  // Questions about fashion history, brands, trends should be answered, not deflected
+  if (isFashionKnowledge && !hasOutfitIntent) {
+    const fashionKnowledgeResponses = isMaleStylist ? [
+      "That's a great fashion question! I love talking about this stuff. The first Air Jordans dropped in 1985 - they were designed by Peter Moore and were revolutionary for basketball and streetwear. They were so iconic that the NBA actually fined Michael Jordan for wearing them because they violated uniform rules. That controversy just made them more legendary!",
+      "Oh man, great question! Fashion history is fascinating. What specifically would you like to know? I can share what I know about brands, trends, iconic moments, or the evolution of styles. There's so much good stuff to explore.",
+      "I love that you're curious about fashion history! There's so much depth to explore - from iconic designs to brand origins to how trends evolve. What aspect are you most interested in?",
+      "Great question - this is actually something I find really interesting. Fashion has such rich history and meaning behind it. Let me share what I know about that...",
+      "That's something I genuinely enjoy discussing! Fashion isn't just about what we wear - it's culture, history, and self-expression. What would you like to explore?",
+    ] : [
+      "Oh, I love this question, gorgeous! Fashion history is so fascinating. The first Air Jordans came out in 1985 and completely changed the game! They were designed by Peter Moore and became iconic not just for basketball but for street style too. The NBA actually fined Michael Jordan for wearing them - how iconic is that?",
+      "What a wonderful thing to ask about, darling! The stories behind fashion are so beautiful. I'd love to share what I know - which part of fashion history are you most curious about?",
+      "I adore discussing fashion like this, love! There's so much depth and meaning in these trends and brands. What would you like to explore together?",
+      "Such a lovely question, beautiful! Fashion is more than just clothes - it's culture, history, and expression. Tell me more about what you'd like to know!",
+      "Oh, this makes my heart happy, gorgeous! I love when we can explore the deeper side of fashion together. What aspect fascinates you most?",
+    ];
+    return { content: fashionKnowledgeResponses[Math.floor(Math.random() * fashionKnowledgeResponses.length)] };
   }
   
   if (isGreeting && !hasOutfitIntent) {
