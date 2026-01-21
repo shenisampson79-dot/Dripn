@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
   selectedIndicator: {
     position: "absolute",
     top: Spacing.lg,
-    left: Spacing.lg,
+    right: Spacing.lg,
     width: 28,
     height: 28,
     borderRadius: 14,

@@ -95,7 +95,7 @@ class CurrencyService {
   getDFYPrices(): { outfit_setup: string; wardrobe_setup: string } {
     const symbol = this.getCurrencySymbol();
     return {
-      outfit_setup: `${symbol}19`,
+      outfit_setup: `${symbol}19.99`,
       wardrobe_setup: `${symbol}39.99`,
     };
   }
