@@ -291,14 +291,14 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
 }
 
 export async function extractProductFromText(text: string): Promise<ProductLinkResult> {
+  const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
+
   try {
     const { apiService } = await import('./ApiService');
     const result = await apiService.extractFromUrl(text);
     
     if (result.success && result.item) {
-      const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-      const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
-
       return {
         success: true,
         productName: result.item.name,
@@ -312,31 +312,95 @@ export async function extractProductFromText(text: string): Promise<ProductLinkR
         retailer: new URL(text).hostname.replace('www.', ''),
       };
     }
-    
-    return {
-      success: false,
-      error: 'Could not extract product information from this URL.',
-    };
   } catch (error: any) {
-    console.error('Product extraction error:', error);
-    return {
-      success: false,
-      error: error.message || 'Failed to extract product information. Try copying the full product page content instead.',
-    };
+    console.log('Backend extraction failed, trying local fallback:', error.message);
   }
+
+  try {
+    const localResult = await extractProductFromUrlLocally(text, validCategories, validColors);
+    if (localResult.success) return localResult;
+  } catch (error: any) {
+    console.error('Local extraction also failed:', error.message);
+  }
+
+  return {
+    success: false,
+    error: 'Could not extract product information from this URL. Try copying the full product page content instead.',
+  };
+}
+
+async function extractProductFromUrlLocally(
+  url: string,
+  validCategories: ClothingCategory[],
+  validColors: ClothingColor[]
+): Promise<ProductLinkResult> {
+  const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  if (!OPENAI_API_KEY) {
+    throw new Error('OpenAI API key not available');
+  }
+
+  const prompt = `Analyze this shopping URL and extract product information. URL: ${url}
+
+Return ONLY a JSON object with these fields:
+{
+  "name": "product name",
+  "brand": "brand name or null",
+  "price": number or null,
+  "category": one of [${validCategories.join(', ')}],
+  "color": one of [${validColors.join(', ')}]
+}
+
+If you cannot determine a field, use null. For category and color, only use the exact values from the lists provided.`;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 200,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`OpenAI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('No response from OpenAI');
+
+  const parsed = JSON.parse(content);
+  if (!parsed.name) throw new Error('Could not extract product name');
+
+  return {
+    success: true,
+    productName: parsed.name,
+    brand: parsed.brand || undefined,
+    price: parsed.price || undefined,
+    currency: 'GBP',
+    productUrl: url,
+    category: validCategories.includes(parsed.category) ? parsed.category : undefined,
+    color: validColors.includes(parsed.color) ? parsed.color : undefined,
+    retailer: new URL(url).hostname.replace('www.', ''),
+  };
 }
 
 export async function extractProductFromImage(imageUri: string): Promise<ProductLinkResult> {
+  const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
+  
+  const base64Image = await convertImageToBase64(imageUri);
+
   try {
     const { apiService } = await import('./ApiService');
-    const base64Image = await convertImageToBase64(imageUri);
-    
     const result = await apiService.extractFromScreenshot(base64Image);
     
     if (result.success && result.item) {
-      const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-      const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
-
       return {
         success: true,
         productName: result.item.name,
@@ -349,18 +413,94 @@ export async function extractProductFromImage(imageUri: string): Promise<Product
         retailer: result.item.retailer,
       };
     }
-    
-    return {
-      success: false,
-      error: 'Could not extract product information from this screenshot.',
-    };
   } catch (error: any) {
-    console.error('Product image extraction error:', error);
-    return {
-      success: false,
-      error: error.message || 'Failed to extract product information from image.',
-    };
+    console.log('Backend screenshot extraction failed, trying local fallback:', error.message);
   }
+
+  try {
+    const localResult = await extractProductFromImageLocally(base64Image, validCategories, validColors);
+    if (localResult.success) return localResult;
+  } catch (error: any) {
+    console.error('Local image extraction also failed:', error.message);
+  }
+
+  return {
+    success: false,
+    error: 'Could not extract product information from this screenshot. Try taking a clearer photo of the item.',
+  };
+}
+
+async function extractProductFromImageLocally(
+  base64Image: string,
+  validCategories: ClothingCategory[],
+  validColors: ClothingColor[]
+): Promise<ProductLinkResult> {
+  const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  if (!OPENAI_API_KEY) {
+    throw new Error('OpenAI API key not available');
+  }
+
+  const prompt = `Analyze this screenshot of a clothing product from a shopping website or app. Extract the product details.
+
+Return ONLY a JSON object with these fields:
+{
+  "name": "product name",
+  "brand": "brand name or null",
+  "price": number or null,
+  "category": one of [${validCategories.join(', ')}],
+  "color": one of [${validColors.join(', ')}],
+  "retailer": "store name if visible, or null"
+}
+
+If you cannot determine a field, use null. For category and color, only use the exact values from the lists provided.`;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:image/jpeg;base64,${base64Image}`,
+              detail: 'low',
+            },
+          },
+        ],
+      }],
+      max_tokens: 300,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`OpenAI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('No response from OpenAI');
+
+  const parsed = JSON.parse(content);
+  if (!parsed.name) throw new Error('Could not extract product name from image');
+
+  return {
+    success: true,
+    productName: parsed.name,
+    brand: parsed.brand || undefined,
+    price: parsed.price || undefined,
+    currency: 'GBP',
+    category: validCategories.includes(parsed.category) ? parsed.category : undefined,
+    color: validColors.includes(parsed.color) ? parsed.color : undefined,
+    retailer: parsed.retailer || undefined,
+  };
 }
 
 export function getPhotoTips(category?: ClothingCategory): PhotoTips {

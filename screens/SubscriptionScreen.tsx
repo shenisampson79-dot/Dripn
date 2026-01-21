@@ -61,15 +61,15 @@ const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
   free: [
     { text: "Basic styling tips", included: true },
     { text: "Limited wardrobe items", included: true },
-    { text: "Community access", included: true },
+    { text: "Daily outfit decisions", included: true },
     { text: "Voice conversations", included: false },
     { text: "Personal stylist", included: false },
   ],
   style_chat: [
     { text: "Voice conversations (limited)", included: true },
     { text: "Extended wardrobe", included: true },
-    { text: "Community voting", included: true },
-    { text: "Style challenges", included: true },
+    { text: "Outfit calendar access", included: true },
+    { text: "Smart outfit suggestions", included: true },
     { text: "Unlimited voice", included: false },
     { text: "Personal stylist", included: false },
   ],
@@ -447,7 +447,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         <View style={styles.referralContent}>
           <ThemedText type="h3">Invite Friends</ThemedText>
           <ThemedText type="small" style={{ opacity: 0.7 }}>
-            Share your code and both get 5 extra posts
+            Share your code and both get a free month
           </ThemedText>
         </View>
         <View style={[styles.referralCode, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
