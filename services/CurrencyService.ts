@@ -74,12 +74,12 @@ class CurrencyService {
   getLocalizedPrices(): { free: string; personal_stylist: string } {
     return {
       free: 'Free',
-      personal_stylist: this.formatPrice(9.99),
+      personal_stylist: this.formatPrice(14.99),
     };
   }
 
   getPersonalStylistPrice(): string {
-    return this.formatPrice(9.99);
+    return this.formatPrice(14.99);
   }
 
   getDFYPrices(): { outfit_setup: string; wardrobe_setup: string } {

@@ -55,40 +55,41 @@ interface Plan {
   accentColor: string;
 }
 
-type DisplayTier = 'free' | 'personal_stylist';
+type DisplayTier = 'style_chat' | 'personal_stylist';
 
 const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
-  free: [
-    { text: "1 post per day", included: true },
+  style_chat: [
     { text: "Basic styling tips", included: true },
+    { text: "Limited voice conversations", included: true },
     { text: "Community voting (after 5 decisions)", included: true },
-    { text: "Unlimited stylist advice", included: false },
-    { text: "Voice features", included: false },
+    { text: "Wardrobe basics", included: true },
+    { text: "Unlimited voice", included: false },
+    { text: "Personal stylist personality", included: false },
     { text: "Ad-free experience", included: false },
   ],
   personal_stylist: [
-    { text: "Unlimited outfit posts", included: true },
-    { text: "Unlimited AI styling advice", included: true },
-    { text: "Personal AI Stylist (Ruby, Max, or Ace)", included: true, bold: true },
-    { text: "Community voting (instant access)", included: true, bold: true },
-    { text: "Voice conversations with your stylist", included: true },
-    { text: "Wardrobe analysis & recommendations", included: true },
+    { text: "Unlimited voice conversations", included: true, bold: true },
+    { text: "Your personal AI stylist", included: true, bold: true },
+    { text: "Ruby, Max, Ace, or Ivy personalities", included: true },
+    { text: "Unlimited outfit advice", included: true },
+    { text: "Full wardrobe analysis", included: true },
+    { text: "Community voting (instant access)", included: true },
     { text: "Priority support", included: true },
     { text: "Ad-free experience", included: true },
   ],
 };
 
 const PLAN_METADATA: Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean }> = {
-  free: { name: "Free", period: "forever", description: "Get started with basic features" },
-  personal_stylist: { name: "Personal Stylist", period: "/month", description: "Your AI fashion advisor" },
+  style_chat: { name: "Style Chat", period: "forever", description: "Get started with the basics" },
+  personal_stylist: { name: "Personal Stylist", period: "/month", description: "Unlimited voice with your personal AI stylist", popular: true },
 };
 
 const getLocalizedPlans = (prices: { free: string; personal_stylist: string }): Plan[] => [
   { 
     id: "free" as SubscriptionTier, 
-    ...PLAN_METADATA.free, 
+    ...PLAN_METADATA.style_chat, 
     price: prices.free, 
-    features: PLAN_FEATURES.free,
+    features: PLAN_FEATURES.style_chat,
     gradientColors: ['#2A2A3E', '#1A1A2E'] as const,
     accentColor: LUXURY_COLORS.champagne,
   },
@@ -99,21 +100,14 @@ const getLocalizedPlans = (prices: { free: string; personal_stylist: string }): 
     features: PLAN_FEATURES.personal_stylist,
     gradientColors: [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const,
     accentColor: LUXURY_COLORS.gold,
+    popular: true,
   },
 ];
 
 export default function SubscriptionScreen({ navigation }: SubscriptionScreenProps) {
   const { theme, isDark } = useTheme();
   const { user, updateProfile } = useAuth();
-  const { 
-    usage, 
-    limits, 
-    getRemainingUploads, 
-    getRemainingAIAdvice, 
-    getRemainingVoice,
-    getRemainingPolls,
-    referralCode,
-  } = useSubscription();
+  const { referralCode } = useSubscription();
   
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>(
     user?.subscriptionTier || "free"
@@ -121,7 +115,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
   const [isProcessing, setIsProcessing] = useState(false);
   const [localizedPrices, setLocalizedPrices] = useState<{ free: string; personal_stylist: string }>({
     free: "Free",
-    personal_stylist: "$9.99",
+    personal_stylist: "£14.99",
   });
   const [dfyPrices, setDfyPrices] = useState<{ outfit_setup: string; wardrobe_setup: string }>({
     outfit_setup: "£19.99",
@@ -189,17 +183,6 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     }
   };
 
-  const formatRemaining = (value: number): string => {
-    if (value === Infinity) return "Unlimited";
-    return value.toString();
-  };
-
-  const getUsagePercent = (used: number, limit: number): number => {
-    if (limit === Infinity) return 0;
-    return Math.min(100, (used / limit) * 100);
-  };
-
-  const usageColors = [LUXURY_COLORS.violet, LUXURY_COLORS.coral, LUXURY_COLORS.teal, LUXURY_COLORS.gold];
 
   const renderPlanCard = (plan: Plan, index: number) => {
     const isSelected = selectedPlan === plan.id;
@@ -336,43 +319,27 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         </View>
       </LinearGradient>
 
-      <View style={[styles.usageSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-        <View style={styles.usageTitleRow}>
-          <ThemedText type="h3" style={styles.usageTitle}>
-            Your Usage
-          </ThemedText>
-          <View style={[styles.usagePeriodBadge, { backgroundColor: LUXURY_COLORS.violet + '20' }]}>
-            <ThemedText type="caption" style={{ color: LUXURY_COLORS.violet }}>This Month</ThemedText>
+      <View style={[styles.currentTierSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+        <View style={styles.currentTierRow}>
+          <View style={[styles.currentTierIcon, { backgroundColor: user?.subscriptionTier === 'premium' ? LUXURY_COLORS.gold + '20' : LUXURY_COLORS.violet + '20' }]}>
+            <Feather 
+              name={user?.subscriptionTier === 'premium' ? "star" : "message-circle"} 
+              size={20} 
+              color={user?.subscriptionTier === 'premium' ? LUXURY_COLORS.gold : LUXURY_COLORS.violet} 
+            />
           </View>
-        </View>
-        <View style={styles.usageGrid}>
-          {[
-            { icon: "upload", label: "Posts", remaining: getRemainingUploads(), used: usage.uploadsThisMonth, limit: limits.uploadsPerMonth },
-            { icon: "star", label: "Style Advice", remaining: getRemainingAIAdvice(), used: usage.aiAdviceThisMonth, limit: limits.aiAdvicePerMonth },
-            { icon: "mic", label: "Voice", remaining: limits.voiceCommentsPerMonth === 0 ? -1 : getRemainingVoice(), used: usage.voiceCommentsThisMonth, limit: limits.voiceCommentsPerMonth },
-            { icon: "bar-chart-2", label: "Polls", remaining: getRemainingPolls(), used: usage.comparisonPollsThisMonth, limit: limits.comparisonPollsPerMonth },
-          ].map((item, idx) => (
-            <View key={item.label} style={[styles.usageItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
-              <View style={[styles.usageIconContainer, { backgroundColor: usageColors[idx] + '20' }]}>
-                <Feather name={item.icon as any} size={16} color={usageColors[idx]} />
-              </View>
-              <ThemedText type="small" style={styles.usageLabel}>{item.label}</ThemedText>
-              <View style={[styles.usageBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-                <LinearGradient
-                  colors={[usageColors[idx], usageColors[idx] + '80']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[
-                    styles.usageProgress, 
-                    { width: `${getUsagePercent(item.used, item.limit)}%` }
-                  ]} 
-                />
-              </View>
-              <ThemedText type="caption" style={styles.usageRemaining}>
-                {item.remaining === -1 ? "Not available" : `${formatRemaining(item.remaining)} left`}
-              </ThemedText>
+          <View style={styles.currentTierText}>
+            <ThemedText type="small" style={{ opacity: 0.6 }}>You're on</ThemedText>
+            <ThemedText type="h3">
+              {user?.subscriptionTier === 'premium' ? 'Personal Stylist' : 'Style Chat'}
+            </ThemedText>
+          </View>
+          {user?.subscriptionTier === 'premium' ? (
+            <View style={[styles.tierBadge, { backgroundColor: LUXURY_COLORS.gold + '20' }]}>
+              <Feather name="check" size={14} color={LUXURY_COLORS.gold} />
+              <ThemedText type="caption" style={{ color: LUXURY_COLORS.gold, fontWeight: '600' }}>Active</ThemedText>
             </View>
-          ))}
+          ) : null}
         </View>
       </View>
 
@@ -610,57 +577,33 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginBottom: Spacing.sm,
   },
-  usageSection: {
+  currentTierSection: {
     padding: Spacing.lg,
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.xl,
   },
-  usageTitleRow: {
+  currentTierRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+    gap: Spacing.md,
   },
-  usageTitle: {},
-  usagePeriodBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-  },
-  usageGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-  },
-  usageItem: {
-    flex: 1,
-    minWidth: "45%",
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    gap: 6,
-  },
-  usageIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  currentTierIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
   },
-  usageLabel: {
-    fontWeight: '600',
+  currentTierText: {
+    flex: 1,
   },
-  usageBar: {
-    height: 6,
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  usageProgress: {
-    height: "100%",
-    borderRadius: 3,
-  },
-  usageRemaining: {
-    opacity: 0.6,
+  tierBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
   },
   plansContainer: {
     marginBottom: Spacing.lg,
