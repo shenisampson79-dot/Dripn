@@ -90,65 +90,72 @@ const FALLBACK_CATEGORIES: CategoryInfo[] = [
 export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) {
   const { theme, isDark } = useTheme();
   const { palette } = useColorScheme();
-  const [rules, setRules] = useState<FashionRule[]>([]);
-  const [categories, setCategories] = useState<CategoryInfo[]>([]);
+  const [rules, setRules] = useState<FashionRule[]>(FALLBACK_RULES);
+  const [categories, setCategories] = useState<CategoryInfo[]>(FALLBACK_CATEGORIES);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedRules, setExpandedRules] = useState<Set<number>>(new Set());
 
-  const getFilteredFallbackRules = useCallback((category: string | null) => {
-    if (!category) return FALLBACK_RULES;
-    return FALLBACK_RULES.filter(rule => rule.category === category);
+  const getFilteredRules = useCallback((category: string | null, allRules: FashionRule[]) => {
+    if (!category) return allRules;
+    return allRules.filter(rule => rule.category === category);
   }, []);
 
-  const fetchRules = useCallback(async () => {
+  const fetchRulesFromApi = useCallback(async () => {
     try {
-      const params = selectedCategory ? { category: selectedCategory } : undefined;
-      const response = await apiService.getFashionRules(params);
+      const response = await apiService.getFashionRules();
       if (response?.rules && response.rules.length > 0) {
-        setRules(response.rules);
-      } else {
-        setRules(getFilteredFallbackRules(selectedCategory));
+        return response.rules;
       }
     } catch (error) {
-      console.error('Failed to fetch style rules, using fallback:', error);
-      setRules(getFilteredFallbackRules(selectedCategory));
+      console.log('[StyleRules] API not available, using fallback');
     }
-  }, [selectedCategory, getFilteredFallbackRules]);
+    return FALLBACK_RULES;
+  }, []);
 
-  const fetchCategories = useCallback(async () => {
+  const fetchCategoriesFromApi = useCallback(async () => {
     try {
       const response = await apiService.getFashionRuleCategories();
       if (response?.categories && response.categories.length > 0) {
         setCategories(response.categories);
-      } else {
-        setCategories(FALLBACK_CATEGORIES);
+        return;
       }
     } catch (error) {
-      console.error('Failed to fetch categories, using fallback:', error);
-      setCategories(FALLBACK_CATEGORIES);
+      console.log('[StyleRules] Categories API not available, using fallback');
     }
+    setCategories(FALLBACK_CATEGORIES);
   }, []);
+
+  const [allRules, setAllRules] = useState<FashionRule[]>(FALLBACK_RULES);
 
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoading(true);
-      await Promise.all([fetchRules(), fetchCategories()]);
+      const [fetchedRules] = await Promise.all([
+        fetchRulesFromApi(),
+        fetchCategoriesFromApi()
+      ]);
+      setAllRules(fetchedRules);
+      setRules(fetchedRules);
       setIsLoading(false);
     };
     loadInitialData();
-  }, []);
+  }, [fetchRulesFromApi, fetchCategoriesFromApi]);
 
   useEffect(() => {
-    if (!isLoading) {
-      fetchRules();
-    }
-  }, [selectedCategory]);
+    const filtered = getFilteredRules(selectedCategory, allRules);
+    setRules(filtered);
+  }, [selectedCategory, allRules, getFilteredRules]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([fetchRules(), fetchCategories()]);
+    const [fetchedRules] = await Promise.all([
+      fetchRulesFromApi(),
+      fetchCategoriesFromApi()
+    ]);
+    setAllRules(fetchedRules);
+    setRules(getFilteredRules(selectedCategory, fetchedRules));
     setIsRefreshing(false);
   };
 
