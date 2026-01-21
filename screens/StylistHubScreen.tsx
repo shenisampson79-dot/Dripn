@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { StyleSheet, View, Pressable, Dimensions } from "react-native";
+import { StyleSheet, View, Pressable } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -25,10 +25,7 @@ type StylistHubScreenProps = {
   navigation: NativeStackNavigationProp<UserStylistStackParamList, "StylistHub">;
 };
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const GRID_PADDING = Spacing.xl;
 const GRID_GAP = Spacing.md;
-const TILE_SIZE = Math.floor((SCREEN_WIDTH - GRID_PADDING * 2 - GRID_GAP) / 2);
 
 interface StylistFeature {
   id: string;
@@ -401,13 +398,11 @@ const styles = StyleSheet.create({
   featuresGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
-    rowGap: GRID_GAP,
+    gap: GRID_GAP,
   },
   tileWrapper: {
-    width: TILE_SIZE,
-    height: TILE_SIZE,
-    marginBottom: 0,
+    width: "48%",
+    aspectRatio: 1,
   },
   featureTile: {
     flex: 1,
