@@ -446,15 +446,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.coral, '#C46A4F']}
           />
-          <SettingItem
-            icon="clipboard"
-            title="Style Quiz"
-            subtitle={user?.hasCompletedQuiz ? "Retake quiz" : "Complete your style profile"}
-            onPress={() => navigation.navigate("OnboardingQuiz")}
-            theme={theme}
-            isDark={isDark}
-            iconGradient={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-          />
         </View>
       </View>
 
