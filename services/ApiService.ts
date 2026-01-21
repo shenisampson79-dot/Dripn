@@ -1255,7 +1255,7 @@ class ApiService {
     });
   }
 
-  async transcribeAudio(audio: string, mimeType: 'audio/webm' | 'audio/wav' | 'audio/mp3', language: string = 'en') {
+  async transcribeAudio(audio: string, mimeType: 'audio/webm' | 'audio/wav' | 'audio/mp3' | 'audio/m4a' | 'audio/mp4', language: string = 'en') {
     return this.request<{
       success: boolean;
       text: string;

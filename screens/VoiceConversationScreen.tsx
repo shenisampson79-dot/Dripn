@@ -56,17 +56,11 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
   const { user } = useAuth();
   const { tier } = useSubscription();
   const { 
-    credits, 
     hasCredits, 
     isUnlimited, 
-    isLowCredits, 
     isFreeUser,
     updateBalance,
     refreshBalance,
-    packages,
-    fetchPackages,
-    purchaseCredits,
-    isPurchasing,
   } = useVoiceCredits();
   const gender = user?.gender || "female";
   
@@ -75,7 +69,6 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
   const [currentTranscript, setCurrentTranscript] = useState("");
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showCreditsModal, setShowCreditsModal] = useState(false);
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
@@ -190,9 +183,9 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
         encoding: 'base64',
       });
 
-      const mimeType = Platform.OS === 'ios' ? 'audio/mp3' : 'audio/webm';
+      const mimeType = Platform.OS === 'ios' ? 'audio/m4a' : 'audio/webm';
       
-      const transcriptionResponse = await apiService.transcribeAudio(audioBase64, mimeType as 'audio/webm' | 'audio/wav' | 'audio/mp3', 'en');
+      const transcriptionResponse = await apiService.transcribeAudio(audioBase64, mimeType as 'audio/webm' | 'audio/wav' | 'audio/mp3' | 'audio/m4a' | 'audio/mp4', 'en');
 
       if (transcriptionResponse.success && transcriptionResponse.text) {
         const userTranscript = transcriptionResponse.text;
@@ -243,8 +236,7 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
 
   const getStylistResponse = async (userText: string) => {
     if (!hasCredits) {
-      setError("You've run out of voice credits. Upgrade or purchase more to continue.");
-      setShowCreditsModal(true);
+      setError("Voice sessions are limited on your current plan. Upgrade for extended access.");
       setConversationState("idle");
       return;
     }
@@ -258,8 +250,7 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
       });
 
       if (chatResponse.voiceCreditsExhausted) {
-        setError(chatResponse.voiceError?.message || "Voice credits exhausted. Please upgrade or purchase more credits.");
-        setShowCreditsModal(true);
+        setError(chatResponse.voiceError?.message || "Voice session limit reached. Upgrade for extended access.");
         setConversationState("idle");
         return;
       }
@@ -428,69 +419,6 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
     );
   };
 
-  const renderCreditsModal = () => {
-    if (!showCreditsModal) return null;
-    
-    return (
-      <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
-        <Card style={[styles.creditsModal, { backgroundColor: theme.backgroundSecondary }]}>
-          <View style={styles.modalHeader}>
-            <Feather name="zap" size={24} color={LuxuryColors.gold} />
-            <ThemedText type="h2" style={styles.modalTitle}>
-              {hasCredits ? "Low on Credits" : "Voice Credits Needed"}
-            </ThemedText>
-          </View>
-          
-          <ThemedText style={[styles.modalText, { color: theme.tabIconDefault }]}>
-            {isFreeUser 
-              ? "Upgrade to a subscription for monthly voice credits, or purchase credits below."
-              : "Purchase additional voice credits to continue your conversations."
-            }
-          </ThemedText>
-          
-          <View style={styles.packageList}>
-            {packages.length > 0 ? packages.map((pkg) => (
-              <Pressable
-                key={pkg.id}
-                onPress={() => purchaseCredits(pkg.id)}
-                disabled={isPurchasing}
-                style={[
-                  styles.packageItem,
-                  { 
-                    backgroundColor: theme.backgroundDefault,
-                    borderColor: pkg.popular ? LuxuryColors.gold : theme.border,
-                    borderWidth: pkg.popular ? 2 : 1,
-                  },
-                ]}
-              >
-                {pkg.popular ? (
-                  <View style={[styles.popularBadge, { backgroundColor: LuxuryColors.gold }]}>
-                    <ThemedText style={styles.popularText}>Popular</ThemedText>
-                  </View>
-                ) : null}
-                <ThemedText type="h4" style={styles.packageName}>{pkg.name}</ThemedText>
-                <ThemedText style={[styles.packagePrice, { color: theme.link }]}>
-                  {pkg.currency === 'gbp' ? '£' : '$'}{pkg.price.toFixed(2)}
-                </ThemedText>
-              </Pressable>
-            )) : (
-              <ActivityIndicator color={theme.link} />
-            )}
-          </View>
-          
-          <Pressable
-            onPress={() => {
-              setShowCreditsModal(false);
-              setError(null);
-            }}
-            style={[styles.closeModalButton, { borderColor: theme.border }]}
-          >
-            <ThemedText style={{ color: theme.tabIconDefault }}>Close</ThemedText>
-          </Pressable>
-        </Card>
-      </View>
-    );
-  };
 
   return (
     <ScreenScrollView contentContainerStyle={styles.container}>
@@ -508,43 +436,8 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
           Have a real-time voice conversation with your personal AI stylist
         </ThemedText>
         
-        <View style={styles.creditsRow}>
-          <Feather name="zap" size={14} color={isLowCredits ? LuxuryColors.coral : LuxuryColors.gold} />
-          <ThemedText style={[
-            styles.creditsText, 
-            { color: isLowCredits ? LuxuryColors.coral : theme.tabIconDefault }
-          ]}>
-            {isUnlimited 
-              ? "Unlimited voice credits" 
-              : `${credits?.remaining ?? 0} credits remaining`
-            }
-          </ThemedText>
-          {!isUnlimited ? (
-            <Pressable 
-              onPress={() => {
-                fetchPackages();
-                setShowCreditsModal(true);
-              }}
-              style={[styles.buyCreditsButton, { backgroundColor: theme.backgroundSecondary }]}
-            >
-              <ThemedText style={[styles.buyCreditsText, { color: theme.link }]}>
-                Buy More
-              </ThemedText>
-            </Pressable>
-          ) : null}
-        </View>
-        
-        {isLowCredits ? (
-          <View style={[styles.lowCreditsWarning, { backgroundColor: LuxuryColors.coral + '20' }]}>
-            <Feather name="alert-triangle" size={14} color={LuxuryColors.coral} />
-            <ThemedText style={[styles.lowCreditsText, { color: LuxuryColors.coral }]}>
-              Low credits! Consider purchasing more to continue chatting.
-            </ThemedText>
-          </View>
-        ) : null}
       </View>
       
-      {renderCreditsModal()}
 
       {hasPermission === false ? (
         <Card style={styles.permissionCard}>
