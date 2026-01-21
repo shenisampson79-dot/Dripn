@@ -227,7 +227,7 @@ class ApiService {
       message: string;
     }>('/api/stylists/switch', {
       method: 'POST',
-      body: JSON.stringify({ stylistId }),
+      body: JSON.stringify({ stylist: stylistId }),
     });
   }
 
@@ -1002,6 +1002,7 @@ class ApiService {
     userGender?: string;
     subscriptionTier?: string;
   }) {
+    const { stylistId, ...rest } = data;
     return this.request<{
       content: string;
       mood: {
@@ -1012,9 +1013,9 @@ class ApiService {
       };
       stylistId: string;
       error?: string;
-    }>('/api/stylist/chat', {
+    }>('/api/chat/message', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...rest, stylist: stylistId, message: data.userMessage }),
     });
   }
 
@@ -1036,6 +1037,7 @@ class ApiService {
     generateVoice?: boolean;
     voiceSettings?: { accent?: string };
   }) {
+    const { stylistId, ...rest } = data;
     return this.request<{
       response: string;
       voice?: { audio: string; audioDataUri: string };
@@ -1052,7 +1054,7 @@ class ApiService {
       error?: string;
     }>('/api/chat/message', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...rest, stylist: stylistId }),
     });
   }
 
@@ -1267,6 +1269,7 @@ class ApiService {
   }
 
   async synthesizeSpeech(text: string, options?: { voice?: string; stylistId?: string; speed?: number }) {
+    const { stylistId, ...otherOptions } = options || {};
     return this.request<{
       success: boolean;
       audio: {
@@ -1277,7 +1280,7 @@ class ApiService {
       };
     }>('/api/ai/speak', {
       method: 'POST',
-      body: JSON.stringify({ text, ...options }),
+      body: JSON.stringify({ text, ...otherOptions, stylist: stylistId }),
     });
   }
 
@@ -1298,6 +1301,7 @@ class ApiService {
     userGender?: string;
     conversationHistory?: Array<{ role: string; content: string }>;
   }) {
+    const { stylistId, ...rest } = data;
     return this.request<{
       success: boolean;
       transcribedText?: string;
@@ -1306,7 +1310,7 @@ class ApiService {
       stylistId?: string;
     }>('/api/ai/voice-message', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...rest, stylist: stylistId }),
     });
   }
 
@@ -1317,6 +1321,7 @@ class ApiService {
     voice?: string;
     language?: string;
   }) {
+    const { stylistId, ...rest } = data;
     return this.request<{
       success: boolean;
       audio: {
@@ -1326,7 +1331,7 @@ class ApiService {
       };
     }>('/api/ai/voice-response', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...rest, stylist: stylistId }),
     });
   }
 

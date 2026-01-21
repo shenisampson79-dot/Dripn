@@ -359,7 +359,7 @@ If you cannot determine a field, use null. For category and color, only use the 
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 200,
       response_format: { type: 'json_object' },
@@ -461,7 +461,7 @@ If you cannot determine a field, use null. For category and color, only use the 
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'gpt-4.1',
       messages: [{
         role: 'user',
         content: [
