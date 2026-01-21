@@ -13,28 +13,9 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { onboardingAnalyticsService } from "@/services/OnboardingAnalyticsService";
+import { videoRandomizer } from "@/services/VideoRandomizerService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
-const BACKGROUND_VIDEOS = [
-  require("../assets/videos/asian_man_indecisive_in_store.mp4"),
-  require("../assets/videos/black_man_indecisive_in_store.mp4"),
-  require("../assets/videos/asian_woman_indecisive_in_store.mp4"),
-  require("../assets/videos/black_woman_indecisive_in_store.mp4"),
-  require("../assets/videos/black_woman_choosing_clothes_indecisively.mp4"),
-  require("../assets/videos/indian_woman_choosing_clothes_indecisively.mp4"),
-  require("../assets/videos/white_woman_indecisive_in_store.mp4"),
-  require("../assets/videos/white_woman_wardrobe_indecision_scene.mp4"),
-  require("../assets/videos/woman_pondering_outfits_on_bed.mp4"),
-  require("../assets/videos/woman_comparing_two_dresses_held_firmly.mp4"),
-];
-
-const getRandomVideo = () => {
-  const timeBasedSeed = Date.now() % 1000;
-  const randomFactor = Math.random() * 1000;
-  const combinedRandom = (timeBasedSeed + randomFactor) % BACKGROUND_VIDEOS.length;
-  return BACKGROUND_VIDEOS[Math.floor(combinedRandom)];
-};
 
 type TrustOnboardingScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "TrustOnboarding">;
@@ -191,7 +172,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
   const videoRef = useRef<Video>(null);
   
   const [trustMessage] = useState(() => getRandomContent(ALL_TRUST_MESSAGES));
-  const [backgroundVideo] = useState(() => getRandomVideo());
+  const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo());
   
   const [messageVariationId] = useState(() => `trust_${ALL_TRUST_MESSAGES.indexOf(trustMessage) + 1}`);
   

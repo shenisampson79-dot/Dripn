@@ -11,12 +11,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
-
-const BACKGROUND_VIDEOS = [
-  require("../assets/videos/woman_pondering_outfits_on_bed.mp4"),
-  require("../assets/videos/woman_comparing_two_dresses_held_firmly.mp4"),
-  require("../assets/videos/woman_trying_tops_with_closed_mouth.mp4"),
-];
+import { videoRandomizer } from "@/services/VideoRandomizerService";
 
 type WelcomeScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Welcome">;
@@ -26,7 +21,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const videoRef = useRef<Video>(null);
-  const [backgroundVideo] = useState(() => BACKGROUND_VIDEOS[Math.floor(Math.random() * BACKGROUND_VIDEOS.length)]);
+  const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo());
 
   useEffect(() => {
     if (Platform.OS === 'web' && videoRef.current) {

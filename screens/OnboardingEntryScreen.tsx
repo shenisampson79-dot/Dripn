@@ -13,19 +13,9 @@ const SPACING_XXL = 32;
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
+import { videoRandomizer } from "@/services/VideoRandomizerService";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-
-const BACKGROUND_VIDEOS = [
-  require("../assets/videos/black_woman_indecisive_in_store.mp4"),
-  require("../assets/videos/black_woman_choosing_clothes_indecisively.mp4"),
-  require("../assets/videos/white_woman_indecisive_in_store.mp4"),
-  require("../assets/videos/indian_woman_choosing_clothes_indecisively.mp4"),
-  require("../assets/videos/asian_woman_indecisive_in_store.mp4"),
-  require("../assets/videos/white_woman_wardrobe_indecision_scene.mp4"),
-  require("../assets/videos/black_man_indecisive_in_store.mp4"),
-  require("../assets/videos/asian_man_indecisive_in_store.mp4"),
-];
 
 type OnboardingEntryScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "OnboardingEntry">;
@@ -49,9 +39,7 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const [entryData, setEntryData] = useState<EntryData | null>(null);
-  const [selectedVideo] = useState(() => 
-    BACKGROUND_VIDEOS[Math.floor(Math.random() * BACKGROUND_VIDEOS.length)]
-  );
+  const [selectedVideo] = useState(() => videoRandomizer.getNextVideo());
 
   useEffect(() => {
     loadEntryData();
