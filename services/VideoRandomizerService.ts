@@ -3,6 +3,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const MALE_VIDEOS = [
   require("../assets/videos/asian_man_indecisive_in_store.mp4"),
   require("../assets/videos/black_man_indecisive_in_store.mp4"),
+  require("../assets/videos/black_man_indecisive_at_home.mp4"),
+  require("../assets/videos/white_man_indecisive_in_store.mp4"),
+  require("../assets/videos/white_man_indecisive_at_home.mp4"),
 ];
 
 const FEMALE_VIDEOS = [
