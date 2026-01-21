@@ -247,8 +247,10 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             end={{ x: 1, y: 1 }}
             style={styles.tileGradient}
           >
+            <View style={styles.iconContainer}>
+              <Feather name={feature.icon} size={36} color="#FFFFFF" />
+            </View>
             <View style={styles.tileContent}>
-              <Feather name={feature.icon} size={32} color="#FFFFFF" />
               <ThemedText type="body" style={styles.tileTitle}>
                 {feature.title}
               </ThemedText>
@@ -259,7 +261,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             
             {feature.premium && tier === "free" ? (
               <View style={styles.premiumBadge}>
-                <Feather name="star" size={10} color="#FFFFFF" />
+                <Feather name="star" size={12} color={LuxuryColors.gold} />
               </View>
             ) : null}
             
@@ -409,28 +411,36 @@ const styles = StyleSheet.create({
   tileGradient: {
     flex: 1,
     padding: Spacing.md,
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
+  },
+  iconContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "flex-start",
+    paddingTop: Spacing.lg,
   },
   tileContent: {
-    gap: Spacing.xs,
+    gap: 2,
   },
   tileTitle: {
     color: "#FFFFFF",
-    fontWeight: "600",
-    marginTop: Spacing.sm,
+    fontWeight: "700",
+    fontSize: 15,
   },
   tileDescription: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 11,
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 12,
   },
   premiumBadge: {
     position: "absolute",
-    top: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
+    top: Spacing.md,
+    right: Spacing.md,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   dragHandle: {
     position: "absolute",
