@@ -68,6 +68,7 @@ interface WishlistContextType {
   searchResults: SearchProduct[];
   addToWishlist: (item: Omit<WishlistItem, 'id' | 'addedAt' | 'lastChecked' | 'priceHistory' | 'isOnSale' | 'priceDropPercent'>) => Promise<void>;
   addProductToWishlist: (product: SearchProduct) => Promise<void>;
+  addItemByUrl: (productUrl: string) => Promise<{ success: boolean; itemName?: string; error?: string }>;
   removeFromWishlist: (itemId: string) => Promise<void>;
   markAsPurchased: (itemId: string) => Promise<void>;
   isInWishlist: (itemId: string) => boolean;
@@ -135,6 +136,49 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   const loadWishlistData = async () => {
     setIsLoading(true);
     try {
+      // Try to load from backend first
+      try {
+        const [trackingResponse, alertsResponse] = await Promise.all([
+          apiService.getPriceTrackedItems(),
+          apiService.getPriceAlerts(),
+        ]);
+
+        if (trackingResponse?.items) {
+          const backendItems: WishlistItem[] = trackingResponse.items.map(item => ({
+            id: item.id,
+            name: item.productName,
+            brand: item.retailerName,
+            category: 'Tracked',
+            currentPrice: item.currentPrice,
+            originalPrice: item.originalPrice,
+            targetPrice: item.targetPrice,
+            priceHistory: [],
+            imageUrl: item.imageUrl,
+            productUrl: item.productUrl,
+            source: item.retailerName,
+            currencySymbol: item.currency === 'GBP' ? '£' : '$',
+            currencyCode: item.currency || 'GBP',
+            addedAt: item.lastChecked,
+            lastChecked: item.lastChecked,
+            isOnSale: item.isOnSale,
+            priceDropPercent: item.priceDropPercent,
+            notifyOnSale: true,
+            notifyAtTargetPrice: !!item.targetPrice,
+            gender: 'unisex',
+          }));
+          setWishlistItems(backendItems);
+        }
+
+        if (alertsResponse?.alerts) {
+          setPriceAlerts(alertsResponse.alerts);
+        }
+        
+        return;
+      } catch (backendErr) {
+        console.log('Backend not available, using local storage');
+      }
+
+      // Fallback to local storage
       const [wishlistData, alertsData] = await Promise.all([
         AsyncStorage.getItem(`${WISHLIST_STORAGE_KEY}_${user?.id}`),
         AsyncStorage.getItem(`${ALERTS_STORAGE_KEY}_${user?.id}`),
@@ -205,6 +249,21 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     await saveWishlistItems(updatedItems);
   }, [wishlistItems, user?.id]);
 
+  const addItemByUrl = useCallback(async (productUrl: string): Promise<{ success: boolean; itemName?: string; error?: string }> => {
+    try {
+      const response = await apiService.addPriceTracking(productUrl);
+      if (response?.success && response.item) {
+        // Refresh the wishlist to include the new item
+        await loadWishlistData();
+        return { success: true, itemName: response.item.productName };
+      }
+      return { success: false, error: 'Failed to add item' };
+    } catch (err: any) {
+      console.error('Failed to add item by URL:', err);
+      return { success: false, error: err.message || 'Failed to track product' };
+    }
+  }, []);
+
   const removeFromWishlist = useCallback(async (itemId: string) => {
     const updatedItems = wishlistItems.filter(item => item.id !== itemId);
     setWishlistItems(updatedItems);
@@ -216,6 +275,15 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   }, [wishlistItems]);
 
   const updateTargetPrice = useCallback(async (itemId: string, targetPrice: number | undefined) => {
+    // Update backend first if possible
+    if (targetPrice !== undefined) {
+      try {
+        await apiService.setTargetPrice(itemId, targetPrice);
+      } catch (err) {
+        console.log('Backend not available for target price update');
+      }
+    }
+    
     const updatedItems = wishlistItems.map(item =>
       item.id === itemId ? { ...item, targetPrice } : item
     );
@@ -240,6 +308,13 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   }, [wishlistItems, user?.id]);
 
   const markAlertAsRead = useCallback(async (alertId: string) => {
+    // Mark as read on backend
+    try {
+      await apiService.markPriceAlertsRead([alertId]);
+    } catch (err) {
+      console.log('Backend not available for marking alert as read');
+    }
+    
     const updatedAlerts = priceAlerts.map(alert =>
       alert.id === alertId ? { ...alert, isRead: true } : alert
     );
@@ -248,6 +323,13 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   }, [priceAlerts, user?.id]);
 
   const markAllAlertsAsRead = useCallback(async () => {
+    // Mark all as read on backend
+    try {
+      await apiService.markPriceAlertsRead();
+    } catch (err) {
+      console.log('Backend not available for marking alerts as read');
+    }
+    
     const updatedAlerts = priceAlerts.map(alert => ({ ...alert, isRead: true }));
     setPriceAlerts(updatedAlerts);
     await saveAlerts(updatedAlerts);
@@ -488,6 +570,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         searchResults,
         addToWishlist,
         addProductToWishlist,
+        addItemByUrl,
         removeFromWishlist,
         markAsPurchased,
         isInWishlist,

@@ -136,6 +136,7 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
     searchProducts,
     clearSearchResults,
     addProductToWishlist,
+    addItemByUrl,
     markAsPurchased,
     getOnSaleItems,
     getTotalSavings,
@@ -145,6 +146,8 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [trackingUrl, setTrackingUrl] = useState('');
+  const [isAddingUrl, setIsAddingUrl] = useState(false);
 
   const onSaleItems = useMemo(() => getOnSaleItems(), [wishlistItems]);
   const totalSavings = useMemo(() => getTotalSavings(), [wishlistItems]);
@@ -210,6 +213,30 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
     clearSearchResults();
     setViewMode('items');
   }, [clearSearchResults]);
+
+  const handleAddByUrl = useCallback(async () => {
+    if (!trackingUrl.trim()) {
+      Alert.alert('Enter URL', 'Please paste a product URL from any retailer.');
+      return;
+    }
+    
+    setIsAddingUrl(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    try {
+      const result = await addItemByUrl(trackingUrl.trim());
+      if (result.success) {
+        Alert.alert('Added!', `${result.itemName || 'Product'} is now being tracked for price drops.`);
+        setTrackingUrl('');
+      } else {
+        Alert.alert('Error', result.error || 'Could not add this product. Please check the URL and try again.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to track product. Please try again.');
+    } finally {
+      setIsAddingUrl(false);
+    }
+  }, [trackingUrl, addItemByUrl]);
 
   const handleAddToWishlist = useCallback(async (product: SearchProduct) => {
     try {
@@ -590,16 +617,52 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
       </View>
 
       {viewMode === 'items' ? (
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContainer}
-        >
-          {SAMPLE_CATEGORIES.map(category => (
-            <Pressable
-              key={category}
-              onPress={() => setSelectedCategory(category)}
-              style={[
+        <>
+          <View style={[styles.urlInputSection, { backgroundColor: theme.backgroundDefault }]}>
+            <View style={styles.urlInputHeader}>
+              <Feather name="link" size={16} color={LuxuryColors.gold} />
+              <ThemedText type="body" style={{ fontWeight: '600', marginLeft: Spacing.xs }}>
+                Track Any Product
+              </ThemedText>
+            </View>
+            <View style={styles.urlInputRow}>
+              <TextInput
+                style={[styles.urlInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }]}
+                placeholder="Paste product URL from any retailer..."
+                placeholderTextColor={theme.tabIconDefault}
+                value={trackingUrl}
+                onChangeText={setTrackingUrl}
+                keyboardType="url"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Pressable
+                onPress={handleAddByUrl}
+                disabled={isAddingUrl}
+                style={({ pressed }) => [
+                  styles.urlAddButton,
+                  { backgroundColor: LuxuryColors.gold, opacity: pressed || isAddingUrl ? 0.7 : 1 },
+                ]}
+              >
+                {isAddingUrl ? (
+                  <ActivityIndicator size="small" color="#1A1A2E" />
+                ) : (
+                  <Feather name="plus" size={20} color="#1A1A2E" />
+                )}
+              </Pressable>
+            </View>
+          </View>
+
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesContainer}
+          >
+            {SAMPLE_CATEGORIES.map(category => (
+              <Pressable
+                key={category}
+                onPress={() => setSelectedCategory(category)}
+                style={[
                 styles.categoryChip,
                 { 
                   backgroundColor: selectedCategory === category 
@@ -618,7 +681,8 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
               </ThemedText>
             </Pressable>
           ))}
-        </ScrollView>
+          </ScrollView>
+        </>
       ) : null}
 
       {viewMode === 'alerts' && priceAlerts.length > 0 ? (
@@ -641,7 +705,7 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
         </View>
       ) : null}
     </View>
-  ), [theme, wishlistItems.length, onSaleItems.length, totalSavings, currencySymbol, viewMode, selectedCategory, unreadAlertsCount, priceAlerts.length, markAllAlertsAsRead, searchQuery, handleSearch, handleClearSearch, clearSearchResults, searchResults.length, isSearching]);
+  ), [theme, wishlistItems.length, onSaleItems.length, totalSavings, currencySymbol, viewMode, selectedCategory, unreadAlertsCount, priceAlerts.length, markAllAlertsAsRead, searchQuery, handleSearch, handleClearSearch, clearSearchResults, searchResults.length, isSearching, trackingUrl, isAddingUrl, handleAddByUrl]);
 
   const EmptyState = useCallback(() => (
     <View style={styles.emptyState}>
@@ -1029,5 +1093,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.md,
+  },
+  urlInputSection: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
+  },
+  urlInputHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  urlInputRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  urlInput: {
+    flex: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    fontSize: 14,
+  },
+  urlAddButton: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

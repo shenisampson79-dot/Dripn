@@ -2460,6 +2460,88 @@ class ApiService {
       method: 'PUT',
     });
   }
+
+  // Price Tracking
+  async getPriceTrackedItems() {
+    return this.request<{
+      items: Array<{
+        id: string;
+        productName: string;
+        productUrl: string;
+        retailerName: string;
+        currentPrice: number;
+        originalPrice: number;
+        targetPrice?: number;
+        currency: string;
+        imageUrl?: string;
+        lastChecked: string;
+        priceDropPercent: number;
+        isOnSale: boolean;
+      }>;
+    }>('/api/price-tracking');
+  }
+
+  async setTargetPrice(itemId: string, targetPrice: number) {
+    return this.request<{ success: boolean; targetPrice: number }>(`/api/price-tracking/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ targetPrice }),
+    });
+  }
+
+  async getPriceHistory(itemId: string) {
+    return this.request<{
+      history: Array<{
+        price: number;
+        date: string;
+        source: string;
+      }>;
+      lowestPrice: number;
+      highestPrice: number;
+      averagePrice: number;
+    }>(`/api/price-tracking/${itemId}/history`);
+  }
+
+  async addPriceTracking(productUrl: string) {
+    return this.request<{
+      success: boolean;
+      item: {
+        id: string;
+        productName: string;
+        currentPrice: number;
+        retailerName: string;
+      };
+    }>('/api/price-tracking/add', {
+      method: 'POST',
+      body: JSON.stringify({ productUrl }),
+    });
+  }
+
+  // Price Alerts
+  async getPriceAlerts() {
+    return this.request<{
+      alerts: Array<{
+        id: string;
+        itemId: string;
+        itemName: string;
+        brand: string;
+        previousPrice: number;
+        newPrice: number;
+        dropPercent: number;
+        currencySymbol: string;
+        timestamp: string;
+        isRead: boolean;
+        type: 'price_drop' | 'target_reached' | 'back_in_stock' | 'limited_time';
+      }>;
+      unreadCount: number;
+    }>('/api/price-alerts');
+  }
+
+  async markPriceAlertsRead(alertIds?: string[]) {
+    return this.request<{ success: boolean; markedCount: number }>('/api/price-alerts/mark-read', {
+      method: 'POST',
+      body: JSON.stringify({ alertIds }),
+    });
+  }
 }
 
 export const apiService = new ApiService();
