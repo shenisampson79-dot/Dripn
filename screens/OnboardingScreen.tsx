@@ -1186,7 +1186,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         },
       },
     });
-    navigation.replace("StyleQuizOnboarding");
+    navigation.replace("OnboardingStyleQuiz");
   };
 
   const renderStep = () => {
