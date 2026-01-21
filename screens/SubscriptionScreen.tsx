@@ -74,7 +74,7 @@ const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
     { text: "Personal stylist", included: false },
   ],
   personal_stylist: [
-    { text: "More voice conversations", included: true, bold: true },
+    { text: "Extended voice sessions", included: true, bold: true },
     { text: "Personal AI stylist", included: true, bold: true },
     { text: "Ruby, Max, Ace, or Ivy", included: true },
     { text: "Full wardrobe analysis", included: true },
