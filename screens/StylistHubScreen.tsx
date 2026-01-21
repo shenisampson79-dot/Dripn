@@ -229,7 +229,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
     }));
     
     return (
-      <Animated.View style={animatedStyle}>
+      <Animated.View style={[styles.tileWrapper, animatedStyle]}>
         <Pressable
           onPress={() => handleFeaturePress(feature)}
           onLongPress={() => {
@@ -401,6 +401,9 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     gap: Spacing.md,
+  },
+  tileWrapper: {
+    width: TILE_SIZE,
   },
   featureTile: {
     width: TILE_SIZE,
