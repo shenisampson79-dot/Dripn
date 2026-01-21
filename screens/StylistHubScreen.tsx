@@ -128,8 +128,8 @@ const ALL_FEATURES: StylistFeature[] = [
   {
     id: "social-sync",
     title: "Social Sync",
-    description: "Style with friends",
-    icon: "users",
+    description: "Import style inspiration",
+    icon: "link",
     screen: "SocialStyleSync",
     gradientKey: "secondary",
     category: "stylist",
