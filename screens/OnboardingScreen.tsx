@@ -13,7 +13,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences, DripnGoal, DressCodePreference, SubcultureStyle, DressCodeStrictness, CulturalStylePreferences, FitPreference, BodyArea } from "@/contexts/AuthContext";
+import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences, DripnGoal, DressCodePreference, SubcultureStyle, DressCodeStrictness, CulturalStylePreferences, FitPreference, BodyArea, BodyMeasurements, HeightUnit, WeightUnit } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getDefaultVoiceForStylist, getAccentsForLanguage } from "@/services/PersonalStylistService";
 import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
@@ -546,6 +546,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
   const [gender, setGender] = useState<Gender>(null);
+  const [bodyHeight, setBodyHeight] = useState<number | null>(null);
+  const [bodyHeightUnit, setBodyHeightUnit] = useState<HeightUnit>('cm');
+  const [bodyWeight, setBodyWeight] = useState<number | null>(null);
+  const [bodyWeightUnit, setBodyWeightUnit] = useState<WeightUnit>('kg');
   const [stylePreference, setStylePreference] = useState<StyleTheme>("luxury");
   const [sizeRange, setSizeRange] = useState<SizeRange>(null);
   const [bodyShape, setBodyShape] = useState<BodyShape>(null);
@@ -620,7 +624,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     }
   }, [user?.stylistPreferences?.useNameInGreetings, user?.stylistPreferences?.namePronunciationConfirmed]);
 
-  const totalSteps = 8;
+  const totalSteps = 9;
   
   const suggestedShopNames = suggestedRetailers.map(r => r.name);
   const allAvailableShops = (suggestedRetailers.length > 0 
@@ -1157,6 +1161,12 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       sizeRange,
       bodyShape,
       budgetRange,
+      bodyMeasurements: {
+        height: bodyHeight,
+        heightUnit: bodyHeightUnit,
+        weight: bodyWeight,
+        weightUnit: bodyWeightUnit,
+      },
       stylistPreferences,
       extendedPreferences: {
         lifestyle: null,
@@ -1436,6 +1446,140 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         );
 
       case 2:
+        return (
+          <View style={styles.stepContent}>
+            <ThemedText type="h2" style={styles.stepTitle}>
+              Your Body Measurements
+            </ThemedText>
+            <ThemedText type="body" style={styles.stepSubtitle}>
+              Optional but helps us find your perfect fit
+            </ThemedText>
+            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.measurementFormContainer}>
+                <View style={styles.measurementRow}>
+                  <ThemedText type="body" style={styles.measurementLabel}>Height</ThemedText>
+                  <View style={styles.measurementInputRow}>
+                    <TextInput
+                      style={[
+                        styles.measurementInput,
+                        { 
+                          backgroundColor: theme.backgroundSecondary,
+                          color: theme.text,
+                        }
+                      ]}
+                      value={bodyHeight?.toString() || ''}
+                      onChangeText={(text) => setBodyHeight(text ? parseFloat(text) : null)}
+                      keyboardType="numeric"
+                      placeholder={bodyHeightUnit === 'cm' ? "175" : "5.9"}
+                      placeholderTextColor={theme.tabIconDefault}
+                    />
+                    <View style={styles.unitToggleRow}>
+                      <Pressable
+                        style={[
+                          styles.unitButton,
+                          bodyHeightUnit === 'cm' && { backgroundColor: theme.link }
+                        ]}
+                        onPress={() => setBodyHeightUnit('cm')}
+                      >
+                        <ThemedText 
+                          type="small" 
+                          style={[
+                            styles.unitButtonText,
+                            bodyHeightUnit === 'cm' && { color: '#FFFFFF' }
+                          ]}
+                        >
+                          cm
+                        </ThemedText>
+                      </Pressable>
+                      <Pressable
+                        style={[
+                          styles.unitButton,
+                          bodyHeightUnit === 'ft' && { backgroundColor: theme.link }
+                        ]}
+                        onPress={() => setBodyHeightUnit('ft')}
+                      >
+                        <ThemedText 
+                          type="small"
+                          style={[
+                            styles.unitButtonText,
+                            bodyHeightUnit === 'ft' && { color: '#FFFFFF' }
+                          ]}
+                        >
+                          ft
+                        </ThemedText>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.measurementRow}>
+                  <ThemedText type="body" style={styles.measurementLabel}>Weight</ThemedText>
+                  <View style={styles.measurementInputRow}>
+                    <TextInput
+                      style={[
+                        styles.measurementInput,
+                        { 
+                          backgroundColor: theme.backgroundSecondary,
+                          color: theme.text,
+                        }
+                      ]}
+                      value={bodyWeight?.toString() || ''}
+                      onChangeText={(text) => setBodyWeight(text ? parseFloat(text) : null)}
+                      keyboardType="numeric"
+                      placeholder={bodyWeightUnit === 'kg' ? "70" : "154"}
+                      placeholderTextColor={theme.tabIconDefault}
+                    />
+                    <View style={styles.unitToggleRow}>
+                      <Pressable
+                        style={[
+                          styles.unitButton,
+                          bodyWeightUnit === 'kg' && { backgroundColor: theme.link }
+                        ]}
+                        onPress={() => setBodyWeightUnit('kg')}
+                      >
+                        <ThemedText 
+                          type="small" 
+                          style={[
+                            styles.unitButtonText,
+                            bodyWeightUnit === 'kg' && { color: '#FFFFFF' }
+                          ]}
+                        >
+                          kg
+                        </ThemedText>
+                      </Pressable>
+                      <Pressable
+                        style={[
+                          styles.unitButton,
+                          bodyWeightUnit === 'lbs' && { backgroundColor: theme.link }
+                        ]}
+                        onPress={() => setBodyWeightUnit('lbs')}
+                      >
+                        <ThemedText 
+                          type="small"
+                          style={[
+                            styles.unitButtonText,
+                            bodyWeightUnit === 'lbs' && { color: '#FFFFFF' }
+                          ]}
+                        >
+                          lbs
+                        </ThemedText>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.measurementNote}>
+                  <Feather name="info" size={16} color={theme.tabIconDefault} />
+                  <ThemedText type="small" style={{ color: theme.tabIconDefault, marginLeft: Spacing.xs, flex: 1 }}>
+                    This helps us recommend clothing that fits you perfectly. You can skip this step if you prefer.
+                  </ThemedText>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        );
+
+      case 3:
         const stylists = getAllStylists();
         return (
           <View style={styles.stepContent}>
@@ -1604,7 +1748,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           </View>
         );
 
-      case 3:
+      case 4:
         if (showStyleQuiz && quizQuestions.length > 0) {
           const currentQ = quizQuestions[currentQuizQuestion];
           const allAnswered = quizQuestions.every(q => quizAnswers[q.id]);
@@ -1807,7 +1951,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           </View>
         );
 
-      case 4:
+      case 5:
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
@@ -2243,7 +2387,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           </View>
         );
 
-      case 5:
+      case 6:
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
@@ -2377,7 +2521,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           </View>
         );
 
-      case 6:
+      case 7:
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
@@ -2445,7 +2589,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           </View>
         );
 
-      case 7: {
+      case 8: {
         const DRESS_CODE_OPTIONS: { id: DressCodePreference; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
           { id: "hijab-friendly", name: "Hijab-Friendly", description: "Modest fashion with hijab considerations", icon: "heart" },
           { id: "tzniut", name: "Tzniut (Jewish Modesty)", description: "Traditional Jewish modesty standards", icon: "heart" },
@@ -3973,5 +4117,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
+  },
+  measurementFormContainer: {
+    paddingVertical: Spacing.lg,
+    gap: Spacing.xl,
+  },
+  measurementRow: {
+    gap: Spacing.sm,
+  },
+  measurementLabel: {
+    fontWeight: "600",
+    marginBottom: Spacing.xs,
+  },
+  measurementInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  measurementInput: {
+    flex: 1,
+    height: 50,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    fontSize: 16,
+  },
+  unitToggleRow: {
+    flexDirection: "row",
+    gap: Spacing.xs,
+  },
+  unitButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    backgroundColor: "rgba(0,0,0,0.05)",
+  },
+  unitButtonText: {
+    fontWeight: "500",
+  },
+  measurementNote: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: Spacing.md,
+    backgroundColor: "rgba(0,0,0,0.03)",
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
   },
 });
