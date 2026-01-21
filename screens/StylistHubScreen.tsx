@@ -140,6 +140,15 @@ const ALL_FEATURES: StylistFeature[] = [
     gradientColors: ["#ff6b6b", "#ee5a5a"] as const,
     category: "tools",
   },
+  {
+    id: "wishlist",
+    title: "Wishlist",
+    description: "Saved items & deals",
+    icon: "heart",
+    screen: "Wishlist",
+    gradientColors: ["#D4AF37", "#B8860B"] as const,
+    category: "wardrobe",
+  },
 ];
 
 const TILES_ORDER_KEY = "@stylist_tiles_order";
