@@ -165,6 +165,20 @@ function generateAIResponse(
     'similar', 'like this', 'recreate', 'copy', 'dupe', 'alternative',
   ];
   
+  const fashionKnowledgePatterns = [
+    'when did', 'where did', 'who invented', 'who created', 'who started',
+    'history of', 'origin of', 'what is', 'what are', 'what do you think',
+    'tell me about', 'explain', 'how did', 'why is', 'why do',
+    'clean girl', 'quiet luxury', 'old money', 'coastal grandmother',
+    'minimalist fashion', 'maximalist', 'y2k', 'mob wife', 'dark academia',
+    'light academia', 'cottagecore', 'gorpcore', 'normcore', 'athleisure',
+    'sustainable fashion', 'fast fashion', 'capsule wardrobe',
+    'princess diana', 'coco chanel', 'audrey hepburn', 'anna wintour',
+    'fashion week', 'runway', 'haute couture', 'ready to wear', 'prêt-à-porter',
+    'revenge dress', 'little black dress', 'power suit',
+    'fashion trend', 'style trend', 'fashion movement', 'aesthetic',
+  ];
+  
   const offTopicPatterns = [
     'premier league', 'football', 'soccer', 'basketball', 'baseball', 'cricket', 'rugby', 'tennis',
     'score', 'match', 'game', 'played', 'won', 'lost', 'championship', 'league', 'cup final',
@@ -198,6 +212,7 @@ function generateAIResponse(
   const isBye = byePatterns.some(p => lowerMessage.includes(p));
   const isAboutYou = aboutYouPatterns.some(p => lowerMessage.includes(p));
   const hasOutfitIntent = outfitIntentPatterns.some(p => lowerMessage.includes(p));
+  const isFashionKnowledge = fashionKnowledgePatterns.some(p => lowerMessage.includes(p));
   const hasInspirationIntent = inspirationPatterns.some(p => lowerMessage.includes(p));
   const isOffTopic = offTopicPatterns.some(p => lowerMessage.includes(p));
   const isCapabilityRequest = capabilityRequestPatterns.some(p => lowerMessage.includes(p));
@@ -576,6 +591,25 @@ function generateAIResponse(
       ];
       return { content: workAdvice[Math.floor(Math.random() * workAdvice.length)] };
     }
+  }
+  
+  // Fashion knowledge questions (history, trends, iconic moments) - answer naturally
+  // These should NEVER trigger wardrobe checks - they're about fashion education
+  if (isFashionKnowledge) {
+    const fashionKnowledgeResponses = isMaleStylist ? [
+      "That's a great fashion question! I love talking about this stuff. Let me share what I know...",
+      "Oh interesting topic! Fashion history is fascinating. Here's my take on it...",
+      "Great question - this is actually something I find really interesting. Let me break it down for you...",
+      "I appreciate you asking about this! Fashion trends and their origins are always worth exploring. Here's what I can tell you...",
+      "That's something I genuinely enjoy discussing! Fashion has such rich history and meaning behind it...",
+    ] : [
+      "Oh, I love this question, gorgeous! Fashion history and trends are so fascinating to explore. Let me share what I know...",
+      "What a wonderful thing to ask about, darling! The stories behind fashion are so beautiful. Here's my perspective...",
+      "I adore discussing fashion like this, love! There's so much depth and meaning in these trends. Let me tell you...",
+      "Such a lovely question, beautiful! Fashion is more than just clothes - it's culture, history, and expression. Here's what I can share...",
+      "Oh, this makes my heart happy, gorgeous! I love when we can explore the deeper side of fashion together...",
+    ];
+    return { content: fashionKnowledgeResponses[Math.floor(Math.random() * fashionKnowledgeResponses.length)] };
   }
   
   // CATCH-ALL CONVERSATIONAL RESPONSE - Handle ANY message that doesn't have outfit intent
