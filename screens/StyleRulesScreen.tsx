@@ -14,27 +14,11 @@ import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { apiService } from "@/services/ApiService";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
+import { FASHION_RULES, FASHION_CATEGORIES, type FashionRule, type CategoryInfo } from "@/data/fashionRules";
 
 type StyleRulesScreenProps = {
   navigation: NativeStackNavigationProp<UserStylistStackParamList, "StyleRules">;
 };
-
-interface FashionRule {
-  id: number;
-  title: string;
-  content: string;
-  category: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  gender: 'all' | 'women' | 'men';
-  tags: string[];
-  colorSwatches?: Array<{ name: string; hex: string }>;
-}
-
-interface CategoryInfo {
-  name: string;
-  count: number;
-  topics: string[];
-}
 
 const DIFFICULTY_COLORS: Record<string, { bg: string; text: string }> = {
   Beginner: { bg: '#E8F5E9', text: '#2E7D32' },
@@ -55,43 +39,11 @@ const CATEGORY_ICONS: Record<string, keyof typeof Feather.glyphMap> = {
   'Sustainability': 'globe',
 };
 
-const FALLBACK_RULES: FashionRule[] = [
-  { id: 1, title: "The Rule of Three", content: "Limit your outfit to three main colours maximum. This creates visual harmony and prevents your look from appearing chaotic or overwhelming.", category: "Colour & Palette", difficulty: "Beginner", gender: "all", tags: ["colour", "basics", "harmony"], colorSwatches: [{ name: "Navy", hex: "#1E3A5F" }, { name: "White", hex: "#FFFFFF" }, { name: "Camel", hex: "#C19A6B" }] },
-  { id: 2, title: "Match Your Metals", content: "Keep your jewellery and hardware (belt buckles, bag clasps, shoe details) in the same metal family for a cohesive, polished look.", category: "Accessories", difficulty: "Beginner", gender: "all", tags: ["accessories", "jewellery", "coordination"] },
-  { id: 3, title: "The Third Piece Rule", content: "Elevate any outfit by adding a third piece - a blazer, cardigan, scarf, or structured bag. This transforms basic combinations into complete, intentional looks.", category: "Silhouette & Proportion", difficulty: "Beginner", gender: "all", tags: ["layering", "styling", "polish"] },
-  { id: 4, title: "Proportion Play", content: "Balance volume in your outfit: if wearing something loose on top, go fitted on bottom (and vice versa). This creates flattering silhouettes on all body types.", category: "Silhouette & Proportion", difficulty: "Intermediate", gender: "all", tags: ["proportion", "balance", "silhouette"] },
-  { id: 5, title: "Dress for Your Colour Season", content: "Wearing colours that complement your natural colouring (skin tone, hair, eyes) makes you look healthier and more vibrant. Discover whether you're a Spring, Summer, Autumn, or Winter.", category: "Colour & Palette", difficulty: "Intermediate", gender: "all", tags: ["colour-analysis", "personal-colour", "flattering"], colorSwatches: [{ name: "Warm Gold", hex: "#C9A87C" }, { name: "Cool Silver", hex: "#C0C0C0" }] },
-  { id: 6, title: "Invest in Quality Basics", content: "Build your wardrobe foundation with well-made basics: a white shirt, dark trousers, quality denim, and a versatile blazer. Quality over quantity always wins.", category: "Investment Pieces", difficulty: "Beginner", gender: "all", tags: ["basics", "investment", "quality", "capsule"] },
-  { id: 7, title: "The One-Statement Rule", content: "Let one piece be the star of your outfit. If wearing a bold pattern or statement accessory, keep everything else understated to avoid visual competition.", category: "Silhouette & Proportion", difficulty: "Beginner", gender: "all", tags: ["statement", "balance", "focus"] },
-  { id: 8, title: "Texture Mixing", content: "Combine different textures (silk with denim, cashmere with leather, linen with wool) to add depth and visual interest to monochromatic or simple outfits.", category: "Fabric & Texture", difficulty: "Intermediate", gender: "all", tags: ["texture", "depth", "interest", "tactile"] },
-  { id: 9, title: "Dress for the Occasion Plus One", content: "Aim to be slightly better dressed than the occasion requires. Being underdressed feels awkward, while being slightly overdressed signals effort and respect.", category: "Occasion & Context", difficulty: "Beginner", gender: "all", tags: ["dress-code", "occasion", "appropriateness"] },
-  { id: 10, title: "The Power of Tailoring", content: "Well-fitted clothes look more expensive than ill-fitting designer pieces. Invest in alterations for key pieces - the difference is transformative.", category: "Investment Pieces", difficulty: "Intermediate", gender: "all", tags: ["tailoring", "fit", "alterations", "quality"] },
-  { id: 11, title: "Neutral Foundation, Colour Accent", content: "Build outfits on neutral foundations (black, white, grey, navy, beige) and introduce colour through accessories or one statement piece.", category: "Colour & Palette", difficulty: "Beginner", gender: "all", tags: ["neutrals", "colour-pop", "versatility"] },
-  { id: 12, title: "Care for Your Clothes", content: "Read care labels, use proper hangers, and store items correctly. Well-maintained clothes last longer and look better with every wear.", category: "Care & Maintenance", difficulty: "Beginner", gender: "all", tags: ["care", "maintenance", "longevity"] },
-  { id: 13, title: "Seasonal Fabric Choices", content: "Match fabric weights to seasons: linen and cotton for summer, wool and cashmere for winter. This keeps you comfortable and appropriately dressed.", category: "Seasonal Dressing", difficulty: "Beginner", gender: "all", tags: ["seasonal", "fabric", "comfort", "practical"] },
-  { id: 14, title: "The 80/20 Wardrobe Rule", content: "You wear 20% of your wardrobe 80% of the time. Identify those key pieces and invest in their quality. Audit and edit your wardrobe regularly.", category: "Investment Pieces", difficulty: "Advanced", gender: "all", tags: ["wardrobe-audit", "capsule", "curation"] },
-  { id: 15, title: "Confidence is Your Best Accessory", content: "Wear what makes you feel confident and comfortable. The best-dressed people own their personal style rather than following every trend.", category: "Body Confidence", difficulty: "Beginner", gender: "all", tags: ["confidence", "personal-style", "self-expression"] },
-  { id: 16, title: "Quality Over Quantity", content: "Invest in fewer, better pieces rather than fast fashion. Quality fabrics, construction, and timeless design outlast trends and cost less per wear.", category: "Sustainability", difficulty: "Intermediate", gender: "all", tags: ["sustainability", "investment", "slow-fashion"] },
-];
-
-const FALLBACK_CATEGORIES: CategoryInfo[] = [
-  { name: "Colour & Palette", count: 3, topics: ["colour theory", "colour seasons", "coordination"] },
-  { name: "Silhouette & Proportion", count: 3, topics: ["balance", "volume", "layering"] },
-  { name: "Accessories", count: 1, topics: ["jewellery", "bags", "coordination"] },
-  { name: "Fabric & Texture", count: 1, topics: ["texture mixing", "fabric care"] },
-  { name: "Occasion & Context", count: 1, topics: ["dress codes", "appropriateness"] },
-  { name: "Investment Pieces", count: 3, topics: ["quality", "tailoring", "basics"] },
-  { name: "Care & Maintenance", count: 1, topics: ["garment care", "storage"] },
-  { name: "Seasonal Dressing", count: 1, topics: ["seasonal fabrics", "weather"] },
-  { name: "Body Confidence", count: 1, topics: ["self-expression", "personal style"] },
-  { name: "Sustainability", count: 1, topics: ["slow fashion", "conscious shopping"] },
-];
-
 export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) {
   const { theme, isDark } = useTheme();
   const { palette } = useColorScheme();
-  const [rules, setRules] = useState<FashionRule[]>(FALLBACK_RULES);
-  const [categories, setCategories] = useState<CategoryInfo[]>(FALLBACK_CATEGORIES);
+  const [rules, setRules] = useState<FashionRule[]>(FASHION_RULES);
+  const [categories, setCategories] = useState<CategoryInfo[]>(FASHION_CATEGORIES);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -111,7 +63,7 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
     } catch (error) {
       console.log('[StyleRules] API not available, using fallback');
     }
-    return FALLBACK_RULES;
+    return FASHION_RULES;
   }, []);
 
   const fetchCategoriesFromApi = useCallback(async () => {
@@ -124,10 +76,10 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
     } catch (error) {
       console.log('[StyleRules] Categories API not available, using fallback');
     }
-    setCategories(FALLBACK_CATEGORIES);
+    setCategories(FASHION_CATEGORIES);
   }, []);
 
-  const [allRules, setAllRules] = useState<FashionRule[]>(FALLBACK_RULES);
+  const [allRules, setAllRules] = useState<FashionRule[]>(FASHION_RULES);
 
   useEffect(() => {
     const loadInitialData = async () => {
