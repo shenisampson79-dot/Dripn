@@ -193,7 +193,7 @@ const COMPARISON_TIERS: DFYComparisonTier[] = [
     id: 'lite',
     name: 'Outfit-Based Setup',
     tagline: 'Outfits for this moment. Zero thinking.',
-    price: '£19',
+    price: '£19.99',
     mentalModel: 'tactical',
     description: 'Solve a specific problem, once. I\'ll take what you send and turn it into ready-to-wear looks.',
     features: [

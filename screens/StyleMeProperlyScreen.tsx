@@ -41,7 +41,7 @@ const DEFAULT_TIERS: DfyTier[] = [
     id: "outfit",
     title: "Outfit-Based Setup",
     tagline: "Best if you already know what you like",
-    price: "£19",
+    price: "£19.99",
     turnaround: "Ready in 24h",
     highlights: [
       "Upload outfits you wear",
