@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { StyleSheet, View, Pressable, Dimensions, FlatList } from "react-native";
+import { StyleSheet, View, Pressable, Dimensions } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -340,15 +340,9 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             ) : null}
           </View>
 
-          <FlatList
-            data={sortedFeatures()}
-            renderItem={({ item, index }) => renderFeatureTile(item, index)}
-            keyExtractor={(item) => item.id}
-            numColumns={2}
-            columnWrapperStyle={styles.gridRow}
-            scrollEnabled={false}
-            contentContainerStyle={styles.featuresGrid}
-          />
+          <View style={styles.featuresGrid}>
+            {sortedFeatures().map((feature, index) => renderFeatureTile(feature, index))}
+          </View>
         </View>
       </ScreenScrollView>
     </View>
@@ -405,18 +399,18 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   featuresGrid: {
-    gap: GRID_GAP,
-  },
-  gridRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
+    rowGap: GRID_GAP,
   },
   tileWrapper: {
     width: TILE_SIZE,
     height: TILE_SIZE,
+    marginBottom: 0,
   },
   featureTile: {
-    width: "100%",
-    height: "100%",
+    flex: 1,
     borderRadius: BorderRadius.lg,
     overflow: "hidden",
   },
