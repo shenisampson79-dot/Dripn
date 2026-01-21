@@ -156,17 +156,16 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         );
       } else {
         const subscriptionPlan = SUBSCRIPTION_PLANS.find(p => p.tier === planId);
-        if (!subscriptionPlan?.priceId) {
-          throw new Error("Price ID not found for this plan");
+        if (!subscriptionPlan?.productId) {
+          throw new Error("Product ID not found for this plan");
         }
 
         const response = await apiService.createCheckoutSession(
-          subscriptionPlan.priceId,
-          planId
+          subscriptionPlan.productId
         );
 
-        if (response.url) {
-          const result = await WebBrowser.openBrowserAsync(response.url);
+        if (response.checkoutUrl) {
+          const result = await WebBrowser.openBrowserAsync(response.checkoutUrl);
           
           if (result.type === "cancel") {
             Alert.alert(

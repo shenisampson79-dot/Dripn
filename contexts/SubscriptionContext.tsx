@@ -14,6 +14,7 @@ export interface SubscriptionPlan {
   price: number;
   interval: 'month' | 'year';
   priceId?: string;
+  productId?: string;
   features: string[];
   popular?: boolean;
 }
@@ -157,6 +158,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     price: 9.99,
     interval: 'month',
     priceId: 'price_premium_monthly',
+    productId: 'monthly',
     popular: true,
     features: [
       'Unlimited outfit posts',

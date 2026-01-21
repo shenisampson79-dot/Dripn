@@ -4,11 +4,14 @@ import {
   View,
   Pressable,
   Dimensions,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
+import * as WebBrowser from "expo-web-browser";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
@@ -17,6 +20,7 @@ import { Spacing, BorderRadius, LuxuryColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { dfyService, DFYTier, DFYComparisonTier } from "@/services/DFYService";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiService } from "@/services/ApiService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -39,11 +43,17 @@ type DFYComparisonScreenProps = {
   navigation: NativeStackNavigationProp<any>;
 };
 
+const DFY_PRODUCT_IDS: Record<DFYTier, string> = {
+  lite: 'lite',
+  core: 'core',
+};
+
 export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenProps) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [selectedTier, setSelectedTier] = useState<DFYTier>('lite');
+  const [isProcessing, setIsProcessing] = useState(false);
   const tiers = dfyService.getComparisonTiers();
 
   const handleTierSelect = (tierId: DFYTier) => {
@@ -53,11 +63,39 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
 
   const handleContinue = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsProcessing(true);
     
-    if (selectedTier === 'lite') {
-      navigation.navigate('DFYStylePlan');
-    } else {
-      navigation.navigate('DFYCoreUpload');
+    try {
+      const productId = DFY_PRODUCT_IDS[selectedTier];
+      const response = await apiService.createCheckoutSession(productId);
+      
+      if (response.checkoutUrl) {
+        const result = await WebBrowser.openBrowserAsync(response.checkoutUrl);
+        
+        if (result.type === 'cancel') {
+          Alert.alert(
+            'Checkout Cancelled',
+            'You can complete your purchase at any time.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          if (selectedTier === 'lite') {
+            navigation.navigate('DFYStylePlan');
+          } else {
+            navigation.navigate('DFYCoreUpload');
+          }
+        }
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error: any) {
+      console.error('DFY checkout error:', error);
+      Alert.alert(
+        'Payment Error',
+        error.message || 'Failed to start checkout. Please try again.'
+      );
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -222,15 +260,28 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
             }
             style={styles.continueButtonGradient}
           >
-            <Pressable onPress={handleContinue} style={styles.continueButton}>
-              <ThemedText type="body" style={styles.continueButtonText}>
-                {selectedTier === 'lite' ? 'Style me for this' : 'Build my wardrobe'}
-              </ThemedText>
-              <Feather
-                name="arrow-right"
-                size={18}
-                color={selectedTier === 'lite' ? '#FFFFFF' : LUXURY_COLORS.midnight}
-              />
+            <Pressable 
+              onPress={handleContinue} 
+              style={styles.continueButton}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator 
+                  size="small" 
+                  color={selectedTier === 'lite' ? '#FFFFFF' : LUXURY_COLORS.midnight} 
+                />
+              ) : (
+                <>
+                  <ThemedText type="body" style={styles.continueButtonText}>
+                    {selectedTier === 'lite' ? 'Purchase & Style' : 'Purchase & Build'}
+                  </ThemedText>
+                  <Feather
+                    name="arrow-right"
+                    size={18}
+                    color={selectedTier === 'lite' ? '#FFFFFF' : LUXURY_COLORS.midnight}
+                  />
+                </>
+              )}
             </Pressable>
           </LinearGradient>
         </View>
