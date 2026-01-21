@@ -343,7 +343,11 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         if (dfyAccess?.hasAccess && dfyAccess.tier !== tier) {
           await dfyService.clearDFYAccess(user.id);
         }
-        await dfyService.activateDFYAccess(user.id, tier);
+        if (tier === 'lite') {
+          await dfyService.createMockLiteDelivery(user.id, user.stylistPreferences?.selectedStylistId || 'ruby');
+        } else {
+          await dfyService.activateDFYAccess(user.id, tier);
+        }
       } else {
         await dfyService.clearDFYAccess(user.id);
       }
@@ -353,6 +357,20 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       Alert.alert('Error', 'Could not update DFY access. Please try again.');
     } finally {
       setDfyLoading(false);
+    }
+  };
+
+  const handleTestingModeToggle = async (value: boolean) => {
+    if (!user?.id) return;
+    try {
+      await updateProfile({ subscriptionTier: value ? 'pro' : 'free' });
+      if (value) {
+        await dfyService.createMockLiteDelivery(user.id, user.stylistPreferences?.selectedStylistId || 'ruby');
+        await loadDFYAccess();
+      }
+    } catch (error) {
+      console.error('Error toggling testing mode:', error);
+      Alert.alert('Error', 'Could not update testing mode. Please try again.');
     }
   };
 
@@ -861,6 +879,28 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             theme={theme}
             isDark={isDark}
           />
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.emerald, LUXURY_COLORS.teal]}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="unlock" size={16} color="#FFFFFF" />
+            </LinearGradient>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                Testing Mode
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                {user?.subscriptionTier === 'pro' ? 'Full access enabled' : 'Unlock all features'}
+              </ThemedText>
+            </View>
+            <Switch
+              value={user?.subscriptionTier === 'pro'}
+              onValueChange={handleTestingModeToggle}
+              trackColor={{ false: isDark ? '#333' : '#E0E0E0', true: LUXURY_COLORS.emerald }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
           <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
             <LinearGradient
               colors={[LUXURY_COLORS.coral, '#C46A4F']}
