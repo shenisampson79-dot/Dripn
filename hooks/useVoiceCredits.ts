@@ -55,6 +55,15 @@ export function useVoiceCredits() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPurchasing, setIsPurchasing] = useState(false);
 
+  const getTierDisplayName = (tier: string): string => {
+    switch (tier) {
+      case 'pro': return 'Stylist Unlimited';
+      case 'premium': return 'Personal Stylist';
+      case 'subscription': return 'Style Chat';
+      default: return 'Free';
+    }
+  };
+
   const fetchBalance = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -62,7 +71,7 @@ export function useVoiceCredits() {
       if (response.success) {
         setCredits(response.credits);
         setTier(response.tier);
-        setTierName(response.tier === 'premium' ? 'Personal Stylist' : 'Style Chat');
+        setTierName(response.tierName || getTierDisplayName(response.tier));
       }
     } catch (error) {
       console.log('[useVoiceCredits] Balance fetch error:', error);
@@ -121,7 +130,9 @@ export function useVoiceCredits() {
     isLoading,
     hasCredits: credits?.isUnlimited || (credits?.remaining ?? 0) > 0,
     isUnlimited: credits?.isUnlimited ?? false,
+    isStylistUnlimited: tier === 'pro',
     isPersonalStylist: tier === 'premium',
+    isStyleChat: tier === 'subscription',
     isFreeUser: tier === 'free',
     isPurchasing,
     updateBalance,

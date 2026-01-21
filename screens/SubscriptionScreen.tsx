@@ -55,42 +55,70 @@ interface Plan {
   accentColor: string;
 }
 
-type DisplayTier = 'style_chat' | 'personal_stylist';
+type DisplayTier = 'free' | 'style_chat' | 'personal_stylist' | 'stylist_unlimited';
 
 const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
-  style_chat: [
+  free: [
     { text: "Basic styling tips", included: true },
-    { text: "Limited voice conversations", included: true },
-    { text: "Community voting (after 5 decisions)", included: true },
-    { text: "Wardrobe basics", included: true },
+    { text: "Limited wardrobe items", included: true },
+    { text: "Community access", included: true },
+    { text: "Voice conversations", included: false },
+    { text: "Personal stylist", included: false },
+  ],
+  style_chat: [
+    { text: "Voice conversations (limited)", included: true },
+    { text: "Extended wardrobe", included: true },
+    { text: "Community voting", included: true },
+    { text: "Style challenges", included: true },
     { text: "Unlimited voice", included: false },
-    { text: "Personal stylist personality", included: false },
-    { text: "Ad-free experience", included: false },
+    { text: "Personal stylist", included: false },
   ],
   personal_stylist: [
-    { text: "Unlimited voice conversations", included: true, bold: true },
-    { text: "Your personal AI stylist", included: true, bold: true },
-    { text: "Ruby, Max, Ace, or Ivy personalities", included: true },
-    { text: "Unlimited outfit advice", included: true },
+    { text: "More voice conversations", included: true, bold: true },
+    { text: "Personal AI stylist", included: true, bold: true },
+    { text: "Ruby, Max, Ace, or Ivy", included: true },
     { text: "Full wardrobe analysis", included: true },
-    { text: "Community voting (instant access)", included: true },
+    { text: "Outfit calendar", included: true },
     { text: "Priority support", included: true },
-    { text: "Ad-free experience", included: true },
+  ],
+  stylist_unlimited: [
+    { text: "Unlimited voice conversations", included: true, bold: true },
+    { text: "Unlimited everything", included: true, bold: true },
+    { text: "Video calls with stylist", included: true },
+    { text: "VIP member access", included: true },
+    { text: "White-glove support", included: true },
   ],
 };
 
 const PLAN_METADATA: Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean }> = {
-  style_chat: { name: "Style Chat", period: "forever", description: "Get started with the basics" },
-  personal_stylist: { name: "Personal Stylist", period: "/month", description: "Unlimited voice with your personal AI stylist", popular: true },
+  free: { name: "Free", period: "forever", description: "Get started with basics" },
+  style_chat: { name: "Style Chat", period: "/month", description: "Voice access & extended features" },
+  personal_stylist: { name: "Personal Stylist", period: "/month", description: "Your personal AI stylist", popular: true },
+  stylist_unlimited: { name: "Stylist Unlimited", period: "/month", description: "Unlimited everything" },
 };
 
-const getLocalizedPlans = (prices: { free: string; personal_stylist: string }): Plan[] => [
+interface LocalizedPrices {
+  free: string;
+  style_chat: string;
+  personal_stylist: string;
+  stylist_unlimited: string;
+}
+
+const getLocalizedPlans = (prices: LocalizedPrices): Plan[] => [
   { 
     id: "free" as SubscriptionTier, 
-    ...PLAN_METADATA.style_chat, 
+    ...PLAN_METADATA.free, 
     price: prices.free, 
-    features: PLAN_FEATURES.style_chat,
+    features: PLAN_FEATURES.free,
     gradientColors: ['#2A2A3E', '#1A1A2E'] as const,
+    accentColor: LUXURY_COLORS.champagne,
+  },
+  { 
+    id: "subscription" as SubscriptionTier, 
+    ...PLAN_METADATA.style_chat, 
+    price: prices.style_chat, 
+    features: PLAN_FEATURES.style_chat,
+    gradientColors: [LUXURY_COLORS.teal, LUXURY_COLORS.emerald] as const,
     accentColor: LUXURY_COLORS.champagne,
   },
   { 
@@ -102,7 +130,42 @@ const getLocalizedPlans = (prices: { free: string; personal_stylist: string }): 
     accentColor: LUXURY_COLORS.gold,
     popular: true,
   },
+  { 
+    id: "pro" as SubscriptionTier, 
+    ...PLAN_METADATA.stylist_unlimited, 
+    price: prices.stylist_unlimited, 
+    features: PLAN_FEATURES.stylist_unlimited,
+    gradientColors: [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const,
+    accentColor: LUXURY_COLORS.midnight,
+  },
 ];
+
+const getTierDisplayName = (tier?: SubscriptionTier): string => {
+  switch (tier) {
+    case 'pro': return 'Stylist Unlimited';
+    case 'premium': return 'Personal Stylist';
+    case 'subscription': return 'Style Chat';
+    default: return 'Free';
+  }
+};
+
+const getTierColor = (tier?: SubscriptionTier): string => {
+  switch (tier) {
+    case 'pro': return LUXURY_COLORS.gold;
+    case 'premium': return LUXURY_COLORS.violet;
+    case 'subscription': return LUXURY_COLORS.teal;
+    default: return LUXURY_COLORS.champagne;
+  }
+};
+
+const getTierIcon = (tier?: SubscriptionTier): "award" | "star" | "message-circle" | "user" => {
+  switch (tier) {
+    case 'pro': return 'award';
+    case 'premium': return 'star';
+    case 'subscription': return 'message-circle';
+    default: return 'user';
+  }
+};
 
 export default function SubscriptionScreen({ navigation }: SubscriptionScreenProps) {
   const { theme, isDark } = useTheme();
@@ -113,9 +176,11 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     user?.subscriptionTier || "free"
   );
   const [isProcessing, setIsProcessing] = useState(false);
-  const [localizedPrices, setLocalizedPrices] = useState<{ free: string; personal_stylist: string }>({
+  const [localizedPrices, setLocalizedPrices] = useState<LocalizedPrices>({
     free: "Free",
+    style_chat: "£9.99",
     personal_stylist: "£14.99",
+    stylist_unlimited: "£19.99",
   });
   const [dfyPrices, setDfyPrices] = useState<{ outfit_setup: string; wardrobe_setup: string }>({
     outfit_setup: "£19.99",
@@ -186,11 +251,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
 
   const renderPlanCard = (plan: Plan, index: number) => {
     const isSelected = selectedPlan === plan.id;
-    const isPaidPlan = plan.id === 'premium';
-    const userOnPaidTier = user?.subscriptionTier === 'premium';
-    const isCurrent = plan.id === 'free' 
-      ? user?.subscriptionTier === 'free' 
-      : isPaidPlan && userOnPaidTier;
+    const isCurrent = plan.id === user?.subscriptionTier;
 
     return (
       <Pressable
@@ -321,23 +382,23 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
 
       <View style={[styles.currentTierSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
         <View style={styles.currentTierRow}>
-          <View style={[styles.currentTierIcon, { backgroundColor: user?.subscriptionTier === 'premium' ? LUXURY_COLORS.gold + '20' : LUXURY_COLORS.violet + '20' }]}>
+          <View style={[styles.currentTierIcon, { backgroundColor: getTierColor(user?.subscriptionTier) + '20' }]}>
             <Feather 
-              name={user?.subscriptionTier === 'premium' ? "star" : "message-circle"} 
+              name={getTierIcon(user?.subscriptionTier)} 
               size={20} 
-              color={user?.subscriptionTier === 'premium' ? LUXURY_COLORS.gold : LUXURY_COLORS.violet} 
+              color={getTierColor(user?.subscriptionTier)} 
             />
           </View>
           <View style={styles.currentTierText}>
             <ThemedText type="small" style={{ opacity: 0.6 }}>You're on</ThemedText>
             <ThemedText type="h3">
-              {user?.subscriptionTier === 'premium' ? 'Personal Stylist' : 'Style Chat'}
+              {getTierDisplayName(user?.subscriptionTier)}
             </ThemedText>
           </View>
-          {user?.subscriptionTier === 'premium' ? (
-            <View style={[styles.tierBadge, { backgroundColor: LUXURY_COLORS.gold + '20' }]}>
-              <Feather name="check" size={14} color={LUXURY_COLORS.gold} />
-              <ThemedText type="caption" style={{ color: LUXURY_COLORS.gold, fontWeight: '600' }}>Active</ThemedText>
+          {user?.subscriptionTier && user.subscriptionTier !== 'free' ? (
+            <View style={[styles.tierBadge, { backgroundColor: getTierColor(user.subscriptionTier) + '20' }]}>
+              <Feather name="check" size={14} color={getTierColor(user.subscriptionTier)} />
+              <ThemedText type="caption" style={{ color: getTierColor(user.subscriptionTier), fontWeight: '600' }}>Active</ThemedText>
             </View>
           ) : null}
         </View>
