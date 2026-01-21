@@ -11,13 +11,11 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
-import { PostCard } from "@/components/PostCard";
 import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, SubscriptionColors, ContributorColors, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePosts } from "@/contexts/PostsContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useEventsFavorites } from "@/contexts/EventsFavoritesContext";
 import { useOutfitFavorites, LikedOutfit } from "@/contexts/OutfitFavoritesContext";
@@ -51,11 +49,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const { theme, isDark } = useTheme();
   const { palette } = useColorScheme();
   const { user } = useAuth();
-  const { posts, votePost, voteComparison, thankPost } = usePosts();
   const { limits } = useSubscription();
   const { getLikedEvents, toggleLike, isLoading: eventsLoading } = useEventsFavorites();
   const { getLikedOutfits, toggleOutfitLike, isOutfitLiked, isLoading: outfitsLoading } = useOutfitFavorites();
-  const [activeTab, setActiveTab] = useState<"posts" | "advice" | "outfits" | "events">("posts");
+  const [activeTab, setActiveTab] = useState<"outfits" | "events">("outfits");
 
   // Dynamic colors from palette
   const LUXURY_COLORS = {
@@ -72,7 +69,6 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     emerald: palette.emerald,
   };
 
-  const userPosts = posts.filter((p) => p.userId === user?.id);
   const likedEvents = getLikedEvents();
   const likedOutfits = getLikedOutfits();
 
@@ -118,10 +114,8 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   };
 
   const tabConfig = [
-    { key: 'posts', label: 'Posts', icon: 'grid', color: LUXURY_COLORS.violet },
-    { key: 'advice', label: 'Advice', icon: 'message-circle', color: LUXURY_COLORS.coral },
-    { key: 'outfits', label: 'Outfits', icon: 'bookmark', color: LUXURY_COLORS.gold },
-    { key: 'events', label: 'Events', icon: 'calendar', color: LUXURY_COLORS.teal },
+    { key: 'outfits', label: 'Saved Outfits', icon: 'bookmark', color: LUXURY_COLORS.gold },
+    { key: 'events', label: 'Saved Events', icon: 'calendar', color: LUXURY_COLORS.teal },
   ];
 
   return (
@@ -196,42 +190,6 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           </View>
         </View>
 
-        <View style={[styles.statsSection, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <LinearGradient
-                colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-                style={styles.statIconContainer}
-              >
-                <Feather name="image" size={14} color="#FFFFFF" />
-              </LinearGradient>
-              <ThemedText type="h2" style={[styles.statNumber, { color: '#FFFFFF' }]}>{user?.postsCount || 0}</ThemedText>
-              <ThemedText type="caption" style={[styles.statLabel, { color: 'rgba(255,255,255,0.7)' }]}>Posts</ThemedText>
-            </View>
-            <View style={[styles.statDivider, { backgroundColor: 'rgba(255,255,255,0.2)' }]} />
-            <View style={styles.statItem}>
-              <LinearGradient
-                colors={[LUXURY_COLORS.coral, '#C46A4F']}
-                style={styles.statIconContainer}
-              >
-                <Feather name="thumbs-up" size={14} color="#FFFFFF" />
-              </LinearGradient>
-              <ThemedText type="h2" style={[styles.statNumber, { color: '#FFFFFF' }]}>{user?.helpfulVotes || 0}</ThemedText>
-              <ThemedText type="caption" style={[styles.statLabel, { color: 'rgba(255,255,255,0.7)' }]}>Helpful</ThemedText>
-            </View>
-            <View style={[styles.statDivider, { backgroundColor: 'rgba(255,255,255,0.2)' }]} />
-            <View style={styles.statItem}>
-              <LinearGradient
-                colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-                style={styles.statIconContainer}
-              >
-                <Feather name="heart" size={14} color={LUXURY_COLORS.midnight} />
-              </LinearGradient>
-              <ThemedText type="h2" style={[styles.statNumber, { color: '#FFFFFF' }]}>{user?.thanksReceived || 0}</ThemedText>
-              <ThemedText type="caption" style={[styles.statLabel, { color: 'rgba(255,255,255,0.7)' }]}>Thanks</ThemedText>
-            </View>
-          </View>
-        </View>
 
       <View style={styles.actionsSection}>
         <LinearGradient
@@ -303,63 +261,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
       </View>
 
       <View style={styles.contentSection}>
-        {activeTab === "posts" ? (
-          userPosts.length > 0 ? (
-            <View style={styles.postsContainer}>
-              {userPosts.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  onPress={() => {}}
-                  onVote={votePost}
-                  onComparisonVote={voteComparison}
-                  onThank={thankPost}
-                  compact
-                />
-              ))}
-            </View>
-          ) : (
-            <View style={styles.emptyState}>
-              <LinearGradient
-                colors={[LUXURY_COLORS.violet + '30', LUXURY_COLORS.rose + '20']}
-                style={styles.emptyIconOuter}
-              >
-                <LinearGradient
-                  colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-                  style={styles.emptyIconInner}
-                >
-                  <Feather name="camera" size={28} color="#FFFFFF" />
-                </LinearGradient>
-              </LinearGradient>
-              <ThemedText type="h3" style={styles.emptyTitle}>
-                No posts yet
-              </ThemedText>
-              <ThemedText type="body" style={styles.emptySubtitle}>
-                Share your first outfit to get style advice
-              </ThemedText>
-            </View>
-          )
-        ) : activeTab === "advice" ? (
-          <View style={styles.emptyState}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.coral + '30', LUXURY_COLORS.rose + '20']}
-              style={styles.emptyIconOuter}
-            >
-              <LinearGradient
-                colors={[LUXURY_COLORS.coral, '#C46A4F']}
-                style={styles.emptyIconInner}
-              >
-                <Feather name="message-circle" size={28} color="#FFFFFF" />
-              </LinearGradient>
-            </LinearGradient>
-            <ThemedText type="h3" style={styles.emptyTitle}>
-              No advice given yet
-            </ThemedText>
-            <ThemedText type="body" style={styles.emptySubtitle}>
-              Help others with their style choices to build your reputation
-            </ThemedText>
-          </View>
-        ) : activeTab === "outfits" ? (
+        {activeTab === "outfits" ? (
           outfitsLoading ? (
             <View style={styles.emptyState}>
               <LinearGradient
@@ -514,7 +416,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 No liked outfits
               </ThemedText>
               <ThemedText type="body" style={styles.emptySubtitle}>
-                Save outfits from Style of the Day or community posts
+                Save outfits from your stylist recommendations
               </ThemedText>
             </View>
           )
