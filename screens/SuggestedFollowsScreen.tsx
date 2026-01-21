@@ -9,7 +9,7 @@ import { Button } from "@/components/Button";
 import { LinearGradient } from "expo-linear-gradient";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useAuth, SizeRange, BodyShape, BudgetRange } from "@/contexts/AuthContext";
+import { useAuth, SizeRange, BodyShape, BudgetRange, UserProfile } from "@/contexts/AuthContext";
 import { useSocial, SAMPLE_USERS, UserSummary } from "@/contexts/SocialContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 
@@ -102,9 +102,10 @@ const STYLE_USERS: SuggestedUser[] = [
 
 export default function SuggestedFollowsScreen({ navigation }: SuggestedFollowsScreenProps) {
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { user, completeOnboarding } = useAuth();
   const { followUser } = useSocial();
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const suggestedUsers = useMemo(() => {
     const suggestions: SuggestedUser[] = [...POPULAR_USERS];
@@ -158,14 +159,28 @@ export default function SuggestedFollowsScreen({ navigation }: SuggestedFollowsS
   };
 
   const handleContinue = async () => {
-    for (const userId of selectedUsers) {
-      await followUser(userId);
+    setIsCompleting(true);
+    try {
+      for (const userId of selectedUsers) {
+        await followUser(userId);
+      }
+      await completeOnboarding({});
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+    } finally {
+      setIsCompleting(false);
     }
-    navigation.replace("OnboardingQuiz" as any);
   };
 
-  const handleSkip = () => {
-    navigation.replace("OnboardingQuiz" as any);
+  const handleSkip = async () => {
+    setIsCompleting(true);
+    try {
+      await completeOnboarding({});
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+    } finally {
+      setIsCompleting(false);
+    }
   };
 
   const formatFollowers = (count: number) => {
