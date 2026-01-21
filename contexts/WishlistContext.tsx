@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiService } from '@/services/ApiService';
 
 export interface PriceHistoryEntry {
   price: number;
@@ -46,13 +47,29 @@ export interface PriceAlert {
   type: 'price_drop' | 'target_reached' | 'back_in_stock' | 'limited_time';
 }
 
+export interface SearchProduct {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+  imageUrl: string;
+  affiliateUrl: string;
+  retailer: string;
+  matchScore: number;
+  stylistNotes?: string;
+}
+
 interface WishlistContextType {
   wishlistItems: WishlistItem[];
   priceAlerts: PriceAlert[];
   unreadAlertsCount: number;
   isLoading: boolean;
+  isSearching: boolean;
+  searchResults: SearchProduct[];
   addToWishlist: (item: Omit<WishlistItem, 'id' | 'addedAt' | 'lastChecked' | 'priceHistory' | 'isOnSale' | 'priceDropPercent'>) => Promise<void>;
+  addProductToWishlist: (product: SearchProduct) => Promise<void>;
   removeFromWishlist: (itemId: string) => Promise<void>;
+  markAsPurchased: (itemId: string) => Promise<void>;
   isInWishlist: (itemId: string) => boolean;
   updateTargetPrice: (itemId: string, targetPrice: number | undefined) => Promise<void>;
   toggleSaleNotification: (itemId: string) => Promise<void>;
@@ -61,9 +78,12 @@ interface WishlistContextType {
   markAllAlertsAsRead: () => Promise<void>;
   clearAlerts: () => Promise<void>;
   refreshPrices: () => Promise<void>;
+  searchProducts: (query: string, limit?: number) => Promise<SearchProduct[]>;
+  clearSearchResults: () => void;
   getItemsByCategory: (category: string) => WishlistItem[];
   getOnSaleItems: () => WishlistItem[];
   getTotalSavings: () => number;
+  syncWithBackend: () => Promise<void>;
 }
 
 const WishlistContext = createContext<WishlistContextType | null>(null);
@@ -99,6 +119,8 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -335,6 +357,124 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     }, 0);
   }, [wishlistItems]);
 
+  const searchProducts = useCallback(async (query: string, limit: number = 5): Promise<SearchProduct[]> => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return [];
+    }
+    
+    setIsSearching(true);
+    try {
+      const response = await apiService.searchProducts(query, limit);
+      setSearchResults(response.products);
+      return response.products;
+    } catch (error) {
+      console.error('Product search failed:', error);
+      setSearchResults([]);
+      return [];
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  const clearSearchResults = useCallback(() => {
+    setSearchResults([]);
+  }, []);
+
+  const addProductToWishlist = useCallback(async (product: SearchProduct) => {
+    try {
+      await apiService.addToWishlist({
+        productName: product.name,
+        retailerId: product.retailer,
+        price: product.price,
+        currency: product.currency,
+        imageUrl: product.imageUrl,
+        affiliateUrl: product.affiliateUrl,
+      });
+      
+      const now = new Date().toISOString();
+      const newItem: WishlistItem = {
+        id: `wish_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        dealId: product.id,
+        name: product.name,
+        brand: product.retailer,
+        category: 'Clothing',
+        currentPrice: product.price,
+        originalPrice: product.price,
+        priceHistory: [{ price: product.price, date: now, source: product.retailer }],
+        imageUrl: product.imageUrl,
+        productUrl: product.affiliateUrl,
+        source: product.retailer,
+        currencySymbol: product.currency === 'GBP' ? '£' : '$',
+        currencyCode: product.currency,
+        addedAt: now,
+        lastChecked: now,
+        isOnSale: false,
+        priceDropPercent: 0,
+        notifyOnSale: true,
+        notifyAtTargetPrice: false,
+        gender: 'unisex',
+      };
+      
+      const updatedItems = [newItem, ...wishlistItems];
+      setWishlistItems(updatedItems);
+      await saveWishlistItems(updatedItems);
+    } catch (error) {
+      console.error('Failed to add product to wishlist:', error);
+      throw error;
+    }
+  }, [wishlistItems, user?.id]);
+
+  const markAsPurchased = useCallback(async (itemId: string) => {
+    try {
+      await apiService.markWishlistItemPurchased(itemId);
+      const updatedItems = wishlistItems.filter(item => item.id !== itemId);
+      setWishlistItems(updatedItems);
+      await saveWishlistItems(updatedItems);
+    } catch (error) {
+      console.error('Failed to mark as purchased:', error);
+      throw error;
+    }
+  }, [wishlistItems, user?.id]);
+
+  const syncWithBackend = useCallback(async () => {
+    if (!isAuthenticated || !user) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await apiService.getWishlist();
+      const backendItems: WishlistItem[] = response.items.map(item => ({
+        id: item.id,
+        dealId: item.id,
+        name: item.productName,
+        brand: item.retailerName || item.retailerId,
+        category: 'Clothing',
+        currentPrice: item.price,
+        originalPrice: item.price,
+        priceHistory: [{ price: item.price, date: item.createdAt, source: item.retailerName || item.retailerId }],
+        imageUrl: item.imageUrl,
+        productUrl: item.affiliateUrl,
+        source: item.retailerName || item.retailerId,
+        currencySymbol: item.currency === 'GBP' ? '£' : '$',
+        currencyCode: item.currency,
+        addedAt: item.createdAt,
+        lastChecked: item.createdAt,
+        isOnSale: false,
+        priceDropPercent: 0,
+        notifyOnSale: true,
+        notifyAtTargetPrice: false,
+        gender: 'unisex' as const,
+      }));
+      
+      setWishlistItems(backendItems);
+      await saveWishlistItems(backendItems);
+    } catch (error) {
+      console.error('Failed to sync with backend:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, user?.id]);
+
   const unreadAlertsCount = priceAlerts.filter(alert => !alert.isRead).length;
 
   return (
@@ -344,8 +484,12 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         priceAlerts,
         unreadAlertsCount,
         isLoading,
+        isSearching,
+        searchResults,
         addToWishlist,
+        addProductToWishlist,
         removeFromWishlist,
+        markAsPurchased,
         isInWishlist,
         updateTargetPrice,
         toggleSaleNotification,
@@ -354,9 +498,12 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         markAllAlertsAsRead,
         clearAlerts,
         refreshPrices,
+        searchProducts,
+        clearSearchResults,
         getItemsByCategory,
         getOnSaleItems,
         getTotalSavings,
+        syncWithBackend,
       }}
     >
       {children}

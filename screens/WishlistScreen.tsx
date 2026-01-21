@@ -6,9 +6,14 @@ import {
   RefreshControl,
   Alert,
   ScrollView,
+  TextInput,
+  ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 
 import { ScreenFlatList } from '@/components/ScreenFlatList';
 import { ThemedText } from '@/components/ThemedText';
@@ -16,14 +21,14 @@ import { ThemedView } from '@/components/ThemedView';
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/hooks/useTheme';
-import { useWishlist, WishlistItem, PriceAlert, SAMPLE_CATEGORIES } from '@/contexts/WishlistContext';
+import { useWishlist, WishlistItem, PriceAlert, SearchProduct, SAMPLE_CATEGORIES } from '@/contexts/WishlistContext';
 import type { BargainsStackParamList } from '@/navigation/BargainsStackNavigator';
 
 type WishlistScreenProps = {
   navigation: NativeStackNavigationProp<BargainsStackParamList, 'Bargains'>;
 };
 
-type ViewMode = 'items' | 'alerts';
+type ViewMode = 'items' | 'alerts' | 'search';
 
 function formatPrice(price: number, symbol: string): string {
   return `${symbol}${price.toFixed(2)}`;
@@ -120,12 +125,18 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
     priceAlerts,
     unreadAlertsCount,
     isLoading,
+    isSearching,
+    searchResults,
     removeFromWishlist,
     toggleSaleNotification,
     updateTargetPrice,
     markAlertAsRead,
     markAllAlertsAsRead,
     refreshPrices,
+    searchProducts,
+    clearSearchResults,
+    addProductToWishlist,
+    markAsPurchased,
     getOnSaleItems,
     getTotalSavings,
   } = useWishlist();
@@ -133,6 +144,7 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('items');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const onSaleItems = useMemo(() => getOnSaleItems(), [wishlistItems]);
   const totalSavings = useMemo(() => getTotalSavings(), [wishlistItems]);
@@ -186,6 +198,118 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
       'decimal-pad'
     );
   }, [updateTargetPrice]);
+
+  const handleSearch = useCallback(async () => {
+    if (!searchQuery.trim()) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await searchProducts(searchQuery);
+  }, [searchQuery, searchProducts]);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+    clearSearchResults();
+    setViewMode('items');
+  }, [clearSearchResults]);
+
+  const handleAddToWishlist = useCallback(async (product: SearchProduct) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await addProductToWishlist(product);
+      Alert.alert('Added', `${product.name} added to your wishlist!`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add item to wishlist.');
+    }
+  }, [addProductToWishlist]);
+
+  const handleShopNow = useCallback(async (affiliateUrl: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await Linking.openURL(affiliateUrl);
+    } catch (error) {
+      Alert.alert('Error', 'Could not open the shop link.');
+    }
+  }, []);
+
+  const handleMarkPurchased = useCallback(async (item: WishlistItem) => {
+    Alert.alert(
+      'Mark as Purchased',
+      `Did you buy ${item.name}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, I bought it',
+          onPress: async () => {
+            try {
+              await markAsPurchased(item.id);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to mark as purchased.');
+            }
+          },
+        },
+      ]
+    );
+  }, [markAsPurchased]);
+
+  const renderSearchResult = useCallback(({ item }: { item: SearchProduct }) => (
+    <View style={[styles.searchResultCard, { backgroundColor: theme.backgroundDefault }]}>
+      <View style={styles.searchResultContent}>
+        {item.imageUrl ? (
+          <Image
+            source={{ uri: item.imageUrl }}
+            style={styles.searchResultImage}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={[styles.searchResultImagePlaceholder, { backgroundColor: theme.backgroundSecondary }]}>
+            <Feather name="shopping-bag" size={24} color={theme.tabIconDefault} />
+          </View>
+        )}
+        <View style={styles.searchResultInfo}>
+          <ThemedText type="body" numberOfLines={2} style={{ fontWeight: '600' }}>
+            {item.name}
+          </ThemedText>
+          <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+            {item.retailer}
+          </ThemedText>
+          <ThemedText type="h3" style={{ color: LuxuryColors.gold, marginTop: Spacing.xs }}>
+            {item.currency === 'GBP' ? '£' : '$'}{item.price.toFixed(2)}
+          </ThemedText>
+          {item.stylistNotes ? (
+            <ThemedText type="small" style={{ color: theme.link, marginTop: Spacing.xs }} numberOfLines={2}>
+              {item.stylistNotes}
+            </ThemedText>
+          ) : null}
+        </View>
+      </View>
+      <View style={styles.searchResultActions}>
+        <Pressable
+          onPress={() => handleAddToWishlist(item)}
+          style={({ pressed }) => [
+            styles.searchActionButton,
+            { backgroundColor: theme.link, opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          <Feather name="heart" size={16} color="#FFFFFF" />
+          <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: Spacing.xs }}>
+            Save
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={() => handleShopNow(item.affiliateUrl)}
+          style={({ pressed }) => [
+            styles.searchActionButton,
+            { backgroundColor: LuxuryColors.gold, opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          <Feather name="external-link" size={16} color="#1A1A2E" />
+          <ThemedText type="small" style={{ color: '#1A1A2E', marginLeft: Spacing.xs }}>
+            Shop
+          </ThemedText>
+        </Pressable>
+      </View>
+    </View>
+  ), [theme, handleAddToWishlist, handleShopNow]);
 
   const renderWishlistItem = useCallback(({ item }: { item: WishlistItem }) => (
     <Pressable
@@ -378,9 +502,29 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
         </View>
       </View>
 
+      <View style={styles.searchContainer}>
+        <View style={[styles.searchInputWrapper, { backgroundColor: theme.backgroundDefault }]}>
+          <Feather name="search" size={20} color={theme.tabIconDefault} />
+          <TextInput
+            style={[styles.searchInput, { color: theme.text }]}
+            placeholder="Search fashion products..."
+            placeholderTextColor={theme.tabIconDefault}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 ? (
+            <Pressable onPress={handleClearSearch}>
+              <Feather name="x-circle" size={20} color={theme.tabIconDefault} />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+
       <View style={styles.viewToggle}>
         <Pressable
-          onPress={() => setViewMode('items')}
+          onPress={() => { setViewMode('items'); clearSearchResults(); }}
           style={[
             styles.toggleButton,
             { backgroundColor: viewMode === 'items' ? theme.link : theme.backgroundDefault },
@@ -396,6 +540,25 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
             style={{ color: viewMode === 'items' ? '#FFFFFF' : theme.text }}
           >
             Wishlist
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={() => { setViewMode('search'); }}
+          style={[
+            styles.toggleButton,
+            { backgroundColor: viewMode === 'search' ? LuxuryColors.gold : theme.backgroundDefault },
+          ]}
+        >
+          <Feather 
+            name="shopping-bag" 
+            size={16} 
+            color={viewMode === 'search' ? '#1A1A2E' : theme.tabIconDefault} 
+          />
+          <ThemedText 
+            type="body" 
+            style={{ color: viewMode === 'search' ? '#1A1A2E' : theme.text }}
+          >
+            Shop
           </ThemedText>
         </Pressable>
         <Pressable
@@ -466,49 +629,76 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
           </Pressable>
         </View>
       ) : null}
+
+      {viewMode === 'search' ? (
+        <View style={styles.searchResultsHeader}>
+          <ThemedText type="h3">
+            {isSearching ? 'Searching...' : (searchResults.length > 0 ? `${searchResults.length} Results` : 'Search for products')}
+          </ThemedText>
+          {isSearching ? (
+            <ActivityIndicator size="small" color={theme.link} />
+          ) : null}
+        </View>
+      ) : null}
     </View>
-  ), [theme, wishlistItems.length, onSaleItems.length, totalSavings, currencySymbol, viewMode, selectedCategory, unreadAlertsCount, priceAlerts.length, markAllAlertsAsRead]);
+  ), [theme, wishlistItems.length, onSaleItems.length, totalSavings, currencySymbol, viewMode, selectedCategory, unreadAlertsCount, priceAlerts.length, markAllAlertsAsRead, searchQuery, handleSearch, handleClearSearch, clearSearchResults, searchResults.length, isSearching]);
 
   const EmptyState = useCallback(() => (
     <View style={styles.emptyState}>
       <View style={[styles.emptyIcon, { backgroundColor: theme.backgroundSecondary }]}>
         <Feather 
-          name={viewMode === 'items' ? 'heart' : 'bell'} 
+          name={viewMode === 'items' ? 'heart' : viewMode === 'search' ? 'shopping-bag' : 'bell'} 
           size={48} 
           color={theme.tabIconDefault} 
         />
       </View>
       <ThemedText type="h2" style={styles.emptyTitle}>
-        {viewMode === 'items' ? 'Your wishlist is empty' : 'No price alerts yet'}
+        {viewMode === 'items' ? 'Your wishlist is empty' : viewMode === 'search' ? 'Search for fashion products' : 'No price alerts yet'}
       </ThemedText>
       <ThemedText type="body" style={styles.emptySubtitle}>
         {viewMode === 'items' 
           ? 'Add items from the Bargains section to track prices and get alerts when they drop.'
+          : viewMode === 'search'
+          ? 'Type a product name or style to find items with affiliate links.'
           : 'When items on your wishlist drop in price, you\'ll see alerts here.'
         }
       </ThemedText>
       {viewMode === 'items' ? (
         <Pressable
-          onPress={() => navigation.goBack()}
-          style={[styles.browseButton, { backgroundColor: theme.link }]}
+          onPress={() => setViewMode('search')}
+          style={[styles.browseButton, { backgroundColor: LuxuryColors.gold }]}
         >
-          <Feather name="shopping-bag" size={20} color="#FFFFFF" />
-          <ThemedText type="body" style={styles.browseButtonText}>
-            Browse Deals
+          <Feather name="shopping-bag" size={20} color="#1A1A2E" />
+          <ThemedText type="body" style={[styles.browseButtonText, { color: '#1A1A2E' }]}>
+            Shop Products
           </ThemedText>
         </Pressable>
       ) : null}
     </View>
   ), [theme, viewMode, navigation]);
 
+  const getListData = () => {
+    if (viewMode === 'items') return filteredItems;
+    if (viewMode === 'search') return searchResults;
+    return priceAlerts;
+  };
+
+  const getRenderItem = () => {
+    if (viewMode === 'items') return renderWishlistItem;
+    if (viewMode === 'search') return renderSearchResult;
+    return renderAlert;
+  };
+
+  const listData = getListData();
+
   return (
     <ScreenFlatList
-      data={viewMode === 'items' ? filteredItems : priceAlerts}
-      keyExtractor={(item: WishlistItem | PriceAlert) => item.id}
-      renderItem={viewMode === 'items' ? renderWishlistItem as any : renderAlert as any}
+      data={listData as any}
+      keyExtractor={(item: any) => item.id}
+      renderItem={getRenderItem() as any}
       ListHeaderComponent={ListHeader}
       ListEmptyComponent={EmptyState}
-      contentContainerStyle={(viewMode === 'items' ? filteredItems.length : priceAlerts.length) === 0 ? styles.emptyContainer : undefined}
+      contentContainerStyle={listData.length === 0 ? styles.emptyContainer : undefined}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -780,5 +970,64 @@ const styles = StyleSheet.create({
   browseButtonText: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  searchContainer: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  searchInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    fontSize: 16,
+  },
+  searchResultCard: {
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  searchResultContent: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  searchResultImage: {
+    width: 80,
+    height: 80,
+    borderRadius: BorderRadius.sm,
+  },
+  searchResultImagePlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: BorderRadius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchResultInfo: {
+    flex: 1,
+  },
+  searchResultActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  searchActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+  },
+  searchResultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
   },
 });
