@@ -15,10 +15,10 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/ApiService";
-import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
 
 type FashionBlogScreenProps = {
-  navigation: NativeStackNavigationProp<DiscoverStackParamList, "FashionBlog">;
+  navigation: NativeStackNavigationProp<UserStylistStackParamList, "FashionBlog">;
 };
 
 interface BlogPost {

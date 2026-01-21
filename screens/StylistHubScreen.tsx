@@ -131,6 +131,15 @@ const ALL_FEATURES: StylistFeature[] = [
     gradientColors: ["#11998e", "#38ef7d"] as const,
     category: "stylist",
   },
+  {
+    id: "fashion-blog",
+    title: "Style Rules",
+    description: "Fashion tips & guides",
+    icon: "book-open",
+    screen: "FashionBlog",
+    gradientColors: ["#ff6b6b", "#ee5a5a"] as const,
+    category: "tools",
+  },
 ];
 
 const TILES_ORDER_KEY = "@stylist_tiles_order";
