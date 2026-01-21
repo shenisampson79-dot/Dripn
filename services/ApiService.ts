@@ -524,6 +524,41 @@ class ApiService {
     return Boolean(API_URL);
   }
 
+  async wakeBackend(): Promise<{ success: boolean; wasAsleep: boolean }> {
+    if (!API_URL) {
+      return { success: false, wasAsleep: false };
+    }
+
+    try {
+      const response = await this.fetchWithTimeout(`${API_URL}/api/health`, { timeout: 15000 });
+      if (response.ok) {
+        return { success: true, wasAsleep: false };
+      }
+    } catch (e) {
+      console.log('Backend may be waking up, retrying...');
+    }
+
+    await new Promise(r => setTimeout(r, 3000));
+
+    try {
+      const response = await this.fetchWithTimeout(`${API_URL}/api/health`, { timeout: 15000 });
+      return { success: response.ok, wasAsleep: true };
+    } catch (e) {
+      console.log('Backend wake-up failed after retry');
+      return { success: false, wasAsleep: true };
+    }
+  }
+
+  async checkHealth(): Promise<boolean> {
+    if (!API_URL) return false;
+    try {
+      const response = await this.fetchWithTimeout(`${API_URL}/api/health`, { timeout: 10000 });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
   async getVIPMembers() {
     return this.request<any[]>('/api/video/vip-members');
   }

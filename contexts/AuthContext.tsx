@@ -363,6 +363,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadUser = async () => {
     try {
       await apiService.init();
+      
+      const wakeResult = await apiService.wakeBackend();
+      if (wakeResult.success) {
+        console.log(wakeResult.wasAsleep ? 'Backend woke up successfully' : 'Backend is ready');
+      } else {
+        console.log('Backend not available, using local storage');
+      }
+
       const userData = await AsyncStorage.getItem(STORAGE_KEY);
       if (userData) {
         setUser(JSON.parse(userData));
