@@ -17,9 +17,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { useEventsFavorites } from "@/contexts/EventsFavoritesContext";
 import { useOutfitFavorites, LikedOutfit } from "@/contexts/OutfitFavoritesContext";
-import { getCategoryIcon } from "@/services/EventsService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
 
@@ -50,9 +48,8 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const { palette } = useColorScheme();
   const { user } = useAuth();
   const { limits } = useSubscription();
-  const { getLikedEvents, toggleLike, isLoading: eventsLoading } = useEventsFavorites();
   const { getLikedOutfits, toggleOutfitLike, isOutfitLiked, isLoading: outfitsLoading } = useOutfitFavorites();
-  const [activeTab, setActiveTab] = useState<"outfits" | "events">("outfits");
+  const [activeTab, setActiveTab] = useState<"outfits">("outfits");
 
   // Dynamic colors from palette
   const LUXURY_COLORS = {
@@ -69,7 +66,6 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     emerald: palette.emerald,
   };
 
-  const likedEvents = getLikedEvents();
   const likedOutfits = getLikedOutfits();
 
   const handleSettingsPress = () => {
@@ -115,7 +111,6 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
   const tabConfig = [
     { key: 'outfits', label: 'Saved Outfits', icon: 'bookmark', color: LUXURY_COLORS.gold },
-    { key: 'events', label: 'Saved Events', icon: 'calendar', color: LUXURY_COLORS.teal },
   ];
 
   return (
@@ -420,99 +415,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               </ThemedText>
             </View>
           )
-        ) : eventsLoading ? (
-          <View style={styles.emptyState}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
-              style={styles.loadingContainer}
-            >
-              <ActivityIndicator size="large" color="#FFFFFF" />
-            </LinearGradient>
-            <ThemedText type="body" style={styles.emptySubtitle}>
-              Loading liked events...
-            </ThemedText>
-          </View>
-        ) : likedEvents.length > 0 ? (
-          <View style={styles.eventsContainer}>
-            {likedEvents.map((event) => (
-              <View key={event.id} style={[styles.likedEventCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
-                <View style={styles.likedEventHeader}>
-                  <LinearGradient
-                    colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
-                    style={styles.likedEventIcon}
-                  >
-                    <Feather name={getCategoryIcon(event.category) as any} size={16} color="#FFFFFF" />
-                  </LinearGradient>
-                  <View style={styles.likedEventText}>
-                    <ThemedText type="caption" style={{ color: LUXURY_COLORS.teal, fontWeight: "600" }}>
-                      {event.category}
-                    </ThemedText>
-                    <ThemedText type="h3" numberOfLines={1}>{event.title}</ThemedText>
-                  </View>
-                  <Pressable
-                    onPress={() => toggleLike(event)}
-                    style={({ pressed }) => [
-                      styles.unlikeButton,
-                      { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
-                    ]}
-                  >
-                    <Feather name="heart" size={14} color={LUXURY_COLORS.coral} />
-                  </Pressable>
-                </View>
-                <View style={styles.likedEventDetails}>
-                  <View style={styles.likedEventDetail}>
-                    <Feather name="calendar" size={12} color={theme.tabIconDefault} />
-                    <ThemedText type="small" style={{ marginLeft: 4, opacity: 0.7 }}>
-                      {event.date}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.likedEventDetail}>
-                    <Feather name="clock" size={12} color={theme.tabIconDefault} />
-                    <ThemedText type="small" style={{ marginLeft: 4, opacity: 0.7 }}>
-                      {event.time}
-                    </ThemedText>
-                  </View>
-                </View>
-                <View style={styles.likedEventDetail}>
-                  <Feather name="map-pin" size={12} color={theme.tabIconDefault} />
-                  <ThemedText type="small" style={{ marginLeft: 4, opacity: 0.7 }}>
-                    {event.location}
-                  </ThemedText>
-                </View>
-                <LinearGradient
-                  colors={[LUXURY_COLORS.gold + '20', LUXURY_COLORS.champagne + '30']}
-                  style={styles.likedEventOutfit}
-                >
-                  <Feather name="star" size={12} color={LUXURY_COLORS.gold} />
-                  <ThemedText type="small" style={{ marginLeft: 4, flex: 1 }} numberOfLines={2}>
-                    <ThemedText type="small" style={{ fontWeight: "700", color: LUXURY_COLORS.gold }}>Wear: </ThemedText>
-                    {event.outfitSuggestion}
-                  </ThemedText>
-                </LinearGradient>
-              </View>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.emptyState}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.teal + '30', LUXURY_COLORS.emerald + '20']}
-              style={styles.emptyIconOuter}
-            >
-              <LinearGradient
-                colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
-                style={styles.emptyIconInner}
-              >
-                <Feather name="calendar" size={28} color="#FFFFFF" />
-              </LinearGradient>
-            </LinearGradient>
-            <ThemedText type="h3" style={styles.emptyTitle}>
-              No liked events
-            </ThemedText>
-            <ThemedText type="body" style={styles.emptySubtitle}>
-              Like events to save them here for easy access
-            </ThemedText>
-          </View>
-        )}
+        ) : null}
         </View>
       </ScreenScrollView>
     </View>
