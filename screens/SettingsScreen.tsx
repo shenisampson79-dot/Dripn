@@ -438,6 +438,15 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             iconGradient={[LUXURY_COLORS.rose, LUXURY_COLORS.coral]}
           />
           <SettingItem
+            icon="droplet"
+            title="Colour Scheme"
+            subtitle={colorScheme === 'colorful' ? 'Colorful' : 'Minimalist'}
+            onPress={handleColorSchemeSelect}
+            theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+          />
+          <SettingItem
             icon="map-pin"
             title="Country"
             subtitle={user?.country}
@@ -947,7 +956,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             >
               <View style={styles.modalHeader}>
                 <ThemedText type="h3" style={styles.modalTitle}>
-                  {pickerModal.type === 'language' ? 'Select Language' : 'Voice Speed'}
+                  {pickerModal.type === 'language' ? 'Select Language' : pickerModal.type === 'colorScheme' ? 'Colour Scheme' : 'Voice Speed'}
                 </ThemedText>
                 <Pressable 
                   onPress={closePickerModal} 
@@ -980,6 +989,33 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                     </ThemedText>
                     {voiceSettings.preferredLanguage === lang.code ? (
                       <Feather name="check" size={20} color={LUXURY_COLORS.violet} />
+                    ) : null}
+                  </Pressable>
+                ))
+              ) : pickerModal.type === 'colorScheme' ? (
+                COLOR_SCHEME_OPTIONS.map((option) => (
+                  <Pressable
+                    key={option.value}
+                    style={({ pressed }) => [
+                      styles.modalOption,
+                      { backgroundColor: pressed ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)') : 'transparent' },
+                      colorScheme === option.value && { backgroundColor: LUXURY_COLORS.teal + '20' },
+                    ]}
+                    onPress={() => {
+                      setColorScheme(option.value);
+                      closePickerModal();
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <ThemedText type="body" style={styles.modalOptionText}>
+                        {option.label}
+                      </ThemedText>
+                      <ThemedText type="small" style={styles.modalOptionSubtext}>
+                        {option.description}
+                      </ThemedText>
+                    </View>
+                    {colorScheme === option.value ? (
+                      <Feather name="check" size={20} color={LUXURY_COLORS.teal} />
                     ) : null}
                   </Pressable>
                 ))
