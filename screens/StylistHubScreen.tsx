@@ -19,6 +19,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
 
 type StylistHubScreenProps = {
@@ -156,6 +157,7 @@ const TILES_ORDER_KEY = "@stylist_tiles_order";
 export default function StylistHubScreen({ navigation }: StylistHubScreenProps) {
   const { theme } = useTheme();
   const { tier } = useSubscription();
+  const { palette } = useColorScheme();
   const [tilesOrder, setTilesOrder] = useState<string[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
 
