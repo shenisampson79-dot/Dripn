@@ -1030,6 +1030,22 @@ class ApiService {
     });
   }
 
+  async sendVoiceChatMessage(data: {
+    stylistId: string;
+    message: string;
+    generateVoice?: boolean;
+    voiceSettings?: { accent?: string };
+  }) {
+    return this.request<{
+      response: string;
+      voiceAudio?: string;
+      error?: string;
+    }>('/api/chat/message', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async createCheckoutSession(productId: string) {
     return this.request<{ checkoutUrl: string; sessionId: string }>('/api/checkout/create-session', {
       method: 'POST',

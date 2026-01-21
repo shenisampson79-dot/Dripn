@@ -9,7 +9,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Audio } from "expo-av";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -203,28 +203,54 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
     }
   };
 
+  const playVoiceAudio = async (base64Audio: string) => {
+    try {
+      const fileUri = `${FileSystem.cacheDirectory}stylist_response_${Date.now()}.mp3`;
+      await FileSystem.writeAsStringAsync(fileUri, base64Audio, {
+        encoding: 'base64',
+      });
+      
+      const { sound } = await Audio.Sound.createAsync({ uri: fileUri });
+      await sound.playAsync();
+      
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          sound.unloadAsync();
+          setConversationState("idle");
+        }
+      });
+    } catch (err) {
+      console.error('[VoiceConversation] Audio playback error:', err);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      setConversationState("idle");
+    }
+  };
+
   const getStylistResponse = async (userText: string) => {
     try {
-      const chatResponse = await apiService.sendStylistMessage({
+      const chatResponse = await apiService.sendVoiceChatMessage({
         stylistId: stylistName.toLowerCase(),
-        messages: [],
-        userMessage: userText,
-        userGender: gender,
-        subscriptionTier: tier,
+        message: userText,
+        generateVoice: true,
+        voiceSettings: { accent: 'british' },
       });
 
-      if (chatResponse.content) {
+      if (chatResponse.response) {
         const stylistMessage: VoiceMessage = {
           id: (Date.now() + 1).toString(),
           role: "stylist",
-          text: chatResponse.content,
+          text: chatResponse.response,
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, stylistMessage]);
         setConversationState("speaking");
         
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        setConversationState("idle");
+        if (chatResponse.voiceAudio) {
+          await playVoiceAudio(chatResponse.voiceAudio);
+        } else {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          setConversationState("idle");
+        }
       } else {
         const randomResponse = stylistResponses[Math.floor(Math.random() * stylistResponses.length)];
         const stylistMessage: VoiceMessage = {
