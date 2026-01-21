@@ -2488,16 +2488,33 @@ class ApiService {
     });
   }
 
+  async updatePriceTrackingSettings(productId: string, settings: { targetPrice?: number; priceDropThreshold?: number }) {
+    return this.request<{ success: boolean }>(`/api/price-tracking/${productId}`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    });
+  }
+
+  async stopPriceTracking(productId: string) {
+    return this.request<{ success: boolean }>(`/api/price-tracking/${productId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getExtensionStatus() {
+    return this.request<{
+      isConnected: boolean;
+      lastSync: string | null;
+      deviceName: string | null;
+    }>('/api/extension/status');
+  }
+
   async getPriceHistory(itemId: string) {
     return this.request<{
       history: Array<{
         price: number;
-        date: string;
-        source: string;
+        recordedAt: string;
       }>;
-      lowestPrice: number;
-      highestPrice: number;
-      averagePrice: number;
     }>(`/api/price-tracking/${itemId}/history`);
   }
 

@@ -70,6 +70,7 @@ interface WishlistContextType {
   addProductToWishlist: (product: SearchProduct) => Promise<void>;
   addItemByUrl: (productUrl: string) => Promise<{ success: boolean; itemName?: string; error?: string }>;
   removeFromWishlist: (itemId: string) => Promise<void>;
+  stopPriceTracking: (itemId: string) => Promise<void>;
   markAsPurchased: (itemId: string) => Promise<void>;
   isInWishlist: (itemId: string) => boolean;
   updateTargetPrice: (itemId: string, targetPrice: number | undefined) => Promise<void>;
@@ -268,6 +269,26 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     const updatedItems = wishlistItems.filter(item => item.id !== itemId);
     setWishlistItems(updatedItems);
     await saveWishlistItems(updatedItems);
+    
+    // Also stop price tracking on backend
+    try {
+      await apiService.stopPriceTracking(itemId);
+    } catch (error) {
+      console.log('[Wishlist] Failed to stop price tracking on backend:', error);
+    }
+  }, [wishlistItems, user?.id]);
+
+  const stopPriceTracking = useCallback(async (itemId: string) => {
+    try {
+      await apiService.stopPriceTracking(itemId);
+      // Remove from local list
+      const updatedItems = wishlistItems.filter(item => item.id !== itemId);
+      setWishlistItems(updatedItems);
+      await saveWishlistItems(updatedItems);
+    } catch (error) {
+      console.log('[Wishlist] Failed to stop price tracking:', error);
+      throw error;
+    }
   }, [wishlistItems, user?.id]);
 
   const isInWishlist = useCallback((itemId: string) => {
@@ -572,6 +593,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         addProductToWishlist,
         addItemByUrl,
         removeFromWishlist,
+        stopPriceTracking,
         markAsPurchased,
         isInWishlist,
         updateTargetPrice,
