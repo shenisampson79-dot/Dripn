@@ -136,11 +136,20 @@ const ALL_FEATURES: StylistFeature[] = [
   },
   {
     id: "fashion-blog",
-    title: "Style Rules",
+    title: "Blog",
     description: "Fashion tips & guides",
     icon: "book-open",
     screen: "FashionBlog",
     gradientKey: "warm",
+    category: "tools",
+  },
+  {
+    id: "style-rules",
+    title: "Style Rules",
+    description: "94+ fashion guidelines",
+    icon: "list",
+    screen: "StyleRules",
+    gradientKey: "cool",
     category: "tools",
   },
   {

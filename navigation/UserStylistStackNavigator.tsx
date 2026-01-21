@@ -18,6 +18,7 @@ import VirtualTryOnScreen from "@/screens/VirtualTryOnScreen";
 import ColorAnalysisScreen from "@/screens/ColorAnalysisScreen";
 import BodyScannerScreen from "@/screens/BodyScannerScreen";
 import FashionBlogScreen from "@/screens/FashionBlogScreen";
+import StyleRulesScreen from "@/screens/StyleRulesScreen";
 import WishlistScreen from "@/screens/WishlistScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
@@ -41,6 +42,7 @@ export type UserStylistStackParamList = {
   ColorAnalysis: undefined;
   BodyScanner: undefined;
   FashionBlog: undefined;
+  StyleRules: undefined;
   Wishlist: undefined;
 };
 
@@ -142,6 +144,11 @@ export default function UserStylistStackNavigator() {
       <Stack.Screen
         name="FashionBlog"
         component={FashionBlogScreen}
+        options={{ headerTitle: "Blog", headerShown: false }}
+      />
+      <Stack.Screen
+        name="StyleRules"
+        component={StyleRulesScreen}
         options={{ headerTitle: "Style Rules", headerShown: false }}
       />
       <Stack.Screen
