@@ -1030,11 +1030,20 @@ class ApiService {
     });
   }
 
-  async createCheckoutSession(priceId: string, planTier: string) {
-    return this.request<{ url: string; sessionId: string }>('/api/checkout/create-session', {
+  async createCheckoutSession(productId: string) {
+    return this.request<{ checkoutUrl: string; sessionId: string }>('/api/checkout/create-session', {
       method: 'POST',
-      body: JSON.stringify({ priceId, planTier }),
+      body: JSON.stringify({ productId }),
     });
+  }
+
+  async getCheckoutSession(sessionId: string) {
+    return this.request<{ 
+      status: string; 
+      productId: string;
+      amountTotal: number;
+      currency: string;
+    }>(`/api/checkout/session/${sessionId}`);
   }
 
   async getStripeConfig() {
@@ -2377,6 +2386,78 @@ class ApiService {
     }>('/api/ai/generate-outfit-image', {
       method: 'POST',
       body: JSON.stringify({ outfitDescription, occasion }),
+    });
+  }
+
+  // Shopping - Product Search with Affiliate Links
+  async searchProducts(query: string, limit: number = 5) {
+    return this.request<{
+      products: Array<{
+        id: string;
+        name: string;
+        price: number;
+        currency: string;
+        imageUrl: string;
+        affiliateUrl: string;
+        retailer: string;
+        matchScore: number;
+        stylistNotes?: string;
+      }>;
+    }>('/api/shopping/search', {
+      method: 'POST',
+      body: JSON.stringify({ query, limit }),
+    });
+  }
+
+  // Shopping - Wishlist Management
+  async getWishlist() {
+    return this.request<{
+      items: Array<{
+        id: string;
+        productName: string;
+        retailerId: string;
+        retailerName: string;
+        price: number;
+        currency: string;
+        imageUrl?: string;
+        affiliateUrl?: string;
+        purchased: boolean;
+        createdAt: string;
+      }>;
+    }>('/api/shopping/wishlist');
+  }
+
+  async addToWishlist(data: {
+    productName: string;
+    retailerId: string;
+    price: number;
+    currency?: string;
+    imageUrl?: string;
+    affiliateUrl?: string;
+  }) {
+    return this.request<{ 
+      success: boolean; 
+      item: {
+        id: string;
+        productName: string;
+        retailerId: string;
+        price: number;
+      };
+    }>('/api/shopping/wishlist/add', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async removeFromWishlist(itemId: string) {
+    return this.request<{ success: boolean }>(`/api/shopping/wishlist/${itemId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async markWishlistItemPurchased(itemId: string) {
+    return this.request<{ success: boolean }>(`/api/shopping/wishlist/${itemId}/purchased`, {
+      method: 'PUT',
     });
   }
 }
