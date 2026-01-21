@@ -184,26 +184,32 @@ function generateAIResponse(
     'off-white', 'new balance', 'converse', 'vans', 'reebok', 'puma',
     'burberry', 'hermes', 'fendi', 'valentino', 'armani', 'ralph lauren',
     'tommy hilfiger', 'calvin klein', 'levi', 'wrangler', 'carhartt',
+    'birkenstock', 'crocs', 'ugg', 'timberland', 'doc martens', 'dr martens',
+    'louboutin', 'jimmy choo', 'manolo blahnik', 'stuart weitzman',
     // Fashion items and terminology
     'sneaker', 'trainer', 'trainers', 'sneakers', 'designer', 'collaboration',
     'collab', 'collection', 'launch', 'release', 'drop', 'iconic', 'signature',
+    'sandal', 'sandals', 'sarong', 'kimono', 'kaftan', 'poncho', 'cardigan',
+    'blazer', 'jacket', 'coat', 'boots', 'loafers', 'heels', 'flats',
+    'for men', 'for women', 'menswear', 'womenswear', 'unisex',
+    'cool to wear', 'is it cool', 'are they cool', 'in style', 'out of style',
+    'fashionable', 'trendy', 'classic', 'timeless', 'versatile',
   ];
   
   const offTopicPatterns = [
-    'premier league', 'football', 'soccer', 'basketball', 'baseball', 'cricket', 'rugby', 'tennis',
-    'score', 'match', 'game', 'played', 'won', 'lost', 'championship', 'league', 'cup final',
-    'liverpool', 'manchester', 'chelsea', 'arsenal', 'tottenham', 'leeds', 'united',
-    'politics', 'political', 'election', 'president', 'prime minister', 'government', 'parliament',
-    'stock', 'bitcoin', 'crypto', 'investment', 'trading', 'market',
-    'weather', 'forecast', 'temperature', 'rain', 'sunny',
-    'news', 'headlines', 'breaking', 'latest',
-    'war', 'conflict', 'military', 'attack', 'invasion',
-    'venezuela', 'russia', 'ukraine', 'china', 'israel', 'gaza', 'iran', 'north korea',
-    'calculate', 'math', 'equation', 'solve', 'algebra',
-    'recipe', 'cook', 'cooking instructions', 'bake',
-    'medical', 'diagnosis', 'symptoms', 'treatment', 'doctor', 'medicine',
-    'legal advice', 'lawyer', 'sue', 'court',
-    'capital of', 'population of', 'how far', 'distance to',
+    'premier league', 'football score', 'soccer score', 'basketball score', 'baseball score', 
+    'cricket score', 'rugby score', 'tennis score',
+    'who won the', 'who scored', 'championship game', 'cup final', 'league table',
+    'politics', 'political', 'election results', 'prime minister', 'government policy', 'parliament',
+    'stock market', 'stock price', 'bitcoin price', 'crypto price', 'investment advice', 'trading strategy',
+    'weather today', 'weather forecast', 'temperature today', 'will it rain',
+    'breaking news', 'latest news', 'headlines today',
+    'war in', 'military conflict', 'attack on', 'invasion of',
+    'calculate for me', 'math problem', 'solve equation', 'algebra help',
+    'recipe for', 'how to cook', 'cooking instructions', 'how to bake',
+    'medical advice', 'diagnosis for', 'symptoms of', 'treatment for', 'see a doctor',
+    'legal advice', 'need a lawyer', 'sue someone', 'court case',
+    'capital of what', 'population of', 'how far is', 'distance to',
   ];
   
   const capabilityRequestPatterns = [
@@ -1655,6 +1661,11 @@ export default function AIStylistScreen() {
         content: msg.content,
       }));
       
+      const authToken = await apiService.getToken();
+      console.log('Auth token available:', !!authToken);
+      console.log('User ID:', user?.id);
+      console.log('Calling backend API with message:', text.trim());
+      
       const response = await apiService.sendStylistMessage({
         stylistId: stylist.id,
         messages: chatHistory,
@@ -1663,6 +1674,14 @@ export default function AIStylistScreen() {
         userGender: user?.gender || 'unspecified',
         subscriptionTier: tier,
       });
+      
+      console.log('Backend response received:', JSON.stringify(response));
+      
+      // Validate we actually got content from the backend
+      if (!response.content || response.content.trim() === '') {
+        console.log('Backend returned empty content, using fallback');
+        throw new Error('Empty response from backend');
+      }
       
       if (response.mood) {
         setDetectedMood(response.mood.mood);
@@ -1688,8 +1707,11 @@ export default function AIStylistScreen() {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-    } catch (error) {
-      console.log('API call failed, using fallback:', error);
+    } catch (error: any) {
+      console.log('API call failed - Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      console.log('Error message:', error?.message);
+      console.log('Error stack:', error?.stack);
+      console.log('Using fallback response');
       const response = generateAIResponse(text, wardrobeItems, user?.gender || 'unspecified', stylist.name);
       
       const assistantMessage: ChatMessage = {
