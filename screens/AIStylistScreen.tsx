@@ -2176,10 +2176,12 @@ export default function AIStylistScreen() {
           style={styles.flatList}
         />
         <KeyboardStickyView 
-          offset={{ closed: 0 }}
+          offset={{ closed: 0, opened: 0 }}
           style={[styles.inputBarAbsolute, { bottom: TAB_BAR_HEIGHT + insets.bottom }]}
         >
-          {renderInputBar()}
+          <View style={{ backgroundColor: theme.backgroundDefault, paddingBottom: TAB_BAR_HEIGHT + insets.bottom }}>
+            {renderInputBar()}
+          </View>
         </KeyboardStickyView>
       </View>
     </KeyboardProvider>
