@@ -1,0 +1,108 @@
+// hooks/useVoiceCredits.ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+interface VoiceCredits {
+  remaining: number;
+  monthlyAllowance: number;
+  usedThisMonth: number;
+  monthlyRemaining: number;
+  purchasedCredits: number;
+  isUnlimited: boolean;
+}
+
+interface VoiceBalanceResponse {
+  success: boolean;
+  credits: VoiceCredits;
+  tier: string;
+  tierName: string;
+}
+
+interface CreditPackage {
+  id: string;
+  name: string;
+  credits: number;
+  price: number;
+  currency: string;
+  popular?: boolean;
+}
+
+interface PackagesResponse {
+  packages: CreditPackage[];
+}
+
+export function useVoiceCredits() {
+  const queryClient = useQueryClient();
+
+  // Fetch current balance
+  const balanceQuery = useQuery<VoiceBalanceResponse>({
+    queryKey: ['/api/voice-credits/balance'],
+    staleTime: 30000, // Cache for 30 seconds
+  });
+
+  // Fetch available packages
+  const packagesQuery = useQuery<PackagesResponse>({
+    queryKey: ['/api/voice-credits/packages'],
+    staleTime: 300000, // Cache for 5 minutes
+  });
+
+  // Purchase credits mutation
+  const purchaseMutation = useMutation({
+    mutationFn: async (packageId: string) => {
+      const res = await fetch('/api/voice-credits/purchase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ packageId }),
+      });
+      if (!res.ok) throw new Error('Purchase failed');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      // Redirect to Stripe checkout
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      }
+    },
+  });
+
+  // Update balance after voice use (call this with voiceCredits from chat response)
+  const updateBalance = (voiceCredits: VoiceCredits) => {
+    queryClient.setQueryData<VoiceBalanceResponse>(
+      ['/api/voice-credits/balance'],
+      (old) => old ? { ...old, credits: voiceCredits } : undefined
+    );
+  };
+
+  // Refresh balance from server
+  const refreshBalance = () => {
+    queryClient.invalidateQueries({ queryKey: ['/api/voice-credits/balance'] });
+  };
+
+  const credits = balanceQuery.data?.credits;
+  
+  return {
+    // Balance state
+    credits,
+    tier: balanceQuery.data?.tier,
+    tierName: balanceQuery.data?.tierName,
+    isLoading: balanceQuery.isLoading,
+    
+    // Computed helpers
+    hasCredits: credits?.isUnlimited || (credits?.remaining ?? 0) > 0,
+    isUnlimited: credits?.isUnlimited ?? false,
+    isLowCredits: !credits?.isUnlimited && (credits?.remaining ?? 0) < 5,
+    isFreeUser: balanceQuery.data?.tier === 'free',
+    
+    // Packages
+    packages: packagesQuery.data?.packages ?? [],
+    packagesLoading: packagesQuery.isLoading,
+    
+    // Actions
+    purchaseCredits: purchaseMutation.mutate,
+    isPurchasing: purchaseMutation.isPending,
+    updateBalance,
+    refreshBalance,
+  };
+}

@@ -18,6 +18,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useVoiceCredits } from "@/hooks/useVoiceCredits";
 import { apiService } from "@/services/ApiService";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
 
@@ -54,6 +55,19 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
   const { tier } = useSubscription();
+  const { 
+    credits, 
+    hasCredits, 
+    isUnlimited, 
+    isLowCredits, 
+    isFreeUser,
+    updateBalance,
+    refreshBalance,
+    packages,
+    fetchPackages,
+    purchaseCredits,
+    isPurchasing,
+  } = useVoiceCredits();
   const gender = user?.gender || "female";
   
   const [conversationState, setConversationState] = useState<ConversationState>("idle");
@@ -61,6 +75,7 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
   const [currentTranscript, setCurrentTranscript] = useState("");
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
@@ -227,6 +242,13 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
   };
 
   const getStylistResponse = async (userText: string) => {
+    if (!hasCredits) {
+      setError("You've run out of voice credits. Upgrade or purchase more to continue.");
+      setShowCreditsModal(true);
+      setConversationState("idle");
+      return;
+    }
+
     try {
       const chatResponse = await apiService.sendVoiceChatMessage({
         stylistId: stylistName.toLowerCase(),
@@ -234,6 +256,17 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
         generateVoice: true,
         voiceSettings: { accent: 'british' },
       });
+
+      if (chatResponse.voiceCreditsExhausted) {
+        setError(chatResponse.voiceError?.message || "Voice credits exhausted. Please upgrade or purchase more credits.");
+        setShowCreditsModal(true);
+        setConversationState("idle");
+        return;
+      }
+
+      if (chatResponse.voiceCredits) {
+        updateBalance(chatResponse.voiceCredits);
+      }
 
       if (chatResponse.response) {
         const stylistMessage: VoiceMessage = {
@@ -245,8 +278,9 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
         setMessages(prev => [...prev, stylistMessage]);
         setConversationState("speaking");
         
-        if (chatResponse.voiceAudio) {
-          await playVoiceAudio(chatResponse.voiceAudio);
+        const audioData = chatResponse.voice?.audio || chatResponse.voiceAudio;
+        if (audioData) {
+          await playVoiceAudio(audioData);
         } else {
           await new Promise(resolve => setTimeout(resolve, 3000));
           setConversationState("idle");
@@ -394,6 +428,70 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
     );
   };
 
+  const renderCreditsModal = () => {
+    if (!showCreditsModal) return null;
+    
+    return (
+      <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
+        <Card style={[styles.creditsModal, { backgroundColor: theme.backgroundSecondary }]}>
+          <View style={styles.modalHeader}>
+            <Feather name="zap" size={24} color={LuxuryColors.gold} />
+            <ThemedText type="h2" style={styles.modalTitle}>
+              {hasCredits ? "Low on Credits" : "Voice Credits Needed"}
+            </ThemedText>
+          </View>
+          
+          <ThemedText style={[styles.modalText, { color: theme.tabIconDefault }]}>
+            {isFreeUser 
+              ? "Upgrade to a subscription for monthly voice credits, or purchase credits below."
+              : "Purchase additional voice credits to continue your conversations."
+            }
+          </ThemedText>
+          
+          <View style={styles.packageList}>
+            {packages.length > 0 ? packages.map((pkg) => (
+              <Pressable
+                key={pkg.id}
+                onPress={() => purchaseCredits(pkg.id)}
+                disabled={isPurchasing}
+                style={[
+                  styles.packageItem,
+                  { 
+                    backgroundColor: theme.backgroundDefault,
+                    borderColor: pkg.popular ? LuxuryColors.gold : theme.border,
+                    borderWidth: pkg.popular ? 2 : 1,
+                  },
+                ]}
+              >
+                {pkg.popular ? (
+                  <View style={[styles.popularBadge, { backgroundColor: LuxuryColors.gold }]}>
+                    <ThemedText style={styles.popularText}>Popular</ThemedText>
+                  </View>
+                ) : null}
+                <ThemedText type="h4" style={styles.packageName}>{pkg.name}</ThemedText>
+                <ThemedText style={[styles.packagePrice, { color: theme.link }]}>
+                  {pkg.currency === 'gbp' ? '£' : '$'}{pkg.price.toFixed(2)}
+                </ThemedText>
+              </Pressable>
+            )) : (
+              <ActivityIndicator color={theme.link} />
+            )}
+          </View>
+          
+          <Pressable
+            onPress={() => {
+              setShowCreditsModal(false);
+              setError(null);
+            }}
+            style={[styles.closeModalButton, { borderColor: theme.border }]}
+          >
+            <ThemedText style={{ color: theme.tabIconDefault }}>Close</ThemedText>
+          </Pressable>
+        </Card>
+      </View>
+    );
+  };
+
   return (
     <ScreenScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerSection}>
@@ -409,7 +507,44 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
         <ThemedText style={[styles.subtitle, { color: theme.tabIconDefault }]}>
           Have a real-time voice conversation with your personal AI stylist
         </ThemedText>
+        
+        <View style={styles.creditsRow}>
+          <Feather name="zap" size={14} color={isLowCredits ? LuxuryColors.coral : LuxuryColors.gold} />
+          <ThemedText style={[
+            styles.creditsText, 
+            { color: isLowCredits ? LuxuryColors.coral : theme.tabIconDefault }
+          ]}>
+            {isUnlimited 
+              ? "Unlimited voice credits" 
+              : `${credits?.remaining ?? 0} credits remaining`
+            }
+          </ThemedText>
+          {!isUnlimited ? (
+            <Pressable 
+              onPress={() => {
+                fetchPackages();
+                setShowCreditsModal(true);
+              }}
+              style={[styles.buyCreditsButton, { backgroundColor: theme.backgroundSecondary }]}
+            >
+              <ThemedText style={[styles.buyCreditsText, { color: theme.link }]}>
+                Buy More
+              </ThemedText>
+            </Pressable>
+          ) : null}
+        </View>
+        
+        {isLowCredits ? (
+          <View style={[styles.lowCreditsWarning, { backgroundColor: LuxuryColors.coral + '20' }]}>
+            <Feather name="alert-triangle" size={14} color={LuxuryColors.coral} />
+            <ThemedText style={[styles.lowCreditsText, { color: LuxuryColors.coral }]}>
+              Low credits! Consider purchasing more to continue chatting.
+            </ThemedText>
+          </View>
+        ) : null}
       </View>
+      
+      {renderCreditsModal()}
 
       {hasPermission === false ? (
         <Card style={styles.permissionCard}>
@@ -715,5 +850,104 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
+  },
+  creditsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  creditsText: {
+    fontSize: 14,
+  },
+  buyCreditsButton: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    marginLeft: Spacing.xs,
+  },
+  buyCreditsText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  lowCreditsWarning: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.sm,
+  },
+  lowCreditsText: {
+    fontSize: 12,
+    flex: 1,
+  },
+  modalOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  creditsModal: {
+    width: "90%",
+    maxWidth: 400,
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    flex: 1,
+  },
+  modalText: {
+    lineHeight: 22,
+    marginBottom: Spacing.lg,
+  },
+  packageList: {
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  packageItem: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    position: "relative",
+    overflow: "hidden",
+  },
+  popularBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderBottomLeftRadius: BorderRadius.sm,
+  },
+  popularText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#000000",
+  },
+  packageName: {
+    flex: 1,
+  },
+  packagePrice: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  closeModalButton: {
+    alignItems: "center",
+    paddingVertical: Spacing.md,
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
   },
 });

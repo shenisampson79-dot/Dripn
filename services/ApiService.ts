@@ -1038,11 +1038,60 @@ class ApiService {
   }) {
     return this.request<{
       response: string;
+      voice?: { audio: string; audioDataUri: string };
       voiceAudio?: string;
+      voiceCredits?: {
+        remaining: number;
+        monthlyAllowance: number;
+        monthlyRemaining: number;
+        purchasedCredits: number;
+        isUnlimited: boolean;
+      };
+      voiceCreditsExhausted?: boolean;
+      voiceError?: { code: string; message: string };
       error?: string;
     }>('/api/chat/message', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  async getVoiceCreditsBalance() {
+    return this.request<{
+      success: boolean;
+      credits: {
+        remaining: number;
+        monthlyAllowance: number;
+        usedThisMonth: number;
+        monthlyRemaining: number;
+        purchasedCredits: number;
+        isUnlimited: boolean;
+      };
+      tier: string;
+      tierName: string;
+    }>('/api/voice-credits/balance');
+  }
+
+  async getVoiceCreditPackages() {
+    return this.request<{
+      packages: Array<{
+        id: string;
+        name: string;
+        credits: number;
+        price: number;
+        currency?: string;
+        popular?: boolean;
+      }>;
+    }>('/api/voice-credits/packages');
+  }
+
+  async purchaseVoiceCredits(packageId: string) {
+    return this.request<{
+      checkoutUrl: string;
+      sessionId: string;
+    }>('/api/voice-credits/purchase', {
+      method: 'POST',
+      body: JSON.stringify({ packageId }),
     });
   }
 
