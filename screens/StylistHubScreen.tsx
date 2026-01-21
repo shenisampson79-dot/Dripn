@@ -26,7 +26,8 @@ type StylistHubScreenProps = {
 };
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const TILE_SIZE = (SCREEN_WIDTH - Spacing.xl * 2 - Spacing.md) / 2;
+const GRID_GAP = Spacing.md;
+const TILE_SIZE = (SCREEN_WIDTH - Spacing.xl * 2 - GRID_GAP) / 2;
 
 interface StylistFeature {
   id: string;
@@ -399,15 +400,14 @@ const styles = StyleSheet.create({
   featuresGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: Spacing.md,
+    gap: GRID_GAP,
   },
   tileWrapper: {
     width: TILE_SIZE,
+    height: TILE_SIZE,
   },
   featureTile: {
-    width: TILE_SIZE,
-    height: TILE_SIZE,
+    flex: 1,
     borderRadius: BorderRadius.lg,
     overflow: "hidden",
   },
