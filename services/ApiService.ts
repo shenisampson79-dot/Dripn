@@ -1036,22 +1036,46 @@ class ApiService {
     wardrobeItems?: Array<{ id: string; name: string; color: string; category: string }>;
     userGender?: string;
     subscriptionTier?: string;
-  }) {
+  }): Promise<{
+    content: string;
+    mood?: {
+      mood: string;
+      confidence: number;
+      needsSupport: boolean;
+      topicType: string;
+    };
+    stylistId?: string;
+    error?: string;
+  }> {
     const { stylistId, ...rest } = data;
-    return this.request<{
-      content: string;
-      mood: {
+    // Backend returns { response: string, stylist: string, ... }
+    // We need to map 'response' to 'content' for frontend compatibility
+    const result = await this.request<{
+      response?: string;
+      content?: string;
+      stylist?: string;
+      mood?: {
         mood: string;
         confidence: number;
         needsSupport: boolean;
         topicType: string;
       };
-      stylistId: string;
       error?: string;
     }>('/api/chat/message', {
       method: 'POST',
       body: JSON.stringify({ ...rest, stylist: stylistId, message: data.userMessage }),
     });
+    
+    // Log the raw response for debugging
+    console.log('RAW BACKEND RESPONSE:', result);
+    
+    // Map backend 'response' field to frontend 'content' field
+    return {
+      content: result.response || result.content || '',
+      mood: result.mood,
+      stylistId: result.stylist || stylistId,
+      error: result.error,
+    };
   }
 
   async detectMood(message: string) {
