@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Audio } from "expo-av";
+import * as FileSystem from "expo-file-system";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -17,6 +18,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { apiService } from "@/services/ApiService";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
 
 type VoiceConversationScreenProps = {
@@ -58,9 +60,11 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
   const [messages, setMessages] = useState<VoiceMessage[]>([]);
   const [currentTranscript, setCurrentTranscript] = useState("");
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
+  const recordingRef = useRef<Audio.Recording | null>(null);
 
   const stylistName = gender === "female" ? "Ruby" : "Max";
   const stylistResponses = gender === "female" ? RUBY_RESPONSES : MAX_RESPONSES;
@@ -124,46 +128,150 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
       return;
     }
 
+    setError(null);
     setConversationState("listening");
     setCurrentTranscript("");
 
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
 
-    const userTranscript = "What should I wear to a summer wedding?";
-    setCurrentTranscript(userTranscript);
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recordingRef.current = recording;
+    } catch (err) {
+      console.error('[VoiceConversation] Failed to start recording:', err);
+      setError('Failed to start recording');
+      setConversationState("idle");
+    }
+  };
 
-    const userMessage: VoiceMessage = {
-      id: Date.now().toString(),
-      role: "user",
-      text: userTranscript,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, userMessage]);
+  const stopListeningAndTranscribe = async () => {
+    if (!recordingRef.current) {
+      setConversationState("idle");
+      return;
+    }
 
     setConversationState("processing");
+    setCurrentTranscript("Processing your voice...");
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      await recordingRef.current.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+      });
 
-    const randomResponse = stylistResponses[Math.floor(Math.random() * stylistResponses.length)];
-    const stylistMessage: VoiceMessage = {
-      id: (Date.now() + 1).toString(),
-      role: "stylist",
-      text: randomResponse,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, stylistMessage]);
+      const uri = recordingRef.current.getURI();
+      recordingRef.current = null;
 
-    setConversationState("speaking");
+      if (!uri) {
+        throw new Error('No recording URI available');
+      }
 
-    await new Promise(resolve => setTimeout(resolve, 4000));
+      const audioBase64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: 'base64',
+      });
 
-    setConversationState("idle");
+      const mimeType = Platform.OS === 'ios' ? 'audio/mp3' : 'audio/webm';
+      
+      const transcriptionResponse = await apiService.transcribeAudio(audioBase64, mimeType as 'audio/webm' | 'audio/wav' | 'audio/mp3', 'en');
+
+      if (transcriptionResponse.success && transcriptionResponse.text) {
+        const userTranscript = transcriptionResponse.text;
+        setCurrentTranscript(userTranscript);
+
+        const userMessage: VoiceMessage = {
+          id: Date.now().toString(),
+          role: "user",
+          text: userTranscript,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, userMessage]);
+
+        await getStylistResponse(userTranscript);
+      } else {
+        throw new Error('Transcription failed');
+      }
+    } catch (err) {
+      console.error('[VoiceConversation] Transcription error:', err);
+      setError('Failed to transcribe audio. Please try again.');
+      setConversationState("idle");
+      setCurrentTranscript("");
+    }
+  };
+
+  const getStylistResponse = async (userText: string) => {
+    try {
+      const chatResponse = await apiService.sendStylistMessage({
+        stylistId: stylistName.toLowerCase(),
+        messages: [],
+        userMessage: userText,
+        userGender: gender,
+        subscriptionTier: tier,
+      });
+
+      if (chatResponse.content) {
+        const stylistMessage: VoiceMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "stylist",
+          text: chatResponse.content,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, stylistMessage]);
+        setConversationState("speaking");
+        
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        setConversationState("idle");
+      } else {
+        const randomResponse = stylistResponses[Math.floor(Math.random() * stylistResponses.length)];
+        const stylistMessage: VoiceMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "stylist",
+          text: randomResponse,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, stylistMessage]);
+        setConversationState("speaking");
+
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        setConversationState("idle");
+      }
+    } catch (err) {
+      console.error('[VoiceConversation] Chat error:', err);
+      const randomResponse = stylistResponses[Math.floor(Math.random() * stylistResponses.length)];
+      const stylistMessage: VoiceMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "stylist",
+        text: randomResponse,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, stylistMessage]);
+      setConversationState("speaking");
+
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      setConversationState("idle");
+    }
     setCurrentTranscript("");
   };
 
-  const stopConversation = () => {
-    setConversationState("idle");
-    setCurrentTranscript("");
+  const stopConversation = async () => {
+    if (conversationState === "listening" && recordingRef.current) {
+      await stopListeningAndTranscribe();
+    } else {
+      if (recordingRef.current) {
+        try {
+          await recordingRef.current.stopAndUnloadAsync();
+        } catch (e) {
+          console.log('[VoiceConversation] Error stopping recording:', e);
+        }
+        recordingRef.current = null;
+      }
+      setConversationState("idle");
+      setCurrentTranscript("");
+    }
   };
 
   const renderMessage = (message: VoiceMessage) => {

@@ -1190,16 +1190,14 @@ class ApiService {
     });
   }
 
-  async transcribeAudio(audioBase64: string, language?: string) {
+  async transcribeAudio(audio: string, mimeType: 'audio/webm' | 'audio/wav' | 'audio/mp3', language: string = 'en') {
     return this.request<{
       success: boolean;
       text: string;
-      language?: string;
-      duration?: number;
-      modelUsed?: string;
+      language: string;
     }>('/api/ai/transcribe', {
       method: 'POST',
-      body: JSON.stringify({ audioBase64, language }),
+      body: JSON.stringify({ audio, mimeType, language }),
     });
   }
 
