@@ -124,10 +124,16 @@ class ApiService {
       const error = await response.json().catch(() => ({ error: 'Request failed' }));
       let errorMessage = error.error || error.message || '';
       
+      // Log API errors for debugging
+      console.log('=== API ERROR ===');
+      console.log('Status:', response.status);
+      console.log('Endpoint:', endpoint);
+      console.log('Error body:', JSON.stringify(error));
+      
       if (!errorMessage || errorMessage.startsWith('HTTP')) {
         switch (response.status) {
           case 401:
-            errorMessage = 'Invalid email or password. Please try again.';
+            errorMessage = 'Authentication required. Please log in to use this feature.';
             break;
           case 403:
             errorMessage = 'Access denied. Please check your credentials.';
@@ -1048,6 +1054,15 @@ class ApiService {
     error?: string;
   }> {
     const { stylistId, ...rest } = data;
+    
+    // Log request details
+    const token = await this.getToken();
+    console.log('=== SENDING STYLIST MESSAGE ===');
+    console.log('API URL:', API_URL);
+    console.log('Has auth token:', !!token);
+    console.log('Stylist:', stylistId);
+    console.log('Message:', data.userMessage);
+    
     // Backend returns { response: string, stylist: string, ... }
     // We need to map 'response' to 'content' for frontend compatibility
     const result = await this.request<{
@@ -1067,11 +1082,17 @@ class ApiService {
     });
     
     // Log the raw response for debugging
-    console.log('RAW BACKEND RESPONSE:', result);
+    console.log('=== BACKEND RESPONSE ===');
+    console.log('RAW BACKEND RESPONSE:', JSON.stringify(result));
+    console.log('Response field:', result.response);
+    console.log('Content field:', result.content);
     
     // Map backend 'response' field to frontend 'content' field
+    const mappedContent = result.response || result.content || '';
+    console.log('Final mapped content:', mappedContent);
+    
     return {
-      content: result.response || result.content || '',
+      content: mappedContent,
       mood: result.mood,
       stylistId: result.stylist || stylistId,
       error: result.error,

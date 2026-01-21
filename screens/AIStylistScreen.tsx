@@ -1466,16 +1466,26 @@ export default function AIStylistScreen() {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-    } catch (error) {
-      console.log('API call failed for voice, using fallback:', error);
-      const voiceResponses = [
-        `I heard your voice message! Based on what you shared, let me put together some outfit ideas for you. For a versatile look, I'd suggest mixing your favorite pieces with some statement accessories.`,
-        `Thanks for the voice message! I love that you're reaching out. Let me think about some combinations from your wardrobe that would work perfectly for you.`,
-        `Got your voice message! I'm analyzing your request. If you're looking for something specific, feel free to type out the details and I'll create a personalized outfit recommendation.`,
-        `Lovely to hear from you! I'm processing your style request. In the meantime, try our quick prompts below for instant outfit suggestions, or tell me more about what occasion you're dressing for.`,
-      ];
-
-      const responseContent = voiceResponses[Math.floor(Math.random() * voiceResponses.length)];
+    } catch (error: any) {
+      console.log('API call failed for voice:', error);
+      
+      // Check if this is an authentication error
+      const isAuthError = error?.message?.includes('Authentication required') || 
+                          error?.message?.includes('Unauthorized') ||
+                          error?.message?.includes('401');
+      
+      let responseContent: string;
+      if (isAuthError) {
+        responseContent = `I'd love to help you with that! To get personalized fashion advice powered by AI, please sign in to your account. Once you're logged in, I can give you tailored recommendations based on your style profile and wardrobe. Tap the Profile tab to sign in!`;
+      } else {
+        const voiceResponses = [
+          `I heard your voice message! Based on what you shared, let me put together some outfit ideas for you. For a versatile look, I'd suggest mixing your favorite pieces with some statement accessories.`,
+          `Thanks for the voice message! I love that you're reaching out. Let me think about some combinations from your wardrobe that would work perfectly for you.`,
+          `Got your voice message! I'm analyzing your request. If you're looking for something specific, feel free to type out the details and I'll create a personalized outfit recommendation.`,
+          `Lovely to hear from you! I'm processing your style request. In the meantime, try our quick prompts below for instant outfit suggestions, or tell me more about what occasion you're dressing for.`,
+        ];
+        responseContent = voiceResponses[Math.floor(Math.random() * voiceResponses.length)];
+      }
 
       const assistantMessage: ChatMessage = {
         id: `msg_${Date.now()}_assistant`,
@@ -1711,8 +1721,22 @@ export default function AIStylistScreen() {
       console.log('API call failed - Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       console.log('Error message:', error?.message);
       console.log('Error stack:', error?.stack);
-      console.log('Using fallback response');
-      const response = generateAIResponse(text, wardrobeItems, user?.gender || 'unspecified', stylist.name);
+      
+      // Check if this is an authentication error
+      const isAuthError = error?.message?.includes('Authentication required') || 
+                          error?.message?.includes('Unauthorized') ||
+                          error?.message?.includes('401');
+      
+      let response;
+      if (isAuthError) {
+        console.log('Auth error - showing login prompt');
+        response = {
+          content: `I'd love to help you with that! To get personalized fashion advice powered by AI, please sign in to your account. Once you're logged in, I can give you tailored recommendations based on your style profile and wardrobe. Tap the Profile tab to sign in!`,
+        };
+      } else {
+        console.log('Using fallback response');
+        response = generateAIResponse(text, wardrobeItems, user?.gender || 'unspecified', stylist.name);
+      }
       
       const assistantMessage: ChatMessage = {
         id: `msg_${Date.now()}_assistant`,
