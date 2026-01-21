@@ -459,6 +459,15 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.coral, '#C46A4F']}
           />
+          <SettingItem
+            icon="user"
+            title="Body Measurements"
+            subtitle={user?.bodyMeasurements?.height ? `${user.bodyMeasurements.height} ${user.bodyMeasurements.heightUnit}` : 'Not set'}
+            onPress={() => navigation.navigate("BodyMeasurements")}
+            theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.rose, LUXURY_COLORS.violet]}
+          />
         </View>
       </View>
 
