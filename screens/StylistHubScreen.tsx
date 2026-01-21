@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { StyleSheet, View, Pressable, Dimensions } from "react-native";
+import { StyleSheet, View, Pressable, Dimensions, FlatList } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -26,8 +26,9 @@ type StylistHubScreenProps = {
 };
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const GRID_PADDING = Spacing.xl;
 const GRID_GAP = Spacing.md;
-const TILE_SIZE = (SCREEN_WIDTH - Spacing.xl * 2 - GRID_GAP) / 2;
+const TILE_SIZE = Math.floor((SCREEN_WIDTH - GRID_PADDING * 2 - GRID_GAP) / 2);
 
 interface StylistFeature {
   id: string;
@@ -339,9 +340,15 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             ) : null}
           </View>
 
-          <View style={styles.featuresGrid}>
-            {sortedFeatures().map((feature, index) => renderFeatureTile(feature, index))}
-          </View>
+          <FlatList
+            data={sortedFeatures()}
+            renderItem={({ item, index }) => renderFeatureTile(item, index)}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={styles.gridRow}
+            scrollEnabled={false}
+            contentContainerStyle={styles.featuresGrid}
+          />
         </View>
       </ScreenScrollView>
     </View>
@@ -398,16 +405,18 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   featuresGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
     gap: GRID_GAP,
+  },
+  gridRow: {
+    justifyContent: "space-between",
   },
   tileWrapper: {
     width: TILE_SIZE,
     height: TILE_SIZE,
   },
   featureTile: {
-    flex: 1,
+    width: "100%",
+    height: "100%",
     borderRadius: BorderRadius.lg,
     overflow: "hidden",
   },
