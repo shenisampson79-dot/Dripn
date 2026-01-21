@@ -89,13 +89,19 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
   }, []);
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadInitialData = async () => {
       setIsLoading(true);
       await Promise.all([fetchRules(), fetchCategories()]);
       setIsLoading(false);
     };
-    loadData();
-  }, [fetchRules, fetchCategories]);
+    loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) {
+      fetchRules();
+    }
+  }, [selectedCategory]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
