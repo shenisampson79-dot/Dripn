@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { StyleSheet, View, Pressable, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -14,6 +14,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
+import { videoRandomizer } from "@/services/VideoRandomizerService";
 
 const SPACING_XXL = 32;
 
@@ -22,11 +23,10 @@ type SoftSignupGateScreenProps = {
   route: RouteProp<AuthStackParamList, "SoftSignupGate">;
 };
 
-const BACKGROUND_VIDEO = require("../assets/videos/woman_pondering_outfits_on_bed.mp4");
-
 export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGateScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo());
   const fromPath = route.params?.fromPath || "decide_for_me";
 
   const handleCreateAccount = async () => {
@@ -84,7 +84,7 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
     <View style={styles.container}>
       {Platform.OS !== "web" ? (
         <Video
-          source={BACKGROUND_VIDEO}
+          source={backgroundVideo}
           style={StyleSheet.absoluteFillObject}
           resizeMode={ResizeMode.COVER}
           shouldPlay

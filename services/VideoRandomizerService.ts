@@ -1,6 +1,11 @@
-const ALL_BACKGROUND_VIDEOS = [
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const MALE_VIDEOS = [
   require("../assets/videos/asian_man_indecisive_in_store.mp4"),
   require("../assets/videos/black_man_indecisive_in_store.mp4"),
+];
+
+const FEMALE_VIDEOS = [
   require("../assets/videos/asian_woman_indecisive_in_store.mp4"),
   require("../assets/videos/black_woman_indecisive_in_store.mp4"),
   require("../assets/videos/black_woman_choosing_clothes_indecisively.mp4"),
@@ -12,43 +17,110 @@ const ALL_BACKGROUND_VIDEOS = [
   require("../assets/videos/woman_trying_tops_with_closed_mouth.mp4"),
 ];
 
+const ALL_BACKGROUND_VIDEOS = [...MALE_VIDEOS, ...FEMALE_VIDEOS];
+
+const STORAGE_KEY = "video_randomizer_state";
+
+interface RandomizerState {
+  maleIndex: number;
+  femaleIndex: number;
+  shuffledMale: number[];
+  shuffledFemale: number[];
+  lastGender: "male" | "female";
+  timestamp: number;
+}
+
 class VideoRandomizerService {
-  private shuffledVideos: typeof ALL_BACKGROUND_VIDEOS = [];
-  private currentIndex: number = 0;
-  private lastShuffleTime: number = 0;
+  private state: RandomizerState;
+  private initialized: boolean = false;
 
   constructor() {
-    this.reshuffle();
+    this.state = this.createFreshState();
+    this.loadState();
   }
 
-  private reshuffle() {
-    const videos = [...ALL_BACKGROUND_VIDEOS];
-    for (let i = videos.length - 1; i > 0; i--) {
-      const seed = Date.now() + Math.random() * 10000;
-      const j = Math.floor((seed % (i + 1)));
-      [videos[i], videos[j]] = [videos[j], videos[i]];
+  private createFreshState(): RandomizerState {
+    return {
+      maleIndex: 0,
+      femaleIndex: 0,
+      shuffledMale: this.createShuffledIndices(MALE_VIDEOS.length),
+      shuffledFemale: this.createShuffledIndices(FEMALE_VIDEOS.length),
+      lastGender: Math.random() > 0.5 ? "male" : "female",
+      timestamp: Date.now(),
+    };
+  }
+
+  private createShuffledIndices(length: number): number[] {
+    const indices = Array.from({ length }, (_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
     }
-    this.shuffledVideos = videos;
-    this.currentIndex = 0;
-    this.lastShuffleTime = Date.now();
+    return indices;
+  }
+
+  private async loadState() {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as RandomizerState;
+        if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+          this.state = parsed;
+        }
+      }
+    } catch (e) {
+      console.log("Failed to load video randomizer state");
+    }
+    this.initialized = true;
+  }
+
+  private async saveState() {
+    try {
+      this.state.timestamp = Date.now();
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+    } catch (e) {
+      console.log("Failed to save video randomizer state");
+    }
   }
 
   getNextVideo() {
-    if (Date.now() - this.lastShuffleTime > 30 * 60 * 1000) {
-      this.reshuffle();
-    }
-    
-    if (this.currentIndex >= this.shuffledVideos.length) {
-      this.reshuffle();
-    }
+    const useGender = this.state.lastGender === "male" ? "female" : "male";
+    this.state.lastGender = useGender;
 
-    const video = this.shuffledVideos[this.currentIndex];
-    this.currentIndex++;
-    return video;
+    if (useGender === "male") {
+      if (this.state.maleIndex >= this.state.shuffledMale.length) {
+        this.state.shuffledMale = this.createShuffledIndices(MALE_VIDEOS.length);
+        this.state.maleIndex = 0;
+      }
+      const videoIndex = this.state.shuffledMale[this.state.maleIndex];
+      this.state.maleIndex++;
+      this.saveState();
+      return MALE_VIDEOS[videoIndex];
+    } else {
+      if (this.state.femaleIndex >= this.state.shuffledFemale.length) {
+        this.state.shuffledFemale = this.createShuffledIndices(FEMALE_VIDEOS.length);
+        this.state.femaleIndex = 0;
+      }
+      const videoIndex = this.state.shuffledFemale[this.state.femaleIndex];
+      this.state.femaleIndex++;
+      this.saveState();
+      return FEMALE_VIDEOS[videoIndex];
+    }
+  }
+
+  getVideoForSlot(slotId: string): typeof ALL_BACKGROUND_VIDEOS[0] {
+    const hash = slotId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    
+    if (hash % 3 === 0) {
+      return MALE_VIDEOS[hash % MALE_VIDEOS.length];
+    } else {
+      return FEMALE_VIDEOS[hash % FEMALE_VIDEOS.length];
+    }
   }
 
   reset() {
-    this.reshuffle();
+    this.state = this.createFreshState();
+    this.saveState();
   }
 }
 
