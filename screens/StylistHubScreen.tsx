@@ -28,13 +28,15 @@ type StylistHubScreenProps = {
 
 const GRID_GAP = Spacing.md;
 
+type GradientKey = 'primary' | 'secondary' | 'accent' | 'warm' | 'cool';
+
 interface StylistFeature {
   id: string;
   title: string;
   description: string;
   icon: keyof typeof Feather.glyphMap;
   screen: keyof UserStylistStackParamList;
-  gradientColors: readonly [string, string];
+  gradientKey: GradientKey;
   category: "stylist" | "wardrobe" | "tools";
   premium?: boolean;
 }
@@ -46,7 +48,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "Chat with your AI stylist",
     icon: "message-circle",
     screen: "AIStylist",
-    gradientColors: ["#667eea", "#764ba2"] as const,
+    gradientKey: "primary",
     category: "stylist",
   },
   {
@@ -55,7 +57,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "Talk to Ruby or Max",
     icon: "headphones",
     screen: "VoiceConversation",
-    gradientColors: ["#667eea", "#764ba2"] as const,
+    gradientKey: "primary",
     category: "stylist",
   },
   {
@@ -64,7 +66,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "Digitize your closet",
     icon: "grid",
     screen: "Wardrobe",
-    gradientColors: ["#11998e", "#38ef7d"] as const,
+    gradientKey: "secondary",
     category: "wardrobe",
   },
   {
@@ -73,7 +75,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "Plan your looks ahead",
     icon: "calendar",
     screen: "OutfitCalendar",
-    gradientColors: ["#4facfe", "#00f2fe"] as const,
+    gradientKey: "cool",
     category: "wardrobe",
   },
   {
@@ -82,7 +84,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "AI-generated looks",
     icon: "image",
     screen: "DreamOutfitGenerator",
-    gradientColors: ["#f093fb", "#f5576c"] as const,
+    gradientKey: "accent",
     category: "stylist",
     premium: true,
   },
@@ -92,7 +94,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "Dress for the forecast",
     icon: "cloud",
     screen: "WeatherOutfit",
-    gradientColors: ["#667eea", "#764ba2"] as const,
+    gradientKey: "primary",
     category: "wardrobe",
   },
   {
@@ -101,7 +103,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "Discover your style",
     icon: "git-branch",
     screen: "StyleDNA",
-    gradientColors: ["#f093fb", "#f5576c"] as const,
+    gradientKey: "accent",
     category: "tools",
   },
   {
@@ -110,7 +112,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "Find your best colors",
     icon: "droplet",
     screen: "ColorAnalysis",
-    gradientColors: ["#f093fb", "#f5576c"] as const,
+    gradientKey: "accent",
     category: "tools",
   },
   {
@@ -119,7 +121,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "Perfect fit insights",
     icon: "maximize",
     screen: "BodyScanner",
-    gradientColors: ["#667eea", "#764ba2"] as const,
+    gradientKey: "primary",
     category: "tools",
     premium: true,
   },
@@ -129,7 +131,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "Style with friends",
     icon: "users",
     screen: "SocialStyleSync",
-    gradientColors: ["#11998e", "#38ef7d"] as const,
+    gradientKey: "secondary",
     category: "stylist",
   },
   {
@@ -138,7 +140,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "Fashion tips & guides",
     icon: "book-open",
     screen: "FashionBlog",
-    gradientColors: ["#ff6b6b", "#ee5a5a"] as const,
+    gradientKey: "warm",
     category: "tools",
   },
   {
@@ -147,12 +149,23 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "Saved items & deals",
     icon: "heart",
     screen: "Wishlist",
-    gradientColors: ["#D4AF37", "#B8860B"] as const,
+    gradientKey: "warm",
     category: "wardrobe",
   },
 ];
 
 const TILES_ORDER_KEY = "@stylist_tiles_order";
+
+const getGradientColors = (key: GradientKey, palette: any): readonly [string, string] => {
+  const gradientMap: Record<GradientKey, readonly [string, string]> = {
+    primary: palette.gradientPrimary,
+    secondary: palette.gradientSecondary,
+    accent: palette.gradientAccent,
+    warm: palette.gradientWarm,
+    cool: palette.gradientCool,
+  };
+  return gradientMap[key];
+};
 
 export default function StylistHubScreen({ navigation }: StylistHubScreenProps) {
   const { theme } = useTheme();
@@ -261,7 +274,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
           ]}
         >
           <LinearGradient
-            colors={feature.gradientColors}
+            colors={getGradientColors(feature.gradientKey, palette)}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.tileGradient}
