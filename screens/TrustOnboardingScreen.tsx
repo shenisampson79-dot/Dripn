@@ -29,6 +29,13 @@ const BACKGROUND_VIDEOS = [
   require("../assets/videos/woman_comparing_two_dresses_held_firmly.mp4"),
 ];
 
+const getRandomVideo = () => {
+  const timeBasedSeed = Date.now() % 1000;
+  const randomFactor = Math.random() * 1000;
+  const combinedRandom = (timeBasedSeed + randomFactor) % BACKGROUND_VIDEOS.length;
+  return BACKGROUND_VIDEOS[Math.floor(combinedRandom)];
+};
+
 type TrustOnboardingScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "TrustOnboarding">;
 };
@@ -184,7 +191,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
   const videoRef = useRef<Video>(null);
   
   const [trustMessage] = useState(() => getRandomContent(ALL_TRUST_MESSAGES));
-  const [backgroundVideo] = useState(() => BACKGROUND_VIDEOS[Math.floor(Math.random() * BACKGROUND_VIDEOS.length)]);
+  const [backgroundVideo] = useState(() => getRandomVideo());
   
   const [messageVariationId] = useState(() => `trust_${ALL_TRUST_MESSAGES.indexOf(trustMessage) + 1}`);
   
