@@ -10,6 +10,7 @@ import UploadInstructionsScreen from "@/screens/UploadInstructionsScreen";
 import ConfirmationScreen from "@/screens/ConfirmationScreen";
 import AuthScreen from "@/screens/AuthScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
+import OnboardingQuizScreen from "@/screens/OnboardingQuizScreen";
 import OnboardingStyleQuizScreen from "@/screens/OnboardingStyleQuizScreen";
 import StyleQuizOnboardingScreen from "@/screens/StyleQuizOnboardingScreen";
 import SuggestedFollowsScreen from "@/screens/SuggestedFollowsScreen";
@@ -27,6 +28,7 @@ export type AuthStackParamList = {
   Confirmation: { type: "outfit" | "core" };
   Auth: { mode: 'login' | 'signup' };
   Onboarding: undefined;
+  OnboardingQuiz: undefined;
   OnboardingStyleQuiz: undefined;
   StyleQuizOnboarding: undefined;
   SuggestedFollows: undefined;
@@ -59,6 +61,7 @@ export default function AuthStackNavigator({ initialRouteName = "Welcome" }: Aut
       <Stack.Screen name="Confirmation" component={ConfirmationScreen} />
       <Stack.Screen name="Auth" component={AuthScreen} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+      <Stack.Screen name="OnboardingQuiz" component={OnboardingQuizScreen} />
       <Stack.Screen name="OnboardingStyleQuiz" component={OnboardingStyleQuizScreen} />
       <Stack.Screen name="StyleQuizOnboarding" component={StyleQuizOnboardingScreen} />
       <Stack.Screen name="SuggestedFollows" component={SuggestedFollowsScreen} />

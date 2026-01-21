@@ -22,10 +22,10 @@ import {
   WeightUnit,
   BudgetRange
 } from "@/contexts/AuthContext";
-import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 
 type OnboardingQuizScreenProps = {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, "OnboardingQuiz">;
+  navigation: NativeStackNavigationProp<AuthStackParamList, "OnboardingQuiz">;
 };
 
 const LIFESTYLE_OPTIONS: { id: Lifestyle; name: string; icon: keyof typeof Feather.glyphMap; description: string }[] = [
@@ -196,7 +196,7 @@ export default function OnboardingQuizScreen({ navigation }: OnboardingQuizScree
         budgetRange,
       });
 
-      navigation.goBack();
+      navigation.replace("OnboardingStyleQuiz");
     } catch (error) {
       console.error('Failed to save quiz:', error);
     } finally {
