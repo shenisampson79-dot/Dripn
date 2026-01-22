@@ -69,6 +69,7 @@ export default function StyleQuizOnboardingScreen({ navigation }: StyleQuizOnboa
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        bottomOffset={Spacing.xl + insets.bottom}
       >
         <View style={styles.header}>
           <View style={styles.backButtonPlaceholder} />
