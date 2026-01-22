@@ -64,15 +64,6 @@ const ALL_FEATURES: StylistFeature[] = [
     category: "stylist",
   },
   {
-    id: "wardrobe",
-    title: "My Wardrobe",
-    description: "Digitize your closet",
-    icon: "grid",
-    screen: "Wardrobe",
-    gradientKey: "secondary",
-    category: "wardrobe",
-  },
-  {
     id: "outfit-calendar",
     title: "Outfit Calendar",
     description: "Plan your looks ahead",
