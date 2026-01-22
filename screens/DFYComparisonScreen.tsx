@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -13,6 +13,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import * as WebBrowser from "expo-web-browser";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSequence, 
+  withTiming,
+  withSpring,
+} from "react-native-reanimated";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -55,11 +62,40 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
   const [selectedTier, setSelectedTier] = useState<DFYTier>('lite');
   const [isProcessing, setIsProcessing] = useState(false);
   const tiers = dfyService.getComparisonTiers();
+  
+  const liteGlow = useSharedValue(0);
+  const coreGlow = useSharedValue(0);
+  const liteScale = useSharedValue(1);
+  const coreScale = useSharedValue(1);
 
   const handleTierSelect = (tierId: DFYTier) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelectedTier(tierId);
+    
+    const glowValue = tierId === 'lite' ? liteGlow : coreGlow;
+    const scaleValue = tierId === 'lite' ? liteScale : coreScale;
+    
+    glowValue.value = withSequence(
+      withTiming(1, { duration: 150 }),
+      withTiming(0.6, { duration: 300 })
+    );
+    scaleValue.value = withSequence(
+      withSpring(1.02, { damping: 10 }),
+      withSpring(1, { damping: 15 })
+    );
   };
+  
+  const liteAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: liteScale.value }],
+    shadowOpacity: liteGlow.value * 0.8,
+    shadowRadius: 20 * liteGlow.value,
+  }));
+  
+  const coreAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: coreScale.value }],
+    shadowOpacity: coreGlow.value * 0.8,
+    shadowRadius: 20 * coreGlow.value,
+  }));
 
   const handleContinue = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -102,29 +138,38 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
   const renderTierCard = (tier: DFYComparisonTier) => {
     const isSelected = selectedTier === tier.id;
     const isLite = tier.id === 'lite';
+    const animatedStyle = isLite ? liteAnimatedStyle : coreAnimatedStyle;
+    const glowColor = isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold;
 
     return (
-      <Pressable
+      <Animated.View 
         key={tier.id}
-        onPress={() => handleTierSelect(tier.id)}
-        style={({ pressed }) => [
+        style={[
           styles.tierCard,
-          {
-            opacity: pressed ? 0.95 : 1,
-            transform: [{ scale: pressed ? 0.99 : 1 }],
+          animatedStyle,
+          { 
+            shadowColor: glowColor,
+            shadowOffset: { width: 0, height: 0 },
           },
         ]}
       >
-        <LinearGradient
-          colors={isLite 
-            ? [LUXURY_COLORS.teal, LUXURY_COLORS.emerald]
-            : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
-          }
-          style={[
-            styles.tierCardGradient,
-            isSelected && styles.tierCardSelected,
+        <Pressable
+          onPress={() => handleTierSelect(tier.id)}
+          style={({ pressed }) => [
+            styles.tierCardPressable,
+            { opacity: pressed ? 0.95 : 1 },
           ]}
         >
+          <LinearGradient
+            colors={isLite 
+              ? [LUXURY_COLORS.teal, LUXURY_COLORS.emerald]
+              : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
+            }
+            style={[
+              styles.tierCardGradient,
+              isSelected && styles.tierCardSelected,
+            ]}
+          >
           <View style={styles.tierHeader}>
             <View>
               <View style={styles.tierNameRow}>
@@ -192,13 +237,14 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
             ))}
           </View>
 
-          {isSelected ? (
-            <View style={styles.selectedIndicator}>
-              <Feather name="check" size={20} color={isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold} />
-            </View>
-          ) : null}
-        </LinearGradient>
-      </Pressable>
+            {isSelected ? (
+              <View style={styles.selectedIndicator}>
+                <Feather name="check" size={20} color={isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold} />
+              </View>
+            ) : null}
+          </LinearGradient>
+        </Pressable>
+      </Animated.View>
     );
   };
 
@@ -338,6 +384,10 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
   },
   tierCard: {
+    borderRadius: BorderRadius.xl,
+    overflow: 'visible',
+  },
+  tierCardPressable: {
     borderRadius: BorderRadius.xl,
     overflow: 'hidden',
   },
