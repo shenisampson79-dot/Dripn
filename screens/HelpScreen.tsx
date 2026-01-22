@@ -49,7 +49,7 @@ const FAQ_DATA: FAQCategory[] = [
       {
         id: 'g1',
         question: 'What is Dripn?',
-        answer: 'Dripn is your personal fashion companion that helps you discover your unique style. Post outfit photos, get advice from our AI stylist and community, explore trends, and build confidence in your fashion choices.',
+        answer: 'Dripn is your personal fashion decision engine that helps you confidently decide what to wear. Get instant outfit advice from AI stylists with distinct personalities, manage your digital wardrobe, and discover your unique style.',
       },
       {
         id: 'g2',
@@ -59,7 +59,7 @@ const FAQ_DATA: FAQCategory[] = [
       {
         id: 'g3',
         question: 'How do I get started?',
-        answer: 'Simply create an account, complete our quick style quiz to help us understand your preferences, and start exploring! You can post your outfits, browse the community feed, or chat with your AI stylist right away.',
+        answer: 'Simply create an account, complete our quick style quiz to help us understand your preferences, and start exploring! You can upload your wardrobe, ask your AI stylist for outfit advice, or get a personalised lookbook right away.',
       },
       {
         id: 'g4',
@@ -108,22 +108,22 @@ const FAQ_DATA: FAQCategory[] = [
       {
         id: 's1',
         question: 'What subscription plans are available?',
-        answer: 'We offer four tiers: Free (basic features), Basic (more uploads and AI advice), Premium (unlimited features and priority support), and VIP (everything plus personal stylist video sessions).',
+        answer: 'We offer four tiers: Free (basic AI styling features), Style Chat at 9.99 per month (extended AI conversations and voice chat), Personal Stylist at 14.99 per month (unlimited AI advice, virtual try-on, and priority support), and Stylist Unlimited at 19.99 per month (everything plus personal stylist video sessions and exclusive features).',
       },
       {
         id: 's2',
         question: 'How do I upgrade my subscription?',
-        answer: 'Go to Profile, then Settings, then Subscription to view all plans and upgrade. Payments are processed securely through your app store.',
+        answer: 'Go to Settings, then Subscription to view all plans and upgrade. Payments are processed securely through Stripe.',
       },
       {
         id: 's3',
         question: 'How do I cancel my subscription?',
-        answer: 'You can cancel anytime through your device settings. On iOS, go to Settings, then your name, then Subscriptions. On Android, go to Google Play Store, then Subscriptions. You will keep access until the end of your billing period.',
+        answer: 'You can cancel anytime from Settings, then Subscription. You will keep access to your current tier features until the end of your billing period.',
       },
       {
         id: 's4',
         question: 'Will I get a refund if I cancel?',
-        answer: 'Refunds are handled by Apple or Google based on their policies. For any billing concerns, please contact our support team through the Chat with Julia button below, and we will do our best to help.',
+        answer: 'Refunds are handled on a case-by-case basis. For any billing concerns, please contact our support team through the Chat with Julia button below, and we will do our best to help.',
       },
       {
         id: 's5',
@@ -133,7 +133,7 @@ const FAQ_DATA: FAQCategory[] = [
       {
         id: 's6',
         question: 'Do you offer a free trial?',
-        answer: 'Yes! New users can enjoy a 7-day free trial of Premium features. You can start your trial from the Subscription screen.',
+        answer: 'Yes! New users can enjoy a 7-day free trial of Personal Stylist features. You can start your trial from the Subscription screen.',
       },
     ],
   },
@@ -145,17 +145,17 @@ const FAQ_DATA: FAQCategory[] = [
       {
         id: 'ai1',
         question: 'How does the AI stylist work?',
-        answer: 'Our AI stylist analyzes your photos, considers your style preferences, body type, and the occasion to provide personalized outfit advice. The more you use it, the better it understands your taste!',
+        answer: 'Our AI stylists (Ruby, Max, Ace, and Ivy) each have unique personalities and styling approaches. They analyze your photos, consider your style preferences, body type, and the occasion to provide personalized outfit advice. The more you use it, the better they understand your taste!',
       },
       {
         id: 'ai2',
         question: 'What is Virtual Try-On?',
-        answer: 'Virtual Try-On uses advanced AI to show you how clothes would look on your body. Upload a photo of yourself and a garment, and see the magic happen! This feature is available for Premium and VIP members.',
+        answer: 'Virtual Try-On uses advanced AI to show you how clothes would look on your body. Upload a photo of yourself and a garment, and see the magic happen! This feature is available for Personal Stylist and Stylist Unlimited members.',
       },
       {
         id: 'ai3',
-        question: 'How do voice comments work?',
-        answer: 'You can record voice comments on posts instead of typing. Our AI automatically transcribes them so everyone can read along. Just tap the microphone icon when commenting.',
+        question: 'How do voice conversations work?',
+        answer: 'You can have voice conversations with your AI stylist instead of typing. Each stylist has their own unique voice. Just tap the microphone icon to start a voice chat.',
       },
       {
         id: 'ai4',
@@ -165,7 +165,7 @@ const FAQ_DATA: FAQCategory[] = [
       {
         id: 'ai5',
         question: 'Can I limit AI suggestions?',
-        answer: 'Yes! In Settings, you can toggle Style Suggestions on or off. When off, you will only receive feedback from community members.',
+        answer: 'Yes! In Settings, you can toggle Style Suggestions on or off to control when you receive AI styling advice.',
       },
     ],
   },
@@ -177,22 +177,22 @@ const FAQ_DATA: FAQCategory[] = [
       {
         id: 'p1',
         question: 'What data does Dripn collect?',
-        answer: 'We collect information you provide (profile, photos, preferences) and usage data to improve your experience. We never sell your personal data. See our Privacy Policy for full details.',
+        answer: 'We collect information you provide (profile, wardrobe photos, preferences) and usage data to improve your experience. We never sell your personal data. See our Privacy Policy for full details.',
       },
       {
         id: 'p2',
         question: 'Are my photos private?',
-        answer: 'Photos you post to the community feed are visible to other users. Photos used for AI features (like Virtual Try-On) are processed securely and not shared publicly.',
+        answer: 'Yes! All your wardrobe photos and outfit images are private by default. Photos used for AI features (like Virtual Try-On) are processed securely and never shared.',
       },
       {
         id: 'p3',
         question: 'How do I delete my data?',
-        answer: 'You can delete individual posts from your profile. To delete all your data, you can request a full data deletion through Settings or by contacting our support team.',
+        answer: 'You can delete individual items from your wardrobe. To delete all your data, you can request a full data deletion through Settings or by contacting our support team.',
       },
       {
         id: 'p4',
         question: 'Is my payment information secure?',
-        answer: 'Absolutely. All payments are processed through Apple or Google, or our secure payment partner Stripe. We never see or store your full payment details.',
+        answer: 'Absolutely. All payments are processed through our secure payment partner Stripe. We never see or store your full payment details.',
       },
       {
         id: 'p5',

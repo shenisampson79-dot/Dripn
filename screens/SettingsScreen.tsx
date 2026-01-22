@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Pressable, Alert, Linking, Platform, Switch, ActivityIndicator, Modal, ScrollView } from "react-native";
+import { StyleSheet, View, Pressable, Alert, Linking, Platform, Switch, ActivityIndicator, Modal, ScrollView, TextInput } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -151,6 +151,44 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const [pantoneLoading, setPantoneLoading] = useState(true);
   const [dfyAccess, setDfyAccess] = useState<DFYAccessStatus | null>(null);
   const [dfyLoading, setDfyLoading] = useState(false);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
+
+  const ALL_COUNTRIES = [
+    "Albania", "Andorra", "Antigua and Barbuda", "Argentina", "Armenia", "Australia",
+    "Austria", "Azerbaijan", "Bahamas", "Bangladesh", "Barbados", "Belarus", "Belgium",
+    "Belize", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Bulgaria",
+    "Canada", "Cayman Islands", "Chile", "China", "Colombia", "Costa Rica", "Croatia",
+    "Cuba", "Curacao", "Cyprus", "Czech Republic", "Denmark", "Dominica", "Dominican Republic",
+    "Ecuador", "Egypt", "El Salvador", "Estonia", "Ethiopia", "Fiji", "Finland", "France",
+    "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guyana", "Haiti",
+    "Honduras", "Hong Kong", "Hungary", "Iceland", "India", "Indonesia", "Ireland", "Israel",
+    "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kuwait", "Latvia",
+    "Lebanon", "Lithuania", "Luxembourg", "Macau", "Malaysia", "Maldives", "Malta", "Mauritius",
+    "Mexico", "Monaco", "Montenegro", "Morocco", "Nepal", "Netherlands", "New Zealand", "Nicaragua",
+    "Nigeria", "North Macedonia", "Norway", "Oman", "Pakistan", "Panama", "Paraguay", "Peru",
+    "Philippines", "Poland", "Portugal", "Puerto Rico", "Qatar", "Romania", "Russia", "Rwanda",
+    "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "San Marino",
+    "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Singapore", "Slovakia", "Slovenia",
+    "South Africa", "South Korea", "Spain", "Sri Lanka", "Sweden", "Switzerland", "Taiwan",
+    "Tanzania", "Thailand", "Trinidad and Tobago", "Tunisia", "Turkey", "UAE", "Uganda", "Ukraine",
+    "United Kingdom", "United States", "Uruguay", "Vatican City", "Venezuela", "Vietnam", "Zambia", "Zimbabwe",
+  ];
+
+  const filteredCountries = ALL_COUNTRIES.filter(c =>
+    c.toLowerCase().includes(countrySearch.toLowerCase())
+  );
+
+  const handleSelectCountry = async (selectedCountry: string) => {
+    setShowCountryPicker(false);
+    setCountrySearch("");
+    try {
+      await updateProfile({ country: selectedCountry });
+    } catch (error) {
+      console.error('Failed to update country:', error);
+      Alert.alert("Error", "Failed to update country. Please try again.");
+    }
+  };
 
   const loadDFYAccess = async () => {
     if (!user?.id) return;
@@ -471,8 +509,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <SettingItem
             icon="map-pin"
             title="Country"
-            subtitle={user?.country}
-            onPress={() => {}}
+            subtitle={user?.country || "Not set"}
+            onPress={() => setShowCountryPicker(true)}
             theme={theme}
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.coral, '#C46A4F']}
@@ -1099,6 +1137,78 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           </View>
         </Pressable>
       </Modal>
+
+      <Modal
+        visible={showCountryPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          setShowCountryPicker(false);
+          setCountrySearch("");
+        }}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => {
+            setShowCountryPicker(false);
+            setCountrySearch("");
+          }}
+        >
+          <View style={[styles.countryModalContent, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={isDark 
+                ? [LUXURY_COLORS.coral + '30', 'transparent'] 
+                : [LUXURY_COLORS.coral + '15', 'transparent']
+              }
+              style={styles.modalHeaderGradient}
+            >
+              <View style={styles.modalHeader}>
+                <ThemedText type="h3" style={styles.modalTitle}>
+                  Select Country
+                </ThemedText>
+                <Pressable 
+                  onPress={() => {
+                    setShowCountryPicker(false);
+                    setCountrySearch("");
+                  }} 
+                  style={[styles.modalCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+                >
+                  <Feather name="x" size={20} color={theme.text} />
+                </Pressable>
+              </View>
+            </LinearGradient>
+            <View style={styles.searchContainer}>
+              <Feather name="search" size={18} color={theme.tabIconDefault} style={{ marginRight: Spacing.sm }} />
+              <TextInput
+                style={[styles.searchInput, { backgroundColor: 'transparent', color: theme.text, flex: 1 }]}
+                value={countrySearch}
+                onChangeText={setCountrySearch}
+                placeholder="Search countries..."
+                placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
+                autoCapitalize="none"
+              />
+            </View>
+            <ScrollView style={styles.countryListScroll} showsVerticalScrollIndicator={false}>
+              {filteredCountries.map((c) => (
+                <Pressable
+                  key={c}
+                  onPress={() => handleSelectCountry(c)}
+                  style={({ pressed }) => [
+                    styles.countryItem,
+                    { backgroundColor: pressed ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)') : 'transparent' },
+                    user?.country === c && { backgroundColor: LUXURY_COLORS.coral + '20' },
+                  ]}
+                >
+                  <ThemedText type="body">{c}</ThemedText>
+                  {user?.country === c ? (
+                    <Feather name="check" size={20} color={LUXURY_COLORS.coral} />
+                  ) : null}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
       </ScreenScrollView>
     </View>
   );
@@ -1317,5 +1427,35 @@ const styles = StyleSheet.create({
   modalOptionSubtext: {
     opacity: 0.6,
     marginRight: Spacing.md,
+  },
+  countryModalContent: {
+    width: '90%',
+    maxHeight: '70%',
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(128,128,128,0.2)',
+  },
+  searchInput: {
+    fontSize: 16,
+    paddingVertical: Spacing.sm,
+  },
+  countryListScroll: {
+    paddingHorizontal: Spacing.md,
+    maxHeight: 400,
+  },
+  countryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    marginVertical: 2,
   },
 });
