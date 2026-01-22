@@ -2285,8 +2285,8 @@ export default function AIStylistScreen() {
           style={styles.flatList}
         />
         <KeyboardStickyView 
-          offset={{ closed: TAB_BAR_HEIGHT + insets.bottom, opened: 0 }}
-          style={styles.inputBarAbsolute}
+          offset={{ closed: 0, opened: 0 }}
+          style={[styles.inputBarAbsolute, { bottom: TAB_BAR_HEIGHT + insets.bottom }]}
         >
           <View style={{ backgroundColor: theme.backgroundDefault }}>
             {renderInputBar()}
