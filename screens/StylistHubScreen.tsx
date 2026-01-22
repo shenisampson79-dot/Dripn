@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { StyleSheet, View, Pressable } from "react-native";
+import { StyleSheet, View, Pressable, Dimensions } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -11,8 +11,11 @@ import Animated, {
   withRepeat, 
   withSequence, 
   withTiming,
+  withSpring,
   cancelAnimation,
+  runOnJS,
 } from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -237,9 +240,14 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
     });
   }, [tilesOrder]);
 
+  const TILE_HEIGHT = 140;
+  
   const AnimatedTile = ({ feature, index }: { feature: StylistFeature; index: number }) => {
     const rotation = useSharedValue(0);
     const scale = useSharedValue(1);
+    const translateY = useSharedValue(0);
+    const zIndex = useSharedValue(0);
+    const isDragging = useSharedValue(false);
     
     useEffect(() => {
       if (isEditMode) {
@@ -259,60 +267,116 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
         cancelAnimation(rotation);
         rotation.value = withTiming(0, { duration: 100 });
         scale.value = withTiming(1, { duration: 150 });
+        translateY.value = withSpring(0);
       }
     }, [isEditMode]);
+    
+    const handleMoveUp = () => {
+      if (index > 0) {
+        moveTile(index, index - 1);
+      }
+    };
+    
+    const handleMoveDown = () => {
+      if (index < sortedFeatures().length - 1) {
+        moveTile(index, index + 1);
+      }
+    };
+    
+    const longPressGesture = Gesture.LongPress()
+      .minDuration(400)
+      .onStart(() => {
+        runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
+        runOnJS(setIsEditMode)(true);
+      });
+    
+    const panGesture = Gesture.Pan()
+      .enabled(isEditMode)
+      .onStart(() => {
+        isDragging.value = true;
+        zIndex.value = 100;
+        scale.value = withSpring(1.05);
+        runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
+      })
+      .onUpdate((event) => {
+        translateY.value = event.translationY;
+        
+        const movedPositions = Math.round(event.translationY / TILE_HEIGHT);
+        if (movedPositions !== 0) {
+          const newIndex = index + movedPositions;
+          if (newIndex >= 0 && newIndex < sortedFeatures().length && newIndex !== index) {
+            runOnJS(moveTile)(index, newIndex);
+            translateY.value = 0;
+          }
+        }
+      })
+      .onEnd(() => {
+        isDragging.value = false;
+        zIndex.value = 0;
+        translateY.value = withSpring(0);
+        scale.value = withSpring(0.95);
+      });
+    
+    const composedGesture = Gesture.Race(longPressGesture, panGesture);
     
     const animatedStyle = useAnimatedStyle(() => ({
       transform: [
         { rotate: `${rotation.value}deg` },
         { scale: scale.value },
+        { translateY: translateY.value },
       ],
+      zIndex: zIndex.value,
     }));
     
     return (
       <Animated.View style={[styles.tileWrapper, animatedStyle]}>
-        <Pressable
-          onPress={() => handleFeaturePress(feature)}
-          onLongPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            setIsEditMode(true);
-          }}
-          style={({ pressed }) => [
-            styles.featureTile,
-            { opacity: pressed && !isEditMode ? 0.8 : 1 },
-          ]}
-        >
-          <LinearGradient
-            colors={getGradientColors(feature.gradientKey, palette)}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.tileGradient}
+        <GestureDetector gesture={composedGesture}>
+          <Pressable
+            onPress={() => handleFeaturePress(feature)}
+            style={({ pressed }) => [
+              styles.featureTile,
+              { opacity: pressed && !isEditMode ? 0.8 : 1 },
+            ]}
           >
-            <View style={styles.iconContainer}>
-              <Feather name={feature.icon} size={36} color="#FFFFFF" />
-            </View>
-            <View style={styles.tileContent}>
-              <ThemedText type="body" style={styles.tileTitle}>
-                {feature.title}
-              </ThemedText>
-              <ThemedText type="caption" style={styles.tileDescription}>
-                {feature.description}
-              </ThemedText>
-            </View>
-            
-            {feature.premium && tier === "free" ? (
-              <View style={styles.premiumBadge}>
-                <Feather name="star" size={12} color={LuxuryColors.gold} />
+            <LinearGradient
+              colors={getGradientColors(feature.gradientKey, palette)}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.tileGradient}
+            >
+              <View style={styles.iconContainer}>
+                <Feather name={feature.icon} size={36} color="#FFFFFF" />
               </View>
-            ) : null}
-            
-            {isEditMode ? (
-              <View style={styles.dragHandle}>
-                <Feather name="move" size={16} color="rgba(255,255,255,0.8)" />
+              <View style={styles.tileContent}>
+                <ThemedText type="body" style={styles.tileTitle}>
+                  {feature.title}
+                </ThemedText>
+                <ThemedText type="caption" style={styles.tileDescription}>
+                  {feature.description}
+                </ThemedText>
               </View>
-            ) : null}
-          </LinearGradient>
-        </Pressable>
+              
+              {isEditMode ? (
+                <View style={styles.editControls}>
+                  <Pressable 
+                    onPress={handleMoveUp}
+                    style={[styles.moveButton, index === 0 && styles.moveButtonDisabled]}
+                    disabled={index === 0}
+                  >
+                    <Feather name="chevron-up" size={20} color={index === 0 ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.9)"} />
+                  </Pressable>
+                  <Pressable 
+                    onPress={handleMoveDown}
+                    style={[styles.moveButton, index === sortedFeatures().length - 1 && styles.moveButtonDisabled]}
+                    disabled={index === sortedFeatures().length - 1}
+                  >
+                    <Feather name="chevron-down" size={20} color={index === sortedFeatures().length - 1 ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.9)"} />
+                  </Pressable>
+                </View>
+              ) : null}
+            </LinearGradient>
+          </Pressable>
+        </GestureDetector>
       </Animated.View>
     );
   };
@@ -484,6 +548,24 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.25)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  editControls: {
+    position: "absolute",
+    top: Spacing.sm,
+    right: Spacing.sm,
+    flexDirection: "row",
+    gap: 4,
+  },
+  moveButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  moveButtonDisabled: {
+    opacity: 0.5,
   },
   dragHandle: {
     position: "absolute",
