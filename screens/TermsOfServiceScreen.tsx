@@ -16,12 +16,12 @@ export default function TermsOfServiceScreen() {
           Effective Date: December 7, 2025
         </ThemedText>
         <ThemedText type="small" style={styles.lastUpdated}>
-          Last Updated: December 7, 2025
+          Last Updated: January 22, 2026
         </ThemedText>
 
         <View style={styles.welcomeSection}>
           <ThemedText type="body" style={styles.welcomeText}>
-            We believe in building a supportive community where everyone feels welcome. These terms are designed to create a safe, positive space for all members to explore and express their personal style.
+            We believe in helping you make confident fashion decisions. These terms are designed to ensure you have a seamless, personalised styling experience.
           </ThemedText>
           <ThemedText type="body" style={styles.welcomeText}>
             We have tried to make this document as clear and straightforward as possible. If anything is unclear, please reach out - we are always happy to explain.
@@ -65,20 +65,20 @@ export default function TermsOfServiceScreen() {
             2. Description of Service
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            Dripn is a fashion advice platform that enables users to:
+            Dripn is a personal fashion decision engine that enables users to:
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Post outfit photos and videos for feedback.
+              Receive instant AI-powered outfit recommendations.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Receive AI-powered fashion recommendations.
+              Chat with personalised AI stylists for fashion advice.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Engage with a community of fashion enthusiasts.
+              Build and manage a digital wardrobe.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Access personalized styling advice based on preferences.
+              Access personalised styling advice based on your preferences.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
               Discover fashion deals, events, and trends.
@@ -224,7 +224,7 @@ export default function TermsOfServiceScreen() {
               App Store and Google Play Store promotional materials.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Website and blog content showcasing community style.
+              Website and blog content showcasing style examples.
             </ThemedText>
           </View>
           <ThemedText type="body" style={styles.paragraph}>

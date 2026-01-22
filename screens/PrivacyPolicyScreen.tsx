@@ -16,7 +16,7 @@ export default function PrivacyPolicyScreen() {
           Effective Date: December 7, 2025
         </ThemedText>
         <ThemedText type="small" style={styles.lastUpdated}>
-          Last Updated: December 7, 2025
+          Last Updated: January 22, 2026
         </ThemedText>
 
         <View style={styles.welcomeSection}>
@@ -116,7 +116,7 @@ export default function PrivacyPolicyScreen() {
               Display regionally and gender-appropriate fashion content.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Send notifications about your account, posts, and community activity.
+              Send notifications about your account and styling updates.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
               Respond to your inquiries and provide customer support.
@@ -165,7 +165,7 @@ export default function PrivacyPolicyScreen() {
               With service providers: Payment processors (Stripe), email services (SendGrid), analytics, and cloud hosting providers who assist in operating our Service.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              With the community: Content you post publicly is visible to other users.
+              With AI services: Your styling data is processed by our AI systems to provide personalised recommendations.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
               For legal reasons: When required by law, court order, or to protect rights and safety.
