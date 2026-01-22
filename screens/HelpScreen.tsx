@@ -152,11 +152,6 @@ const FAQ_DATA: FAQCategory[] = [
         question: 'What is Color Analysis?',
         answer: 'Color Analysis helps you discover which colors complement your skin tone, hair, and eyes. Our AI determines your color season (Spring, Summer, Autumn, or Winter) and recommends the most flattering shades for you.',
       },
-      {
-        id: 'ai5',
-        question: 'Can I limit AI suggestions?',
-        answer: 'Yes! In Settings, you can toggle Style Suggestions on or off to control when you receive AI styling advice.',
-      },
     ],
   },
   {
