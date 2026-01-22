@@ -550,6 +550,18 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const [bodyHeightUnit, setBodyHeightUnit] = useState<HeightUnit>('cm');
   const [bodyWeight, setBodyWeight] = useState<number | null>(null);
   const [bodyWeightUnit, setBodyWeightUnit] = useState<WeightUnit>('kg');
+  const [measurementUnit, setMeasurementUnit] = useState<'cm' | 'inches'>('cm');
+  const [bodyChest, setBodyChest] = useState<number | null>(null);
+  const [bodyWaist, setBodyWaist] = useState<number | null>(null);
+  const [bodyHips, setBodyHips] = useState<number | null>(null);
+  const [bodyInseam, setBodyInseam] = useState<number | null>(null);
+  const [bodyShoulderWidth, setBodyShoulderWidth] = useState<number | null>(null);
+  const [bodySleeveLength, setBodySleeveLength] = useState<number | null>(null);
+  const [bodyNeck, setBodyNeck] = useState<number | null>(null);
+  const [bodyThigh, setBodyThigh] = useState<number | null>(null);
+  const [bodyArmLength, setBodyArmLength] = useState<number | null>(null);
+  const [bodyTorsoLength, setBodyTorsoLength] = useState<number | null>(null);
+  const [bodyShoeSize, setBodyShoeSize] = useState<string | null>(null);
   const [stylePreference, setStylePreference] = useState<StyleTheme>("luxury");
   const [sizeRange, setSizeRange] = useState<SizeRange>(null);
   const [bodyShape, setBodyShape] = useState<BodyShape>(null);
@@ -1168,6 +1180,18 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         heightUnit: bodyHeightUnit,
         weight: bodyWeight,
         weightUnit: bodyWeightUnit,
+        measurementUnit: measurementUnit,
+        chest: bodyChest,
+        waist: bodyWaist,
+        hips: bodyHips,
+        inseam: bodyInseam,
+        shoulderWidth: bodyShoulderWidth,
+        sleeveLength: bodySleeveLength,
+        neck: bodyNeck,
+        thigh: bodyThigh,
+        armLength: bodyArmLength,
+        torsoLength: bodyTorsoLength,
+        shoeSize: bodyShoeSize,
       },
       stylistPreferences,
       extendedPreferences: {
@@ -1618,6 +1642,216 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       </Pressable>
                     </View>
                   </View>
+                </View>
+
+                <View style={styles.measurementDivider} />
+
+                <View style={styles.measurementSectionHeader}>
+                  <ThemedText type="body" style={{ fontWeight: '600', marginBottom: Spacing.xs }}>
+                    Detailed Measurements
+                  </ThemedText>
+                  <View style={styles.unitToggleRow}>
+                    <Pressable
+                      style={[
+                        styles.unitButton,
+                        measurementUnit === 'cm' && { backgroundColor: theme.link }
+                      ]}
+                      onPress={() => setMeasurementUnit('cm')}
+                    >
+                      <ThemedText 
+                        type="small" 
+                        style={[
+                          styles.unitButtonText,
+                          measurementUnit === 'cm' && { color: '#FFFFFF' }
+                        ]}
+                      >
+                        cm
+                      </ThemedText>
+                    </Pressable>
+                    <Pressable
+                      style={[
+                        styles.unitButton,
+                        measurementUnit === 'inches' && { backgroundColor: theme.link }
+                      ]}
+                      onPress={() => setMeasurementUnit('inches')}
+                    >
+                      <ThemedText 
+                        type="small"
+                        style={[
+                          styles.unitButtonText,
+                          measurementUnit === 'inches' && { color: '#FFFFFF' }
+                        ]}
+                      >
+                        inches
+                      </ThemedText>
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View style={styles.measurementRow}>
+                  <ThemedText type="body" style={styles.measurementLabel}>
+                    {gender === 'woman' ? 'Bust' : 'Chest'}
+                  </ThemedText>
+                  <TextInput
+                    style={[
+                      styles.measurementInputSmall,
+                      { backgroundColor: theme.backgroundSecondary, color: theme.text }
+                    ]}
+                    value={bodyChest?.toString() || ''}
+                    onChangeText={(text) => setBodyChest(text ? parseFloat(text) : null)}
+                    keyboardType="numeric"
+                    placeholder={measurementUnit === 'cm' ? "96" : "38"}
+                    placeholderTextColor={theme.tabIconDefault}
+                  />
+                </View>
+
+                <View style={styles.measurementRow}>
+                  <ThemedText type="body" style={styles.measurementLabel}>Waist</ThemedText>
+                  <TextInput
+                    style={[
+                      styles.measurementInputSmall,
+                      { backgroundColor: theme.backgroundSecondary, color: theme.text }
+                    ]}
+                    value={bodyWaist?.toString() || ''}
+                    onChangeText={(text) => setBodyWaist(text ? parseFloat(text) : null)}
+                    keyboardType="numeric"
+                    placeholder={measurementUnit === 'cm' ? "81" : "32"}
+                    placeholderTextColor={theme.tabIconDefault}
+                  />
+                </View>
+
+                <View style={styles.measurementRow}>
+                  <ThemedText type="body" style={styles.measurementLabel}>Hips</ThemedText>
+                  <TextInput
+                    style={[
+                      styles.measurementInputSmall,
+                      { backgroundColor: theme.backgroundSecondary, color: theme.text }
+                    ]}
+                    value={bodyHips?.toString() || ''}
+                    onChangeText={(text) => setBodyHips(text ? parseFloat(text) : null)}
+                    keyboardType="numeric"
+                    placeholder={measurementUnit === 'cm' ? "96" : "38"}
+                    placeholderTextColor={theme.tabIconDefault}
+                  />
+                </View>
+
+                <View style={styles.measurementRow}>
+                  <ThemedText type="body" style={styles.measurementLabel}>Inseam</ThemedText>
+                  <TextInput
+                    style={[
+                      styles.measurementInputSmall,
+                      { backgroundColor: theme.backgroundSecondary, color: theme.text }
+                    ]}
+                    value={bodyInseam?.toString() || ''}
+                    onChangeText={(text) => setBodyInseam(text ? parseFloat(text) : null)}
+                    keyboardType="numeric"
+                    placeholder={measurementUnit === 'cm' ? "81" : "32"}
+                    placeholderTextColor={theme.tabIconDefault}
+                  />
+                </View>
+
+                <View style={styles.measurementRow}>
+                  <ThemedText type="body" style={styles.measurementLabel}>Shoulder Width</ThemedText>
+                  <TextInput
+                    style={[
+                      styles.measurementInputSmall,
+                      { backgroundColor: theme.backgroundSecondary, color: theme.text }
+                    ]}
+                    value={bodyShoulderWidth?.toString() || ''}
+                    onChangeText={(text) => setBodyShoulderWidth(text ? parseFloat(text) : null)}
+                    keyboardType="numeric"
+                    placeholder={measurementUnit === 'cm' ? "46" : "18"}
+                    placeholderTextColor={theme.tabIconDefault}
+                  />
+                </View>
+
+                <View style={styles.measurementRow}>
+                  <ThemedText type="body" style={styles.measurementLabel}>Sleeve Length</ThemedText>
+                  <TextInput
+                    style={[
+                      styles.measurementInputSmall,
+                      { backgroundColor: theme.backgroundSecondary, color: theme.text }
+                    ]}
+                    value={bodySleeveLength?.toString() || ''}
+                    onChangeText={(text) => setBodySleeveLength(text ? parseFloat(text) : null)}
+                    keyboardType="numeric"
+                    placeholder={measurementUnit === 'cm' ? "64" : "25"}
+                    placeholderTextColor={theme.tabIconDefault}
+                  />
+                </View>
+
+                <View style={styles.measurementRow}>
+                  <ThemedText type="body" style={styles.measurementLabel}>Neck</ThemedText>
+                  <TextInput
+                    style={[
+                      styles.measurementInputSmall,
+                      { backgroundColor: theme.backgroundSecondary, color: theme.text }
+                    ]}
+                    value={bodyNeck?.toString() || ''}
+                    onChangeText={(text) => setBodyNeck(text ? parseFloat(text) : null)}
+                    keyboardType="numeric"
+                    placeholder={measurementUnit === 'cm' ? "40" : "16"}
+                    placeholderTextColor={theme.tabIconDefault}
+                  />
+                </View>
+
+                <View style={styles.measurementRow}>
+                  <ThemedText type="body" style={styles.measurementLabel}>Thigh</ThemedText>
+                  <TextInput
+                    style={[
+                      styles.measurementInputSmall,
+                      { backgroundColor: theme.backgroundSecondary, color: theme.text }
+                    ]}
+                    value={bodyThigh?.toString() || ''}
+                    onChangeText={(text) => setBodyThigh(text ? parseFloat(text) : null)}
+                    keyboardType="numeric"
+                    placeholder={measurementUnit === 'cm' ? "58" : "23"}
+                    placeholderTextColor={theme.tabIconDefault}
+                  />
+                </View>
+
+                <View style={styles.measurementRow}>
+                  <ThemedText type="body" style={styles.measurementLabel}>Arm Length</ThemedText>
+                  <TextInput
+                    style={[
+                      styles.measurementInputSmall,
+                      { backgroundColor: theme.backgroundSecondary, color: theme.text }
+                    ]}
+                    value={bodyArmLength?.toString() || ''}
+                    onChangeText={(text) => setBodyArmLength(text ? parseFloat(text) : null)}
+                    keyboardType="numeric"
+                    placeholder={measurementUnit === 'cm' ? "76" : "30"}
+                    placeholderTextColor={theme.tabIconDefault}
+                  />
+                </View>
+
+                <View style={styles.measurementRow}>
+                  <ThemedText type="body" style={styles.measurementLabel}>Torso Length</ThemedText>
+                  <TextInput
+                    style={[
+                      styles.measurementInputSmall,
+                      { backgroundColor: theme.backgroundSecondary, color: theme.text }
+                    ]}
+                    value={bodyTorsoLength?.toString() || ''}
+                    onChangeText={(text) => setBodyTorsoLength(text ? parseFloat(text) : null)}
+                    keyboardType="numeric"
+                    placeholder={measurementUnit === 'cm' ? "46" : "18"}
+                    placeholderTextColor={theme.tabIconDefault}
+                  />
+                </View>
+
+                <View style={styles.measurementRow}>
+                  <ThemedText type="body" style={styles.measurementLabel}>Shoe Size</ThemedText>
+                  <TextInput
+                    style={[
+                      styles.measurementInputSmall,
+                      { backgroundColor: theme.backgroundSecondary, color: theme.text }
+                    ]}
+                    value={bodyShoeSize || ''}
+                    onChangeText={(text) => setBodyShoeSize(text || null)}
+                    placeholder="UK 9 / US 10 / EU 43"
+                    placeholderTextColor={theme.tabIconDefault}
+                  />
                 </View>
 
                 <View style={styles.measurementNote}>
@@ -4243,7 +4477,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xl,
   },
   measurementRow: {
-    gap: Spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
   },
   measurementLabel: {
     fontWeight: "600",
@@ -4260,6 +4497,25 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
     fontSize: 16,
+  },
+  measurementInputSmall: {
+    width: 100,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  measurementDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    marginVertical: Spacing.lg,
+  },
+  measurementSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
   },
   unitToggleRow: {
     flexDirection: "row",

@@ -50,11 +50,26 @@ export interface StylistPreferences {
   phoneticSpelling?: string; // Optional phonetic spelling for future voice recording feature
 }
 
+export type MeasurementUnit = 'cm' | 'inches';
+
 export interface BodyMeasurements {
   height: number | null;
   heightUnit: HeightUnit;
   weight: number | null;
   weightUnit: WeightUnit;
+  // Additional body measurements (all in cm or inches based on measurementUnit)
+  measurementUnit: MeasurementUnit;
+  chest: number | null;        // 1. Chest/Bust circumference
+  waist: number | null;        // 2. Waist circumference
+  hips: number | null;         // 3. Hip circumference
+  inseam: number | null;       // 4. Inseam length (crotch to ankle)
+  shoulderWidth: number | null; // 5. Shoulder width (shoulder to shoulder)
+  sleeveLength: number | null; // 6. Sleeve length (shoulder to wrist)
+  neck: number | null;         // 7. Neck circumference
+  thigh: number | null;        // 8. Thigh circumference
+  armLength: number | null;    // 9. Full arm length
+  torsoLength: number | null;  // 10. Torso length (shoulder to waist)
+  shoeSize: string | null;     // 11. Shoe size (varies by region)
 }
 
 export interface CulturalStylePreferences {
@@ -175,6 +190,18 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
     heightUnit: 'cm',
     weight: null,
     weightUnit: 'kg',
+    measurementUnit: 'cm',
+    chest: null,
+    waist: null,
+    hips: null,
+    inseam: null,
+    shoulderWidth: null,
+    sleeveLength: null,
+    neck: null,
+    thigh: null,
+    armLength: null,
+    torsoLength: null,
+    shoeSize: null,
   },
   extendedPreferences: {
     lifestyle: null,
@@ -567,6 +594,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         heightUnit: 'cm',
         weight: 75,
         weightUnit: 'kg',
+        measurementUnit: 'cm',
+        chest: null,
+        waist: null,
+        hips: null,
+        inseam: null,
+        shoulderWidth: null,
+        sleeveLength: null,
+        neck: null,
+        thigh: null,
+        armLength: null,
+        torsoLength: null,
+        shoeSize: null,
       },
       extendedPreferences: {
         lifestyle: 'professional',
