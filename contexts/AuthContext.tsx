@@ -57,19 +57,19 @@ export interface BodyMeasurements {
   heightUnit: HeightUnit;
   weight: number | null;
   weightUnit: WeightUnit;
-  // Additional body measurements (all in cm or inches based on measurementUnit)
-  measurementUnit: MeasurementUnit;
-  chest: number | null;        // 1. Chest/Bust circumference
-  waist: number | null;        // 2. Waist circumference
-  hips: number | null;         // 3. Hip circumference
-  inseam: number | null;       // 4. Inseam length (crotch to ankle)
-  shoulderWidth: number | null; // 5. Shoulder width (shoulder to shoulder)
-  sleeveLength: number | null; // 6. Sleeve length (shoulder to wrist)
-  neck: number | null;         // 7. Neck circumference
-  thigh: number | null;        // 8. Thigh circumference
-  armLength: number | null;    // 9. Full arm length
-  torsoLength: number | null;  // 10. Torso length (shoulder to waist)
-  shoeSize: string | null;     // 11. Shoe size (varies by region)
+  // Additional body measurements (all optional, in cm or inches based on measurementUnit)
+  measurementUnit?: MeasurementUnit;
+  chest?: number | null;        // Chest/Bust circumference
+  waist?: number | null;        // Waist circumference
+  hips?: number | null;         // Hip circumference
+  inseam?: number | null;       // Inseam length (crotch to ankle)
+  shoulderWidth?: number | null; // Shoulder width (shoulder to shoulder)
+  sleeveLength?: number | null; // Sleeve length (shoulder to wrist)
+  neck?: number | null;         // Neck circumference
+  thigh?: number | null;        // Thigh circumference
+  armLength?: number | null;    // Full arm length
+  torsoLength?: number | null;  // Torso length (shoulder to waist)
+  shoeSize?: string | null;     // Shoe size (varies by region)
 }
 
 export interface CulturalStylePreferences {
