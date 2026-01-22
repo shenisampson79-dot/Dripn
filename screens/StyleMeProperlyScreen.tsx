@@ -44,7 +44,7 @@ const DEFAULT_TIERS: DfyTier[] = [
     price: "£19.99",
     turnaround: "Ready in 24h",
     highlights: [
-      "Upload outfits you wear",
+      "Upload 3-5 outfits you wear",
       "I learn your style",
       "Fastest option",
     ],

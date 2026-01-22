@@ -363,7 +363,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     setIsSubmitting(true);
 
     try {
-      await addItem({
+      const newItemId = await addItem({
         imageUri,
         originalImageUri: originalImageUri || imageUri,
         imageProcessed,
@@ -380,7 +380,24 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      navigation.goBack();
+      
+      Alert.alert(
+        "Item Added",
+        `${name.trim()} has been added to your wardrobe. Would you like to plan an outfit with it?`,
+        [
+          {
+            text: "Not Now",
+            style: "cancel",
+            onPress: () => navigation.goBack(),
+          },
+          {
+            text: "Plan Outfit",
+            onPress: () => {
+              navigation.replace('OutfitCalendar');
+            },
+          },
+        ]
+      );
     } catch (error) {
       Alert.alert("Error", "Failed to add item to wardrobe. Please try again.");
     } finally {
