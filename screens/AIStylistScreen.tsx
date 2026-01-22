@@ -2276,7 +2276,7 @@ export default function AIStylistScreen() {
             styles.listContent,
             { 
               paddingTop: headerHeight + Spacing.md,
-              paddingBottom: INPUT_CONTAINER_HEIGHT + TAB_BAR_HEIGHT + insets.bottom + Spacing.md
+              paddingBottom: INPUT_CONTAINER_HEIGHT + TAB_BAR_HEIGHT + insets.bottom + Spacing.xl
             }
           ]}
           keyboardShouldPersistTaps="handled"
@@ -2284,14 +2284,17 @@ export default function AIStylistScreen() {
           automaticallyAdjustKeyboardInsets
           style={styles.flatList}
         />
-        <KeyboardStickyView 
-          offset={{ closed: 0, opened: 0 }}
-          style={[styles.inputBarAbsolute, { bottom: TAB_BAR_HEIGHT + insets.bottom }]}
+        <View 
+          style={[
+            styles.inputBarAbsolute, 
+            { 
+              bottom: TAB_BAR_HEIGHT + insets.bottom,
+              backgroundColor: theme.backgroundDefault,
+            }
+          ]}
         >
-          <View style={{ backgroundColor: theme.backgroundDefault }}>
-            {renderInputBar()}
-          </View>
-        </KeyboardStickyView>
+          {renderInputBar()}
+        </View>
       </View>
     </KeyboardProvider>
   );
