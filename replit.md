@@ -12,7 +12,7 @@ Do not make changes to the file `Y`.
 Dripn is developed using Expo React Native with TypeScript, incorporating React Navigation 7+ and React Context API for state management. The UI/UX follows an iOS 26 Liquid Glass design system, offering 7 dynamic, fashion-inspired color themes that support light/dark modes and gender-specific adaptations.
 
 ### Core Features
-- **Subscription Tiers**: Freemium model with Free, Basic, Premium, and VIP options.
+- **Subscription Tiers**: Freemium model with Free, Style Chat (£9.99/mo), Personal Stylist (£14.99/mo), and Stylist Unlimited (£19.99/mo). No free trial offered.
 - **AI Fashion Advice**: Leverages GPT-4.1 for chat/vision and GPT-4.1-nano for rapid tasks.
 - **AI Stylists**: Three distinct personalities (Ruby, Max, Ace) with ElevenLabs TTS voices.
 - **Wardrobe Digital Twin**: AI-powered photo-based wardrobe management.
@@ -38,7 +38,7 @@ The app features a 4-tab structure: Home ("Today's Decision"), Wardrobe, Ask Sty
 - **Expo**: Utilized for audio, sharing, store review, and linking functionalities.
 - **OpenAI API**: Powers GPT-4.1, GPT-4.1-nano, GPT-4o, DALL-E 3, Whisper, and text-embedding-3-large.
 - **ElevenLabs**: Provides TTS for the 4 AI stylist personas using `eleven_multilingual_v2`.
-- **Replicate**: Used for IDM-VTON, enabling virtual try-on experiences.
+- **Replicate**: Used for IDM-VTON virtual try-on (backend ready, frontend hidden until launch).
 - **PostgreSQL**: The backend database.
 - **Affiliate APIs**: Integrated for "Shop Now" functionality.
 - **Event APIs**: Timeout, TodayTix, Eventbrite, and Meetup are integrated for event discovery.

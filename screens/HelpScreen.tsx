@@ -108,7 +108,7 @@ const FAQ_DATA: FAQCategory[] = [
       {
         id: 's1',
         question: 'What subscription plans are available?',
-        answer: 'We offer four tiers: Free (basic AI styling features), Style Chat at 9.99 per month (extended AI conversations and voice chat), Personal Stylist at 14.99 per month (unlimited AI advice, virtual try-on, and priority support), and Stylist Unlimited at 19.99 per month (everything plus personal stylist video sessions and exclusive features).',
+        answer: 'We offer four tiers: Free (basic AI styling features), Style Chat at 9.99 per month (extended AI conversations and voice chat), Personal Stylist at 14.99 per month (unlimited AI advice and priority support), and Stylist Unlimited at 19.99 per month (everything plus personal stylist video sessions and exclusive features).',
       },
       {
         id: 's2',
@@ -128,12 +128,7 @@ const FAQ_DATA: FAQCategory[] = [
       {
         id: 's5',
         question: 'My subscription features are not working. What should I do?',
-        answer: 'First, try logging out and back in to refresh your account. If that does not work, go to Settings and tap "Restore Purchases." If you still have issues, contact Julia below.',
-      },
-      {
-        id: 's6',
-        question: 'Do you offer a free trial?',
-        answer: 'Yes! New users can enjoy a 7-day free trial of Personal Stylist features. You can start your trial from the Subscription screen.',
+        answer: 'First, try logging out and back in to refresh your account. If you still have issues, contact Julia below and we will help resolve the problem.',
       },
     ],
   },
@@ -146,11 +141,6 @@ const FAQ_DATA: FAQCategory[] = [
         id: 'ai1',
         question: 'How does the AI stylist work?',
         answer: 'Our AI stylists (Ruby, Max, Ace, and Ivy) each have unique personalities and styling approaches. They analyze your photos, consider your style preferences, body type, and the occasion to provide personalized outfit advice. The more you use it, the better they understand your taste!',
-      },
-      {
-        id: 'ai2',
-        question: 'What is Virtual Try-On?',
-        answer: 'Virtual Try-On uses advanced AI to show you how clothes would look on your body. Upload a photo of yourself and a garment, and see the magic happen! This feature is available for Personal Stylist and Stylist Unlimited members.',
       },
       {
         id: 'ai3',
@@ -182,7 +172,7 @@ const FAQ_DATA: FAQCategory[] = [
       {
         id: 'p2',
         question: 'Are my photos private?',
-        answer: 'Yes! All your wardrobe photos and outfit images are private by default. Photos used for AI features (like Virtual Try-On) are processed securely and never shared.',
+        answer: 'Yes! All your wardrobe photos and outfit images are private by default. Photos used for AI features are processed securely and never shared.',
       },
       {
         id: 'p3',

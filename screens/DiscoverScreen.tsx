@@ -198,7 +198,6 @@ const CATEGORY_TILES: CategoryTile[] = [
   { id: "styleOfTheDay", name: "Style of Day", icon: "award", pastelBg: "#E85D75", description: "Your personalized daily outfit recommendation tailored to your style and region.", sectionId: "styleOfTheDay" },
   { id: "trends", name: "Trends", icon: "trending-up", pastelBg: "#6366F1", description: "What's hot right now in fashion with real-time trend analysis and weekly highlights.", sectionId: "trendScanner" },
   { id: "styleIcons", name: "Style Icons", icon: "star", pastelBg: "#F59E0B", description: "Get inspired by celebrities and top fashion influencers with AI-powered lookalike outfits.", sectionId: "celebrity" },
-  { id: "virtualTryOn", name: "Try-On", icon: "camera", pastelBg: "#8B5CF6", description: "Virtually try on clothes and see how they look on you before buying.", screen: "VirtualTryOn" },
   { id: "fashionTherapy", name: "Style Therapy", icon: "heart", pastelBg: "#F472B6", description: "Mood-based styling, body positivity affirmations, and wellness-focused outfit recommendations.", screen: "FashionTherapy" },
   { id: "sustainability", name: "Eco Style", icon: "globe", pastelBg: "#10B981", description: "Discover sustainable fashion brands and eco-friendly styling tips.", screen: "Sustainability" },
   { id: "fashionReads", name: "Fashion Reads", icon: "book-open", pastelBg: "#3B82F6", description: "Expert fashion articles, styling tips, magazine looks, and in-depth guides.", screen: "FashionBlog" },
