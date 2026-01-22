@@ -130,14 +130,22 @@ export function AppTour({ visible, onComplete }: AppTourProps) {
           </View>
 
           <View style={styles.content}>
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: theme.link + "20" },
-              ]}
-            >
-              <Feather name={step.icon} size={48} color={theme.link} />
-            </View>
+            {currentStep === 0 ? (
+              <Image 
+                source={require('@/assets/images/dripn-logo-new.png')} 
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: theme.link + "20" },
+                ]}
+              >
+                <Feather name={step.icon} size={48} color={theme.link} />
+              </View>
+            )}
 
             <ThemedText type="h1" style={styles.title}>
               {step.title}
@@ -236,6 +244,11 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: Spacing.xl,
+  },
+  logoImage: {
+    width: 120,
+    height: 120,
     marginBottom: Spacing.xl,
   },
   title: {

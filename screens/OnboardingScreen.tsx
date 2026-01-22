@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput, Alert, Keyboard, Modal, Animated, Easing, Dimensions } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput, Alert, Keyboard, Modal, Animated, Easing, Dimensions, KeyboardAvoidingView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -2875,13 +2875,19 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         </Pressable>
       </View>
 
-      {renderStep()}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingContainer}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        {renderStep()}
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.xl }]}>
-        <Button onPress={handleNext} style={styles.nextButton}>
-          {step === totalSteps - 1 ? translations.common.done : translations.common.continue}
-        </Button>
-      </View>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.xl }]}>
+          <Button onPress={handleNext} style={styles.nextButton}>
+            {step === totalSteps - 1 ? translations.common.done : translations.common.continue}
+          </Button>
+        </View>
+      </KeyboardAvoidingView>
 
       <Modal
         visible={showQuizResultModal}
@@ -3309,6 +3315,9 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  keyboardAvoidingContainer: {
     flex: 1,
   },
   header: {
