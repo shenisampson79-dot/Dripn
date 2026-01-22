@@ -185,34 +185,59 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
 
       const mimeType = Platform.OS === 'ios' ? 'audio/m4a' : 'audio/webm';
       
-      let transcriptionText = '';
-      
+      // Use the new combined voice-chat endpoint
       try {
-        const transcriptionResponse = await apiService.transcribeAudio(audioBase64, mimeType as 'audio/webm' | 'audio/wav' | 'audio/mp3' | 'audio/m4a' | 'audio/mp4', 'en');
-        
-        if (transcriptionResponse.success && transcriptionResponse.text) {
-          transcriptionText = transcriptionResponse.text;
+        const response = await apiService.voiceChat({
+          audio: audioBase64,
+          mimeType: mimeType as 'audio/webm' | 'audio/wav' | 'audio/mp3' | 'audio/m4a' | 'audio/mp4',
+          stylist: stylistName.toLowerCase(),
+          accent: 'british',
+          voiceRange: 'mezzo-soprano',
+        });
+
+        if (response.success) {
+          // Add user message
+          setCurrentTranscript(response.userMessage);
+          const userMessage: VoiceMessage = {
+            id: Date.now().toString(),
+            role: "user",
+            text: response.userMessage,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, userMessage]);
+
+          // Add stylist response
+          const stylistMessage: VoiceMessage = {
+            id: (Date.now() + 1).toString(),
+            role: "stylist",
+            text: response.aiResponse,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, stylistMessage]);
+          setConversationState("speaking");
+
+          // Play the audio response
+          if (response.audioBase64) {
+            await playVoiceAudio(response.audioBase64);
+          } else {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            setConversationState("idle");
+          }
+        } else {
+          throw new Error('Voice chat failed');
         }
-      } catch (transcriptionErr) {
-        console.log('[VoiceConversation] Transcription API unavailable, using placeholder');
+      } catch (voiceChatErr) {
+        console.error('[VoiceConversation] Voice chat API error:', voiceChatErr);
+        // Fallback to placeholder response
+        const userMessage: VoiceMessage = {
+          id: Date.now().toString(),
+          role: "user",
+          text: "Voice message received",
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, userMessage]);
+        setConversationState("idle");
       }
-
-      // If transcription failed or is empty, use a placeholder
-      if (!transcriptionText) {
-        transcriptionText = "Voice message received";
-      }
-      
-      setCurrentTranscript(transcriptionText);
-
-      const userMessage: VoiceMessage = {
-        id: Date.now().toString(),
-        role: "user",
-        text: transcriptionText,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, userMessage]);
-
-      await getStylistResponse(transcriptionText);
     } catch (err) {
       console.error('[VoiceConversation] Error:', err);
       setError('Something went wrong. Please try again.');

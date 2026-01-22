@@ -1408,6 +1408,26 @@ class ApiService {
     });
   }
 
+  // Combined voice chat endpoint - handles transcription, AI response, and voice generation in one call
+  async voiceChat(data: {
+    audio: string;
+    mimeType: 'audio/webm' | 'audio/wav' | 'audio/mp3' | 'audio/m4a' | 'audio/mp4';
+    stylist: string;
+    accent?: string;
+    voiceRange?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      userMessage: string;
+      aiResponse: string;
+      audioBase64: string;
+      stylist: string;
+    }>('/api/ai/voice-chat', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async synthesizeSpeech(text: string, options?: { voice?: string; stylistId?: string; speed?: number }) {
     const { stylistId, ...otherOptions } = options || {};
     return this.request<{
