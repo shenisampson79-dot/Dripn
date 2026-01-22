@@ -135,7 +135,7 @@ export default function UploadInstructionsScreen({ navigation, route }: UploadIn
   };
 
   const handleStartUpload = () => {
-    navigation.navigate("Confirmation", { type: uploadType });
+    navigation.navigate("DFYUpload", { type: uploadType });
   };
 
   if (isLoading) {
