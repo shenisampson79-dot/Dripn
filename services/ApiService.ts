@@ -439,6 +439,40 @@ class ApiService {
   }
 
   async analyzeGarmentPhoto(imageBase64: string, options?: { detailed?: boolean }) {
+    if (this.authToken === 'dev-test-token') {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      const categories = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'accessories'];
+      const colors = ['black', 'white', 'blue', 'navy', 'gray', 'beige', 'brown'];
+      const styles = ['casual', 'formal', 'sporty', 'elegant', 'streetwear'];
+      const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+      const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+      const names: Record<string, string[]> = {
+        tops: ['Cotton T-Shirt', 'Button-Up Shirt', 'Knit Sweater', 'Casual Blouse'],
+        bottoms: ['Slim Fit Jeans', 'Chino Pants', 'Casual Shorts', 'A-Line Skirt'],
+        dresses: ['Midi Dress', 'Casual Sundress', 'Evening Gown', 'Shirt Dress'],
+        outerwear: ['Denim Jacket', 'Wool Coat', 'Bomber Jacket', 'Cardigan'],
+        shoes: ['Sneakers', 'Ankle Boots', 'Loafers', 'Sandals'],
+        accessories: ['Leather Belt', 'Scarf', 'Watch', 'Sunglasses'],
+      };
+      const nameOptions = names[randomCategory] || ['Fashion Item'];
+      const randomName = nameOptions[Math.floor(Math.random() * nameOptions.length)];
+      return {
+        success: true,
+        analysis: {
+          category: randomCategory,
+          color: randomColor,
+          style: randomStyle,
+          suggestedName: `[DEV] ${randomName}`,
+          brand: '',
+          seasons: ['spring', 'summer', 'autumn'],
+          occasions: ['casual', 'everyday'],
+          description: `A stylish ${randomColor} ${randomCategory.slice(0, -1)} perfect for ${randomStyle} occasions.`,
+          confidence: 0.85,
+        },
+        modelUsed: 'dev-mock',
+      };
+    }
     return this.request<{
       success: boolean;
       analysis: {
@@ -504,6 +538,26 @@ class ApiService {
   }
 
   async extractClothing(imageData: { imageBase64?: string; imageUrl?: string }) {
+    if (this.authToken === 'dev-test-token') {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const types = ['shirt', 'pants', 'dress', 'jacket', 'shoes', 'bag'];
+      const colors = ['black', 'white', 'blue', 'gray', 'beige', 'navy'];
+      const randomType = types[Math.floor(Math.random() * types.length)];
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+      return {
+        success: true,
+        processedImageBase64: imageData.imageBase64,
+        clothingAnalysis: {
+          type: randomType,
+          color: randomColor,
+          style: 'casual',
+          description: `[DEV] ${randomColor.charAt(0).toUpperCase() + randomColor.slice(1)} ${randomType}`,
+          occasions: ['casual', 'everyday'],
+          seasons: ['spring', 'summer', 'autumn'],
+        },
+        backgroundRemoved: false,
+      };
+    }
     return this.request<{
       success: boolean;
       processedImageBase64?: string;
