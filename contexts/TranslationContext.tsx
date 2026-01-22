@@ -1,39 +1,48 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { I18nManager } from 'react-native';
 import { TranslationService, Translations } from '@/services/TranslationService';
-import { useVoiceSettings } from '@/contexts/VoiceSettingsContext';
 
 interface TranslationContextType {
   translations: Translations;
   isLoading: boolean;
   isRTL: boolean;
   currentLanguage: string;
+  availableLanguages: Array<{ code: string; name: string; nativeName: string; direction: 'ltr' | 'rtl' }>;
   refreshTranslations: () => Promise<void>;
+  setLanguage: (langCode: string) => Promise<void>;
+  syncFromAccent: (accent: string) => Promise<void>;
+  t: (key: string) => string;
 }
 
 const TranslationContext = createContext<TranslationContextType | null>(null);
 
 export function TranslationProvider({ children }: { children: ReactNode }) {
-  const { settings } = useVoiceSettings();
   const [translations, setTranslations] = useState<Translations>(TranslationService.getTranslations());
   const [isLoading, setIsLoading] = useState(true);
   const [currentLanguage, setCurrentLanguage] = useState('en');
+  const [availableLanguages, setAvailableLanguages] = useState<Array<{ code: string; name: string; nativeName: string; direction: 'ltr' | 'rtl' }>>([]);
 
   useEffect(() => {
-    loadInitialTranslations();
+    loadInitialData();
   }, []);
 
-  useEffect(() => {
-    if (settings.preferredLanguage && settings.preferredLanguage !== currentLanguage) {
-      fetchTranslationsForLanguage(settings.preferredLanguage);
-    }
-  }, [settings.preferredLanguage]);
-
-  const loadInitialTranslations = async () => {
+  const loadInitialData = async () => {
     try {
       const cached = await TranslationService.loadCachedTranslations();
       setTranslations(cached);
       setCurrentLanguage(TranslationService.getCurrentLanguage());
+      
+      const langs = await TranslationService.getAvailableLanguages();
+      setAvailableLanguages(langs);
+      
+      try {
+        const current = await TranslationService.fetchCurrentLanguage();
+        setTranslations(current);
+        setCurrentLanguage(TranslationService.getCurrentLanguage());
+        applyRTL(current.localeInfo.direction === 'rtl');
+      } catch (error) {
+        console.log('Could not fetch current language from backend:', error);
+      }
     } catch (error) {
       console.log('Failed to load initial translations:', error);
     } finally {
@@ -41,30 +50,67 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const fetchTranslationsForLanguage = async (langCode: string) => {
+  const syncLanguageFromAccent = async (accent: string) => {
     try {
       setIsLoading(true);
-      const newTranslations = await TranslationService.fetchTranslations(langCode);
+      await TranslationService.syncLanguageFromAccent(accent);
+      const newTranslations = TranslationService.getTranslations();
       setTranslations(newTranslations);
-      setCurrentLanguage(langCode);
-      
-      const isRTL = newTranslations.localeInfo.direction === 'rtl';
-      if (I18nManager.isRTL !== isRTL) {
-        I18nManager.allowRTL(isRTL);
-        I18nManager.forceRTL(isRTL);
-      }
+      setCurrentLanguage(TranslationService.getCurrentLanguage());
+      applyRTL(newTranslations.localeInfo.direction === 'rtl');
     } catch (error) {
-      console.log('Failed to fetch translations:', error);
+      console.log('Failed to sync language from accent:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const setLanguage = async (langCode: string) => {
+    try {
+      setIsLoading(true);
+      await TranslationService.setLanguage(langCode);
+      const newTranslations = TranslationService.getTranslations();
+      setTranslations(newTranslations);
+      setCurrentLanguage(langCode);
+      applyRTL(newTranslations.localeInfo.direction === 'rtl');
+    } catch (error) {
+      console.log('Failed to set language:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const applyRTL = (isRTL: boolean) => {
+    if (I18nManager.isRTL !== isRTL) {
+      I18nManager.allowRTL(isRTL);
+      I18nManager.forceRTL(isRTL);
+    }
+  };
+
   const refreshTranslations = useCallback(async () => {
-    await fetchTranslationsForLanguage(currentLanguage);
+    try {
+      setIsLoading(true);
+      const newTranslations = await TranslationService.fetchTranslations(currentLanguage);
+      setTranslations(newTranslations);
+      applyRTL(newTranslations.localeInfo.direction === 'rtl');
+    } catch (error) {
+      console.log('Failed to refresh translations:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, [currentLanguage]);
 
+  const t = useCallback((key: string): string => {
+    return TranslationService.t(key);
+  }, [translations]);
+
   const isRTL = translations.localeInfo.direction === 'rtl';
+
+  const syncFromAccent = useCallback(async (accent: string) => {
+    if (accent && accent !== 'American' && accent !== 'British') {
+      await syncLanguageFromAccent(accent);
+    }
+  }, []);
 
   return (
     <TranslationContext.Provider value={{ 
@@ -72,7 +118,11 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
       isLoading, 
       isRTL, 
       currentLanguage,
-      refreshTranslations 
+      availableLanguages,
+      refreshTranslations,
+      setLanguage,
+      syncFromAccent,
+      t,
     }}>
       {children}
     </TranslationContext.Provider>
@@ -87,7 +137,11 @@ export function useTranslations() {
       isLoading: false,
       isRTL: false,
       currentLanguage: 'en',
+      availableLanguages: [],
       refreshTranslations: async () => {},
+      setLanguage: async () => {},
+      syncFromAccent: async () => {},
+      t: (key: string) => key,
     };
   }
   return context;

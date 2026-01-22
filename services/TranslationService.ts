@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiService } from './ApiService';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const TRANSLATIONS_CACHE_KEY = '@dripn_translations';
 const TRANSLATIONS_LANG_KEY = '@dripn_translations_lang';
 
@@ -25,6 +25,31 @@ export interface CommonTranslations {
   loading: string;
   error: string;
   retry: string;
+}
+
+export interface NavTranslations {
+  home: string;
+  wardrobe: string;
+  chat: string;
+  profile: string;
+  settings: string;
+}
+
+export interface StylistTranslations {
+  greeting: string;
+  thinking: string;
+  askMe: string;
+  voiceChat: string;
+  personalStylist: string;
+}
+
+export interface WardrobeTranslations {
+  addItem: string;
+  empty: string;
+  categories: string;
+  favorites: string;
+  allItems: string;
+  outfitCalendar: string;
 }
 
 export interface LocaleInfo {
@@ -77,6 +102,9 @@ export interface Translations {
   locale: string;
   localeInfo: LocaleInfo;
   common: CommonTranslations;
+  nav: NavTranslations;
+  stylist: StylistTranslations;
+  wardrobe: WardrobeTranslations;
   bodyScan: BodyScanTranslations;
   colorScan: ColorScanTranslations;
   quiz: QuizTranslations;
@@ -102,6 +130,28 @@ const DEFAULT_TRANSLATIONS: Translations = {
     loading: 'Loading...',
     error: 'Error',
     retry: 'Retry',
+  },
+  nav: {
+    home: 'Home',
+    wardrobe: 'Wardrobe',
+    chat: 'Chat',
+    profile: 'Profile',
+    settings: 'Settings',
+  },
+  stylist: {
+    greeting: 'Hello! How can I help you today?',
+    thinking: 'Thinking...',
+    askMe: 'Ask me anything about fashion...',
+    voiceChat: 'Voice Chat',
+    personalStylist: 'Personal Stylist',
+  },
+  wardrobe: {
+    addItem: 'Add Item',
+    empty: 'Your wardrobe is empty',
+    categories: 'Categories',
+    favorites: 'Favorites',
+    allItems: 'All Items',
+    outfitCalendar: 'Outfit Calendar',
   },
   bodyScan: {
     title: 'Body Scan',
@@ -156,13 +206,24 @@ const DEFAULT_TRANSLATIONS: Translations = {
 class TranslationServiceClass {
   private translations: Translations = DEFAULT_TRANSLATIONS;
   private currentLang: string = 'en';
+  private availableLanguages: Array<{ code: string; name: string; nativeName: string; direction: 'ltr' | 'rtl' }> = [];
 
-  async getAuthHeaders(): Promise<HeadersInit> {
-    const token = await AsyncStorage.getItem('@dripn_auth_token');
-    return {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    };
+  async fetchCurrentLanguage(): Promise<Translations> {
+    try {
+      const response = await apiService.getCurrentLanguage();
+      
+      const merged = this.mergeTranslations(response.translations, response.languageCode);
+      merged.localeInfo.direction = response.direction;
+      
+      this.translations = merged;
+      this.currentLang = response.languageCode;
+      await this.cacheTranslations(merged, response.languageCode);
+      
+      return merged;
+    } catch (error) {
+      console.log('Failed to fetch current language:', error);
+      return this.translations;
+    }
   }
 
   async fetchTranslations(langCode: string): Promise<Translations> {
@@ -174,40 +235,91 @@ class TranslationServiceClass {
     }
 
     try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_URL}/api/i18n/translations/${langCode}`, {
-        method: 'GET',
-        headers,
-      });
-
-      if (!response.ok) {
-        console.log(`Failed to fetch translations for ${langCode}, using defaults`);
-        return DEFAULT_TRANSLATIONS;
-      }
-
-      const data = await response.json();
-      const merged: Translations = {
-        ...DEFAULT_TRANSLATIONS,
-        ...data,
-        locale: langCode,
-        localeInfo: data.localeInfo || { ...DEFAULT_TRANSLATIONS.localeInfo, locale: langCode },
-        common: { ...DEFAULT_TRANSLATIONS.common, ...data.common },
-        bodyScan: { ...DEFAULT_TRANSLATIONS.bodyScan, ...data.bodyScan },
-        colorScan: { ...DEFAULT_TRANSLATIONS.colorScan, ...data.colorScan },
-        quiz: { ...DEFAULT_TRANSLATIONS.quiz, ...data.quiz },
-        onboarding: {
-          steps: { ...DEFAULT_TRANSLATIONS.onboarding.steps, ...data.onboarding?.steps },
-        },
-        styleArchetypes: { ...DEFAULT_TRANSLATIONS.styleArchetypes, ...data.styleArchetypes },
-      };
-
+      const response = await apiService.getTranslations(langCode);
+      
+      const merged = this.mergeTranslations(response.translations, langCode);
+      merged.localeInfo.direction = response.direction;
+      merged.localeInfo.language = response.nativeName;
+      
       this.translations = merged;
       this.currentLang = langCode;
       await this.cacheTranslations(merged, langCode);
+      
       return merged;
     } catch (error) {
       console.log('Translation fetch error:', error);
       return DEFAULT_TRANSLATIONS;
+    }
+  }
+
+  private mergeTranslations(backendTranslations: Record<string, any>, langCode: string): Translations {
+    const flatToNested = (flat: Record<string, any>): Record<string, any> => {
+      const result: Record<string, any> = {};
+      for (const key in flat) {
+        const parts = key.split('.');
+        let current = result;
+        for (let i = 0; i < parts.length - 1; i++) {
+          current[parts[i]] = current[parts[i]] || {};
+          current = current[parts[i]];
+        }
+        current[parts[parts.length - 1]] = flat[key];
+      }
+      return result;
+    };
+
+    const nested = flatToNested(backendTranslations);
+
+    return {
+      locale: langCode,
+      localeInfo: {
+        direction: 'ltr',
+        locale: langCode,
+        language: nested.localeInfo?.language || langCode,
+      },
+      common: { ...DEFAULT_TRANSLATIONS.common, ...nested.common },
+      nav: { ...DEFAULT_TRANSLATIONS.nav, ...nested.nav },
+      stylist: { ...DEFAULT_TRANSLATIONS.stylist, ...nested.stylist },
+      wardrobe: { ...DEFAULT_TRANSLATIONS.wardrobe, ...nested.wardrobe },
+      bodyScan: { ...DEFAULT_TRANSLATIONS.bodyScan, ...nested.bodyScan },
+      colorScan: { ...DEFAULT_TRANSLATIONS.colorScan, ...nested.colorScan },
+      quiz: { ...DEFAULT_TRANSLATIONS.quiz, ...nested.quiz },
+      onboarding: {
+        steps: { ...DEFAULT_TRANSLATIONS.onboarding.steps, ...nested.onboarding?.steps },
+      },
+      styleArchetypes: { ...DEFAULT_TRANSLATIONS.styleArchetypes, ...nested.styleArchetypes },
+    };
+  }
+
+  async setLanguage(langCode: string): Promise<void> {
+    try {
+      await apiService.setLanguage({ languageCode: langCode });
+      await this.fetchTranslations(langCode);
+    } catch (error) {
+      console.log('Failed to set language:', error);
+    }
+  }
+
+  async syncLanguageFromAccent(accent: string): Promise<void> {
+    try {
+      await apiService.setLanguage({ accent });
+      await this.fetchCurrentLanguage();
+    } catch (error) {
+      console.log('Failed to sync language from accent:', error);
+    }
+  }
+
+  async getAvailableLanguages(): Promise<Array<{ code: string; name: string; nativeName: string; direction: 'ltr' | 'rtl' }>> {
+    if (this.availableLanguages.length > 0) {
+      return this.availableLanguages;
+    }
+
+    try {
+      const response = await apiService.getLanguages();
+      this.availableLanguages = response.languages;
+      return this.availableLanguages;
+    } catch (error) {
+      console.log('Failed to fetch available languages:', error);
+      return [];
     }
   }
 
@@ -246,6 +358,21 @@ class TranslationServiceClass {
 
   isRTL(): boolean {
     return this.translations.localeInfo.direction === 'rtl';
+  }
+
+  t(key: string): string {
+    const parts = key.split('.');
+    let current: any = this.translations;
+    
+    for (const part of parts) {
+      if (current && typeof current === 'object' && part in current) {
+        current = current[part];
+      } else {
+        return key;
+      }
+    }
+    
+    return typeof current === 'string' ? current : key;
   }
 }
 

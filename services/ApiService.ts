@@ -2714,6 +2714,54 @@ class ApiService {
     });
   }
 
+  async getLanguages() {
+    return this.request<{
+      languages: Array<{
+        code: string;
+        name: string;
+        nativeName: string;
+        direction: 'ltr' | 'rtl';
+      }>;
+    }>('/api/languages');
+  }
+
+  async getCurrentLanguage() {
+    return this.request<{
+      languageCode: string;
+      nativeName: string;
+      direction: 'ltr' | 'rtl';
+      translations: Record<string, any>;
+    }>('/api/language/current');
+  }
+
+  async setLanguage(data: { languageCode?: string; accent?: string }) {
+    return this.request<{
+      success: boolean;
+      languageCode: string;
+      nativeName: string;
+      direction: 'ltr' | 'rtl';
+    }>('/api/language/set', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getTranslations(code: string) {
+    return this.request<{
+      languageCode: string;
+      nativeName: string;
+      direction: 'ltr' | 'rtl';
+      translations: Record<string, any>;
+    }>(`/api/translations/${code}`);
+  }
+
+  async updateProfileStyle(data: { preferredAccent?: string }) {
+    return this.request<{ success: boolean }>('/api/profile/style', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   private getMockStylistResponse(userMessage: string, stylistId: string): {
     content: string;
     mood?: { mood: string; confidence: number; needsSupport: boolean; topicType: string };
