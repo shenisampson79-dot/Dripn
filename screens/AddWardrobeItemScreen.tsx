@@ -531,32 +531,56 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
               <ThemedText type="caption" style={[styles.aiHintText, { color: theme.tabIconDefault }]}>
                 AI will auto-fill item details from screenshots or photos
               </ThemedText>
+              <View style={[styles.photoTipsCard, { backgroundColor: theme.backgroundSecondary }]}>
+                <ThemedText type="small" style={[styles.photoTipsTitle, { color: theme.text }]}>
+                  Accessory photo tips
+                </ThemedText>
+                <ThemedText type="caption" style={{ color: theme.tabIconDefault, lineHeight: 18 }}>
+                  Bags: Stand upright or lay flat{'\n'}
+                  Belts: Lay straight, show buckle{'\n'}
+                  Sunglasses: Flat, show both lenses{'\n'}
+                  Watches/Jewelry: Close-up on plain surface
+                </ThemedText>
+              </View>
             </View>
           ) : (
-            <View style={styles.imagePickerRow}>
-              <Pressable
-                onPress={handlePickImage}
-                style={[styles.imagePickerButton, { backgroundColor: theme.backgroundDefault }]}
-              >
-                <Feather name="image" size={32} color={theme.tabIconDefault} />
-                <ThemedText type="body">Gallery</ThemedText>
-              </Pressable>
-              {Platform.OS !== "web" ? (
+            <View>
+              <View style={styles.imagePickerRow}>
                 <Pressable
-                  onPress={handleTakePhoto}
+                  onPress={handlePickImage}
                   style={[styles.imagePickerButton, { backgroundColor: theme.backgroundDefault }]}
                 >
-                  <Feather name="camera" size={32} color={theme.tabIconDefault} />
-                  <ThemedText type="body">Camera</ThemedText>
+                  <Feather name="image" size={32} color={theme.tabIconDefault} />
+                  <ThemedText type="body">Gallery</ThemedText>
                 </Pressable>
-              ) : (
-                <View style={[styles.imagePickerButton, { backgroundColor: theme.backgroundDefault }]}>
-                  <Feather name="smartphone" size={32} color={theme.tabIconDefault} />
-                  <ThemedText type="caption" style={{ textAlign: "center" }}>
-                    Use Expo Go for camera
-                  </ThemedText>
-                </View>
-              )}
+                {Platform.OS !== "web" ? (
+                  <Pressable
+                    onPress={handleTakePhoto}
+                    style={[styles.imagePickerButton, { backgroundColor: theme.backgroundDefault }]}
+                  >
+                    <Feather name="camera" size={32} color={theme.tabIconDefault} />
+                    <ThemedText type="body">Camera</ThemedText>
+                  </Pressable>
+                ) : (
+                  <View style={[styles.imagePickerButton, { backgroundColor: theme.backgroundDefault }]}>
+                    <Feather name="smartphone" size={32} color={theme.tabIconDefault} />
+                    <ThemedText type="caption" style={{ textAlign: "center" }}>
+                      Use Expo Go for camera
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
+              <View style={[styles.photoTipsCard, { backgroundColor: theme.backgroundSecondary }]}>
+                <ThemedText type="small" style={[styles.photoTipsTitle, { color: theme.text }]}>
+                  Accessory photo tips
+                </ThemedText>
+                <ThemedText type="caption" style={{ color: theme.tabIconDefault, lineHeight: 18 }}>
+                  Bags: Stand upright or lay flat{'\n'}
+                  Belts: Lay straight, show buckle{'\n'}
+                  Sunglasses: Flat, show both lenses{'\n'}
+                  Watches/Jewelry: Close-up on plain surface
+                </ThemedText>
+              </View>
             </View>
           )}
         </View>
@@ -949,6 +973,15 @@ const styles = StyleSheet.create({
   aiHintText: {
     marginTop: Spacing.sm,
     textAlign: "center",
+  },
+  photoTipsCard: {
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  photoTipsTitle: {
+    fontWeight: "600",
+    marginBottom: Spacing.xs,
   },
   aiAnalyzedBadge: {
     position: "absolute",

@@ -24,6 +24,7 @@ interface UploadInstructions {
   title: string;
   subtitle: string;
   tips: string[];
+  accessoryTips: string[];
   limits: {
     maxItems: number;
     formats: string[];
@@ -45,6 +46,13 @@ const DEFAULT_INSTRUCTIONS: Record<string, UploadInstructions> = {
       "Natural lighting helps",
       "Show front view clearly",
     ],
+    accessoryTips: [
+      "Bags: Lay flat or stand upright, show front and strap",
+      "Belts: Lay straight or coiled, show buckle clearly",
+      "Sunglasses: Flat on surface, show both lenses",
+      "Watches: Face up on flat surface, show dial",
+      "Jewelry: Close-up on plain background",
+    ],
     limits: {
       maxItems: 7,
       formats: ["JPG", "PNG", "HEIC"],
@@ -63,6 +71,15 @@ const DEFAULT_INSTRUCTIONS: Record<string, UploadInstructions> = {
       "Lay flat or hang clearly",
       "Good lighting essential",
       "Include variety of items",
+    ],
+    accessoryTips: [
+      "Bags: Lay flat or stand upright, show front and strap",
+      "Belts: Lay straight or coiled, show buckle clearly",
+      "Sunglasses: Flat on surface, show both lenses",
+      "Watches: Face up on flat surface, show dial",
+      "Jewelry: Close-up on plain background",
+      "Scarves: Lay flat to show full pattern",
+      "Hats: Show front view on flat surface",
     ],
     limits: {
       maxItems: 30,
@@ -96,6 +113,7 @@ export default function UploadInstructionsScreen({ navigation, route }: UploadIn
           title: data.title || defaultInstructions.title,
           subtitle: data.subtitle || defaultInstructions.subtitle,
           tips: data.tips || defaultInstructions.tips,
+          accessoryTips: data.accessoryTips || defaultInstructions.accessoryTips,
           limits: {
             maxItems: data.limits?.maxItems || defaultInstructions.limits.maxItems,
             formats: data.limits?.formats || defaultInstructions.limits.formats,
@@ -162,6 +180,22 @@ export default function UploadInstructionsScreen({ navigation, route }: UploadIn
             {instructions.tips.map((tip, index) => (
               <View key={index} style={styles.tipRow}>
                 <Feather name="check-circle" size={18} color={theme.link} />
+                <ThemedText type="body" style={[styles.tipText, { color: theme.text }]}>
+                  {tip}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInUp.delay(150)} style={styles.section}>
+          <ThemedText type="h3" style={[styles.sectionTitle, { color: theme.text }]}>
+            Accessories
+          </ThemedText>
+          <View style={[styles.tipsCard, { backgroundColor: theme.backgroundSecondary }]}>
+            {instructions.accessoryTips.map((tip, index) => (
+              <View key={index} style={styles.tipRow}>
+                <Feather name="info" size={18} color={theme.tabIconDefault} />
                 <ThemedText type="body" style={[styles.tipText, { color: theme.text }]}>
                   {tip}
                 </ThemedText>
