@@ -127,7 +127,7 @@ class ColorTrendService {
   ): MergedThemeColors {
     const baseTheme = StyleThemes[styleTheme];
     
-    if (!trendData || !trendData.palettes[styleTheme]) {
+    if (!trendData || !trendData.palettes || !trendData.palettes[styleTheme]) {
       return baseTheme;
     }
 

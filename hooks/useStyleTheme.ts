@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme as useRNColorScheme } from 'react-native';
 import { StyleThemes, StyleTheme } from '@/constants/theme';
 import colorTrendService, { TrendColorResponse, MergedThemeColors, TrendingPalette } from '@/services/ColorTrendService';
 
@@ -51,7 +51,7 @@ function getRegionFromCountry(country: string): string {
 
 export function useStyleTheme(): StyleThemeResult {
   const { user } = useAuth();
-  const colorScheme = useColorScheme();
+  const colorScheme = useRNColorScheme();
   const isDark = colorScheme === 'dark';
   
   const [trendData, setTrendData] = useState<TrendColorResponse | null>(null);
@@ -112,7 +112,7 @@ export function useStyleTheme(): StyleThemeResult {
 }
 
 export function useBaseStyleTheme(styleTheme: StyleTheme = 'luxury') {
-  const colorScheme = useColorScheme();
+  const colorScheme = useRNColorScheme();
   const isDark = colorScheme === 'dark';
   
   const themeColors = StyleThemes[styleTheme];
