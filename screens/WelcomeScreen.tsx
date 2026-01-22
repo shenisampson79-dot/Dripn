@@ -13,6 +13,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme, SchemePalette } from "@/contexts/ColorSchemeContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { videoRandomizer } from "@/services/VideoRandomizerService";
+import { useAuth } from "@/contexts/AuthContext";
 
 type WelcomeScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Welcome">;
@@ -22,8 +23,13 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const { palette } = useColorScheme();
+  const { loginAsTestUser } = useAuth();
   const videoRef = useRef<Video>(null);
   const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo());
+  
+  const handleTestLogin = async () => {
+    await loginAsTestUser();
+  };
 
   useEffect(() => {
     if (Platform.OS === 'web' && videoRef.current) {
@@ -143,6 +149,18 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
             Already have an account? <ThemedText type="body" style={styles.signInLink}>Sign In</ThemedText>
           </ThemedText>
         </Pressable>
+
+        {__DEV__ ? (
+          <Pressable 
+            onPress={handleTestLogin}
+            style={styles.testUserButton}
+          >
+            <Feather name="code" size={14} color="rgba(255,255,255,0.6)" />
+            <ThemedText type="small" style={styles.testUserText}>
+              Dev: Login as Test User
+            </ThemedText>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -299,5 +317,18 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "600",
     textDecorationLine: "underline",
+  },
+  testUserButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.sm,
+    opacity: 0.7,
+  },
+  testUserText: {
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 12,
   },
 });

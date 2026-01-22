@@ -1063,6 +1063,12 @@ class ApiService {
     console.log('Stylist:', stylistId);
     console.log('Message:', data.userMessage);
     
+    // DEV MODE: Return mock responses for automated testing
+    if (__DEV__ && token === 'dev-test-token') {
+      console.log('[DEV MODE] Using mock response for testing');
+      return this.getMockStylistResponse(data.userMessage, stylistId);
+    }
+    
     // Backend returns { response: string, stylist: string, ... }
     // We need to map 'response' to 'content' for frontend compatibility
     const result = await this.request<{
@@ -2706,6 +2712,48 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify({ alertIds }),
     });
+  }
+
+  private getMockStylistResponse(userMessage: string, stylistId: string): {
+    content: string;
+    mood?: { mood: string; confidence: number; needsSupport: boolean; topicType: string };
+    stylistId?: string;
+    error?: string;
+  } {
+    const lowerMessage = userMessage.toLowerCase();
+    
+    const stylistNames: Record<string, string> = {
+      ruby: 'Ruby',
+      max: 'Max',
+      ace: 'Ace',
+      ivy: 'Ivy',
+    };
+    const stylistName = stylistNames[stylistId] || 'Your Stylist';
+    
+    let response = '';
+    
+    if (lowerMessage.includes('birkenstock')) {
+      response = `[DEV MODE] Great question about Birkenstocks! They've become a major fashion staple and are absolutely cool for men. The chunky sandal trend has been embraced by everyone from fashion-forward celebrities to everyday style icons. For a modern look, try the Arizona or Boston styles in neutral colors like taupe, black, or brown. They pair beautifully with relaxed chinos, linen trousers, or even tailored shorts. The key is to embrace them confidently - they're no longer just "dad sandals" but a genuine fashion statement! - ${stylistName}`;
+    } else if (lowerMessage.includes('outfit') || lowerMessage.includes('wear')) {
+      response = `[DEV MODE] I'd love to help you put together the perfect outfit! Based on your style preferences, I'd suggest starting with versatile basics and building from there. What's the occasion you're dressing for? - ${stylistName}`;
+    } else if (lowerMessage.includes('color') || lowerMessage.includes('colour')) {
+      response = `[DEV MODE] Color coordination is one of my favorite topics! Navy, white, and grey are timeless foundations, but don't be afraid to add pops of color that complement your skin tone. Would you like some specific color pairing suggestions? - ${stylistName}`;
+    } else if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+      response = `[DEV MODE] Hello! I'm ${stylistName}, your personal fashion advisor. How can I help you look and feel your best today?`;
+    } else {
+      response = `[DEV MODE] That's a great fashion question! As your stylist, I'm here to help you make confident style decisions. This is a mock response for testing - in the live app, you'd get personalized AI-powered advice. - ${stylistName}`;
+    }
+    
+    return {
+      content: response,
+      mood: {
+        mood: 'helpful',
+        confidence: 0.95,
+        needsSupport: false,
+        topicType: 'fashion',
+      },
+      stylistId,
+    };
   }
 }
 

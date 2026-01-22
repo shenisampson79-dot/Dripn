@@ -134,6 +134,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   socialLogin: (provider: 'google' | 'facebook' | 'apple') => Promise<void>;
+  loginAsTestUser: () => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   completeOnboarding: (profile: Partial<UserProfile>) => Promise<void>;
@@ -531,6 +532,84 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginAsTestUser = async () => {
+    if (!__DEV__) {
+      console.warn('loginAsTestUser is only available in development mode');
+      return;
+    }
+    
+    const testUser: UserProfile = {
+      id: 'test-user-' + Date.now().toString(),
+      email: 'test@dripn.dev',
+      name: 'Test User',
+      avatar: null,
+      country: 'United Kingdom',
+      actualCountry: 'United Kingdom',
+      gender: 'man',
+      stylePreference: 'luxury',
+      sizeRange: 'M-L',
+      bodyShape: 'Athletic',
+      budgetRange: 'Mid-Range',
+      subscriptionTier: 'pro',
+      contributorTier: 'none',
+      feedPreference: 'global',
+      aiSuggestionsEnabled: true,
+      postsCount: 0,
+      helpfulVotes: 0,
+      thanksReceived: 0,
+      createdAt: new Date().toISOString(),
+      hasCompletedOnboarding: true,
+      hasCompletedQuiz: true,
+      hasSeenTour: true,
+      hasDismissedTrialOffer: false,
+      bodyMeasurements: {
+        height: 175,
+        heightUnit: 'cm',
+        weight: 75,
+        weightUnit: 'kg',
+      },
+      extendedPreferences: {
+        lifestyle: 'professional',
+        favoriteBrands: ['Nike', 'Zara', 'H&M'],
+        colorPreferences: ['navy', 'white', 'gray'],
+        shoppingFrequency: 'monthly',
+        preferOnlineShopping: true,
+        sustainabilityImportant: true,
+        occasions: ['work', 'casual', 'date-night'],
+        favoriteShops: [],
+        usageGoals: ['dress-better', 'build-wardrobe'],
+        culturalStyle: {
+          dressCodePreference: null,
+          religiousOrCulturalDressCode: null,
+          subcultureStyle: null,
+          subcultureDescription: null,
+          dressCodeStrictness: null,
+        },
+        bodyFitPreferences: {
+          fitPreference: 'Tailored',
+          confidentAreas: ['Shoulders', 'Arms'],
+          preferToMinimize: [],
+        },
+        colorChoices: {
+          favoriteColors: ['navy', 'white', 'gray'],
+          avoidColors: ['neon'],
+        },
+      },
+      stylistPreferences: {
+        selectedStylistId: 'ruby',
+        language: 'English',
+        accent: 'British',
+        voicePitch: 'mezzo-soprano',
+        useNameInGreetings: true,
+        namePronunciationConfirmed: true,
+      },
+    };
+    
+    await saveUser(testUser);
+    await apiService.setToken('dev-test-token');
+    console.log('[Auth] Logged in as test user with dev token');
+  };
+
   const logout = async () => {
     try {
       await apiService.logout();
@@ -603,6 +682,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         signup,
         socialLogin,
+        loginAsTestUser,
         logout,
         updateProfile,
         completeOnboarding,
