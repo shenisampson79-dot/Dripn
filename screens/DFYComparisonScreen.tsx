@@ -153,23 +153,16 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           },
         ]}
       >
-        <Pressable
-          onPress={() => handleTierSelect(tier.id)}
-          style={({ pressed }) => [
-            styles.tierCardPressable,
-            { opacity: pressed ? 0.95 : 1 },
+        <LinearGradient
+          colors={isLite 
+            ? [LUXURY_COLORS.teal, LUXURY_COLORS.emerald]
+            : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
+          }
+          style={[
+            styles.tierCardGradient,
+            isSelected && styles.tierCardSelected,
           ]}
         >
-          <LinearGradient
-            colors={isLite 
-              ? [LUXURY_COLORS.teal, LUXURY_COLORS.emerald]
-              : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
-            }
-            style={[
-              styles.tierCardGradient,
-              isSelected && styles.tierCardSelected,
-            ]}
-          >
           <View style={styles.tierHeader}>
             <View>
               <View style={styles.tierNameRow}>
@@ -237,13 +230,36 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
             ))}
           </View>
 
-            {isSelected ? (
-              <View style={styles.selectedIndicator}>
-                <Feather name="check" size={20} color={isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold} />
-              </View>
-            ) : null}
-          </LinearGradient>
-        </Pressable>
+          <Pressable
+            onPress={() => handleTierSelect(tier.id)}
+            style={[
+              styles.selectButton,
+              isSelected && styles.selectButtonSelected,
+              { backgroundColor: isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.2)' }
+            ]}
+          >
+            <Feather 
+              name={isSelected ? "check-circle" : "circle"} 
+              size={18} 
+              color={isSelected ? (isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold) : '#FFFFFF'} 
+            />
+            <ThemedText 
+              type="body" 
+              style={[
+                styles.selectButtonText,
+                { color: isSelected ? (isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold) : '#FFFFFF' }
+              ]}
+            >
+              {isSelected ? 'Selected' : 'Select this option'}
+            </ThemedText>
+          </Pressable>
+
+          {isSelected ? (
+            <View style={styles.selectedIndicator}>
+              <Feather name="check" size={20} color={isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold} />
+            </View>
+          ) : null}
+        </LinearGradient>
       </Animated.View>
     );
   };
@@ -387,9 +403,21 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     overflow: 'visible',
   },
-  tierCardPressable: {
-    borderRadius: BorderRadius.xl,
-    overflow: 'hidden',
+  selectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.full,
+  },
+  selectButtonSelected: {
+    transform: [{ scale: 1 }],
+  },
+  selectButtonText: {
+    fontWeight: '600',
   },
   tierCardGradient: {
     padding: Spacing.lg,
