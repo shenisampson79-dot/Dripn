@@ -123,6 +123,15 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
         locations={[0, 0.4, 0.7, 1]}
       />
 
+      <Pressable 
+        onPress={() => navigation.goBack()} 
+        style={[styles.backButton, { top: insets.top + Spacing.md }]}
+      >
+        <View style={styles.backButtonInner}>
+          <Feather name="arrow-left" size={20} color="#FFFFFF" />
+        </View>
+      </Pressable>
+
       <View style={[styles.content, { paddingTop: insets.top + SPACING_XXL }]}>
         <Animated.View entering={FadeIn.delay(200)} style={styles.header}>
           <ThemedText type="h1" style={styles.title}>
@@ -214,6 +223,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000",
+  },
+  backButton: {
+    position: "absolute",
+    left: Spacing.lg,
+    zIndex: 10,
+  },
+  backButtonInner: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   content: {
     flex: 1,

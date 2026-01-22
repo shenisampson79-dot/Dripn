@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { StyleSheet, View, Dimensions } from "react-native";
+import { StyleSheet, View, Dimensions, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -209,6 +209,14 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
       />
 
       <View style={[styles.overlay, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.lg }]}>
+        <Pressable 
+          onPress={() => navigation.goBack()} 
+          style={styles.backButton}
+        >
+          <View style={styles.backButtonInner}>
+            <Feather name="arrow-left" size={20} color="#FFFFFF" />
+          </View>
+        </Pressable>
         <View style={styles.headerSpacer} />
         <Animated.View 
           entering={FadeIn.duration(400)} 
@@ -275,6 +283,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  backButton: {
+    position: "absolute",
+    top: 0,
+    left: Spacing.lg,
+    zIndex: 10,
+  },
+  backButtonInner: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   backgroundVideo: {
     position: "absolute",
     top: 0,
@@ -301,9 +323,6 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     height: 48,
-  },
-  backButton: {
-    padding: Spacing.sm,
   },
   progressBarContainer: {
     flex: 1,
