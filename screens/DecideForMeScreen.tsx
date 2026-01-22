@@ -1008,6 +1008,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </LinearGradient>
       </Animated.View>
 
+      <ThemedText type="small" style={[styles.disclaimerText, { color: isDark ? 'rgba(255,255,255,0.7)' : '#6B7280' }]}>
+        I'm choosing generally. With your wardrobe, I'd choose specifically.
+      </ThemedText>
+
       {styleAdvice?.imageUrl || isGeneratingImage ? (
         <Animated.View entering={FadeInDown.delay(200)} style={styles.outfitImageContainer}>
           {isGeneratingImage && !styleAdvice?.imageUrl ? (
@@ -1053,10 +1057,6 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           </View>
         </Animated.View>
       ) : null}
-
-      <ThemedText type="small" style={[styles.disclaimerText, { color: isDark ? 'rgba(255,255,255,0.7)' : '#6B7280' }]}>
-        I'm choosing generally. With your wardrobe, I'd choose specifically.
-      </ThemedText>
 
       <Animated.View entering={FadeInDown.delay(200)} style={styles.actionButtonsRow}>
         <Pressable

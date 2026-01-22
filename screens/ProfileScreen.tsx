@@ -128,15 +128,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
         <View style={styles.header}>
           <View style={{ width: 40 }} />
           <ThemedText type="h2" style={{ color: '#FFFFFF' }}>Profile</ThemedText>
-          <Pressable
-            onPress={handleSettingsPress}
-            style={({ pressed }) => [
-              styles.settingsButton,
-              { backgroundColor: 'rgba(255,255,255,0.15)', opacity: pressed ? 0.8 : 1 },
-            ]}
-          >
-            <Feather name="settings" size={18} color="#FFFFFF" />
-          </Pressable>
+          <View style={{ width: 40 }} />
         </View>
 
         <View style={styles.profileSection}>
