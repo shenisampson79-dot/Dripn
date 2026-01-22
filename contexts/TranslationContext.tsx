@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { I18nManager } from 'react-native';
 import { TranslationService, Translations } from '@/services/TranslationService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TranslationContextType {
   translations: Translations;
@@ -17,14 +18,34 @@ interface TranslationContextType {
 const TranslationContext = createContext<TranslationContextType | null>(null);
 
 export function TranslationProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated } = useAuth();
   const [translations, setTranslations] = useState<Translations>(TranslationService.getTranslations());
   const [isLoading, setIsLoading] = useState(true);
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const [availableLanguages, setAvailableLanguages] = useState<Array<{ code: string; name: string; nativeName: string; direction: 'ltr' | 'rtl' }>>([]);
+  const hasFetchedFromBackend = useRef(false);
 
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && !hasFetchedFromBackend.current) {
+      fetchLanguageFromBackend();
+    }
+  }, [isAuthenticated]);
+
+  const fetchLanguageFromBackend = async () => {
+    try {
+      hasFetchedFromBackend.current = true;
+      const current = await TranslationService.fetchCurrentLanguage();
+      setTranslations(current);
+      setCurrentLanguage(TranslationService.getCurrentLanguage());
+      applyRTL(current.localeInfo.direction === 'rtl');
+    } catch (error) {
+      console.log('Could not fetch current language from backend:', error);
+    }
+  };
 
   const loadInitialData = async () => {
     try {
@@ -34,15 +55,6 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
       
       const langs = await TranslationService.getAvailableLanguages();
       setAvailableLanguages(langs);
-      
-      try {
-        const current = await TranslationService.fetchCurrentLanguage();
-        setTranslations(current);
-        setCurrentLanguage(TranslationService.getCurrentLanguage());
-        applyRTL(current.localeInfo.direction === 'rtl');
-      } catch (error) {
-        console.log('Could not fetch current language from backend:', error);
-      }
     } catch (error) {
       console.log('Failed to load initial translations:', error);
     } finally {
