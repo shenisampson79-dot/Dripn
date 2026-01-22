@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, Alert } from "react-native";
+import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, Alert, Platform, Linking } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -27,6 +28,15 @@ export default function StylistLoginScreen({ navigation, onLoginSuccess, onExit 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const handleExit = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (onExit) {
+      onExit();
+    } else if (navigation?.goBack) {
+      navigation.goBack();
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -57,7 +67,8 @@ export default function StylistLoginScreen({ navigation, onLoginSuccess, onExit 
     <ThemedView style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.lg }]}>
         <Pressable
-          onPress={onExit}
+          onPress={handleExit}
+          hitSlop={20}
           style={({ pressed }) => [
             styles.backButton,
             { opacity: pressed ? 0.7 : 1 },

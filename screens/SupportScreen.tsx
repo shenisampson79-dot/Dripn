@@ -9,6 +9,8 @@ import {
   Alert,
   Modal,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -22,6 +24,7 @@ import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
+import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   supportService,
@@ -41,6 +44,7 @@ export default function SupportScreen() {
   const { paddingTop, paddingBottom } = useScreenInsets();
   const safeAreaInsets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
+  const navigation = useNavigation();
 
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -277,7 +281,10 @@ export default function SupportScreen() {
       transparent
       onRequestClose={() => setShowTicketModal(false)}
     >
-      <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+      >
         <Animated.View
           entering={FadeInDown.duration(300)}
           style={[styles.modalContent, { backgroundColor: theme.backgroundDefault }]}
@@ -401,7 +408,7 @@ export default function SupportScreen() {
             </Pressable>
           </View>
         </Animated.View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 
@@ -418,6 +425,16 @@ export default function SupportScreen() {
       <View style={[styles.container, { backgroundColor: theme.backgroundDefault, paddingTop }]}>
         <View style={styles.headerContainer}>
           <View style={styles.headerLeft}>
+            <Pressable 
+              onPress={() => navigation.goBack()} 
+              hitSlop={12}
+              style={({ pressed }) => [
+                styles.backButton,
+                { opacity: pressed ? 0.7 : 1 }
+              ]}
+            >
+              <Feather name="arrow-left" size={24} color={theme.text} />
+            </Pressable>
             {stylist ? (
               <View
                 style={[
@@ -550,6 +567,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
+  },
+  backButton: {
+    padding: Spacing.xs,
+    marginRight: Spacing.sm,
   },
   headerAvatar: {
     width: 44,
