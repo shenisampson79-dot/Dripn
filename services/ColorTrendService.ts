@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StyleTheme, StyleThemes } from '@/constants/theme';
+import { apiService } from './ApiService';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
 
@@ -160,7 +161,46 @@ class ColorTrendService {
 
   async refreshTrends(region: string = 'Global'): Promise<TrendColorResponse | null> {
     await this.clearCache();
-    return this.fetchActiveTrends(region);
+    
+    try {
+      if (!API_URL) {
+        return this.fetchActiveTrends(region);
+      }
+
+      const token = await apiService.getToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_URL}/api/color-trends/refresh`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ region }),
+      });
+
+      if (!response.ok) {
+        console.warn('Failed to refresh color trends:', response.status);
+        return this.fetchActiveTrends(region);
+      }
+
+      const data: TrendColorResponse = await response.json();
+      
+      const now = Date.now();
+      this.cachedTrends = data;
+      this.cacheExpiry = now + CACHE_DURATION_MS;
+      
+      await AsyncStorage.setItem(COLOR_TRENDS_CACHE_KEY, JSON.stringify(data));
+      await AsyncStorage.setItem(CACHE_EXPIRY_KEY, String(this.cacheExpiry));
+      
+      return data;
+    } catch (error) {
+      console.error('Error refreshing trends:', error);
+      return this.fetchActiveTrends(region);
+    }
   }
 
   getTrendInfo(styleTheme: StyleTheme, trendData: TrendColorResponse | null): {
