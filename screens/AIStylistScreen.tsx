@@ -2324,14 +2324,17 @@ export default function AIStylistScreen() {
         />
         <KeyboardStickyView 
           offset={{ closed: TAB_BAR_HEIGHT + insets.bottom, opened: 0 }}
-          style={[
-            styles.inputBarAbsolute, 
-            { 
-              backgroundColor: theme.backgroundDefault,
-            }
-          ]}
         >
-          {renderInputBar()}
+          <View 
+            style={[
+              styles.inputBarContainer, 
+              { 
+                backgroundColor: theme.backgroundDefault,
+              }
+            ]}
+          >
+            {renderInputBar()}
+          </View>
         </KeyboardStickyView>
       </View>
     </KeyboardProvider>
@@ -2345,12 +2348,8 @@ const styles = StyleSheet.create({
   flatList: {
     flex: 1,
   },
-  inputBarAbsolute: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 100,
+  inputBarContainer: {
+    width: '100%',
   },
   listContent: {
     paddingHorizontal: 0,
