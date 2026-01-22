@@ -137,7 +137,7 @@ const TOTAL_STEPS = 13;
 export default function StyleQuizOnboardingScreen({ navigation }: StyleQuizOnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { completeQuiz, user } = useAuth();
+  const { completeQuiz, completeOnboarding, user } = useAuth();
 
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -231,11 +231,12 @@ export default function StyleQuizOnboardingScreen({ navigation }: StyleQuizOnboa
     }
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
     if (step < TOTAL_STEPS - 1) {
       setStep(step + 1);
     } else {
-      navigation.replace("SuggestedFollows");
+      // Complete onboarding directly - no community features
+      await completeOnboarding({});
     }
   };
 
@@ -270,10 +271,11 @@ export default function StyleQuizOnboardingScreen({ navigation }: StyleQuizOnboa
         budgetRange,
       });
 
-      navigation.replace("SuggestedFollows");
+      // Complete onboarding directly - no community features
+      await completeOnboarding({});
     } catch (error) {
       console.error('Failed to save quiz data:', error);
-      navigation.replace("SuggestedFollows");
+      await completeOnboarding({});
     } finally {
       setIsSubmitting(false);
     }
