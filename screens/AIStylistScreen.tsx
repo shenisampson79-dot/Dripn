@@ -2322,17 +2322,17 @@ export default function AIStylistScreen() {
           automaticallyAdjustKeyboardInsets
           style={styles.flatList}
         />
-        <View 
+        <KeyboardStickyView 
+          offset={{ closed: TAB_BAR_HEIGHT + insets.bottom, opened: 0 }}
           style={[
             styles.inputBarAbsolute, 
             { 
-              bottom: TAB_BAR_HEIGHT + insets.bottom,
               backgroundColor: theme.backgroundDefault,
             }
           ]}
         >
           {renderInputBar()}
-        </View>
+        </KeyboardStickyView>
       </View>
     </KeyboardProvider>
   );
