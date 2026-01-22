@@ -594,6 +594,8 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     color: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'][Math.floor(Math.random() * 7)],
   })));
   const [showPronunciationPrompt, setShowPronunciationPrompt] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(false);
   
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [cameraGuidance, setCameraGuidance] = useState<CameraGuidance | null>(null);
@@ -1199,6 +1201,44 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     navigation.replace("OnboardingQuiz");
   };
 
+  const handleScroll = useCallback((event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const scrollableHeight = contentSize.height - layoutMeasurement.height;
+    if (scrollableHeight > 50) {
+      setShowScrollIndicator(true);
+      const progress = Math.min(Math.max(contentOffset.y / scrollableHeight, 0), 1);
+      setScrollProgress(progress);
+    } else {
+      setShowScrollIndicator(false);
+    }
+  }, []);
+
+  const resetScrollProgress = useCallback(() => {
+    setScrollProgress(0);
+    setShowScrollIndicator(false);
+  }, []);
+
+  useEffect(() => {
+    resetScrollProgress();
+  }, [step, resetScrollProgress]);
+
+  const ScrollProgressIndicator = () => {
+    if (!showScrollIndicator) return null;
+    return (
+      <View style={[styles.scrollProgressContainer, { backgroundColor: theme.backgroundSecondary }]}>
+        <View 
+          style={[
+            styles.scrollProgressBar, 
+            { 
+              backgroundColor: theme.link,
+              height: `${Math.max(scrollProgress * 100, 10)}%`,
+            }
+          ]} 
+        />
+      </View>
+    );
+  };
+
   const renderStep = () => {
     switch (step) {
       case 0:
@@ -1395,7 +1435,13 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             <ThemedText type="body" style={styles.stepSubtitle}>
               This helps us tailor style recommendations for you
             </ThemedText>
-            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+            <ScrollProgressIndicator />
+            <ScrollView 
+              style={styles.optionsScroll} 
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+            >
               <View style={styles.genderOptions}>
                 {GENDER_OPTIONS.map((g) => {
                   const genderColor = GENDER_COLORS[g.id];
@@ -1454,7 +1500,13 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             <ThemedText type="body" style={styles.stepSubtitle}>
               Optional but helps us find your perfect fit
             </ThemedText>
-            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+            <ScrollProgressIndicator />
+            <ScrollView 
+              style={styles.optionsScroll} 
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+            >
               <View style={styles.measurementFormContainer}>
                 <View style={styles.measurementRow}>
                   <ThemedText type="body" style={styles.measurementLabel}>Height</ThemedText>
@@ -1589,7 +1641,13 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             <ThemedText type="body" style={styles.stepSubtitle}>
               Choose who will guide your fashion journey
             </ThemedText>
-            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+            <ScrollProgressIndicator />
+            <ScrollView 
+              style={styles.optionsScroll} 
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+            >
               <View style={styles.stylistsContainer}>
                 {stylists.map((stylist) => {
                   const isSelected = selectedStylistId === stylist.id;
@@ -1776,7 +1834,13 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               <ThemedText type="h2" style={[styles.stepTitle, { marginTop: Spacing.lg }]}>
                 {currentQ.question}
               </ThemedText>
-              <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+              <ScrollProgressIndicator />
+              <ScrollView 
+                style={styles.optionsScroll} 
+                showsVerticalScrollIndicator={false}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+              >
                 <View style={styles.quizOptions}>
                   {currentQ.options.map((option) => (
                     <Pressable
@@ -1898,7 +1962,13 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               or choose below
             </ThemedText>
             
-            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+            <ScrollProgressIndicator />
+            <ScrollView 
+              style={styles.optionsScroll} 
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+            >
               <View style={styles.styleOptions}>
                 {styleOptions.map((s) => {
                   const styleColor = STYLE_COLORS[s.id] || { bg: "#374151", border: "#6B7280" };
@@ -1960,7 +2030,13 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             <ThemedText type="body" style={styles.stepSubtitle}>
               Help us personalize your recommendations
             </ThemedText>
-            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+            <ScrollProgressIndicator />
+            <ScrollView 
+              style={styles.optionsScroll} 
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+            >
               <View style={styles.aiScanSection}>
                 <Pressable
                   onPress={handleBodyScan}
@@ -2481,7 +2557,13 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               </View>
             ) : null}
 
-            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+            <ScrollProgressIndicator />
+            <ScrollView 
+              style={styles.optionsScroll} 
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+            >
               <View style={styles.shopsGrid}>
                 {filteredShops.map((shop) => {
                   const isDisabled = favoriteShops.length >= 10;
@@ -2536,7 +2618,13 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               </ThemedText>
             ) : null}
 
-            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+            <ScrollProgressIndicator />
+            <ScrollView 
+              style={styles.optionsScroll} 
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+            >
               <View style={styles.goalsContainer}>
                 {DRIPN_GOALS.map((goal) => {
                   const isSelected = usageGoals.includes(goal.id);
@@ -2632,7 +2720,13 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 : "Help Ruby & Max respect your style and cultural preferences (optional)"}
             </ThemedText>
 
-            <ScrollView style={styles.optionsScroll} showsVerticalScrollIndicator={false}>
+            <ScrollProgressIndicator />
+            <ScrollView 
+              style={styles.optionsScroll} 
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+            >
               <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
                 Religious/Modest Dress Code
               </ThemedText>
@@ -3347,6 +3441,23 @@ const styles = StyleSheet.create({
   stepContent: {
     flex: 1,
     paddingHorizontal: Spacing.xl,
+  },
+  scrollProgressContainer: {
+    position: 'absolute',
+    right: 4,
+    top: 60,
+    bottom: 20,
+    width: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+    opacity: 0.6,
+  },
+  scrollProgressBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    borderRadius: 2,
   },
   stepTitle: {
     marginBottom: Spacing.sm,
