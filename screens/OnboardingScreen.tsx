@@ -4492,7 +4492,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   measurementInput: {
-    flex: 1,
+    width: 200,
     height: 50,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
