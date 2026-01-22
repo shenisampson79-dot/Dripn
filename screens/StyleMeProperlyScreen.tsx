@@ -72,6 +72,7 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
   });
   const [tiers, setTiers] = useState<DfyTier[]>(DEFAULT_TIERS);
   const [footerReassurance, setFooterReassurance] = useState("One-time setup · No subscription required");
+  const [selectedTier, setSelectedTier] = useState<string | null>(null);
 
   useEffect(() => {
     loadSetupOptions();
@@ -99,14 +100,20 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
     }
   };
 
-  const handleTierSelect = async (tierId: string) => {
+  const handleTierSelect = (tierId: string) => {
+    setSelectedTier(tierId);
+  };
+
+  const handleContinue = async () => {
+    if (!selectedTier) return;
+    
     try {
-      await apiService.post("/api/onboarding/select-setup", { setup: tierId });
+      await apiService.post("/api/onboarding/select-setup", { setup: selectedTier });
     } catch (error: unknown) {
       console.log("Failed to track setup selection");
     }
 
-    navigation.navigate("UploadInstructions", { type: tierId as "outfit" | "core" });
+    navigation.navigate("UploadInstructions", { type: selectedTier as "outfit" | "core" });
   };
 
   const handleSkip = () => {
@@ -146,7 +153,9 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
         </Animated.View>
 
         <View style={styles.tiersContainer}>
-          {tiers.map((tier, index) => (
+          {tiers.map((tier, index) => {
+            const isSelected = selectedTier === tier.id;
+            return (
             <Animated.View 
               key={tier.id}
               entering={FadeInUp.delay(100 + index * 150)}
@@ -155,10 +164,15 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
                 style={({ pressed }) => [
                   styles.tierCard,
                   { 
-                    backgroundColor: 'rgba(255,255,255,0.1)',
-                    borderColor: index === 0 ? LuxuryColors.gold : 'rgba(255,255,255,0.2)',
-                    borderWidth: index === 0 ? 2 : 1,
+                    backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
+                    borderColor: isSelected ? LuxuryColors.gold : (index === 0 ? LuxuryColors.gold : 'rgba(255,255,255,0.2)'),
+                    borderWidth: isSelected ? 3 : (index === 0 ? 2 : 1),
                     opacity: pressed ? 0.9 : 1,
+                    shadowColor: isSelected ? LuxuryColors.gold : 'transparent',
+                    shadowOffset: { width: 0, height: 0 },
+                    shadowOpacity: isSelected ? 0.6 : 0,
+                    shadowRadius: isSelected ? 12 : 0,
+                    elevation: isSelected ? 8 : 0,
                   }
                 ]}
                 onPress={() => handleTierSelect(tier.id)}
@@ -207,10 +221,40 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
                     </View>
                   ))}
                 </View>
+
+                {isSelected ? (
+                  <View style={styles.selectedIndicator}>
+                    <Feather name="check-circle" size={20} color={LuxuryColors.gold} />
+                    <ThemedText type="small" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
+                      Selected
+                    </ThemedText>
+                  </View>
+                ) : null}
               </Pressable>
             </Animated.View>
-          ))}
+          );
+          })}
         </View>
+
+        {selectedTier ? (
+          <Animated.View entering={FadeInUp.delay(100)} style={styles.continueContainer}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.continueButton,
+                { 
+                  backgroundColor: LuxuryColors.gold,
+                  opacity: pressed ? 0.9 : 1,
+                }
+              ]}
+              onPress={handleContinue}
+            >
+              <ThemedText type="body" style={styles.continueButtonText}>
+                Continue
+              </ThemedText>
+              <Feather name="arrow-right" size={20} color="#FFFFFF" />
+            </Pressable>
+          </Animated.View>
+        ) : null}
 
         <Animated.View entering={FadeInUp.delay(400)} style={styles.footerSection}>
           <View style={styles.reassuranceRow}>
@@ -358,5 +402,33 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     paddingVertical: Spacing.md,
+  },
+  selectedIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  continueContainer: {
+    marginTop: Spacing.xl,
+    paddingHorizontal: Spacing.md,
+  },
+  continueButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+  },
+  continueButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });
