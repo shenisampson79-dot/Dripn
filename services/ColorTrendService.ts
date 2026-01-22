@@ -169,7 +169,7 @@ class ColorTrendService {
     year: number | null;
     region: string | null;
   } {
-    if (!trendData || !trendData.palettes[styleTheme]) {
+    if (!trendData || !trendData.palettes || !trendData.palettes[styleTheme]) {
       return {
         hasTrendColors: false,
         colors: null,
