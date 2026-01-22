@@ -531,16 +531,32 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
               <ThemedText type="caption" style={[styles.aiHintText, { color: theme.tabIconDefault }]}>
                 AI will auto-fill item details from screenshots or photos
               </ThemedText>
-              <View style={[styles.photoTipsCard, { backgroundColor: theme.backgroundSecondary }]}>
+              <View style={styles.visualGuideContainer}>
                 <ThemedText type="small" style={[styles.photoTipsTitle, { color: theme.text }]}>
-                  Accessory photo tips
+                  Photo guide
                 </ThemedText>
-                <ThemedText type="caption" style={{ color: theme.tabIconDefault, lineHeight: 18 }}>
-                  Bags: Stand upright or lay flat{'\n'}
-                  Belts: Lay straight, show buckle{'\n'}
-                  Sunglasses: Flat, show both lenses{'\n'}
-                  Watches/Jewelry: Close-up on plain surface
-                </ThemedText>
+                <View style={styles.visualExamplesRow}>
+                  <View style={styles.visualExampleCard}>
+                    <View style={[styles.visualBadge, { backgroundColor: '#10B981' }]}>
+                      <Feather name="check" size={10} color="#FFFFFF" />
+                    </View>
+                    <Image
+                      source={require('@/assets/images/clothing-tips-correct.png')}
+                      style={styles.visualExampleImage}
+                      contentFit="cover"
+                    />
+                  </View>
+                  <View style={styles.visualExampleCard}>
+                    <View style={[styles.visualBadge, { backgroundColor: '#E57373' }]}>
+                      <Feather name="x" size={10} color="#FFFFFF" />
+                    </View>
+                    <Image
+                      source={require('@/assets/images/clothing-tips-incorrect.png')}
+                      style={styles.visualExampleImage}
+                      contentFit="cover"
+                    />
+                  </View>
+                </View>
               </View>
             </View>
           ) : (
@@ -570,16 +586,32 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
                   </View>
                 )}
               </View>
-              <View style={[styles.photoTipsCard, { backgroundColor: theme.backgroundSecondary }]}>
+              <View style={styles.visualGuideContainer}>
                 <ThemedText type="small" style={[styles.photoTipsTitle, { color: theme.text }]}>
-                  Accessory photo tips
+                  Photo guide
                 </ThemedText>
-                <ThemedText type="caption" style={{ color: theme.tabIconDefault, lineHeight: 18 }}>
-                  Bags: Stand upright or lay flat{'\n'}
-                  Belts: Lay straight, show buckle{'\n'}
-                  Sunglasses: Flat, show both lenses{'\n'}
-                  Watches/Jewelry: Close-up on plain surface
-                </ThemedText>
+                <View style={styles.visualExamplesRow}>
+                  <View style={styles.visualExampleCard}>
+                    <View style={[styles.visualBadge, { backgroundColor: '#10B981' }]}>
+                      <Feather name="check" size={10} color="#FFFFFF" />
+                    </View>
+                    <Image
+                      source={require('@/assets/images/clothing-tips-correct.png')}
+                      style={styles.visualExampleImage}
+                      contentFit="cover"
+                    />
+                  </View>
+                  <View style={styles.visualExampleCard}>
+                    <View style={[styles.visualBadge, { backgroundColor: '#E57373' }]}>
+                      <Feather name="x" size={10} color="#FFFFFF" />
+                    </View>
+                    <Image
+                      source={require('@/assets/images/clothing-tips-incorrect.png')}
+                      style={styles.visualExampleImage}
+                      contentFit="cover"
+                    />
+                  </View>
+                </View>
               </View>
             </View>
           )}
@@ -981,7 +1013,36 @@ const styles = StyleSheet.create({
   },
   photoTipsTitle: {
     fontWeight: "600",
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  visualGuideContainer: {
+    marginTop: Spacing.md,
+  },
+  visualExamplesRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  visualExampleCard: {
+    flex: 1,
+    borderRadius: BorderRadius.md,
+    overflow: "hidden",
+    position: "relative",
+  },
+  visualExampleImage: {
+    width: "100%",
+    height: 80,
+    borderRadius: BorderRadius.md,
+  },
+  visualBadge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
   },
   aiAnalyzedBadge: {
     position: "absolute",

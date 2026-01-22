@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
+import { Image } from "expo-image";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
@@ -231,6 +232,74 @@ export default function UploadInstructionsScreen({ navigation, route }: UploadIn
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(300)} style={styles.section}>
+          <ThemedText type="h3" style={[styles.sectionTitle, { color: theme.text }]}>
+            Visual guide - Clothing
+          </ThemedText>
+          <View style={styles.visualExamplesRow}>
+            <View style={styles.visualExampleCard}>
+              <View style={[styles.visualBadge, { backgroundColor: '#10B981' }]}>
+                <Feather name="check" size={12} color="#FFFFFF" />
+              </View>
+              <Image
+                source={require('@/assets/images/clothing-tips-correct.png')}
+                style={styles.visualExampleImage}
+                contentFit="cover"
+              />
+              <ThemedText type="caption" style={[styles.visualLabel, { color: theme.link }]}>
+                Correct
+              </ThemedText>
+            </View>
+            <View style={styles.visualExampleCard}>
+              <View style={[styles.visualBadge, { backgroundColor: '#E57373' }]}>
+                <Feather name="x" size={12} color="#FFFFFF" />
+              </View>
+              <Image
+                source={require('@/assets/images/clothing-tips-incorrect.png')}
+                style={styles.visualExampleImage}
+                contentFit="cover"
+              />
+              <ThemedText type="caption" style={[styles.visualLabel, { color: '#E57373' }]}>
+                Avoid
+              </ThemedText>
+            </View>
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInUp.delay(350)} style={styles.section}>
+          <ThemedText type="h3" style={[styles.sectionTitle, { color: theme.text }]}>
+            Visual guide - Accessories
+          </ThemedText>
+          <View style={styles.visualExamplesRow}>
+            <View style={styles.visualExampleCard}>
+              <View style={[styles.visualBadge, { backgroundColor: '#10B981' }]}>
+                <Feather name="check" size={12} color="#FFFFFF" />
+              </View>
+              <Image
+                source={require('@/assets/images/accessory-tips-correct.png')}
+                style={styles.visualExampleImage}
+                contentFit="cover"
+              />
+              <ThemedText type="caption" style={[styles.visualLabel, { color: theme.link }]}>
+                Correct
+              </ThemedText>
+            </View>
+            <View style={styles.visualExampleCard}>
+              <View style={[styles.visualBadge, { backgroundColor: '#E57373' }]}>
+                <Feather name="x" size={12} color="#FFFFFF" />
+              </View>
+              <Image
+                source={require('@/assets/images/accessory-tips-incorrect.png')}
+                style={styles.visualExampleImage}
+                contentFit="cover"
+              />
+              <ThemedText type="caption" style={[styles.visualLabel, { color: '#E57373' }]}>
+                Avoid
+              </ThemedText>
+            </View>
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInUp.delay(400)} style={styles.section}>
           <View style={styles.examplesRow}>
             <View style={styles.exampleColumn}>
               <ThemedText type="body" style={[styles.exampleHeader, { color: theme.link }]}>
@@ -367,6 +436,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.xs,
     marginBottom: 6,
+  },
+  visualExamplesRow: {
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
+  visualExampleCard: {
+    flex: 1,
+    borderRadius: BorderRadius.lg,
+    overflow: "hidden",
+    position: "relative",
+  },
+  visualExampleImage: {
+    width: "100%",
+    height: 120,
+    borderRadius: BorderRadius.lg,
+  },
+  visualBadge: {
+    position: "absolute",
+    top: Spacing.xs,
+    right: Spacing.xs,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+  },
+  visualLabel: {
+    textAlign: "center",
+    marginTop: Spacing.xs,
+    fontWeight: "600",
   },
   footer: {
     position: "absolute",
