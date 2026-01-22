@@ -46,10 +46,10 @@ const TOUR_STEPS: TourStep[] = [
     highlight: "Tap Wardrobe to get started",
   },
   {
-    icon: "message-circle",
-    title: "Ask Your Stylist",
-    description: "Stuck on what to wear? Just ask! Your stylist gives instant outfit decisions based on the occasion, weather, and your personal style. No more outfit paralysis.",
-    highlight: "Tap Ask Stylist for instant advice",
+    icon: "plus-circle",
+    title: "The + Button",
+    description: "See the + button at the bottom? That's your direct line to your stylist. Tap it anytime you need an outfit decision. You can also get a Second Opinion from others when you want extra confidence.",
+    highlight: "Tap + for instant styling help",
   },
   {
     icon: "check-circle",
