@@ -1626,6 +1626,22 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                     This helps us recommend clothing that fits you perfectly. You can skip this step if you prefer.
                   </ThemedText>
                 </View>
+
+                <Pressable
+                  style={[styles.bodyProfileButton, { backgroundColor: theme.link }]}
+                  onPress={() => navigation.navigate('StyleQuizOnboarding')}
+                >
+                  <Feather name="user" size={20} color="#FFFFFF" />
+                  <View style={styles.bodyProfileButtonText}>
+                    <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
+                      Complete Body Profile Quiz
+                    </ThemedText>
+                    <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                      13 questions about your shape, fit, brands & more
+                    </ThemedText>
+                  </View>
+                  <Feather name="chevron-right" size={20} color="#FFFFFF" />
+                </Pressable>
               </View>
             </ScrollView>
           </View>
@@ -4284,5 +4300,16 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.03)",
     borderRadius: BorderRadius.md,
     marginTop: Spacing.md,
+  },
+  bodyProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.xl,
+    gap: Spacing.md,
+  },
+  bodyProfileButtonText: {
+    flex: 1,
   },
 });
