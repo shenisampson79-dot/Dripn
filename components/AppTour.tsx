@@ -40,16 +40,16 @@ const TOUR_STEPS: TourStep[] = [
     highlight: "Find your perfect style match",
   },
   {
-    icon: "grid",
-    title: "Build Your Wardrobe",
-    description: "Add your clothes to create a digital wardrobe. Your stylist will learn what you own and suggest outfits that actually work with your pieces.",
-    highlight: "Tap Wardrobe to get started",
-  },
-  {
     icon: "plus-circle",
     title: "The + Button",
     description: "See the + button at the bottom? That's your direct line to your stylist. Tap it anytime you need an outfit decision. You can also get a Second Opinion from others when you want extra confidence.",
     highlight: "Tap + for instant styling help",
+  },
+  {
+    icon: "grid",
+    title: "Build Your Wardrobe",
+    description: "Add your clothes to create a digital wardrobe. Your stylist will learn what you own and suggest outfits that actually work with your pieces.",
+    highlight: "Tap Wardrobe to get started",
   },
   {
     icon: "check-circle",
