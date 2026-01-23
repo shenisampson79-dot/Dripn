@@ -2908,7 +2908,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               </View>
 
               {subcultureStyle === "other" ? (
-                <View style={{ marginBottom: Spacing.xl }}>
+                <View style={{ marginBottom: Spacing["2xl"] }}>
                   <TextInput
                     style={{
                       backgroundColor: theme.backgroundDefault,
@@ -2917,7 +2917,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       borderRadius: BorderRadius.lg,
                       padding: Spacing.md,
                       color: theme.text,
-                      minHeight: 80,
+                      minHeight: 100,
                     }}
                     placeholder="e.g., Afrofuturism, Normcore, Gorpcore..."
                     placeholderTextColor={theme.tabIconDefault}
@@ -2926,7 +2926,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                     multiline
                     textAlignVertical="top"
                   />
-                  <ThemedText type="small" style={{ marginTop: Spacing.xs, color: theme.tabIconDefault }}>
+                  <ThemedText type="small" style={{ marginTop: Spacing.xs, color: theme.tabIconDefault, marginBottom: Spacing.lg }}>
                     Our AI will research this to understand your aesthetic
                   </ThemedText>
                 </View>
