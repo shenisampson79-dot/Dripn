@@ -58,6 +58,13 @@ const STYLIST_COLORS: Record<string, { primary: string; secondary: string }> = {
   ivy: { primary: "#22C55E", secondary: "#14532D" },
 };
 
+const STYLIST_DESCRIPTIONS: Record<string, string> = {
+  ruby: "Bold & glamorous",
+  max: "Clean & minimal",
+  ace: "Street-smart",
+  ivy: "Eco-conscious",
+};
+
 export default function GuestBrowseScreen({ navigation }: { navigation: NavigationProp }) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -216,7 +223,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
               {item.name}
             </ThemedText>
             <ThemedText type="small" style={{ color: "rgba(255,255,255,0.7)" }}>
-              {item.personality}
+              {STYLIST_DESCRIPTIONS[item.id] || item.personality}
             </ThemedText>
           </View>
           <Feather name="chevron-right" size={24} color="rgba(255,255,255,0.5)" />
@@ -434,7 +441,7 @@ const styles = StyleSheet.create({
   },
   introSection: {
     paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.md,
   },
   stylistList: {
     paddingHorizontal: Spacing.lg,
@@ -442,15 +449,15 @@ const styles = StyleSheet.create({
   stylistCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     borderWidth: 2,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   stylistAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
   },
