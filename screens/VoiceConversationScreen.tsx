@@ -4,14 +4,15 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { StyleSheet, View, Pressable, Animated, ActivityIndicator, Platform } from "react-native";
+import { StyleSheet, View, Pressable, Animated, ActivityIndicator, Platform, ScrollView } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ScreenScrollView } from "@/components/ScreenScrollView";
+import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
@@ -55,6 +56,7 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
   const { tier } = useSubscription();
+  const insets = useSafeAreaInsets();
   const { 
     hasCredits, 
     isUnlimited, 
@@ -63,6 +65,7 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
     refreshBalance,
   } = useVoiceCredits();
   const gender = user?.gender || "female";
+  const messagesScrollRef = useRef<ScrollView>(null);
   
   const [conversationState, setConversationState] = useState<ConversationState>("idle");
   const [messages, setMessages] = useState<VoiceMessage[]>([]);
@@ -455,147 +458,217 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
   };
 
 
-  return (
-    <ScreenScrollView contentContainerStyle={styles.container}>
-      <View style={styles.headerSection}>
-        <LinearGradient
-          colors={gradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerIcon}
-        >
-          <Feather name="headphones" size={32} color="#FFFFFF" />
-        </LinearGradient>
-        <ThemedText type="h1" style={styles.title}>Voice Chat with {stylistName}</ThemedText>
-        <ThemedText style={[styles.subtitle, { color: theme.tabIconDefault }]}>
-          Have a real-time voice conversation with your personal AI stylist
-        </ThemedText>
-        
-      </View>
-      
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0 && messagesScrollRef.current) {
+      setTimeout(() => {
+        messagesScrollRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages]);
 
-      {hasPermission === false ? (
-        <Card style={styles.permissionCard}>
-          <Feather name="mic-off" size={48} color={theme.error} />
-          <ThemedText type="h3" style={styles.permissionTitle}>
-            Microphone Access Required
-          </ThemedText>
-          <ThemedText style={[styles.permissionDescription, { color: theme.tabIconDefault }]}>
-            To use voice conversations, please grant microphone access in your device settings
-          </ThemedText>
-          {(Platform.OS as string) !== "web" ? (
-            <Pressable
-              onPress={checkPermissions}
-              style={({ pressed }) => [
-                styles.permissionButton,
-                { backgroundColor: theme.link, opacity: pressed ? 0.8 : 1 },
-              ]}
-            >
-              <ThemedText style={{ color: "#FFFFFF", fontWeight: "600" }}>
-                Grant Permission
-              </ThemedText>
-            </Pressable>
-          ) : (
-            <ThemedText style={[styles.webNote, { color: theme.warning }]}>
-              Run in Expo Go to use voice features
+  return (
+    <ThemedView style={[styles.screenContainer, { paddingBottom: insets.bottom + 80 }]}>
+      {/* Scrollable Content Area */}
+      <ScrollView 
+        style={styles.scrollContent}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Compact Header */}
+        <View style={styles.compactHeader}>
+          <LinearGradient
+            colors={gradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.compactHeaderIcon}
+          >
+            <Feather name="headphones" size={20} color="#FFFFFF" />
+          </LinearGradient>
+          <View style={styles.compactHeaderText}>
+            <ThemedText type="h3">Voice Chat with {stylistName}</ThemedText>
+            <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+              Have a real-time voice conversation with your personal AI stylist
             </ThemedText>
-          )}
-        </Card>
-      ) : (
-        <>
-          <Card style={styles.stylistCard}>
-            <View style={styles.stylistInfo}>
-              <LinearGradient
-                colors={gradientColors}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.stylistLargeAvatar}
+          </View>
+        </View>
+
+        {hasPermission === false ? (
+          <Card style={styles.permissionCard}>
+            <Feather name="mic-off" size={48} color={theme.error} />
+            <ThemedText type="h3" style={styles.permissionTitle}>
+              Microphone Access Required
+            </ThemedText>
+            <ThemedText style={[styles.permissionDescription, { color: theme.tabIconDefault }]}>
+              To use voice conversations, please grant microphone access in your device settings
+            </ThemedText>
+            {(Platform.OS as string) !== "web" ? (
+              <Pressable
+                onPress={checkPermissions}
+                style={({ pressed }) => [
+                  styles.permissionButton,
+                  { backgroundColor: theme.link, opacity: pressed ? 0.8 : 1 },
+                ]}
               >
-                <Feather name={gender === "female" ? "heart" : "star"} size={24} color="#FFFFFF" />
-              </LinearGradient>
-              <View style={styles.stylistDetails}>
-                <ThemedText type="h3">{stylistName}</ThemedText>
-                <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-                  Your Personal AI Stylist
+                <ThemedText style={{ color: "#FFFFFF", fontWeight: "600" }}>
+                  Grant Permission
                 </ThemedText>
-                <View style={styles.statusRow}>
-                  <View style={[styles.statusDot, { backgroundColor: theme.success }]} />
-                  <ThemedText type="caption" style={{ color: theme.success }}>
-                    Online
-                  </ThemedText>
+              </Pressable>
+            ) : (
+              <ThemedText style={[styles.webNote, { color: theme.warning }]}>
+                Run in Expo Go to use voice features
+              </ThemedText>
+            )}
+          </Card>
+        ) : (
+          <>
+            {/* Compact Stylist Info */}
+            <Card style={styles.compactStylistCard}>
+              <View style={styles.stylistInfo}>
+                <LinearGradient
+                  colors={gradientColors}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.compactStylistAvatar}
+                >
+                  <Feather name={gender === "female" ? "heart" : "star"} size={18} color="#FFFFFF" />
+                </LinearGradient>
+                <View style={styles.stylistDetails}>
+                  <ThemedText type="body" style={{ fontWeight: '600' }}>{stylistName}</ThemedText>
+                  <View style={styles.statusRow}>
+                    <View style={[styles.statusDot, { backgroundColor: theme.success }]} />
+                    <ThemedText type="caption" style={{ color: theme.success }}>
+                      Online
+                    </ThemedText>
+                  </View>
                 </View>
               </View>
-            </View>
-
-            <View style={styles.specialties}>
-              <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
-                Specialties:
-              </ThemedText>
-              <View style={styles.specialtyTags}>
+              <View style={styles.compactSpecialties}>
                 {["Color Analysis", "Body Styling", "Wardrobe Planning", "Trend Advice"].map((specialty) => (
                   <View key={specialty} style={[styles.specialtyTag, { backgroundColor: theme.backgroundSecondary }]}>
                     <ThemedText type="caption">{specialty}</ThemedText>
                   </View>
                 ))}
               </View>
-            </View>
-          </Card>
+            </Card>
 
-          <View style={styles.conversationSection}>
-            <ThemedText type="h4" style={styles.sectionLabel}>
-              Conversation
-            </ThemedText>
-            
-            {messages.length === 0 ? (
-              <View style={styles.emptyConversation}>
-                <Feather name="message-circle" size={48} color={theme.tabIconDefault} />
-                <ThemedText style={[styles.emptyText, { color: theme.tabIconDefault }]}>
-                  Tap the microphone to start talking with {stylistName}
-                </ThemedText>
-              </View>
-            ) : (
-              <View style={styles.messagesList}>
-                {messages.map(renderMessage)}
-              </View>
-            )}
-
-            {currentTranscript ? (
-              <View style={styles.transcriptContainer}>
-                <ThemedText type="small" style={{ color: theme.tabIconDefault, fontStyle: "italic" }}>
-                  {conversationState === "listening" ? "Listening: " : "You said: "}
-                  {currentTranscript}
-                </ThemedText>
-              </View>
-            ) : null}
-          </View>
-
-          <View style={styles.voiceSection}>
-            <ThemedText type="small" style={[styles.stateText, { color: theme.tabIconDefault }]}>
-              {conversationState === "idle" && "Tap to speak"}
-              {conversationState === "listening" && "Listening..."}
-              {conversationState === "processing" && `${stylistName} is thinking...`}
-              {conversationState === "speaking" && `${stylistName} is speaking...`}
-            </ThemedText>
-            
-            {renderVoiceButton()}
-
-            <View style={styles.tipsRow}>
-              <Feather name="info" size={14} color={theme.tabIconDefault} />
-              <ThemedText type="caption" style={{ color: theme.tabIconDefault, flex: 1 }}>
-                Ask about outfit ideas, color matching, styling tips, or fashion advice
+            {/* Conversation Section */}
+            <View style={styles.conversationSection}>
+              <ThemedText type="h4" style={styles.sectionLabel}>
+                Conversation
               </ThemedText>
+              
+              {messages.length === 0 ? (
+                <View style={styles.emptyConversation}>
+                  <Feather name="message-circle" size={36} color={theme.tabIconDefault} />
+                  <ThemedText style={[styles.emptyText, { color: theme.tabIconDefault }]}>
+                    Tap the microphone to start talking with {stylistName}
+                  </ThemedText>
+                </View>
+              ) : (
+                <ScrollView 
+                  ref={messagesScrollRef}
+                  style={styles.messagesScroll}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <View style={styles.messagesList}>
+                    {messages.map(renderMessage)}
+                  </View>
+                </ScrollView>
+              )}
+
+              {currentTranscript ? (
+                <View style={styles.transcriptContainer}>
+                  <ThemedText type="small" style={{ color: theme.tabIconDefault, fontStyle: "italic" }}>
+                    {conversationState === "listening" ? "Listening: " : "You said: "}
+                    {currentTranscript}
+                  </ThemedText>
+                </View>
+              ) : null}
             </View>
+          </>
+        )}
+      </ScrollView>
+
+      {/* Fixed Voice Button Section at Bottom */}
+      {hasPermission !== false ? (
+        <View style={[styles.fixedVoiceSection, { paddingBottom: Spacing.md }]}>
+          <ThemedText type="small" style={[styles.stateText, { color: theme.tabIconDefault }]}>
+            {conversationState === "idle" && "Tap to speak"}
+            {conversationState === "listening" && "Listening..."}
+            {conversationState === "processing" && `${stylistName} is thinking...`}
+            {conversationState === "speaking" && `${stylistName} is speaking...`}
+          </ThemedText>
+          
+          {renderVoiceButton()}
+
+          <View style={styles.tipsRow}>
+            <Feather name="info" size={14} color={theme.tabIconDefault} />
+            <ThemedText type="caption" style={{ color: theme.tabIconDefault, flex: 1 }}>
+              Ask about outfit ideas, color matching, styling tips, or fashion advice
+            </ThemedText>
           </View>
-        </>
-      )}
-    </ScreenScrollView>
+        </View>
+      ) : null}
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  screenContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flex: 1,
+  },
   container: {
     padding: Spacing.md,
-    gap: Spacing.lg,
+    gap: Spacing.md,
+    paddingBottom: Spacing.xl,
+  },
+  compactHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  compactHeaderIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  compactHeaderText: {
+    flex: 1,
+  },
+  compactStylistCard: {
+    padding: Spacing.md,
+  },
+  compactStylistAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  compactSpecialties: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  messagesScroll: {
+    maxHeight: 200,
+  },
+  fixedVoiceSection: {
+    position: "absolute",
+    bottom: 80,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
   },
   headerSection: {
     alignItems: "center",
