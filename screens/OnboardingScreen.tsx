@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput, Alert, Keyboard, Modal, Animated, Easing, Dimensions, KeyboardAvoidingView } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -2737,11 +2738,12 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             </ThemedText>
 
             <ScrollProgressIndicator />
-            <ScrollView 
+            <KeyboardAwareScrollView 
               style={styles.optionsScroll} 
               showsVerticalScrollIndicator={false}
               onScroll={handleScroll}
               scrollEventThrottle={16}
+              bottomOffset={100}
             >
               <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
                 Religious/Modest Dress Code
@@ -2929,7 +2931,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   </ThemedText>
                 </View>
               ) : null}
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </View>
         );
       }

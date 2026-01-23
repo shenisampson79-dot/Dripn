@@ -131,11 +131,13 @@ export function AppTour({ visible, onComplete }: AppTourProps) {
 
           <View style={styles.content}>
             {currentStep === 0 ? (
-              <Image 
-                source={require('@/assets/images/dripn-logo-new.png')} 
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
+              <View style={styles.logoContainer}>
+                <Image 
+                  source={require('@/assets/images/dripn-logo-gold-cream.png')} 
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
+              </View>
             ) : (
               <View
                 style={[
@@ -246,10 +248,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: Spacing.xl,
   },
-  logoImage: {
-    width: 120,
-    height: 120,
+  logoContainer: {
     marginBottom: Spacing.xl,
+  },
+  logoImage: {
+    width: 180,
+    height: 180,
   },
   title: {
     textAlign: "center",
