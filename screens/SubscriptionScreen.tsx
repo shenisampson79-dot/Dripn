@@ -12,7 +12,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, SubscriptionColors, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
-import { useSubscription, SUBSCRIPTION_PLANS } from "@/contexts/SubscriptionContext";
+import { useSubscription, SUBSCRIPTION_PLANS, YEARLY_PRICING } from "@/contexts/SubscriptionContext";
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -90,12 +90,12 @@ const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
   ],
 };
 
-const PLAN_METADATA: Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean }> = {
+const getPlanMetadata = (isYearly: boolean): Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean }> => ({
   free: { name: "Free", period: "forever", description: "Get started with basics" },
-  style_chat: { name: "Style Chat", period: "/month", description: "Voice access & extended features" },
-  personal_stylist: { name: "Personal Stylist", period: "/month", description: "Your personal AI stylist", popular: true },
-  stylist_unlimited: { name: "Stylist Unlimited", period: "/month", description: "Unlimited everything" },
-};
+  style_chat: { name: "Style Chat", period: isYearly ? "/year" : "/month", description: "Voice access & extended features" },
+  personal_stylist: { name: "Personal Stylist", period: isYearly ? "/year" : "/month", description: "Your personal AI stylist", popular: true },
+  stylist_unlimited: { name: "Stylist Unlimited", period: isYearly ? "/year" : "/month", description: "Unlimited everything" },
+});
 
 interface LocalizedPrices {
   free: string;
@@ -104,41 +104,44 @@ interface LocalizedPrices {
   stylist_unlimited: string;
 }
 
-const getLocalizedPlans = (prices: LocalizedPrices): Plan[] => [
-  { 
-    id: "free" as SubscriptionTier, 
-    ...PLAN_METADATA.free, 
-    price: prices.free, 
-    features: PLAN_FEATURES.free,
-    gradientColors: ['#2A2A3E', '#1A1A2E'] as const,
-    accentColor: LUXURY_COLORS.champagne,
-  },
-  { 
-    id: "subscription" as SubscriptionTier, 
-    ...PLAN_METADATA.style_chat, 
-    price: prices.style_chat, 
-    features: PLAN_FEATURES.style_chat,
-    gradientColors: [LUXURY_COLORS.teal, LUXURY_COLORS.emerald] as const,
-    accentColor: LUXURY_COLORS.champagne,
-  },
-  { 
-    id: "premium" as SubscriptionTier, 
-    ...PLAN_METADATA.personal_stylist, 
-    price: prices.personal_stylist, 
-    features: PLAN_FEATURES.personal_stylist,
-    gradientColors: [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const,
-    accentColor: LUXURY_COLORS.gold,
-    popular: true,
-  },
-  { 
-    id: "pro" as SubscriptionTier, 
-    ...PLAN_METADATA.stylist_unlimited, 
-    price: prices.stylist_unlimited, 
-    features: PLAN_FEATURES.stylist_unlimited,
-    gradientColors: [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const,
-    accentColor: LUXURY_COLORS.midnight,
-  },
-];
+const getLocalizedPlans = (prices: LocalizedPrices, isYearly: boolean): Plan[] => {
+  const metadata = getPlanMetadata(isYearly);
+  return [
+    { 
+      id: "free" as SubscriptionTier, 
+      ...metadata.free, 
+      price: prices.free, 
+      features: PLAN_FEATURES.free,
+      gradientColors: ['#2A2A3E', '#1A1A2E'] as const,
+      accentColor: LUXURY_COLORS.champagne,
+    },
+    { 
+      id: "subscription" as SubscriptionTier, 
+      ...metadata.style_chat, 
+      price: prices.style_chat, 
+      features: PLAN_FEATURES.style_chat,
+      gradientColors: [LUXURY_COLORS.teal, LUXURY_COLORS.emerald] as const,
+      accentColor: LUXURY_COLORS.champagne,
+    },
+    { 
+      id: "premium" as SubscriptionTier, 
+      ...metadata.personal_stylist, 
+      price: prices.personal_stylist, 
+      features: PLAN_FEATURES.personal_stylist,
+      gradientColors: [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const,
+      accentColor: LUXURY_COLORS.gold,
+      popular: true,
+    },
+    { 
+      id: "pro" as SubscriptionTier, 
+      ...metadata.stylist_unlimited, 
+      price: prices.stylist_unlimited, 
+      features: PLAN_FEATURES.stylist_unlimited,
+      gradientColors: [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const,
+      accentColor: LUXURY_COLORS.midnight,
+    },
+  ];
+};
 
 const getTierDisplayName = (tier?: SubscriptionTier): string => {
   switch (tier) {
@@ -176,11 +179,18 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     user?.subscriptionTier || "free"
   );
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isYearly, setIsYearly] = useState(false);
   const [localizedPrices, setLocalizedPrices] = useState<LocalizedPrices>({
     free: "Free",
     style_chat: "£9.99",
     personal_stylist: "£14.99",
     stylist_unlimited: "£19.99",
+  });
+  const [yearlyPrices, setYearlyPrices] = useState<LocalizedPrices>({
+    free: "Free",
+    style_chat: "£95.99",
+    personal_stylist: "£143.99",
+    stylist_unlimited: "£191.99",
   });
   const [dfyPrices, setDfyPrices] = useState<{ outfit_setup: string; wardrobe_setup: string }>({
     outfit_setup: "£19.99",
@@ -196,7 +206,8 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     initCurrency();
   }, []);
 
-  const PLANS = getLocalizedPlans(localizedPrices);
+  const currentPrices = isYearly ? yearlyPrices : localizedPrices;
+  const PLANS = getLocalizedPlans(currentPrices, isYearly);
 
   const handleSelectPlan = async (planId: SubscriptionTier) => {
     if (planId === user?.subscriptionTier) return;
@@ -214,14 +225,19 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
           [{ text: "OK", onPress: () => navigation.goBack() }]
         );
       } else {
-        const subscriptionPlan = SUBSCRIPTION_PLANS.find(p => p.tier === planId);
-        if (!subscriptionPlan?.productId) {
-          throw new Error("Product ID not found for this plan");
+        // Get the correct product ID based on billing cycle
+        let productId: string;
+        if (isYearly && YEARLY_PRICING[planId]) {
+          productId = YEARLY_PRICING[planId].productId;
+        } else {
+          const subscriptionPlan = SUBSCRIPTION_PLANS.find(p => p.tier === planId);
+          if (!subscriptionPlan?.productId) {
+            throw new Error("Product ID not found for this plan");
+          }
+          productId = subscriptionPlan.productId;
         }
 
-        const response = await apiService.createCheckoutSession(
-          subscriptionPlan.productId
-        );
+        const response = await apiService.createCheckoutSession(productId);
 
         if (response.checkoutUrl) {
           const result = await WebBrowser.openBrowserAsync(response.checkoutUrl);
@@ -448,6 +464,52 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
             </View>
           ) : null}
         </View>
+      </View>
+
+      <View style={styles.billingToggleContainer}>
+        <Pressable
+          onPress={() => setIsYearly(false)}
+          style={[
+            styles.billingToggleButton,
+            !isYearly && styles.billingToggleButtonActive,
+            { backgroundColor: !isYearly ? LUXURY_COLORS.gold : 'transparent' }
+          ]}
+        >
+          <ThemedText 
+            type="body" 
+            style={[
+              styles.billingToggleText,
+              !isYearly && styles.billingToggleTextActive
+            ]}
+          >
+            Monthly
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={() => setIsYearly(true)}
+          style={[
+            styles.billingToggleButton,
+            isYearly && styles.billingToggleButtonActive,
+            { backgroundColor: isYearly ? LUXURY_COLORS.gold : 'transparent' }
+          ]}
+        >
+          <View style={styles.yearlyToggleContent}>
+            <ThemedText 
+              type="body" 
+              style={[
+                styles.billingToggleText,
+                isYearly && styles.billingToggleTextActive
+              ]}
+            >
+              Yearly
+            </ThemedText>
+            <View style={[styles.savingsBadge, { backgroundColor: isYearly ? '#fff' : LUXURY_COLORS.emerald }]}>
+              <ThemedText type="caption" style={[styles.savingsText, { color: isYearly ? LUXURY_COLORS.emerald : '#fff' }]}>
+                Save 20%
+              </ThemedText>
+            </View>
+          </View>
+        </Pressable>
       </View>
 
       <View style={styles.plansContainer}>
@@ -683,6 +745,48 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: Spacing.sm,
+  },
+  billingToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: BorderRadius.xl,
+    padding: 4,
+    marginBottom: Spacing.xl,
+  },
+  billingToggleButton: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  billingToggleButtonActive: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  billingToggleText: {
+    fontWeight: '600',
+  },
+  billingToggleTextActive: {
+    color: '#1A1A2E',
+  },
+  yearlyToggleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  savingsBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  savingsText: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   currentTierSection: {
     padding: Spacing.lg,

@@ -206,8 +206,8 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     name: 'Style Chat',
     price: 9.99,
     interval: 'month',
-    priceId: 'price_subscription_monthly',
-    productId: 'subscription_monthly',
+    priceId: 'price_style_chat_monthly',
+    productId: 'style_chat_monthly',
     features: [
       'Voice conversations (limited)',
       'Extended wardrobe',
@@ -221,8 +221,8 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     name: 'Personal Stylist',
     price: 14.99,
     interval: 'month',
-    priceId: 'price_subscription_monthly',
-    productId: 'subscription_monthly',
+    priceId: 'price_personal_stylist_monthly',
+    productId: 'personal_stylist_monthly',
     popular: true,
     features: [
       'More voice conversations',
@@ -238,8 +238,8 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     name: 'Stylist Unlimited',
     price: 19.99,
     interval: 'month',
-    priceId: 'price_subscription_monthly',
-    productId: 'subscription_monthly',
+    priceId: 'price_stylist_unlimited_monthly',
+    productId: 'stylist_unlimited_monthly',
     features: [
       'Unlimited voice conversations',
       'Unlimited everything',
@@ -249,6 +249,13 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     ],
   },
 ];
+
+// Yearly pricing (20% savings)
+export const YEARLY_PRICING: Record<string, { productId: string; price: number }> = {
+  subscription: { productId: 'style_chat_yearly', price: 95.99 },
+  premium: { productId: 'personal_stylist_yearly', price: 143.99 },
+  pro: { productId: 'stylist_unlimited_yearly', price: 191.99 },
+};
 
 const createDefaultUsage = (): UsageStats => ({
   uploadsThisMonth: 0,
