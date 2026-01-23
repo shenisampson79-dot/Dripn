@@ -106,7 +106,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         try {
           const status = await apiService.getGuestStatus(cachedToken);
           setSessionToken(cachedToken);
-          setMessagesRemaining(status.messagesRemaining);
+          setMessagesRemaining(status.messagesRemaining ?? 5);
           await loadStylists(cachedToken);
           setIsLoading(false);
           return;
@@ -173,7 +173,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      setMessagesRemaining(response.messagesRemaining);
+      setMessagesRemaining(response.messagesRemaining ?? messagesRemaining - 1);
 
       if (response.limitReached) {
         setShowLimitReached(true);
@@ -304,7 +304,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
           <View style={styles.headerCenter}>
             <ThemedText type="h2">Try Dripn</ThemedText>
             <ThemedText type="small" style={{ opacity: 0.7, marginTop: 2 }}>
-              {messagesRemaining} free messages remaining
+              {messagesRemaining ?? 5} free messages remaining
             </ThemedText>
           </View>
           <View style={{ width: 40 }} />
