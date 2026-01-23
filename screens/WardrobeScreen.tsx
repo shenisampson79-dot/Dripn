@@ -78,7 +78,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { items, isLoading, deleteItem, toggleItemFavorite, markItemWorn } = useWardrobe();
+  const { items, isLoading, deleteItem, toggleItemFavorite, markItemWorn, updateItem } = useWardrobe();
   const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'all'>('all');
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
   const [showItemModal, setShowItemModal] = useState(false);
@@ -156,6 +156,19 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       Alert.alert("Logged", `Marked "${item.name}" as worn today`);
     } catch (error) {
       Alert.alert("Error", "Failed to log wear");
+    }
+  };
+
+  const handleAdjustWearCount = async (item: WardrobeItem, delta: number) => {
+    const newCount = Math.max(0, item.timesWorn + delta);
+    if (newCount === item.timesWorn) return;
+    
+    try {
+      await updateItem(item.id, { timesWorn: newCount });
+      setSelectedItem({ ...item, timesWorn: newCount });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error) {
+      Alert.alert("Error", "Failed to update wear count");
     }
   };
 
@@ -376,7 +389,39 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                         >
                           <Feather name="repeat" size={14} color="#FFFFFF" />
                         </LinearGradient>
-                        <ThemedText type="h3">{selectedItem.timesWorn}</ThemedText>
+                        <View style={styles.wearCountContainer}>
+                          <Pressable
+                            onPress={() => handleAdjustWearCount(selectedItem, -1)}
+                            disabled={selectedItem.timesWorn === 0}
+                            style={[
+                              styles.wearCountButton,
+                              { 
+                                backgroundColor: selectedItem.timesWorn === 0 
+                                  ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)')
+                                  : LUXURY_COLORS.coral + '20',
+                                opacity: selectedItem.timesWorn === 0 ? 0.5 : 1,
+                              }
+                            ]}
+                          >
+                            <Feather 
+                              name="minus" 
+                              size={16} 
+                              color={selectedItem.timesWorn === 0 ? (isDark ? '#666' : '#999') : LUXURY_COLORS.coral} 
+                            />
+                          </Pressable>
+                          <ThemedText type="h3" style={{ minWidth: 30, textAlign: 'center' }}>
+                            {selectedItem.timesWorn}
+                          </ThemedText>
+                          <Pressable
+                            onPress={() => handleAdjustWearCount(selectedItem, 1)}
+                            style={[
+                              styles.wearCountButton,
+                              { backgroundColor: LUXURY_COLORS.teal + '20' }
+                            ]}
+                          >
+                            <Feather name="plus" size={16} color={LUXURY_COLORS.teal} />
+                          </Pressable>
+                        </View>
                         <ThemedText type="caption" style={{ opacity: 0.6 }}>Times Worn</ThemedText>
                       </View>
                       <View style={[styles.statDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
@@ -1034,6 +1079,18 @@ const styles = StyleSheet.create({
     width: 1,
     height: 60,
     marginHorizontal: Spacing.lg,
+  },
+  wearCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  wearCountButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   detailRow: {
     flexDirection: "row",
