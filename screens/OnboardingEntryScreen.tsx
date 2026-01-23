@@ -110,8 +110,8 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
       <LinearGradient
         colors={[
           "transparent", 
-          `${ScreenGradients.onboardingEntry.primary[0]}90`,
-          `${ScreenGradients.onboardingEntry.primary[1]}CC`,
+          "rgba(0,0,0,0.35)",
+          "rgba(0,0,0,0.65)",
           "rgba(0,0,0,0.95)"
         ]}
         style={StyleSheet.absoluteFillObject}

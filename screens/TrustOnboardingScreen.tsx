@@ -200,8 +200,8 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
       <LinearGradient
         colors={[
           "transparent",
-          `${ScreenGradients.trustOnboarding.primary[0]}80`,
-          `${ScreenGradients.trustOnboarding.primary[1]}CC`,
+          "rgba(0,0,0,0.35)",
+          "rgba(0,0,0,0.65)",
           "rgba(0,0,0,0.95)"
         ]}
         style={styles.gradientOverlay}

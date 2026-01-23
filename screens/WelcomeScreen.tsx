@@ -68,8 +68,8 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
       <LinearGradient
         colors={[
           "transparent",
-          `${ScreenGradients.welcome.primary[0]}70`,
-          `${ScreenGradients.welcome.primary[1]}A0`,
+          "rgba(0,0,0,0.3)",
+          "rgba(0,0,0,0.6)",
           "rgba(0,0,0,0.9)"
         ]}
         style={styles.overlay}
