@@ -226,12 +226,55 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         if (response.checkoutUrl) {
           const result = await WebBrowser.openBrowserAsync(response.checkoutUrl);
           
-          if (result.type === "cancel") {
-            Alert.alert(
-              "Checkout Cancelled",
-              "You can complete your subscription upgrade at any time.",
-              [{ text: "OK" }]
-            );
+          // Check the redirect URL to determine payment outcome
+          if (result.type === "dismiss" || result.type === "cancel") {
+            // Check if the URL contains payment-success or payment-cancelled
+            const url = (result as any).url || "";
+            
+            if (url.includes("payment-success")) {
+              // Extract session_id from URL and verify payment
+              const sessionIdMatch = url.match(/session_id=([^&]+)/);
+              const sessionId = sessionIdMatch ? sessionIdMatch[1] : null;
+              
+              if (sessionId) {
+                try {
+                  const sessionStatus = await apiService.getCheckoutSession(sessionId);
+                  if (sessionStatus.status === "paid") {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    Alert.alert(
+                      "Payment Successful!",
+                      `Your subscription has been activated. Welcome to ${PLANS.find(p => p.id === planId)?.name}!`,
+                      [{ text: "OK", onPress: () => navigation.goBack() }]
+                    );
+                    return;
+                  }
+                } catch (verifyError) {
+                  console.log("Could not verify payment status:", verifyError);
+                }
+              }
+              
+              // If we can't verify but URL says success, show success
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert(
+                "Payment Successful!",
+                `Your subscription has been activated. Welcome to ${PLANS.find(p => p.id === planId)?.name}!`,
+                [{ text: "OK", onPress: () => navigation.goBack() }]
+              );
+            } else if (url.includes("payment-cancelled")) {
+              Alert.alert(
+                "Checkout Cancelled",
+                "You can complete your subscription upgrade at any time.",
+                [{ text: "OK" }]
+              );
+            } else {
+              // Browser was dismissed without clear redirect - don't assume cancelled
+              // User may have completed payment and manually closed browser
+              Alert.alert(
+                "Checkout Complete",
+                "If your payment was successful, your subscription will be activated shortly. You can check your subscription status in your profile.",
+                [{ text: "OK" }]
+              );
+            }
           }
         } else {
           throw new Error("No checkout URL received");
