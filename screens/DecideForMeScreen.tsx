@@ -585,12 +585,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       
       await AsyncStorage.setItem(CACHED_OUTFITS_KEY, JSON.stringify(outfits));
       setCachedOutfitsCount(outfits.length);
-      
-      Alert.alert(
-        "Saved temporarily",
-        "This will disappear when you leave the app. Create an account to keep it forever.",
-        [{ text: "Got it" }]
-      );
+      // Silently save - user already said "Not now" so don't bother them with another popup
     } catch (error) {
       console.log("Failed to cache outfit");
     }
