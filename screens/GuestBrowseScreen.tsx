@@ -42,6 +42,8 @@ interface ChatMessage {
   content: string;
   isUser: boolean;
   timestamp: Date;
+  imageUrl?: string;
+  isPlaceholder?: boolean;
 }
 
 const DEFAULT_STYLISTS: GuestStylist[] = [
@@ -204,6 +206,49 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       console.log("Remaining messages:", remaining);
       setMessagesRemaining(remaining);
 
+      // Check if AI response contains outfit recommendations - detect keywords
+      const outfitKeywords = ['outfit', 'wear', 'style', 'look', 'pieces', 'top', 'bottom', 'blazer', 'jeans', 'dress', 'shoes', 'accessories'];
+      const hasOutfitContent = outfitKeywords.some(keyword => aiContent.toLowerCase().includes(keyword));
+      
+      if (hasOutfitContent && sessionToken) {
+        // Try to generate outfit image in background
+        try {
+          console.log("Generating outfit image...");
+          // Extract a style from the conversation (default to casual)
+          const styleKeywords = ['clean girl', 'minimal', 'streetwear', 'vintage', 'casual', 'formal', 'edgy', 'classic'];
+          let detectedStyle = 'casual';
+          for (const style of styleKeywords) {
+            if (aiContent.toLowerCase().includes(style) || userMessage.content.toLowerCase().includes(style)) {
+              detectedStyle = style;
+              break;
+            }
+          }
+          
+          const imageResponse = await apiService.guestGenerateOutfitImage(
+            sessionToken,
+            aiContent.substring(0, 500), // Use AI response as description
+            detectedStyle,
+            selectedStylist.id
+          );
+          
+          if (imageResponse?.success && imageResponse?.imageUrl) {
+            // Add image as a separate message
+            const imageMessage: ChatMessage = {
+              id: (Date.now() + 2).toString(),
+              content: imageResponse.isPlaceholder ? "Here's some style inspiration:" : "Here's what that could look like:",
+              isUser: false,
+              timestamp: new Date(),
+              imageUrl: imageResponse.imageUrl,
+              isPlaceholder: imageResponse.isPlaceholder,
+            };
+            setMessages(prev => [...prev, imageMessage]);
+          }
+        } catch (imageError) {
+          console.log("Image generation failed (non-critical):", imageError);
+          // Don't show error to user - image generation is optional
+        }
+      }
+
       // Only show limit reached when actually out of messages
       if (rawResponse?.limitReached === true || remaining <= 0) {
         console.log("Limit reached - showing signup prompt");
@@ -299,6 +344,22 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
           >
             {item.content}
           </ThemedText>
+          {item.imageUrl && (
+            <View style={styles.outfitImageContainer}>
+              <Image
+                source={{ uri: item.imageUrl }}
+                style={styles.outfitImage}
+                resizeMode="cover"
+              />
+              {item.isPlaceholder && (
+                <View style={[styles.placeholderBadge, { backgroundColor: colors.primary }]}>
+                  <ThemedText type="small" style={{ color: "#FFFFFF", fontWeight: "600" }}>
+                    Upgrade for AI-generated looks
+                  </ThemedText>
+                </View>
+              )}
+            </View>
+          )}
         </View>
       </View>
     );
@@ -580,6 +641,26 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,
     borderBottomLeftRadius: 4,
+  },
+  outfitImageContainer: {
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    overflow: "hidden",
+  },
+  outfitImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: BorderRadius.md,
+  },
+  placeholderBadge: {
+    position: "absolute",
+    bottom: Spacing.sm,
+    left: Spacing.sm,
+    right: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    alignItems: "center",
   },
   inputContainer: {
     paddingHorizontal: Spacing.lg,

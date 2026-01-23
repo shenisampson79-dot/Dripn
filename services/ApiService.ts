@@ -2925,6 +2925,18 @@ class ApiService {
     });
   }
 
+  async guestGenerateOutfitImage(sessionToken: string, outfitDescription: string, style: string, stylistId: string) {
+    return this.request<{
+      success: boolean;
+      imageUrl: string;
+      isPlaceholder: boolean;
+    }>('/api/guest/generate-outfit-image', {
+      method: 'POST',
+      headers: { 'x-guest-token': sessionToken },
+      body: JSON.stringify({ outfitDescription, style, stylist: stylistId }),
+    });
+  }
+
   async getGuestStatus(sessionToken: string) {
     return this.request<{
       messagesRemaining: number;
