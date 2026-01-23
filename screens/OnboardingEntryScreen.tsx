@@ -80,18 +80,13 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
 
   const handleJustBrowsing = async () => {
     try {
-      const response = await apiService.post<{ immediateChat?: boolean; browsingMode?: boolean }>("/api/onboarding/entry-choice", { 
+      await apiService.post<{ immediateChat?: boolean; browsingMode?: boolean }>("/api/onboarding/entry-choice", { 
         choice: "just_browsing" 
       });
-      
-      if (response?.immediateChat && response?.browsingMode) {
-        navigation.navigate("AskStylist" as never);
-      } else {
-        navigation.navigate("DecideForMe");
-      }
     } catch (error) {
-      navigation.navigate("DecideForMe");
+      console.log("Failed to track browsing choice");
     }
+    navigation.navigate("GuestBrowse");
   };
 
   const decideForMe = entryData?.entryPoints?.find(e => e.id === "decide_for_me");

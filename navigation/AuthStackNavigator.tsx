@@ -14,6 +14,7 @@ import OnboardingScreen from "@/screens/OnboardingScreen";
 import OnboardingQuizScreen from "@/screens/OnboardingQuizScreen";
 import OnboardingStyleQuizScreen from "@/screens/OnboardingStyleQuizScreen";
 import StyleQuizOnboardingScreen from "@/screens/StyleQuizOnboardingScreen";
+import GuestBrowseScreen from "@/screens/GuestBrowseScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -32,6 +33,7 @@ export type AuthStackParamList = {
   OnboardingQuiz: undefined;
   OnboardingStyleQuiz: undefined;
   StyleQuizOnboarding: undefined;
+  GuestBrowse: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -65,6 +67,7 @@ export default function AuthStackNavigator({ initialRouteName = "Welcome" }: Aut
       <Stack.Screen name="OnboardingQuiz" component={OnboardingQuizScreen} />
       <Stack.Screen name="OnboardingStyleQuiz" component={OnboardingStyleQuizScreen} />
       <Stack.Screen name="StyleQuizOnboarding" component={StyleQuizOnboardingScreen} />
+      <Stack.Screen name="GuestBrowse" component={GuestBrowseScreen} />
     </Stack.Navigator>
   );
 }
