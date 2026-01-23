@@ -2743,7 +2743,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               showsVerticalScrollIndicator={false}
               onScroll={handleScroll}
               scrollEventThrottle={16}
-              bottomOffset={100}
+              bottomOffset={200}
             >
               <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
                 Religious/Modest Dress Code
@@ -2795,7 +2795,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               </View>
 
               {dressCodePreference === "other" ? (
-                <View style={{ marginTop: Spacing.md, marginBottom: Spacing.md }}>
+                <View style={{ marginTop: Spacing.md, marginBottom: Spacing.xl }}>
                   <TextInput
                     style={{
                       backgroundColor: theme.backgroundDefault,
@@ -2804,7 +2804,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       borderRadius: BorderRadius.lg,
                       padding: Spacing.md,
                       color: theme.text,
-                      minHeight: 80,
+                      minHeight: 100,
                     }}
                     placeholder="e.g., Amish Plain Dress, Buddhist robes, Rastafarian..."
                     placeholderTextColor={theme.tabIconDefault}
@@ -2813,7 +2813,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                     multiline
                     textAlignVertical="top"
                   />
-                  <ThemedText type="small" style={{ marginTop: Spacing.xs, color: theme.tabIconDefault }}>
+                  <ThemedText type="small" style={{ marginTop: Spacing.xs, color: theme.tabIconDefault, marginBottom: Spacing.lg }}>
                     Our AI will research this to give you appropriate suggestions
                   </ThemedText>
                 </View>
