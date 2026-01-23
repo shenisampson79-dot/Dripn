@@ -172,25 +172,13 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     setIsSending(true);
 
     try {
+      console.log("Sending chat request to stylist:", selectedStylist.id);
       const rawResponse = await apiService.guestChat(sessionToken, userMessage.content, selectedStylist.id) as any;
-      console.log("Guest chat raw response:", JSON.stringify(rawResponse));
+      console.log("Chat response received:", JSON.stringify(rawResponse));
       
-      // Handle nested response structures (data.response, result.response, etc.)
-      const response = rawResponse?.data || rawResponse?.result || rawResponse;
-      
-      // Handle different response field names from backend
-      let aiContent = response?.response || response?.message || response?.text || response?.content || response?.reply;
-      
-      // If still no content, check if response itself is a string
-      if (!aiContent && typeof response === 'string') {
-        aiContent = response;
-      }
-      
-      // Final fallback with debug info
-      if (!aiContent) {
-        console.log("No AI content found in response structure");
-        aiContent = "I received your message but couldn't generate a response. Please try again.";
-      }
+      // The backend returns: { success, response, stylist, remainingMessages, showSignupPrompt }
+      const aiContent = rawResponse?.response || rawResponse?.message || rawResponse?.text || "I'm here to help with your style!";
+      console.log("AI content extracted:", aiContent.substring(0, 50));
       
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -199,17 +187,20 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         timestamp: new Date(),
       };
 
+      console.log("Adding AI message to chat");
       setMessages(prev => [...prev, aiMessage]);
-      const remaining = rawResponse?.remainingMessages ?? rawResponse?.messagesRemaining ?? response?.remainingMessages ?? messagesRemaining - 1;
+      
+      const remaining = rawResponse?.remainingMessages ?? messagesRemaining - 1;
+      console.log("Remaining messages:", remaining);
       setMessagesRemaining(remaining);
 
-      if (rawResponse?.limitReached || response?.limitReached) {
+      if (rawResponse?.limitReached || rawResponse?.showSignupPrompt) {
         setShowLimitReached(true);
-        const prompt = rawResponse?.signupPrompt || response?.signupPrompt;
-        if (prompt) {
-          setSignupPrompt(prompt);
+        if (rawResponse?.signupPrompt) {
+          setSignupPrompt(rawResponse.signupPrompt);
         }
       }
+      console.log("Chat response processed successfully");
     } catch (error: any) {
       console.log("Guest chat error:", error?.message || error);
       const errorMessage: ChatMessage = {
@@ -220,6 +211,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
+      console.log("Setting isSending to false");
       setIsSending(false);
     }
   };
