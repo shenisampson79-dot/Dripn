@@ -203,6 +203,12 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
             </LinearGradient>
           </Pressable>
 
+          <Pressable onPress={() => navigation.navigate("Auth", { mode: "login" })}>
+            <ThemedText type="small" style={[styles.signInText, { textDecorationLine: 'underline' }]}>
+              Already have an account? Sign in
+            </ThemedText>
+          </Pressable>
+
           <Pressable onPress={handleJustBrowsing}>
             <ThemedText type="small" style={[styles.trustText, { textDecorationLine: 'underline' }]}>
               {entryData?.trustBuilding || "See how it works before signing up"}
@@ -314,6 +320,13 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.7)",
     fontSize: 14,
     marginTop: 2,
+  },
+  signInText: {
+    color: "rgba(255,255,255,0.85)",
+    textAlign: "center",
+    marginTop: Spacing.lg,
+    fontSize: 14,
+    fontWeight: "500",
   },
   trustText: {
     color: "rgba(255,255,255,0.6)",
