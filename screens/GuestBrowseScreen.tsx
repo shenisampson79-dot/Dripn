@@ -19,7 +19,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing, BorderRadius, ScreenGradients } from "@/constants/theme";
+import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { apiService } from "@/services/ApiService";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
@@ -235,7 +235,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
             styles.messageBubble,
             item.isUser
               ? { backgroundColor: colors.primary, borderBottomRightRadius: 4 }
-              : { backgroundColor: theme.backgroundElevated, borderBottomLeftRadius: 4 },
+              : { backgroundColor: theme.backgroundSecondary, borderBottomLeftRadius: 4 },
           ]}
         >
           <ThemedText
@@ -249,9 +249,13 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     );
   };
 
+  const gradientColors = isDark 
+    ? ["#1A1A2E", "#16213E"] as const 
+    : ["#F5F0EB", "#E8E0D8"] as const;
+
   if (isLoading) {
     return (
-      <LinearGradient colors={ScreenGradients.main} style={styles.container}>
+      <LinearGradient colors={gradientColors} style={styles.container}>
         <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
           <ActivityIndicator size="large" color={theme.link} />
           <ThemedText type="body" style={{ marginTop: Spacing.md, opacity: 0.7 }}>
@@ -264,7 +268,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
   if (!selectedStylist) {
     return (
-      <LinearGradient colors={ScreenGradients.main} style={styles.container}>
+      <LinearGradient colors={gradientColors} style={styles.container}>
         <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
           <Pressable onPress={handleBack} style={styles.backButton}>
             <Feather name="arrow-left" size={24} color={theme.text} />
@@ -314,7 +318,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   const stylistColors = STYLIST_COLORS[selectedStylist.id];
 
   return (
-    <LinearGradient colors={ScreenGradients.main} style={styles.container}>
+    <LinearGradient colors={gradientColors} style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
         <Pressable onPress={handleBack} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={theme.text} />
@@ -345,7 +349,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
         {showLimitReached ? (
           <View style={[styles.limitReachedContainer, { paddingBottom: insets.bottom + Spacing.lg }]}>
-            <View style={[styles.limitReachedCard, { backgroundColor: theme.backgroundElevated }]}>
+            <View style={[styles.limitReachedCard, { backgroundColor: theme.backgroundSecondary }]}>
               <Feather name="lock" size={32} color={theme.link} />
               <ThemedText type="h3" style={{ marginTop: Spacing.md, textAlign: "center" }}>
                 You've used all your free messages
@@ -365,7 +369,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
           </View>
         ) : (
           <View style={[styles.inputContainer, { paddingBottom: insets.bottom + Spacing.md }]}>
-            <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundElevated, borderColor: theme.border }]}>
+            <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
               <TextInput
                 style={[styles.textInput, { color: theme.text }]}
                 placeholder="Ask about an outfit..."
