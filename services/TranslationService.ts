@@ -84,6 +84,17 @@ export interface QuizTranslations {
   resultsDescription: string;
 }
 
+export interface StyleOptionTranslation {
+  name: string;
+  description: string;
+}
+
+export interface StyleSelectionTranslations {
+  title: string;
+  subtitle: string;
+  styles: Record<string, StyleOptionTranslation>;
+}
+
 export interface OnboardingTranslations {
   steps: {
     location: OnboardingStepTranslations;
@@ -110,6 +121,7 @@ export interface Translations {
   quiz: QuizTranslations;
   onboarding: OnboardingTranslations;
   styleArchetypes: Record<string, StyleArchetypeTranslation>;
+  styleSelection: StyleSelectionTranslations;
 }
 
 const DEFAULT_TRANSLATIONS: Translations = {
@@ -201,6 +213,18 @@ const DEFAULT_TRANSLATIONS: Translations = {
     athleisure: { name: 'Athleisure', tagline: 'Comfort meets style.' },
     eclectic: { name: 'Eclectic', tagline: 'Unique blend, all you.' },
   },
+  styleSelection: {
+    title: "What's your style?",
+    subtitle: "Pick the aesthetic that speaks to you",
+    styles: {
+      smartCasual: { name: 'Smart Casual', description: 'Polished yet relaxed, tailored pieces for office to after-work drinks' },
+      casual: { name: 'Casual', description: 'Relaxed, comfortable, everyday style' },
+      boho: { name: 'Boho', description: 'Earthy, relaxed, artistic' },
+      sporty: { name: 'Sporty', description: 'Active, dynamic, athletic' },
+      business: { name: 'Business', description: 'Professional suits, shirts, and formal wear' },
+      edgy: { name: 'Edgy', description: 'Bold, alternative, dramatic' },
+    },
+  },
 };
 
 class TranslationServiceClass {
@@ -287,6 +311,14 @@ class TranslationServiceClass {
         steps: { ...DEFAULT_TRANSLATIONS.onboarding.steps, ...nested.onboarding?.steps },
       },
       styleArchetypes: { ...DEFAULT_TRANSLATIONS.styleArchetypes, ...nested.styleArchetypes },
+      styleSelection: {
+        ...DEFAULT_TRANSLATIONS.styleSelection,
+        ...nested.styleSelection,
+        styles: {
+          ...DEFAULT_TRANSLATIONS.styleSelection.styles,
+          ...nested.styleSelection?.styles,
+        },
+      },
     };
   }
 

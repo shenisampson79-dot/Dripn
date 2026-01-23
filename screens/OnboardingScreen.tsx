@@ -1941,10 +1941,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              What's your style?
+              {translations.styleSelection.title}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              Pick the aesthetic that speaks to you
+              {translations.styleSelection.subtitle}
             </ThemedText>
             
             <Pressable
@@ -2016,13 +2016,13 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       />
                       <View style={styles.styleTextContainer}>
                         <ThemedText type="h3" style={{ color: "#FFFFFF" }}>
-                          {s.name}
+                          {translations.styleSelection.styles[s.id.replace('-', '') as keyof typeof translations.styleSelection.styles]?.name || s.name}
                         </ThemedText>
                         <ThemedText
                           type="small"
                           style={{ color: "rgba(255,255,255,0.7)" }}
                         >
-                          {s.description}
+                          {translations.styleSelection.styles[s.id.replace('-', '') as keyof typeof translations.styleSelection.styles]?.description || s.description}
                         </ThemedText>
                       </View>
                       {isSelected ? (
