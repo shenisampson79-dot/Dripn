@@ -77,6 +77,13 @@ const STYLIST_DESCRIPTIONS: Record<string, { tagline: string; description: strin
   },
 };
 
+const STYLIST_GREETINGS: Record<string, string> = {
+  ruby: "Hey gorgeous! I'm Ruby, and I'm so excited to help you look absolutely amazing today. What are we styling you for?",
+  max: "Hey there. I'm Max - let's cut to the chase and find you something that actually works. What's the occasion?",
+  ace: "Yo, what's good! I'm Ace. Let's get you looking fresh. What vibe are we going for today?",
+  ivy: "Hi there! I'm Ivy. Let's find you something stylish and sustainable. What look are you going for?",
+};
+
 export default function GuestBrowseScreen({ navigation }: { navigation: NavigationProp }) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -140,9 +147,10 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
   const handleSelectStylist = (stylist: GuestStylist) => {
     setSelectedStylist(stylist);
+    const greeting = stylist.greeting || STYLIST_GREETINGS[stylist.id] || `Hi! I'm ${stylist.name}. What can I help you with today?`;
     setMessages([{
       id: "greeting",
-      content: stylist.greeting,
+      content: greeting,
       isUser: false,
       timestamp: new Date(),
     }]);
@@ -354,7 +362,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         <View style={styles.headerCenter}>
           <ThemedText type="h3">{selectedStylist.name}</ThemedText>
           <ThemedText type="small" style={{ opacity: 0.7 }}>
-            {messagesRemaining} messages left
+            {messagesRemaining ?? 5} messages left
           </ThemedText>
         </View>
         <View style={{ width: 40 }} />
