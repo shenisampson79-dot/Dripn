@@ -173,7 +173,14 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
     try {
       console.log("Sending chat request to stylist:", selectedStylist.id);
-      const rawResponse = await apiService.guestChat(sessionToken, userMessage.content, selectedStylist.id) as any;
+      
+      // Build conversation history for context (exclude the message we just added)
+      const conversationHistory = messages.map(msg => ({
+        role: msg.isUser ? 'user' : 'assistant',
+        content: msg.content
+      }));
+      
+      const rawResponse = await apiService.guestChat(sessionToken, userMessage.content, selectedStylist.id, conversationHistory) as any;
       console.log("Chat response received:", JSON.stringify(rawResponse));
       
       // The backend returns: { success, response, stylist, remainingMessages, showSignupPrompt }
@@ -197,7 +204,9 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       console.log("Remaining messages:", remaining);
       setMessagesRemaining(remaining);
 
-      if (rawResponse?.limitReached || rawResponse?.showSignupPrompt) {
+      // Only show limit reached when actually out of messages
+      if (rawResponse?.limitReached === true || remaining <= 0) {
+        console.log("Limit reached - showing signup prompt");
         setShowLimitReached(true);
         if (rawResponse?.signupPrompt) {
           setSignupPrompt(rawResponse.signupPrompt);
