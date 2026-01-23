@@ -2877,6 +2877,63 @@ class ApiService {
       stylistId,
     };
   }
+
+  // Guest browsing endpoints (no authentication required)
+  async createGuestSession() {
+    return this.request<{ sessionToken: string; expiresAt: string }>('/api/guest/session', {
+      method: 'POST',
+    });
+  }
+
+  async getGuestStylists(sessionToken: string) {
+    return this.request<{
+      stylists: Array<{
+        id: string;
+        name: string;
+        personality: string;
+        greeting: string;
+        avatar: string;
+      }>;
+    }>('/api/guest/stylists', {
+      headers: { 'x-guest-token': sessionToken },
+    });
+  }
+
+  async guestChat(sessionToken: string, message: string, stylistId: string) {
+    return this.request<{
+      response: string;
+      messagesRemaining: number;
+      limitReached: boolean;
+      signupPrompt?: string;
+    }>('/api/guest/chat', {
+      method: 'POST',
+      headers: { 'x-guest-token': sessionToken },
+      body: JSON.stringify({ message, stylist: stylistId }),
+    });
+  }
+
+  async guestOutfitSuggestion(sessionToken: string, occasion: string) {
+    return this.request<{
+      suggestion: string;
+      suggestionsRemaining: number;
+      limitReached: boolean;
+      signupPrompt?: string;
+    }>('/api/guest/outfit-suggestion', {
+      method: 'POST',
+      headers: { 'x-guest-token': sessionToken },
+      body: JSON.stringify({ occasion }),
+    });
+  }
+
+  async getGuestStatus(sessionToken: string) {
+    return this.request<{
+      messagesRemaining: number;
+      suggestionsRemaining: number;
+      sessionExpiresAt: string;
+    }>('/api/guest/status', {
+      headers: { 'x-guest-token': sessionToken },
+    });
+  }
 }
 
 export const apiService = new ApiService();
