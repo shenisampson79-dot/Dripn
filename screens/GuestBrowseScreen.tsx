@@ -177,7 +177,10 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       console.log("Chat response received:", JSON.stringify(rawResponse));
       
       // The backend returns: { success, response, stylist, remainingMessages, showSignupPrompt }
-      const aiContent = rawResponse?.response || rawResponse?.message || rawResponse?.text || "I'm here to help with your style!";
+      let aiContent = rawResponse?.response || rawResponse?.message || rawResponse?.text || "I'm here to help with your style!";
+      
+      // Strip markdown asterisks from response
+      aiContent = aiContent.replace(/\*\*/g, '').replace(/\*/g, '');
       console.log("AI content extracted:", aiContent.substring(0, 50));
       
       const aiMessage: ChatMessage = {
@@ -394,6 +397,16 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
           contentContainerStyle={[styles.messageList, { paddingBottom: Spacing.lg }]}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          ListFooterComponent={isSending ? (
+            <View style={[styles.messageRow, styles.aiRow]}>
+              <View style={[styles.typingIndicator, { backgroundColor: theme.backgroundSecondary }]}>
+                <ActivityIndicator size="small" color={stylistColors.primary} style={{ marginRight: Spacing.sm }} />
+                <ThemedText type="body" style={{ color: theme.text, fontStyle: 'italic' }}>
+                  {selectedStylist.name} is styling...
+                </ThemedText>
+              </View>
+            </View>
+          ) : null}
         />
 
         {showLimitReached ? (
@@ -550,6 +563,14 @@ const styles = StyleSheet.create({
     maxWidth: SCREEN_WIDTH * 0.75,
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
+  },
+  typingIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    borderBottomLeftRadius: 4,
   },
   inputContainer: {
     paddingHorizontal: Spacing.lg,
