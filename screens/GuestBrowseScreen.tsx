@@ -435,6 +435,9 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
                 onChangeText={setInputText}
                 onSubmitEditing={handleSendMessage}
                 editable={!isSending}
+                multiline
+                maxLength={500}
+                textAlignVertical="center"
               />
               <Pressable
                 onPress={handleSendMessage}
@@ -571,7 +574,9 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 16,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
+    maxHeight: 100,
+    minHeight: 40,
   },
   sendButton: {
     width: 40,
