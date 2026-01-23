@@ -341,7 +341,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
   const showFarewellDialog = (farewell: FarewellResponse | null) => {
     const message = farewell?.message || "That's all I've got for browsing mode...";
-    const signupPrompt = farewell?.signupPrompt || "Want to save these ideas and get recommendations from your actual wardrobe?";
+    const signupPrompt = "Create an account to unlock your personal stylist and save your picks.";
     
     const buttons: any[] = [];
     
@@ -355,16 +355,15 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           });
         } else if (step.id === "restart") {
           buttons.push({
-            text: step.label,
-            onPress: () => navigation.navigate("OnboardingEntry"),
-            style: "cancel",
+            text: "Create account",
+            onPress: () => navigation.navigate("Auth", { mode: 'signup' }),
           });
         }
       });
     } else {
       buttons.push(
         { text: "Save my picks", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "farewell" }) },
-        { text: "Start over", onPress: () => navigation.navigate("OnboardingEntry"), style: "cancel" }
+        { text: "Create account", onPress: () => navigation.navigate("Auth", { mode: 'signup' }) }
       );
     }
     
@@ -827,16 +826,15 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const handleJustBrowsing = async () => {
     Alert.alert(
       "That's all I've got for browsing mode - but it was lovely to help!",
-      "Come back anytime, and if you want to go deeper, I'll be here.",
+      "Create an account to unlock your personal stylist and save your picks.",
       [
         { 
           text: "Save my picks", 
           onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "browsing" }) 
         },
         { 
-          text: "Start over", 
-          onPress: () => navigation.navigate("OnboardingEntry"),
-          style: "cancel"
+          text: "Create account", 
+          onPress: () => navigation.navigate("Auth", { mode: 'signup' }),
         },
       ]
     );
