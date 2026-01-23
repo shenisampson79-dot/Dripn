@@ -117,7 +117,7 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
   };
 
   const handleSkip = () => {
-    navigation.navigate("OnboardingEntry");
+    navigation.navigate("Auth", { mode: 'signup' });
   };
 
   return (
