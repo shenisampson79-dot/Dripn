@@ -18,7 +18,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import apiService from "@/services/ApiService";
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
 
 type StreetStyleScannerScreenProps = {

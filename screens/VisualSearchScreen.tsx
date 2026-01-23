@@ -30,7 +30,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
 import apiService from '@/services/ApiService';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
