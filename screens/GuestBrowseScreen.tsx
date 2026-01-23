@@ -172,11 +172,15 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     setIsSending(true);
 
     try {
-      const response = await apiService.guestChat(sessionToken, userMessage.content, selectedStylist.id);
+      const response = await apiService.guestChat(sessionToken, userMessage.content, selectedStylist.id) as any;
+      console.log("Guest chat response:", JSON.stringify(response));
+      
+      // Handle different response field names from backend
+      const aiContent = response.response || response.message || response.text || response.content || "I'm here to help!";
       
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: response.response,
+        content: aiContent,
         isUser: false,
         timestamp: new Date(),
       };
