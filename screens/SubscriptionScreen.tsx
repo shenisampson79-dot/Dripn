@@ -237,11 +237,14 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
           throw new Error("No checkout URL received");
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Subscription error:", error);
+      const errorMessage = error?.message || "Failed to process subscription. Please try again.";
       Alert.alert(
         "Error",
-        "Failed to process subscription. Please try again."
+        errorMessage.includes("Unauthorized") 
+          ? "Please log in again to complete your subscription."
+          : errorMessage
       );
     } finally {
       setIsProcessing(false);
