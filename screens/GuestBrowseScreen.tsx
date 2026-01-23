@@ -291,10 +291,16 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   if (!selectedStylist) {
     return (
       <LinearGradient colors={gradientColors} style={styles.container}>
+        <Pressable 
+          onPress={handleBack} 
+          style={[styles.backButtonAbsolute, { top: insets.top + Spacing.md }]}
+        >
+          <View style={styles.backButtonInner}>
+            <Feather name="arrow-left" size={20} color={theme.text} />
+          </View>
+        </Pressable>
         <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
-          <Pressable onPress={handleBack} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={theme.text} />
-          </Pressable>
+          <View style={{ width: 40 }} />
           <View style={styles.headerCenter}>
             <ThemedText type="h2">Try Dripn</ThemedText>
             <ThemedText type="small" style={{ opacity: 0.7, marginTop: 2 }}>
@@ -446,6 +452,19 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: "center",
     alignItems: "center",
+  },
+  backButtonAbsolute: {
+    position: "absolute",
+    left: Spacing.lg,
+    zIndex: 10,
+  },
+  backButtonInner: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(128,128,128,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerCenter: {
     flex: 1,
