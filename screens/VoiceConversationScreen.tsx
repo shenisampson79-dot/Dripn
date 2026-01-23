@@ -468,7 +468,7 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
   }, [messages]);
 
   return (
-    <ThemedView style={[styles.screenContainer, { paddingBottom: insets.bottom + 80 }]}>
+    <ThemedView style={[styles.screenContainer, { paddingBottom: insets.bottom + 8 }]}>
       {/* Scrollable Content Area */}
       <ScrollView 
         style={styles.scrollContent}

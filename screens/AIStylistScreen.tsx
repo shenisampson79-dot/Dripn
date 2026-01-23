@@ -2329,7 +2329,7 @@ export default function AIStylistScreen() {
         style={[
           styles.inputBarFixed, 
           { 
-            paddingBottom: TAB_BAR_HEIGHT + insets.bottom,
+            paddingBottom: Spacing.xs,
             backgroundColor: theme.backgroundDefault,
           }
         ]}
