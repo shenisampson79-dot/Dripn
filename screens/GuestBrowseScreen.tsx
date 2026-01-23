@@ -172,11 +172,25 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     setIsSending(true);
 
     try {
-      const response = await apiService.guestChat(sessionToken, userMessage.content, selectedStylist.id) as any;
-      console.log("Guest chat response:", JSON.stringify(response));
+      const rawResponse = await apiService.guestChat(sessionToken, userMessage.content, selectedStylist.id) as any;
+      console.log("Guest chat raw response:", JSON.stringify(rawResponse));
+      
+      // Handle nested response structures (data.response, result.response, etc.)
+      const response = rawResponse?.data || rawResponse?.result || rawResponse;
       
       // Handle different response field names from backend
-      const aiContent = response.response || response.message || response.text || response.content || "I'm here to help!";
+      let aiContent = response?.response || response?.message || response?.text || response?.content || response?.reply;
+      
+      // If still no content, check if response itself is a string
+      if (!aiContent && typeof response === 'string') {
+        aiContent = response;
+      }
+      
+      // Final fallback with debug info
+      if (!aiContent) {
+        console.log("No AI content found in response structure");
+        aiContent = "I received your message but couldn't generate a response. Please try again.";
+      }
       
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -186,20 +200,21 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      const remaining = (response as any).remainingMessages ?? (response as any).messagesRemaining ?? messagesRemaining - 1;
+      const remaining = rawResponse?.remainingMessages ?? rawResponse?.messagesRemaining ?? response?.remainingMessages ?? messagesRemaining - 1;
       setMessagesRemaining(remaining);
 
-      if (response.limitReached) {
+      if (rawResponse?.limitReached || response?.limitReached) {
         setShowLimitReached(true);
-        if (response.signupPrompt) {
-          setSignupPrompt(response.signupPrompt);
+        const prompt = rawResponse?.signupPrompt || response?.signupPrompt;
+        if (prompt) {
+          setSignupPrompt(prompt);
         }
       }
-    } catch (error) {
-      console.log("Guest chat error:", error);
+    } catch (error: any) {
+      console.log("Guest chat error:", error?.message || error);
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: "Oops! Something went wrong. Please try again.",
+        content: `Something went wrong: ${error?.message || 'Please try again.'}`,
         isUser: false,
         timestamp: new Date(),
       };
