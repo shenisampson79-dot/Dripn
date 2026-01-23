@@ -58,11 +58,23 @@ const STYLIST_COLORS: Record<string, { primary: string; secondary: string }> = {
   ivy: { primary: "#22C55E", secondary: "#14532D" },
 };
 
-const STYLIST_DESCRIPTIONS: Record<string, string> = {
-  ruby: "Bold & glamorous",
-  max: "Clean & minimal",
-  ace: "Street-smart",
-  ivy: "Eco-conscious",
+const STYLIST_DESCRIPTIONS: Record<string, { tagline: string; description: string }> = {
+  ruby: { 
+    tagline: "Bold & Glamorous",
+    description: "Warm, encouraging, and genuinely excited about helping you look and feel amazing"
+  },
+  max: { 
+    tagline: "Clean & Minimal", 
+    description: "Sophisticated, knowledgeable, and refreshingly honest with timeless style advice"
+  },
+  ace: { 
+    tagline: "Street-Smart Style",
+    description: "Calm, confident, and direct - making the call so you don't have to"
+  },
+  ivy: { 
+    tagline: "Eco-Conscious Fashion",
+    description: "Thoughtful and creative with a focus on sustainable, mindful style choices"
+  },
 };
 
 export default function GuestBrowseScreen({ navigation }: { navigation: NavigationProp }) {
@@ -222,11 +234,14 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
             <ThemedText type="h3" style={{ color: "#FFFFFF" }}>
               {item.name}
             </ThemedText>
-            <ThemedText type="small" style={{ color: "rgba(255,255,255,0.7)" }}>
-              {STYLIST_DESCRIPTIONS[item.id] || item.personality}
+            <ThemedText type="small" style={{ color: "rgba(255,255,255,0.85)", fontWeight: "600", marginBottom: 4 }}>
+              {STYLIST_DESCRIPTIONS[item.id]?.tagline || item.personality}
+            </ThemedText>
+            <ThemedText type="small" style={{ color: "rgba(255,255,255,0.65)", lineHeight: 18 }}>
+              {STYLIST_DESCRIPTIONS[item.id]?.description}
             </ThemedText>
           </View>
-          <Feather name="chevron-right" size={24} color="rgba(255,255,255,0.5)" />
+          <Feather name="chevron-right" size={20} color="rgba(255,255,255,0.5)" />
         </Pressable>
       </Animated.View>
     );
@@ -307,7 +322,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
             showsVerticalScrollIndicator={false}
           />
 
-          <View style={[styles.signupPrompt, { marginBottom: insets.bottom + Spacing.lg }]}>
+          <View style={[styles.signupPrompt, { marginBottom: insets.bottom + Spacing.sm }]}>
             <ThemedText type="small" style={{ opacity: 0.7, textAlign: "center" }}>
               Want unlimited access, voice chat, and a personalized wardrobe?
             </ThemedText>
@@ -441,29 +456,31 @@ const styles = StyleSheet.create({
   },
   introSection: {
     paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   stylistList: {
     paddingHorizontal: Spacing.lg,
   },
   stylistCard: {
     flexDirection: "row",
-    alignItems: "center",
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    alignItems: "flex-start",
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
     borderWidth: 2,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   stylistAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
+    marginTop: 4,
   },
   stylistInfo: {
     flex: 1,
     marginLeft: Spacing.md,
+    paddingRight: Spacing.sm,
   },
   signupPrompt: {
     paddingHorizontal: Spacing.xl,
