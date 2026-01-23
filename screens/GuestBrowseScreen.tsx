@@ -111,9 +111,10 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       
       if (cachedToken) {
         try {
-          const status = await apiService.getGuestStatus(cachedToken);
+          const status = await apiService.getGuestStatus(cachedToken) as any;
           setSessionToken(cachedToken);
-          setMessagesRemaining(status.messagesRemaining ?? 5);
+          const remaining = status?.session?.messagesRemaining ?? status?.messagesRemaining ?? 5;
+          setMessagesRemaining(remaining);
           await loadStylists(cachedToken);
           setIsLoading(false);
           return;
@@ -181,7 +182,8 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      setMessagesRemaining(response.messagesRemaining ?? messagesRemaining - 1);
+      const remaining = (response as any).remainingMessages ?? (response as any).messagesRemaining ?? messagesRemaining - 1;
+      setMessagesRemaining(remaining);
 
       if (response.limitReached) {
         setShowLimitReached(true);
