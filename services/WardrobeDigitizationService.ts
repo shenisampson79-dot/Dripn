@@ -225,17 +225,55 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       result = null;
     }
     
-    if (result?.analysis) {
-      // Handle both backend formats: analysis.item.* or analysis.* directly
-      const data = result.analysis.item || result.analysis;
+    // Handle multiple response formats from the API
+    const data = result?.analysis?.item || result?.analysis || result;
+    
+    if (data && (data.category || data.garmentType || data.color)) {
+      // Map garmentType to category if needed
+      const categoryMap: Record<string, ClothingCategory> = {
+        'shirt': 'tops', 'blouse': 'tops', 'sweater': 'tops', 't-shirt': 'tops', 'top': 'tops',
+        'pants': 'bottoms', 'jeans': 'bottoms', 'trousers': 'bottoms', 'shorts': 'bottoms', 'skirt': 'bottoms',
+        'dress': 'dresses', 'gown': 'dresses', 'jumpsuit': 'dresses',
+        'jacket': 'outerwear', 'coat': 'outerwear', 'blazer': 'outerwear', 'cardigan': 'outerwear',
+        'shoes': 'shoes', 'boots': 'shoes', 'sneakers': 'shoes', 'heels': 'shoes', 'sandals': 'shoes',
+        'bag': 'bags', 'handbag': 'bags', 'purse': 'bags', 'backpack': 'bags',
+        'accessory': 'accessories', 'hat': 'accessories', 'scarf': 'accessories', 'belt': 'accessories',
+      };
+      
+      // Map color names to valid colors
+      const colorMap: Record<string, ClothingColor> = {
+        'navy': 'navy', 'navy blue': 'navy', 'dark blue': 'navy',
+        'white': 'white', 'off-white': 'white', 'cream': 'beige',
+        'black': 'black', 'charcoal': 'gray', 'grey': 'gray', 'gray': 'gray',
+        'brown': 'brown', 'tan': 'beige', 'beige': 'beige', 'camel': 'beige',
+        'red': 'red', 'burgundy': 'red', 'maroon': 'red',
+        'blue': 'blue', 'light blue': 'blue', 'sky blue': 'blue',
+        'green': 'green', 'olive': 'green', 'khaki': 'beige',
+        'pink': 'pink', 'rose': 'pink',
+        'purple': 'purple', 'violet': 'purple',
+        'orange': 'orange',
+        'yellow': 'yellow',
+        'multi': 'multicolor', 'multicolor': 'multicolor', 'patterned': 'multicolor',
+      };
+      
+      const rawCategory = (data.category || data.garmentType || '').toLowerCase();
+      const rawColor = (data.color || data.primaryColor || '').toLowerCase();
+      
+      const mappedCategory = categoryMap[rawCategory] || 
+        (validCategories.includes(rawCategory as ClothingCategory) ? rawCategory as ClothingCategory : 'tops');
+      const mappedColor = colorMap[rawColor] || 
+        (validColors.includes(rawColor as ClothingColor) ? rawColor as ClothingColor : 'black');
+      
+      // Generate a descriptive name
+      const colorDisplay = rawColor.charAt(0).toUpperCase() + rawColor.slice(1);
+      const typeDisplay = (data.garmentType || data.category || mappedCategory).charAt(0).toUpperCase() + 
+        (data.garmentType || data.category || mappedCategory).slice(1);
+      const suggestedName = data.suggestedName || data.name || `${colorDisplay} ${typeDisplay}`;
+      
       const item: DetectedGarment = {
-        category: validCategories.includes(data.category as ClothingCategory) 
-          ? data.category as ClothingCategory 
-          : 'tops',
-        color: validColors.includes(data.color as ClothingColor) 
-          ? data.color as ClothingColor 
-          : 'black',
-        suggestedName: data.suggestedName || data.name || 'Fashion Item',
+        category: mappedCategory,
+        color: mappedColor,
+        suggestedName: suggestedName,
         brand: data.brand || undefined,
         seasons: (data.seasons || ['all-season']).filter((s: string) => 
           validSeasons.includes(s as ClothingSeason)
@@ -243,9 +281,11 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
         occasions: (data.occasions || ['everyday']).filter((o: string) => 
           validOccasions.includes(o as ClothingOccasion)
         ) as ClothingOccasion[],
-        confidence: typeof result.analysis.confidence === 'number' ? result.analysis.confidence : 0.8,
-        description: data.description || '',
+        confidence: typeof data.confidence === 'number' ? data.confidence : 0.85,
+        description: data.description || data.material || '',
       };
+      
+      console.log('[BulkScan] Detected item:', item.suggestedName, item.category, item.color);
       
       return {
         success: true,
@@ -256,7 +296,7 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     }
     
     // If backend fails, create a generic item that user can edit
-    console.log('[BulkScan] Creating placeholder item for manual editing');
+    console.log('[BulkScan] No valid data found, creating placeholder item');
     const placeholderItem: DetectedGarment = {
       category: 'tops',
       color: 'black',
