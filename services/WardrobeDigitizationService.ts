@@ -206,78 +206,46 @@ export async function analyzeImageQuality(imageUri: string): Promise<{
 export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
   const startTime = Date.now();
   
-  if (!OPENAI_API_KEY) {
-    return {
-      success: false,
-      detectedItems: [],
-      totalItemsFound: 0,
-      processingTime: Date.now() - startTime,
-      error: 'AI analysis is not available.',
-    };
-  }
+  const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
+  const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
+  const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
 
   try {
     const base64Image = await convertImageToBase64(imageUri);
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: BULK_SCAN_PROMPT },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:image/jpeg;base64,${base64Image}`,
-                  detail: 'high',
-                },
-              },
-            ],
-          },
-        ],
-        max_tokens: 1500,
-        temperature: 0.3,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Bulk scan failed');
+    const { apiService } = await import('./ApiService');
+    const result = await apiService.analyzeGarmentPhoto(base64Image, { detailed: true });
+    
+    if (result?.analysis) {
+      const item: DetectedGarment = {
+        category: validCategories.includes(result.analysis.category as ClothingCategory) 
+          ? result.analysis.category as ClothingCategory 
+          : 'tops',
+        color: validColors.includes(result.analysis.color as ClothingColor) 
+          ? result.analysis.color as ClothingColor 
+          : 'black',
+        suggestedName: result.analysis.suggestedName || 'Fashion Item',
+        brand: result.analysis.brand || undefined,
+        seasons: (result.analysis.seasons || ['all-season']).filter((s: string) => 
+          validSeasons.includes(s as ClothingSeason)
+        ) as ClothingSeason[],
+        occasions: (result.analysis.occasions || ['everyday']).filter((o: string) => 
+          validOccasions.includes(o as ClothingOccasion)
+        ) as ClothingOccasion[],
+        confidence: typeof result.analysis.confidence === 'number' ? result.analysis.confidence : 0.8,
+        description: result.analysis.description || '',
+      };
+      
+      return {
+        success: true,
+        detectedItems: [item],
+        totalItemsFound: 1,
+        processingTime: Date.now() - startTime,
+      };
     }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content?.trim();
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
-    const analysis = JSON.parse(cleanedContent);
-
-    const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-    const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
-    const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
-    const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
-
-    const detectedItems: DetectedGarment[] = (analysis.items || []).map((item: any) => ({
-      category: validCategories.includes(item.category) ? item.category : 'tops',
-      color: validColors.includes(item.color) ? item.color : 'black',
-      suggestedName: item.suggestedName || 'Fashion Item',
-      brand: item.brand || undefined,
-      seasons: (item.seasons || ['all-season']).filter((s: string) => validSeasons.includes(s as ClothingSeason)),
-      occasions: (item.occasions || ['everyday']).filter((o: string) => validOccasions.includes(o as ClothingOccasion)),
-      confidence: typeof item.confidence === 'number' ? item.confidence : 0.8,
-      description: item.description || '',
-    }));
-
-    return {
-      success: true,
-      detectedItems,
-      totalItemsFound: analysis.totalItemsFound || detectedItems.length,
-      processingTime: Date.now() - startTime,
-    };
+    
+    throw new Error('No analysis result from backend');
   } catch (error: any) {
     console.error('Bulk scan error:', error);
     return {
