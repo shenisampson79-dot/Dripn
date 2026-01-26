@@ -54,28 +54,12 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
     return allRules.filter(rule => rule.category === category);
   }, []);
 
+  // Use local data directly - API has incomplete data (only 20 rules vs 105 local)
   const fetchRulesFromApi = useCallback(async () => {
-    try {
-      const response = await apiService.getFashionRules();
-      if (response?.rules && response.rules.length > 0) {
-        return response.rules;
-      }
-    } catch (error) {
-      console.log('[StyleRules] API not available, using fallback');
-    }
     return FASHION_RULES;
   }, []);
 
   const fetchCategoriesFromApi = useCallback(async () => {
-    try {
-      const response = await apiService.getFashionRuleCategories();
-      if (response?.categories && response.categories.length > 0) {
-        setCategories(response.categories);
-        return;
-      }
-    } catch (error) {
-      console.log('[StyleRules] Categories API not available, using fallback');
-    }
     setCategories(FASHION_CATEGORIES);
   }, []);
 
