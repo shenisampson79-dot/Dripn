@@ -488,7 +488,7 @@ class ApiService {
         confidence: number;
       };
       modelUsed: string;
-    }>('/api/ai/analyze-garment', {
+    }>('/api/wardrobe/analyze', {
       method: 'POST',
       body: JSON.stringify({ 
         imageBase64, 
