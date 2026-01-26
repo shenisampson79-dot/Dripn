@@ -135,15 +135,27 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      selectionLimit: 20,
+      selectionLimit: 10,
       quality: 0.8,
     });
 
     if (!result.canceled && result.assets.length > 0) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const imageUris = result.assets.map(asset => asset.uri);
-      setSelectedImages(imageUris);
-      await processBulkImages(imageUris);
+      
+      // Enforce max 10 images to prevent memory issues with HEIC conversion
+      if (imageUris.length > 10) {
+        Alert.alert(
+          "Too Many Images",
+          "Please select up to 10 images at a time to ensure smooth processing.",
+          [{ text: "OK" }]
+        );
+        setSelectedImages(imageUris.slice(0, 10));
+        await processBulkImages(imageUris.slice(0, 10));
+      } else {
+        setSelectedImages(imageUris);
+        await processBulkImages(imageUris);
+      }
     }
   };
 
