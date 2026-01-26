@@ -96,7 +96,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "94+ fashion guidelines",
     icon: "list",
     screen: "StyleRules",
-    gradientKey: "secondary",
+    gradientKey: "primary",
     category: "tools",
   },
 ];
@@ -337,22 +337,8 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
         <View style={styles.headerContent}>
           <View style={{ width: 40 }} />
           <ThemedText type="h2" style={{ color: '#FFFFFF' }}>Stylist</ThemedText>
-          <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setIsEditMode(!isEditMode);
-            }}
-            style={[
-              styles.editButton,
-              { backgroundColor: isEditMode ? theme.link : 'rgba(255,255,255,0.15)' },
-            ]}
-          >
-            <Feather
-              name={isEditMode ? "check" : "edit-2"}
-              size={18}
-              color={isEditMode ? "#FFFFFF" : theme.text}
-            />
-          </Pressable>
+          {/* Edit button hidden for now - re-enable when more features are added */}
+          <View style={{ width: 40 }} />
         </View>
 
         <View style={styles.contentSection}>
