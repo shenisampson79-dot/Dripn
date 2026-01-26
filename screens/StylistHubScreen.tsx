@@ -60,7 +60,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "Talk to Ruby or Max",
     icon: "headphones",
     screen: "VoiceConversation",
-    gradientKey: "primary",
+    gradientKey: "accent",
     category: "stylist",
   },
   {
@@ -78,7 +78,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "Dress for the forecast",
     icon: "cloud",
     screen: "WeatherOutfit",
-    gradientKey: "primary",
+    gradientKey: "secondary",
     category: "wardrobe",
   },
   {
@@ -96,7 +96,7 @@ const ALL_FEATURES: StylistFeature[] = [
     description: "94+ fashion guidelines",
     icon: "list",
     screen: "StyleRules",
-    gradientKey: "cool",
+    gradientKey: "secondary",
     category: "tools",
   },
 ];
