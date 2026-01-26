@@ -66,8 +66,64 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
   const [showPhotoTips, setShowPhotoTips] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [processingProgress, setProcessingProgress] = useState({ current: 0, total: 0 });
+  const [editingItem, setEditingItem] = useState<PendingItem | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCategory, setEditCategory] = useState<ClothingCategory>("tops");
+  const [editColor, setEditColor] = useState<ClothingColor>("black");
 
   const photoTips = getPhotoTips();
+  
+  const CATEGORY_OPTIONS: { value: ClothingCategory; label: string }[] = [
+    { value: 'tops', label: 'Tops' },
+    { value: 'bottoms', label: 'Bottoms' },
+    { value: 'dresses', label: 'Dresses' },
+    { value: 'outerwear', label: 'Outerwear' },
+    { value: 'shoes', label: 'Shoes' },
+    { value: 'bags', label: 'Bags' },
+    { value: 'accessories', label: 'Accessories' },
+    { value: 'activewear', label: 'Activewear' },
+    { value: 'swimwear', label: 'Swimwear' },
+    { value: 'sleepwear', label: 'Sleepwear' },
+  ];
+  
+  const COLOR_OPTIONS: { value: ClothingColor; label: string }[] = [
+    { value: 'black', label: 'Black' },
+    { value: 'white', label: 'White' },
+    { value: 'gray', label: 'Gray' },
+    { value: 'navy', label: 'Navy' },
+    { value: 'blue', label: 'Blue' },
+    { value: 'brown', label: 'Brown' },
+    { value: 'beige', label: 'Beige' },
+    { value: 'red', label: 'Red' },
+    { value: 'pink', label: 'Pink' },
+    { value: 'green', label: 'Green' },
+    { value: 'yellow', label: 'Yellow' },
+    { value: 'orange', label: 'Orange' },
+    { value: 'purple', label: 'Purple' },
+    { value: 'multicolor', label: 'Multicolor' },
+  ];
+  
+  const openEditModal = (item: PendingItem) => {
+    setEditingItem(item);
+    setEditName(item.suggestedName || "");
+    setEditCategory(item.category);
+    setEditColor(item.color);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+  
+  const saveItemEdits = () => {
+    if (!editingItem) return;
+    
+    setPendingItems(items =>
+      items.map(item =>
+        item.id === editingItem.id
+          ? { ...item, suggestedName: editName, category: editCategory, color: editColor }
+          : item
+      )
+    );
+    setEditingItem(null);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
 
   const handlePickMultipleImages = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -505,8 +561,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
   );
 
   const renderPendingItem = useCallback(({ item }: { item: PendingItem }) => (
-    <Pressable
-      onPress={() => toggleItemSelection(item.id)}
+    <View
       style={[
         styles.pendingItemCard,
         {
@@ -516,54 +571,67 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         },
       ]}
     >
-      {item.imageUri ? (
-        <Image
-          source={{ uri: item.imageUri }}
-          style={styles.pendingItemImage}
-          contentFit="cover"
-        />
-      ) : (
-        <View style={[styles.pendingItemImage, { backgroundColor: theme.backgroundRoot }]}>
-          <Feather name="image" size={24} color={theme.tabIconDefault} />
-        </View>
-      )}
+      <Pressable 
+        onPress={() => openEditModal(item)}
+        style={styles.pendingItemMain}
+      >
+        {item.imageUri ? (
+          <Image
+            source={{ uri: item.imageUri }}
+            style={styles.pendingItemImage}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={[styles.pendingItemImage, { backgroundColor: theme.backgroundRoot }]}>
+            <Feather name="image" size={24} color={theme.tabIconDefault} />
+          </View>
+        )}
 
-      <View style={styles.pendingItemInfo}>
-        <ThemedText type="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-          {item.suggestedName}
-        </ThemedText>
-        {item.brand ? (
-          <ThemedText type="caption" style={{ opacity: 0.7 }}>
-            {item.brand}
-          </ThemedText>
-        ) : null}
-        <View style={styles.pendingItemTags}>
-          <View style={[styles.miniTag, { backgroundColor: theme.link + '20' }]}>
-            <ThemedText type="caption" style={{ color: theme.link }}>
-              {item.category}
+        <View style={styles.pendingItemInfo}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <ThemedText type="body" numberOfLines={1} style={{ fontWeight: '600', flex: 1 }}>
+              {item.suggestedName || 'New Item'}
             </ThemedText>
+            <Feather name="edit-2" size={14} color={theme.link} style={{ marginLeft: Spacing.xs }} />
           </View>
-          <View style={[styles.miniTag, { backgroundColor: theme.link + '20' }]}>
-            <ThemedText type="caption" style={{ color: theme.link }}>
-              {item.color}
+          {item.brand ? (
+            <ThemedText type="caption" style={{ opacity: 0.7 }}>
+              {item.brand}
             </ThemedText>
+          ) : null}
+          <View style={styles.pendingItemTags}>
+            <View style={[styles.miniTag, { backgroundColor: theme.link + '20' }]}>
+              <ThemedText type="caption" style={{ color: theme.link }}>
+                {item.category}
+              </ThemedText>
+            </View>
+            <View style={[styles.miniTag, { backgroundColor: theme.link + '20' }]}>
+              <ThemedText type="caption" style={{ color: theme.link }}>
+                {item.color}
+              </ThemedText>
+            </View>
           </View>
+          {item.price ? (
+            <ThemedText type="body" style={{ color: theme.link, marginTop: 4 }}>
+              {item.currency || '$'}{item.price.toFixed(2)}
+            </ThemedText>
+          ) : null}
         </View>
-        {item.price ? (
-          <ThemedText type="body" style={{ color: theme.link, marginTop: 4 }}>
-            {item.currency || '$'}{item.price.toFixed(2)}
-          </ThemedText>
-        ) : null}
-      </View>
+      </Pressable>
 
-      <View style={[styles.checkBox, { borderColor: item.selected ? theme.link : theme.tabIconDefault }]}>
-        {item.selected ? (
-          <View style={[styles.checkBoxFilled, { backgroundColor: theme.link }]}>
-            <Feather name="check" size={14} color="#FFFFFF" />
-          </View>
-        ) : null}
-      </View>
-    </Pressable>
+      <Pressable 
+        onPress={() => toggleItemSelection(item.id)}
+        style={styles.checkBoxTouchArea}
+      >
+        <View style={[styles.checkBox, { borderColor: item.selected ? theme.link : theme.tabIconDefault }]}>
+          {item.selected ? (
+            <View style={[styles.checkBoxFilled, { backgroundColor: theme.link }]}>
+              <Feather name="check" size={14} color="#FFFFFF" />
+            </View>
+          ) : null}
+        </View>
+      </Pressable>
+    </View>
   ), [theme]);
 
   const renderPendingItems = () => {
@@ -626,6 +694,115 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       </View>
     );
   };
+
+  const renderEditModal = () => (
+    <Modal
+      visible={!!editingItem}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setEditingItem(null)}
+    >
+      <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+        <View style={[styles.modalHeader, { paddingTop: insets.top + Spacing.md }]}>
+          <Pressable
+            onPress={() => setEditingItem(null)}
+            style={[styles.modalCloseButton, { backgroundColor: theme.backgroundDefault }]}
+          >
+            <Feather name="x" size={24} color={theme.text} />
+          </Pressable>
+          <ThemedText type="h3">Edit Item</ThemedText>
+          <Pressable
+            onPress={saveItemEdits}
+            style={[styles.modalSaveButton, { backgroundColor: theme.link }]}
+          >
+            <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Save</ThemedText>
+          </Pressable>
+        </View>
+        
+        <KeyboardAwareScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.editModalContent}
+        >
+          {editingItem?.imageUri ? (
+            <Image
+              source={{ uri: editingItem.imageUri }}
+              style={styles.editItemImage}
+              contentFit="contain"
+            />
+          ) : null}
+          
+          <View style={styles.editSection}>
+            <ThemedText type="body" style={{ fontWeight: '600', marginBottom: Spacing.sm }}>
+              Item Name
+            </ThemedText>
+            <TextInput
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Enter item name"
+              placeholderTextColor={theme.tabIconDefault}
+              style={[styles.editInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
+            />
+          </View>
+          
+          <View style={styles.editSection}>
+            <ThemedText type="body" style={{ fontWeight: '600', marginBottom: Spacing.sm }}>
+              Category
+            </ThemedText>
+            <View style={styles.optionsGrid}>
+              {CATEGORY_OPTIONS.map(option => (
+                <Pressable
+                  key={option.value}
+                  onPress={() => setEditCategory(option.value)}
+                  style={[
+                    styles.optionChip,
+                    {
+                      backgroundColor: editCategory === option.value ? theme.link : theme.backgroundDefault,
+                      borderColor: editCategory === option.value ? theme.link : theme.tabIconDefault,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    type="caption"
+                    style={{ color: editCategory === option.value ? '#FFFFFF' : theme.text }}
+                  >
+                    {option.label}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+          
+          <View style={styles.editSection}>
+            <ThemedText type="body" style={{ fontWeight: '600', marginBottom: Spacing.sm }}>
+              Color
+            </ThemedText>
+            <View style={styles.optionsGrid}>
+              {COLOR_OPTIONS.map(option => (
+                <Pressable
+                  key={option.value}
+                  onPress={() => setEditColor(option.value)}
+                  style={[
+                    styles.optionChip,
+                    {
+                      backgroundColor: editColor === option.value ? theme.link : theme.backgroundDefault,
+                      borderColor: editColor === option.value ? theme.link : theme.tabIconDefault,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    type="caption"
+                    style={{ color: editColor === option.value ? '#FFFFFF' : theme.text }}
+                  >
+                    {option.label}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </KeyboardAwareScrollView>
+      </View>
+    </Modal>
+  );
 
   const renderPhotoTipsModal = () => (
     <Modal
@@ -730,6 +907,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         />
       )}
 
+      {renderEditModal()}
       {renderPhotoTipsModal()}
       {renderProcessingOverlay()}
     </View>
@@ -859,9 +1037,15 @@ const styles = StyleSheet.create({
   },
   pendingItemCard: {
     flexDirection: "row",
-    padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.md,
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  pendingItemMain: {
+    flex: 1,
+    flexDirection: "row",
+    padding: Spacing.md,
     alignItems: "center",
   },
   pendingItemImage: {
@@ -874,6 +1058,10 @@ const styles = StyleSheet.create({
   pendingItemInfo: {
     flex: 1,
     marginLeft: Spacing.md,
+  },
+  checkBoxTouchArea: {
+    padding: Spacing.md,
+    paddingLeft: 0,
   },
   pendingItemTags: {
     flexDirection: "row",
@@ -934,6 +1122,43 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+  },
+  modalSaveButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editModalContent: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl,
+  },
+  editItemImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  editSection: {
+    marginBottom: Spacing.xl,
+  },
+  editInput: {
+    height: 52,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.lg,
+    fontSize: 16,
+  },
+  optionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  optionChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
   },
   tipsContent: {
     paddingHorizontal: Spacing.xl,
