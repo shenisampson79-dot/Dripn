@@ -243,17 +243,38 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       // Map color names to valid colors
       const colorMap: Record<string, ClothingColor> = {
         'navy': 'navy', 'navy blue': 'navy', 'dark blue': 'navy',
-        'white': 'white', 'off-white': 'white', 'cream': 'beige',
+        'white': 'white', 'off-white': 'white', 'cream': 'beige', 'ivory': 'white',
         'black': 'black', 'charcoal': 'gray', 'grey': 'gray', 'gray': 'gray',
-        'brown': 'brown', 'tan': 'beige', 'beige': 'beige', 'camel': 'beige',
-        'red': 'red', 'burgundy': 'red', 'maroon': 'red',
-        'blue': 'blue', 'light blue': 'blue', 'sky blue': 'blue',
-        'green': 'green', 'olive': 'green', 'khaki': 'beige',
-        'pink': 'pink', 'rose': 'pink',
-        'purple': 'purple', 'violet': 'purple',
-        'orange': 'orange',
-        'yellow': 'yellow',
+        'heather charcoal': 'gray', 'heather gray': 'gray', 'heather grey': 'gray',
+        'dark gray': 'gray', 'dark grey': 'gray', 'light gray': 'gray', 'light grey': 'gray',
+        'brown': 'brown', 'tan': 'beige', 'beige': 'beige', 'camel': 'beige', 'taupe': 'beige',
+        'red': 'red', 'burgundy': 'red', 'maroon': 'red', 'deep red': 'red', 'crimson': 'red', 'scarlet': 'red',
+        'blue': 'blue', 'light blue': 'blue', 'sky blue': 'blue', 'royal blue': 'blue', 'denim': 'blue',
+        'green': 'green', 'olive': 'green', 'khaki': 'beige', 'forest green': 'green', 'sage': 'green',
+        'pink': 'pink', 'rose': 'pink', 'coral': 'pink', 'salmon': 'pink',
+        'purple': 'purple', 'violet': 'purple', 'lavender': 'purple', 'plum': 'purple',
+        'orange': 'orange', 'rust': 'orange', 'burnt orange': 'orange',
+        'yellow': 'yellow', 'gold': 'yellow', 'mustard': 'yellow',
         'multi': 'multicolor', 'multicolor': 'multicolor', 'patterned': 'multicolor',
+      };
+      
+      // Smart color matching - check for color keywords in the string
+      const findColorMatch = (colorStr: string): ClothingColor => {
+        const lower = colorStr.toLowerCase();
+        // First check exact match
+        if (colorMap[lower]) return colorMap[lower];
+        // Then check if string contains a valid color
+        const colorKeywords: [string, ClothingColor][] = [
+          ['red', 'red'], ['blue', 'blue'], ['green', 'green'], ['yellow', 'yellow'],
+          ['orange', 'orange'], ['pink', 'pink'], ['purple', 'purple'], ['brown', 'brown'],
+          ['gray', 'gray'], ['grey', 'gray'], ['charcoal', 'gray'], ['black', 'black'],
+          ['white', 'white'], ['beige', 'beige'], ['navy', 'navy'], ['cream', 'beige'],
+          ['denim', 'blue'], ['burgundy', 'red'], ['maroon', 'red'], ['olive', 'green'],
+        ];
+        for (const [keyword, color] of colorKeywords) {
+          if (lower.includes(keyword)) return color;
+        }
+        return 'black'; // ultimate fallback
       };
       
       // Safely extract category - handle string or object
@@ -267,10 +288,13 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       const rawCategory = extractString(data.category || data.garmentType).toLowerCase() || 'tops';
       const rawColor = extractString(data.color || data.primaryColor || data.colorFull).toLowerCase() || 'black';
       
+      console.log('[ColorMapping] Raw color from backend:', rawColor);
+      
       const mappedCategory = categoryMap[rawCategory] || 
         (validCategories.includes(rawCategory as ClothingCategory) ? rawCategory as ClothingCategory : 'tops');
-      const mappedColor = colorMap[rawColor] || 
-        (validColors.includes(rawColor as ClothingColor) ? rawColor as ClothingColor : 'black');
+      const mappedColor = findColorMatch(rawColor);
+      
+      console.log('[ColorMapping] Mapped color:', mappedColor);
       
       // Generate a descriptive name
       const colorDisplay = rawColor ? rawColor.charAt(0).toUpperCase() + rawColor.slice(1) : 'Item';
