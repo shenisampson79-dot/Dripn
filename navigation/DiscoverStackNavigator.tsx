@@ -34,7 +34,6 @@ export type DiscoverStackParamList = {
   VirtualTryOn: { garmentImageUrl?: string; garmentDescription?: string } | undefined;
   StyleSoulmates: undefined;
   Bargains: undefined;
-  Wishlist: undefined;
   Sustainability: undefined;
   FashionTherapy: undefined;
   MotionCoaching: undefined;
@@ -107,11 +106,6 @@ export default function DiscoverStackNavigator() {
         name="Bargains"
         component={BargainsScreen}
         options={{ headerTitle: "Offers" }}
-      />
-      <Stack.Screen
-        name="Wishlist"
-        component={WishlistScreen}
-        options={{ headerTitle: "Wishlist" }}
       />
       <Stack.Screen
         name="Sustainability"

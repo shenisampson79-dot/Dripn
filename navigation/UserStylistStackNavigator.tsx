@@ -30,7 +30,6 @@ export type UserStylistStackParamList = {
   VisualSearch: undefined;
   DreamOutfitGenerator: undefined;
   VoiceConversation: undefined;
-  SocialStyleSync: undefined;
   Wardrobe: undefined;
   AddWardrobeItem: undefined;
   BulkWardrobeUpload: undefined;
@@ -43,7 +42,6 @@ export type UserStylistStackParamList = {
   BodyScanner: undefined;
   FashionBlog: undefined;
   StyleRules: undefined;
-  Wishlist: undefined;
 };
 
 const Stack = createNativeStackNavigator<UserStylistStackParamList>();
@@ -85,11 +83,6 @@ export default function UserStylistStackNavigator() {
         name="VoiceConversation"
         component={VoiceConversationScreen}
         options={{ headerTitle: "Voice Chat" }}
-      />
-      <Stack.Screen
-        name="SocialStyleSync"
-        component={SocialStyleSyncScreen}
-        options={{ headerTitle: "Social Style Sync" }}
       />
       <Stack.Screen
         name="Wardrobe"
@@ -150,11 +143,6 @@ export default function UserStylistStackNavigator() {
         name="StyleRules"
         component={StyleRulesScreen}
         options={{ headerTitle: "Style Rules", headerShown: false }}
-      />
-      <Stack.Screen
-        name="Wishlist"
-        component={WishlistScreen}
-        options={{ headerTitle: "My Wishlist", headerShown: false }}
       />
     </Stack.Navigator>
   );

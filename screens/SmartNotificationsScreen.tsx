@@ -378,7 +378,7 @@ export default function SmartNotificationsScreen() {
               No price alerts set
             </ThemedText>
             <ThemedText style={[styles.emptySubtext, { color: theme.textTertiary }]}>
-              Add items to your wishlist to track price drops
+              Save items to track price drops
             </ThemedText>
           </Card>
         ) : (

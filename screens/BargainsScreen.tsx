@@ -187,22 +187,6 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
               >
                 <Feather name="globe" size={20} color={theme.link} />
               </Pressable>
-              <Pressable
-                onPress={() => navigation.navigate('Wishlist')}
-                style={({ pressed }) => [
-                  styles.headerButton,
-                  { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
-                ]}
-              >
-                <Feather name="heart" size={20} color={theme.link} />
-                {unreadAlertsCount > 0 ? (
-                  <View style={[styles.alertBadge, { backgroundColor: theme.link }]}>
-                    <ThemedText type="small" style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>
-                      {unreadAlertsCount > 9 ? '9+' : unreadAlertsCount}
-                    </ThemedText>
-                  </View>
-                ) : null}
-              </Pressable>
             </View>
           </View>
           <ThemedText type="body" style={styles.subtitle}>

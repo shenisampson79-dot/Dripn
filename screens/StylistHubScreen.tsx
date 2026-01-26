@@ -82,15 +82,6 @@ const ALL_FEATURES: StylistFeature[] = [
     category: "wardrobe",
   },
   {
-    id: "social-sync",
-    title: "Social Sync",
-    description: "Import style inspiration",
-    icon: "link",
-    screen: "SocialStyleSync",
-    gradientKey: "secondary",
-    category: "stylist",
-  },
-  {
     id: "fashion-blog",
     title: "Blog",
     description: "Fashion tips & guides",
@@ -107,15 +98,6 @@ const ALL_FEATURES: StylistFeature[] = [
     screen: "StyleRules",
     gradientKey: "cool",
     category: "tools",
-  },
-  {
-    id: "wishlist",
-    title: "Wishlist",
-    description: "Saved items & deals",
-    icon: "heart",
-    screen: "Wishlist",
-    gradientKey: "warm",
-    category: "wardrobe",
   },
 ];
 

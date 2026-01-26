@@ -632,12 +632,11 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>Item Type</ThemedText>
           <View style={styles.originSelector}>
-            {(['owned', 'inspiration', 'wishlist'] as ItemOrigin[]).map((originOption) => {
+            {(['owned', 'inspiration'] as ItemOrigin[]).map((originOption) => {
               const isSelected = origin === originOption;
-              const iconMap: Record<ItemOrigin, keyof typeof Feather.glyphMap> = {
+              const iconMap: Record<'owned' | 'inspiration', keyof typeof Feather.glyphMap> = {
                 owned: 'check-circle',
                 inspiration: 'eye',
-                wishlist: 'heart',
               };
               return (
                 <Pressable
@@ -676,7 +675,6 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
           <ThemedText type="caption" style={[styles.originHintText, { color: theme.tabIconDefault }]}>
             {origin === 'owned' && "Items you own and can wear"}
             {origin === 'inspiration' && "Style inspiration from screenshots or online finds"}
-            {origin === 'wishlist' && "Items you want to purchase"}
           </ThemedText>
         </View>
 

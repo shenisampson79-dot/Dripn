@@ -9,7 +9,6 @@ import { useTheme } from "@/hooks/useTheme";
 
 export type BargainsStackParamList = {
   Bargains: undefined;
-  Wishlist: undefined;
   Sustainability: undefined;
 };
 
@@ -29,13 +28,6 @@ export default function BargainsStackNavigator() {
         component={BargainsScreen}
         options={{
           title: "Bargains",
-        }}
-      />
-      <Stack.Screen
-        name="Wishlist"
-        component={WishlistScreen}
-        options={{
-          title: "My Wishlist",
         }}
       />
       <Stack.Screen
