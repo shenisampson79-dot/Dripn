@@ -18,6 +18,8 @@ import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useOutfitFavorites, LikedOutfit } from "@/contexts/OutfitFavoritesContext";
+import { useBodyProfile } from "@/contexts/BodyProfileContext";
+import { useStyleProfile } from "@/contexts/StyleProfileContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
 
@@ -49,6 +51,8 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const { user } = useAuth();
   const { limits } = useSubscription();
   const { getLikedOutfits, toggleOutfitLike, isOutfitLiked, isLoading: outfitsLoading } = useOutfitFavorites();
+  const { bodyProfile, hasBodyProfile, hasColorAnalysis } = useBodyProfile();
+  const { styleProfile, hasStyleProfile } = useStyleProfile();
   const [activeTab, setActiveTab] = useState<"outfits">("outfits");
 
   // Dynamic colors from palette
@@ -213,6 +217,110 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               </ThemedText>
             </Pressable>
           </LinearGradient>
+        ) : null}
+      </View>
+
+      <View style={[styles.styleProfileSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+        <View style={styles.styleProfileHeader}>
+          <ThemedText type="h3" style={styles.styleProfileTitle}>Your Style Profile</ThemedText>
+          <ThemedText type="small" style={styles.styleProfileSubtitle}>
+            These help us give you better outfit suggestions and send relevant looks to your stylist community for second opinions.
+          </ThemedText>
+        </View>
+
+        <View style={styles.styleProfileCards}>
+          <Pressable
+            onPress={() => navigation.navigate("StyleDNA")}
+            style={({ pressed }) => [
+              styles.styleProfileCard,
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', opacity: pressed ? 0.8 : 1 }
+            ]}
+          >
+            <LinearGradient
+              colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+              style={styles.styleProfileCardIcon}
+            >
+              <Feather name="git-branch" size={20} color="#FFFFFF" />
+            </LinearGradient>
+            <View style={styles.styleProfileCardContent}>
+              <ThemedText type="body" style={styles.styleProfileCardTitle}>Style DNA</ThemedText>
+              {hasStyleProfile && styleProfile ? (
+                <ThemedText type="small" style={styles.styleProfileCardValue}>
+                  {styleProfile.stylePersonality || styleProfile.dominantStyles?.[0] || 'Analyzed'}
+                </ThemedText>
+              ) : (
+                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.coral }]}>
+                  Not completed
+                </ThemedText>
+              )}
+            </View>
+            <Feather name="chevron-right" size={18} color={theme.tabIconDefault} />
+          </Pressable>
+
+          <Pressable
+            onPress={() => navigation.navigate("ColorAnalysis")}
+            style={({ pressed }) => [
+              styles.styleProfileCard,
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', opacity: pressed ? 0.8 : 1 }
+            ]}
+          >
+            <LinearGradient
+              colors={[LUXURY_COLORS.coral, LUXURY_COLORS.rose]}
+              style={styles.styleProfileCardIcon}
+            >
+              <Feather name="droplet" size={20} color="#FFFFFF" />
+            </LinearGradient>
+            <View style={styles.styleProfileCardContent}>
+              <ThemedText type="body" style={styles.styleProfileCardTitle}>Color Analysis</ThemedText>
+              {hasColorAnalysis && bodyProfile?.colorSeason ? (
+                <ThemedText type="small" style={styles.styleProfileCardValue}>
+                  {bodyProfile.colorSeason.season.charAt(0).toUpperCase() + bodyProfile.colorSeason.season.slice(1)} {bodyProfile.colorSeason.subtype || ''}
+                </ThemedText>
+              ) : (
+                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.coral }]}>
+                  Not completed
+                </ThemedText>
+              )}
+            </View>
+            <Feather name="chevron-right" size={18} color={theme.tabIconDefault} />
+          </Pressable>
+
+          <Pressable
+            onPress={() => navigation.navigate("BodyScanner")}
+            style={({ pressed }) => [
+              styles.styleProfileCard,
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', opacity: pressed ? 0.8 : 1 }
+            ]}
+          >
+            <LinearGradient
+              colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+              style={styles.styleProfileCardIcon}
+            >
+              <Feather name="maximize" size={20} color="#FFFFFF" />
+            </LinearGradient>
+            <View style={styles.styleProfileCardContent}>
+              <ThemedText type="body" style={styles.styleProfileCardTitle}>Body Scanner</ThemedText>
+              {hasBodyProfile && bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown' ? (
+                <ThemedText type="small" style={styles.styleProfileCardValue}>
+                  {bodyProfile.bodyShape.charAt(0).toUpperCase() + bodyProfile.bodyShape.slice(1)} shape
+                </ThemedText>
+              ) : (
+                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.coral }]}>
+                  Not completed
+                </ThemedText>
+              )}
+            </View>
+            <Feather name="chevron-right" size={18} color={theme.tabIconDefault} />
+          </Pressable>
+        </View>
+
+        {(!hasStyleProfile || !hasColorAnalysis || !hasBodyProfile) ? (
+          <View style={[styles.styleProfileTip, { backgroundColor: LUXURY_COLORS.gold + '15' }]}>
+            <Feather name="info" size={16} color={LUXURY_COLORS.gold} />
+            <ThemedText type="small" style={styles.styleProfileTipText}>
+              Complete your style profile for personalized outfit suggestions and better second opinions from the community.
+            </ThemedText>
+          </View>
         ) : null}
       </View>
 
@@ -537,6 +645,61 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.xl,
     gap: Spacing.sm,
+  },
+  styleProfileSection: {
+    marginHorizontal: Spacing.lg,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xl,
+  },
+  styleProfileHeader: {
+    marginBottom: Spacing.md,
+  },
+  styleProfileTitle: {
+    marginBottom: Spacing.xs,
+  },
+  styleProfileSubtitle: {
+    opacity: 0.7,
+    lineHeight: 18,
+  },
+  styleProfileCards: {
+    gap: Spacing.sm,
+  },
+  styleProfileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.md,
+  },
+  styleProfileCardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  styleProfileCardContent: {
+    flex: 1,
+  },
+  styleProfileCardTitle: {
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  styleProfileCardValue: {
+    opacity: 0.7,
+  },
+  styleProfileTip: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
+  },
+  styleProfileTipText: {
+    flex: 1,
+    lineHeight: 18,
   },
   upgradeButtonGradient: {
     borderRadius: BorderRadius.full,
