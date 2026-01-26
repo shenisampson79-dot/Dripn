@@ -404,9 +404,35 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
           </View>
 
           {isSelected && !isCurrent ? (
-            <View style={[styles.selectedIndicator, { backgroundColor: plan.accentColor }]}>
-              <Feather name="check" size={16} color={LUXURY_COLORS.midnight} />
+            <View style={[
+              styles.selectedIndicator, 
+              { backgroundColor: plan.accentColor },
+              plan.popular && styles.selectedIndicatorBelowBadge
+            ]}>
+              <Feather 
+                name="check" 
+                size={16} 
+                color={plan.id === 'pro' ? '#FFFFFF' : LUXURY_COLORS.midnight} 
+              />
             </View>
+          ) : null}
+
+          {isSelected && !isCurrent ? (
+            <Pressable
+              onPress={() => handleSelectPlan(plan.id)}
+              disabled={isProcessing}
+              style={[styles.inlineSubscribeButton, { backgroundColor: plan.accentColor }]}
+            >
+              <ThemedText 
+                type="body" 
+                style={[
+                  styles.inlineSubscribeButtonText,
+                  { color: plan.id === 'pro' ? '#FFFFFF' : LUXURY_COLORS.midnight }
+                ]}
+              >
+                {isProcessing ? "Processing..." : `Start ${plan.name} Plan`}
+              </ThemedText>
+            </Pressable>
           ) : null}
         </LinearGradient>
       </Pressable>
@@ -517,31 +543,6 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         {PLANS.map(renderPlanCard)}
       </View>
 
-      {selectedPlan !== user?.subscriptionTier ? (
-        <LinearGradient
-          colors={selectedPlan === "free" 
-            ? [LUXURY_COLORS.champagne, LUXURY_COLORS.rose] 
-            : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.subscribeButtonGradient}
-        >
-          <Pressable
-            onPress={() => handleSelectPlan(selectedPlan)}
-            disabled={isProcessing}
-            style={styles.subscribeButtonInner}
-          >
-            <ThemedText type="body" style={styles.subscribeButtonText}>
-              {isProcessing
-                ? "Processing..."
-                : selectedPlan === "free"
-                  ? "Downgrade to Free"
-                  : `Start ${PLANS.find((p) => p.id === selectedPlan)?.name} Plan`}
-            </ThemedText>
-          </Pressable>
-        </LinearGradient>
-      ) : null}
 
       <View style={[styles.referralSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
         <LinearGradient
@@ -580,7 +581,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
             end={{ x: 1, y: 1 }}
             style={styles.dfyCard}
           >
-            <View style={[styles.dfyMentalModelBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+            <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
               <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>Tactical</ThemedText>
             </View>
             <View style={styles.dfyCardHeader}>
@@ -908,17 +909,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  subscribeButtonGradient: {
-    borderRadius: BorderRadius.full,
-    marginBottom: Spacing.xl,
+  selectedIndicatorBelowBadge: {
+    top: Spacing.lg + 32,
   },
-  subscribeButtonInner: {
+  inlineSubscribeButton: {
+    marginTop: Spacing.lg,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
     alignItems: 'center',
   },
-  subscribeButtonText: {
-    color: LUXURY_COLORS.midnight,
+  inlineSubscribeButtonText: {
     fontWeight: '700',
     fontSize: 16,
   },
@@ -964,13 +965,6 @@ const styles = StyleSheet.create({
   dfyCardFeatured: {
     borderWidth: 2,
     borderColor: LUXURY_COLORS.gold,
-  },
-  dfyMentalModelBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-    marginBottom: Spacing.sm,
   },
   dfyCardHeader: {
     flexDirection: 'row',
