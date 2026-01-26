@@ -226,23 +226,25 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     }
     
     if (result?.analysis) {
+      // Handle both backend formats: analysis.item.* or analysis.* directly
+      const data = result.analysis.item || result.analysis;
       const item: DetectedGarment = {
-        category: validCategories.includes(result.analysis.category as ClothingCategory) 
-          ? result.analysis.category as ClothingCategory 
+        category: validCategories.includes(data.category as ClothingCategory) 
+          ? data.category as ClothingCategory 
           : 'tops',
-        color: validColors.includes(result.analysis.color as ClothingColor) 
-          ? result.analysis.color as ClothingColor 
+        color: validColors.includes(data.color as ClothingColor) 
+          ? data.color as ClothingColor 
           : 'black',
-        suggestedName: result.analysis.suggestedName || 'Fashion Item',
-        brand: result.analysis.brand || undefined,
-        seasons: (result.analysis.seasons || ['all-season']).filter((s: string) => 
+        suggestedName: data.suggestedName || data.name || 'Fashion Item',
+        brand: data.brand || undefined,
+        seasons: (data.seasons || ['all-season']).filter((s: string) => 
           validSeasons.includes(s as ClothingSeason)
         ) as ClothingSeason[],
-        occasions: (result.analysis.occasions || ['everyday']).filter((o: string) => 
+        occasions: (data.occasions || ['everyday']).filter((o: string) => 
           validOccasions.includes(o as ClothingOccasion)
         ) as ClothingOccasion[],
         confidence: typeof result.analysis.confidence === 'number' ? result.analysis.confidence : 0.8,
-        description: result.analysis.description || '',
+        description: data.description || '',
       };
       
       return {
