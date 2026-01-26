@@ -42,8 +42,8 @@ const TOUR_STEPS: TourStep[] = [
   {
     icon: "plus-circle",
     title: "The + Button",
-    description: "See the + button at the bottom? That's your direct line to your stylist. Tap it anytime you need an outfit decision. You can also get a Second Opinion from others when you want extra confidence.",
-    highlight: "Tap + for instant styling help",
+    description: "Once you finish this tour, you'll see a + button in the center of the bottom navigation bar. That's your direct line to your stylist. Tap it anytime you need an outfit decision.",
+    highlight: "Look for + in the bottom bar after this tour",
   },
   {
     icon: "grid",
@@ -54,7 +54,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     icon: "check-circle",
     title: "You're All Set!",
-    description: "Explore your Home for today's decision, manage your Wardrobe, and chat with your stylist anytime. Welcome to effortless style decisions!",
+    description: "Manage your Wardrobe, get outfit decisions, and chat with your stylist anytime. Welcome to effortless style decisions!",
     highlight: "Let's get you sorted",
   },
 ];
