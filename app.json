@@ -17,7 +17,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Dripn needs camera access to take outfit photos for style advice.",
         "NSPhotoLibraryUsageDescription": "Dripn needs photo library access to select outfit images for style advice.",
-        "NSMicrophoneUsageDescription": "Dripn needs microphone access to record voice comments and video calls with stylists."
+        "NSMicrophoneUsageDescription": "Dripn needs microphone access to record voice comments and video calls with stylists.",
+        "NSLocationWhenInUseUsageDescription": "Dripn uses your location to find local stores and fashion trends."
       },
       "config": {
         "usesNonExemptEncryption": false,
