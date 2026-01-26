@@ -152,7 +152,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     title: string,
     value: string | number,
     icon: string,
-    gradientColors: string[],
+    gradientColors: readonly [string, string],
     subtitle?: string
   ) => (
     <View
@@ -419,7 +419,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <View style={[styles.section, { marginBottom: Spacing.xxl }]}>
+        <View style={[styles.section, { marginBottom: Spacing["2xl"] }]}>
           <ThemedText type="h3" style={styles.sectionTitle}>
             Recent Signups
           </ThemedText>

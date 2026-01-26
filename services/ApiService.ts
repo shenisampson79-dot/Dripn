@@ -2948,6 +2948,31 @@ class ApiService {
   }
 
   async getAdminDashboard() {
+    if (this.token === 'dev-test-token') {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return {
+        users: {
+          total: 1247,
+          today: 23,
+          thisWeek: 156,
+        },
+        subscriptions: {
+          active: 342,
+          conversionRate: 0.274,
+        },
+        engagement: {
+          totalChats: 8934,
+          chatsToday: 127,
+        },
+        recentUsers: [
+          { id: '1', email: 'emma.styles@gmail.com', name: 'Emma Styles', createdAt: new Date().toISOString(), subscriptionTier: 'personal_stylist', verified: true },
+          { id: '2', email: 'james.fashion@outlook.com', name: 'James Fashion', createdAt: new Date(Date.now() - 3600000).toISOString(), subscriptionTier: 'style_chat', verified: true },
+          { id: '3', email: 'sophia.chic@yahoo.com', name: 'Sophia Chic', createdAt: new Date(Date.now() - 7200000).toISOString(), subscriptionTier: 'free', verified: false },
+          { id: '4', email: 'oliver.trend@gmail.com', name: 'Oliver Trend', createdAt: new Date(Date.now() - 10800000).toISOString(), subscriptionTier: 'stylist_unlimited', verified: true },
+          { id: '5', email: 'ava.designer@mail.com', name: 'Ava Designer', createdAt: new Date(Date.now() - 14400000).toISOString(), subscriptionTier: 'personal_stylist', verified: true },
+        ],
+      };
+    }
     return this.request<{
       users: {
         total: number;
@@ -2974,6 +2999,22 @@ class ApiService {
   }
 
   async getAdminPayments() {
+    if (this.token === 'dev-test-token') {
+      await new Promise(resolve => setTimeout(resolve, 400));
+      return {
+        summary: {
+          totalRevenue: 4567800,
+          monthlyRecurringRevenue: 342500,
+        },
+        payments: [
+          { id: 'pay_1', userId: '1', userEmail: 'emma.styles@gmail.com', amount: 1499, currency: 'GBP', status: 'succeeded', productId: 'personal_stylist_monthly', createdAt: new Date().toISOString() },
+          { id: 'pay_2', userId: '2', userEmail: 'james.fashion@outlook.com', amount: 999, currency: 'GBP', status: 'succeeded', productId: 'style_chat_monthly', createdAt: new Date(Date.now() - 1800000).toISOString() },
+          { id: 'pay_3', userId: '4', userEmail: 'oliver.trend@gmail.com', amount: 19199, currency: 'GBP', status: 'succeeded', productId: 'stylist_unlimited_yearly', createdAt: new Date(Date.now() - 3600000).toISOString() },
+          { id: 'pay_4', userId: '5', userEmail: 'ava.designer@mail.com', amount: 3999, currency: 'GBP', status: 'succeeded', productId: 'done_for_you_core', createdAt: new Date(Date.now() - 5400000).toISOString() },
+          { id: 'pay_5', userId: '6', userEmail: 'noah.style@gmail.com', amount: 1999, currency: 'GBP', status: 'succeeded', productId: 'done_for_you_lite', createdAt: new Date(Date.now() - 7200000).toISOString() },
+        ],
+      };
+    }
     return this.request<{
       summary: {
         totalRevenue: number;
@@ -2993,6 +3034,22 @@ class ApiService {
   }
 
   async getAdminSubscriptions() {
+    if (this.token === 'dev-test-token') {
+      await new Promise(resolve => setTimeout(resolve, 400));
+      return {
+        mrr: 342500,
+        stats: {
+          active: 342,
+          canceled: 47,
+          planDistribution: {
+            free: 905,
+            style_chat: 187,
+            personal_stylist: 112,
+            stylist_unlimited: 43,
+          },
+        },
+      };
+    }
     return this.request<{
       mrr: number;
       stats: {

@@ -93,6 +93,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   };
 
   const isAdmin = user?.email?.endsWith('@dripn.io') || 
+                  user?.email?.endsWith('@dripn.dev') ||
                   user?.email === 'sheni_sampson@yahoo.co.uk' ||
                   user?.role === 'admin';
 
