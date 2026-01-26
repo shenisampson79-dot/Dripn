@@ -256,8 +256,16 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
         'multi': 'multicolor', 'multicolor': 'multicolor', 'patterned': 'multicolor',
       };
       
-      const rawCategory = (data.category || data.garmentType || '').toLowerCase();
-      const rawColor = (data.color || data.primaryColor || '').toLowerCase();
+      // Safely extract category - handle string or object
+      const extractString = (val: any): string => {
+        if (typeof val === 'string') return val;
+        if (val && typeof val === 'object' && val.name) return val.name;
+        if (val && typeof val === 'object' && val.value) return val.value;
+        return '';
+      };
+      
+      const rawCategory = extractString(data.category || data.garmentType).toLowerCase() || 'tops';
+      const rawColor = extractString(data.color || data.primaryColor || data.colorFull).toLowerCase() || 'black';
       
       const mappedCategory = categoryMap[rawCategory] || 
         (validCategories.includes(rawCategory as ClothingCategory) ? rawCategory as ClothingCategory : 'tops');
@@ -265,9 +273,9 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
         (validColors.includes(rawColor as ClothingColor) ? rawColor as ClothingColor : 'black');
       
       // Generate a descriptive name
-      const colorDisplay = rawColor.charAt(0).toUpperCase() + rawColor.slice(1);
-      const typeDisplay = (data.garmentType || data.category || mappedCategory).charAt(0).toUpperCase() + 
-        (data.garmentType || data.category || mappedCategory).slice(1);
+      const colorDisplay = rawColor ? rawColor.charAt(0).toUpperCase() + rawColor.slice(1) : 'Item';
+      const typeValue = extractString(data.garmentType || data.category) || mappedCategory;
+      const typeDisplay = typeValue.charAt(0).toUpperCase() + typeValue.slice(1);
       const suggestedName = data.suggestedName || data.name || `${colorDisplay} ${typeDisplay}`;
       
       const item: DetectedGarment = {
