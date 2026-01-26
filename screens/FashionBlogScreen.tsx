@@ -569,11 +569,17 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
   const handleSubscribe = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
-    try {
-      if (apiService.isConfigured() && user?.email) {
+    // Try API call but don't block on it
+    if (apiService.isConfigured() && user?.email) {
+      try {
         await apiService.subscribeToNewsletter(user.email, user.displayName);
+      } catch (error) {
+        console.log("Newsletter API call failed (non-blocking):", error);
       }
-      
+    }
+    
+    // Always save locally and show success
+    try {
       await AsyncStorage.setItem(NEWSLETTER_SUBSCRIPTION_KEY, "true");
       setIsSubscribed(true);
       
@@ -583,7 +589,7 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
         [{ text: "Great!" }]
       );
     } catch (error) {
-      console.log("Error subscribing to newsletter:", error);
+      console.log("Error saving subscription status:", error);
       Alert.alert(
         "Subscription Failed",
         "We couldn't complete your subscription. Please try again later.",
