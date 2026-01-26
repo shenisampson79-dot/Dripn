@@ -439,7 +439,7 @@ class ApiService {
   }
 
   async analyzeGarmentPhoto(imageBase64: string, options?: { detailed?: boolean }) {
-    if (this.authToken === 'dev-test-token') {
+    if (this.token === 'dev-test-token') {
       await new Promise(resolve => setTimeout(resolve, 1500));
       const categories = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'accessories'];
       const colors = ['black', 'white', 'blue', 'navy', 'gray', 'beige', 'brown'];
@@ -538,7 +538,7 @@ class ApiService {
   }
 
   async extractClothing(imageData: { imageBase64?: string; imageUrl?: string }) {
-    if (this.authToken === 'dev-test-token') {
+    if (this.token === 'dev-test-token') {
       await new Promise(resolve => setTimeout(resolve, 1000));
       const types = ['shirt', 'pants', 'dress', 'jacket', 'shoes', 'bag'];
       const colors = ['black', 'white', 'blue', 'gray', 'beige', 'navy'];
@@ -3063,6 +3063,42 @@ class ApiService {
         };
       };
     }>('/api/admin/subscriptions');
+  }
+
+  async getAdminModels() {
+    if (this.token === 'dev-test-token') {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return {
+        current: {
+          main_stylist: 'gpt-4.1',
+          quick_decisions: 'gpt-4.1-nano',
+          second_opinions: 'gpt-4o-mini',
+        },
+        available: ['gpt-4.1', 'gpt-4.1-nano', 'gpt-4o', 'gpt-4o-mini'],
+        newModelsDetected: 0,
+        lastChecked: new Date(Date.now() - 7200000).toISOString(),
+      };
+    }
+    return this.request<{
+      current: {
+        main_stylist: string;
+        quick_decisions: string;
+        second_opinions: string;
+      };
+      available: string[];
+      newModelsDetected: number;
+      lastChecked: string;
+    }>('/api/admin/models');
+  }
+
+  async checkAdminModels() {
+    return this.request<{
+      message: string;
+      newModelsFound: number;
+      models?: string[];
+    }>('/api/admin/models/check', {
+      method: 'POST',
+    });
   }
 }
 

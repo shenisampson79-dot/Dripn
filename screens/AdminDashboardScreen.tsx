@@ -74,6 +74,17 @@ interface SubscriptionsData {
   };
 }
 
+interface ModelStatusData {
+  current: {
+    main_stylist: string;
+    quick_decisions: string;
+    second_opinions: string;
+  };
+  available: string[];
+  newModelsDetected: number;
+  lastChecked: string;
+}
+
 export default function AdminDashboardScreen({ navigation }: Props) {
   const { theme, isDark } = useTheme();
   const { palette } = useColorScheme();
@@ -81,6 +92,8 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [paymentsData, setPaymentsData] = useState<PaymentsData | null>(null);
   const [subscriptionsData, setSubscriptionsData] = useState<SubscriptionsData | null>(null);
+  const [modelStatus, setModelStatus] = useState<ModelStatusData | null>(null);
+  const [isCheckingModels, setIsCheckingModels] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,14 +113,16 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const fetchData = useCallback(async () => {
     try {
       setError(null);
-      const [dashboard, payments, subscriptions] = await Promise.all([
+      const [dashboard, payments, subscriptions, models] = await Promise.all([
         apiService.getAdminDashboard(),
         apiService.getAdminPayments(),
         apiService.getAdminSubscriptions(),
+        apiService.getAdminModels().catch(() => null),
       ]);
       setDashboardData(dashboard);
       setPaymentsData(payments);
       setSubscriptionsData(subscriptions);
+      setModelStatus(models);
     } catch (err: any) {
       console.error("Failed to fetch admin data:", err);
       setError(err.message || "Failed to load dashboard data");
@@ -116,6 +131,33 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       setIsRefreshing(false);
     }
   }, []);
+
+  const handleCheckModels = async () => {
+    setIsCheckingModels(true);
+    try {
+      await apiService.checkAdminModels();
+      const updatedModels = await apiService.getAdminModels();
+      setModelStatus(updatedModels);
+    } catch (err) {
+      console.error("Failed to check models:", err);
+    } finally {
+      setIsCheckingModels(false);
+    }
+  };
+
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  };
 
   useEffect(() => {
     fetchData();
@@ -419,6 +461,80 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           </View>
         </View>
 
+        {modelStatus ? (
+          <View style={styles.section}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <ThemedText type="h3" style={styles.sectionTitle}>
+                  AI Models
+                </ThemedText>
+                {modelStatus.newModelsDetected > 0 ? (
+                  <View style={[styles.newBadge, { backgroundColor: LUXURY_COLORS.coral }]}>
+                    <ThemedText type="small" style={{ color: "#FFFFFF", fontWeight: "600" }}>
+                      {modelStatus.newModelsDetected} New
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+            <View
+              style={[
+                styles.modelCard,
+                { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#FFFFFF" },
+              ]}
+            >
+              <View style={styles.modelRow}>
+                <ThemedText type="body">Main Stylist:</ThemedText>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <ThemedText type="body" style={{ fontWeight: "600" }}>
+                    {modelStatus.current.main_stylist}
+                  </ThemedText>
+                  <Feather name="check" size={16} color={LUXURY_COLORS.emerald} style={{ marginLeft: 6 }} />
+                </View>
+              </View>
+              <View style={styles.modelRow}>
+                <ThemedText type="body">Quick Decisions:</ThemedText>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <ThemedText type="body" style={{ fontWeight: "600" }}>
+                    {modelStatus.current.quick_decisions}
+                  </ThemedText>
+                  <Feather name="check" size={16} color={LUXURY_COLORS.emerald} style={{ marginLeft: 6 }} />
+                </View>
+              </View>
+              <View style={styles.modelRow}>
+                <ThemedText type="body">Second Opinions:</ThemedText>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <ThemedText type="body" style={{ fontWeight: "600" }}>
+                    {modelStatus.current.second_opinions}
+                  </ThemedText>
+                  <Feather name="check" size={16} color={LUXURY_COLORS.emerald} style={{ marginLeft: 6 }} />
+                </View>
+              </View>
+              <View style={[styles.modelRow, { borderBottomWidth: 0 }]}>
+                <ThemedText type="small" style={{ opacity: 0.6 }}>
+                  Last checked: {formatRelativeTime(modelStatus.lastChecked)}
+                </ThemedText>
+              </View>
+              <Pressable
+                onPress={handleCheckModels}
+                disabled={isCheckingModels}
+                style={[
+                  styles.checkButton,
+                  { backgroundColor: LUXURY_COLORS.gold, opacity: isCheckingModels ? 0.6 : 1 },
+                ]}
+              >
+                {isCheckingModels ? (
+                  <ActivityIndicator size="small" color={LUXURY_COLORS.midnight} />
+                ) : (
+                  <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: "600" }}>
+                    Check for Updates
+                  </ThemedText>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
         <View style={[styles.section, { marginBottom: Spacing["2xl"] }]}>
           <ThemedText type="h3" style={styles.sectionTitle}>
             Recent Signups
@@ -645,5 +761,31 @@ const styles = StyleSheet.create({
   },
   userDate: {
     opacity: 0.5,
+  },
+  modelCard: {
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+  },
+  modelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(128,128,128,0.1)",
+  },
+  newBadge: {
+    marginLeft: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+  },
+  checkButton: {
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
