@@ -228,7 +228,7 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     // Handle multiple response formats from the API
     const data = result?.analysis?.item || result?.analysis || result;
     
-    if (data && (data.category || data.garmentType || data.color)) {
+    if (data && (data.category || data.garmentType || data.color || data.primaryColor)) {
       // Map garmentType to category if needed
       const categoryMap: Record<string, ClothingCategory> = {
         'shirt': 'tops', 'blouse': 'tops', 'sweater': 'tops', 't-shirt': 'tops', 'top': 'tops',
