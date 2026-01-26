@@ -335,8 +335,20 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   };
 
   const handleSave = async () => {
-    if (!imageUri) {
-      Alert.alert("Missing Photo", "Please add a photo of your item.");
+    const missingFields: string[] = [];
+    if (!imageUri) missingFields.push("Photo");
+    if (!name.trim()) missingFields.push("Name");
+    if (!category) missingFields.push("Category");
+    if (!color) missingFields.push("Color");
+    if (seasons.length === 0) missingFields.push("Season");
+    if (occasions.length === 0) missingFields.push("Occasion");
+    
+    if (missingFields.length > 0) {
+      Alert.alert(
+        "Complete Your Item",
+        `Please fill in: ${missingFields.join(", ")}`,
+        [{ text: "OK" }]
+      );
       return;
     }
     if (!name.trim()) {
@@ -428,12 +440,12 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         <ThemedText type="h3">Add to Wardrobe</ThemedText>
         <Pressable
           onPress={handleSave}
-          disabled={!canSave || isSubmitting}
-          style={[
+          disabled={isSubmitting}
+          style={({ pressed }) => [
             styles.headerButton,
             {
               backgroundColor: canSave ? theme.link : theme.backgroundDefault,
-              opacity: isSubmitting ? 0.5 : 1,
+              opacity: isSubmitting ? 0.5 : pressed ? 0.7 : 1,
             },
           ]}
         >
