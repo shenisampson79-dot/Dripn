@@ -491,7 +491,7 @@ class ApiService {
     }>('/api/wardrobe/analyze', {
       method: 'POST',
       body: JSON.stringify({ 
-        imageBase64: `data:image/jpeg;base64,${imageBase64}`, 
+        imageBase64, 
         detailed: options?.detailed ?? true,
         analysisType: 'garment'
       }),
