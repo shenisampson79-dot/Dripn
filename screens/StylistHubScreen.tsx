@@ -93,7 +93,7 @@ const ALL_FEATURES: StylistFeature[] = [
   {
     id: "style-rules",
     title: "Style Rules",
-    description: "94+ fashion guidelines",
+    description: "105+ fashion guidelines",
     icon: "list",
     screen: "StyleRules",
     gradientKey: "primary",

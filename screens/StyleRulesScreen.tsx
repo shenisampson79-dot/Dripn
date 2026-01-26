@@ -236,7 +236,7 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
     );
   };
 
-  const allCategory = { name: 'All', count: rules.length };
+  const allCategory = { name: 'All', count: allRules.length };
   const categoryList = [allCategory, ...categories];
 
   const ListHeader = () => (
@@ -256,7 +256,7 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
           </View>
           <ThemedText style={styles.headerTitle}>Style Rules</ThemedText>
           <ThemedText style={styles.headerSubtitle}>
-            {rules.length}+ essential fashion guidelines
+            {allRules.length}+ essential fashion guidelines
           </ThemedText>
         </View>
       </LinearGradient>
@@ -273,7 +273,7 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
       </View>
 
       <ThemedText style={styles.rulesCount}>
-        {selectedCategory ? `${rules.length} rules in ${selectedCategory}` : `All ${rules.length} rules`}
+        {selectedCategory ? `${rules.length} rules in ${selectedCategory}` : `All ${allRules.length} rules`}
       </ThemedText>
     </View>
   );
