@@ -2946,6 +2946,67 @@ class ApiService {
       headers: { 'x-guest-token': sessionToken },
     });
   }
+
+  async getAdminDashboard() {
+    return this.request<{
+      users: {
+        total: number;
+        today: number;
+        thisWeek: number;
+      };
+      subscriptions: {
+        active: number;
+        conversionRate: number;
+      };
+      engagement: {
+        totalChats: number;
+        chatsToday: number;
+      };
+      recentUsers: Array<{
+        id: string;
+        email: string;
+        name: string;
+        createdAt: string;
+        subscriptionTier?: string;
+        verified?: boolean;
+      }>;
+    }>('/api/admin/dashboard');
+  }
+
+  async getAdminPayments() {
+    return this.request<{
+      summary: {
+        totalRevenue: number;
+        monthlyRecurringRevenue: number;
+      };
+      payments: Array<{
+        id: string;
+        userId: string;
+        userEmail: string;
+        amount: number;
+        currency: string;
+        status: string;
+        productId: string;
+        createdAt: string;
+      }>;
+    }>('/api/admin/payments');
+  }
+
+  async getAdminSubscriptions() {
+    return this.request<{
+      mrr: number;
+      stats: {
+        active: number;
+        canceled: number;
+        planDistribution: {
+          free: number;
+          style_chat: number;
+          personal_stylist: number;
+          stylist_unlimited: number;
+        };
+      };
+    }>('/api/admin/subscriptions');
+  }
 }
 
 export const apiService = new ApiService();

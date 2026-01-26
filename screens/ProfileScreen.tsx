@@ -88,6 +88,14 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("VIPMembers");
   };
 
+  const handleAdminDashboardPress = () => {
+    navigation.navigate("AdminDashboard");
+  };
+
+  const isAdmin = user?.email?.endsWith('@dripn.io') || 
+                  user?.email === 'sheni_sampson@yahoo.co.uk' ||
+                  user?.role === 'admin';
+
   const getSubscriptionBadgeGradient = (): readonly [string, string] => {
     const tier = user?.subscriptionTier || "free";
     if (tier === 'premium') {
@@ -214,6 +222,25 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               <Feather name="video" size={18} color="#FFFFFF" />
               <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
                 VIP Video Calling
+              </ThemedText>
+            </Pressable>
+          </LinearGradient>
+        ) : null}
+
+        {isAdmin ? (
+          <LinearGradient
+            colors={[LUXURY_COLORS.midnight, '#1a1a2e']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.upgradeButtonGradient, { borderWidth: 1, borderColor: LUXURY_COLORS.gold }]}
+          >
+            <Pressable
+              onPress={handleAdminDashboardPress}
+              style={styles.upgradeButtonInner}
+            >
+              <Feather name="bar-chart-2" size={18} color={LUXURY_COLORS.gold} />
+              <ThemedText type="body" style={{ color: LUXURY_COLORS.gold, fontWeight: '600' }}>
+                Admin Dashboard
               </ThemedText>
             </Pressable>
           </LinearGradient>
