@@ -255,22 +255,22 @@ type OnboardingScreenProps = {
   };
 };
 
-const STYLE_OPTIONS_FEMALE: { id: StyleTheme; name: string; description: string }[] = [
-  { id: "luxury", name: "Formal", description: "Elegant, refined, timeless pieces" },
-  { id: "streetwear", name: "Casual", description: "Relaxed, comfortable, everyday style" },
-  { id: "boho", name: "Boho", description: "Earthy, relaxed, artistic" },
-  { id: "sporty", name: "Sporty", description: "Active, dynamic, athletic" },
-  { id: "smart-casual", name: "Smart Casual", description: "Polished yet relaxed, tailored pieces for office to after-work drinks" },
-  { id: "edgy", name: "Edgy", description: "Bold, alternative, dramatic" },
+const STYLE_OPTIONS_FEMALE: { id: StyleTheme; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
+  { id: "streetwear", name: "Casual", description: "Relaxed, everyday comfort", icon: "sun" },
+  { id: "business", name: "Professional", description: "Office-ready, polished looks", icon: "briefcase" },
+  { id: "sporty", name: "Active", description: "Sporty, athleisure focused", icon: "activity" },
+  { id: "boho", name: "Creative", description: "Artistic, expressive style", icon: "edit-3" },
+  { id: "luxury", name: "Minimalist", description: "Simple, timeless pieces", icon: "square" },
+  { id: "edgy", name: "Trendsetter", description: "Latest fashion, bold choices", icon: "trending-up" },
 ];
 
-const STYLE_OPTIONS_MALE: { id: StyleTheme; name: string; description: string }[] = [
-  { id: "smart-casual", name: "Smart Casual", description: "Polished yet relaxed, chinos with button-downs or knitwear, loafers" },
-  { id: "streetwear", name: "Casual", description: "Relaxed, comfortable, everyday style" },
-  { id: "boho", name: "Boho", description: "Earthy, relaxed, artistic" },
-  { id: "sporty", name: "Sporty", description: "Active, dynamic, athletic" },
-  { id: "business", name: "Business", description: "Professional suits, shirts, and formal wear" },
-  { id: "edgy", name: "Edgy", description: "Bold, alternative, dramatic" },
+const STYLE_OPTIONS_MALE: { id: StyleTheme; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
+  { id: "streetwear", name: "Casual", description: "Relaxed, everyday comfort", icon: "sun" },
+  { id: "business", name: "Professional", description: "Office-ready, polished looks", icon: "briefcase" },
+  { id: "sporty", name: "Active", description: "Sporty, athleisure focused", icon: "activity" },
+  { id: "boho", name: "Creative", description: "Artistic, expressive style", icon: "edit-3" },
+  { id: "luxury", name: "Minimalist", description: "Simple, timeless pieces", icon: "square" },
+  { id: "edgy", name: "Trendsetter", description: "Latest fashion, bold choices", icon: "trending-up" },
 ];
 
 const SIZE_OPTIONS: SizeRange[] = ["XS-S", "S-M", "M-L", "L-XL", "XL-2X", "3X+"];
@@ -1988,47 +1988,37 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             >
               <View style={styles.styleOptions}>
                 {styleOptions.map((s) => {
-                  const styleColor = STYLE_COLORS[s.id] || { bg: "#374151", border: "#6B7280" };
                   const isSelected = stylePreference === s.id;
                   return (
                     <Pressable
                       key={s.id}
                       onPress={() => setStylePreference(s.id)}
                       style={({ pressed }) => [
-                        styles.styleOption,
+                        styles.lifestyleOption,
                         {
-                          backgroundColor: styleColor.bg,
-                          borderColor: isSelected ? "#FFFFFF" : styleColor.border,
-                          borderWidth: isSelected ? 3 : 2,
+                          backgroundColor: isSelected ? `${theme.link}20` : theme.backgroundDefault,
+                          borderColor: isSelected ? theme.link : theme.border,
+                          borderWidth: isSelected ? 2 : 1,
                           opacity: pressed ? 0.85 : 1,
-                          shadowColor: styleColor.border,
-                          shadowOffset: { width: 0, height: 4 },
-                          shadowOpacity: 0.4,
-                          shadowRadius: 8,
-                          elevation: 6,
                         },
                       ]}
                     >
-                      <Image
-                        source={getStyleImage(s.id)}
-                        style={styles.styleImagePreview}
-                        resizeMode="cover"
-                      />
-                      <View style={styles.styleTextContainer}>
-                        <ThemedText type="h3" style={{ color: "#FFFFFF" }}>
+                      <View style={[styles.lifestyleIconContainer, { backgroundColor: `${theme.link}15` }]}>
+                        <Feather name={s.icon} size={20} color={theme.link} />
+                      </View>
+                      <View style={styles.lifestyleTextContainer}>
+                        <ThemedText type="body" style={{ fontWeight: '600' }}>
                           {translations.styleSelection.styles[s.id.replace('-', '') as keyof typeof translations.styleSelection.styles]?.name || s.name}
                         </ThemedText>
                         <ThemedText
                           type="small"
-                          style={{ color: "rgba(255,255,255,0.7)" }}
+                          style={{ opacity: 0.7 }}
                         >
                           {translations.styleSelection.styles[s.id.replace('-', '') as keyof typeof translations.styleSelection.styles]?.description || s.description}
                         </ThemedText>
                       </View>
                       {isSelected ? (
-                        <View style={[styles.checkCircle, { backgroundColor: "rgba(255,255,255,0.3)" }]}>
-                          <Feather name="check" size={16} color="#FFFFFF" />
-                        </View>
+                        <Feather name="check-circle" size={20} color={theme.link} />
                       ) : null}
                     </Pressable>
                   );
@@ -3615,6 +3605,25 @@ const styles = StyleSheet.create({
   },
   styleTextContainer: {
     flex: 1,
+  },
+  lifestyleOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  lifestyleIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lifestyleTextContainer: {
+    flex: 1,
+    gap: Spacing.xs,
   },
   checkCircle: {
     width: 28,
