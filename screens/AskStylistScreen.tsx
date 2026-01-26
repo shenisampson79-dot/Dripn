@@ -347,7 +347,31 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
       setResponse(result);
       setStep('response');
     } catch (error: any) {
-      Alert.alert('Unable to submit', error.message);
+      if (error.limitCopy || error.message?.includes("your decision for today")) {
+        Alert.alert(
+          'Unable to submit',
+          error.limitCopy?.message || error.message || "That's your decision for today. Your stylist is here whenever you're ready.",
+          [
+            {
+              text: 'Maybe later',
+              style: 'cancel',
+            },
+            {
+              text: error.limitCopy?.cta || 'Unlock unlimited decisions',
+              onPress: () => {
+                const redirectUrl = error.limitCopy?.redirectUrl || '/subscription';
+                if (redirectUrl === '/subscription' || redirectUrl.includes('subscription')) {
+                  navigation.navigate('Subscription' as never);
+                } else {
+                  navigation.navigate(redirectUrl.replace('/', '') as never);
+                }
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Unable to submit', error.message);
+      }
     } finally {
       setIsLoading(false);
     }

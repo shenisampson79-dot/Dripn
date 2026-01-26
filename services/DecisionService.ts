@@ -290,7 +290,15 @@ class DecisionService {
   ): Promise<DecisionResponse> {
     const access = await this.checkDecisionAccess(request.userId, tier);
     if (!access.canMakeDecision) {
-      throw new Error(access.reason || 'Cannot make decision');
+      const error: any = new Error(access.reason || 'Cannot make decision');
+      error.limitCopy = {
+        message: access.reason || "That's your decision for today. Your stylist is here whenever you're ready.",
+        subtext: "Upgrade for unlimited stylist consultations",
+        cta: "Unlock unlimited decisions",
+        redirectUrl: "/subscription",
+        shouldRedirect: true,
+      };
+      throw error;
     }
 
     await this.incrementDecisionsToday(request.userId);
