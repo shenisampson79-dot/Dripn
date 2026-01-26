@@ -215,7 +215,15 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     const base64Image = await convertImageToBase64(imageUri);
     
     const { apiService } = await import('./ApiService');
-    const result = await apiService.analyzeGarmentPhoto(base64Image, { detailed: true });
+    
+    let result: any;
+    try {
+      result = await apiService.analyzeGarmentPhoto(base64Image, { detailed: true });
+      console.log('[BulkScan] API response:', JSON.stringify(result).substring(0, 200));
+    } catch (apiError: any) {
+      console.log('[BulkScan] API call failed:', apiError.message);
+      result = null;
+    }
     
     if (result?.analysis) {
       const item: DetectedGarment = {
@@ -245,7 +253,25 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       };
     }
     
-    throw new Error('No analysis result from backend');
+    // If backend fails, create a generic item that user can edit
+    console.log('[BulkScan] Creating placeholder item for manual editing');
+    const placeholderItem: DetectedGarment = {
+      category: 'tops',
+      color: 'black',
+      suggestedName: 'New Item (tap to edit)',
+      brand: undefined,
+      seasons: ['all-season'],
+      occasions: ['everyday'],
+      confidence: 0.5,
+      description: 'AI analysis unavailable. Please edit details manually.',
+    };
+    
+    return {
+      success: true,
+      detectedItems: [placeholderItem],
+      totalItemsFound: 1,
+      processingTime: Date.now() - startTime,
+    };
   } catch (error: any) {
     console.error('Bulk scan error:', error);
     return {
