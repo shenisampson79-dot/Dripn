@@ -3100,6 +3100,122 @@ class ApiService {
       method: 'POST',
     });
   }
+
+  // Color configuration from backend
+  private colorConfigCache: ColorConfig | null = null;
+  private colorConfigPromise: Promise<ColorConfig> | null = null;
+
+  async getColorConfig(): Promise<ColorConfig> {
+    // Return cached config if available
+    if (this.colorConfigCache) {
+      return this.colorConfigCache;
+    }
+    
+    // If already fetching, wait for that promise
+    if (this.colorConfigPromise) {
+      return this.colorConfigPromise;
+    }
+    
+    // Fetch from backend
+    this.colorConfigPromise = this.request<ColorConfig>('/api/config/colors')
+      .then(config => {
+        this.colorConfigCache = config;
+        return config;
+      })
+      .catch(error => {
+        console.log('[ColorConfig] Failed to fetch from backend, using defaults:', error);
+        // Return default config on error
+        const defaultConfig = this.getDefaultColorConfig();
+        this.colorConfigCache = defaultConfig;
+        return defaultConfig;
+      })
+      .finally(() => {
+        this.colorConfigPromise = null;
+      });
+    
+    return this.colorConfigPromise;
+  }
+
+  private getDefaultColorConfig(): ColorConfig {
+    return {
+      baseColors: [
+        'black', 'white', 'gray', 'red', 'blue', 'green', 'yellow', 'orange',
+        'purple', 'pink', 'brown', 'beige', 'navy', 'cream', 'burgundy', 'olive',
+        'teal', 'coral', 'gold', 'silver', 'tan', 'khaki', 'maroon', 'mint',
+        'lavender', 'turquoise', 'charcoal', 'ivory', 'denim'
+      ],
+      modifiers: [
+        'light', 'dark', 'pale', 'deep', 'bright', 'muted', 'soft', 'vivid',
+        'washed', 'faded', 'heather', 'dusty', 'pastel', 'rich', 'warm', 'cool'
+      ],
+      descriptiveColors: {
+        'heather': 'gray',
+        'charcoal': 'charcoal',
+        'denim': 'denim',
+        'wine': 'burgundy',
+        'crimson': 'red',
+        'scarlet': 'red',
+        'cherry': 'red',
+        'ruby': 'red',
+        'rose': 'pink',
+        'blush': 'pink',
+        'salmon': 'pink',
+        'coral': 'coral',
+        'peach': 'orange',
+        'rust': 'orange',
+        'amber': 'orange',
+        'gold': 'gold',
+        'mustard': 'yellow',
+        'lemon': 'yellow',
+        'lime': 'green',
+        'sage': 'green',
+        'forest': 'green',
+        'emerald': 'green',
+        'mint': 'mint',
+        'teal': 'teal',
+        'aqua': 'teal',
+        'cyan': 'teal',
+        'sky': 'blue',
+        'royal': 'blue',
+        'cobalt': 'blue',
+        'indigo': 'navy',
+        'sapphire': 'blue',
+        'lavender': 'lavender',
+        'violet': 'purple',
+        'plum': 'purple',
+        'mauve': 'purple',
+        'magenta': 'pink',
+        'fuchsia': 'pink',
+        'tan': 'tan',
+        'camel': 'beige',
+        'taupe': 'beige',
+        'khaki': 'khaki',
+        'sand': 'beige',
+        'chocolate': 'brown',
+        'mocha': 'brown',
+        'espresso': 'brown',
+        'cream': 'cream',
+        'ivory': 'ivory',
+        'ecru': 'cream',
+        'silver': 'silver',
+        'pewter': 'gray',
+        'slate': 'gray',
+        'ash': 'gray',
+        'graphite': 'charcoal',
+        'onyx': 'black',
+        'jet': 'black',
+        'snow': 'white',
+        'pearl': 'white',
+      }
+    };
+  }
+}
+
+// Color config type
+export interface ColorConfig {
+  baseColors: string[];
+  modifiers: string[];
+  descriptiveColors: Record<string, string>;
 }
 
 export const apiService = new ApiService();

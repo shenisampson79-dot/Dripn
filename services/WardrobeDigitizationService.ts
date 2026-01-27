@@ -1,8 +1,12 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { ClothingCategory, ClothingColor, ClothingSeason, ClothingOccasion } from '@/contexts/WardrobeContext';
 import { convertImageToBase64 } from './VisionAnalysisService';
+import { apiService, ColorConfig } from './ApiService';
 
 const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+
+// Cached color config from backend
+let colorConfigCache: ColorConfig | null = null;
 
 export interface EnhancedImageResult {
   success: boolean;
@@ -216,6 +220,16 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     
     const { apiService } = await import('./ApiService');
     
+    // Fetch color config from backend if not cached
+    if (!colorConfigCache) {
+      try {
+        colorConfigCache = await apiService.getColorConfig();
+        console.log('[BulkScan] Color config loaded with', Object.keys(colorConfigCache.descriptiveColors || {}).length, 'mappings');
+      } catch (e) {
+        console.log('[BulkScan] Could not load color config, using fallbacks');
+      }
+    }
+    
     let result: any;
     try {
       result = await apiService.analyzeGarmentPhoto(base64Image, { detailed: true });
@@ -240,41 +254,58 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
         'accessory': 'accessories', 'hat': 'accessories', 'scarf': 'accessories', 'belt': 'accessories',
       };
       
-      // Map color names to valid colors
-      const colorMap: Record<string, ClothingColor> = {
-        'navy': 'navy', 'navy blue': 'navy', 'dark blue': 'navy',
-        'white': 'white', 'off-white': 'white', 'cream': 'beige', 'ivory': 'white',
-        'black': 'black', 'charcoal': 'gray', 'grey': 'gray', 'gray': 'gray',
-        'heather charcoal': 'gray', 'heather gray': 'gray', 'heather grey': 'gray',
-        'dark gray': 'gray', 'dark grey': 'gray', 'light gray': 'gray', 'light grey': 'gray',
-        'brown': 'brown', 'tan': 'beige', 'beige': 'beige', 'camel': 'beige', 'taupe': 'beige',
-        'red': 'red', 'burgundy': 'red', 'maroon': 'red', 'deep red': 'red', 'crimson': 'red', 'scarlet': 'red',
-        'blue': 'blue', 'light blue': 'blue', 'sky blue': 'blue', 'royal blue': 'blue', 'denim': 'blue',
-        'green': 'green', 'olive': 'green', 'khaki': 'beige', 'forest green': 'green', 'sage': 'green',
-        'pink': 'pink', 'rose': 'pink', 'coral': 'pink', 'salmon': 'pink',
-        'purple': 'purple', 'violet': 'purple', 'lavender': 'purple', 'plum': 'purple',
-        'orange': 'orange', 'rust': 'orange', 'burnt orange': 'orange',
-        'yellow': 'yellow', 'gold': 'yellow', 'mustard': 'yellow',
-        'multi': 'multicolor', 'multicolor': 'multicolor', 'patterned': 'multicolor',
-      };
+      // Use backend color config for mapping
+      const colorConfig = colorConfigCache;
+      const descriptiveColors = colorConfig?.descriptiveColors || {};
+      const baseColors = colorConfig?.baseColors || [];
       
-      // Smart color matching - check for color keywords in the string
+      // Smart color matching using backend's descriptiveColors mapping
       const findColorMatch = (colorStr: string): ClothingColor => {
-        const lower = colorStr.toLowerCase();
-        // First check exact match
-        if (colorMap[lower]) return colorMap[lower];
-        // Then check if string contains a valid color
-        const colorKeywords: [string, ClothingColor][] = [
+        const lower = colorStr.toLowerCase().trim();
+        
+        // Check if it's already a valid base color
+        if (baseColors.includes(lower) || validColors.includes(lower as ClothingColor)) {
+          return lower as ClothingColor;
+        }
+        
+        // Check exact match in descriptiveColors
+        if (descriptiveColors[lower]) {
+          const mapped = descriptiveColors[lower];
+          return validColors.includes(mapped as ClothingColor) ? mapped as ClothingColor : 'gray';
+        }
+        
+        // Parse compound colors like "heather charcoal gray", "washed light blue denim"
+        const words = lower.split(/\s+/);
+        
+        // Check each word against descriptiveColors (reverse order to prioritize last word)
+        for (let i = words.length - 1; i >= 0; i--) {
+          const word = words[i];
+          // Check if word is a base color
+          if (baseColors.includes(word) || validColors.includes(word as ClothingColor)) {
+            return word as ClothingColor;
+          }
+          // Check if word maps to a base color
+          if (descriptiveColors[word]) {
+            const mapped = descriptiveColors[word];
+            if (validColors.includes(mapped as ClothingColor)) {
+              return mapped as ClothingColor;
+            }
+          }
+        }
+        
+        // Fallback: search for common color keywords
+        const fallbackKeywords: [string, ClothingColor][] = [
           ['red', 'red'], ['blue', 'blue'], ['green', 'green'], ['yellow', 'yellow'],
           ['orange', 'orange'], ['pink', 'pink'], ['purple', 'purple'], ['brown', 'brown'],
           ['gray', 'gray'], ['grey', 'gray'], ['charcoal', 'gray'], ['black', 'black'],
           ['white', 'white'], ['beige', 'beige'], ['navy', 'navy'], ['cream', 'beige'],
           ['denim', 'blue'], ['burgundy', 'red'], ['maroon', 'red'], ['olive', 'green'],
         ];
-        for (const [keyword, color] of colorKeywords) {
+        for (const [keyword, color] of fallbackKeywords) {
           if (lower.includes(keyword)) return color;
         }
-        return 'black'; // ultimate fallback
+        
+        return 'gray'; // ultimate fallback (neutral rather than black)
       };
       
       // Safely extract category - handle string or object
