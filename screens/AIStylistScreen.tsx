@@ -2300,43 +2300,49 @@ export default function AIStylistScreen() {
     );
   };
   
+  const inputBarBottomOffset = tabBarHeight > 0 ? tabBarHeight : insets.bottom;
+  
   return (
-    <KeyboardProvider>
-      <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={renderHeader}
-          ListFooterComponent={renderFooter}
-          contentContainerStyle={[
-            styles.listContent,
-            { 
-              paddingTop: headerHeight + Spacing.md,
-              paddingBottom: INPUT_CONTAINER_HEIGHT + tabBarHeight + Spacing.xl
-            }
-          ]}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          style={styles.flatList}
-        />
-        <KeyboardStickyView offset={{ closed: tabBarHeight > 0 ? tabBarHeight : insets.bottom }}>
-          <View 
-            style={[
-              styles.inputBarFixed, 
-              { 
-                paddingBottom: Spacing.xs,
-                backgroundColor: theme.backgroundDefault,
-              }
-            ]}
-          >
-            {renderInputBar()}
-          </View>
-        </KeyboardStickyView>
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
+    >
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        renderItem={renderMessage}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
+        contentContainerStyle={[
+          styles.listContent,
+          { 
+            paddingTop: headerHeight + Spacing.md,
+            paddingBottom: INPUT_CONTAINER_HEIGHT + inputBarBottomOffset + Spacing.xl
+          }
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        style={styles.flatList}
+      />
+      <View 
+        style={[
+          styles.inputBarFixed, 
+          { 
+            position: 'absolute',
+            bottom: inputBarBottomOffset,
+            left: 0,
+            right: 0,
+            paddingBottom: Spacing.xs,
+            backgroundColor: theme.backgroundDefault,
+          }
+        ]}
+      >
+        {renderInputBar()}
       </View>
-    </KeyboardProvider>
+    </KeyboardAvoidingView>
   );
 }
 
