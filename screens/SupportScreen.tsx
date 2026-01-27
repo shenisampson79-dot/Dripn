@@ -26,6 +26,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TabBarHeightContext } from '@/contexts/TabBarHeightContext';
 import {
   supportService,
   SupportMessage,
@@ -43,6 +44,7 @@ export default function SupportScreen() {
   const { user } = useAuth();
   const { paddingTop, paddingBottom } = useScreenInsets();
   const safeAreaInsets = useSafeAreaInsets();
+  const tabBarHeight = React.useContext(TabBarHeightContext);
   const flatListRef = useRef<FlatList>(null);
   const navigation = useNavigation();
 
@@ -465,7 +467,7 @@ export default function SupportScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.messagesList,
-            { paddingBottom: INPUT_CONTAINER_HEIGHT + Spacing.xl },
+            { paddingBottom: INPUT_CONTAINER_HEIGHT + (tabBarHeight > 0 ? tabBarHeight : safeAreaInsets.bottom) + Spacing.xl },
           ]}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={scrollToEnd}
@@ -484,7 +486,7 @@ export default function SupportScreen() {
           }
         />
 
-        <KeyboardStickyView offset={{ closed: safeAreaInsets.bottom }}>
+        <KeyboardStickyView offset={{ closed: tabBarHeight > 0 ? tabBarHeight : safeAreaInsets.bottom, opened: 0 }}>
           <View
             style={[
               styles.inputContainer,
