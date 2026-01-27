@@ -104,11 +104,17 @@ export interface SettingsTranslations {
   showTranscriptions: string;
   showTranscriptionsDescription: string;
   support: string;
+  helpCenter: string;
   helpAndFaq: string;
   chatWithJulia: string;
   aiFeatureLab: string;
   termsOfService: string;
   privacyPolicy: string;
+  subscription: string;
+  logout: string;
+  slow: string;
+  normal: string;
+  fast: string;
 }
 
 export interface OnboardingTranslations {
@@ -251,11 +257,17 @@ const DEFAULT_TRANSLATIONS: Translations = {
     showTranscriptions: 'Show Transcriptions',
     showTranscriptionsDescription: 'Display text version of voice messages',
     support: 'Support',
+    helpCenter: 'Help Center',
     helpAndFaq: 'Help & FAQ',
     chatWithJulia: 'Chat with Julia',
     aiFeatureLab: 'AI Feature Lab',
     termsOfService: 'Terms of Service',
     privacyPolicy: 'Privacy Policy',
+    subscription: 'Subscription',
+    logout: 'Log Out',
+    slow: 'Slow',
+    normal: 'Normal',
+    fast: 'Fast',
   },
 };
 
