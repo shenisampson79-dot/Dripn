@@ -35,7 +35,7 @@ import Animated, {
   withSpring,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { KeyboardStickyView, KeyboardProvider } from 'react-native-keyboard-controller';
+// Using absolute positioning for input bar instead of KeyboardStickyView
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
@@ -2301,42 +2301,42 @@ export default function AIStylistScreen() {
   };
   
   return (
-    <KeyboardProvider>
-      <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={renderHeader}
-          ListFooterComponent={renderFooter}
-          contentContainerStyle={[
-            styles.listContent,
-            { 
-              paddingTop: headerHeight + Spacing.md,
-              paddingBottom: INPUT_CONTAINER_HEIGHT + tabBarHeight + Spacing.xl
-            }
-          ]}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          style={styles.flatList}
-        />
-        <KeyboardStickyView offset={{ closed: tabBarHeight > 0 ? tabBarHeight : insets.bottom }}>
-          <View 
-            style={[
-              styles.inputBarFixed, 
-              { 
-                paddingBottom: Spacing.xs,
-                backgroundColor: theme.backgroundDefault,
-              }
-            ]}
-          >
-            {renderInputBar()}
-          </View>
-        </KeyboardStickyView>
+    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        renderItem={renderMessage}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
+        contentContainerStyle={[
+          styles.listContent,
+          { 
+            paddingTop: headerHeight + Spacing.md,
+            paddingBottom: INPUT_CONTAINER_HEIGHT + tabBarHeight + Spacing.xl
+          }
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        style={styles.flatList}
+      />
+      <View 
+        style={[
+          styles.inputBarFixed, 
+          { 
+            position: 'absolute',
+            bottom: tabBarHeight > 0 ? tabBarHeight : insets.bottom,
+            left: 0,
+            right: 0,
+            paddingBottom: Spacing.xs,
+            backgroundColor: theme.backgroundDefault,
+          }
+        ]}
+      >
+        {renderInputBar()}
       </View>
-    </KeyboardProvider>
+    </View>
   );
 }
 
