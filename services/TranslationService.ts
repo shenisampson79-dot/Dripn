@@ -95,6 +95,22 @@ export interface StyleSelectionTranslations {
   styles: Record<string, StyleOptionTranslation>;
 }
 
+export interface SettingsTranslations {
+  voiceAndLanguage: string;
+  language: string;
+  voiceSpeed: string;
+  autoPlayResponses: string;
+  autoPlayDescription: string;
+  showTranscriptions: string;
+  showTranscriptionsDescription: string;
+  support: string;
+  helpAndFaq: string;
+  chatWithJulia: string;
+  aiFeatureLab: string;
+  termsOfService: string;
+  privacyPolicy: string;
+}
+
 export interface OnboardingTranslations {
   steps: {
     location: OnboardingStepTranslations;
@@ -122,6 +138,7 @@ export interface Translations {
   onboarding: OnboardingTranslations;
   styleArchetypes: Record<string, StyleArchetypeTranslation>;
   styleSelection: StyleSelectionTranslations;
+  settings: SettingsTranslations;
 }
 
 const DEFAULT_TRANSLATIONS: Translations = {
@@ -225,6 +242,21 @@ const DEFAULT_TRANSLATIONS: Translations = {
       edgy: { name: 'Edgy', description: 'Bold, alternative, dramatic' },
     },
   },
+  settings: {
+    voiceAndLanguage: 'Voice & Language',
+    language: 'Language',
+    voiceSpeed: 'Voice Speed',
+    autoPlayResponses: 'Auto-Play Responses',
+    autoPlayDescription: 'Automatically play voice when stylist responds',
+    showTranscriptions: 'Show Transcriptions',
+    showTranscriptionsDescription: 'Display text version of voice messages',
+    support: 'Support',
+    helpAndFaq: 'Help & FAQ',
+    chatWithJulia: 'Chat with Julia',
+    aiFeatureLab: 'AI Feature Lab',
+    termsOfService: 'Terms of Service',
+    privacyPolicy: 'Privacy Policy',
+  },
 };
 
 class TranslationServiceClass {
@@ -319,6 +351,7 @@ class TranslationServiceClass {
           ...nested.styleSelection?.styles,
         },
       },
+      settings: { ...DEFAULT_TRANSLATIONS.settings, ...nested.settings },
     };
   }
 

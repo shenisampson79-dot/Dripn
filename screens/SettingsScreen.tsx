@@ -19,6 +19,7 @@ import { apiService } from "@/services/ApiService";
 import colorTrendService from "@/services/ColorTrendService";
 import dfyService, { DFYAccessStatus, DFYTier } from "@/services/DFYService";
 import { useColorScheme, ColorSchemeMode } from "@/contexts/ColorSchemeContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -127,6 +128,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const { referralCode, totalReferrals, bonusAIRequests, shareReferral } = useReferral();
   const { preferences: notificationPrefs, updatePreferences } = useSmartNotifications();
   const { settings: voiceSettings, updateSettings: updateVoiceSettings } = useVoiceSettings();
+  const { setLanguage: setAppLanguage, t, translations } = useTranslations();
   const { colorScheme, setColorScheme, palette } = useColorScheme();
   
   // Dynamic colors from palette
@@ -718,12 +720,12 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           >
             <Feather name="volume-2" size={12} color="#FFFFFF" />
           </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>Voice & Language</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{translations.settings?.voiceAndLanguage || 'Voice & Language'}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="globe"
-            title="Language"
+            title={translations.settings?.language || 'Language'}
             subtitle={SUPPORTED_LANGUAGES.find(l => l.code === voiceSettings.preferredLanguage)?.name || "English"}
             onPress={handleLanguageSelect}
             theme={theme}
@@ -732,7 +734,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="fast-forward"
-            title="Voice Speed"
+            title={translations.settings?.voiceSpeed || 'Voice Speed'}
             subtitle={SPEED_OPTIONS.find(s => s.value === voiceSettings.voiceSpeed)?.label || "Normal"}
             onPress={handleSpeedSelect}
             theme={theme}
@@ -748,10 +750,10 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
-                Auto-Play Responses
+                {translations.settings?.autoPlayResponses || 'Auto-Play Responses'}
               </ThemedText>
               <ThemedText type="small" style={styles.settingSubtitle}>
-                Automatically play voice when stylist responds
+                {translations.settings?.autoPlayDescription || 'Automatically play voice when stylist responds'}
               </ThemedText>
             </View>
             <Switch
@@ -770,10 +772,10 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
-                Show Transcriptions
+                {translations.settings?.showTranscriptions || 'Show Transcriptions'}
               </ThemedText>
               <ThemedText type="small" style={styles.settingSubtitle}>
-                Display text version of voice messages
+                {translations.settings?.showTranscriptionsDescription || 'Display text version of voice messages'}
               </ThemedText>
             </View>
             <Switch
@@ -794,12 +796,12 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           >
             <Feather name="help-circle" size={12} color="#FFFFFF" />
           </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>Support</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{translations.settings?.support || 'Support'}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="help-circle"
-            title="Help & FAQ"
+            title={translations.settings?.helpAndFaq || 'Help & FAQ'}
             subtitle="Browse questions and chat with Julia"
             onPress={() => navigation.navigate("Help")}
             theme={theme}
@@ -808,7 +810,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="message-circle"
-            title="Chat with Julia"
+            title={translations.settings?.chatWithJulia || 'Chat with Julia'}
             subtitle="Get instant support from our assistant"
             onPress={handleSupport}
             theme={theme}
@@ -817,7 +819,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="cpu"
-            title="AI Feature Lab"
+            title={translations.settings?.aiFeatureLab || 'AI Feature Lab'}
             subtitle="View AI-generated feature suggestions"
             onPress={() => navigation.navigate("FeatureSuggestions")}
             theme={theme}
@@ -826,14 +828,14 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="file-text"
-            title="Terms of Service"
+            title={translations.settings?.termsOfService || 'Terms of Service'}
             onPress={handleTerms}
             theme={theme}
             isDark={isDark}
           />
           <SettingItem
             icon="shield"
-            title="Privacy Policy"
+            title={translations.settings?.privacyPolicy || 'Privacy Policy'}
             onPress={handlePrivacy}
             theme={theme}
             isDark={isDark}
@@ -1067,8 +1069,9 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                       { backgroundColor: pressed ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)') : 'transparent' },
                       voiceSettings.preferredLanguage === lang.code && { backgroundColor: LUXURY_COLORS.violet + '20' },
                     ]}
-                    onPress={() => {
+                    onPress={async () => {
                       updateVoiceSettings({ preferredLanguage: lang.code });
+                      await setAppLanguage(lang.code);
                       closePickerModal();
                     }}
                   >
