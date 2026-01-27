@@ -240,7 +240,13 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     }
     
     // Handle multiple response formats from the API
+    // Log the raw result structure to debug
+    console.log('[BulkScan] Result keys:', result ? Object.keys(result) : 'null');
+    console.log('[BulkScan] result.analysis:', result?.analysis ? 'exists' : 'undefined');
+    console.log('[BulkScan] result.analysis?.item:', result?.analysis?.item ? 'exists' : 'undefined');
+    
     const data = result?.analysis?.item || result?.analysis || result;
+    console.log('[BulkScan] Extracted data keys:', data ? Object.keys(data) : 'null');
     
     if (data && (data.category || data.garmentType || data.color || data.primaryColor)) {
       // Map garmentType to category if needed
@@ -316,8 +322,16 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
         return '';
       };
       
+      // Debug: log the actual data object
+      console.log('[ColorMapping] data.color:', data.color, 'data.primaryColor:', data.primaryColor, 'data.colorFull:', data.colorFull);
+      
       const rawCategory = extractString(data.category || data.garmentType).toLowerCase() || 'tops';
-      const rawColor = extractString(data.color || data.primaryColor || data.colorFull).toLowerCase() || 'black';
+      
+      // Try multiple color fields with explicit checks
+      let colorValue = data.color || data.primaryColor || data.colorFull || '';
+      console.log('[ColorMapping] colorValue before extract:', colorValue, 'type:', typeof colorValue);
+      
+      const rawColor = extractString(colorValue).toLowerCase() || 'gray';
       
       console.log('[ColorMapping] Raw color from backend:', rawColor);
       
