@@ -2117,7 +2117,7 @@ export default function AIStylistScreen() {
           style={[
             styles.inputContainerWrapper,
             { 
-              paddingBottom: Spacing.sm,
+              paddingBottom: Spacing.xs,
               backgroundColor: theme.backgroundDefault,
             }
           ]}
@@ -2172,7 +2172,7 @@ export default function AIStylistScreen() {
           style={[
             styles.inputContainerWrapper,
             { 
-              paddingBottom: Spacing.sm,
+              paddingBottom: Spacing.xs,
               backgroundColor: theme.backgroundDefault,
             }
           ]}
@@ -2192,7 +2192,7 @@ export default function AIStylistScreen() {
         style={[
           styles.inputContainerWrapper,
           { 
-            paddingBottom: Spacing.sm,
+            paddingBottom: Spacing.xs,
             backgroundColor: theme.backgroundDefault,
           }
         ]}
@@ -2329,7 +2329,7 @@ export default function AIStylistScreen() {
         style={[
           styles.inputBarFixed, 
           { 
-            paddingBottom: tabBarHeight > 0 ? tabBarHeight + Spacing.sm : insets.bottom + Spacing.sm,
+            paddingBottom: Spacing.xs,
             backgroundColor: theme.backgroundDefault,
           }
         ]}
