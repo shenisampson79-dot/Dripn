@@ -346,9 +346,29 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       
       const mappedCategory = categoryMap[rawCategory] || 
         (validCategories.includes(rawCategory as ClothingCategory) ? rawCategory as ClothingCategory : 'tops');
-      // Pass material to findColorMatch so denim items get categorized correctly
-      const material = extractString(data.material);
-      const mappedColor = findColorMatch(rawColor, material);
+      
+      // Extract material - handle both string and object formats
+      let material = '';
+      if (typeof data.material === 'string') {
+        material = data.material;
+      } else if (data.material && typeof data.material === 'object') {
+        material = data.material.primary || data.material.name || data.material.value || '';
+      }
+      
+      // Also check subcategory for denim keywords
+      const subcategory = extractString(data.subcategory || '').toLowerCase();
+      
+      console.log('[ColorMapping] Material:', material, 'Subcategory:', subcategory);
+      
+      // Determine color - prioritize denim detection
+      let mappedColor: ClothingColor;
+      if (material.toLowerCase().includes('denim') || 
+          subcategory.includes('denim') || 
+          rawColor.includes('denim')) {
+        mappedColor = 'denim';
+      } else {
+        mappedColor = findColorMatch(rawColor, material);
+      }
       
       console.log('[ColorMapping] Mapped color:', mappedColor);
       
