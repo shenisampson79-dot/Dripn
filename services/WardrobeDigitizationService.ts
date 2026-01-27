@@ -211,7 +211,7 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
   const startTime = Date.now();
   
   const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
+  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'multicolor'];
   const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
   const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
 
@@ -266,8 +266,15 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       const baseColors = colorConfig?.baseColors || [];
       
       // Smart color matching using backend's descriptiveColors mapping
-      const findColorMatch = (colorStr: string): ClothingColor => {
+      // Also considers material field to detect denim
+      const findColorMatch = (colorStr: string, material?: string): ClothingColor => {
         const lower = colorStr.toLowerCase().trim();
+        const materialLower = (material || '').toLowerCase().trim();
+        
+        // PRIORITY: If material is denim, return 'denim' as the color
+        if (materialLower.includes('denim') || lower.includes('denim')) {
+          return 'denim';
+        }
         
         // Check if it's already a valid base color
         if (baseColors.includes(lower) || validColors.includes(lower as ClothingColor)) {
@@ -280,7 +287,7 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
           return validColors.includes(mapped as ClothingColor) ? mapped as ClothingColor : 'gray';
         }
         
-        // Parse compound colors like "heather charcoal gray", "washed light blue denim"
+        // Parse compound colors like "heather charcoal gray", "washed light blue"
         const words = lower.split(/\s+/);
         
         // Check each word against descriptiveColors (reverse order to prioritize last word)
@@ -305,7 +312,7 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
           ['orange', 'orange'], ['pink', 'pink'], ['purple', 'purple'], ['brown', 'brown'],
           ['gray', 'gray'], ['grey', 'gray'], ['charcoal', 'gray'], ['black', 'black'],
           ['white', 'white'], ['beige', 'beige'], ['navy', 'navy'], ['cream', 'beige'],
-          ['denim', 'blue'], ['burgundy', 'red'], ['maroon', 'red'], ['olive', 'green'],
+          ['burgundy', 'red'], ['maroon', 'red'], ['olive', 'green'],
         ];
         for (const [keyword, color] of fallbackKeywords) {
           if (lower.includes(keyword)) return color;
@@ -339,7 +346,9 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       
       const mappedCategory = categoryMap[rawCategory] || 
         (validCategories.includes(rawCategory as ClothingCategory) ? rawCategory as ClothingCategory : 'tops');
-      const mappedColor = findColorMatch(rawColor);
+      // Pass material to findColorMatch so denim items get categorized correctly
+      const material = extractString(data.material);
+      const mappedColor = findColorMatch(rawColor, material);
       
       console.log('[ColorMapping] Mapped color:', mappedColor);
       
@@ -407,7 +416,7 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
 
 export async function extractProductFromText(text: string): Promise<ProductLinkResult> {
   const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
+  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'multicolor'];
 
   try {
     const { apiService } = await import('./ApiService');
@@ -507,7 +516,7 @@ If you cannot determine a field, use null. For category and color, only use the 
 
 export async function extractProductFromImage(imageUri: string): Promise<ProductLinkResult> {
   const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
+  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'multicolor'];
   
   const base64Image = await convertImageToBase64(imageUri);
 

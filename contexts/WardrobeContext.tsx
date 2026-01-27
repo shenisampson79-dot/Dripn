@@ -34,6 +34,7 @@ export type ClothingColor =
   | 'green' 
   | 'blue' 
   | 'purple' 
+  | 'denim'
   | 'multicolor';
 
 export type ClothingSeason = 'spring' | 'summer' | 'autumn' | 'winter' | 'all-season';
@@ -209,6 +210,7 @@ const COLOR_LABELS: Record<ClothingColor, string> = {
   green: 'Green',
   blue: 'Blue',
   purple: 'Purple',
+  denim: 'Denim',
   multicolor: 'Multicolor',
 };
 
