@@ -245,10 +245,22 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     console.log('[BulkScan] result.analysis:', result?.analysis ? 'exists' : 'undefined');
     console.log('[BulkScan] result.analysis?.item:', result?.analysis?.item ? 'exists' : 'undefined');
     
+    // Use nested analysis.item for most fields, but TOP-LEVEL for color/material
+    // because backend returns simplified color strings at top level (e.g. "denim")
+    // but nested color is an object with palette info
     const data = result?.analysis?.item || result?.analysis || result;
+    
+    // IMPORTANT: Get color/material from TOP-LEVEL response first (they're strings like "denim")
+    // Only fall back to nested data if top-level doesn't have them
+    const topLevelColor = typeof result?.color === 'string' ? result.color : null;
+    const topLevelPrimaryColor = typeof result?.primaryColor === 'string' ? result.primaryColor : null;
+    const topLevelMaterial = typeof result?.material === 'string' ? result.material : null;
+    const topLevelSubcategory = typeof result?.subcategory === 'string' ? result.subcategory : null;
+    
+    console.log('[BulkScan] Top-level color:', topLevelColor, 'material:', topLevelMaterial);
     console.log('[BulkScan] Extracted data keys:', data ? Object.keys(data) : 'null');
     
-    if (data && (data.category || data.garmentType || data.color || data.primaryColor)) {
+    if (data && (data.category || data.garmentType || data.color || data.primaryColor || topLevelColor)) {
       // Map garmentType to category if needed
       const categoryMap: Record<string, ClothingCategory> = {
         'shirt': 'tops', 'blouse': 'tops', 'sweater': 'tops', 't-shirt': 'tops', 'top': 'tops',
@@ -336,36 +348,23 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       
       const rawCategory = extractString(data.category || data.garmentType).toLowerCase() || 'tops';
       
-      // Try multiple color fields with explicit checks
-      let colorValue = data.color || data.primaryColor || data.colorFull || '';
-      console.log('[ColorMapping] colorValue before extract:', colorValue, 'type:', typeof colorValue);
+      // PRIORITY: Use TOP-LEVEL color/material (they're clean strings like "denim", "cream")
+      // Fall back to nested data.color only if top-level doesn't exist
+      const rawColor = (topLevelColor || topLevelPrimaryColor || extractString(data.color || data.primaryColor || data.colorFull || '')).toLowerCase() || 'gray';
+      const material = (topLevelMaterial || extractString(data.material || '')).toLowerCase();
+      const subcategory = (topLevelSubcategory || extractString(data.subcategory || '')).toLowerCase();
       
-      const rawColor = extractString(colorValue).toLowerCase() || 'gray';
-      
-      console.log('[ColorMapping] Raw color from backend:', rawColor);
+      console.log('[ColorMapping] Using rawColor:', rawColor, 'material:', material, 'subcategory:', subcategory);
       
       const mappedCategory = categoryMap[rawCategory] || 
         (validCategories.includes(rawCategory as ClothingCategory) ? rawCategory as ClothingCategory : 'tops');
       
-      // Extract material - handle both string and object formats
-      let material = '';
-      if (typeof data.material === 'string') {
-        material = data.material;
-      } else if (data.material && typeof data.material === 'object') {
-        material = data.material.primary || data.material.name || data.material.value || '';
-      }
-      
-      // Also check subcategory for denim keywords
-      const subcategory = extractString(data.subcategory || '').toLowerCase();
-      
-      console.log('[ColorMapping] Material:', material, 'Subcategory:', subcategory);
-      
-      // Determine color - prioritize denim detection
+      // Determine color - prioritize denim and cream detection
       let mappedColor: ClothingColor;
-      if (material.toLowerCase().includes('denim') || 
-          subcategory.includes('denim') || 
-          rawColor.includes('denim')) {
+      if (rawColor.includes('denim') || material.includes('denim') || subcategory.includes('denim')) {
         mappedColor = 'denim';
+      } else if (rawColor.includes('cream') || rawColor.includes('off-white') || rawColor.includes('ivory')) {
+        mappedColor = 'beige'; // Map cream/off-white to beige
       } else {
         mappedColor = findColorMatch(rawColor, material);
       }
