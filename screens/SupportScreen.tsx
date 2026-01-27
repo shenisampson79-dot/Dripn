@@ -462,6 +462,7 @@ export default function SupportScreen() {
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={renderMessage}
+          style={{ flex: 1 }}
           contentContainerStyle={[
             styles.messagesList,
             { paddingBottom: INPUT_CONTAINER_HEIGHT + Spacing.xl },
