@@ -239,23 +239,10 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       result = null;
     }
     
-    // Handle multiple response formats from the API
-    // Log the FULL raw result structure to debug
-    console.log('[BulkScan] FULL RESULT:', JSON.stringify(result));
-    console.log('[BulkScan] Result keys:', result ? Object.keys(result) : 'null');
-    
-    // Check ALL possible locations for colorTag
-    console.log('[BulkScan] result.colorTag:', result?.colorTag);
-    console.log('[BulkScan] result.color:', result?.color);
-    console.log('[BulkScan] result.analysis?.colorTag:', result?.analysis?.colorTag);
-    console.log('[BulkScan] result.analysis?.color:', result?.analysis?.color);
-    console.log('[BulkScan] result.analysis?.item?.colorTag:', result?.analysis?.item?.colorTag);
-    console.log('[BulkScan] result.analysis?.item?.color:', result?.analysis?.item?.color);
-    
-    // Use nested analysis.item for most fields, but TOP-LEVEL for color/material
+    // Use nested analysis.item for most fields
     const data = result?.analysis?.item || result?.analysis || result;
     
-    // PRIORITY: Find colorTag from ANY level of the response
+    // Find colorTag from ANY level of the response (backend may put it at different levels)
     const colorTag = 
       (typeof result?.colorTag === 'string' ? result.colorTag : null) ||
       (typeof result?.analysis?.colorTag === 'string' ? result.analysis.colorTag : null) ||
@@ -269,9 +256,6 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     const topLevelPrimaryColor = typeof result?.primaryColor === 'string' ? result.primaryColor : null;
     const topLevelMaterial = typeof result?.material === 'string' ? result.material : null;
     const topLevelSubcategory = typeof result?.subcategory === 'string' ? result.subcategory : null;
-    
-    console.log('[BulkScan] EXTRACTED colorTag:', colorTag, 'color:', topLevelColor);
-    console.log('[BulkScan] Extracted data keys:', data ? Object.keys(data) : 'null');
     
     if (data && (data.category || data.garmentType || data.color || data.primaryColor || topLevelColor)) {
       // Map garmentType to category if needed
