@@ -83,6 +83,8 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
   const [showItemModal, setShowItemModal] = useState(false);
   const [dfyAccess, setDfyAccess] = useState<DFYAccessStatus | null>(null);
+  const [showAIOutfitModal, setShowAIOutfitModal] = useState(false);
+  const [isGeneratingOutfit, setIsGeneratingOutfit] = useState(false);
 
   useEffect(() => {
     const loadDFYAccess = async () => {
@@ -106,6 +108,19 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const handleQuickAdd = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     navigation.navigate("BulkWardrobeUpload");
+  };
+
+  const handleAICreateOutfit = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (items.length < 3) {
+      Alert.alert(
+        "More Items Needed",
+        "Add at least 3 items to your wardrobe for AI to create outfit combinations.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+    setShowAIOutfitModal(true);
   };
 
   const handleItemPress = (item: WardrobeItem) => {
@@ -706,6 +721,12 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
 
       <View style={[styles.fabContainer, { bottom: insets.bottom + 100 }]}>
         <Pressable
+          onPress={handleAICreateOutfit}
+          style={[styles.fabSecondary, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
+        >
+          <Feather name="zap" size={20} color={LUXURY_COLORS.coral} />
+        </Pressable>
+        <Pressable
           onPress={handleQuickAdd}
           style={[styles.fabSecondary, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
         >
@@ -720,6 +741,165 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           </Pressable>
         </LinearGradient>
       </View>
+
+      <Modal
+        visible={showAIOutfitModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAIOutfitModal(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+          <LinearGradient
+            colors={isDark 
+              ? [LUXURY_COLORS.coral + '40', 'transparent'] 
+              : [LUXURY_COLORS.coral + '20', 'transparent']
+            }
+            style={styles.modalHeaderGradient}
+          >
+            <View style={[styles.modalHeader, { paddingTop: insets.top + Spacing.md }]}>
+              <Pressable
+                onPress={() => setShowAIOutfitModal(false)}
+                style={[styles.modalCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+              >
+                <Feather name="x" size={24} color={theme.text} />
+              </Pressable>
+              <ThemedText type="h3">AI Outfit Creator</ThemedText>
+              <View style={{ width: 40 }} />
+            </View>
+          </LinearGradient>
+
+          <ScrollView 
+            style={{ flex: 1 }} 
+            contentContainerStyle={{ padding: Spacing.xl }}
+          >
+            <View style={styles.aiOutfitHeader}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.coral, '#C46A4F']}
+                style={styles.aiOutfitIconContainer}
+              >
+                <Feather name="zap" size={32} color="#FFFFFF" />
+              </LinearGradient>
+              <ThemedText type="h2" style={{ textAlign: 'center', marginTop: Spacing.lg }}>
+                Create Outfits from Your Wardrobe
+              </ThemedText>
+              <ThemedText type="body" style={{ textAlign: 'center', color: theme.tabIconDefault, marginTop: Spacing.sm }}>
+                AI will combine your {items.length} items into stylish outfits based on your Style DNA
+              </ThemedText>
+            </View>
+
+            {dfyAccess?.hasAccess ? (
+              <View style={[styles.dfyStatusCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+                <View style={styles.dfyStatusHeader}>
+                  <LinearGradient
+                    colors={[LUXURY_COLORS.emerald, LUXURY_COLORS.teal]}
+                    style={styles.dfyStatusBadge}
+                  >
+                    <Feather name="check" size={14} color="#FFFFFF" />
+                  </LinearGradient>
+                  <ThemedText type="body" style={{ marginLeft: Spacing.sm, fontWeight: '600' }}>
+                    {dfyAccess.tier === 'core' ? 'Core Wardrobe' : 'Outfit-Based'} Active
+                  </ThemedText>
+                </View>
+                <ThemedText type="small" style={{ color: theme.tabIconDefault, marginTop: Spacing.xs }}>
+                  {dfyAccess.tier === 'core' 
+                    ? 'Dynamic outfit generation with remix capability' 
+                    : '3-5 core outfits for your chosen occasion'}
+                </ThemedText>
+              </View>
+            ) : (
+              <Pressable 
+                onPress={() => {
+                  setShowAIOutfitModal(false);
+                  navigation.navigate('DFYSetup' as any);
+                }}
+                style={[styles.dfyPromptCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}
+              >
+                <View style={styles.dfyPromptContent}>
+                  <Feather name="gift" size={24} color={LUXURY_COLORS.coral} />
+                  <View style={{ flex: 1, marginLeft: Spacing.md }}>
+                    <ThemedText type="body" style={{ fontWeight: '600' }}>Unlock Done-For-You Setup</ThemedText>
+                    <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+                      Get professionally curated outfits from £19.99
+                    </ThemedText>
+                  </View>
+                  <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
+                </View>
+              </Pressable>
+            )}
+
+            <View style={styles.aiOutfitOptions}>
+              <ThemedText type="body" style={{ marginBottom: Spacing.md, fontWeight: '600' }}>
+                Generate Outfits For:
+              </ThemedText>
+              
+              {[
+                { id: 'today', icon: 'sun', label: 'Today\'s Look', desc: 'Based on weather & your calendar' },
+                { id: 'work', icon: 'briefcase', label: 'Work Outfit', desc: 'Professional & polished' },
+                { id: 'date', icon: 'heart', label: 'Date Night', desc: 'Stylish & confident' },
+                { id: 'casual', icon: 'coffee', label: 'Casual Day', desc: 'Comfortable & effortless' },
+              ].map((option) => (
+                <Pressable
+                  key={option.id}
+                  onPress={() => {
+                    setIsGeneratingOutfit(true);
+                    setTimeout(() => {
+                      setIsGeneratingOutfit(false);
+                      setShowAIOutfitModal(false);
+                      navigation.navigate('OutfitCalendar' as any, { occasion: option.id });
+                    }, 1500);
+                  }}
+                  style={({ pressed }) => [
+                    styles.aiOutfitOptionCard,
+                    { 
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                      opacity: pressed ? 0.7 : 1,
+                    }
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+                    style={styles.aiOutfitOptionIcon}
+                  >
+                    <Feather name={option.icon as any} size={18} color="#FFFFFF" />
+                  </LinearGradient>
+                  <View style={{ flex: 1, marginLeft: Spacing.md }}>
+                    <ThemedText type="body" style={{ fontWeight: '600' }}>{option.label}</ThemedText>
+                    <ThemedText type="small" style={{ color: theme.tabIconDefault }}>{option.desc}</ThemedText>
+                  </View>
+                  {isGeneratingOutfit ? (
+                    <ActivityIndicator size="small" color={LUXURY_COLORS.violet} />
+                  ) : (
+                    <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
+                  )}
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.styleDNASection}>
+              <ThemedText type="small" style={{ color: theme.tabIconDefault, textAlign: 'center' }}>
+                Outfits are personalized using your Style DNA
+              </ThemedText>
+              <View style={styles.styleDNATags}>
+                {user?.gender && (
+                  <View style={[styles.styleDNATag, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                    <ThemedText type="caption">{user.gender}</ThemedText>
+                  </View>
+                )}
+                {user?.stylePreference && (
+                  <View style={[styles.styleDNATag, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                    <ThemedText type="caption">{user.stylePreference}</ThemedText>
+                  </View>
+                )}
+                {user?.bodyShape && (
+                  <View style={[styles.styleDNATag, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                    <ThemedText type="caption">{user.bodyShape}</ThemedText>
+                  </View>
+                )}
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1141,5 +1321,74 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: "rgba(255, 59, 48, 0.1)",
+  },
+  aiOutfitHeader: {
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+  },
+  aiOutfitIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dfyStatusCard: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xl,
+  },
+  dfyStatusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dfyStatusBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dfyPromptCard: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xl,
+  },
+  dfyPromptContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  aiOutfitOptions: {
+    marginBottom: Spacing.xl,
+  },
+  aiOutfitOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
+  },
+  aiOutfitOptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  styleDNASection: {
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+  },
+  styleDNATags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  styleDNATag: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
   },
 });
