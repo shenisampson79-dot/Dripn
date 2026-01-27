@@ -35,7 +35,7 @@ import Animated, {
   withSpring,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { KeyboardStickyView, KeyboardProvider } from 'react-native-keyboard-controller';
+import { useKeyboardHandler } from 'react-native-keyboard-controller';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
@@ -2301,44 +2301,63 @@ export default function AIStylistScreen() {
   };
   
   const inputOffset = tabBarHeight > 0 ? tabBarHeight : insets.bottom;
+  const keyboardHeight = useSharedValue(0);
+  
+  useKeyboardHandler({
+    onMove: (e) => {
+      'worklet';
+      keyboardHeight.value = e.height;
+    },
+    onEnd: (e) => {
+      'worklet';
+      keyboardHeight.value = e.height;
+    },
+  }, []);
+  
+  const inputBarAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: -keyboardHeight.value }],
+    };
+  });
   
   return (
-    <KeyboardProvider>
-      <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={renderHeader}
-          ListFooterComponent={renderFooter}
-          contentContainerStyle={[
-            styles.listContent,
-            { 
-              paddingTop: headerHeight + Spacing.md,
-              paddingBottom: INPUT_CONTAINER_HEIGHT + inputOffset + Spacing.xl
-            }
-          ]}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          style={styles.flatList}
-        />
-        <KeyboardStickyView offset={{ closed: inputOffset, opened: 0 }}>
-          <View 
-            style={[
-              styles.inputBarFixed, 
-              { 
-                paddingBottom: Spacing.xs,
-                backgroundColor: theme.backgroundDefault,
-              }
-            ]}
-          >
-            {renderInputBar()}
-          </View>
-        </KeyboardStickyView>
-      </View>
-    </KeyboardProvider>
+    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        renderItem={renderMessage}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
+        contentContainerStyle={[
+          styles.listContent,
+          { 
+            paddingTop: headerHeight + Spacing.md,
+            paddingBottom: INPUT_CONTAINER_HEIGHT + inputOffset + Spacing.xl
+          }
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        style={styles.flatList}
+      />
+      <Animated.View 
+        style={[
+          styles.inputBarFixed, 
+          { 
+            position: 'absolute',
+            bottom: inputOffset,
+            left: 0,
+            right: 0,
+            paddingBottom: Spacing.xs,
+            backgroundColor: theme.backgroundDefault,
+          },
+          inputBarAnimatedStyle,
+        ]}
+      >
+        {renderInputBar()}
+      </Animated.View>
+    </View>
   );
 }
 
