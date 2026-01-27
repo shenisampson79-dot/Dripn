@@ -345,7 +345,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
           <View style={styles.headerSection}>
             <View style={styles.headerRow}>
               <View>
-                <ThemedText type="h1" style={[styles.title, { color: LuxuryColors.gold }]}>
+                <ThemedText type="h3" style={[styles.title, { color: LuxuryColors.gold }]}>
                   Style Tools
                 </ThemedText>
                 <ThemedText style={[styles.subtitle, { color: 'rgba(255,255,255,0.7)' }]}>
