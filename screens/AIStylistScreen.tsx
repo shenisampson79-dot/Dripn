@@ -17,7 +17,6 @@ import {
   Alert,
   Linking,
   ScrollView,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -492,25 +491,6 @@ function generateAIResponse(
     'can i wear', 'should i wear', 'is it ok to wear', 'is it okay to wear',
   ];
   
-  // General fashion opinion questions - these can be answered without wardrobe data
-  const generalFashionOpinionPatterns = [
-    'can men wear', 'can women wear', 'can guys wear', 'can girls wear',
-    'should men wear', 'should women wear', 'should guys wear', 'should girls wear',
-    'do men wear', 'do women wear', 'do guys wear', 'do girls wear',
-    'is it ok for men', 'is it okay for men', 'is it ok for women', 'is it okay for women',
-    'look good in', 'look bad in', 'look nice in',
-    'still in style', 'out of style', 'in fashion', 'out of fashion',
-    'too old for', 'too young for', 'age appropriate',
-    'can i pull off', 'can you pull off', 'pull it off',
-    'what do you think of', 'what do you think about',
-    'is it appropriate', 'appropriate to wear', 'acceptable to wear',
-    'good for my age', 'my body type', 'flattering on',
-  ];
-  
-  const isGeneralFashionOpinion = generalFashionOpinionPatterns.some(p => lowerMessage.includes(p)) ||
-    (lowerMessage.includes('look good') && !lowerMessage.includes('wardrobe')) ||
-    (lowerMessage.includes('can') && lowerMessage.includes('wear') && (lowerMessage.includes('men') || lowerMessage.includes('women') || lowerMessage.includes('guys') || lowerMessage.includes('girls')));
-  
   const isColorMatchQuestion = colorMatchPatterns.some(p => lowerMessage.includes(p)) ||
     (lowerMessage.includes('match') && (lowerMessage.includes('color') || lowerMessage.includes('colour'))) ||
     (lowerMessage.includes('pair') && (lowerMessage.includes('color') || lowerMessage.includes('colour')));
@@ -744,48 +724,6 @@ function generateAIResponse(
       `${inspirationItems.length + wishlistItems.length} saved inspirations tell me you have wonderful style instincts, beautiful! The next step is showing me what you own. Once you add your wardrobe pieces, I can help you recreate these gorgeous looks. Ready to start, love?`,
     ];
     return { content: inspirationOnlyResponses[Math.floor(Math.random() * inspirationOnlyResponses.length)] };
-  }
-  
-  // Handle general fashion opinion questions BEFORE wardrobe check - these don't need wardrobe data
-  if (isGeneralFashionOpinion) {
-    // Extract what they're asking about from the message
-    const askingAboutPink = lowerMessage.includes('pink');
-    const askingAboutMen = lowerMessage.includes('men') || lowerMessage.includes('guys') || lowerMessage.includes('man') || lowerMessage.includes('guy');
-    const askingAboutWomen = lowerMessage.includes('women') || lowerMessage.includes('girls') || lowerMessage.includes('woman') || lowerMessage.includes('girl');
-    
-    // Pink shirts for men - specific response
-    if (askingAboutPink && askingAboutMen) {
-      const pinkShirtResponses = isMaleStylist ? [
-        "Absolutely, men can and should wear pink if they like it! Pink is actually one of the most versatile colors in menswear. It works great for casual shirts, dress shirts, even polos. The key is finding the right shade for your skin tone - dusty rose and salmon work well on warmer complexions, while cooler pinks pop on darker skin tones. Pink paired with navy, charcoal grey, or even khaki looks incredibly sharp. Rock it with confidence!",
-        "100% yes! The whole 'pink is for women' thing is completely outdated. Pink shirts are a classic in menswear - think preppy style, Italian tailoring, or even streetwear. Lighter pinks work great for professional settings, while bolder pinks make a statement. Pair it with dark jeans, navy chinos, or grey trousers. Confidence is what makes any color look good on anyone.",
-        "Men in pink? That's a great look! Pink has been a menswear staple for decades - it shows confidence and style sense. A pink oxford shirt is actually considered a classic. The shade matters - blush and dusty rose are subtle, while hot pink makes more of a statement. Try it with darker neutrals like navy, charcoal, or olive for a balanced outfit.",
-        "Here's the thing - pink looks great on everyone, regardless of gender. It's actually quite sophisticated in menswear. A pink dress shirt with a navy suit? Classic. A salmon polo with khakis? Preppy and polished. The color itself doesn't determine who can wear it - it's all about how you style it and wearing it with confidence.",
-        "Absolutely! Pink is honestly one of the best colors a man can wear. It's flattering to most skin tones and stands out without being too loud. Light pink is perfect for formal or business settings, while brighter pinks work for casual looks. Pair with grey, navy, or even black. The men who wear pink confidently always look put-together.",
-      ] : [
-        "Oh absolutely, darling! Men look wonderful in pink! It's such a flattering color that brings warmth to the face. Pink shirts - whether dress shirts, polos, or casual tees - are a gorgeous addition to any man's wardrobe. The key is finding the right shade for his complexion. Pair it with navy, grey, or even white for a fresh, sophisticated look, love!",
-        "Yes, yes, yes, gorgeous! Pink on men is incredibly attractive and shows great style confidence. It's a classic in menswear actually! Light pink dress shirts are timeless, and bolder pinks make a fun statement. The color looks fabulous with darker neutrals like navy or charcoal. Any man who wears pink with confidence looks wonderful!",
-        "Sweetheart, pink is absolutely beautiful on men! It's such a versatile and flattering color. From soft blush tones to vibrant fuchsia, there's a pink shade for every man and every occasion. It pairs gorgeously with navy, grey, or even camel. Men who embrace pink tend to have great style instincts, darling!",
-        "Oh love, men in pink is such a lovely look! Pink brings out warmth and shows confidence. Whether it's a casual pink tee or a polished pink dress shirt, it's incredibly stylish. The color works beautifully with so many neutrals. I'd encourage any man to add some pink to his wardrobe - it's classic and timeless!",
-        "Absolutely, beautiful! Pink is one of the most flattering colors in menswear. It's sophisticated, modern, and shows great style sense. From pale pink to rich raspberry, there's a shade for everyone. Pair it with darker colors like navy or grey for the perfect balance. Men who wear pink confidently always look stunning, darling!",
-      ];
-      return { content: pinkShirtResponses[Math.floor(Math.random() * pinkShirtResponses.length)] };
-    }
-    
-    // Generic fashion opinion responses for other questions
-    const genericOpinionResponses = isMaleStylist ? [
-      "That's a great style question! Here's my take: fashion rules are really more like guidelines these days. What matters most is how you feel wearing it and whether it fits your personal style. If you're drawn to something, that's usually a good sign. I'd say go for it with confidence - that's what really makes any look work.",
-      "Good question! The short answer is: if you like it and feel good in it, wear it. Fashion has moved way past rigid rules about who can wear what. The key is finding pieces that fit well and make you feel confident. Style is personal - own it!",
-      "I love this question! Fashion is really about self-expression now. The old rules about what's 'appropriate' have mostly faded. What works is what makes you feel like yourself. If you're excited about trying something new, that enthusiasm will show and make the look work.",
-      "Here's my honest take: the best style advice is to wear what resonates with you. If you're questioning whether something is 'allowed,' the answer is almost always yes. Confidence and fit matter way more than arbitrary rules. Trust your instincts!",
-      "Great question to ask! The fashion world has become much more open and inclusive. If something catches your eye, that's your style speaking. The key is making sure it fits well and you feel good. Everything else is just details.",
-    ] : [
-      "What a lovely question, darling! Here's what I think: fashion should be about expressing yourself, not following rigid rules. If something speaks to you, that's your style intuition guiding you. Wear what makes your heart happy and you'll always look beautiful!",
-      "Oh gorgeous, I love that you're thinking about this! The wonderful thing about fashion today is how personal it's become. The old rules about who can wear what are fading away. What matters is how something makes you feel. If you love it, wear it with confidence, love!",
-      "Such a thoughtful question, sweetheart! Fashion has no real boundaries anymore - it's all about what resonates with YOU. If you're drawn to something, that's your inner style speaking. Trust it, embrace it, and wear it with joy!",
-      "I adore this question, beautiful! The most stylish people are those who wear what they love with confidence. Rules about who can or can't wear something are so outdated. If it makes you feel fabulous, that's all that matters, darling!",
-      "Oh love, this is exactly the kind of question I enjoy! Fashion is meant to be fun and personal. If something excites you, that's worth exploring. The key is finding what fits well and makes you feel like the best version of yourself. That's true style, gorgeous!",
-    ];
-    return { content: genericOpinionResponses[Math.floor(Math.random() * genericOpinionResponses.length)] };
   }
   
   if (!hasWardrobe) {
@@ -1531,14 +1469,23 @@ export default function AIStylistScreen() {
     } catch (error: any) {
       console.log('API call failed for voice:', error);
       
-      // Use fallback voice responses when API fails
-      const voiceResponses = [
-        `I heard your voice message! Based on what you shared, let me put together some outfit ideas for you. For a versatile look, I'd suggest mixing your favorite pieces with some statement accessories.`,
-        `Thanks for the voice message! I love that you're reaching out. Let me think about some combinations from your wardrobe that would work perfectly for you.`,
-        `Got your voice message! I'm analyzing your request. If you're looking for something specific, feel free to type out the details and I'll create a personalized outfit recommendation.`,
-        `Lovely to hear from you! I'm processing your style request. In the meantime, try our quick prompts below for instant outfit suggestions, or tell me more about what occasion you're dressing for.`,
-      ];
-      const responseContent = voiceResponses[Math.floor(Math.random() * voiceResponses.length)];
+      // Check if this is an authentication error
+      const isAuthError = error?.message?.includes('Authentication required') || 
+                          error?.message?.includes('Unauthorized') ||
+                          error?.message?.includes('401');
+      
+      let responseContent: string;
+      if (isAuthError) {
+        responseContent = `I'd love to help you with that! To get personalized fashion advice powered by AI, please sign in to your account. Once you're logged in, I can give you tailored recommendations based on your style profile and wardrobe. Tap the Profile tab to sign in!`;
+      } else {
+        const voiceResponses = [
+          `I heard your voice message! Based on what you shared, let me put together some outfit ideas for you. For a versatile look, I'd suggest mixing your favorite pieces with some statement accessories.`,
+          `Thanks for the voice message! I love that you're reaching out. Let me think about some combinations from your wardrobe that would work perfectly for you.`,
+          `Got your voice message! I'm analyzing your request. If you're looking for something specific, feel free to type out the details and I'll create a personalized outfit recommendation.`,
+          `Lovely to hear from you! I'm processing your style request. In the meantime, try our quick prompts below for instant outfit suggestions, or tell me more about what occasion you're dressing for.`,
+        ];
+        responseContent = voiceResponses[Math.floor(Math.random() * voiceResponses.length)];
+      }
 
       const assistantMessage: ChatMessage = {
         id: `msg_${Date.now()}_assistant`,
@@ -1771,11 +1718,25 @@ export default function AIStylistScreen() {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (error: any) {
-      console.log('API call failed - using fallback response:', error?.message);
+      console.log('API call failed - Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      console.log('Error message:', error?.message);
+      console.log('Error stack:', error?.stack);
       
-      // Always use the fallback AI response when API fails
-      console.log('Using fallback response');
-      const response = generateAIResponse(text, wardrobeItems, user?.gender || 'unspecified', stylist.name);
+      // Check if this is an authentication error
+      const isAuthError = error?.message?.includes('Authentication required') || 
+                          error?.message?.includes('Unauthorized') ||
+                          error?.message?.includes('401');
+      
+      let response;
+      if (isAuthError) {
+        console.log('Auth error - showing login prompt');
+        response = {
+          content: `I'd love to help you with that! To get personalized fashion advice powered by AI, please sign in to your account. Once you're logged in, I can give you tailored recommendations based on your style profile and wardrobe. Tap the Profile tab to sign in!`,
+        };
+      } else {
+        console.log('Using fallback response');
+        response = generateAIResponse(text, wardrobeItems, user?.gender || 'unspecified', stylist.name);
+      }
       
       const assistantMessage: ChatMessage = {
         id: `msg_${Date.now()}_assistant`,
@@ -2117,7 +2078,7 @@ export default function AIStylistScreen() {
           style={[
             styles.inputContainerWrapper,
             { 
-              paddingBottom: Spacing.xs,
+              paddingBottom: Spacing.sm,
               backgroundColor: theme.backgroundDefault,
             }
           ]}
@@ -2172,7 +2133,7 @@ export default function AIStylistScreen() {
           style={[
             styles.inputContainerWrapper,
             { 
-              paddingBottom: Spacing.xs,
+              paddingBottom: Spacing.sm,
               backgroundColor: theme.backgroundDefault,
             }
           ]}
@@ -2192,7 +2153,7 @@ export default function AIStylistScreen() {
         style={[
           styles.inputContainerWrapper,
           { 
-            paddingBottom: Spacing.xs,
+            paddingBottom: Spacing.sm,
             backgroundColor: theme.backgroundDefault,
           }
         ]}
@@ -2300,49 +2261,39 @@ export default function AIStylistScreen() {
     );
   };
   
-  const inputBarBottomOffset = tabBarHeight > 0 ? tabBarHeight : insets.bottom;
-  
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}
-    >
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={renderHeader}
-        ListFooterComponent={renderFooter}
-        contentContainerStyle={[
-          styles.listContent,
-          { 
-            paddingTop: headerHeight + Spacing.md,
-            paddingBottom: INPUT_CONTAINER_HEIGHT + inputBarBottomOffset + Spacing.xl
-          }
-        ]}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-        style={styles.flatList}
-      />
-      <View 
-        style={[
-          styles.inputBarFixed, 
-          { 
-            position: 'absolute',
-            bottom: inputBarBottomOffset,
-            left: 0,
-            right: 0,
-            paddingBottom: Spacing.xs,
-            backgroundColor: theme.backgroundDefault,
-          }
-        ]}
-      >
-        {renderInputBar()}
+    <KeyboardProvider>
+      <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={renderHeader}
+          ListFooterComponent={renderFooter}
+          contentContainerStyle={[
+            styles.listContent,
+            { 
+              paddingTop: headerHeight + Spacing.md,
+              paddingBottom: INPUT_CONTAINER_HEIGHT + TAB_BAR_HEIGHT + insets.bottom + Spacing.md
+            }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+          style={styles.flatList}
+        />
+        <KeyboardStickyView 
+          offset={{ closed: 0, opened: 0 }}
+          style={[styles.inputBarAbsolute, { bottom: TAB_BAR_HEIGHT + insets.bottom }]}
+        >
+          <View style={{ backgroundColor: theme.backgroundDefault }}>
+            {renderInputBar()}
+          </View>
+        </KeyboardStickyView>
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardProvider>
   );
 }
 
@@ -2353,8 +2304,12 @@ const styles = StyleSheet.create({
   flatList: {
     flex: 1,
   },
-  inputBarFixed: {
-    width: '100%',
+  inputBarAbsolute: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
   },
   listContent: {
     paddingHorizontal: 0,
