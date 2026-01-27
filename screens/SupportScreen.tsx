@@ -26,7 +26,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import {
   supportService,
   SupportMessage,
@@ -44,7 +43,6 @@ export default function SupportScreen() {
   const { user } = useAuth();
   const { paddingTop, paddingBottom } = useScreenInsets();
   const safeAreaInsets = useSafeAreaInsets();
-  const tabBarHeight = React.useContext(BottomTabBarHeightContext) ?? 0;
   const flatListRef = useRef<FlatList>(null);
   const navigation = useNavigation();
 
@@ -464,6 +462,7 @@ export default function SupportScreen() {
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={renderMessage}
+          style={{ flex: 1 }}
           contentContainerStyle={[
             styles.messagesList,
             { paddingBottom: INPUT_CONTAINER_HEIGHT + Spacing.xl },
