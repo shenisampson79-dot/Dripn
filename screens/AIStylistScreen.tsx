@@ -35,7 +35,7 @@ import Animated, {
   withSpring,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { useKeyboardHandler } from 'react-native-keyboard-controller';
+// keyboard handling done via KeyboardAvoidingView
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
@@ -2300,28 +2300,12 @@ export default function AIStylistScreen() {
     );
   };
   
-  const inputOffset = tabBarHeight > 0 ? tabBarHeight : insets.bottom;
-  const keyboardHeight = useSharedValue(0);
-  
-  useKeyboardHandler({
-    onMove: (e) => {
-      'worklet';
-      keyboardHeight.value = e.height;
-    },
-    onEnd: (e) => {
-      'worklet';
-      keyboardHeight.value = e.height;
-    },
-  }, []);
-  
-  const inputBarAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: -keyboardHeight.value }],
-    };
-  });
-  
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -2334,30 +2318,25 @@ export default function AIStylistScreen() {
           styles.listContent,
           { 
             paddingTop: headerHeight + Spacing.md,
-            paddingBottom: INPUT_CONTAINER_HEIGHT + inputOffset + Spacing.xl
+            paddingBottom: Spacing.xl
           }
         ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         style={styles.flatList}
       />
-      <Animated.View 
+      <View 
         style={[
           styles.inputBarFixed, 
           { 
-            position: 'absolute',
-            bottom: inputOffset,
-            left: 0,
-            right: 0,
             paddingBottom: Spacing.xs,
             backgroundColor: theme.backgroundDefault,
-          },
-          inputBarAnimatedStyle,
+          }
         ]}
       >
         {renderInputBar()}
-      </Animated.View>
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
