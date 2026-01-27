@@ -317,6 +317,8 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       // Safely extract category - handle string or object
       const extractString = (val: any): string => {
         if (typeof val === 'string') return val;
+        // Handle color objects with primary field (backend format: {"primary": "deep red", "secondary": "white", "palette": [...]})
+        if (val && typeof val === 'object' && val.primary) return val.primary;
         if (val && typeof val === 'object' && val.name) return val.name;
         if (val && typeof val === 'object' && val.value) return val.value;
         return '';
