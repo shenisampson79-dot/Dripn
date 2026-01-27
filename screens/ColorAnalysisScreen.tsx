@@ -36,6 +36,7 @@ import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigat
 import { getRecommendedShades, FoundationBrand, FoundationMatch } from "@/services/FoundationMatchingService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const TAB_BAR_HEIGHT = 56;
 
 type ColorAnalysisScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "ColorAnalysis">;
@@ -301,7 +302,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
               </ThemedText>
             </View>
           </View>
-          <View style={[styles.cameraControls, { paddingBottom: insets.bottom + Spacing.lg }]}>
+          <View style={[styles.cameraControls, { paddingBottom: insets.bottom + TAB_BAR_HEIGHT + Spacing.xl }]}>
             <Pressable
               onPress={() => setShowCamera(false)}
               style={[styles.cameraButton, { backgroundColor: theme.backgroundSecondary }]}
