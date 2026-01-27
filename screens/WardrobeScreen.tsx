@@ -25,6 +25,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useWardrobe, WardrobeItem, ClothingCategory, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { dfyService, DFYAccessStatus } from "@/services/DFYService";
+import apiService from "@/services/ApiService";
 import type { WardrobeStackParamList } from "@/navigation/WardrobeStackNavigator";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -85,6 +86,8 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const [dfyAccess, setDfyAccess] = useState<DFYAccessStatus | null>(null);
   const [showAIOutfitModal, setShowAIOutfitModal] = useState(false);
   const [isGeneratingOutfit, setIsGeneratingOutfit] = useState(false);
+  const [generatingOccasion, setGeneratingOccasion] = useState<string | null>(null);
+  const [generatedOutfit, setGeneratedOutfit] = useState<any>(null);
 
   useEffect(() => {
     const loadDFYAccess = async () => {
@@ -833,26 +836,50 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               </ThemedText>
               
               {[
-                { id: 'today', icon: 'sun', label: 'Today\'s Look', desc: 'Based on weather & your calendar' },
-                { id: 'work', icon: 'briefcase', label: 'Work Outfit', desc: 'Professional & polished' },
-                { id: 'date', icon: 'heart', label: 'Date Night', desc: 'Stylish & confident' },
-                { id: 'casual', icon: 'coffee', label: 'Casual Day', desc: 'Comfortable & effortless' },
+                { id: 'todays_look', icon: 'sun', label: 'Today\'s Look', desc: 'Based on weather & your calendar' },
+                { id: 'work_outfit', icon: 'briefcase', label: 'Work Outfit', desc: 'Professional & polished' },
+                { id: 'date_night', icon: 'heart', label: 'Date Night', desc: 'Stylish & confident' },
+                { id: 'casual_day', icon: 'coffee', label: 'Casual Day', desc: 'Comfortable & effortless' },
               ].map((option) => (
                 <Pressable
                   key={option.id}
-                  onPress={() => {
-                    setIsGeneratingOutfit(true);
-                    setTimeout(() => {
+                  disabled={isGeneratingOutfit}
+                  onPress={async () => {
+                    try {
+                      setIsGeneratingOutfit(true);
+                      setGeneratingOccasion(option.id);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      
+                      const result = await apiService.generateOutfit({
+                        occasionType: option.id as any,
+                        saveToCalendar: true,
+                        calendarDate: new Date().toISOString().split('T')[0],
+                      });
+                      
+                      if (result.success && result.outfit) {
+                        setGeneratedOutfit(result.outfit);
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        setShowAIOutfitModal(false);
+                        navigation.navigate('OutfitCalendar' as any, { 
+                          generatedOutfit: result.outfit,
+                          occasion: option.id 
+                        });
+                      }
+                    } catch (error: any) {
+                      Alert.alert(
+                        'Generation Failed',
+                        error.message || 'Unable to generate outfit. Please try again.'
+                      );
+                    } finally {
                       setIsGeneratingOutfit(false);
-                      setShowAIOutfitModal(false);
-                      navigation.navigate('OutfitCalendar' as any, { occasion: option.id });
-                    }, 1500);
+                      setGeneratingOccasion(null);
+                    }
                   }}
                   style={({ pressed }) => [
                     styles.aiOutfitOptionCard,
                     { 
                       backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                      opacity: pressed ? 0.7 : 1,
+                      opacity: pressed || (isGeneratingOutfit && generatingOccasion !== option.id) ? 0.5 : 1,
                     }
                   ]}
                 >
@@ -866,7 +893,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     <ThemedText type="body" style={{ fontWeight: '600' }}>{option.label}</ThemedText>
                     <ThemedText type="small" style={{ color: theme.tabIconDefault }}>{option.desc}</ThemedText>
                   </View>
-                  {isGeneratingOutfit ? (
+                  {generatingOccasion === option.id ? (
                     <ActivityIndicator size="small" color={LUXURY_COLORS.violet} />
                   ) : (
                     <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />

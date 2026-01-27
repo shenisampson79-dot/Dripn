@@ -2368,6 +2368,67 @@ class ApiService {
     }>(`/api/wardrobe/by-type/${itemType}`);
   }
 
+  async getDFYAccessStatus() {
+    return this.request<{
+      success: boolean;
+      hasAccess: boolean;
+      tier: 'lite' | 'core' | null;
+      daysRemaining: number;
+      canGenerateOutfits: boolean;
+      upsellMessage?: string;
+    }>('/api/dfy/access-status');
+  }
+
+  async generateOutfit(data: {
+    occasionType: 'todays_look' | 'work_outfit' | 'date_night' | 'casual_day';
+    weather?: {
+      temperature: number;
+      condition: string;
+    };
+    saveToCalendar?: boolean;
+    calendarDate?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      outfit: {
+        id: string;
+        items: Array<{
+          id: string;
+          name: string;
+          imageUri: string;
+          category: string;
+          color: string;
+        }>;
+        stylingTips: string[];
+        colorHarmony: string;
+        vibe: string;
+        savedToCalendar: boolean;
+        calendarDate?: string;
+      };
+    }>('/api/wardrobe/generate-outfit', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getOutfitOptions() {
+    return this.request<{
+      success: boolean;
+      options: Array<{
+        id: string;
+        label: string;
+        description: string;
+        icon: string;
+      }>;
+      styleDNA: {
+        gender: string;
+        bodyType: string;
+        colorSeason: string;
+        stylePreferences: string[];
+      };
+    }>('/api/wardrobe/outfit-options');
+  }
+
   // Lookbooks API
   async getLookbooks() {
     return this.request<{
