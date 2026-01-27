@@ -8,6 +8,7 @@ import {
   TextInput,
   FlatList,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
@@ -22,6 +23,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from '@/constant
 import { useTheme } from '@/hooks/useTheme';
 import { useWardrobe, WardrobeItem, PlannedOutfit, PlannedEventType } from '@/contexts/WardrobeContext';
 import type { ProfileStackParamList } from '@/navigation/ProfileStackNavigator';
+import { apiService } from '@/services/ApiService';
 
 type OutfitCalendarScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'OutfitCalendar'>;
@@ -68,6 +70,10 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   const [newEventType, setNewEventType] = useState<PlannedEventType>('casual');
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
+  
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [generatingDays, setGeneratingDays] = useState<number>(7);
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate();
@@ -204,6 +210,83 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
       Alert.alert('Success', 'Outfit marked as worn! Wear counts updated.');
     } catch (error) {
       Alert.alert('Error', 'Failed to mark outfit as worn.');
+    }
+  };
+
+  const handleAICreateOutfits = () => {
+    if (items.length < 3) {
+      Alert.alert(
+        "Need More Items",
+        "Add at least 3 items to your wardrobe for AI to create outfit combinations.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+    setShowAIModal(true);
+  };
+
+  const generateAIOutfitsForWeek = async () => {
+    setIsGeneratingAI(true);
+    try {
+      const occasionTypes: Array<'todays_look' | 'work_outfit' | 'date_night' | 'casual_day'> = [
+        'casual_day', 'work_outfit', 'casual_day', 'work_outfit', 
+        'casual_day', 'date_night', 'casual_day'
+      ];
+      
+      const today = new Date();
+      let successCount = 0;
+      
+      for (let i = 0; i < generatingDays; i++) {
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + i);
+        
+        const occasionType = occasionTypes[i % occasionTypes.length];
+        
+        try {
+          const result = await apiService.generateOutfit({
+            occasionType,
+          });
+          
+          if (result.success && result.outfit && result.outfit.items.length > 0) {
+            const itemIds = result.outfit.items.map((item: any) => item.id);
+            
+            const eventTypeMap: Record<string, PlannedEventType> = {
+              'todays_look': 'everyday',
+              'work_outfit': 'work',
+              'date_night': 'date-night',
+              'casual_day': 'casual',
+            };
+            
+            await planOutfit({
+              date: targetDate.toISOString(),
+              itemIds,
+              eventName: result.outfit.vibe || `AI ${occasionType.replace('_', ' ')}`,
+              eventType: eventTypeMap[occasionType] || 'casual',
+              notes: 'Created by AI Stylist',
+            });
+            successCount++;
+          }
+        } catch (err) {
+          console.log(`Failed to generate outfit for day ${i + 1}:`, err);
+        }
+      }
+      
+      setShowAIModal(false);
+      
+      if (successCount > 0) {
+        Alert.alert(
+          "Outfits Created!",
+          `AI created ${successCount} outfit${successCount > 1 ? 's' : ''} for the next ${generatingDays} days.`,
+          [{ text: "View Calendar", onPress: () => setSelectedDate(today) }]
+        );
+      } else {
+        Alert.alert("No Outfits Created", "AI couldn't create outfits. Try adding more variety to your wardrobe.");
+      }
+    } catch (error) {
+      console.error('AI outfit generation error:', error);
+      Alert.alert('Error', 'Failed to generate AI outfits. Please try again.');
+    } finally {
+      setIsGeneratingAI(false);
     }
   };
 
@@ -443,6 +526,24 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         </View>
       </Card>
 
+      <Pressable
+        onPress={handleAICreateOutfits}
+        style={styles.aiCreateButton}
+      >
+        <LinearGradient
+          colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.aiCreateButtonGradient}
+        >
+          <Feather name="cpu" size={18} color="#FFFFFF" />
+          <ThemedText type="body" style={styles.aiCreateButtonText}>
+            Let AI Create My Outfits
+          </ThemedText>
+          <Feather name="chevron-right" size={18} color="#FFFFFF" />
+        </LinearGradient>
+      </Pressable>
+
       {selectedDate ? (
         <View style={styles.selectedDateSection}>
           <View style={styles.selectedDateHeader}>
@@ -629,6 +730,108 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
                 },
               ]}
             />
+
+            <View style={{ height: 100 }} />
+          </ScrollView>
+        </ThemedView>
+      </Modal>
+
+      <Modal
+        visible={showAIModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAIModal(false)}
+      >
+        <ThemedView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Pressable onPress={() => setShowAIModal(false)}>
+              <ThemedText type="body" style={{ color: theme.link }}>
+                Cancel
+              </ThemedText>
+            </Pressable>
+            <ThemedText type="h3">AI Outfit Planner</ThemedText>
+            <View style={{ width: 50 }} />
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.aiModalHeader}>
+              <LinearGradient
+                colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
+                style={styles.aiModalIcon}
+              >
+                <Feather name="cpu" size={32} color="#FFFFFF" />
+              </LinearGradient>
+              <ThemedText type="h3" style={{ marginTop: Spacing.md, textAlign: 'center' }}>
+                Create Outfits for the Week
+              </ThemedText>
+              <ThemedText type="body" style={[styles.aiModalDescription, { color: secondaryTextColor }]}>
+                AI will create {generatingDays} outfit combinations from your {items.length} wardrobe items
+              </ThemedText>
+            </View>
+
+            <ThemedText type="caption" style={[styles.sectionLabel, { color: secondaryTextColor }]}>
+              Number of Days
+            </ThemedText>
+            <View style={styles.daysSelector}>
+              {[3, 5, 7].map(days => (
+                <Pressable
+                  key={days}
+                  onPress={() => setGeneratingDays(days)}
+                  style={[
+                    styles.dayOption,
+                    generatingDays === days 
+                      ? { backgroundColor: theme.link } 
+                      : { backgroundColor: theme.backgroundSecondary, borderColor: theme.border, borderWidth: 1 }
+                  ]}
+                >
+                  <ThemedText 
+                    type="body" 
+                    style={{ 
+                      color: generatingDays === days ? '#FFFFFF' : theme.text,
+                      fontWeight: '600' 
+                    }}
+                  >
+                    {days} Days
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </View>
+
+            <Card elevation={1} style={styles.aiInfoCard}>
+              <Feather name="info" size={16} color={theme.link} />
+              <ThemedText type="caption" style={[styles.aiInfoText, { color: secondaryTextColor }]}>
+                AI will create a mix of work, casual, and date night outfits based on your Style DNA and wardrobe items.
+              </ThemedText>
+            </Card>
+
+            <Pressable
+              onPress={generateAIOutfitsForWeek}
+              disabled={isGeneratingAI}
+              style={[styles.generateButton, { opacity: isGeneratingAI ? 0.7 : 1 }]}
+            >
+              <LinearGradient
+                colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.generateButtonGradient}
+              >
+                {isGeneratingAI ? (
+                  <>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ThemedText type="body" style={styles.generateButtonText}>
+                      Creating Outfits...
+                    </ThemedText>
+                  </>
+                ) : (
+                  <>
+                    <Feather name="zap" size={20} color="#FFFFFF" />
+                    <ThemedText type="body" style={styles.generateButtonText}>
+                      Generate {generatingDays} Outfits
+                    </ThemedText>
+                  </>
+                )}
+              </LinearGradient>
+            </Pressable>
 
             <View style={{ height: 100 }} />
           </ScrollView>
@@ -889,5 +1092,78 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
+  },
+  aiCreateButton: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+  },
+  aiCreateButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  aiCreateButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+  },
+  aiModalHeader: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  aiModalIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiModalDescription: {
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
+  daysSelector: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  dayOption: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+  },
+  aiInfoCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    marginBottom: Spacing.xl,
+  },
+  aiInfoText: {
+    flex: 1,
+    lineHeight: 18,
+  },
+  generateButton: {
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+  },
+  generateButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  generateButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
