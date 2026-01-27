@@ -35,6 +35,7 @@ export type ClothingColor =
   | 'blue' 
   | 'purple' 
   | 'denim'
+  | 'cream'
   | 'multicolor';
 
 export type ClothingSeason = 'spring' | 'summer' | 'autumn' | 'winter' | 'all-season';
@@ -211,6 +212,7 @@ const COLOR_LABELS: Record<ClothingColor, string> = {
   blue: 'Blue',
   purple: 'Purple',
   denim: 'Denim',
+  cream: 'Cream',
   multicolor: 'Multicolor',
 };
 

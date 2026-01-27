@@ -211,7 +211,7 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
   const startTime = Date.now();
   
   const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'multicolor'];
+  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
   const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
   const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
 
@@ -250,14 +250,15 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     // but nested color is an object with palette info
     const data = result?.analysis?.item || result?.analysis || result;
     
-    // IMPORTANT: Get color/material from TOP-LEVEL response first (they're strings like "denim")
-    // Only fall back to nested data if top-level doesn't have them
+    // IMPORTANT: Use colorTag field from backend - it's specifically for display tags
+    // colorTag: "denim", "cream" etc. - use this directly without further processing
+    const colorTag = typeof result?.colorTag === 'string' ? result.colorTag : null;
     const topLevelColor = typeof result?.color === 'string' ? result.color : null;
     const topLevelPrimaryColor = typeof result?.primaryColor === 'string' ? result.primaryColor : null;
     const topLevelMaterial = typeof result?.material === 'string' ? result.material : null;
     const topLevelSubcategory = typeof result?.subcategory === 'string' ? result.subcategory : null;
     
-    console.log('[BulkScan] Top-level color:', topLevelColor, 'material:', topLevelMaterial);
+    console.log('[BulkScan] colorTag:', colorTag, 'topLevelColor:', topLevelColor, 'material:', topLevelMaterial);
     console.log('[BulkScan] Extracted data keys:', data ? Object.keys(data) : 'null');
     
     if (data && (data.category || data.garmentType || data.color || data.primaryColor || topLevelColor)) {
@@ -348,31 +349,47 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       
       const rawCategory = extractString(data.category || data.garmentType).toLowerCase() || 'tops';
       
-      // PRIORITY: Use TOP-LEVEL color/material (they're clean strings like "denim", "cream")
-      // Fall back to nested data.color only if top-level doesn't exist
-      const rawColor = (topLevelColor || topLevelPrimaryColor || extractString(data.color || data.primaryColor || data.colorFull || '')).toLowerCase() || 'gray';
-      const material = (topLevelMaterial || extractString(data.material || '')).toLowerCase();
-      const subcategory = (topLevelSubcategory || extractString(data.subcategory || '')).toLowerCase();
-      
-      console.log('[ColorMapping] Using rawColor:', rawColor, 'material:', material, 'subcategory:', subcategory);
-      
       const mappedCategory = categoryMap[rawCategory] || 
         (validCategories.includes(rawCategory as ClothingCategory) ? rawCategory as ClothingCategory : 'tops');
       
-      // Determine color - prioritize denim and cream detection
+      // PRIORITY: Use colorTag directly from backend - no further processing needed
+      // colorTag is specifically designed for frontend display (e.g., "denim", "cream")
       let mappedColor: ClothingColor;
-      if (rawColor.includes('denim') || material.includes('denim') || subcategory.includes('denim')) {
-        mappedColor = 'denim';
-      } else if (rawColor.includes('cream') || rawColor.includes('off-white') || rawColor.includes('ivory')) {
-        mappedColor = 'beige'; // Map cream/off-white to beige
+      
+      if (colorTag) {
+        // Use colorTag directly - backend has already done the color mapping
+        const normalizedTag = colorTag.toLowerCase();
+        if (validColors.includes(normalizedTag as ClothingColor)) {
+          mappedColor = normalizedTag as ClothingColor;
+        } else if (normalizedTag === 'cream' || normalizedTag === 'off-white' || normalizedTag === 'ivory') {
+          mappedColor = 'beige';
+        } else {
+          // Fall back to findColorMatch for unknown tags
+          mappedColor = findColorMatch(normalizedTag, '');
+        }
+        console.log('[ColorMapping] Using colorTag directly:', colorTag, '-> mapped to:', mappedColor);
       } else {
-        mappedColor = findColorMatch(rawColor, material);
+        // Fallback: use topLevelColor if no colorTag
+        const rawColor = (topLevelColor || topLevelPrimaryColor || extractString(data.color || data.primaryColor || '')).toLowerCase() || 'gray';
+        const material = (topLevelMaterial || extractString(data.material || '')).toLowerCase();
+        const subcategory = (topLevelSubcategory || extractString(data.subcategory || '')).toLowerCase();
+        
+        console.log('[ColorMapping] No colorTag, using rawColor:', rawColor, 'material:', material);
+        
+        if (rawColor.includes('denim') || material.includes('denim') || subcategory.includes('denim')) {
+          mappedColor = 'denim';
+        } else if (rawColor.includes('cream') || rawColor.includes('off-white') || rawColor.includes('ivory')) {
+          mappedColor = 'beige';
+        } else {
+          mappedColor = findColorMatch(rawColor, material);
+        }
       }
       
-      console.log('[ColorMapping] Mapped color:', mappedColor);
+      console.log('[ColorMapping] Final mapped color:', mappedColor);
       
-      // Generate a descriptive name
-      const colorDisplay = rawColor ? rawColor.charAt(0).toUpperCase() + rawColor.slice(1) : 'Item';
+      // Generate a descriptive name - use colorTag, topLevelColor, or mapped color for display
+      const colorForDisplay = colorTag || topLevelColor || topLevelPrimaryColor || mappedColor;
+      const colorDisplay = colorForDisplay ? colorForDisplay.charAt(0).toUpperCase() + colorForDisplay.slice(1) : 'Item';
       const typeValue = extractString(data.garmentType || data.category) || mappedCategory;
       const typeDisplay = typeValue.charAt(0).toUpperCase() + typeValue.slice(1);
       const suggestedName = data.suggestedName || data.name || `${colorDisplay} ${typeDisplay}`;
@@ -435,7 +452,7 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
 
 export async function extractProductFromText(text: string): Promise<ProductLinkResult> {
   const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'multicolor'];
+  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
 
   try {
     const { apiService } = await import('./ApiService');
@@ -535,7 +552,7 @@ If you cannot determine a field, use null. For category and color, only use the 
 
 export async function extractProductFromImage(imageUri: string): Promise<ProductLinkResult> {
   const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'multicolor'];
+  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
   
   const base64Image = await convertImageToBase64(imageUri);
 
