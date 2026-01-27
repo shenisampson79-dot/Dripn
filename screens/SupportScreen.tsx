@@ -26,7 +26,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { TabBarHeightContext } from '@/contexts/TabBarHeightContext';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import {
   supportService,
   SupportMessage,
@@ -44,7 +44,7 @@ export default function SupportScreen() {
   const { user } = useAuth();
   const { paddingTop, paddingBottom } = useScreenInsets();
   const safeAreaInsets = useSafeAreaInsets();
-  const tabBarHeight = React.useContext(TabBarHeightContext);
+  const tabBarHeight = React.useContext(BottomTabBarHeightContext) ?? 0;
   const flatListRef = useRef<FlatList>(null);
   const navigation = useNavigation();
 
