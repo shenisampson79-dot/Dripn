@@ -35,7 +35,7 @@ import Animated, {
   withSpring,
   cancelAnimation,
 } from 'react-native-reanimated';
-// keyboard handling done via KeyboardAvoidingView
+import { KeyboardStickyView, KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
@@ -2301,42 +2301,42 @@ export default function AIStylistScreen() {
   };
   
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-    >
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={renderHeader}
-        ListFooterComponent={renderFooter}
-        contentContainerStyle={[
-          styles.listContent,
-          { 
-            paddingTop: headerHeight + Spacing.md,
-            paddingBottom: Spacing.xl
-          }
-        ]}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-        style={styles.flatList}
-      />
-      <View 
-        style={[
-          styles.inputBarFixed, 
-          { 
-            paddingBottom: Spacing.xs,
-            backgroundColor: theme.backgroundDefault,
-          }
-        ]}
-      >
-        {renderInputBar()}
+    <KeyboardProvider>
+      <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={renderHeader}
+          ListFooterComponent={renderFooter}
+          contentContainerStyle={[
+            styles.listContent,
+            { 
+              paddingTop: headerHeight + Spacing.md,
+              paddingBottom: INPUT_CONTAINER_HEIGHT + tabBarHeight + Spacing.xl
+            }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          style={styles.flatList}
+        />
+        <KeyboardStickyView offset={{ closed: tabBarHeight > 0 ? tabBarHeight : insets.bottom }}>
+          <View 
+            style={[
+              styles.inputBarFixed, 
+              { 
+                paddingBottom: Spacing.xs,
+                backgroundColor: theme.backgroundDefault,
+              }
+            ]}
+          >
+            {renderInputBar()}
+          </View>
+        </KeyboardStickyView>
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardProvider>
   );
 }
 
