@@ -506,26 +506,7 @@ class ApiService {
   }
 
   async extractClothing(imageData: { imageBase64?: string; imageUrl?: string }) {
-    if (this.token === 'dev-test-token') {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const types = ['shirt', 'pants', 'dress', 'jacket', 'shoes', 'bag'];
-      const colors = ['black', 'white', 'blue', 'gray', 'beige', 'navy'];
-      const randomType = types[Math.floor(Math.random() * types.length)];
-      const randomColor = colors[Math.floor(Math.random() * colors.length)];
-      return {
-        success: true,
-        processedImageBase64: imageData.imageBase64,
-        clothingAnalysis: {
-          type: randomType,
-          color: randomColor,
-          style: 'casual',
-          description: `[DEV] ${randomColor.charAt(0).toUpperCase() + randomColor.slice(1)} ${randomType}`,
-          occasions: ['casual', 'everyday'],
-          seasons: ['spring', 'summer', 'autumn'],
-        },
-        backgroundRemoved: false,
-      };
-    }
+    // Always use real backend - no mock mode
     return this.request<{
       success: boolean;
       processedImageBase64?: string;
@@ -1084,12 +1065,6 @@ class ApiService {
     console.log('Has auth token:', !!token);
     console.log('Stylist:', stylistId);
     console.log('Message:', data.userMessage);
-    
-    // DEV MODE: Return mock responses for automated testing
-    if (__DEV__ && token === 'dev-test-token') {
-      console.log('[DEV MODE] Using mock response for testing');
-      return this.getMockStylistResponse(data.userMessage, stylistId);
-    }
     
     // Backend returns { response: string, stylist: string, ... }
     // We need to map 'response' to 'content' for frontend compatibility
@@ -2804,48 +2779,6 @@ class ApiService {
     });
   }
 
-  private getMockStylistResponse(userMessage: string, stylistId: string): {
-    content: string;
-    mood?: { mood: string; confidence: number; needsSupport: boolean; topicType: string };
-    stylistId?: string;
-    error?: string;
-  } {
-    const lowerMessage = userMessage.toLowerCase();
-    
-    const stylistNames: Record<string, string> = {
-      ruby: 'Ruby',
-      max: 'Max',
-      ace: 'Ace',
-      ivy: 'Ivy',
-    };
-    const stylistName = stylistNames[stylistId] || 'Your Stylist';
-    
-    let response = '';
-    
-    if (lowerMessage.includes('birkenstock')) {
-      response = `[DEV MODE] Great question about Birkenstocks! They've become a major fashion staple and are absolutely cool for men. The chunky sandal trend has been embraced by everyone from fashion-forward celebrities to everyday style icons. For a modern look, try the Arizona or Boston styles in neutral colors like taupe, black, or brown. They pair beautifully with relaxed chinos, linen trousers, or even tailored shorts. The key is to embrace them confidently - they're no longer just "dad sandals" but a genuine fashion statement! - ${stylistName}`;
-    } else if (lowerMessage.includes('outfit') || lowerMessage.includes('wear')) {
-      response = `[DEV MODE] I'd love to help you put together the perfect outfit! Based on your style preferences, I'd suggest starting with versatile basics and building from there. What's the occasion you're dressing for? - ${stylistName}`;
-    } else if (lowerMessage.includes('color') || lowerMessage.includes('colour')) {
-      response = `[DEV MODE] Color coordination is one of my favorite topics! Navy, white, and grey are timeless foundations, but don't be afraid to add pops of color that complement your skin tone. Would you like some specific color pairing suggestions? - ${stylistName}`;
-    } else if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-      response = `[DEV MODE] Hello! I'm ${stylistName}, your personal fashion advisor. How can I help you look and feel your best today?`;
-    } else {
-      response = `[DEV MODE] That's a great fashion question! As your stylist, I'm here to help you make confident style decisions. This is a mock response for testing - in the live app, you'd get personalized AI-powered advice. - ${stylistName}`;
-    }
-    
-    return {
-      content: response,
-      mood: {
-        mood: 'helpful',
-        confidence: 0.95,
-        needsSupport: false,
-        topicType: 'fashion',
-      },
-      stylistId,
-    };
-  }
-
   // Guest browsing endpoints (no authentication required)
   async createGuestSession() {
     return this.request<{ sessionToken: string; expiresAt: string }>('/api/guest/session', {
@@ -2916,31 +2849,7 @@ class ApiService {
   }
 
   async getAdminDashboard() {
-    if (this.token === 'dev-test-token') {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return {
-        users: {
-          total: 1247,
-          today: 23,
-          thisWeek: 156,
-        },
-        subscriptions: {
-          active: 342,
-          conversionRate: 0.274,
-        },
-        engagement: {
-          totalChats: 8934,
-          chatsToday: 127,
-        },
-        recentUsers: [
-          { id: '1', email: 'emma.styles@gmail.com', name: 'Emma Styles', createdAt: new Date().toISOString(), subscriptionTier: 'personal_stylist', verified: true },
-          { id: '2', email: 'james.fashion@outlook.com', name: 'James Fashion', createdAt: new Date(Date.now() - 3600000).toISOString(), subscriptionTier: 'style_chat', verified: true },
-          { id: '3', email: 'sophia.chic@yahoo.com', name: 'Sophia Chic', createdAt: new Date(Date.now() - 7200000).toISOString(), subscriptionTier: 'free', verified: false },
-          { id: '4', email: 'oliver.trend@gmail.com', name: 'Oliver Trend', createdAt: new Date(Date.now() - 10800000).toISOString(), subscriptionTier: 'stylist_unlimited', verified: true },
-          { id: '5', email: 'ava.designer@mail.com', name: 'Ava Designer', createdAt: new Date(Date.now() - 14400000).toISOString(), subscriptionTier: 'personal_stylist', verified: true },
-        ],
-      };
-    }
+    // Always use real backend - no mock mode
     return this.request<{
       users: {
         total: number;
@@ -2967,22 +2876,7 @@ class ApiService {
   }
 
   async getAdminPayments() {
-    if (this.token === 'dev-test-token') {
-      await new Promise(resolve => setTimeout(resolve, 400));
-      return {
-        summary: {
-          totalRevenue: 4567800,
-          monthlyRecurringRevenue: 342500,
-        },
-        payments: [
-          { id: 'pay_1', userId: '1', userEmail: 'emma.styles@gmail.com', amount: 1499, currency: 'GBP', status: 'succeeded', productId: 'personal_stylist_monthly', createdAt: new Date().toISOString() },
-          { id: 'pay_2', userId: '2', userEmail: 'james.fashion@outlook.com', amount: 999, currency: 'GBP', status: 'succeeded', productId: 'style_chat_monthly', createdAt: new Date(Date.now() - 1800000).toISOString() },
-          { id: 'pay_3', userId: '4', userEmail: 'oliver.trend@gmail.com', amount: 19199, currency: 'GBP', status: 'succeeded', productId: 'stylist_unlimited_yearly', createdAt: new Date(Date.now() - 3600000).toISOString() },
-          { id: 'pay_4', userId: '5', userEmail: 'ava.designer@mail.com', amount: 3999, currency: 'GBP', status: 'succeeded', productId: 'done_for_you_core', createdAt: new Date(Date.now() - 5400000).toISOString() },
-          { id: 'pay_5', userId: '6', userEmail: 'noah.style@gmail.com', amount: 1999, currency: 'GBP', status: 'succeeded', productId: 'done_for_you_lite', createdAt: new Date(Date.now() - 7200000).toISOString() },
-        ],
-      };
-    }
+    // Always use real backend - no mock mode
     return this.request<{
       summary: {
         totalRevenue: number;
@@ -3002,22 +2896,7 @@ class ApiService {
   }
 
   async getAdminSubscriptions() {
-    if (this.token === 'dev-test-token') {
-      await new Promise(resolve => setTimeout(resolve, 400));
-      return {
-        mrr: 342500,
-        stats: {
-          active: 342,
-          canceled: 47,
-          planDistribution: {
-            free: 905,
-            style_chat: 187,
-            personal_stylist: 112,
-            stylist_unlimited: 43,
-          },
-        },
-      };
-    }
+    // Always use real backend - no mock mode
     return this.request<{
       mrr: number;
       stats: {
@@ -3034,19 +2913,7 @@ class ApiService {
   }
 
   async getAdminModels() {
-    if (this.token === 'dev-test-token') {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return {
-        current: {
-          main_stylist: 'gpt-4.1',
-          quick_decisions: 'gpt-4.1-nano',
-          second_opinions: 'gpt-4o-mini',
-        },
-        available: ['gpt-4.1', 'gpt-4.1-nano', 'gpt-4o', 'gpt-4o-mini'],
-        newModelsDetected: 0,
-        lastChecked: new Date(Date.now() - 7200000).toISOString(),
-      };
-    }
+    // Always use real backend - no mock mode
     return this.request<{
       current: {
         main_stylist: string;
