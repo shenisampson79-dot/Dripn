@@ -115,6 +115,15 @@ export interface SettingsTranslations {
   slow: string;
   normal: string;
   fast: string;
+  contactUs: string;
+  account: string;
+  notifications: string;
+  privacy: string;
+  about: string;
+  currentPlan: string;
+  managePlan: string;
+  selectLanguage: string;
+  voiceSettings: string;
 }
 
 export interface OnboardingTranslations {
@@ -268,6 +277,15 @@ const DEFAULT_TRANSLATIONS: Translations = {
     slow: 'Slow',
     normal: 'Normal',
     fast: 'Fast',
+    contactUs: 'Contact Us',
+    account: 'Account',
+    notifications: 'Notifications',
+    privacy: 'Privacy',
+    about: 'About',
+    currentPlan: 'Current Plan',
+    managePlan: 'Manage Plan',
+    selectLanguage: 'Select Language',
+    voiceSettings: 'Voice Settings',
   },
 };
 
