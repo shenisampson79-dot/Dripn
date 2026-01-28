@@ -113,7 +113,18 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   }, [currentLanguage]);
 
   const t = useCallback((key: string): string => {
-    return TranslationService.t(key);
+    const parts = key.split('.');
+    let current: any = translations;
+    
+    for (const part of parts) {
+      if (current && typeof current === 'object' && part in current) {
+        current = current[part];
+      } else {
+        return key;
+      }
+    }
+    
+    return typeof current === 'string' ? current : key;
   }, [translations]);
 
   const isRTL = translations.localeInfo.direction === 'rtl';
