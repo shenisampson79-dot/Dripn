@@ -4888,6 +4888,129 @@ app.get('/api/motion/history', authMiddleware, async (req, res) => {
 
 // ============ FEATURE 2: WARDROBE DIGITAL TWIN & TIME MACHINE ============
 
+// ===== WARDROBE BATCH UPLOAD =====
+app.post('/api/wardrobe/batch', authMiddleware, async (req, res) => {
+  try {
+    const { items } = req.body;
+    
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Items array is required' });
+    }
+
+    console.log(`[Wardrobe Batch] Uploading ${items.length} items for user ${req.userId}`);
+    
+    const savedItems = [];
+    const errors = [];
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      try {
+        let imageUrl = item.imageUrl;
+        
+        // If base64 image provided, upload to storage
+        if (item.imageBase64) {
+          // For now, store as data URI or use external storage
+          imageUrl = `data:image/jpeg;base64,${item.imageBase64.substring(0, 100)}...`;
+          // TODO: Integrate with cloud storage for production
+        }
+        
+        const result = await pool.query(
+          `INSERT INTO wardrobe_items 
+           (user_id, name, category, subcategory, image_url, color, brand, season, occasions, item_type)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           RETURNING id, name, category, color, image_url`,
+          [
+            req.userId,
+            item.name || 'Untitled Item',
+            item.category || 'tops',
+            item.subcategory || null,
+            imageUrl || null,
+            item.color || null,
+            item.brand || null,
+            item.season || [],
+            item.occasions || [],
+            item.itemType || 'owned'
+          ]
+        );
+        
+        savedItems.push({
+          id: result.rows[0].id,
+          name: result.rows[0].name,
+          category: result.rows[0].category,
+          color: result.rows[0].color,
+          imageUrl: result.rows[0].image_url
+        });
+        
+        console.log(`[Wardrobe Batch] Saved item ${i + 1}: ${item.name}`);
+      } catch (itemError) {
+        console.error(`[Wardrobe Batch] Failed to save item ${i + 1}:`, itemError.message);
+        errors.push({
+          index: i,
+          name: item.name || 'Unknown',
+          error: itemError.message
+        });
+      }
+    }
+    
+    console.log(`[Wardrobe Batch] Complete: ${savedItems.length} saved, ${errors.length} failed`);
+    
+    res.json({
+      success: true,
+      saved: savedItems.length,
+      failed: errors.length,
+      items: savedItems,
+      errors: errors
+    });
+  } catch (error) {
+    console.error('[Wardrobe Batch] Error:', error);
+    res.status(500).json({ error: 'Failed to batch upload wardrobe items' });
+  }
+});
+
+// ===== WARDROBE SINGLE ITEM UPLOAD =====
+app.post('/api/wardrobe', authMiddleware, async (req, res) => {
+  try {
+    const { name, category, subcategory, imageUrl, imageBase64, color, brand, season, occasions, itemType } = req.body;
+    
+    if (!name || !category) {
+      return res.status(400).json({ error: 'Name and category are required' });
+    }
+    
+    let finalImageUrl = imageUrl;
+    if (imageBase64) {
+      finalImageUrl = `data:image/jpeg;base64,${imageBase64.substring(0, 100)}...`;
+    }
+    
+    const result = await pool.query(
+      `INSERT INTO wardrobe_items 
+       (user_id, name, category, subcategory, image_url, color, brand, season, occasions, item_type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [req.userId, name, category, subcategory || null, finalImageUrl || null, color || null, brand || null, season || [], occasions || [], itemType || 'owned']
+    );
+    
+    console.log(`[Wardrobe] Added item: ${name} for user ${req.userId}`);
+    res.json({ success: true, item: result.rows[0] });
+  } catch (error) {
+    console.error('[Wardrobe] Error adding item:', error);
+    res.status(500).json({ error: 'Failed to add wardrobe item' });
+  }
+});
+
+// ===== GET WARDROBE ITEMS =====
+app.get('/api/wardrobe', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM wardrobe_items WHERE user_id = $1 ORDER BY created_at DESC`,
+      [req.userId]
+    );
+    res.json({ success: true, items: result.rows });
+  } catch (error) {
+    console.error('[Wardrobe] Error fetching items:', error);
+    res.status(500).json({ error: 'Failed to fetch wardrobe items' });
+  }
+});
+
 app.get('/api/wardrobe/digital-twin', authMiddleware, async (req, res) => {
   try {
     const wardrobeResult = await pool.query(
