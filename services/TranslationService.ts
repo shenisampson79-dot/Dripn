@@ -385,16 +385,20 @@ class TranslationServiceClass {
     };
   }
 
-  async setLanguage(langCode: string): Promise<void> {
+  async setLanguage(langCode: string): Promise<{ success: boolean; backendSaved: boolean }> {
     // Always fetch and apply translations locally first
     await this.fetchTranslations(langCode);
     
     // Try to persist to backend (non-blocking)
+    let backendSaved = false;
     try {
       await apiService.setLanguage({ languageCode: langCode });
+      backendSaved = true;
     } catch (error) {
       console.log('Failed to persist language to backend (will use local):', error);
     }
+    
+    return { success: true, backendSaved };
   }
 
   async syncLanguageFromAccent(accent: string): Promise<void> {

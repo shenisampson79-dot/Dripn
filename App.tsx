@@ -51,6 +51,7 @@ import { VoiceSettingsProvider } from "@/contexts/VoiceSettingsContext";
 import { BodyProfileProvider } from "@/contexts/BodyProfileContext";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { ColorSchemeProvider } from "@/contexts/ColorSchemeContext";
+import { ToastProvider } from "@/contexts/ToastContext";
 
 export type PortalMode = 'stylist' | 'admin' | null;
 
@@ -166,13 +167,15 @@ export default function App() {
                                         <GamificationProvider>
                                           <MessagingProvider>
                                               <VoiceSettingsProvider>
-                                                <TranslationProvider>
-                                                  <BodyProfileProvider>
-                                                    <ColorSchemeProvider>
-                                                      <NavigationContainerWithRef />
-                                                    </ColorSchemeProvider>
-                                                  </BodyProfileProvider>
-                                                </TranslationProvider>
+                                                <ToastProvider>
+                                                  <TranslationProvider>
+                                                    <BodyProfileProvider>
+                                                      <ColorSchemeProvider>
+                                                        <NavigationContainerWithRef />
+                                                      </ColorSchemeProvider>
+                                                    </BodyProfileProvider>
+                                                  </TranslationProvider>
+                                                </ToastProvider>
                                               </VoiceSettingsProvider>
                                             </MessagingProvider>
                                         </GamificationProvider>

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { I18nManager } from 'react-native';
 import { TranslationService, Translations } from '@/services/TranslationService';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 
 interface TranslationContextType {
   translations: Translations;
@@ -19,6 +20,7 @@ const TranslationContext = createContext<TranslationContextType | null>(null);
 
 export function TranslationProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
+  const { showToast } = useToast();
   const [translations, setTranslations] = useState<Translations>(TranslationService.getTranslations());
   const [isLoading, setIsLoading] = useState(true);
   const [currentLanguage, setCurrentLanguage] = useState('en');
@@ -80,13 +82,18 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   const setLanguage = async (langCode: string) => {
     try {
       setIsLoading(true);
-      await TranslationService.setLanguage(langCode);
+      const result = await TranslationService.setLanguage(langCode);
       const newTranslations = TranslationService.getTranslations();
       setTranslations(newTranslations);
       setCurrentLanguage(langCode);
       applyRTL(newTranslations.localeInfo.direction === 'rtl');
+      
+      if (!result.backendSaved && isAuthenticated) {
+        showToast('Language updated locally. Will sync when online.', 'info', 3000);
+      }
     } catch (error) {
       console.log('Failed to set language:', error);
+      showToast('Failed to change language. Please try again.', 'error', 3000);
     } finally {
       setIsLoading(false);
     }

@@ -84,9 +84,12 @@ export function ColorSchemeProvider({ children }: ColorSchemeProviderProps) {
   };
 
   const setColorScheme = async (scheme: ColorSchemeMode) => {
+    // Update state immediately (offline-first)
+    setColorSchemeState(scheme);
+    
+    // Persist to storage asynchronously
     try {
       await AsyncStorage.setItem(COLOR_SCHEME_KEY, scheme);
-      setColorSchemeState(scheme);
     } catch (error) {
       console.error('Error saving color scheme:', error);
     }
