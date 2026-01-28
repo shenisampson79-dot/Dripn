@@ -96,11 +96,18 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
-  const [step, setStep] = useState<'type' | 'upload' | 'context' | 'response'>('type');
+  const [step, setStep] = useState<'type' | 'upload' | 'event-questions' | 'context' | 'response'>('type');
   const [selectedType, setSelectedType] = useState<DecisionType | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [contextNotes, setContextNotes] = useState("");
   const [selectedContexts, setSelectedContexts] = useState<DecisionContext[]>([]);
+  const [isSurpriseMe, setIsSurpriseMe] = useState(false);
+  const [eventDetails, setEventDetails] = useState({
+    eventType: '',
+    dressCode: '',
+    venue: '',
+    timeOfDay: '',
+  });
   const [accessStatus, setAccessStatus] = useState<DecisionAccessStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<DecisionResponse | null>(null);
@@ -254,7 +261,18 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   const handleTypeSelect = (type: DecisionType) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedType(type);
+    setIsSurpriseMe(false);
     setStep('upload');
+  };
+
+  const handleSurpriseMe = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsSurpriseMe(true);
+    if (selectedType === 'event-outfit') {
+      setStep('event-questions');
+    } else {
+      setStep('context');
+    }
   };
 
   const handlePickImage = async () => {
@@ -742,13 +760,32 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     </View>
   );
 
+  const getUploadTitle = () => {
+    if (selectedType === 'sanity-check') return "Show me what you're wearing";
+    if (selectedType === 'what-to-wear' || selectedType === 'event-outfit') return "How can I help?";
+    return "Show me your options";
+  };
+
+  const getUploadSubtitle = () => {
+    if (selectedType === 'sanity-check') return "Upload one outfit or item for a quick check.";
+    if (selectedType === 'what-to-wear' || selectedType === 'event-outfit') return "Upload photos or let me pick something from your wardrobe.";
+    return "Two or three options is perfect.";
+  };
+
+  const getMaxImagesForType = () => {
+    if (selectedType === 'sanity-check') return 1;
+    return accessStatus?.maxImages || 2;
+  };
+
+  const showSurpriseMeOption = selectedType === 'what-to-wear' || selectedType === 'event-outfit';
+
   const renderUpload = () => (
     <View style={styles.stepContent}>
       <ThemedText type="h2" style={styles.stepTitle}>
-        Show me your options
+        {getUploadTitle()}
       </ThemedText>
       <ThemedText style={styles.stepSubtitle}>
-        Two or three options is perfect.
+        {getUploadSubtitle()}
       </ThemedText>
 
       <View style={styles.imagesGrid}>
@@ -764,7 +801,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           </View>
         ))}
 
-        {images.length < (accessStatus?.maxImages || 2) ? (
+        {images.length < getMaxImagesForType() ? (
           <View style={styles.uploadButtonsRow}>
             <Pressable onPress={handlePickImage} style={styles.uploadButton}>
               <LinearGradient
@@ -792,6 +829,30 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         ) : null}
       </View>
 
+      {showSurpriseMeOption && images.length === 0 ? (
+        <View style={styles.surpriseMeSection}>
+          <View style={styles.orDivider}>
+            <View style={styles.dividerLine} />
+            <ThemedText style={styles.orText}>or</ThemedText>
+            <View style={styles.dividerLine} />
+          </View>
+          <Pressable onPress={handleSurpriseMe} style={styles.surpriseMeButton}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+              style={styles.surpriseMeButtonGradient}
+            >
+              <Feather name="shuffle" size={20} color={LUXURY_COLORS.midnight} />
+              <ThemedText type="body" style={styles.surpriseMeButtonText}>
+                Surprise Me
+              </ThemedText>
+              <ThemedText type="small" style={styles.surpriseMeSubtext}>
+                Pick from my wardrobe
+              </ThemedText>
+            </LinearGradient>
+          </Pressable>
+        </View>
+      ) : null}
+
       {images.length > 0 ? (
         <Pressable
           onPress={() => setStep('context')}
@@ -803,6 +864,153 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           >
             <ThemedText type="body" style={styles.nextButtonText}>
               Continue
+            </ThemedText>
+            <Feather name="arrow-right" size={18} color="#FFFFFF" />
+          </LinearGradient>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+
+  const eventTypes = [
+    { id: 'wedding', label: 'Wedding' },
+    { id: 'date', label: 'Date Night' },
+    { id: 'party', label: 'Party' },
+    { id: 'business', label: 'Business Meeting' },
+    { id: 'interview', label: 'Interview' },
+    { id: 'dinner', label: 'Dinner' },
+    { id: 'other', label: 'Other' },
+  ];
+
+  const dressCodes = [
+    { id: 'casual', label: 'Casual' },
+    { id: 'smart-casual', label: 'Smart Casual' },
+    { id: 'business', label: 'Business' },
+    { id: 'cocktail', label: 'Cocktail' },
+    { id: 'formal', label: 'Formal' },
+    { id: 'black-tie', label: 'Black Tie' },
+  ];
+
+  const timeOptions = [
+    { id: 'morning', label: 'Morning' },
+    { id: 'afternoon', label: 'Afternoon' },
+    { id: 'evening', label: 'Evening' },
+    { id: 'night', label: 'Night' },
+  ];
+
+  const renderEventQuestions = () => (
+    <View style={styles.stepContent}>
+      <ThemedText type="h2" style={styles.stepTitle}>
+        Tell me about your event
+      </ThemedText>
+      <ThemedText style={styles.stepSubtitle}>
+        Help me pick the perfect outfit for you.
+      </ThemedText>
+
+      <View style={styles.eventQuestionsContainer}>
+        <ThemedText type="body" style={styles.eventQuestionLabel}>
+          What type of event?
+        </ThemedText>
+        <View style={styles.eventChipsRow}>
+          {eventTypes.map((type) => (
+            <Pressable
+              key={type.id}
+              onPress={() => setEventDetails(prev => ({ ...prev, eventType: type.id }))}
+              style={[
+                styles.eventChip,
+                eventDetails.eventType === type.id && styles.eventChipSelected,
+              ]}
+            >
+              <ThemedText
+                type="small"
+                style={[
+                  styles.eventChipText,
+                  eventDetails.eventType === type.id && styles.eventChipTextSelected,
+                ]}
+              >
+                {type.label}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </View>
+
+        <ThemedText type="body" style={styles.eventQuestionLabel}>
+          Dress code?
+        </ThemedText>
+        <View style={styles.eventChipsRow}>
+          {dressCodes.map((code) => (
+            <Pressable
+              key={code.id}
+              onPress={() => setEventDetails(prev => ({ ...prev, dressCode: code.id }))}
+              style={[
+                styles.eventChip,
+                eventDetails.dressCode === code.id && styles.eventChipSelected,
+              ]}
+            >
+              <ThemedText
+                type="small"
+                style={[
+                  styles.eventChipText,
+                  eventDetails.dressCode === code.id && styles.eventChipTextSelected,
+                ]}
+              >
+                {code.label}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </View>
+
+        <ThemedText type="body" style={styles.eventQuestionLabel}>
+          Time of day?
+        </ThemedText>
+        <View style={styles.eventChipsRow}>
+          {timeOptions.map((time) => (
+            <Pressable
+              key={time.id}
+              onPress={() => setEventDetails(prev => ({ ...prev, timeOfDay: time.id }))}
+              style={[
+                styles.eventChip,
+                eventDetails.timeOfDay === time.id && styles.eventChipSelected,
+              ]}
+            >
+              <ThemedText
+                type="small"
+                style={[
+                  styles.eventChipText,
+                  eventDetails.timeOfDay === time.id && styles.eventChipTextSelected,
+                ]}
+              >
+                {time.label}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.venueInputContainer}>
+          <ThemedText type="body" style={styles.eventQuestionLabel}>
+            Venue or location (optional)
+          </ThemedText>
+          <TextInput
+            value={eventDetails.venue}
+            onChangeText={(text) => setEventDetails(prev => ({ ...prev, venue: text }))}
+            placeholder="e.g. Rooftop bar, Art gallery..."
+            placeholderTextColor="rgba(255,255,255,0.4)"
+            style={styles.venueInput}
+          />
+        </View>
+      </View>
+
+      {eventDetails.eventType && eventDetails.dressCode ? (
+        <Pressable
+          onPress={() => setStep('context')}
+          style={styles.nextButton}
+        >
+          <LinearGradient
+            colors={getStylistGradient()}
+            style={styles.nextButtonGradient}
+          >
+            <ThemedText type="body" style={styles.nextButtonText}>
+              Style Me
             </ThemedText>
             <Feather name="arrow-right" size={18} color="#FFFFFF" />
           </LinearGradient>
@@ -982,6 +1190,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         <View style={styles.content}>
           {step === 'type' && renderTypeSelection()}
           {step === 'upload' && renderUpload()}
+          {step === 'event-questions' && renderEventQuestions()}
           {step === 'context' && renderContext()}
           {step === 'response' && renderResponse()}
         </View>
@@ -1163,6 +1372,90 @@ const styles = StyleSheet.create({
   },
   uploadButtonText: {
     color: 'rgba(255,255,255,0.6)',
+  },
+  surpriseMeSection: {
+    marginTop: Spacing.lg,
+  },
+  orDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  orText: {
+    color: 'rgba(255,255,255,0.5)',
+    marginHorizontal: Spacing.md,
+    fontSize: 14,
+  },
+  surpriseMeButton: {
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+  },
+  surpriseMeButtonGradient: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.lg,
+    gap: Spacing.xs,
+    borderRadius: BorderRadius.lg,
+  },
+  surpriseMeButtonText: {
+    color: '#1A1A2E',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  surpriseMeSubtext: {
+    color: 'rgba(26,26,46,0.7)',
+    fontSize: 12,
+  },
+  eventQuestionsContainer: {
+    gap: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  eventQuestionLabel: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginBottom: Spacing.sm,
+  },
+  eventChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  eventChip: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  eventChipSelected: {
+    backgroundColor: 'rgba(201,168,124,0.3)',
+    borderColor: '#C9A87C',
+  },
+  eventChipText: {
+    color: 'rgba(255,255,255,0.7)',
+  },
+  eventChipTextSelected: {
+    color: '#C9A87C',
+    fontWeight: '600',
+  },
+  venueInputContainer: {
+    marginTop: Spacing.sm,
+  },
+  venueInput: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    color: '#FFFFFF',
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   nextButton: {
     borderRadius: BorderRadius.full,
