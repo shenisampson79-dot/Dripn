@@ -457,46 +457,10 @@ class ApiService {
       headers['X-Guest-Token'] = this.guestToken;
     }
     
-    // Try resilient endpoint first (works without auth, auto guest fallback)
-    try {
-      const result = await this.request<{
-        success: boolean;
-        analysis: {
-          category: string;
-          color: string;
-          secondaryColor?: string;
-          style: string;
-          suggestedName: string;
-          brand?: string;
-          seasons: string[];
-          occasions: string[];
-          description: string;
-          confidence: number;
-        };
-        modelUsed: string;
-        guestToken?: string;
-        sessionBackup?: string;
-      }>('/api/wardrobe/analyze/resilient', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ 
-          imageBase64, 
-          detailed: options?.detailed ?? true,
-          analysisType: 'garment'
-        }),
-      });
-      
-      // Store tokens for future requests
-      if (result.guestToken) this.guestToken = result.guestToken;
-      if (result.sessionBackup) this.sessionBackup = result.sessionBackup;
-      
-      return result;
-    } catch (resilientError: any) {
-      console.log('[Wardrobe] Resilient endpoint not available, trying standard endpoint');
-    }
+    console.log('[Wardrobe] Calling /api/wardrobe/analyze/resilient endpoint');
     
-    // Fallback to standard endpoint
-    return this.request<{
+    // Use ONLY the resilient endpoint - no fallback to old auth-required endpoint
+    const result = await this.request<{
       success: boolean;
       analysis: {
         category: string;
@@ -511,7 +475,13 @@ class ApiService {
         confidence: number;
       };
       modelUsed: string;
-    }>('/api/wardrobe/analyze', {
+      guestToken?: string;
+      sessionBackup?: string;
+      scansRemaining?: number;
+      authMode?: string;
+      errorCode?: string;
+      message?: string;
+    }>('/api/wardrobe/analyze/resilient', {
       method: 'POST',
       headers,
       body: JSON.stringify({ 
@@ -520,6 +490,14 @@ class ApiService {
         analysisType: 'garment'
       }),
     });
+    
+    console.log('[Wardrobe] Resilient endpoint response received');
+    
+    // Store tokens for future requests
+    if (result.guestToken) this.guestToken = result.guestToken;
+    if (result.sessionBackup) this.sessionBackup = result.sessionBackup;
+    
+    return result;
   }
 
   async analyzeOutfitPhoto(imageBase64: string, options?: { detailed?: boolean; wardrobeItems?: any[] }) {
