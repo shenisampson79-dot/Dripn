@@ -1105,6 +1105,233 @@ app.post('/api/admin/setup', async (req, res) => {
   }
 });
 
+// ============ LANGUAGE & TRANSLATIONS ============
+
+const SUPPORTED_LANGUAGES = [
+  { code: 'en', name: 'English', nativeName: 'English', direction: 'ltr' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español', direction: 'ltr' },
+  { code: 'fr', name: 'French', nativeName: 'Français', direction: 'ltr' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', direction: 'ltr' },
+  { code: 'it', name: 'Italian', nativeName: 'Italiano', direction: 'ltr' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português', direction: 'ltr' },
+  { code: 'zh', name: 'Chinese', nativeName: '中文', direction: 'ltr' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語', direction: 'ltr' },
+  { code: 'ko', name: 'Korean', nativeName: '한국어', direction: 'ltr' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية', direction: 'rtl' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', direction: 'ltr' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский', direction: 'ltr' },
+];
+
+const TRANSLATIONS = {
+  es: {
+    'common.continue': 'Continuar',
+    'common.skip': 'Omitir',
+    'common.save': 'Guardar',
+    'common.cancel': 'Cancelar',
+    'common.back': 'Atrás',
+    'common.next': 'Siguiente',
+    'common.done': 'Hecho',
+    'common.loading': 'Cargando...',
+    'common.error': 'Error',
+    'common.retry': 'Reintentar',
+    'nav.home': 'Inicio',
+    'nav.wardrobe': 'Armario',
+    'nav.chat': 'Chat',
+    'nav.profile': 'Perfil',
+    'nav.settings': 'Ajustes',
+    'stylist.greeting': '¡Hola! ¿Cómo puedo ayudarte hoy?',
+    'stylist.thinking': 'Pensando...',
+    'stylist.askMe': 'Pregúntame cualquier cosa sobre moda...',
+    'stylist.voiceChat': 'Chat de voz',
+    'stylist.personalStylist': 'Estilista personal',
+    'wardrobe.addItem': 'Añadir prenda',
+    'wardrobe.empty': 'Tu armario está vacío',
+    'wardrobe.categories': 'Categorías',
+    'wardrobe.favorites': 'Favoritos',
+    'wardrobe.allItems': 'Todas las prendas',
+    'wardrobe.outfitCalendar': 'Calendario de outfits',
+    'settings.voiceAndLanguage': 'Voz e idioma',
+    'settings.language': 'Idioma',
+    'settings.voiceSpeed': 'Velocidad de voz',
+    'settings.autoPlayResponses': 'Reproducir respuestas automáticamente',
+    'settings.support': 'Soporte',
+    'settings.helpCenter': 'Centro de ayuda',
+    'settings.helpAndFaq': 'Ayuda y preguntas frecuentes',
+    'settings.chatWithJulia': 'Chatear con Julia',
+    'settings.subscription': 'Suscripción',
+    'settings.logout': 'Cerrar sesión',
+    'settings.slow': 'Lenta',
+    'settings.normal': 'Normal',
+    'settings.fast': 'Rápida',
+    'onboarding.steps.location.title': '¿Dónde te encuentras?',
+    'onboarding.steps.location.description': 'Esto nos ayuda a personalizar tu experiencia con tendencias y tiendas locales.',
+    'onboarding.steps.basics.title': 'Cuéntanos sobre ti',
+    'onboarding.steps.basics.description': 'Esto nos ayuda a darte consejos de estilo personalizados.',
+    'onboarding.steps.style.title': '¿Cuál es tu estilo?',
+    'onboarding.steps.style.description': 'Elige la estética que te identifica.',
+    'styleSelection.title': '¿Cuál es tu estilo?',
+    'styleSelection.subtitle': 'Elige la estética que te identifica',
+    'styleSelection.styles.streetwear.name': 'Streetwear',
+    'styleSelection.styles.streetwear.description': 'Urbano, atrevido, tendencia',
+    'styleSelection.styles.business.name': 'Negocios',
+    'styleSelection.styles.business.description': 'Trajes profesionales, camisas y ropa formal',
+    'styleSelection.styles.athletic.name': 'Deportivo',
+    'styleSelection.styles.athletic.description': 'Activo, dinámico, atlético',
+    'styleSelection.styles.boho.name': 'Boho',
+    'styleSelection.styles.boho.description': 'Terrenal, relajado, artístico',
+    'styleSelection.styles.minimalist.name': 'Minimalista',
+    'styleSelection.styles.minimalist.description': 'Piezas simples y atemporales',
+  },
+  fr: {
+    'common.continue': 'Continuer',
+    'common.skip': 'Passer',
+    'common.save': 'Sauvegarder',
+    'common.cancel': 'Annuler',
+    'common.back': 'Retour',
+    'common.next': 'Suivant',
+    'common.done': 'Terminé',
+    'common.loading': 'Chargement...',
+    'common.error': 'Erreur',
+    'common.retry': 'Réessayer',
+    'nav.home': 'Accueil',
+    'nav.wardrobe': 'Garde-robe',
+    'nav.chat': 'Chat',
+    'nav.profile': 'Profil',
+    'nav.settings': 'Paramètres',
+    'stylist.greeting': 'Bonjour! Comment puis-je vous aider aujourd\'hui?',
+    'stylist.thinking': 'Je réfléchis...',
+    'stylist.askMe': 'Posez-moi n\'importe quelle question sur la mode...',
+    'settings.language': 'Langue',
+    'settings.voiceAndLanguage': 'Voix et langue',
+    'settings.subscription': 'Abonnement',
+    'settings.logout': 'Déconnexion',
+  },
+  de: {
+    'common.continue': 'Weiter',
+    'common.skip': 'Überspringen',
+    'common.save': 'Speichern',
+    'common.cancel': 'Abbrechen',
+    'common.back': 'Zurück',
+    'common.next': 'Weiter',
+    'common.done': 'Fertig',
+    'nav.home': 'Startseite',
+    'nav.wardrobe': 'Kleiderschrank',
+    'nav.chat': 'Chat',
+    'nav.profile': 'Profil',
+    'nav.settings': 'Einstellungen',
+    'settings.language': 'Sprache',
+    'settings.subscription': 'Abonnement',
+    'settings.logout': 'Abmelden',
+  },
+};
+
+// Get available languages
+app.get('/api/languages', async (req, res) => {
+  res.json({ languages: SUPPORTED_LANGUAGES });
+});
+
+// Get user's current language
+app.get('/api/language/current', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT language_code FROM users WHERE id = $1',
+      [req.userId]
+    );
+    
+    const langCode = result.rows[0]?.language_code || 'en';
+    const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === langCode) || SUPPORTED_LANGUAGES[0];
+    const translations = TRANSLATIONS[langCode] || {};
+    
+    res.json({
+      languageCode: langCode,
+      nativeName: langInfo.nativeName,
+      direction: langInfo.direction,
+      translations
+    });
+  } catch (error) {
+    console.error('Get current language error:', error);
+    res.json({
+      languageCode: 'en',
+      nativeName: 'English',
+      direction: 'ltr',
+      translations: {}
+    });
+  }
+});
+
+// Set user's language
+app.post('/api/language', authMiddleware, async (req, res) => {
+  try {
+    const { languageCode, accent } = req.body;
+    
+    let targetLang = languageCode;
+    
+    // If accent is provided, map it to a language code
+    if (accent && !languageCode) {
+      const accentToLang = {
+        'Spanish': 'es',
+        'French': 'fr',
+        'German': 'de',
+        'Italian': 'it',
+        'Portuguese': 'pt',
+        'Chinese': 'zh',
+        'Japanese': 'ja',
+        'Korean': 'ko',
+        'Arabic': 'ar',
+        'Hindi': 'hi',
+        'Russian': 'ru',
+        'American': 'en',
+        'British': 'en',
+        'Australian': 'en',
+      };
+      targetLang = accentToLang[accent] || 'en';
+    }
+    
+    // Validate language code
+    const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === targetLang);
+    if (!langInfo) {
+      return res.status(400).json({ error: 'Unsupported language' });
+    }
+    
+    await pool.query(
+      'UPDATE users SET language_code = $1 WHERE id = $2',
+      [targetLang, req.userId]
+    );
+    
+    const translations = TRANSLATIONS[targetLang] || {};
+    
+    res.json({
+      success: true,
+      languageCode: targetLang,
+      nativeName: langInfo.nativeName,
+      direction: langInfo.direction,
+      translations
+    });
+  } catch (error) {
+    console.error('Set language error:', error);
+    res.status(500).json({ error: 'Failed to set language' });
+  }
+});
+
+// Get translations for a specific language
+app.get('/api/translations/:langCode', async (req, res) => {
+  const { langCode } = req.params;
+  
+  const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === langCode);
+  if (!langInfo) {
+    return res.status(404).json({ error: 'Language not found' });
+  }
+  
+  const translations = TRANSLATIONS[langCode] || {};
+  
+  res.json({
+    languageCode: langCode,
+    nativeName: langInfo.nativeName,
+    direction: langInfo.direction,
+    translations
+  });
+});
+
 // Register a new stylist (admin only)
 app.post('/api/admin/stylists', adminAuthMiddleware, async (req, res) => {
   try {
