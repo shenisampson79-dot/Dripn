@@ -1665,19 +1665,25 @@ export default function AIStylistScreen() {
       'sad', 'upset', 'angry', 'frustrated', 'stressed', 'anxious', 'worried', 'tired',
       'depressed', 'lonely', 'hurt', 'bad day', 'terrible', 'awful', 'horrible',
       'broke up', 'breakup', 'break up', 'dumped', 'heartbroken', 'heartbreak',
-      'crying', 'cried', 'tears', 'miss', 'lost', 'died', 'death', 'grief',
-      'hate', 'mad', 'furious', 'annoyed', 'irritated',
+      'crying', 'cried', 'tears', 'i miss', 'lost someone', 'died', 'death', 'grief',
+      'hate', 'so mad', 'furious', 'annoyed', 'irritated',
       'scared', 'afraid', 'nervous', 'panic', 'overwhelmed',
       'failed', 'failure', 'rejected', 'fired', 'laid off',
-      'girlfriend', 'boyfriend', 'partner', 'relationship', 'marriage', 'divorce'
+      'broke up with', 'my boyfriend', 'my girlfriend', 'my partner', 'my relationship', 'my marriage', 'divorce'
     ];
     const positiveKeywords = [
-      'happy', 'excited', 'great', 'amazing', 'wonderful', 'fantastic', 'love',
+      'happy', 'excited', 'great', 'amazing', 'wonderful', 'fantastic', 'love it',
       'grateful', 'thankful', 'blessed', 'lucky', 'awesome', 'brilliant'
     ];
     
-    const hasEmotionalContent = emotionalKeywords.some(keyword => lowerMessage.includes(keyword));
-    const hasPositiveContent = positiveKeywords.some(keyword => lowerMessage.includes(keyword));
+    // Use word boundary matching to avoid false positives (e.g., "made" matching "mad")
+    const matchesWord = (message: string, keyword: string) => {
+      const regex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return regex.test(message);
+    };
+    
+    const hasEmotionalContent = emotionalKeywords.some(keyword => matchesWord(lowerMessage, keyword));
+    const hasPositiveContent = positiveKeywords.some(keyword => matchesWord(lowerMessage, keyword));
     const seemsNegative = hasEmotionalContent && !hasPositiveContent;
     
     if (seemsNegative) {
