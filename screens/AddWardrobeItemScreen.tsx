@@ -41,6 +41,7 @@ import {
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { apiService } from "@/services/ApiService";
 import * as FileSystem from "expo-file-system/legacy";
+import Constants from "expo-constants";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -202,7 +203,8 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       
       // If backend failed, try local OpenAI fallback
       if (!analysis) {
-        const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+        const extra = Constants.expoConfig?.extra;
+        const OPENAI_API_KEY = extra?.OPENAI_API_KEY || process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
         if (OPENAI_API_KEY) {
           try {
             const prompt = `Analyze this clothing item photo. Identify the garment and provide accurate details.

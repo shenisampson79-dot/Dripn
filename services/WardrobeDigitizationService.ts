@@ -1,9 +1,14 @@
 import * as FileSystem from 'expo-file-system/legacy';
+import Constants from 'expo-constants';
 import { ClothingCategory, ClothingColor, ClothingSeason, ClothingOccasion } from '@/contexts/WardrobeContext';
 import { convertImageToBase64 } from './VisionAnalysisService';
 import { apiService, ColorConfig } from './ApiService';
 
-const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+const getOpenAIKey = () => {
+  const extra = Constants.expoConfig?.extra;
+  return extra?.OPENAI_API_KEY || process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+};
+const OPENAI_API_KEY = getOpenAIKey();
 
 // Cached color config from backend
 let colorConfigCache: ColorConfig | null = null;
