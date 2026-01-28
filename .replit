@@ -6,6 +6,10 @@ channel = "stable-24_05"
 packages = ["zip"]
 
 [[ports]]
+localPort = 3000
+externalPort = 3001
+
+[[ports]]
 localPort = 8081
 externalPort = 80
 
@@ -103,4 +107,4 @@ value = "0"
 [userenv]
 
 [userenv.shared]
-EXPO_PUBLIC_API_URL = "https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev"
+EXPO_PUBLIC_API_URL = "https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:3000"
