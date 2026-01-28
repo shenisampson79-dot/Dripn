@@ -1113,6 +1113,7 @@ export default function AIStylistScreen() {
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [messagesToday, setMessagesToday] = useState(0);
+  const [limitsLoaded, setLimitsLoaded] = useState(false);
   const [showQuickPrompts, setShowQuickPrompts] = useState(true);
   
   const [isRecording, setIsRecording] = useState(false);
@@ -1602,6 +1603,8 @@ export default function AIStylistScreen() {
       }
     } catch (error) {
       console.error('Failed to load daily message count:', error);
+    } finally {
+      setLimitsLoaded(true);
     }
   };
   
@@ -1951,7 +1954,7 @@ export default function AIStylistScreen() {
   );
   
   const remainingMessages = getRemainingMessages();
-  const limitReached = !canSendMessage();
+  const limitReached = useMemo(() => limitsLoaded && !canSendMessage(), [limitsLoaded, messagesToday, limits.aiChatMessagesPerDay]);
   
   // Memoize upgrade teaser values to prevent flickering on every keystroke
   const upgradeTeaserData = useMemo(() => {
