@@ -41,7 +41,6 @@ import {
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { apiService } from "@/services/ApiService";
 import * as FileSystem from "expo-file-system/legacy";
-import Constants from "expo-constants";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -98,6 +97,8 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalyzed, setAiAnalyzed] = useState(false);
+  const [scansRemaining, setScansRemaining] = useState<number | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
 
   const processImageWithAI = async (uri: string) => {
     setIsProcessingImage(true);
@@ -189,84 +190,36 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         });
       }
       
-      let analysis: any = null;
+      const result = await apiService.analyzeGarmentPhoto(imageBase64) as any;
       
-      // Try backend first
-      try {
-        const result = await apiService.analyzeGarmentPhoto(imageBase64);
-        if (result.success && result.analysis) {
-          analysis = result.analysis;
-        }
-      } catch (backendError: any) {
-        console.log('[AddWardrobe] Backend failed, trying local OpenAI fallback:', backendError.message);
-      }
-      
-      // If backend failed, try local OpenAI fallback
-      if (!analysis) {
-        const extra = Constants.expoConfig?.extra;
-        const OPENAI_API_KEY = extra?.OPENAI_API_KEY || process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-        if (OPENAI_API_KEY) {
-          try {
-            const prompt = `Analyze this clothing item photo. Identify the garment and provide accurate details.
-
-Return ONLY a valid JSON object with these exact fields:
-{
-  "category": one of [${validCategories.join(', ')}],
-  "color": one of [${validColors.join(', ')}],
-  "suggestedName": "descriptive name like 'Navy Blue Blazer' or 'White Cotton T-Shirt'",
-  "brand": "brand name if visible, otherwise null",
-  "seasons": array from [${validSeasons.join(', ')}],
-  "occasions": array from [${validOccasions.join(', ')}],
-  "description": "brief description of material, style, fit"
-}
-
-IMPORTANT:
-- For category, carefully distinguish: tops (shirts, t-shirts, blouses), bottoms (pants, jeans, shorts, skirts), dresses, outerwear (jackets, coats), shoes, bags, accessories
-- For color, look at the PRIMARY color of the garment. If denim fabric, use "denim" or "blue". If off-white/cream, use "beige"
-- Be accurate - users rely on this for their wardrobe`;
-
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`,
-              },
-              body: JSON.stringify({
-                model: 'gpt-5.2',
-                messages: [
-                  {
-                    role: 'user',
-                    content: [
-                      { type: 'text', text: prompt },
-                      {
-                        type: 'image_url',
-                        image_url: {
-                          url: `data:image/jpeg;base64,${imageBase64}`,
-                          detail: 'low',
-                        },
-                      },
-                    ],
-                  },
-                ],
-                max_tokens: 500,
-                temperature: 0.3,
-              }),
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              const content = data.choices?.[0]?.message?.content || '';
-              const jsonMatch = content.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
-                analysis = JSON.parse(jsonMatch[0]);
-                console.log('[AddWardrobe] Local OpenAI analysis succeeded');
-              }
+      // Handle guest limit reached
+      if (!result.success && result.errorCode === 'GUEST_LIMIT_REACHED') {
+        setIsAnalyzing(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        Alert.alert(
+          "Free Scans Used",
+          result.message || "You've used all 3 free scans. Sign up to unlock unlimited wardrobe scanning!",
+          [
+            { text: "Maybe Later", style: "cancel" },
+            { 
+              text: "Sign Up", 
+              style: "default",
+              onPress: () => navigation.navigate('Auth' as any)
             }
-          } catch (localError: any) {
-            console.error('[AddWardrobe] Local OpenAI also failed:', localError.message);
-          }
+          ]
+        );
+        return;
+      }
+      
+      // Track guest mode and scans remaining
+      if (result.authMode === 'guest') {
+        setIsGuest(true);
+        if (typeof result.scansRemaining === 'number') {
+          setScansRemaining(result.scansRemaining);
         }
       }
+      
+      const analysis = result.analysis;
       
       if (analysis) {
         if (analysis.category && validCategories.includes(analysis.category as ClothingCategory)) {
@@ -287,9 +240,16 @@ IMPORTANT:
         setAiAnalyzed(true);
         
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        
+        // Show scans remaining for guests
+        const remainingScans = result.scansRemaining;
+        const scansMessage = result.authMode === 'guest' && typeof remainingScans === 'number'
+          ? `\n\n${remainingScans} free scan${remainingScans !== 1 ? 's' : ''} remaining`
+          : '';
+        
         Alert.alert(
           "AI Analysis Complete",
-          `Detected: ${analysis.suggestedName || 'Fashion Item'}\n\nFeel free to adjust any details before saving.`,
+          `Detected: ${analysis.suggestedName || 'Fashion Item'}\n\nFeel free to adjust any details before saving.${scansMessage}`,
           [{ text: "Got it", style: "default" }]
         );
       } else {
