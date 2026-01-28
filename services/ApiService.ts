@@ -2854,7 +2854,7 @@ class ApiService {
       languageCode: string;
       nativeName: string;
       direction: 'ltr' | 'rtl';
-    }>('/api/language/set', {
+    }>('/api/language', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -2866,7 +2866,7 @@ class ApiService {
       nativeName: string;
       direction: 'ltr' | 'rtl';
       translations: Record<string, any>;
-    }>(`/api/i18n/translations/${code}`);
+    }>(`/api/translations/${code}`);
   }
 
   async updateProfileStyle(data: { preferredAccent?: string }) {
