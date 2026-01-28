@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StyleTheme, StyleThemes } from '@/constants/theme';
 import { apiService } from './ApiService';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev';
 
 const COLOR_TRENDS_CACHE_KEY = '@dripn_color_trends';
 const CACHE_EXPIRY_KEY = '@dripn_color_trends_expiry';

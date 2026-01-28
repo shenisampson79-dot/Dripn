@@ -76,7 +76,7 @@ class CommunityVotingServiceClass {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = "https://ebdc4c03-8d36-4aa1-bb96-6b14471d4732-00-23rsu0o9cqav1.spock.replit.dev";
+    this.baseUrl = process.env.EXPO_PUBLIC_API_URL || "https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev";
   }
 
   getVotingReasons(): typeof VOTING_REASONS {

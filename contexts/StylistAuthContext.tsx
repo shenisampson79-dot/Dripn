@@ -47,7 +47,7 @@ const StylistAuthContext = createContext<StylistAuthContextType | null>(null);
 const STYLIST_STORAGE_KEY = '@dripn_stylist';
 const STYLIST_TOKEN_KEY = '@dripn_stylist_token';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev';
 
 export function StylistAuthProvider({ children }: { children: ReactNode }) {
   const [stylist, setStylist] = useState<StylistProfile | null>(null);
