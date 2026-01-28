@@ -173,6 +173,11 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     setIsAnalyzing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
+    const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+    const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
+    const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
+    const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
+    
     try {
       let imageBase64: string;
       if (imageUri.startsWith('data:')) {
@@ -183,15 +188,85 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         });
       }
       
-      const result = await apiService.analyzeGarmentPhoto(imageBase64);
+      let analysis: any = null;
       
-      if (result.success && result.analysis) {
-        const analysis = result.analysis;
-        const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-        const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
-        const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
-        const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
-        
+      // Try backend first
+      try {
+        const result = await apiService.analyzeGarmentPhoto(imageBase64);
+        if (result.success && result.analysis) {
+          analysis = result.analysis;
+        }
+      } catch (backendError: any) {
+        console.log('[AddWardrobe] Backend failed, trying local OpenAI fallback:', backendError.message);
+      }
+      
+      // If backend failed, try local OpenAI fallback
+      if (!analysis) {
+        const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+        if (OPENAI_API_KEY) {
+          try {
+            const prompt = `Analyze this clothing item photo. Identify the garment and provide accurate details.
+
+Return ONLY a valid JSON object with these exact fields:
+{
+  "category": one of [${validCategories.join(', ')}],
+  "color": one of [${validColors.join(', ')}],
+  "suggestedName": "descriptive name like 'Navy Blue Blazer' or 'White Cotton T-Shirt'",
+  "brand": "brand name if visible, otherwise null",
+  "seasons": array from [${validSeasons.join(', ')}],
+  "occasions": array from [${validOccasions.join(', ')}],
+  "description": "brief description of material, style, fit"
+}
+
+IMPORTANT:
+- For category, carefully distinguish: tops (shirts, t-shirts, blouses), bottoms (pants, jeans, shorts, skirts), dresses, outerwear (jackets, coats), shoes, bags, accessories
+- For color, look at the PRIMARY color of the garment. If denim fabric, use "denim" or "blue". If off-white/cream, use "beige"
+- Be accurate - users rely on this for their wardrobe`;
+
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              },
+              body: JSON.stringify({
+                model: 'gpt-5.2',
+                messages: [
+                  {
+                    role: 'user',
+                    content: [
+                      { type: 'text', text: prompt },
+                      {
+                        type: 'image_url',
+                        image_url: {
+                          url: `data:image/jpeg;base64,${imageBase64}`,
+                          detail: 'low',
+                        },
+                      },
+                    ],
+                  },
+                ],
+                max_tokens: 500,
+                temperature: 0.3,
+              }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              const content = data.choices?.[0]?.message?.content || '';
+              const jsonMatch = content.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                analysis = JSON.parse(jsonMatch[0]);
+                console.log('[AddWardrobe] Local OpenAI analysis succeeded');
+              }
+            }
+          } catch (localError: any) {
+            console.error('[AddWardrobe] Local OpenAI also failed:', localError.message);
+          }
+        }
+      }
+      
+      if (analysis) {
         if (analysis.category && validCategories.includes(analysis.category as ClothingCategory)) {
           setCategory(analysis.category as ClothingCategory);
         }
