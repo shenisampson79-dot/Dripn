@@ -1778,79 +1778,24 @@ export default function AIStylistScreen() {
     } catch (error: any) {
       console.log('API call failed - Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       console.log('Error message:', error?.message);
-      console.log('Error stack:', error?.stack);
       
-      let response;
+      // The /api/chat/resilient endpoint should never fail with 401 - it auto-falls back to guest mode
+      // If we get here, it's a network error or server issue, not an auth problem
+      const isMale = stylist.id === 'max';
+      const isAce = stylist.id === 'ace';
       
-      // Try local OpenAI fallback first
-      const extra = Constants.expoConfig?.extra;
-      const OPENAI_API_KEY = extra?.OPENAI_API_KEY || process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-      
-      if (OPENAI_API_KEY) {
-        try {
-          console.log('[Stylist] Using local OpenAI fallback');
-          const isMale = stylist.id === 'max';
-          const isAce = stylist.id === 'ace';
-          
-          const stylistPersona = isMale 
-            ? `You are Max, a cool, confident, and knowledgeable fashion stylist. You're laid-back but genuinely helpful. You speak naturally, like a friend who happens to know a lot about fashion.`
-            : isAce
-            ? `You are Ace, a sophisticated and knowledgeable fashion stylist with an eye for luxury and timeless elegance. You're refined but approachable.`
-            : `You are Ruby, a warm, nurturing, and brilliantly knowledgeable fashion stylist. You're like a supportive best friend who adores fashion. You use terms of endearment like "gorgeous", "darling", "love", and "beautiful".`;
-          
-          const systemPrompt = `${stylistPersona}
-
-You work for Dripn, a fashion advice app. You can discuss ANY topic the user brings up - you're a well-rounded conversational partner who specializes in fashion. 
-
-When users ask about fashion history, celebrity style, brands, trends, or anything fashion-related, provide knowledgeable, accurate answers. For example, if asked about Michael Jackson's signature style, mention his iconic items like the single sequined glove, military-style jackets, fedora hats, and high-water pants with white socks.
-
-Keep responses conversational, warm, and helpful. Don't deflect questions - actually answer them.`;
-
-          const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${OPENAI_API_KEY}`,
-            },
-            body: JSON.stringify({
-              model: 'gpt-5.2',
-              messages: [
-                { role: 'system', content: systemPrompt },
-                ...updatedMessages.slice(-6).map(msg => ({
-                  role: msg.role,
-                  content: msg.content,
-                })),
-              ],
-              max_tokens: 500,
-              temperature: 0.8,
-            }),
-          });
-
-          if (openaiResponse.ok) {
-            const data = await openaiResponse.json();
-            const content = data.choices?.[0]?.message?.content || '';
-            if (content) {
-              console.log('[Stylist] Local OpenAI response:', content.substring(0, 100));
-              response = { content };
-            }
-          }
-        } catch (localError: any) {
-          console.log('[Stylist] Local OpenAI failed:', localError.message);
-        }
-      }
-      
-      // If local OpenAI also failed, use static fallback
-      if (!response) {
-        console.log('Using static fallback response');
-        response = generateAIResponse(text, wardrobeItems, user?.gender || 'unspecified', stylist.name);
-      }
+      // Simple connection error message - backend handles all AI including guest mode
+      const errorContent = isMale
+        ? "Hey, I'm having some trouble connecting right now. Give it another shot in a moment - I'll be right here when you're ready."
+        : isAce
+        ? "I apologize, but I'm experiencing a brief connection issue. Please try again in a moment - I'll be here."
+        : "Oh darling, I'm having a little trouble connecting right now. Give it another try in just a moment, gorgeous - I'll be right here waiting!";
       
       const assistantMessage: ChatMessage = {
         id: `msg_${Date.now()}_assistant`,
         role: 'assistant',
-        content: response.content,
+        content: errorContent,
         timestamp: new Date().toISOString(),
-        outfitSuggestion: response.outfitSuggestion,
       };
       
       const finalMessages = [...updatedMessages, assistantMessage];

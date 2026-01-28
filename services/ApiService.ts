@@ -1047,6 +1047,9 @@ class ApiService {
     });
   }
 
+  private sessionBackup: string | null = null;
+  private guestToken: string | null = null;
+
   async sendStylistMessage(data: {
     stylistId: string;
     messages: Array<{ role: string; content: string }>;
@@ -1064,6 +1067,7 @@ class ApiService {
     };
     stylistId?: string;
     error?: string;
+    guestMessagesRemaining?: number;
   }> {
     const { stylistId, ...rest } = data;
     
@@ -1072,11 +1076,22 @@ class ApiService {
     console.log('=== SENDING STYLIST MESSAGE ===');
     console.log('API URL:', API_URL);
     console.log('Has auth token:', !!token);
+    console.log('Has guest token:', !!this.guestToken);
+    console.log('Has session backup:', !!this.sessionBackup);
     console.log('Stylist:', stylistId);
     console.log('Message:', data.userMessage);
     
-    // Backend returns { response: string, stylist: string, ... }
-    // We need to map 'response' to 'content' for frontend compatibility
+    // Build headers with session backup for resilient auth
+    const headers: Record<string, string> = {};
+    if (this.sessionBackup) {
+      headers['X-Session-Backup'] = this.sessionBackup;
+    }
+    if (this.guestToken) {
+      headers['X-Guest-Token'] = this.guestToken;
+    }
+    
+    // Use resilient endpoint that works with or without authentication
+    // This endpoint provides automatic guest fallback with real AI
     const result = await this.request<{
       response?: string;
       content?: string;
@@ -1088,16 +1103,33 @@ class ApiService {
         topicType: string;
       };
       error?: string;
-    }>('/api/chat/message', {
+      guestToken?: string;
+      guestMessagesRemaining?: number;
+      sessionBackup?: string;
+    }>('/api/chat/resilient', {
       method: 'POST',
+      headers,
       body: JSON.stringify({ ...rest, stylist: stylistId, message: data.userMessage }),
     });
+    
+    // Store session backup and guest token for future requests
+    if (result.sessionBackup) {
+      this.sessionBackup = result.sessionBackup;
+      console.log('Session backup stored');
+    }
+    if (result.guestToken) {
+      this.guestToken = result.guestToken;
+      console.log('Guest token stored');
+    }
     
     // Log the raw response for debugging
     console.log('=== BACKEND RESPONSE ===');
     console.log('RAW BACKEND RESPONSE:', JSON.stringify(result));
     console.log('Response field:', result.response);
     console.log('Content field:', result.content);
+    if (result.guestMessagesRemaining !== undefined) {
+      console.log('Guest messages remaining:', result.guestMessagesRemaining);
+    }
     
     // Map backend 'response' field to frontend 'content' field
     const mappedContent = result.response || result.content || '';
@@ -1108,6 +1140,7 @@ class ApiService {
       mood: result.mood,
       stylistId: result.stylist || stylistId,
       error: result.error,
+      guestMessagesRemaining: result.guestMessagesRemaining,
     };
   }
 
