@@ -2063,9 +2063,8 @@ export default function AIStylistScreen() {
       </View>
       
       {showUpgradeTeaser ? (
-        <Animated.View 
+        <View 
           key="upgrade-teaser-stable"
-          entering={FadeIn.duration(400)}
           style={[styles.upgradeTeaserCard]}
         >
           <LinearGradient
@@ -2094,7 +2093,7 @@ export default function AIStylistScreen() {
               <Feather name="arrow-right" size={16} color={stylistGradient[0]} />
             </Pressable>
           </LinearGradient>
-        </Animated.View>
+        </View>
       ) : null}
       
     </View>
