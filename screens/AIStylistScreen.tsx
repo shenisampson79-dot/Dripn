@@ -48,6 +48,29 @@ import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { getStylistForUser, getStylistGreeting, PersonalStylist } from '@/services/PersonalStylistService';
+import type { SharedValue } from 'react-native-reanimated';
+
+interface WaveformBarProps {
+  bar: SharedValue<number>;
+  color: string;
+  style: any;
+}
+
+const WaveformBar = ({ bar, color, style }: WaveformBarProps) => {
+  const animatedStyle = useAnimatedStyle(() => ({
+    height: 20 * bar.value,
+  }));
+  
+  return (
+    <Animated.View
+      style={[
+        style,
+        { backgroundColor: color },
+        animatedStyle,
+      ]}
+    />
+  );
+};
 import { apiService } from '@/services/ApiService';
 import { useVoiceSettings, VoiceId } from '@/contexts/VoiceSettingsContext';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -2094,21 +2117,14 @@ export default function AIStylistScreen() {
 
             <View style={styles.recordingInfo}>
               <View style={styles.waveformContainer}>
-                {waveformBars.map((bar, index) => {
-                  const animatedStyle = useAnimatedStyle(() => ({
-                    height: 20 * bar.value,
-                  }));
-                  return (
-                    <Animated.View
-                      key={index}
-                      style={[
-                        styles.waveformBar,
-                        { backgroundColor: stylist.color },
-                        animatedStyle,
-                      ]}
-                    />
-                  );
-                })}
+                {waveformBars.map((bar, index) => (
+                  <WaveformBar
+                    key={index}
+                    bar={bar}
+                    color={stylist.color}
+                    style={styles.waveformBar}
+                  />
+                ))}
               </View>
               <ThemedText style={styles.recordingDuration}>
                 {formatRecordingDuration(recordingDuration)}
