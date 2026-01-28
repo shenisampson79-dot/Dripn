@@ -138,7 +138,7 @@ export async function getBestAvailableModel(
     }
   }
 
-  const fallback = fallbackModel || models[models.length - 1]?.id || 'gpt-4o';
+  const fallback = fallbackModel || models[models.length - 1]?.id || 'gpt-5.2';
   console.log(`No preferred models available for ${capability}, using fallback: ${fallback}`);
   return fallback;
 }
@@ -155,17 +155,17 @@ export function getBestModelSync(capability: ModelCapability): string {
 
   switch (capability) {
     case 'vision':
-      return 'gpt-4o';
+      return 'gpt-5.2';
     case 'text':
-      return 'gpt-4o';
+      return 'gpt-5.2';
     case 'reasoning':
-      return 'gpt-4o';
+      return 'gpt-5.2';
     case 'voice-transcription':
       return 'whisper-1';
     case 'voice-synthesis':
       return 'tts-1-hd';
     default:
-      return 'gpt-4o';
+      return 'gpt-5.2';
   }
 }
 

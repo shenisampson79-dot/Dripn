@@ -98,7 +98,7 @@ export async function analyzeGarmentImage(imageUri: string): Promise<GarmentAnal
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-5.2',
         messages: [
           {
             role: 'user',
@@ -216,7 +216,7 @@ Respond in JSON format:
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-5.2',
         messages: [
           {
             role: 'user',

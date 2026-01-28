@@ -160,7 +160,7 @@ export async function analyzeImageQuality(imageUri: string): Promise<{
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-5.2',
         messages: [
           {
             role: 'user',
@@ -248,7 +248,7 @@ IMPORTANT:
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5.2',
         messages: [
           {
             role: 'user',

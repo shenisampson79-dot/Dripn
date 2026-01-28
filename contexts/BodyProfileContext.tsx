@@ -290,7 +290,7 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
     setError(null);
 
     const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
-    const bestModel = await getBestAvailableModel('vision', apiKey, 'gpt-4o');
+    const bestModel = await getBestAvailableModel('vision', apiKey, 'gpt-5.2');
     console.log(`Using vision model: ${bestModel} for body scan`);
 
     try {
@@ -433,7 +433,7 @@ Respond in this exact JSON format:
     setError(null);
 
     const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
-    const bestModel = await getBestAvailableModel('vision', apiKey, 'gpt-4o');
+    const bestModel = await getBestAvailableModel('vision', apiKey, 'gpt-5.2');
     console.log(`Using vision model: ${bestModel} for color analysis`);
 
     try {
@@ -641,7 +641,7 @@ Respond in this exact JSON format:
     setError(null);
 
     const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
-    const bestModel = await getBestAvailableModel('text', apiKey, 'gpt-4o');
+    const bestModel = await getBestAvailableModel('text', apiKey, 'gpt-5.2');
     console.log(`Using text model: ${bestModel} for styling guide`);
 
     try {
