@@ -84,10 +84,6 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("Subscription");
   };
 
-  const handleVIPMembersPress = () => {
-    navigation.navigate("VIPMembers");
-  };
-
   const handleAdminDashboardPress = () => {
     navigation.navigate("AdminDashboard");
   };
@@ -208,25 +204,6 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             </ThemedText>
           </Pressable>
         </LinearGradient>
-
-        {limits.canMakeVideoCalls ? (
-          <LinearGradient
-            colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.vipButtonGradient}
-          >
-            <Pressable
-              onPress={handleVIPMembersPress}
-              style={styles.upgradeButtonInner}
-            >
-              <Feather name="video" size={18} color="#FFFFFF" />
-              <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                VIP Video Calling
-              </ThemedText>
-            </Pressable>
-          </LinearGradient>
-        ) : null}
 
         {isAdmin ? (
           <LinearGradient
@@ -730,9 +707,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   upgradeButtonGradient: {
-    borderRadius: BorderRadius.full,
-  },
-  vipButtonGradient: {
     borderRadius: BorderRadius.full,
   },
   upgradeButtonInner: {
