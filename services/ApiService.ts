@@ -448,8 +448,54 @@ class ApiService {
   }
 
   async analyzeGarmentPhoto(imageBase64: string, options?: { detailed?: boolean }) {
-    // ALWAYS use real backend for garment analysis - no mock mode
-    // This ensures AI-powered detection works even in dev mode
+    // Build headers with session backup for resilient auth
+    const headers: Record<string, string> = {};
+    if (this.sessionBackup) {
+      headers['X-Session-Backup'] = this.sessionBackup;
+    }
+    if (this.guestToken) {
+      headers['X-Guest-Token'] = this.guestToken;
+    }
+    
+    // Try resilient endpoint first (works without auth, auto guest fallback)
+    try {
+      const result = await this.request<{
+        success: boolean;
+        analysis: {
+          category: string;
+          color: string;
+          secondaryColor?: string;
+          style: string;
+          suggestedName: string;
+          brand?: string;
+          seasons: string[];
+          occasions: string[];
+          description: string;
+          confidence: number;
+        };
+        modelUsed: string;
+        guestToken?: string;
+        sessionBackup?: string;
+      }>('/api/wardrobe/analyze/resilient', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ 
+          imageBase64, 
+          detailed: options?.detailed ?? true,
+          analysisType: 'garment'
+        }),
+      });
+      
+      // Store tokens for future requests
+      if (result.guestToken) this.guestToken = result.guestToken;
+      if (result.sessionBackup) this.sessionBackup = result.sessionBackup;
+      
+      return result;
+    } catch (resilientError: any) {
+      console.log('[Wardrobe] Resilient endpoint not available, trying standard endpoint');
+    }
+    
+    // Fallback to standard endpoint
     return this.request<{
       success: boolean;
       analysis: {
@@ -467,6 +513,7 @@ class ApiService {
       modelUsed: string;
     }>('/api/wardrobe/analyze', {
       method: 'POST',
+      headers,
       body: JSON.stringify({ 
         imageBase64, 
         detailed: options?.detailed ?? true,
