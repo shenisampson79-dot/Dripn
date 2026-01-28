@@ -580,33 +580,6 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
               <ThemedText type="caption" style={[styles.aiHintText, { color: theme.tabIconDefault }]}>
                 AI will auto-fill item details from screenshots or photos
               </ThemedText>
-              <View style={styles.visualGuideContainer}>
-                <ThemedText type="small" style={[styles.photoTipsTitle, { color: theme.text }]}>
-                  Photo guide
-                </ThemedText>
-                <View style={styles.visualExamplesRow}>
-                  <View style={styles.visualExampleCard}>
-                    <View style={[styles.visualBadge, { backgroundColor: '#10B981' }]}>
-                      <Feather name="check" size={10} color="#FFFFFF" />
-                    </View>
-                    <Image
-                      source={require('@/assets/images/clothing-tips-correct.png')}
-                      style={styles.visualExampleImage}
-                      contentFit="cover"
-                    />
-                  </View>
-                  <View style={styles.visualExampleCard}>
-                    <View style={[styles.visualBadge, { backgroundColor: '#E57373' }]}>
-                      <Feather name="x" size={10} color="#FFFFFF" />
-                    </View>
-                    <Image
-                      source={require('@/assets/images/clothing-tips-incorrect.png')}
-                      style={styles.visualExampleImage}
-                      contentFit="cover"
-                    />
-                  </View>
-                </View>
-              </View>
             </View>
           ) : (
             <View>
@@ -634,33 +607,6 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
                     </ThemedText>
                   </View>
                 )}
-              </View>
-              <View style={styles.visualGuideContainer}>
-                <ThemedText type="small" style={[styles.photoTipsTitle, { color: theme.text }]}>
-                  Photo guide
-                </ThemedText>
-                <View style={styles.visualExamplesRow}>
-                  <View style={styles.visualExampleCard}>
-                    <View style={[styles.visualBadge, { backgroundColor: '#10B981' }]}>
-                      <Feather name="check" size={10} color="#FFFFFF" />
-                    </View>
-                    <Image
-                      source={require('@/assets/images/clothing-tips-correct.png')}
-                      style={styles.visualExampleImage}
-                      contentFit="cover"
-                    />
-                  </View>
-                  <View style={styles.visualExampleCard}>
-                    <View style={[styles.visualBadge, { backgroundColor: '#E57373' }]}>
-                      <Feather name="x" size={10} color="#FFFFFF" />
-                    </View>
-                    <Image
-                      source={require('@/assets/images/clothing-tips-incorrect.png')}
-                      style={styles.visualExampleImage}
-                      contentFit="cover"
-                    />
-                  </View>
-                </View>
               </View>
             </View>
           )}
