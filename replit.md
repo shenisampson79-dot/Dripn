@@ -42,3 +42,12 @@ The app features a 4-tab structure: Home ("Today's Decision"), Wardrobe, Ask Sty
 - **PostgreSQL**: The backend database.
 - **Affiliate APIs**: Integrated for "Shop Now" functionality.
 - **Event APIs**: Timeout, TodayTix, Eventbrite, and Meetup are integrated for event discovery.
+
+## Backend Configuration
+- **Backend API**: Express.js server located in `backend-code/` folder
+- **Backend Port**: Runs on internal port 8082, mapped to external port 3000
+- **Frontend API URL**: Set via `EXPO_PUBLIC_API_URL` environment variable pointing to port 3000
+- **Workflows**: 
+  - "Backend API" - Runs the Express backend on port 8082
+  - "Start application" - Runs Expo Metro bundler on port 8081
+- **API Endpoints**: All endpoints use `/api/` prefix with resilient fallback versions available (e.g., `/api/wardrobe/analyze/resilient`)
