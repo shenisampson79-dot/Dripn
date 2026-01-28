@@ -2240,8 +2240,7 @@ export default function AIStylistScreen() {
           </View>
         ) : null}
         {limitReached ? (
-          <Animated.View 
-            entering={FadeIn.duration(300)}
+          <View 
             style={[
               styles.limitReachedBanner, 
               { backgroundColor: theme.warning + '20' }
@@ -2254,7 +2253,7 @@ export default function AIStylistScreen() {
             <Pressable onPress={navigateToSubscription}>
               <ThemedText style={[styles.upgradeLink, { color: theme.link }]}>Upgrade</ThemedText>
             </Pressable>
-          </Animated.View>
+          </View>
         ) : null}
         <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundSecondary }]}>
           <Pressable
