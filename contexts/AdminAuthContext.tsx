@@ -45,7 +45,7 @@ const AdminAuthContext = createContext<AdminAuthContextType | null>(null);
 const ADMIN_STORAGE_KEY = '@dripn_admin';
 const ADMIN_TOKEN_KEY = '@dripn_admin_token';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:3000';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev';
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminProfile | null>(null);

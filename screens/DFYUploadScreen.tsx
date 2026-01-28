@@ -106,7 +106,7 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
 
     try {
       const base64 = await convertToBase64(image.uri);
-      const response = await apiService.post<{ item: AnalyzedItem }>("/api/wardrobe/analyze", {
+      const response = await apiService.post<{ item: AnalyzedItem }>("/api/wardrobe/analyze/resilient", {
         imageBase64: base64,
       });
 
