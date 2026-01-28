@@ -1,6 +1,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer, NavigationIndependentTree } from "@react-navigation/native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import StylistLoginScreen from "@/screens/StylistLoginScreen";
 import StylistDashboardScreen from "@/screens/StylistDashboardScreen";
@@ -46,6 +47,37 @@ export default function StylistStackNavigator({ mode, onExit }: StylistStackNavi
 
   if (mode === 'admin') {
     return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <NavigationIndependentTree>
+          <NavigationContainer>
+            <Stack.Navigator
+              screenOptions={{
+                ...commonOptions,
+                headerShown: false,
+              }}
+            >
+              {isAdminAuth ? (
+                <Stack.Screen
+                  name="AdminDashboard"
+                >
+                  {(props) => <AdminStylistScreen {...props} onExit={onExit} onLogout={handleAdminLogout} />}
+                </Stack.Screen>
+              ) : (
+                <Stack.Screen
+                  name="AdminLogin"
+                >
+                  {(props) => <AdminLoginScreen {...props} onExit={onExit} />}
+                </Stack.Screen>
+              )}
+            </Stack.Navigator>
+          </NavigationContainer>
+        </NavigationIndependentTree>
+      </GestureHandlerRootView>
+    );
+  }
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationIndependentTree>
         <NavigationContainer>
           <Stack.Navigator
@@ -54,56 +86,29 @@ export default function StylistStackNavigator({ mode, onExit }: StylistStackNavi
               headerShown: false,
             }}
           >
-            {isAdminAuth ? (
-              <Stack.Screen
-                name="AdminDashboard"
-              >
-                {(props) => <AdminStylistScreen {...props} onExit={onExit} onLogout={handleAdminLogout} />}
-              </Stack.Screen>
+            {isStylistAuth ? (
+              <>
+                <Stack.Screen
+                  name="StylistDashboard"
+                >
+                  {(props) => <StylistDashboardScreen {...props} onExit={onExit} onLogout={handleStylistLogout} />}
+                </Stack.Screen>
+                <Stack.Screen
+                  name="SessionDetail"
+                >
+                  {(props) => <SessionDetailScreen {...props} onExit={onExit} />}
+                </Stack.Screen>
+              </>
             ) : (
               <Stack.Screen
-                name="AdminLogin"
+                name="StylistLogin"
               >
-                {(props) => <AdminLoginScreen {...props} onExit={onExit} />}
+                {(props) => <StylistLoginScreen {...props} onExit={onExit} />}
               </Stack.Screen>
             )}
           </Stack.Navigator>
         </NavigationContainer>
       </NavigationIndependentTree>
-    );
-  }
-
-  return (
-    <NavigationIndependentTree>
-      <NavigationContainer>
-        <Stack.Navigator
-          screenOptions={{
-            ...commonOptions,
-            headerShown: false,
-          }}
-        >
-          {isStylistAuth ? (
-            <>
-              <Stack.Screen
-                name="StylistDashboard"
-              >
-                {(props) => <StylistDashboardScreen {...props} onExit={onExit} onLogout={handleStylistLogout} />}
-              </Stack.Screen>
-              <Stack.Screen
-                name="SessionDetail"
-              >
-                {(props) => <SessionDetailScreen {...props} onExit={onExit} />}
-              </Stack.Screen>
-            </>
-          ) : (
-            <Stack.Screen
-              name="StylistLogin"
-            >
-              {(props) => <StylistLoginScreen {...props} onExit={onExit} />}
-            </Stack.Screen>
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
-    </NavigationIndependentTree>
+    </GestureHandlerRootView>
   );
 }
