@@ -1450,6 +1450,42 @@ class ApiService {
     });
   }
 
+  // ===== WARDROBE BATCH UPLOAD =====
+  async uploadWardrobeBatch(items: Array<{
+    name: string;
+    category: string;
+    subcategory?: string;
+    imageBase64?: string;
+    imageUrl?: string;
+    color: string;
+    season?: string | string[];
+    occasions?: string[];
+    brand?: string | null;
+    itemType?: string;
+  }>) {
+    return this.request<{
+      success: boolean;
+      saved: number;
+      failed: number;
+      items: Array<{
+        id: string;
+        name: string;
+        category: string;
+        color: string;
+        imageUrl?: string;
+      }>;
+      errors: Array<{
+        index: number;
+        name: string;
+        error: string;
+      }>;
+    }>('/api/wardrobe/batch', {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+      timeout: 120000, // 2 minute timeout for batch uploads
+    });
+  }
+
   // ===== VISUAL SEARCH =====
   async visualSearchMarketplace(data: {
     imageUrl?: string;

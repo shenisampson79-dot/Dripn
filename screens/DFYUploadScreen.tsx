@@ -235,24 +235,49 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      for (const image of analyzedImages) {
-        if (!image.analysis) continue;
-        const base64 = await convertToBase64(image.uri);
-        await apiService.post("/api/wardrobe", {
-          name: image.name || `${image.analysis.color.primary} ${image.analysis.subcategory}`,
-          category: image.analysis.category,
-          subcategory: image.analysis.subcategory,
-          imageBase64: base64,
-          color: image.analysis.color.primary,
-          season: image.analysis.season,
-          occasions: image.analysis.occasions,
-          brand: image.analysis.brand,
-          itemType: "owned",
-        });
+      // Prepare all items for batch upload
+      const itemsToUpload = await Promise.all(
+        analyzedImages.map(async (image) => {
+          if (!image.analysis) return null;
+          const base64 = await convertToBase64(image.uri);
+          return {
+            name: image.name || `${image.analysis.color.primary} ${image.analysis.subcategory}`,
+            category: image.analysis.category,
+            subcategory: image.analysis.subcategory,
+            imageBase64: base64,
+            color: image.analysis.color.primary,
+            season: image.analysis.season,
+            occasions: image.analysis.occasions,
+            brand: image.analysis.brand,
+            itemType: "owned",
+          };
+        })
+      );
+
+      // Filter out null items and upload in batch
+      const validItems = itemsToUpload.filter((item): item is NonNullable<typeof item> => item !== null);
+      
+      if (validItems.length > 0) {
+        const result = await apiService.uploadWardrobeBatch(validItems);
+        
+        // Mark all items as saved
         setImages((prev) =>
-          prev.map((img) => (img.id === image.id ? { ...img, status: "saved" } : img))
+          prev.map((img) => 
+            img.status === "analyzed" ? { ...img, status: "saved" } : img
+          )
         );
+
+        // Show success with count
+        console.log(`Batch upload complete: ${result.saved} saved, ${result.failed} failed`);
+        
+        if (result.failed > 0 && result.errors.length > 0) {
+          Alert.alert(
+            "Partial Upload",
+            `${result.saved} items saved successfully. ${result.failed} items failed to save.`
+          );
+        }
       }
+      
       navigation.navigate("Confirmation", { type: uploadType });
     } catch (error) {
       console.error("Upload error:", error);
