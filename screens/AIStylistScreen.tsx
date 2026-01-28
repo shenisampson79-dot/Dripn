@@ -200,6 +200,16 @@ function generateAIResponse(
     'light academia', 'cottagecore', 'gorpcore', 'normcore', 'athleisure',
     'sustainable fashion', 'fast fashion', 'capsule wardrobe',
     'princess diana', 'coco chanel', 'audrey hepburn', 'anna wintour',
+    // Celebrity fashion icons and style influencers
+    'michael jackson', 'beyonce', 'rihanna', 'lady gaga', 'madonna', 'david bowie',
+    'harry styles', 'billie eilish', 'kate moss', 'naomi campbell', 'cindy crawford',
+    'elvis presley', 'marilyn monroe', 'james dean', 'steve mcqueen', 'grace kelly',
+    'jackie kennedy', 'twiggy', 'edie sedgwick', 'jane birkin', 'brigitte bardot',
+    'kanye west', 'pharrell', 'asap rocky', 'travis scott', 'tyler the creator',
+    'victoria beckham', 'meghan markle', 'kate middleton', 'zendaya', 'timothee chalamet',
+    // Fashion question patterns
+    'known for wearing', 'famous for wearing', 'signature look', 'signature style',
+    'what did', 'what does', 'what was', 'iconic look', 'iconic outfit',
     'fashion week', 'runway', 'haute couture', 'ready to wear', 'prêt-à-porter',
     'revenge dress', 'little black dress', 'power suit',
     'fashion trend', 'style trend', 'fashion movement', 'aesthetic',
@@ -291,19 +301,42 @@ function generateAIResponse(
   
   // FASHION KNOWLEDGE CHECK - Must come BEFORE greeting check!
   // Questions about fashion history, brands, trends should be answered, not deflected
-  if (isFashionKnowledge && !hasOutfitIntent) {
+  // Also check for question patterns that indicate knowledge questions even with outfit words
+  const isQuestionPattern = lowerMessage.startsWith('what') || lowerMessage.startsWith('who') || 
+    lowerMessage.startsWith('when') || lowerMessage.startsWith('where') || lowerMessage.startsWith('why') ||
+    lowerMessage.startsWith('how') || lowerMessage.includes('known for') || lowerMessage.includes('famous for') ||
+    lowerMessage.includes('signature') || lowerMessage.includes('iconic');
+  const isFashionHistoryQuestion = isFashionKnowledge && isQuestionPattern;
+  
+  if (isFashionKnowledge && (!hasOutfitIntent || isFashionHistoryQuestion)) {
+    // Context-aware responses for specific celebrities/topics
+    if (lowerMessage.includes('michael jackson')) {
+      const mjResponse = isMaleStylist
+        ? "Michael Jackson was an absolute style icon! He's known for the single sequined glove - usually just on one hand, which became his signature. The military-style jackets with gold buttons and epaulettes, especially the red one from Thriller. His fedora hats, high-water pants with white socks, loafers, and those iconic aviator sunglasses. The leather jacket from Thriller is legendary. His style was all about being bold, theatrical, and completely unforgettable."
+        : "Oh, Michael Jackson was incredible, gorgeous! He's famous for his single sequined glove - just on one hand, so iconic! Those stunning military-style jackets with gold buttons, especially the red leather one from Thriller. His signature fedora hats, high-water pants with white socks and loafers - such a distinctive look! The aviators, the leather jackets - he was theatrical, bold, and absolutely unforgettable, darling!";
+      return { content: mjResponse };
+    }
+    if (lowerMessage.includes('princess diana')) {
+      const dianaResponse = isMaleStylist
+        ? "Princess Diana was a fashion powerhouse. The 'revenge dress' - that black off-shoulder number she wore the night Charles admitted to affairs - is legendary. She popularized the 'Sloane Ranger' look, wore incredible Catherine Walker gowns, and wasn't afraid to break royal protocol with her fashion choices. Those oversized sweaters, cycling shorts, and sneakers combo she wore casually is iconic streetwear now."
+        : "Oh, Princess Diana, how I adore her style, gorgeous! The 'revenge dress' - that stunning black off-shoulder Christina Stambolian number - is legendary! She made Catherine Walker gowns famous, brought the 'Sloane Ranger' look mainstream, and broke so many royal fashion rules beautifully. Even her casual looks - oversized sweaters with cycling shorts and sneakers - are iconic streetwear inspiration today, darling!";
+      return { content: dianaResponse };
+    }
+    if (lowerMessage.includes('rihanna')) {
+      const rihannaResponse = isMaleStylist
+        ? "Rihanna is a fashion chameleon - she literally launched a luxury fashion house with LVMH (Fenty). She's known for taking huge risks: Met Gala looks like the yellow Guo Pei gown and the Pope-inspired Maison Margiela outfit. She mixes high fashion with streetwear effortlessly, and her maternity style completely redefined what pregnant women can wear in fashion."
+        : "Rihanna is EVERYTHING, gorgeous! She launched Fenty with LVMH - a groundbreaking moment! Her Met Gala looks are legendary - that yellow Guo Pei gown, the Pope-inspired Maison Margiela piece. She mixes couture with streetwear so beautifully, and her maternity fashion? She completely rewrote the rules, darling! Absolute icon!";
+      return { content: rihannaResponse };
+    }
+    // Generic fashion knowledge responses
     const fashionKnowledgeResponses = isMaleStylist ? [
-      "That's a great fashion question! I love talking about this stuff. The first Air Jordans dropped in 1985 - they were designed by Peter Moore and were revolutionary for basketball and streetwear. They were so iconic that the NBA actually fined Michael Jordan for wearing them because they violated uniform rules. That controversy just made them more legendary!",
-      "Oh man, great question! Fashion history is fascinating. What specifically would you like to know? I can share what I know about brands, trends, iconic moments, or the evolution of styles. There's so much good stuff to explore.",
-      "I love that you're curious about fashion history! There's so much depth to explore - from iconic designs to brand origins to how trends evolve. What aspect are you most interested in?",
-      "Great question - this is actually something I find really interesting. Fashion has such rich history and meaning behind it. Let me share what I know about that...",
-      "That's something I genuinely enjoy discussing! Fashion isn't just about what we wear - it's culture, history, and self-expression. What would you like to explore?",
+      "That's a great fashion question! Fashion history is genuinely fascinating. I love how style reflects culture, movements, and individual expression. What specifically would you like to dive into?",
+      "Good question! There's so much depth to fashion - it's not just clothes, it's culture, history, and identity wrapped together. I can share what I know about specific designers, trends, or iconic moments.",
+      "I love that you're curious about this! Fashion has such rich history and meaning behind it. Whether it's brand origins, celebrity style, or trend evolution - I'm here to explore it with you.",
     ] : [
-      "Oh, I love this question, gorgeous! Fashion history is so fascinating. The first Air Jordans came out in 1985 and completely changed the game! They were designed by Peter Moore and became iconic not just for basketball but for street style too. The NBA actually fined Michael Jordan for wearing them - how iconic is that?",
-      "What a wonderful thing to ask about, darling! The stories behind fashion are so beautiful. I'd love to share what I know - which part of fashion history are you most curious about?",
-      "I adore discussing fashion like this, love! There's so much depth and meaning in these trends and brands. What would you like to explore together?",
-      "Such a lovely question, beautiful! Fashion is more than just clothes - it's culture, history, and expression. Tell me more about what you'd like to know!",
-      "Oh, this makes my heart happy, gorgeous! I love when we can explore the deeper side of fashion together. What aspect fascinates you most?",
+      "Oh, I love this question, gorgeous! Fashion history is absolutely fascinating - there's so much beauty and meaning in how style evolves. What specifically would you like to explore together, darling?",
+      "What a wonderful thing to ask about, beautiful! Fashion is culture, history, and self-expression all wrapped into one. I'd love to share what I know about specific designers, trends, or iconic moments!",
+      "Such a lovely question, love! There's so much depth to explore - from legendary designers to cultural movements. Tell me more about what you're curious about!",
     ];
     return { content: fashionKnowledgeResponses[Math.floor(Math.random() * fashionKnowledgeResponses.length)] };
   }
@@ -1780,7 +1813,7 @@ Keep responses conversational, warm, and helpful. Don't deflect questions - actu
               'Authorization': `Bearer ${OPENAI_API_KEY}`,
             },
             body: JSON.stringify({
-              model: 'gpt-4o-mini',
+              model: 'gpt-5.2',
               messages: [
                 { role: 'system', content: systemPrompt },
                 ...updatedMessages.slice(-6).map(msg => ({
