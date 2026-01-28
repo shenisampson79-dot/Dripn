@@ -74,6 +74,7 @@ const WaveformBar = ({ bar, color, style }: WaveformBarProps) => {
 import { apiService } from '@/services/ApiService';
 import { useVoiceSettings, VoiceId } from '@/contexts/VoiceSettingsContext';
 import * as FileSystem from 'expo-file-system/legacy';
+import Constants from 'expo-constants';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const INPUT_CONTAINER_HEIGHT = 80;
@@ -1746,19 +1747,68 @@ export default function AIStylistScreen() {
       console.log('Error message:', error?.message);
       console.log('Error stack:', error?.stack);
       
-      // Check if this is an authentication error
-      const isAuthError = error?.message?.includes('Authentication required') || 
-                          error?.message?.includes('Unauthorized') ||
-                          error?.message?.includes('401');
-      
       let response;
-      if (isAuthError) {
-        console.log('Auth error - showing login prompt');
-        response = {
-          content: `I'd love to help you with that! To get personalized fashion advice powered by AI, please sign in to your account. Once you're logged in, I can give you tailored recommendations based on your style profile and wardrobe. Tap the Profile tab to sign in!`,
-        };
-      } else {
-        console.log('Using fallback response');
+      
+      // Try local OpenAI fallback first
+      const extra = Constants.expoConfig?.extra;
+      const OPENAI_API_KEY = extra?.OPENAI_API_KEY || process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+      
+      if (OPENAI_API_KEY) {
+        try {
+          console.log('[Stylist] Using local OpenAI fallback');
+          const isMale = stylist.id === 'max';
+          const isAce = stylist.id === 'ace';
+          
+          const stylistPersona = isMale 
+            ? `You are Max, a cool, confident, and knowledgeable fashion stylist. You're laid-back but genuinely helpful. You speak naturally, like a friend who happens to know a lot about fashion.`
+            : isAce
+            ? `You are Ace, a sophisticated and knowledgeable fashion stylist with an eye for luxury and timeless elegance. You're refined but approachable.`
+            : `You are Ruby, a warm, nurturing, and brilliantly knowledgeable fashion stylist. You're like a supportive best friend who adores fashion. You use terms of endearment like "gorgeous", "darling", "love", and "beautiful".`;
+          
+          const systemPrompt = `${stylistPersona}
+
+You work for Dripn, a fashion advice app. You can discuss ANY topic the user brings up - you're a well-rounded conversational partner who specializes in fashion. 
+
+When users ask about fashion history, celebrity style, brands, trends, or anything fashion-related, provide knowledgeable, accurate answers. For example, if asked about Michael Jackson's signature style, mention his iconic items like the single sequined glove, military-style jackets, fedora hats, and high-water pants with white socks.
+
+Keep responses conversational, warm, and helpful. Don't deflect questions - actually answer them.`;
+
+          const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                ...updatedMessages.slice(-6).map(msg => ({
+                  role: msg.role,
+                  content: msg.content,
+                })),
+              ],
+              max_tokens: 500,
+              temperature: 0.8,
+            }),
+          });
+
+          if (openaiResponse.ok) {
+            const data = await openaiResponse.json();
+            const content = data.choices?.[0]?.message?.content || '';
+            if (content) {
+              console.log('[Stylist] Local OpenAI response:', content.substring(0, 100));
+              response = { content };
+            }
+          }
+        } catch (localError: any) {
+          console.log('[Stylist] Local OpenAI failed:', localError.message);
+        }
+      }
+      
+      // If local OpenAI also failed, use static fallback
+      if (!response) {
+        console.log('Using static fallback response');
         response = generateAIResponse(text, wardrobeItems, user?.gender || 'unspecified', stylist.name);
       }
       
@@ -1953,7 +2003,7 @@ export default function AIStylistScreen() {
 
   const moodInfo = getMoodInfo();
 
-  const getStylistGradient = (): readonly [string, string] => {
+  const stylistGradient = useMemo((): readonly [string, string] => {
     switch (stylist.id) {
       case 'ruby':
         return [LUXURY_COLORS.rose, LUXURY_COLORS.berry] as const;
@@ -1964,14 +2014,14 @@ export default function AIStylistScreen() {
       default:
         return [LUXURY_COLORS.coral, '#C46A4F'] as const;
     }
-  };
+  }, [stylist.id]);
 
   const renderHeader = () => (
     <View style={styles.headerContent}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <LinearGradient
-            colors={getStylistGradient()}
+            colors={stylistGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.stylistIcon}
@@ -2027,11 +2077,12 @@ export default function AIStylistScreen() {
       
       {showUpgradeTeaser ? (
         <Animated.View 
+          key="upgrade-teaser-stable"
           entering={FadeIn.duration(400)}
           style={[styles.upgradeTeaserCard]}
         >
           <LinearGradient
-            colors={getStylistGradient()}
+            colors={stylistGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.upgradeTeaserGradient}
@@ -2053,7 +2104,7 @@ export default function AIStylistScreen() {
               ]}
             >
               <ThemedText style={styles.upgradeTeaserButtonText}>Upgrade Now</ThemedText>
-              <Feather name="arrow-right" size={16} color={getStylistGradient()[0]} />
+              <Feather name="arrow-right" size={16} color={stylistGradient[0]} />
             </Pressable>
           </LinearGradient>
         </Animated.View>
@@ -2074,13 +2125,13 @@ export default function AIStylistScreen() {
       {isTyping ? (
         <View style={styles.typingContainer}>
           <LinearGradient
-            colors={getStylistGradient()}
+            colors={stylistGradient}
             style={styles.avatarContainer}
           >
             <Feather name={moodInfo ? moodInfo.icon : stylist.icon} size={16} color={stylist.id === 'ace' ? LUXURY_COLORS.midnight : "#FFFFFF"} />
           </LinearGradient>
           <View style={[styles.typingBubble, { backgroundColor: theme.backgroundSecondary }]}>
-            <ActivityIndicator size="small" color={getStylistGradient()[0]} />
+            <ActivityIndicator size="small" color={stylistGradient[0]} />
             <ThemedText style={[styles.typingText, { color: theme.tabIconDefault }]}>
               {getTypingMessage()}
             </ThemedText>
