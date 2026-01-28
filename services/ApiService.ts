@@ -76,9 +76,18 @@ class ApiService {
   }
 
   async getToken() {
-    if (!this.token) {
-      this.token = await AsyncStorage.getItem(TOKEN_KEY);
+    // Always check AsyncStorage to handle cases where token was set elsewhere
+    // or after initial load (e.g., user logged in after app start)
+    const storedToken = await AsyncStorage.getItem(TOKEN_KEY);
+    if (storedToken !== this.token) {
+      this.token = storedToken;
     }
+    return this.token;
+  }
+  
+  // Force refresh token from storage (call after login)
+  async refreshToken() {
+    this.token = await AsyncStorage.getItem(TOKEN_KEY);
     return this.token;
   }
 
