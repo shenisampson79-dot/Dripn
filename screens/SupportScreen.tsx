@@ -15,7 +15,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeInUp, FadeInDown } from 'react-native-reanimated';
-import { KeyboardStickyView, KeyboardProvider } from 'react-native-keyboard-controller';
+// KeyboardAvoidingView from react-native is used instead of react-native-keyboard-controller
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
@@ -424,127 +424,131 @@ export default function SupportScreen() {
   }
 
   return (
-    <KeyboardProvider>
-      <View style={[styles.container, { backgroundColor: theme.backgroundDefault, paddingTop }]}>
-        <View style={styles.headerContainer}>
-          <View style={styles.headerLeft}>
-            <Pressable 
-              onPress={() => navigation.goBack()} 
-              hitSlop={12}
-              style={({ pressed }) => [
-                styles.backButton,
-                { opacity: pressed ? 0.7 : 1 }
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: theme.backgroundDefault, paddingTop }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
+      <View style={styles.headerContainer}>
+        <View style={styles.headerLeft}>
+          <Pressable 
+            onPress={() => navigation.goBack()} 
+            hitSlop={12}
+            style={({ pressed }) => [
+              styles.backButton,
+              { opacity: pressed ? 0.7 : 1 }
+            ]}
+          >
+            <Feather name="arrow-left" size={24} color={theme.text} />
+          </Pressable>
+          {stylist ? (
+            <View
+              style={[
+                styles.headerAvatar,
+                { backgroundColor: stylist.color + '20' },
               ]}
             >
-              <Feather name="arrow-left" size={24} color={theme.text} />
-            </Pressable>
-            {stylist ? (
-              <View
-                style={[
-                  styles.headerAvatar,
-                  { backgroundColor: stylist.color + '20' },
-                ]}
-              >
-                <Feather name={stylist.icon} size={20} color={stylist.color} />
+              <Feather name={stylist.icon} size={20} color={stylist.color} />
+            </View>
+          ) : null}
+          <View>
+            <ThemedText type="h3">Julia</ThemedText>
+            <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+              Your support assistant
+            </ThemedText>
+          </View>
+        </View>
+        <Pressable onPress={handleClearChat} hitSlop={12}>
+          <Feather name="trash-2" size={20} color={theme.tabIconDefault} />
+        </Pressable>
+      </View>
+
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        keyExtractor={(item) => item.id}
+        renderItem={renderMessage}
+        contentContainerStyle={[
+          styles.messagesList,
+          { paddingBottom: Spacing.xl },
+        ]}
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={scrollToEnd}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        ListFooterComponent={
+          <>
+            {isLoading ? (
+              <View style={styles.typingIndicator}>
+                <ActivityIndicator size="small" color={theme.link} />
+                <ThemedText type="small" style={{ marginLeft: Spacing.sm }}>
+                  Julia is typing...
+                </ThemedText>
               </View>
             ) : null}
-            <View>
-              <ThemedText type="h3">Julia</ThemedText>
-              <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-                Your support assistant
-              </ThemedText>
-            </View>
-          </View>
-          <Pressable onPress={handleClearChat} hitSlop={12}>
-            <Feather name="trash-2" size={20} color={theme.tabIconDefault} />
+            {showQuickActions && messages.length <= 1 ? renderQuickActions() : null}
+          </>
+        }
+      />
+
+      <View
+        style={[
+          styles.inputBarFixed,
+          {
+            backgroundColor: theme.backgroundDefault,
+            borderTopColor: theme.tabIconDefault + '30',
+            paddingBottom: Spacing.xs,
+          },
+        ]}
+      >
+        <View style={styles.inputRow}>
+          <Pressable
+            onPress={handleCreateTicket}
+            style={({ pressed }) => [
+              styles.actionButton,
+              { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Feather name="file-plus" size={20} color={theme.link} />
           </Pressable>
-        </View>
-
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderMessage}
-          contentContainerStyle={[
-            styles.messagesList,
-            { paddingBottom: INPUT_CONTAINER_HEIGHT + TAB_BAR_HEIGHT + safeAreaInsets.bottom + Spacing.md },
-          ]}
-          showsVerticalScrollIndicator={false}
-          onContentSizeChange={scrollToEnd}
-          ListFooterComponent={
-            <>
-              {isLoading ? (
-                <View style={styles.typingIndicator}>
-                  <ActivityIndicator size="small" color={theme.link} />
-                  <ThemedText type="small" style={{ marginLeft: Spacing.sm }}>
-                    Julia is typing...
-                  </ThemedText>
-                </View>
-              ) : null}
-              {showQuickActions && messages.length <= 1 ? renderQuickActions() : null}
-            </>
-          }
-        />
-
-        <KeyboardStickyView offset={{ closed: TAB_BAR_HEIGHT + safeAreaInsets.bottom, opened: 0 }}>
-          <View
+          <TextInput
             style={[
-              styles.inputContainer,
+              styles.input,
               {
-                backgroundColor: theme.backgroundDefault,
-                borderTopColor: theme.tabIconDefault + '30',
-                paddingBottom: Spacing.md,
+                backgroundColor: theme.backgroundSecondary,
+                color: theme.text,
+              },
+            ]}
+            placeholder="Type your message..."
+            placeholderTextColor={theme.tabIconDefault}
+            value={inputText}
+            onChangeText={setInputText}
+            onSubmitEditing={handleSend}
+            returnKeyType="send"
+            multiline={false}
+          />
+          <Pressable
+            onPress={handleSend}
+            disabled={!inputText.trim() || isLoading}
+            style={({ pressed }) => [
+              styles.sendButton,
+              {
+                backgroundColor: inputText.trim() ? theme.link : theme.backgroundSecondary,
+                opacity: pressed || !inputText.trim() ? 0.7 : 1,
               },
             ]}
           >
-            <Pressable
-              onPress={handleCreateTicket}
-              style={({ pressed }) => [
-                styles.actionButton,
-                { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
-              ]}
-            >
-              <Feather name="file-plus" size={20} color={theme.link} />
-            </Pressable>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme.backgroundSecondary,
-                  color: theme.text,
-                },
-              ]}
-              placeholder="Type your message..."
-              placeholderTextColor={theme.tabIconDefault}
-              value={inputText}
-              onChangeText={setInputText}
-              onSubmitEditing={handleSend}
-              returnKeyType="send"
-              multiline={false}
+            <Feather
+              name="send"
+              size={20}
+              color={inputText.trim() ? '#FFFFFF' : theme.tabIconDefault}
             />
-            <Pressable
-              onPress={handleSend}
-              disabled={!inputText.trim() || isLoading}
-              style={({ pressed }) => [
-                styles.sendButton,
-                {
-                  backgroundColor: inputText.trim() ? theme.link : theme.backgroundSecondary,
-                  opacity: pressed || !inputText.trim() ? 0.7 : 1,
-                },
-              ]}
-            >
-              <Feather
-                name="send"
-                size={20}
-                color={inputText.trim() ? '#FFFFFF' : theme.tabIconDefault}
-              />
-            </Pressable>
-          </View>
-        </KeyboardStickyView>
-
-        {renderTicketModal()}
+          </Pressable>
+        </View>
       </View>
-    </KeyboardProvider>
+
+      {renderTicketModal()}
+    </KeyboardAvoidingView>
   );
 }
 
@@ -657,6 +661,17 @@ const styles = StyleSheet.create({
   createTicketText: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  inputBarFixed: {
+    width: '100%',
+    borderTopWidth: 1,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    gap: Spacing.sm,
   },
   inputContainer: {
     flexDirection: 'row',

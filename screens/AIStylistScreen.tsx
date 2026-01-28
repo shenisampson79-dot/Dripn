@@ -17,6 +17,7 @@ import {
   Alert,
   Linking,
   ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,7 +35,7 @@ import Animated, {
   withSpring,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { KeyboardStickyView, KeyboardProvider } from 'react-native-keyboard-controller';
+// KeyboardAvoidingView from react-native is used instead of react-native-keyboard-controller
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
@@ -2262,38 +2263,42 @@ export default function AIStylistScreen() {
   };
   
   return (
-    <KeyboardProvider>
-      <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={renderHeader}
-          ListFooterComponent={renderFooter}
-          contentContainerStyle={[
-            styles.listContent,
-            { 
-              paddingTop: headerHeight + Spacing.md,
-              paddingBottom: INPUT_CONTAINER_HEIGHT + TAB_BAR_HEIGHT + insets.bottom + Spacing.md
-            }
-          ]}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          automaticallyAdjustKeyboardInsets
-          style={styles.flatList}
-        />
-        <KeyboardStickyView 
-          offset={{ closed: TAB_BAR_HEIGHT + insets.bottom, opened: 0 }}
-          style={styles.inputBarAbsolute}
-        >
-          <View style={{ backgroundColor: theme.backgroundDefault }}>
-            {renderInputBar()}
-          </View>
-        </KeyboardStickyView>
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        renderItem={renderMessage}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
+        contentContainerStyle={[
+          styles.listContent,
+          { 
+            paddingTop: headerHeight + Spacing.md,
+            paddingBottom: Spacing.xl
+          }
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        style={styles.flatList}
+      />
+      <View 
+        style={[
+          styles.inputBarFixed, 
+          { 
+            paddingBottom: Spacing.xs,
+            backgroundColor: theme.backgroundDefault,
+          }
+        ]}
+      >
+        {renderInputBar()}
       </View>
-    </KeyboardProvider>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -2304,12 +2309,8 @@ const styles = StyleSheet.create({
   flatList: {
     flex: 1,
   },
-  inputBarAbsolute: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 100,
+  inputBarFixed: {
+    width: '100%',
   },
   listContent: {
     paddingHorizontal: 0,
