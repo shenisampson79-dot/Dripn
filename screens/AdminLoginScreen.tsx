@@ -109,9 +109,13 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
         <View style={styles.modeToggle}>
           <Pressable
             onPress={() => setMode('login')}
-            style={[
+            hitSlop={8}
+            style={({ pressed }) => [
               styles.modeButton,
-              { backgroundColor: mode === 'login' ? theme.link : theme.backgroundSecondary },
+              { 
+                backgroundColor: mode === 'login' ? theme.link : theme.backgroundSecondary,
+                opacity: pressed ? 0.7 : 1,
+              },
             ]}
           >
             <ThemedText type="small" style={{ color: mode === 'login' ? '#FFFFFF' : theme.text }}>
@@ -120,9 +124,13 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
           </Pressable>
           <Pressable
             onPress={() => setMode('setup')}
-            style={[
+            hitSlop={8}
+            style={({ pressed }) => [
               styles.modeButton,
-              { backgroundColor: mode === 'setup' ? theme.link : theme.backgroundSecondary },
+              { 
+                backgroundColor: mode === 'setup' ? theme.link : theme.backgroundSecondary,
+                opacity: pressed ? 0.7 : 1,
+              },
             ]}
           >
             <ThemedText type="small" style={{ color: mode === 'setup' ? '#FFFFFF' : theme.text }}>
@@ -285,9 +293,11 @@ const styles = StyleSheet.create({
   },
   modeButton: {
     flex: 1,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
   },
   form: {
     gap: Spacing.lg,

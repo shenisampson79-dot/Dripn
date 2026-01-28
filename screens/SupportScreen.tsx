@@ -497,7 +497,7 @@ export default function SupportScreen() {
           {
             backgroundColor: theme.backgroundDefault,
             borderTopColor: theme.tabIconDefault + '30',
-            paddingBottom: Spacing.xs,
+            paddingBottom: safeAreaInsets.bottom + TAB_BAR_HEIGHT + Spacing.sm,
           },
         ]}
       >
