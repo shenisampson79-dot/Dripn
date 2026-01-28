@@ -467,6 +467,26 @@ async function initDB() {
       );
 
       CREATE INDEX IF NOT EXISTS idx_virtual_try_on_user ON virtual_try_on_history(user_id, created_at);
+
+      -- User Feedback Table
+      CREATE TABLE IF NOT EXISTS user_feedback (
+        id SERIAL PRIMARY KEY,
+        user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        feedback_type VARCHAR(50) NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        rating INTEGER,
+        device_info VARCHAR(255),
+        app_version VARCHAR(50),
+        status VARCHAR(50) DEFAULT 'pending',
+        admin_notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_user_feedback_type ON user_feedback(feedback_type, status);
+      CREATE INDEX IF NOT EXISTS idx_user_feedback_created ON user_feedback(created_at DESC);
     `);
     console.log('Database tables initialized');
   } catch (error) {
@@ -5721,6 +5741,83 @@ app.get('/', (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy' });
+});
+
+// User Feedback endpoint - no auth required for guest access
+app.post('/api/feedback', async (req, res) => {
+  try {
+    const { feedbackType, category, title, description, rating, deviceInfo, appVersion } = req.body;
+
+    // Validate required fields
+    if (!feedbackType || !category || !title || !description) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields: feedbackType, category, title, and description are required' 
+      });
+    }
+
+    // Validate feedbackType
+    const validTypes = ['bug', 'feature', 'general', 'rating'];
+    if (!validTypes.includes(feedbackType)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid feedbackType. Must be: bug, feature, general, or rating' 
+      });
+    }
+
+    // Validate category
+    const validCategories = ['scanner', 'chat', 'login', 'wardrobe', 'other'];
+    if (!validCategories.includes(category)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid category. Must be: scanner, chat, login, wardrobe, or other' 
+      });
+    }
+
+    // Validate rating if provided
+    if (rating !== undefined && rating !== null) {
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Rating must be an integer between 1 and 5' 
+        });
+      }
+    }
+
+    // Try to extract user_id from token if available
+    let userId = null;
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.slice(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        userId = decoded.userId;
+      } catch (e) {
+        // Ignore auth errors - guest feedback is allowed
+      }
+    }
+
+    // Insert feedback
+    const result = await pool.query(
+      `INSERT INTO user_feedback 
+       (user_id, feedback_type, category, title, description, rating, device_info, app_version)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id`,
+      [userId, feedbackType, category, title, description, rating || null, deviceInfo || null, appVersion || null]
+    );
+
+    res.json({ 
+      success: true, 
+      message: 'Thank you for your feedback!', 
+      feedbackId: result.rows[0].id 
+    });
+  } catch (error) {
+    console.error('Feedback submission error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to submit feedback' 
+    });
+  }
 });
 
 // Start server

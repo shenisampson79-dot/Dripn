@@ -14,6 +14,7 @@ import HelpScreen from "@/screens/HelpScreen";
 import PartnerScreen from "@/screens/PartnerScreen";
 import CancelSubscriptionScreen from "@/screens/CancelSubscriptionScreen";
 import BodyMeasurementsScreen from "@/screens/BodyMeasurementsScreen";
+import FeedbackScreen from "@/screens/FeedbackScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -33,6 +34,7 @@ export type SettingsStackParamList = {
   Partner: undefined;
   CancelSubscription: undefined;
   BodyMeasurements: undefined;
+  Feedback: undefined;
 };
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
@@ -154,6 +156,14 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         component={BodyMeasurementsScreen}
         options={{
           title: "Body Measurements",
+        }}
+      />
+      <Stack.Screen
+        name="Feedback"
+        component={FeedbackScreen}
+        options={{
+          title: "Send Feedback",
+          headerShown: false,
         }}
       />
     </Stack.Navigator>

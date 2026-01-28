@@ -827,6 +827,15 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             iconGradient={[LUXURY_COLORS.coral, '#C46A4F']}
           />
           <SettingItem
+            icon="edit-3"
+            title="Send Feedback"
+            subtitle="Report bugs, request features, or share thoughts"
+            onPress={() => navigation.navigate("Feedback")}
+            theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
+          />
+          <SettingItem
             icon="file-text"
             title={translations.settings?.termsOfService || 'Terms of Service'}
             onPress={handleTerms}

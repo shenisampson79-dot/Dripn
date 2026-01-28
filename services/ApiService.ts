@@ -3208,6 +3208,13 @@ class ApiService {
       }
     };
   }
+
+  async submitFeedback(payload: Record<string, unknown>): Promise<{ success: boolean; message: string; feedbackId?: number }> {
+    return this.request<{ success: boolean; message: string; feedbackId?: number }>('/api/feedback', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
 }
 
 // Color config type

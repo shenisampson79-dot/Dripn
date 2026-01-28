@@ -33,6 +33,7 @@ import AskStylistScreen from "@/screens/AskStylistScreen";
 import CancelSubscriptionScreen from "@/screens/CancelSubscriptionScreen";
 import BodyMeasurementsScreen from "@/screens/BodyMeasurementsScreen";
 import AdminDashboardScreen from "@/screens/AdminDashboardScreen";
+import FeedbackScreen from "@/screens/FeedbackScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -71,6 +72,7 @@ export type ProfileStackParamList = {
   CancelSubscription: undefined;
   BodyMeasurements: undefined;
   AdminDashboard: undefined;
+  Feedback: undefined;
 };
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -352,6 +354,14 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={AdminDashboardScreen}
         options={{
           title: "Admin Dashboard",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="Feedback"
+        component={FeedbackScreen}
+        options={{
+          title: "Send Feedback",
           headerShown: false,
         }}
       />
