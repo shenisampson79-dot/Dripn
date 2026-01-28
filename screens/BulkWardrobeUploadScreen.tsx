@@ -233,9 +233,10 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     }
   };
 
-  const processBulkImages = async (imageUris: string[]) => {
+  const processBulkImages = async (imageUris: string[], isRetry: boolean = false) => {
     setIsProcessing(true);
     const allItems: PendingItem[] = [];
+    const failedUris: string[] = [];
     setProcessingProgress({ current: 0, total: imageUris.length });
 
     for (let i = 0; i < imageUris.length; i++) {
@@ -251,9 +252,14 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
             selected: true,
           }));
           allItems.push(...items);
+        } else {
+          // AI analysis failed for this image
+          failedUris.push(imageUris[i]);
+          console.log(`[BulkUpload] Analysis failed for image ${i + 1}: ${result.error}`);
         }
       } catch (error) {
         console.error(`Failed to process image ${i + 1}:`, error);
+        failedUris.push(imageUris[i]);
       }
     }
 
@@ -262,12 +268,31 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
 
     if (allItems.length > 0) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        "Items Detected",
-        `Found ${allItems.length} item${allItems.length > 1 ? 's' : ''} in ${imageUris.length} photo${imageUris.length > 1 ? 's' : ''}. Review and confirm to add to your wardrobe.`
-      );
+      if (failedUris.length > 0) {
+        Alert.alert(
+          "Partial Success",
+          `Analyzed ${allItems.length} of ${imageUris.length} items. ${failedUris.length} image${failedUris.length > 1 ? 's' : ''} could not be analyzed. Review and confirm to add to your wardrobe.`,
+          [
+            { text: "Retry Failed", onPress: () => processBulkImages(failedUris, true) },
+            { text: "Continue Anyway", style: "default" },
+          ]
+        );
+      } else {
+        Alert.alert(
+          "Items Detected",
+          `Found ${allItems.length} item${allItems.length > 1 ? 's' : ''} in ${imageUris.length} photo${imageUris.length > 1 ? 's' : ''}. Review and confirm to add to your wardrobe.`
+        );
+      }
     } else {
-      Alert.alert("No Items Detected", "Could not detect any clothing items. Try different photos.");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        "Analysis Failed",
+        "AI analysis is temporarily unavailable. This may be due to network issues. Please try again in a moment.",
+        [
+          { text: "Try Again", onPress: () => processBulkImages(imageUris, true) },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
     }
   };
 

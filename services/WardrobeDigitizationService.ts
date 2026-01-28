@@ -207,6 +207,108 @@ export async function analyzeImageQuality(imageUri: string): Promise<{
   }
 }
 
+// Local OpenAI fallback for garment analysis when backend fails
+async function analyzeGarmentLocally(
+  base64Image: string,
+  validCategories: ClothingCategory[],
+  validColors: ClothingColor[],
+  validSeasons: ClothingSeason[],
+  validOccasions: ClothingOccasion[]
+): Promise<DetectedGarment | null> {
+  const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  
+  if (!OPENAI_API_KEY) {
+    console.log('[LocalAnalysis] No OpenAI API key available');
+    return null;
+  }
+
+  const prompt = `Analyze this clothing item photo. Identify the garment and provide accurate details.
+
+Return ONLY a valid JSON object with these exact fields:
+{
+  "category": one of [${validCategories.join(', ')}],
+  "color": one of [${validColors.join(', ')}],
+  "suggestedName": "descriptive name like 'Navy Blue Blazer' or 'White Cotton T-Shirt'",
+  "brand": "brand name if visible, otherwise null",
+  "seasons": array from [${validSeasons.join(', ')}],
+  "occasions": array from [${validOccasions.join(', ')}],
+  "description": "brief description of material, style, fit"
+}
+
+IMPORTANT:
+- For category, carefully distinguish: tops (shirts, t-shirts, blouses), bottoms (pants, jeans, shorts, skirts), dresses, outerwear (jackets, coats), shoes, bags, accessories
+- For color, look at the PRIMARY color of the garment. If denim fabric, use "denim". If off-white/cream, use "beige" or "cream"
+- Be accurate - users rely on this for their wardrobe`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: base64Image.startsWith('data:') ? base64Image : `data:image/jpeg;base64,${base64Image}`,
+                  detail: 'low',
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: 500,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[LocalAnalysis] OpenAI API error:', response.status, errorText);
+      return null;
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    // Parse JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.log('[LocalAnalysis] Could not parse JSON from response');
+      return null;
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    // Validate and normalize the response
+    const category = validCategories.includes(parsed.category) ? parsed.category : 'tops';
+    const color = validColors.includes(parsed.color) ? parsed.color : 'gray';
+    
+    const item: DetectedGarment = {
+      category,
+      color,
+      suggestedName: parsed.suggestedName || `${color.charAt(0).toUpperCase() + color.slice(1)} ${category.charAt(0).toUpperCase() + category.slice(1)}`,
+      brand: parsed.brand || undefined,
+      seasons: (parsed.seasons || ['all-season']).filter((s: string) => validSeasons.includes(s as ClothingSeason)) as ClothingSeason[],
+      occasions: (parsed.occasions || ['everyday']).filter((o: string) => validOccasions.includes(o as ClothingOccasion)) as ClothingOccasion[],
+      confidence: 0.85,
+      description: parsed.description || '',
+    };
+
+    return item;
+  } catch (error: any) {
+    console.error('[LocalAnalysis] Error:', error.message);
+    return null;
+  }
+}
+
 export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
   const startTime = Date.now();
   
@@ -415,24 +517,32 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       };
     }
     
-    // If backend fails, create a generic item that user can edit
-    console.log('[BulkScan] No valid data found, creating placeholder item');
-    const placeholderItem: DetectedGarment = {
-      category: 'tops',
-      color: 'black',
-      suggestedName: 'New Item (tap to edit)',
-      brand: undefined,
-      seasons: ['all-season'],
-      occasions: ['everyday'],
-      confidence: 0.5,
-      description: 'AI analysis unavailable. Please edit details manually.',
-    };
+    // If backend fails, try local OpenAI analysis as fallback
+    console.log('[BulkScan] Backend failed, attempting local OpenAI analysis...');
     
+    try {
+      const localAnalysis = await analyzeGarmentLocally(base64Image, validCategories, validColors, validSeasons, validOccasions);
+      if (localAnalysis) {
+        console.log('[BulkScan] Local analysis succeeded:', localAnalysis.suggestedName, localAnalysis.category, localAnalysis.color);
+        return {
+          success: true,
+          detectedItems: [localAnalysis],
+          totalItemsFound: 1,
+          processingTime: Date.now() - startTime,
+        };
+      }
+    } catch (localError: any) {
+      console.error('[BulkScan] Local OpenAI analysis also failed:', localError.message);
+    }
+    
+    // Absolute last resort - return error so user knows analysis failed
+    console.log('[BulkScan] All analysis methods failed');
     return {
-      success: true,
-      detectedItems: [placeholderItem],
-      totalItemsFound: 1,
+      success: false,
+      detectedItems: [],
+      totalItemsFound: 0,
       processingTime: Date.now() - startTime,
+      error: 'AI analysis temporarily unavailable. Please try again in a moment.',
     };
   } catch (error: any) {
     console.error('Bulk scan error:', error);
