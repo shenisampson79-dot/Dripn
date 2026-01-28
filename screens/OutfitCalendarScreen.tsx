@@ -538,7 +538,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         >
           <Feather name="cpu" size={18} color="#FFFFFF" />
           <ThemedText type="body" style={styles.aiCreateButtonText}>
-            Let AI Create My Outfits
+            Get Styled by Your AI Stylist
           </ThemedText>
           <Feather name="chevron-right" size={18} color="#FFFFFF" />
         </LinearGradient>
@@ -574,7 +574,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
             <Card elevation={1} style={styles.emptyCard}>
               <Feather name="calendar" size={40} color={tertiaryTextColor} />
               <ThemedText type="body" style={[styles.emptyText, { color: secondaryTextColor }]}>
-                No outfits planned for this day
+                No outfits scheduled for this day
               </ThemedText>
               <Pressable
                 onPress={handleAddOutfit}
@@ -582,7 +582,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
               >
                 <Feather name="plus" size={16} color="#FFFFFF" />
                 <ThemedText type="body" style={{ color: '#FFFFFF', marginLeft: 8 }}>
-                  Plan an Outfit
+                  Add Outfit
                 </ThemedText>
               </Pressable>
             </Card>
@@ -592,7 +592,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         <Card elevation={1} style={styles.selectDateCard}>
           <Feather name="calendar" size={40} color={tertiaryTextColor} />
           <ThemedText type="body" style={[styles.emptyText, { color: secondaryTextColor }]}>
-            Select a date to view or plan outfits
+            Select a date to view your outfits
           </ThemedText>
         </Card>
       )}
