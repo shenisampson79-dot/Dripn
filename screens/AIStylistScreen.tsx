@@ -3,7 +3,7 @@
  * Ruby and Max AI Stylist personas are proprietary to Dripn.
  */
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -1917,30 +1917,33 @@ export default function AIStylistScreen() {
   );
   
   const remainingMessages = getRemainingMessages();
-  const showLimitWarning = remainingMessages !== Infinity && remainingMessages <= 3;
-  const showUpgradeTeaser = remainingMessages !== Infinity && remainingMessages <= 10 && tier === 'free';
   const limitReached = !canSendMessage();
   
-  const getUpgradeTeaserMessage = () => {
+  // Memoize upgrade teaser values to prevent flickering on every keystroke
+  const upgradeTeaserData = useMemo(() => {
+    const showWarning = remainingMessages !== Infinity && remainingMessages <= 3;
+    const showTeaser = remainingMessages !== Infinity && remainingMessages <= 10 && tier === 'free';
+    
+    let teaserTitle = `${remainingMessages} messages remaining today`;
+    let teaserMsg = `Unlock unlimited conversations with ${stylist.name} and never miss a styling moment.`;
+    let teaserIcon: 'star' | 'heart' | 'zap' = 'star';
+    
     if (remainingMessages === 0) {
-      return {
-        title: "Don't leave the conversation here!",
-        message: `${stylist.name} has so much more to share with you. Upgrade now for unlimited styling sessions.`,
-        icon: 'heart' as const,
-      };
+      teaserTitle = "Don't leave the conversation here!";
+      teaserMsg = `${stylist.name} has so much more to share with you. Upgrade now for unlimited styling sessions.`;
+      teaserIcon = 'heart';
+    } else if (remainingMessages <= 3) {
+      teaserTitle = `Only ${remainingMessages} message${remainingMessages === 1 ? '' : 's'} left today`;
+      teaserMsg = `Loving your chat with ${stylist.name}? Upgrade to keep the style advice flowing.`;
+      teaserIcon = 'zap';
     }
-    if (remainingMessages <= 3) {
-      return {
-        title: `Only ${remainingMessages} message${remainingMessages === 1 ? '' : 's'} left today`,
-        message: `Loving your chat with ${stylist.name}? Upgrade to keep the style advice flowing.`,
-        icon: 'zap' as const,
-      };
-    }
-    return {
-      title: `${remainingMessages} messages remaining today`,
-      message: `Unlock unlimited conversations with ${stylist.name} and never miss a styling moment.`,
-      icon: 'star' as const,
-    };
+    
+    return { showWarning, showTeaser, teaserTitle, teaserMsg, teaserIcon };
+  }, [remainingMessages, tier, stylist.name]);
+  
+  const { showLimitWarning, showUpgradeTeaser } = {
+    showLimitWarning: upgradeTeaserData.showWarning,
+    showUpgradeTeaser: upgradeTeaserData.showTeaser,
   };
   
   const getMoodInfo = (): MoodInfo | null => {
@@ -1997,13 +2000,6 @@ export default function AIStylistScreen() {
         </View>
         
         <View style={styles.headerActions}>
-          {remainingMessages !== Infinity ? (
-            <View style={[styles.messageCounter, { backgroundColor: theme.backgroundSecondary }]}>
-              <ThemedText style={[styles.messageCountText, showLimitWarning ? { color: theme.warning } : null]}>
-                {remainingMessages} left
-              </ThemedText>
-            </View>
-          ) : null}
           {isPlayingTTS ? (
             <Pressable 
               onPress={stopTTSPlayback} 
@@ -2042,11 +2038,11 @@ export default function AIStylistScreen() {
           >
             <View style={styles.upgradeTeaserContent}>
               <View style={styles.upgradeTeaserIconContainer}>
-                <Feather name={getUpgradeTeaserMessage().icon} size={24} color="#FFFFFF" />
+                <Feather name={upgradeTeaserData.teaserIcon} size={24} color="#FFFFFF" />
               </View>
               <View style={styles.upgradeTeaserTextContainer}>
-                <ThemedText style={styles.upgradeTeaserTitle}>{getUpgradeTeaserMessage().title}</ThemedText>
-                <ThemedText style={styles.upgradeTeaserMessage}>{getUpgradeTeaserMessage().message}</ThemedText>
+                <ThemedText style={styles.upgradeTeaserTitle}>{upgradeTeaserData.teaserTitle}</ThemedText>
+                <ThemedText style={styles.upgradeTeaserMessage}>{upgradeTeaserData.teaserMsg}</ThemedText>
               </View>
             </View>
             <Pressable 
