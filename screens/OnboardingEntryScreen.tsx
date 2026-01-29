@@ -130,8 +130,8 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
       <View style={[styles.content, { paddingTop: insets.top + SPACING_XXL }]}>
         <Animated.View entering={FadeIn.delay(200)} style={styles.header}>
           <Image 
-            source={require('@/assets/images/dripn-logo-gold-transparent.png')} 
-            style={styles.logo}
+            source={require('@/assets/images/dripn-logo-icon.png')} 
+            style={[styles.logo, { borderRadius: 20 }]}
             resizeMode="contain"
           />
           <ThemedText type="h1" style={styles.title}>
