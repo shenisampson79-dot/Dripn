@@ -19,6 +19,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Modal,
+  Keyboard,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -1128,6 +1129,7 @@ export default function AIStylistScreen() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isPlayingTTS, setIsPlayingTTS] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const ttsPlayerRef = useRef<Audio.Sound | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -1166,6 +1168,22 @@ export default function AIStylistScreen() {
       })
     );
   }, [navigation]);
+  
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setIsKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setIsKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
   
   useEffect(() => {
     loadChatHistory();
@@ -2472,7 +2490,7 @@ export default function AIStylistScreen() {
           style={[
             styles.inputBarFixed, 
             { 
-              paddingBottom: tabBarHeight + Spacing.md,
+              paddingBottom: isKeyboardVisible ? Spacing.xs : tabBarHeight + Spacing.md,
               backgroundColor: theme.backgroundDefault,
             }
           ]}

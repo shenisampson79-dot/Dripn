@@ -11,6 +11,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -52,6 +53,7 @@ export default function SupportScreen() {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [stylist, setStylist] = useState<PersonalStylist | null>(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
@@ -59,6 +61,22 @@ export default function SupportScreen() {
   const [ticketDescription, setTicketDescription] = useState('');
   const [showQuickActions, setShowQuickActions] = useState(true);
   const [currencySymbol, setCurrencySymbol] = useState('$');
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setIsKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setIsKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   useEffect(() => {
     const initialize = async () => {
@@ -497,7 +515,7 @@ export default function SupportScreen() {
           {
             backgroundColor: theme.backgroundDefault,
             borderTopColor: theme.tabIconDefault + '30',
-            paddingBottom: safeAreaInsets.bottom + TAB_BAR_HEIGHT + Spacing.sm,
+            paddingBottom: isKeyboardVisible ? Spacing.xs : safeAreaInsets.bottom + TAB_BAR_HEIGHT + Spacing.sm,
           },
         ]}
       >
