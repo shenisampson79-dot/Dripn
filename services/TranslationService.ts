@@ -250,11 +250,11 @@ const DEFAULT_TRANSLATIONS: Translations = {
     subtitle: "Pick the aesthetic that speaks to you",
     styles: {
       smartCasual: { name: 'Smart Casual', description: 'Polished yet relaxed, tailored pieces for office to after-work drinks' },
-      casual: { name: 'Casual', description: 'Relaxed, comfortable, everyday style' },
-      boho: { name: 'Boho', description: 'Earthy, relaxed, artistic' },
-      sporty: { name: 'Sporty', description: 'Active, dynamic, athletic' },
-      business: { name: 'Business', description: 'Professional suits, shirts, and formal wear' },
-      edgy: { name: 'Edgy', description: 'Bold, alternative, dramatic' },
+      casual: { name: 'Casual', description: 'Relaxed, everyday comfort' },
+      boho: { name: 'Creative', description: 'Artistic, expressive style' },
+      sporty: { name: 'Active', description: 'Sporty, athleisure focused' },
+      business: { name: 'Professional', description: 'Office-ready, polished looks' },
+      edgy: { name: 'Trendsetter', description: 'Latest fashion, bold choices' },
     },
   },
   settings: {

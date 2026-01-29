@@ -41,13 +41,13 @@ interface OccasionProfile {
 }
 
 const STYLE_LABELS: Record<StyleTheme, string> = {
-  luxury: "Luxury",
-  streetwear: "Streetwear",
-  boho: "Boho Chic",
-  sporty: "Sporty",
+  luxury: "Minimalist",
+  streetwear: "Casual",
+  boho: "Creative",
+  sporty: "Active",
   "smart-casual": "Smart Casual",
-  business: "Business",
-  edgy: "Edgy",
+  business: "Professional",
+  edgy: "Trendsetter",
 };
 
 const STYLE_DESCRIPTIONS: Record<StyleTheme, string> = {

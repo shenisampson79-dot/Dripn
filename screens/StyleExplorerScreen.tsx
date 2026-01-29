@@ -202,16 +202,16 @@ const STYLE_OPTIONS_FEMALE: StyleOption[] = [
   },
   { 
     id: "boho", 
-    name: "Boho", 
-    description: "Earthy, relaxed, artistic vibes",
-    detailedDescription: "Free-spirited fashion with flowing fabrics, natural textures, and artistic patterns. Embrace your inner bohemian goddess.",
+    name: "Creative", 
+    description: "Artistic, expressive style",
+    detailedDescription: "Free-spirited fashion with flowing fabrics, natural textures, and artistic patterns. Embrace your inner creative spirit.",
     keyPieces: ["Maxi dresses", "Crochet tops", "Layered jewelry", "Fringe bags"],
     occasions: ["Music festivals", "Beach days", "Art galleries", "Garden parties"]
   },
   { 
     id: "sporty", 
-    name: "Sporty", 
-    description: "Active, dynamic, athletic",
+    name: "Active", 
+    description: "Sporty, athleisure focused",
     detailedDescription: "Performance meets fashion with sleek athleisure pieces. From the gym to brunch, stay comfortable and stylish.",
     keyPieces: ["Leggings", "Sports bras", "Performance hoodies", "Designer trainers"],
     occasions: ["Workouts", "Active weekends", "Travel days", "Athleisure brunches"]
@@ -226,9 +226,9 @@ const STYLE_OPTIONS_FEMALE: StyleOption[] = [
   },
   { 
     id: "edgy", 
-    name: "Edgy", 
-    description: "Bold, alternative, dramatic",
-    detailedDescription: "Make a statement with unconventional pieces, dark palettes, and unexpected combinations. For those who dare to be different.",
+    name: "Trendsetter", 
+    description: "Latest fashion, bold choices",
+    detailedDescription: "Make a statement with unconventional pieces, bold palettes, and unexpected combinations. For those who dare to be different.",
     keyPieces: ["Leather jackets", "Statement boots", "Graphic tees", "Chunky jewelry"],
     occasions: ["Concerts", "Night out", "Art events", "Creative gatherings"]
   },
@@ -253,32 +253,32 @@ const STYLE_OPTIONS_MALE: StyleOption[] = [
   },
   { 
     id: "boho", 
-    name: "Boho", 
-    description: "Earthy, relaxed, artistic",
+    name: "Creative", 
+    description: "Artistic, expressive style",
     detailedDescription: "Laid-back style with natural fabrics and earthy tones. Linen shirts, relaxed fits, and artisan accessories.",
     keyPieces: ["Linen shirts", "Relaxed trousers", "Leather sandals", "Woven accessories"],
     occasions: ["Beach holidays", "Art events", "Festivals", "Outdoor dining"]
   },
   { 
     id: "sporty", 
-    name: "Sporty", 
-    description: "Active, dynamic, athletic",
+    name: "Active", 
+    description: "Sporty, athleisure focused",
     detailedDescription: "Performance-focused athleisure that transitions from the gym to casual settings. Technical fabrics with contemporary design.",
     keyPieces: ["Performance polos", "Athletic shorts", "Training shoes", "Tech hoodies"],
     occasions: ["Workouts", "Active weekends", "Casual sports", "Relaxed Sundays"]
   },
   { 
     id: "business", 
-    name: "Business", 
-    description: "Professional suits, shirts, and formal wear",
+    name: "Professional", 
+    description: "Office-ready, polished looks",
     detailedDescription: "Executive presence with impeccable tailoring. Sharp suits, quality dress shirts, and polished leather shoes for the boardroom.",
     keyPieces: ["Tailored suits", "Dress shirts", "Leather oxfords", "Quality ties"],
     occasions: ["Board meetings", "Formal events", "Business travel", "Corporate dinners"]
   },
   { 
     id: "edgy", 
-    name: "Edgy", 
-    description: "Bold, alternative, dramatic",
+    name: "Trendsetter", 
+    description: "Latest fashion, bold choices",
     detailedDescription: "Stand out with dark palettes, leather accents, and unconventional cuts. For those who embrace the rebellious side of fashion.",
     keyPieces: ["Leather jackets", "Black denim", "Combat boots", "Statement pieces"],
     occasions: ["Concerts", "Night out", "Creative events", "Alternative scenes"]

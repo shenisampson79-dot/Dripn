@@ -104,13 +104,13 @@ function SettingItem({
 }
 
 const STYLE_NAMES: Record<StyleTheme, string> = {
-  luxury: "Luxury",
-  streetwear: "Streetwear",
-  boho: "Boho",
-  sporty: "Sporty",
+  luxury: "Minimalist",
+  streetwear: "Casual",
+  boho: "Creative",
+  sporty: "Active",
   "smart-casual": "Smart Casual",
-  business: "Business",
-  edgy: "Edgy",
+  business: "Professional",
+  edgy: "Trendsetter",
 };
 
 interface PantoneColor {
