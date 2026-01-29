@@ -1499,6 +1499,7 @@ export default function AIStylistScreen() {
         wardrobeItems: wardrobeContext,
         userGender: user?.gender || 'unspecified',
         subscriptionTier: tier,
+        language: voiceSettings.preferredLanguage,
       });
       
       if (response.mood) {
@@ -1750,6 +1751,7 @@ export default function AIStylistScreen() {
         wardrobeItems: wardrobeContext,
         userGender: user?.gender || 'unspecified',
         subscriptionTier: tier,
+        language: voiceSettings.preferredLanguage,
       });
       
       console.log('Backend response received:', JSON.stringify(response));

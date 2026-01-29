@@ -1082,6 +1082,7 @@ class ApiService {
     wardrobeItems?: Array<{ id: string; name: string; color: string; category: string }>;
     userGender?: string;
     subscriptionTier?: string;
+    language?: string;
   }): Promise<{
     content: string;
     mood?: {
@@ -1134,7 +1135,7 @@ class ApiService {
     }>('/api/chat/resilient', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ ...rest, stylist: stylistId, message: data.userMessage }),
+      body: JSON.stringify({ ...rest, stylist: stylistId, message: data.userMessage, language: data.language }),
     });
     
     // Store session backup and guest token for future requests
