@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput, Alert, Keyboard, Modal, Animated, Easing, Dimensions, KeyboardAvoidingView } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, ActivityIndicator, Platform, TextInput, Alert, Keyboard, Modal, Animated, Easing, Dimensions, KeyboardAvoidingView, Switch } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -323,6 +323,39 @@ const BUDGET_OPTIONS: { id: BudgetRange; name: string }[] = [
   { id: "Luxury", name: "Luxury" },
 ];
 
+type SkinUndertone = 'warm' | 'cool' | 'neutral';
+type PreferredFit = 'fitted' | 'tailored' | 'relaxed' | 'oversize';
+type AgeRange = '18-24' | '25-34' | '35-44' | '45-54' | '55+';
+type ShoppingFrequency = 'weekly' | 'monthly' | 'seasonal' | 'rarely';
+
+const SKIN_UNDERTONE_OPTIONS: { id: SkinUndertone; name: string; description: string; colors: string[] }[] = [
+  { id: 'warm', name: 'Warm', description: 'Yellow, peachy, or golden undertones', colors: ['#FFD89B', '#F5C07B', '#E8A954'] },
+  { id: 'cool', name: 'Cool', description: 'Pink, red, or bluish undertones', colors: ['#F5C6C6', '#E8B8D4', '#C9B8E8'] },
+  { id: 'neutral', name: 'Neutral', description: 'Mix of warm and cool', colors: ['#E8D8C8', '#D4C4B4', '#C0B0A0'] },
+];
+
+const PREFERRED_FIT_OPTIONS: { id: PreferredFit; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
+  { id: 'fitted', name: 'Fitted', description: 'Close to the body, shows your shape', icon: 'minimize-2' },
+  { id: 'tailored', name: 'Tailored', description: 'Structured, professional look', icon: 'align-center' },
+  { id: 'relaxed', name: 'Relaxed', description: 'Comfortable, easy movement', icon: 'maximize-2' },
+  { id: 'oversize', name: 'Oversize', description: 'Loose, trendy, extra room', icon: 'maximize' },
+];
+
+const AGE_RANGE_OPTIONS: { id: AgeRange; name: string }[] = [
+  { id: '18-24', name: '18-24' },
+  { id: '25-34', name: '25-34' },
+  { id: '35-44', name: '35-44' },
+  { id: '45-54', name: '45-54' },
+  { id: '55+', name: '55+' },
+];
+
+const SHOPPING_FREQUENCY_OPTIONS: { id: ShoppingFrequency; name: string; description: string }[] = [
+  { id: "weekly", name: "Weekly", description: "I shop for clothes every week" },
+  { id: "monthly", name: "Monthly", description: "A few times a month" },
+  { id: "seasonal", name: "Seasonally", description: "When seasons change" },
+  { id: "rarely", name: "Rarely", description: "Only when I really need to" },
+];
+
 const POPULAR_SHOPS = [
   "Adidas", "Amazon Fashion", "Anthropologie", "ASOS", "Athleta",
   "Banana Republic", "Bloomingdale's", "Burberry",
@@ -618,6 +651,14 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const [namePronunciationConfirmed, setNamePronunciationConfirmed] = useState(
     user?.stylistPreferences?.namePronunciationConfirmed ?? false
   );
+  
+  const [skinUndertone, setSkinUndertone] = useState<SkinUndertone | null>(null);
+  const [preferredFit, setPreferredFit] = useState<PreferredFit | null>(null);
+  const [dressSize, setDressSize] = useState<string>('');
+  const [ageRange, setAgeRange] = useState<AgeRange | null>(null);
+  const [shoppingFrequency, setShoppingFrequency] = useState<ShoppingFrequency | null>(null);
+  const [preferOnlineShopping, setPreferOnlineShopping] = useState<boolean>(true);
+  const [sustainabilityImportant, setSustainabilityImportant] = useState<boolean>(false);
 
   // Sync local state when user's stylist preferences change (e.g., after profile loads or updates)
   useEffect(() => {
@@ -627,7 +668,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     }
   }, [user?.stylistPreferences?.useNameInGreetings, user?.stylistPreferences?.namePronunciationConfirmed]);
 
-  const totalSteps = 9;
+  const totalSteps = 15;
   
   const suggestedShopNames = suggestedRetailers.map(r => r.name);
   const allAvailableShops = (suggestedRetailers.length > 0 
@@ -1627,22 +1668,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                     This helps us recommend clothing that fits you perfectly. You can skip this step if you prefer.
                   </ThemedText>
                 </View>
-
-                <Pressable
-                  style={[styles.bodyProfileButton, { backgroundColor: theme.link }]}
-                  onPress={() => navigation.navigate('StyleQuizOnboarding')}
-                >
-                  <Feather name="user" size={20} color="#FFFFFF" />
-                  <View style={styles.bodyProfileButtonText}>
-                    <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                      Complete Body Profile Quiz
-                    </ThemedText>
-                    <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                      13 questions about your shape, fit, brands & more
-                    </ThemedText>
-                  </View>
-                  <Feather name="chevron-right" size={20} color="#FFFFFF" />
-                </Pressable>
               </View>
             </ScrollView>
           </View>
@@ -2029,6 +2054,276 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         );
 
       case 5:
+        return (
+          <View style={styles.stepContent}>
+            <ThemedText type="h2" style={styles.stepTitle}>
+              What's your skin undertone?
+            </ThemedText>
+            <ThemedText type="body" style={styles.stepSubtitle}>
+              This helps us recommend colours that complement you
+            </ThemedText>
+
+            <View style={styles.undertoneOptions}>
+              {SKIN_UNDERTONE_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.id}
+                  onPress={() => setSkinUndertone(option.id)}
+                  style={[
+                    styles.undertoneCard,
+                    {
+                      backgroundColor: skinUndertone === option.id ? theme.link + '20' : theme.backgroundSecondary,
+                      borderColor: skinUndertone === option.id ? theme.link : 'transparent',
+                      borderWidth: 2,
+                    },
+                  ]}
+                >
+                  <View style={styles.colorSwatches}>
+                    {option.colors.map((color, idx) => (
+                      <View
+                        key={idx}
+                        style={[styles.colorSwatch, { backgroundColor: color }]}
+                      />
+                    ))}
+                  </View>
+                  <ThemedText type="h3" style={[styles.undertoneTitle, skinUndertone === option.id && { color: theme.link }]}>
+                    {option.name}
+                  </ThemedText>
+                  <ThemedText type="caption" style={styles.undertoneDescription}>
+                    {option.description}
+                  </ThemedText>
+                  {skinUndertone === option.id ? (
+                    <Feather name="check-circle" size={24} color={theme.link} />
+                  ) : null}
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        );
+
+      case 6:
+        return (
+          <View style={styles.stepContent}>
+            <ThemedText type="h2" style={styles.stepTitle}>
+              What fit do you prefer?
+            </ThemedText>
+            <ThemedText type="body" style={styles.stepSubtitle}>
+              How do you like your clothes to fit?
+            </ThemedText>
+
+            <View style={styles.fitOptionsGrid}>
+              {PREFERRED_FIT_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.id}
+                  onPress={() => setPreferredFit(option.id)}
+                  style={[
+                    styles.fitCard,
+                    {
+                      backgroundColor: preferredFit === option.id ? theme.link + '20' : theme.backgroundSecondary,
+                      borderColor: preferredFit === option.id ? theme.link : 'transparent',
+                      borderWidth: 2,
+                    },
+                  ]}
+                >
+                  <View style={[styles.fitIconContainer, { backgroundColor: preferredFit === option.id ? theme.link : theme.tabIconDefault }]}>
+                    <Feather name={option.icon} size={24} color="#FFFFFF" />
+                  </View>
+                  <ThemedText type="body" style={[styles.fitTitle, preferredFit === option.id && { color: theme.link }]}>
+                    {option.name}
+                  </ThemedText>
+                  <ThemedText type="caption" style={styles.fitDescription}>
+                    {option.description}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        );
+
+      case 7:
+        return (
+          <View style={styles.stepContent}>
+            <ThemedText type="h2" style={styles.stepTitle}>
+              What's your usual dress size?
+            </ThemedText>
+            <ThemedText type="body" style={styles.stepSubtitle}>
+              Enter your UK, US, or EU size (e.g., UK 12, US 8, EU 40)
+            </ThemedText>
+
+            <TextInput
+              style={[
+                styles.dressSizeInput,
+                {
+                  backgroundColor: theme.backgroundSecondary,
+                  color: theme.text,
+                },
+              ]}
+              placeholder="e.g., UK 12 or US 8 or M"
+              placeholderTextColor={theme.tabIconDefault}
+              value={dressSize}
+              onChangeText={setDressSize}
+              autoCapitalize="characters"
+            />
+
+            <View style={[styles.infoCard, { backgroundColor: theme.link + '15', marginTop: Spacing.xl }]}>
+              <Feather name="info" size={20} color={theme.link} />
+              <ThemedText type="caption" style={[styles.infoText, { color: theme.text, marginLeft: Spacing.sm, flex: 1 }]}>
+                This helps us suggest items in your size when shopping. You can update this anytime in Settings.
+              </ThemedText>
+            </View>
+          </View>
+        );
+
+      case 8:
+        return (
+          <View style={styles.stepContent}>
+            <ThemedText type="h2" style={styles.stepTitle}>
+              What's your age range?
+            </ThemedText>
+            <ThemedText type="body" style={styles.stepSubtitle}>
+              Helps us tailor style recommendations
+            </ThemedText>
+
+            <View style={styles.ageOptionsGrid}>
+              {AGE_RANGE_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.id}
+                  onPress={() => setAgeRange(option.id)}
+                  style={[
+                    styles.ageChip,
+                    {
+                      backgroundColor: ageRange === option.id ? theme.link + '20' : theme.backgroundSecondary,
+                      borderColor: ageRange === option.id ? theme.link : 'transparent',
+                      borderWidth: 2,
+                    },
+                  ]}
+                >
+                  <ThemedText 
+                    type="body" 
+                    style={[
+                      styles.ageChipText,
+                      ageRange === option.id && { color: theme.link, fontWeight: '600' }
+                    ]}
+                  >
+                    {option.name}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        );
+
+      case 9:
+        return (
+          <View style={styles.stepContent}>
+            <ThemedText type="h2" style={styles.stepTitle}>
+              How often do you shop?
+            </ThemedText>
+            <ThemedText type="body" style={styles.stepSubtitle}>
+              Your shopping habits help us tailor recommendations
+            </ThemedText>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.optionsScroll}>
+              {SHOPPING_FREQUENCY_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.id}
+                  onPress={() => setShoppingFrequency(option.id)}
+                  style={[
+                    styles.optionCard,
+                    {
+                      backgroundColor: shoppingFrequency === option.id ? theme.link + '20' : theme.backgroundSecondary,
+                      borderColor: shoppingFrequency === option.id ? theme.link : 'transparent',
+                      borderWidth: 2,
+                    },
+                  ]}
+                >
+                  <View style={styles.optionContent}>
+                    <ThemedText type="body" style={[styles.optionTitle, shoppingFrequency === option.id && { color: theme.link }]}>
+                      {option.name}
+                    </ThemedText>
+                    <ThemedText type="caption" style={styles.optionDescription}>
+                      {option.description}
+                    </ThemedText>
+                  </View>
+                  {shoppingFrequency === option.id ? (
+                    <Feather name="check-circle" size={24} color={theme.link} />
+                  ) : null}
+                </Pressable>
+              ))}
+
+              <View style={[styles.toggleRow, { marginTop: Spacing["2xl"] }]}>
+                <View style={styles.toggleContent}>
+                  <ThemedText type="body" style={styles.optionTitle}>Prefer online shopping</ThemedText>
+                  <ThemedText type="caption" style={styles.optionDescription}>
+                    You prefer shopping online over in-store
+                  </ThemedText>
+                </View>
+                <Switch
+                  value={preferOnlineShopping}
+                  onValueChange={setPreferOnlineShopping}
+                  trackColor={{ false: theme.backgroundSecondary, true: theme.link }}
+                />
+              </View>
+            </ScrollView>
+          </View>
+        );
+
+      case 10:
+        return (
+          <View style={styles.stepContent}>
+            <ThemedText type="h2" style={styles.stepTitle}>
+              Sustainability matters?
+            </ThemedText>
+            <ThemedText type="body" style={styles.stepSubtitle}>
+              Let us know if eco-friendly fashion is important to you
+            </ThemedText>
+
+            <Pressable
+              onPress={() => setSustainabilityImportant(true)}
+              style={[
+                styles.sustainabilityCard,
+                {
+                  backgroundColor: sustainabilityImportant ? theme.success + '20' : theme.backgroundSecondary,
+                  borderColor: sustainabilityImportant ? theme.success : 'transparent',
+                  borderWidth: 2,
+                },
+              ]}
+            >
+              <View style={[styles.sustainabilityIcon, { backgroundColor: sustainabilityImportant ? theme.success : theme.tabIconDefault }]}>
+                <Feather name="globe" size={28} color="#FFFFFF" />
+              </View>
+              <ThemedText type="h3" style={[styles.sustainabilityTitle, sustainabilityImportant && { color: theme.success }]}>
+                Yes, it's important to me
+              </ThemedText>
+              <ThemedText type="body" style={styles.sustainabilityDescription}>
+                I prefer sustainable, eco-friendly and ethical fashion choices
+              </ThemedText>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setSustainabilityImportant(false)}
+              style={[
+                styles.sustainabilityCard,
+                {
+                  backgroundColor: !sustainabilityImportant ? theme.link + '20' : theme.backgroundSecondary,
+                  borderColor: !sustainabilityImportant ? theme.link : 'transparent',
+                  borderWidth: 2,
+                },
+              ]}
+            >
+              <View style={[styles.sustainabilityIcon, { backgroundColor: !sustainabilityImportant ? theme.link : theme.tabIconDefault }]}>
+                <Feather name="shopping-bag" size={28} color="#FFFFFF" />
+              </View>
+              <ThemedText type="h3" style={[styles.sustainabilityTitle, !sustainabilityImportant && { color: theme.link }]}>
+                Not a priority right now
+              </ThemedText>
+              <ThemedText type="body" style={styles.sustainabilityDescription}>
+                I'm open to all fashion options regardless of sustainability
+              </ThemedText>
+            </Pressable>
+          </View>
+        );
+
+      case 11:
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
@@ -2470,7 +2765,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           </View>
         );
 
-      case 6:
+      case 12:
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
@@ -2610,7 +2905,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           </View>
         );
 
-      case 7:
+      case 13:
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
@@ -2684,7 +2979,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           </View>
         );
 
-      case 8: {
+      case 14: {
         const DRESS_CODE_OPTIONS: { id: DressCodePreference; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
           { id: "hijab-friendly", name: "Hijab-Friendly", description: "Modest fashion with hijab considerations", icon: "heart" },
           { id: "tzniut", name: "Tzniut (Jewish Modesty)", description: "Traditional Jewish modesty standards", icon: "heart" },
@@ -4322,5 +4617,145 @@ const styles = StyleSheet.create({
   },
   bodyProfileButtonText: {
     flex: 1,
+  },
+  undertoneOptions: {
+    gap: Spacing.md,
+  },
+  undertoneCard: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  colorSwatches: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  colorSwatch: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  undertoneTitle: {
+    marginBottom: Spacing.xs,
+    fontWeight: "600",
+  },
+  undertoneDescription: {
+    textAlign: "center",
+    opacity: 0.7,
+  },
+  fitOptionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.md,
+    justifyContent: "space-between",
+  },
+  fitCard: {
+    width: "48%",
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  fitIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.md,
+  },
+  fitTitle: {
+    fontWeight: "600",
+    marginBottom: Spacing.xs,
+  },
+  fitDescription: {
+    textAlign: "center",
+    opacity: 0.7,
+    fontSize: 12,
+  },
+  dressSizeInput: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    fontSize: 18,
+    textAlign: "center",
+    marginTop: Spacing.lg,
+  },
+  infoCard: {
+    flexDirection: "row",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: "flex-start",
+  },
+  infoText: {
+    flex: 1,
+  },
+  ageOptionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.md,
+    justifyContent: "center",
+    marginTop: Spacing.lg,
+  },
+  ageChip: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+  },
+  ageChipText: {
+    fontWeight: "500",
+  },
+  optionCard: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  optionContent: {
+    flex: 1,
+  },
+  optionTitle: {
+    fontWeight: "600",
+    marginBottom: Spacing.xs,
+  },
+  optionDescription: {
+    opacity: 0.7,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: "rgba(0,0,0,0.03)",
+  },
+  toggleContent: {
+    flex: 1,
+    marginRight: Spacing.md,
+  },
+  sustainabilityCard: {
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
+  sustainabilityIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.md,
+  },
+  sustainabilityTitle: {
+    fontWeight: "600",
+    marginBottom: Spacing.sm,
+    textAlign: "center",
+  },
+  sustainabilityDescription: {
+    textAlign: "center",
+    opacity: 0.7,
   },
 });
