@@ -677,7 +677,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
               "Fast feedback needs an active audience. If you want that, I'll set this up properly.",
               [
                 { text: "Not now", style: "cancel" },
-                { text: "Sign up to save", onPress: () => navigateToSignup(accountHint, "second_opinion_urgent") },
+                { text: "Sign up for Fast feedback", onPress: () => navigateToSignup(accountHint, "second_opinion_urgent") },
               ]
             );
           }
