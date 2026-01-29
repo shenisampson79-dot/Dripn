@@ -2097,6 +2097,32 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 </Pressable>
               ))}
             </View>
+
+            <View style={[styles.infoBox, { backgroundColor: theme.backgroundSecondary, marginTop: Spacing.xl }]}>
+              <View style={styles.infoBoxHeader}>
+                <Feather name="help-circle" size={20} color={theme.link} />
+                <ThemedText type="body" style={[styles.infoBoxTitle, { color: theme.link }]}>
+                  How to find your undertone
+                </ThemedText>
+              </View>
+              <ThemedText type="caption" style={[styles.infoBoxText, { marginTop: Spacing.sm }]}>
+                Look at the veins on your inner wrist in natural light:
+              </ThemedText>
+              <View style={styles.infoBoxList}>
+                <ThemedText type="caption" style={styles.infoBoxListItem}>
+                  Blue or purple veins = Cool undertone
+                </ThemedText>
+                <ThemedText type="caption" style={styles.infoBoxListItem}>
+                  Green veins = Warm undertone
+                </ThemedText>
+                <ThemedText type="caption" style={styles.infoBoxListItem}>
+                  Mix of both = Neutral undertone
+                </ThemedText>
+              </View>
+              <ThemedText type="caption" style={[styles.infoBoxText, { marginTop: Spacing.sm, fontStyle: 'italic' }]}>
+                Your undertone affects which clothing colours make you look radiant vs washed out.
+              </ThemedText>
+            </View>
           </View>
         );
 
@@ -4644,6 +4670,30 @@ const styles = StyleSheet.create({
   undertoneDescription: {
     textAlign: "center",
     opacity: 0.7,
+  },
+  infoBox: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+  },
+  infoBoxHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  infoBoxTitle: {
+    fontWeight: "600",
+  },
+  infoBoxText: {
+    opacity: 0.8,
+    lineHeight: 20,
+  },
+  infoBoxList: {
+    marginTop: Spacing.sm,
+    marginLeft: Spacing.md,
+    gap: Spacing.xs,
+  },
+  infoBoxListItem: {
+    opacity: 0.8,
   },
   fitOptionsGrid: {
     flexDirection: "row",
