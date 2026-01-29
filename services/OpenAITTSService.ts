@@ -24,7 +24,7 @@ export interface TTSOptions {
   speed?: number;
 }
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://dripn-server--shenisampson79.replit.app';
 
 const LANGUAGE_CODES: Record<string, string> = {
   English: 'en-US',
