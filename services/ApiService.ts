@@ -528,7 +528,7 @@ class ApiService {
       maskQuality?: number;
       straightened?: boolean;
       error?: string;
-    }>('/api/wardrobe/process-image', {
+    }>('/api/wardrobe/process-image/resilient', {
       method: 'POST',
       body: JSON.stringify({ 
         imageBase64, 
@@ -557,7 +557,7 @@ class ApiService {
       };
       backgroundRemoved: boolean;
       error?: string;
-    }>('/api/wardrobe/extract-clothing', {
+    }>('/api/wardrobe/extract-clothing/resilient', {
       method: 'POST',
       body: JSON.stringify(imageData),
     });
@@ -1203,7 +1203,7 @@ class ApiService {
       voiceCreditsExhausted?: boolean;
       voiceError?: { code: string; message: string };
       error?: string;
-    }>('/api/chat/message', {
+    }>('/api/chat/message/resilient', {
       method: 'POST',
       body: JSON.stringify({ ...rest, stylist: stylistId }),
     });
@@ -1547,7 +1547,7 @@ class ApiService {
         name: string;
         error: string;
       }>;
-    }>('/api/wardrobe/batch', {
+    }>('/api/wardrobe/batch/resilient', {
       method: 'POST',
       body: JSON.stringify({ items }),
       timeout: 120000, // 2 minute timeout for batch uploads
@@ -2509,7 +2509,7 @@ class ApiService {
         savedToCalendar: boolean;
         calendarDate?: string;
       };
-    }>('/api/wardrobe/generate-outfit', {
+    }>('/api/wardrobe/generate-outfit/resilient', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -2669,7 +2669,7 @@ class ApiService {
         sourceUrl: string;
         retailer?: string;
       };
-    }>('/api/wardrobe/extract-from-url', {
+    }>('/api/wardrobe/extract-from-url/resilient', {
       method: 'POST',
       body: JSON.stringify({ url }),
     });
@@ -2688,7 +2688,7 @@ class ApiService {
         category?: string;
         retailer?: string;
       };
-    }>('/api/wardrobe/extract-from-screenshot', {
+    }>('/api/wardrobe/extract-from-screenshot/resilient', {
       method: 'POST',
       body: JSON.stringify({ image: base64Image }),
     });
