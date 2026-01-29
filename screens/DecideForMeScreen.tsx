@@ -855,10 +855,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             <Feather name="message-circle" size={20} color="#FFFFFF" />
           </LinearGradient>
           <LinearGradient
-            colors={[`${ScreenGradients.ruby.primary[0]}40`, `${ScreenGradients.ruby.primary[1]}25`]}
-            style={[styles.messageBubble, { borderWidth: 1, borderColor: `${ScreenGradients.ruby.primary[0]}50` }]}
+            colors={[`${ScreenGradients.ruby.primary[0]}E0`, `${ScreenGradients.ruby.primary[1]}C0`]}
+            style={[styles.messageBubble, { borderWidth: 1, borderColor: `${ScreenGradients.ruby.primary[0]}80` }]}
           >
-            <ThemedText type="body" style={[styles.messageText, { color: '#FFFFFF' }]}>
+            <ThemedText type="body" style={[styles.messageText, { color: '#FFFFFF', fontWeight: '500' }]}>
               {message}
             </ThemedText>
           </LinearGradient>
