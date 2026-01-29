@@ -1200,6 +1200,38 @@ class ApiService {
     });
   }
 
+  async submitQuickFeedback(data: {
+    helpful: boolean;
+    stylistUsed: string;
+    context: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      message?: string;
+    }>('/api/feedback/quick', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async submitDetailedFeedback(data: {
+    recommendationType: 'outfit_check' | 'shopping' | 'what_to_wear' | 'event_outfit' | 'chat';
+    stylistUsed: string;
+    aiResponse: string;
+    userRating: number;
+    feedbackType: 'helpful' | 'not_helpful' | 'too_western' | 'not_my_style' | 'loved_it' | 'body_type_mismatch' | 'cultural_miss';
+    contextGiven: string;
+    wasUseful: boolean;
+  }) {
+    return this.request<{
+      success: boolean;
+      message?: string;
+    }>('/api/feedback/style', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async sendVoiceChatMessage(data: {
     stylistId: string;
     message: string;

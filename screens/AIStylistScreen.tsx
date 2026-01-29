@@ -18,6 +18,7 @@ import {
   Linking,
   ScrollView,
   KeyboardAvoidingView,
+  Modal,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -1115,6 +1116,10 @@ export default function AIStylistScreen() {
   const [messagesToday, setMessagesToday] = useState(0);
   const [limitsLoaded, setLimitsLoaded] = useState(false);
   const [showQuickPrompts, setShowQuickPrompts] = useState(true);
+  const [messageFeedback, setMessageFeedback] = useState<Record<string, 'helpful' | 'not_helpful' | null>>({});
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackMessageId, setFeedbackMessageId] = useState<string | null>(null);
+  const [feedbackMessageContent, setFeedbackMessageContent] = useState<string>('');
   
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -1828,6 +1833,49 @@ export default function AIStylistScreen() {
   const handleQuickPrompt = (prompt: string) => {
     sendMessage(prompt);
   };
+
+  const handleQuickFeedback = async (messageId: string, messageContent: string, helpful: boolean) => {
+    try {
+      setMessageFeedback(prev => ({ ...prev, [messageId]: helpful ? 'helpful' : 'not_helpful' }));
+      
+      await apiService.submitQuickFeedback({
+        helpful,
+        stylistUsed: stylist.id,
+        context: messageContent.substring(0, 200),
+      });
+
+      if (!helpful) {
+        setFeedbackMessageId(messageId);
+        setFeedbackMessageContent(messageContent);
+        setShowFeedbackModal(true);
+      }
+    } catch (error) {
+      console.log('Feedback submission error:', error);
+    }
+  };
+
+  const handleDetailedFeedback = async (feedbackType: 'helpful' | 'not_helpful' | 'too_western' | 'not_my_style' | 'loved_it' | 'body_type_mismatch' | 'cultural_miss') => {
+    if (!feedbackMessageId) return;
+    
+    try {
+      await apiService.submitDetailedFeedback({
+        recommendationType: 'chat',
+        stylistUsed: stylist.id,
+        aiResponse: feedbackMessageContent.substring(0, 500),
+        userRating: feedbackType === 'loved_it' ? 5 : feedbackType === 'helpful' ? 4 : 2,
+        feedbackType,
+        contextGiven: '',
+        wasUseful: feedbackType === 'loved_it' || feedbackType === 'helpful',
+      });
+      
+      setShowFeedbackModal(false);
+      setFeedbackMessageId(null);
+      setFeedbackMessageContent('');
+    } catch (error) {
+      console.log('Detailed feedback error:', error);
+      setShowFeedbackModal(false);
+    }
+  };
   
   const clearChat = async () => {
     if (Platform.OS !== 'web') {
@@ -1919,9 +1967,91 @@ export default function AIStylistScreen() {
             <Feather name="user" size={16} color="#FFFFFF" />
           </LinearGradient>
         ) : null}
+        
+        {!isUser && index > 0 ? (
+          <View style={styles.feedbackContainer}>
+            {messageFeedback[item.id] ? (
+              <View style={styles.feedbackGiven}>
+                <Feather 
+                  name={messageFeedback[item.id] === 'helpful' ? 'thumbs-up' : 'thumbs-down'} 
+                  size={14} 
+                  color={messageFeedback[item.id] === 'helpful' ? LUXURY_COLORS.emerald : theme.tabIconDefault} 
+                />
+                <ThemedText style={[styles.feedbackText, { color: theme.tabIconDefault }]}>
+                  {messageFeedback[item.id] === 'helpful' ? 'Thanks!' : 'Noted'}
+                </ThemedText>
+              </View>
+            ) : (
+              <View style={styles.feedbackButtons}>
+                <Pressable 
+                  onPress={() => handleQuickFeedback(item.id, item.content, true)}
+                  style={[styles.feedbackButton, { backgroundColor: theme.backgroundSecondary }]}
+                >
+                  <Feather name="thumbs-up" size={14} color={theme.tabIconDefault} />
+                </Pressable>
+                <Pressable 
+                  onPress={() => handleQuickFeedback(item.id, item.content, false)}
+                  style={[styles.feedbackButton, { backgroundColor: theme.backgroundSecondary }]}
+                >
+                  <Feather name="thumbs-down" size={14} color={theme.tabIconDefault} />
+                </Pressable>
+              </View>
+            )}
+          </View>
+        ) : null}
       </Animated.View>
     );
   };
+
+  const FEEDBACK_OPTIONS = [
+    { id: 'not_my_style', label: 'Not my style', icon: 'x-circle' },
+    { id: 'too_western', label: 'Too Western', icon: 'globe' },
+    { id: 'body_type_mismatch', label: "Didn't fit my body type", icon: 'user-x' },
+    { id: 'cultural_miss', label: 'Cultural mismatch', icon: 'flag' },
+  ] as const;
+
+  const renderFeedbackModal = () => (
+    <Modal
+      visible={showFeedbackModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowFeedbackModal(false)}
+    >
+      <Pressable 
+        style={styles.feedbackModalOverlay}
+        onPress={() => setShowFeedbackModal(false)}
+      >
+        <View style={[styles.feedbackModalContent, { backgroundColor: theme.backgroundSecondary }]}>
+          <ThemedText type="h3" style={styles.feedbackModalTitle}>
+            What wasn't quite right?
+          </ThemedText>
+          <ThemedText type="small" style={[styles.feedbackModalSubtitle, { color: theme.tabIconDefault }]}>
+            This helps your stylist learn your preferences
+          </ThemedText>
+          
+          <View style={styles.feedbackOptionsGrid}>
+            {FEEDBACK_OPTIONS.map((option) => (
+              <Pressable
+                key={option.id}
+                onPress={() => handleDetailedFeedback(option.id as any)}
+                style={[styles.feedbackOptionButton, { backgroundColor: theme.backgroundDefault }]}
+              >
+                <Feather name={option.icon as any} size={20} color={theme.link} />
+                <ThemedText style={styles.feedbackOptionText}>{option.label}</ThemedText>
+              </Pressable>
+            ))}
+          </View>
+          
+          <Pressable
+            onPress={() => setShowFeedbackModal(false)}
+            style={[styles.feedbackCancelButton, { borderColor: theme.border }]}
+          >
+            <ThemedText style={{ color: theme.tabIconDefault }}>Skip</ThemedText>
+          </Pressable>
+        </View>
+      </Pressable>
+    </Modal>
+  );
   
   const renderQuickPrompts = () => (
     <View style={styles.quickPromptsContainer}>
@@ -2313,42 +2443,45 @@ export default function AIStylistScreen() {
   };
   
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-    >
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={renderHeader}
-        ListFooterComponent={renderFooter}
-        contentContainerStyle={[
-          styles.listContent,
-          { 
-            paddingTop: headerHeight + Spacing.md,
-            paddingBottom: Spacing.xl
-          }
-        ]}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-        style={styles.flatList}
-      />
-      <View 
-        style={[
-          styles.inputBarFixed, 
-          { 
-            paddingBottom: tabBarHeight + Spacing.md,
-            backgroundColor: theme.backgroundDefault,
-          }
-        ]}
+    <>
+      <KeyboardAvoidingView 
+        style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        {renderInputBar()}
-      </View>
-    </KeyboardAvoidingView>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={renderHeader}
+          ListFooterComponent={renderFooter}
+          contentContainerStyle={[
+            styles.listContent,
+            { 
+              paddingTop: headerHeight + Spacing.md,
+              paddingBottom: Spacing.xl
+            }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          style={styles.flatList}
+        />
+        <View 
+          style={[
+            styles.inputBarFixed, 
+            { 
+              paddingBottom: tabBarHeight + Spacing.md,
+              backgroundColor: theme.backgroundDefault,
+            }
+          ]}
+        >
+          {renderInputBar()}
+        </View>
+      </KeyboardAvoidingView>
+      {renderFeedbackModal()}
+    </>
   );
 }
 
@@ -2504,6 +2637,71 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  feedbackContainer: {
+    position: 'absolute',
+    bottom: -24,
+    left: 44,
+  },
+  feedbackButtons: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  feedbackButton: {
+    width: 28,
+    height: 28,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedbackGiven: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  feedbackText: {
+    ...Typography.small,
+  },
+  feedbackModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  feedbackModalContent: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+  },
+  feedbackModalTitle: {
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
+  },
+  feedbackModalSubtitle: {
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  feedbackOptionsGrid: {
+    gap: Spacing.sm,
+  },
+  feedbackOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  feedbackOptionText: {
+    ...Typography.body,
+  },
+  feedbackCancelButton: {
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
   },
   messageBubble: {
     maxWidth: SCREEN_WIDTH * 0.7,
