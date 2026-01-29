@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StylistId, SubscriptionTier } from '@/contexts/AuthContext';
 
 export type DecisionType = 'shopping' | 'what-to-wear' | 'event-outfit' | 'sanity-check';
-export type DecisionContext = 'comfort' | 'versatility' | 'budget' | 'trendy' | 'work-appropriate';
+export type DecisionContext = 'work-appropriate' | 'casual' | 'formal' | 'date-night' | 'comfort' | 'versatility' | 'budget' | 'trendy';
 
 export interface DecisionTypeOption {
   id: DecisionType;
@@ -98,11 +98,14 @@ const DECISION_TYPES: DecisionTypeOption[] = [
 ];
 
 const CONTEXT_CHIPS: { id: DecisionContext; label: string }[] = [
+  { id: 'work-appropriate', label: 'Work-appropriate' },
+  { id: 'casual', label: 'Casual' },
+  { id: 'formal', label: 'Formal' },
+  { id: 'date-night', label: 'Date night' },
   { id: 'comfort', label: 'Comfort' },
   { id: 'versatility', label: 'Versatility' },
   { id: 'budget', label: 'Budget' },
   { id: 'trendy', label: 'Trendy vs timeless' },
-  { id: 'work-appropriate', label: 'Work-appropriate' },
 ];
 
 const TIER_LIMITS: Record<SubscriptionTier, DecisionLimits> = {
@@ -114,10 +117,26 @@ const TIER_LIMITS: Record<SubscriptionTier, DecisionLimits> = {
     hasHistory: false,
     hasCommunityVoting: false,
   },
+  subscription: {
+    tier: 'subscription',
+    decisionsPerDay: 5,
+    maxImages: 3,
+    hasSecondOpinion: true,
+    hasHistory: true,
+    hasCommunityVoting: false,
+  },
+  pro: {
+    tier: 'pro',
+    decisionsPerDay: 'unlimited',
+    maxImages: 5,
+    hasSecondOpinion: true,
+    hasHistory: true,
+    hasCommunityVoting: true,
+  },
   premium: {
     tier: 'premium',
     decisionsPerDay: 'unlimited',
-    maxImages: 3,
+    maxImages: 5,
     hasSecondOpinion: true,
     hasHistory: true,
     hasCommunityVoting: true,
@@ -341,12 +360,32 @@ class DecisionService {
     if (contexts.includes('work-appropriate')) {
       reasonings.push("Professional without being boring.");
     }
+    if (contexts.includes('casual')) {
+      reasonings.push("Relaxed and effortless.");
+    }
+    if (contexts.includes('formal')) {
+      reasonings.push("Appropriately polished for the occasion.");
+    }
+    if (contexts.includes('date-night')) {
+      reasonings.push("Perfect for making a great impression.");
+    }
 
     if (reasonings.length === 0) {
       reasonings.push("This is the cleaner choice.");
     }
 
     return reasonings.join(' ');
+  }
+
+  formatContextForApi(contexts: DecisionContext[], contextNotes?: string): string {
+    const labels = contexts.map(c => {
+      const chip = CONTEXT_CHIPS.find(ch => ch.id === c);
+      return chip?.label || c;
+    });
+    if (contextNotes) {
+      labels.push(contextNotes);
+    }
+    return labels.join(', ');
   }
 
   async requestSecondOpinion(

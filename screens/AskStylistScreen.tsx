@@ -346,21 +346,34 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     setIsLoading(true);
 
     try {
-      const request: DecisionRequest = {
-        id: `request-${Date.now()}`,
-        userId: user.id,
-        type: selectedType,
-        images,
-        contextNotes: contextNotes.trim() || undefined,
-        contextChips: selectedContexts,
-        timestamp: new Date().toISOString(),
-        stylistId: user.stylistPreferences?.selectedStylistId || 'ruby',
+      const stylistId = user.stylistPreferences?.selectedStylistId || 'ruby';
+      const context = decisionService.formatContextForApi(selectedContexts, contextNotes.trim() || undefined);
+      
+      const decisionTypeMap: Record<string, 'sanity_check' | 'shopping' | 'what_to_wear' | 'event_outfit'> = {
+        'sanity-check': 'sanity_check',
+        'shopping': 'shopping',
+        'what-to-wear': 'what_to_wear',
+        'event-outfit': 'event_outfit',
       };
 
-      const result = await decisionService.submitDecision(
-        request,
-        user.subscriptionTier || 'free'
-      );
+      const apiResult = await apiService.submitDecisionCheck({
+        decisionType: decisionTypeMap[selectedType] || 'sanity_check',
+        images,
+        context,
+        stylist: stylistId,
+      });
+
+      const result: DecisionResponse = {
+        id: `response-${Date.now()}`,
+        requestId: `request-${Date.now()}`,
+        recommendation: apiResult.recommendation || apiResult.response || '',
+        reasoning: apiResult.reasoning || '',
+        stylistId,
+        timestamp: new Date().toISOString(),
+      };
+
+      await decisionService.incrementDecisionsToday(user.id);
+      await decisionService.incrementTotalDecisions(user.id);
 
       setResponse(result);
       setStep('response');

@@ -1182,6 +1182,24 @@ class ApiService {
     });
   }
 
+  async submitDecisionCheck(data: {
+    decisionType: 'sanity_check' | 'shopping' | 'what_to_wear' | 'event_outfit';
+    images: string[];
+    context: string;
+    stylist: string;
+  }) {
+    return this.request<{
+      response: string;
+      recommendation?: string;
+      reasoning?: string;
+      stylistId?: string;
+      error?: string;
+    }>('/api/decision/check/resilient', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async sendVoiceChatMessage(data: {
     stylistId: string;
     message: string;
