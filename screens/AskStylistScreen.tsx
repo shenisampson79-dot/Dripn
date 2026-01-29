@@ -478,23 +478,33 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
             onPress={() => handleTypeSelect(type.id)}
             style={({ pressed }) => [
               styles.typeCard,
-              { opacity: pressed ? 0.9 : 1 },
+              pressed && styles.typeCardPressed,
             ]}
           >
-            <LinearGradient
-              colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-              style={styles.typeCardGradient}
-            >
-              <View style={styles.typeIconContainer}>
-                <Feather name={type.icon as any} size={24} color="#FFFFFF" />
-              </View>
-              <ThemedText type="body" style={styles.typeLabel}>
-                {type.label}
-              </ThemedText>
-              <ThemedText type="small" style={styles.typeDescription}>
-                {type.description}
-              </ThemedText>
-            </LinearGradient>
+            {({ pressed }) => (
+              <LinearGradient
+                colors={pressed 
+                  ? ['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.15)']
+                  : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+                style={[
+                  styles.typeCardGradient,
+                  pressed && styles.typeCardGradientPressed,
+                ]}
+              >
+                <View style={[
+                  styles.typeIconContainer,
+                  pressed && { backgroundColor: 'rgba(255,255,255,0.25)' }
+                ]}>
+                  <Feather name={type.icon as any} size={24} color="#FFFFFF" />
+                </View>
+                <ThemedText type="body" style={styles.typeLabel}>
+                  {type.label}
+                </ThemedText>
+                <ThemedText type="small" style={styles.typeDescription}>
+                  {type.description}
+                </ThemedText>
+              </LinearGradient>
+            )}
           </Pressable>
         ))}
       </View>
@@ -1348,6 +1358,13 @@ const styles = StyleSheet.create({
   typeDescription: {
     color: 'rgba(255,255,255,0.6)',
     flex: 1.5,
+  },
+  typeCardPressed: {
+    transform: [{ scale: 0.98 }],
+  },
+  typeCardGradientPressed: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   limitInfo: {
     flexDirection: 'row',
