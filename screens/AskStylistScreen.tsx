@@ -816,27 +816,47 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
 
         {images.length < getMaxImagesForType() ? (
           <View style={styles.uploadButtonsRow}>
-            <Pressable onPress={handlePickImage} style={styles.uploadButton}>
-              <LinearGradient
-                colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-                style={styles.uploadButtonGradient}
-              >
-                <Feather name="image" size={24} color="rgba(255,255,255,0.6)" />
-                <ThemedText type="small" style={styles.uploadButtonText}>
-                  Gallery
-                </ThemedText>
-              </LinearGradient>
+            <Pressable 
+              onPress={handlePickImage} 
+              style={({ pressed }) => [
+                styles.uploadButton,
+                pressed && styles.uploadButtonPressed
+              ]}
+            >
+              {({ pressed }) => (
+                <LinearGradient
+                  colors={pressed 
+                    ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.2)'] 
+                    : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+                  style={styles.uploadButtonGradient}
+                >
+                  <Feather name="image" size={24} color={pressed ? '#FFFFFF' : 'rgba(255,255,255,0.6)'} />
+                  <ThemedText type="small" style={[styles.uploadButtonText, pressed && { color: '#FFFFFF' }]}>
+                    Gallery
+                  </ThemedText>
+                </LinearGradient>
+              )}
             </Pressable>
-            <Pressable onPress={handleTakePhoto} style={styles.uploadButton}>
-              <LinearGradient
-                colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-                style={styles.uploadButtonGradient}
-              >
-                <Feather name="camera" size={24} color="rgba(255,255,255,0.6)" />
-                <ThemedText type="small" style={styles.uploadButtonText}>
-                  Camera
-                </ThemedText>
-              </LinearGradient>
+            <Pressable 
+              onPress={handleTakePhoto} 
+              style={({ pressed }) => [
+                styles.uploadButton,
+                pressed && styles.uploadButtonPressed
+              ]}
+            >
+              {({ pressed }) => (
+                <LinearGradient
+                  colors={pressed 
+                    ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.2)'] 
+                    : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+                  style={styles.uploadButtonGradient}
+                >
+                  <Feather name="camera" size={24} color={pressed ? '#FFFFFF' : 'rgba(255,255,255,0.6)'} />
+                  <ThemedText type="small" style={[styles.uploadButtonText, pressed && { color: '#FFFFFF' }]}>
+                    Camera
+                  </ThemedText>
+                </LinearGradient>
+              )}
             </Pressable>
           </View>
         ) : null}
@@ -1385,6 +1405,9 @@ const styles = StyleSheet.create({
   },
   uploadButtonText: {
     color: 'rgba(255,255,255,0.6)',
+  },
+  uploadButtonPressed: {
+    transform: [{ scale: 0.97 }],
   },
   surpriseMeSection: {
     marginTop: Spacing.lg,
