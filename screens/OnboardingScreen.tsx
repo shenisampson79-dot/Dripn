@@ -1083,7 +1083,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     if (existingStatus !== 'granted') {
       Alert.alert(
         'Find Your Country',
-        'We use your location once to detect your country for local fashion trends and stores. Your exact location is never stored.',
+        'Dripn will detect your country to show you local trends and stores.',
         [
           { text: 'Select Manually', style: 'cancel' },
           { 

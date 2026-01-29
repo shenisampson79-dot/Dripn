@@ -200,7 +200,7 @@ export default function EventsScreen() {
       if (currentPermission.status !== "granted") {
         Alert.alert(
           "Find Events Near You",
-          "We'll use your location to show fashion events, pop-ups, and experiences happening nearby.",
+          "Dripn will find fashion events and experiences in your area.",
           [
             { text: "Skip", style: "cancel" },
             {
