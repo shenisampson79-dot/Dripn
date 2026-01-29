@@ -57,6 +57,8 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
 
   const getContextMessage = () => {
     switch (fromPath) {
+      case "second_opinion_urgent":
+        return "Sign up to get Fast feedback from our community";
       case "quick_start":
         return "Want me to remember this and keep styling for you?";
       case "inspirations_only":
@@ -73,6 +75,20 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
   };
 
   const getBenefits = () => {
+    if (fromPath === "second_opinion_urgent") {
+      return [
+        { icon: "users" as const, text: "Get real feedback from real people" },
+        { icon: "clock" as const, text: "Quick responses within 45 minutes" },
+        { icon: "thumbs-up" as const, text: "Know if your outfit works" },
+      ];
+    }
+    if (fromPath === "browsing" || fromPath === "farewell") {
+      return [
+        { icon: "bookmark" as const, text: "Save outfits you like" },
+        { icon: "eye" as const, text: "Browse your style history" },
+        { icon: "star" as const, text: "Get personalised picks" },
+      ];
+    }
     return [
       { icon: "save" as const, text: "Save your recommendations" },
       { icon: "refresh-cw" as const, text: "Get better styling over time" },
@@ -138,12 +154,16 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
             onPress={handleCreateAccount} 
             style={[styles.primaryButton, { backgroundColor: theme.link }]}
           >
-            {fromPath === "browsing" || fromPath === "farewell" ? "Save my picks" : "Sign up to save"}
+            {fromPath === "second_opinion_urgent" 
+              ? "Get Fast feedback" 
+              : fromPath === "browsing" || fromPath === "farewell" 
+                ? "Save my picks" 
+                : "Sign up to save"}
           </Button>
 
           <Pressable onPress={handleContinueWithoutSaving} style={styles.secondaryButton}>
             <ThemedText type="body" style={styles.secondaryButtonText}>
-              Continue without saving
+              {fromPath === "second_opinion_urgent" ? "Maybe later" : "Continue without saving"}
             </ThemedText>
           </Pressable>
         </Animated.View>
