@@ -32,33 +32,41 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
+    console.log('handleLogin called - email:', email, 'password length:', password.length, 'isLoading:', isLoading);
     if (!email || !password) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
     try {
+      console.log('Attempting login...');
       await login(email, password);
+      console.log('Login successful');
       if (onLoginSuccess) {
         onLoginSuccess();
       }
     } catch (error: any) {
+      console.log('Login error:', error);
       Alert.alert("Login Failed", error.message || "Please check your credentials and try again.");
     }
   };
 
   const handleSetup = async () => {
+    console.log('handleSetup called - email:', email, 'displayName:', displayName, 'isLoading:', isLoading);
     if (!email || !password || !displayName || !setupKey) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
     try {
+      console.log('Attempting admin setup...');
       await setupAdmin(email, password, displayName, setupKey);
+      console.log('Setup successful');
       if (onLoginSuccess) {
         onLoginSuccess();
       }
     } catch (error: any) {
+      console.log('Setup error:', error);
       Alert.alert("Setup Failed", error.message || "Please check your setup key and try again.");
     }
   };
@@ -108,8 +116,10 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
 
         <View style={styles.modeToggle}>
           <Pressable
-            onPress={() => setMode('login')}
-            hitSlop={8}
+            onPress={() => {
+              console.log('Sign In mode pressed');
+              setMode('login');
+            }}
             style={({ pressed }) => [
               styles.modeButton,
               { 
@@ -117,14 +127,17 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
                 opacity: pressed ? 0.7 : 1,
               },
             ]}
+            android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
           >
             <ThemedText type="small" style={{ color: mode === 'login' ? '#FFFFFF' : theme.text }}>
               Sign In
             </ThemedText>
           </Pressable>
           <Pressable
-            onPress={() => setMode('setup')}
-            hitSlop={8}
+            onPress={() => {
+              console.log('First Time Setup mode pressed');
+              setMode('setup');
+            }}
             style={({ pressed }) => [
               styles.modeButton,
               { 
@@ -132,6 +145,7 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
                 opacity: pressed ? 0.7 : 1,
               },
             ]}
+            android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
           >
             <ThemedText type="small" style={{ color: mode === 'setup' ? '#FFFFFF' : theme.text }}>
               First Time Setup
@@ -221,7 +235,14 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
           </View>
 
           <Button
-            onPress={mode === 'login' ? handleLogin : handleSetup}
+            onPress={() => {
+              console.log('Main button pressed - mode:', mode, 'isLoading:', isLoading);
+              if (mode === 'login') {
+                handleLogin();
+              } else {
+                handleSetup();
+              }
+            }}
             disabled={isLoading}
             style={[styles.button, { backgroundColor: '#EF4444' }]}
           >
