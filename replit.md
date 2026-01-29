@@ -44,12 +44,8 @@ The app features a 4-tab structure: Home ("Today's Decision"), Wardrobe, Ask Sty
 - **Event APIs**: Timeout, TodayTix, Eventbrite, and Meetup are integrated for event discovery.
 
 ## Backend Configuration
-- **Backend API**: Express.js server located in `backend-code/` folder
-- **Backend Port**: Runs on internal port 8082, mapped to external port 3000
-- **Frontend API URL**: Set via `EXPO_PUBLIC_API_URL` environment variable pointing to external port 3000
+- **Backend API**: Express.js server hosted at https://dripn-server--shenisampson79.replit.app (port 5000)
+- **Frontend API URL**: Set via `EXPO_PUBLIC_API_URL` environment variable pointing to published backend
 - **Workflows**: 
-  - "Backend API" - Runs the Express backend on port 8082 (external port 3000)
   - "Start application" - Runs Expo Metro bundler on port 8081
-- **Port Mapping**: Internal 8082 → External 3000 (backend), Internal 8081 → External 80 (Expo web)
 - **API Endpoints**: All endpoints use `/api/` prefix with resilient fallback versions available (e.g., `/api/wardrobe/analyze/resilient`)
-- **Note**: Backend team prefers port 5000 but current Replit workflow config uses port 8082/3000
