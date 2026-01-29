@@ -654,7 +654,8 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   
   const [skinUndertone, setSkinUndertone] = useState<SkinUndertone | null>(null);
   const [preferredFit, setPreferredFit] = useState<PreferredFit | null>(null);
-  const [dressSize, setDressSize] = useState<string>('');
+  const [topSize, setTopSize] = useState<string>('');
+  const [bottomSize, setBottomSize] = useState<string>('');
   const [ageRange, setAgeRange] = useState<AgeRange | null>(null);
   const [shoppingFrequency, setShoppingFrequency] = useState<ShoppingFrequency | null>(null);
   const [preferOnlineShopping, setPreferOnlineShopping] = useState<boolean>(true);
@@ -2166,29 +2167,55 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         );
 
       case 7:
+        const isMale = gender === 'man';
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              What's your usual dress size?
+              What are your clothing sizes?
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              Enter your UK, US, or EU size (e.g., UK 12, US 8, EU 40)
+              Enter your UK, US, or EU size (e.g., M, L, UK 12, US 8)
             </ThemedText>
 
-            <TextInput
-              style={[
-                styles.dressSizeInput,
-                {
-                  backgroundColor: theme.backgroundSecondary,
-                  color: theme.text,
-                },
-              ]}
-              placeholder="e.g., UK 12 or US 8 or M"
-              placeholderTextColor={theme.tabIconDefault}
-              value={dressSize}
-              onChangeText={setDressSize}
-              autoCapitalize="characters"
-            />
+            <View style={styles.sizeInputGroup}>
+              <ThemedText type="body" style={[styles.sizeLabel, { color: theme.text }]}>
+                {isMale ? 'Shirt / Top Size' : 'Top Size'}
+              </ThemedText>
+              <TextInput
+                style={[
+                  styles.dressSizeInput,
+                  {
+                    backgroundColor: theme.backgroundSecondary,
+                    color: theme.text,
+                  },
+                ]}
+                placeholder={isMale ? "e.g., M, L, or 40" : "e.g., S, M, UK 10, or US 6"}
+                placeholderTextColor={theme.tabIconDefault}
+                value={topSize}
+                onChangeText={setTopSize}
+                autoCapitalize="characters"
+              />
+            </View>
+
+            <View style={[styles.sizeInputGroup, { marginTop: Spacing.lg }]}>
+              <ThemedText type="body" style={[styles.sizeLabel, { color: theme.text }]}>
+                {isMale ? 'Trouser / Waist Size' : 'Bottom Size (skirts, trousers, jeans)'}
+              </ThemedText>
+              <TextInput
+                style={[
+                  styles.dressSizeInput,
+                  {
+                    backgroundColor: theme.backgroundSecondary,
+                    color: theme.text,
+                  },
+                ]}
+                placeholder={isMale ? "e.g., 32, 34, or L" : "e.g., UK 12, US 8, or M"}
+                placeholderTextColor={theme.tabIconDefault}
+                value={bottomSize}
+                onChangeText={setBottomSize}
+                autoCapitalize="characters"
+              />
+            </View>
 
             <View style={[styles.infoCard, { backgroundColor: theme.link + '15', marginTop: Spacing.xl }]}>
               <Feather name="info" size={20} color={theme.link} />
@@ -4694,6 +4721,13 @@ const styles = StyleSheet.create({
   },
   infoBoxListItem: {
     opacity: 0.8,
+  },
+  sizeInputGroup: {
+    marginBottom: Spacing.sm,
+  },
+  sizeLabel: {
+    fontWeight: "500",
+    marginBottom: Spacing.sm,
   },
   fitOptionsGrid: {
     flexDirection: "row",
