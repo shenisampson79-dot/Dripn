@@ -2469,51 +2469,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 </Pressable>
               </View>
 
-              <ThemedText type="small" style={[styles.orDivider, { color: theme.tabIconDefault }]}>
-                or select manually
-              </ThemedText>
-
-              <View style={styles.optionalSection}>
-                <ThemedText type="h3" style={styles.sectionLabel}>
-                  Size Range
-                </ThemedText>
-                <View style={styles.optionsRow}>
-                  {SIZE_OPTIONS.map((size) => {
-                    const sizeColor = SIZE_COLORS[size] || { bg: "#374151", border: "#6B7280" };
-                    const isSelected = sizeRange === size;
-                    return (
-                      <Pressable
-                        key={size}
-                        onPress={() => setSizeRange(sizeRange === size ? null : size)}
-                        style={({ pressed }) => [
-                          styles.optionChip,
-                          {
-                            backgroundColor: sizeColor.bg,
-                            borderWidth: isSelected ? 2 : 1,
-                            borderColor: isSelected ? "#FFFFFF" : sizeColor.border,
-                            opacity: pressed ? 0.85 : 1,
-                            shadowColor: sizeColor.border,
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.3,
-                            shadowRadius: 4,
-                            elevation: 4,
-                          },
-                        ]}
-                      >
-                        <ThemedText
-                          type="body"
-                          style={{
-                            color: "#FFFFFF",
-                          }}
-                        >
-                          {size}
-                        </ThemedText>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-
               <View style={styles.optionalSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>
                   Body Shape
@@ -2559,37 +2514,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                           }}
                         >
                           {shape.description}
-                        </ThemedText>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-
-              <View style={styles.optionalSection}>
-                <ThemedText type="h3" style={styles.sectionLabel}>
-                  Fit Preference
-                </ThemedText>
-                <View style={styles.optionsRow}>
-                  {FIT_PREFERENCE_OPTIONS.map((fit) => {
-                    const isSelected = fitPreference === fit.id;
-                    return (
-                      <Pressable
-                        key={fit.id}
-                        onPress={() => setFitPreference(fitPreference === fit.id ? null : fit.id)}
-                        style={({ pressed }) => [
-                          styles.optionChip,
-                          {
-                            backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
-                            opacity: pressed ? 0.8 : 1,
-                          },
-                        ]}
-                      >
-                        <ThemedText
-                          type="body"
-                          style={{ color: isSelected ? "#FFFFFF" : theme.text }}
-                        >
-                          {fit.name}
                         </ThemedText>
                       </Pressable>
                     );
