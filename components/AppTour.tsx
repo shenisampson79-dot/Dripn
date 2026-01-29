@@ -133,7 +133,7 @@ export function AppTour({ visible, onComplete }: AppTourProps) {
             {currentStep === 0 ? (
               <View style={styles.logoContainer}>
                 <Image 
-                  source={require('@/assets/images/dripn-logo-new.png')} 
+                  source={require('@/assets/images/dripn-logo-icon.png')} 
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
