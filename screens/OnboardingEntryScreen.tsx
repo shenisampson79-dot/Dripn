@@ -130,7 +130,7 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
       <View style={[styles.content, { paddingTop: insets.top + SPACING_XXL }]}>
         <Animated.View entering={FadeIn.delay(200)} style={styles.header}>
           <Image 
-            source={require('@/assets/images/dripn-logo.png')} 
+            source={require('@/assets/images/dripn-logo-gold-transparent.png')} 
             style={styles.logo}
             resizeMode="contain"
           />
@@ -255,10 +255,9 @@ const styles = StyleSheet.create({
     marginTop: SPACING_XXL,
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 140,
+    height: 100,
     marginBottom: Spacing.lg,
-    borderRadius: 24,
   },
   title: {
     color: "#FFFFFF",
