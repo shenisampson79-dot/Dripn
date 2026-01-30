@@ -25,6 +25,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useWardrobe, WardrobeItem, ClothingCategory, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { dfyService, DFYAccessStatus } from "@/services/DFYService";
 import apiService from "@/services/ApiService";
 import type { WardrobeStackParamList } from "@/navigation/WardrobeStackNavigator";
@@ -80,6 +81,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { colorScheme, palette } = useColorScheme();
+  const { translations } = useTranslations();
   const { items, isLoading, deleteItem, toggleItemFavorite, markItemWorn, updateItem } = useWardrobe();
   
   const CATEGORY_COLORS = colorScheme === 'minimalist' 
@@ -136,9 +138,9 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (items.length < 3) {
       Alert.alert(
-        "More Items Needed",
-        "Add at least 3 items to your wardrobe for AI to create outfit combinations.",
-        [{ text: "OK" }]
+        translations.wardrobe.moreItemsNeeded,
+        translations.wardrobe.addItemsMessage,
+        [{ text: translations.common.done }]
       );
       return;
     }
@@ -153,12 +155,12 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
 
   const handleDeleteItem = async (item: WardrobeItem) => {
     Alert.alert(
-      "Delete Item",
-      `Are you sure you want to remove "${item.name}" from your wardrobe?`,
+      translations.wardrobe.deleteItem,
+      translations.wardrobe.deleteConfirm,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: translations.common.cancel, style: "cancel" },
         {
-          text: "Delete",
+          text: translations.common.done,
           style: "destructive",
           onPress: async () => {
             try {
@@ -167,7 +169,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               setSelectedItem(null);
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (error) {
-              Alert.alert("Error", "Failed to delete item");
+              Alert.alert(translations.common.error, translations.common.error);
             }
           },
         },
@@ -181,7 +183,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       setSelectedItem({ ...item, isFavorite: !item.isFavorite });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
-      Alert.alert("Error", "Failed to update favorite status");
+      Alert.alert(translations.common.error, translations.common.error);
     }
   };
 
@@ -190,9 +192,9 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       await markItemWorn(item.id);
       setSelectedItem({ ...item, timesWorn: item.timesWorn + 1 });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Logged", `Marked "${item.name}" as worn today`);
+      Alert.alert(translations.common.done, translations.wardrobe.markedAsWorn);
     } catch (error) {
-      Alert.alert("Error", "Failed to log wear");
+      Alert.alert(translations.common.error, translations.common.error);
     }
   };
 
@@ -205,7 +207,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       setSelectedItem({ ...item, timesWorn: newCount });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
-      Alert.alert("Error", "Failed to update wear count");
+      Alert.alert(translations.common.error, translations.common.error);
     }
   };
 
@@ -472,10 +474,10 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                         <ThemedText type="h3">
                           {selectedItem.lastWorn 
                             ? new Date(selectedItem.lastWorn).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                            : "Never"
+                            : translations.wardrobe.never
                           }
                         </ThemedText>
-                        <ThemedText type="caption" style={{ opacity: 0.6 }}>Last Worn</ThemedText>
+                        <ThemedText type="caption" style={{ opacity: 0.6 }}>{translations.wardrobe.lastWorn}</ThemedText>
                       </View>
                     </View>
                   </View>
