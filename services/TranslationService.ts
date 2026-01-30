@@ -50,6 +50,48 @@ export interface WardrobeTranslations {
   favorites: string;
   allItems: string;
   outfitCalendar: string;
+  myWardrobe: string;
+  moreItemsNeeded: string;
+  addItemsMessage: string;
+  deleteItem: string;
+  deleteConfirm: string;
+  markedAsWorn: string;
+  never: string;
+  bulkUpload: string;
+  lastWorn: string;
+  wornTimes: string;
+}
+
+export interface ProfileTranslations {
+  guestUser: string;
+  upgradeToPersonal: string;
+  manageSubscription: string;
+  styleDna: string;
+  styleDnaDesc: string;
+  colorAnalysis: string;
+  colorAnalysisDesc: string;
+  bodyProfile: string;
+  bodyProfileDesc: string;
+  likedOutfits: string;
+  noLikedOutfits: string;
+  styleOfTheDay: string;
+  viewDetails: string;
+}
+
+export interface StylistHubTranslations {
+  personalStylist: string;
+  personalStylistDesc: string;
+  voiceChat: string;
+  voiceChatDesc: string;
+  outfitCalendar: string;
+  outfitCalendarDesc: string;
+  weatherOutfits: string;
+  weatherOutfitsDesc: string;
+  blog: string;
+  blogDesc: string;
+  styleRules: string;
+  styleRulesDesc: string;
+  holdToRearrange: string;
 }
 
 export interface LocaleInfo {
@@ -147,6 +189,8 @@ export interface Translations {
   nav: NavTranslations;
   stylist: StylistTranslations;
   wardrobe: WardrobeTranslations;
+  profile: ProfileTranslations;
+  stylistHub: StylistHubTranslations;
   bodyScan: BodyScanTranslations;
   colorScan: ColorScanTranslations;
   quiz: QuizTranslations;
@@ -196,6 +240,46 @@ const DEFAULT_TRANSLATIONS: Translations = {
     favorites: 'Favorites',
     allItems: 'All Items',
     outfitCalendar: 'Outfit Calendar',
+    myWardrobe: 'My Wardrobe',
+    moreItemsNeeded: 'More Items Needed',
+    addItemsMessage: 'Add at least 3 items to your wardrobe for AI to create outfit combinations.',
+    deleteItem: 'Delete Item',
+    deleteConfirm: 'Are you sure you want to delete this item?',
+    markedAsWorn: 'Marked as worn today',
+    never: 'Never',
+    bulkUpload: 'Bulk Upload',
+    lastWorn: 'Last worn',
+    wornTimes: 'times',
+  },
+  profile: {
+    guestUser: 'Guest User',
+    upgradeToPersonal: 'Upgrade to Personal Stylist',
+    manageSubscription: 'Manage Subscription',
+    styleDna: 'Style DNA',
+    styleDnaDesc: 'Your unique style profile',
+    colorAnalysis: 'Color Analysis',
+    colorAnalysisDesc: 'Your best colors',
+    bodyProfile: 'Body Profile',
+    bodyProfileDesc: 'Your measurements & fit',
+    likedOutfits: 'Liked Outfits',
+    noLikedOutfits: 'No liked outfits yet',
+    styleOfTheDay: 'Style of the Day',
+    viewDetails: 'View Details',
+  },
+  stylistHub: {
+    personalStylist: 'Personal Stylist',
+    personalStylistDesc: 'Chat with your AI stylist',
+    voiceChat: 'Voice Chat',
+    voiceChatDesc: 'Talk to Ruby or Max',
+    outfitCalendar: 'Outfit Calendar',
+    outfitCalendarDesc: 'Plan your looks ahead',
+    weatherOutfits: 'Weather Outfits',
+    weatherOutfitsDesc: 'Dress for the forecast',
+    blog: 'Blog',
+    blogDesc: 'Fashion tips & guides',
+    styleRules: 'Style Rules',
+    styleRulesDesc: 'Your personal guidelines',
+    holdToRearrange: 'Hold to rearrange',
   },
   bodyScan: {
     title: 'Body Scan',
@@ -366,6 +450,8 @@ class TranslationServiceClass {
       nav: { ...DEFAULT_TRANSLATIONS.nav, ...nested.nav },
       stylist: { ...DEFAULT_TRANSLATIONS.stylist, ...nested.stylist },
       wardrobe: { ...DEFAULT_TRANSLATIONS.wardrobe, ...nested.wardrobe },
+      profile: { ...DEFAULT_TRANSLATIONS.profile, ...nested.profile },
+      stylistHub: { ...DEFAULT_TRANSLATIONS.stylistHub, ...nested.stylistHub },
       bodyScan: { ...DEFAULT_TRANSLATIONS.bodyScan, ...nested.bodyScan },
       colorScan: { ...DEFAULT_TRANSLATIONS.colorScan, ...nested.colorScan },
       quiz: { ...DEFAULT_TRANSLATIONS.quiz, ...nested.quiz },
