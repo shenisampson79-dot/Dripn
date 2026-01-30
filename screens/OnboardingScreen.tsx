@@ -837,6 +837,49 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     setShowPronunciationPrompt(false);
   }, []);
 
+  // Auto-play voice when language or accent changes (if stylist is selected)
+  const handleLanguageChange = useCallback(async (lang: string) => {
+    setStylistLanguage(lang);
+    // Reset accent to first available for new language
+    const accents = getAccentsForLanguage(lang);
+    if (accents.length > 0) {
+      setStylistAccent(accents[0]);
+    }
+    // Auto-play voice preview with selected stylist
+    if (selectedStylistId) {
+      await stopAudio();
+      setIsPlayingVoice(selectedStylistId);
+      try {
+        const voiceForStylist = selectedStylistId === 'ruby' ? 'nova' : 'onyx';
+        const nameToUse = useNameInGreetings ? userFirstName : undefined;
+        const newAccent = accents.length > 0 ? accents[0] : stylistAccent;
+        await playOpenAIVoice(selectedStylistId, lang, voicePitch, voiceForStylist, newAccent, nameToUse);
+        setIsPlayingVoice(null);
+      } catch (error) {
+        console.log('Voice preview error:', error);
+        setIsPlayingVoice(null);
+      }
+    }
+  }, [selectedStylistId, voicePitch, userFirstName, useNameInGreetings, stylistAccent]);
+
+  const handleAccentChange = useCallback(async (accent: string) => {
+    setStylistAccent(accent);
+    // Auto-play voice preview with selected stylist
+    if (selectedStylistId) {
+      await stopAudio();
+      setIsPlayingVoice(selectedStylistId);
+      try {
+        const voiceForStylist = selectedStylistId === 'ruby' ? 'nova' : 'onyx';
+        const nameToUse = useNameInGreetings ? userFirstName : undefined;
+        await playOpenAIVoice(selectedStylistId, stylistLanguage, voicePitch, voiceForStylist, accent, nameToUse);
+        setIsPlayingVoice(null);
+      } catch (error) {
+        console.log('Voice preview error:', error);
+        setIsPlayingVoice(null);
+      }
+    }
+  }, [selectedStylistId, stylistLanguage, voicePitch, userFirstName, useNameInGreetings]);
+
   const handleBodyScan = useCallback(async () => {
     try {
       if (!cameraPermission?.granted) {
@@ -1794,7 +1837,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                     {STYLIST_LANGUAGES.map((lang) => (
                       <Pressable
                         key={lang}
-                        onPress={() => setStylistLanguage(lang)}
+                        onPress={() => handleLanguageChange(lang)}
                         style={({ pressed }) => [
                           styles.optionChip,
                           {
@@ -1824,7 +1867,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                     {getAccentsForLanguage(stylistLanguage).map((accent) => (
                       <Pressable
                         key={accent}
-                        onPress={() => setStylistAccent(accent)}
+                        onPress={() => handleAccentChange(accent)}
                         style={({ pressed }) => [
                           styles.optionChip,
                           {
