@@ -57,7 +57,7 @@ interface PendingItem extends DetectedGarment {
 export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUploadScreenProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { addItem } = useWardrobe();
+  const { addItem, items: existingItems } = useWardrobe();
 
   const [inputMethod, setInputMethod] = useState<InputMethod | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -406,6 +406,14 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     );
   };
 
+  const checkForDuplicate = (itemName: string, category: string): boolean => {
+    const normalizedName = itemName.toLowerCase().trim();
+    return existingItems.some(existing => 
+      existing.name.toLowerCase().trim() === normalizedName && 
+      existing.category === category
+    );
+  };
+
   const handleSaveSelected = async () => {
     const selectedItems = pendingItems.filter(item => item.selected);
     if (selectedItems.length === 0) {
@@ -413,10 +421,43 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       return;
     }
 
+    const duplicates = selectedItems.filter(item => 
+      checkForDuplicate(item.suggestedName, item.category)
+    );
+
+    if (duplicates.length > 0) {
+      const duplicateNames = duplicates.map(d => d.suggestedName).join(', ');
+      Alert.alert(
+        "Duplicate Items Found",
+        `The following item${duplicates.length > 1 ? 's are' : ' is'} already in your wardrobe: ${duplicateNames}. Would you like to add them anyway?`,
+        [
+          {
+            text: "Skip Duplicates",
+            style: 'cancel',
+            onPress: () => saveItems(selectedItems.filter(item => !checkForDuplicate(item.suggestedName, item.category))),
+          },
+          {
+            text: "Add All",
+            onPress: () => saveItems(selectedItems),
+          },
+        ]
+      );
+      return;
+    }
+
+    await saveItems(selectedItems);
+  };
+
+  const saveItems = async (itemsToSave: PendingItem[]) => {
+    if (itemsToSave.length === 0) {
+      Alert.alert("No Items to Add", "All selected items are already in your wardrobe.");
+      return;
+    }
+
     setIsProcessing(true);
     let savedCount = 0;
 
-    for (const item of selectedItems) {
+    for (const item of itemsToSave) {
       try {
         await addItem({
           imageUri: item.imageUri || 'https://via.placeholder.com/300',
