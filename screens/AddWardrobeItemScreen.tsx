@@ -224,45 +224,186 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       
       const analysis = result.analysis;
       
-      console.log('[AI Analysis] Analysis object:', analysis);
-      console.log('[AI Analysis] Valid categories:', validCategories);
-      console.log('[AI Analysis] Valid colors:', validColors);
+      console.log('[AI Analysis] Full analysis object:', JSON.stringify(analysis, null, 2));
+      
+      // Color mapping for API values that don't match our predefined colors
+      const colorMap: Record<string, ClothingColor> = {
+        olive: 'green',
+        khaki: 'beige',
+        tan: 'beige',
+        charcoal: 'gray',
+        ivory: 'cream',
+        burgundy: 'red',
+        maroon: 'red',
+        coral: 'pink',
+        teal: 'blue',
+        turquoise: 'blue',
+        sage: 'green',
+        forest: 'green',
+        mint: 'green',
+        lavender: 'purple',
+        magenta: 'pink',
+        gold: 'yellow',
+        silver: 'gray',
+        copper: 'brown',
+        rust: 'orange',
+        terracotta: 'orange',
+        camel: 'brown',
+        chocolate: 'brown',
+        taupe: 'beige',
+        slate: 'gray',
+        indigo: 'navy',
+        cobalt: 'blue',
+        emerald: 'green',
+        ruby: 'red',
+        sapphire: 'blue',
+        wine: 'red',
+        blush: 'pink',
+        nude: 'beige',
+        sand: 'beige',
+        stone: 'gray',
+        ash: 'gray',
+        midnight: 'navy',
+        sky: 'blue',
+        aqua: 'blue',
+        plum: 'purple',
+        violet: 'purple',
+        rose: 'pink',
+        peach: 'orange',
+        mauve: 'pink',
+        lilac: 'purple',
+        chartreuse: 'green',
+        mustard: 'yellow',
+        lemon: 'yellow',
+      };
+      
+      // Season mapping for API values
+      const seasonMap: Record<string, ClothingSeason> = {
+        fall: 'autumn',
+        'all-year': 'all-season',
+        'all year': 'all-season',
+        'year-round': 'all-season',
+        'year round': 'all-season',
+      };
+      
+      // Occasion mapping for API values
+      const occasionMap: Record<string, ClothingOccasion> = {
+        outdoor: 'casual',
+        outdoors: 'casual',
+        travel: 'vacation',
+        office: 'work',
+        professional: 'work',
+        business: 'work',
+        evening: 'date-night',
+        night: 'date-night',
+        'night out': 'date-night',
+        nightout: 'date-night',
+        sport: 'workout',
+        sports: 'workout',
+        gym: 'workout',
+        exercise: 'workout',
+        athletic: 'workout',
+        beach: 'vacation',
+        lounge: 'casual',
+        loungewear: 'casual',
+        special: 'formal',
+        'special occasion': 'formal',
+        wedding: 'formal',
+        gala: 'formal',
+        cocktail: 'party',
+        festival: 'party',
+        club: 'party',
+        brunch: 'casual',
+        daily: 'everyday',
+        day: 'everyday',
+        daytime: 'everyday',
+      };
       
       if (analysis) {
         console.log('[AI Analysis] Setting fields from analysis...');
         
+        // Handle name - check multiple field variations
+        const itemName = analysis.name || analysis.suggestedName || analysis.itemName;
+        if (itemName) {
+          console.log('[AI Analysis] Setting name:', itemName);
+          setName(itemName);
+        }
+        
+        // Handle category
         if (analysis.category) {
-          console.log('[AI Analysis] Category from API:', analysis.category, 'Valid:', validCategories.includes(analysis.category as ClothingCategory));
-          if (validCategories.includes(analysis.category as ClothingCategory)) {
-            setCategory(analysis.category as ClothingCategory);
+          const cat = analysis.category.toLowerCase();
+          console.log('[AI Analysis] Category from API:', cat);
+          if (validCategories.includes(cat as ClothingCategory)) {
+            setCategory(cat as ClothingCategory);
           }
         }
-        if (analysis.color) {
-          console.log('[AI Analysis] Color from API:', analysis.color, 'Valid:', validColors.includes(analysis.color as ClothingColor));
-          if (validColors.includes(analysis.color as ClothingColor)) {
-            setColor(analysis.color as ClothingColor);
+        
+        // Handle color - check multiple field variations and map if needed
+        const apiColor = (analysis.color || analysis.colorTag || '').toLowerCase();
+        if (apiColor) {
+          console.log('[AI Analysis] Color from API:', apiColor);
+          let mappedColor: ClothingColor | null = null;
+          
+          if (validColors.includes(apiColor as ClothingColor)) {
+            mappedColor = apiColor as ClothingColor;
+          } else if (colorMap[apiColor]) {
+            mappedColor = colorMap[apiColor];
+            console.log('[AI Analysis] Mapped color:', apiColor, '->', mappedColor);
+          }
+          
+          if (mappedColor) {
+            setColor(mappedColor);
           }
         }
-        if (analysis.suggestedName) {
-          console.log('[AI Analysis] Setting name:', analysis.suggestedName);
-          setName(analysis.suggestedName);
-        }
+        
+        // Handle seasons - map values like "fall" to "autumn"
         if (analysis.seasons && analysis.seasons.length > 0) {
-          console.log('[AI Analysis] Setting seasons:', analysis.seasons);
-          setSeasons(analysis.seasons.filter((s: string) => validSeasons.includes(s as ClothingSeason)) as ClothingSeason[]);
+          console.log('[AI Analysis] Seasons from API:', analysis.seasons);
+          const mappedSeasons = analysis.seasons
+            .map((s: string) => {
+              const lower = s.toLowerCase();
+              if (validSeasons.includes(lower as ClothingSeason)) return lower;
+              if (seasonMap[lower]) return seasonMap[lower];
+              return null;
+            })
+            .filter((s: ClothingSeason | null): s is ClothingSeason => s !== null);
+          
+          if (mappedSeasons.length > 0) {
+            console.log('[AI Analysis] Setting mapped seasons:', mappedSeasons);
+            setSeasons(mappedSeasons);
+          }
         }
+        
+        // Handle occasions - map values like "outdoor" to "casual"
         if (analysis.occasions && analysis.occasions.length > 0) {
-          console.log('[AI Analysis] Setting occasions:', analysis.occasions);
-          setOccasions(analysis.occasions.filter((o: string) => validOccasions.includes(o as ClothingOccasion)) as ClothingOccasion[]);
+          console.log('[AI Analysis] Occasions from API:', analysis.occasions);
+          const mappedOccasions = analysis.occasions
+            .map((o: string) => {
+              const lower = o.toLowerCase();
+              if (validOccasions.includes(lower as ClothingOccasion)) return lower;
+              if (occasionMap[lower]) return occasionMap[lower];
+              return null;
+            })
+            .filter((o: ClothingOccasion | null): o is ClothingOccasion => o !== null);
+          
+          if (mappedOccasions.length > 0) {
+            console.log('[AI Analysis] Setting mapped occasions:', mappedOccasions);
+            setOccasions(mappedOccasions);
+          }
         }
+        
+        // Handle brand
         if (analysis.brand) {
           console.log('[AI Analysis] Setting brand:', analysis.brand);
           setBrand(analysis.brand);
         }
+        
+        // Handle description/notes
         if (analysis.description) {
           console.log('[AI Analysis] Setting notes:', analysis.description);
           setNotes(analysis.description);
         }
+        
         setAiAnalyzed(true);
         
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -275,7 +416,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         
         Alert.alert(
           "AI Analysis Complete",
-          `Detected: ${analysis.suggestedName || 'Fashion Item'}\n\nFeel free to adjust any details before saving.${scansMessage}`,
+          `Detected: ${itemName || 'Fashion Item'}\n\nFeel free to adjust any details before saving.${scansMessage}`,
           [{ text: "Got it", style: "default" }]
         );
       } else {
