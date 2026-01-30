@@ -63,7 +63,7 @@ type WardrobeScreenProps = {
   navigation: NativeStackNavigationProp<WardrobeStackParamList, "Wardrobe">;
 };
 
-const CATEGORY_OPTIONS: Array<{ key: ClothingCategory | 'all'; label: string; icon: string }> = [
+const ALL_CATEGORY_OPTIONS: Array<{ key: ClothingCategory | 'all'; label: string; icon: string }> = [
   { key: 'all', label: 'All', icon: 'grid' },
   { key: 'tops', label: 'Tops', icon: 'sun' },
   { key: 'bottoms', label: 'Bottoms', icon: 'minimize-2' },
@@ -119,6 +119,10 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     };
     loadDFYAccess();
   }, [user?.id]);
+
+  const CATEGORY_OPTIONS = user?.gender === 'man' 
+    ? ALL_CATEGORY_OPTIONS.filter(cat => cat.key !== 'dresses')
+    : ALL_CATEGORY_OPTIONS;
 
   const filteredItems = selectedCategory === 'all' 
     ? items 
@@ -298,6 +302,44 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     );
   }, [theme, isDark]);
 
+  const renderEmptyCategoryState = () => {
+    const categoryLabel = CATEGORY_OPTIONS.find(c => c.key === selectedCategory)?.label || selectedCategory;
+    return (
+      <View style={styles.emptyContainer}>
+        <LinearGradient
+          colors={[LUXURY_COLORS.violet + '30', LUXURY_COLORS.rose + '20']}
+          style={styles.emptyIconContainer}
+        >
+          <LinearGradient
+            colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+            style={styles.emptyIconGradient}
+          >
+            <Feather name="folder" size={32} color="#FFFFFF" />
+          </LinearGradient>
+        </LinearGradient>
+        <ThemedText type="h2" style={styles.emptyTitle}>
+          No {categoryLabel} yet
+        </ThemedText>
+        <ThemedText type="body" style={styles.emptyText}>
+          Add some {categoryLabel.toLowerCase()} to your wardrobe to see them here
+        </ThemedText>
+        <LinearGradient
+          colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.emptyButtonGradient}
+        >
+          <Pressable onPress={handleAddItem} style={styles.emptyButtonInner}>
+            <Feather name="plus" size={18} color={LUXURY_COLORS.midnight} />
+            <ThemedText type="body" style={styles.emptyButtonText}>
+              Add {categoryLabel}
+            </ThemedText>
+          </Pressable>
+        </LinearGradient>
+      </View>
+    );
+  };
+
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <LinearGradient
@@ -341,6 +383,13 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       </Pressable>
     </View>
   );
+
+  const renderListEmptyComponent = () => {
+    if (items.length > 0 && selectedCategory !== 'all') {
+      return renderEmptyCategoryState();
+    }
+    return renderEmptyState();
+  };
 
   const renderItemModal = () => {
     if (!selectedItem) return null;
@@ -738,7 +787,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           { paddingBottom: insets.bottom + 100 },
         ]}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmptyState}
+        ListEmptyComponent={renderListEmptyComponent}
       />
 
       {renderItemModal()}
