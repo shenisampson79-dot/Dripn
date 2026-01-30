@@ -244,6 +244,9 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
   const [stats, setStats] = useState<WardrobeStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const itemsRef = React.useRef<WardrobeItem[]>([]);
+  itemsRef.current = items;
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -347,10 +350,10 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       updatedAt: now,
     };
 
-    const updatedItems = [...items, newItem];
+    const updatedItems = [...itemsRef.current, newItem];
     await saveItems(updatedItems);
     return newItem;
-  }, [user, items]);
+  }, [user]);
 
   const updateItem = useCallback(async (id: string, updates: Partial<WardrobeItem>) => {
     const updatedItems = items.map(item =>
