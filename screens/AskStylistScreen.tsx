@@ -374,7 +374,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
       const result: DecisionResponse = {
         id: `response-${Date.now()}`,
         requestId: `request-${Date.now()}`,
-        recommendation: apiResult.recommendation || apiResult.response || '',
+        recommendation: apiResult.decision || apiResult.recommendation || apiResult.response || '',
         reasoning: apiResult.reasoning || '',
         stylistId,
         timestamp: new Date().toISOString(),
