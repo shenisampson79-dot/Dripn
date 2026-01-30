@@ -23,6 +23,7 @@ import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
 
 type StylistHubScreenProps = {
@@ -44,11 +45,11 @@ interface StylistFeature {
   premium?: boolean;
 }
 
-const ALL_FEATURES: StylistFeature[] = [
+const getFeatures = (translations: any): StylistFeature[] => [
   {
     id: "ai-stylist",
-    title: "Personal Stylist",
-    description: "Chat with your AI stylist",
+    title: translations.stylistHub.personalStylist,
+    description: translations.stylistHub.personalStylistDesc,
     icon: "message-circle",
     screen: "AIStylist",
     gradientKey: "primary",
@@ -56,8 +57,8 @@ const ALL_FEATURES: StylistFeature[] = [
   },
   {
     id: "voice-chat",
-    title: "Voice Chat",
-    description: "Talk to Ruby or Max",
+    title: translations.stylistHub.voiceChat,
+    description: translations.stylistHub.voiceChatDesc,
     icon: "headphones",
     screen: "VoiceConversation",
     gradientKey: "accent",
@@ -65,8 +66,8 @@ const ALL_FEATURES: StylistFeature[] = [
   },
   {
     id: "outfit-calendar",
-    title: "Outfit Calendar",
-    description: "Plan your looks ahead",
+    title: translations.stylistHub.outfitCalendar,
+    description: translations.stylistHub.outfitCalendarDesc,
     icon: "calendar",
     screen: "OutfitCalendar",
     gradientKey: "cool",
@@ -74,8 +75,8 @@ const ALL_FEATURES: StylistFeature[] = [
   },
   {
     id: "weather-outfit",
-    title: "Weather Outfits",
-    description: "Dress for the forecast",
+    title: translations.stylistHub.weatherOutfits,
+    description: translations.stylistHub.weatherOutfitsDesc,
     icon: "cloud",
     screen: "WeatherOutfit",
     gradientKey: "secondary",
@@ -83,8 +84,8 @@ const ALL_FEATURES: StylistFeature[] = [
   },
   {
     id: "fashion-blog",
-    title: "Blog",
-    description: "Fashion tips & guides",
+    title: translations.stylistHub.blog,
+    description: translations.stylistHub.blogDesc,
     icon: "book-open",
     screen: "FashionBlog",
     gradientKey: "warm",
@@ -92,8 +93,8 @@ const ALL_FEATURES: StylistFeature[] = [
   },
   {
     id: "style-rules",
-    title: "Style Rules",
-    description: "105+ fashion guidelines",
+    title: translations.stylistHub.styleRules,
+    description: translations.stylistHub.styleRulesDesc,
     icon: "list",
     screen: "StyleRules",
     gradientKey: "primary",
@@ -118,6 +119,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
   const { theme } = useTheme();
   const { tier } = useSubscription();
   const { palette, colorScheme } = useColorScheme();
+  const { translations } = useTranslations();
   const [tilesOrder, setTilesOrder] = useState<string[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -125,17 +127,19 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
     loadTilesOrder();
   }, []);
 
+  const allFeatures = getFeatures(translations);
+  
   const loadTilesOrder = async () => {
     try {
       const stored = await AsyncStorage.getItem(TILES_ORDER_KEY);
       if (stored) {
         setTilesOrder(JSON.parse(stored));
       } else {
-        setTilesOrder(ALL_FEATURES.map(f => f.id));
+        setTilesOrder(allFeatures.map(f => f.id));
       }
     } catch (error) {
       console.error("Failed to load tiles order:", error);
-      setTilesOrder(ALL_FEATURES.map(f => f.id));
+      setTilesOrder(allFeatures.map(f => f.id));
     }
   };
 
@@ -165,15 +169,15 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
   };
 
   const sortedFeatures = useCallback(() => {
-    if (tilesOrder.length === 0) return ALL_FEATURES;
-    return [...ALL_FEATURES].sort((a, b) => {
+    if (tilesOrder.length === 0) return allFeatures;
+    return [...allFeatures].sort((a, b) => {
       const aIndex = tilesOrder.indexOf(a.id);
       const bIndex = tilesOrder.indexOf(b.id);
       if (aIndex === -1) return 1;
       if (bIndex === -1) return -1;
       return aIndex - bIndex;
     });
-  }, [tilesOrder]);
+  }, [tilesOrder, allFeatures]);
 
   const TILE_HEIGHT = 140;
   

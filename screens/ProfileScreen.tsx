@@ -20,6 +20,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useOutfitFavorites, LikedOutfit } from "@/contexts/OutfitFavoritesContext";
 import { useBodyProfile } from "@/contexts/BodyProfileContext";
 import { useStyleProfile } from "@/contexts/StyleProfileContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
 
@@ -48,6 +49,7 @@ type ProfileScreenProps = {
 export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScreenProps) {
   const { theme, isDark } = useTheme();
   const { palette, colorScheme } = useColorScheme();
+  const { translations } = useTranslations();
   const { user } = useAuth();
   const { limits } = useSubscription();
   const { getLikedOutfits, toggleOutfitLike, isOutfitLiked, isLoading: outfitsLoading } = useOutfitFavorites();
@@ -168,7 +170,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           </Pressable>
 
           <ThemedText type="h2" style={[styles.userName, { color: '#FFFFFF' }]}>
-            {user?.name || "Guest User"}
+            {user?.name || translations.profile.guestUser}
           </ThemedText>
 
           <View style={styles.badgesContainer}>
@@ -200,7 +202,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           >
             <Feather name="zap" size={18} color={LUXURY_COLORS.midnight} />
             <ThemedText type="body" style={styles.upgradeButtonText}>
-              {user?.subscriptionTier === "free" ? "Upgrade to Personal Stylist" : "Manage Subscription"}
+              {user?.subscriptionTier === "free" ? translations.profile.upgradeToPersonal : translations.profile.manageSubscription}
             </ThemedText>
           </Pressable>
         </LinearGradient>
@@ -248,7 +250,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               <Feather name="git-branch" size={20} color="#FFFFFF" />
             </LinearGradient>
             <View style={styles.styleProfileCardContent}>
-              <ThemedText type="body" style={styles.styleProfileCardTitle}>Style DNA</ThemedText>
+              <ThemedText type="body" style={styles.styleProfileCardTitle}>{translations.profile.styleDna}</ThemedText>
               {hasStyleProfile && styleProfile ? (
                 <ThemedText type="small" style={styles.styleProfileCardValue}>
                   {styleProfile.stylePersonality || styleProfile.dominantStyles?.[0] || 'Analyzed'}
@@ -276,7 +278,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               <Feather name="droplet" size={20} color="#FFFFFF" />
             </LinearGradient>
             <View style={styles.styleProfileCardContent}>
-              <ThemedText type="body" style={styles.styleProfileCardTitle}>Color Analysis</ThemedText>
+              <ThemedText type="body" style={styles.styleProfileCardTitle}>{translations.profile.colorAnalysis}</ThemedText>
               {hasColorAnalysis && bodyProfile?.colorSeason ? (
                 <ThemedText type="small" style={styles.styleProfileCardValue}>
                   {bodyProfile.colorSeason.season.charAt(0).toUpperCase() + bodyProfile.colorSeason.season.slice(1)} {bodyProfile.colorSeason.subtype || ''}
@@ -304,7 +306,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               <Feather name="maximize" size={20} color="#FFFFFF" />
             </LinearGradient>
             <View style={styles.styleProfileCardContent}>
-              <ThemedText type="body" style={styles.styleProfileCardTitle}>Body Scanner</ThemedText>
+              <ThemedText type="body" style={styles.styleProfileCardTitle}>{translations.profile.bodyProfile}</ThemedText>
               {hasBodyProfile && bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown' ? (
                 <ThemedText type="small" style={styles.styleProfileCardValue}>
                   {bodyProfile.bodyShape.charAt(0).toUpperCase() + bodyProfile.bodyShape.slice(1)} shape
