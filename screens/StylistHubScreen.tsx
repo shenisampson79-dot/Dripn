@@ -350,10 +350,10 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
           <View style={styles.headerSection}>
             <View style={styles.headerRow}>
               <View>
-                <ThemedText type="h3" style={[styles.title, { color: LuxuryColors.gold }]}>
+                <ThemedText type="h3" style={[styles.title, { color: '#3D3426' }]}>
                   Style Tools
                 </ThemedText>
-                <ThemedText style={[styles.subtitle, { color: 'rgba(255,255,255,0.7)' }]}>
+                <ThemedText style={[styles.subtitle, { color: '#5A4D3A' }]}>
                   Your personal fashion assistant
                 </ThemedText>
               </View>

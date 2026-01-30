@@ -99,11 +99,14 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
   };
 
   const TabBarBackground = Platform.OS === "ios" ? (
-    <BlurView
-      intensity={80}
-      tint={isDark ? "dark" : "light"}
-      style={StyleSheet.absoluteFill}
-    />
+    <>
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(30,30,30,0.85)' : 'rgba(255,255,255,0.9)' }]} />
+      <BlurView
+        intensity={80}
+        tint={isDark ? "dark" : "light"}
+        style={StyleSheet.absoluteFill}
+      />
+    </>
   ) : (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.backgroundRoot }]} />
   );
