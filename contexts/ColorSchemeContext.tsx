@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ColorSchemeMode = 'colorful' | 'minimalist';
 
-// Minimalist palette - original app colors (understated luxury tones)
+// Minimalist palette - original app colors (understated luxury tones - beige/cream/brown)
 const MinimalistPalette = {
   gold: '#C9A87C',
   deepGold: '#A88B5C',
@@ -17,14 +17,14 @@ const MinimalistPalette = {
   electric: '#7C3AED',
   magenta: '#DB2777',
   sapphire: '#2563EB',
-  gradientPrimary: ['#667eea', '#764ba2'] as readonly [string, string],
-  gradientSecondary: ['#11998e', '#38ef7d'] as readonly [string, string],
-  gradientAccent: ['#f093fb', '#f5576c'] as readonly [string, string],
-  gradientWarm: ['#ff6b6b', '#ee5a5a'] as readonly [string, string],
-  gradientCool: ['#4facfe', '#00f2fe'] as readonly [string, string],
+  gradientPrimary: ['#C9A87C', '#A88B5C'] as readonly [string, string],
+  gradientSecondary: ['#E8B4B8', '#D4A5A5'] as readonly [string, string],
+  gradientAccent: ['#9B7EBD', '#8B6BAD'] as readonly [string, string],
+  gradientWarm: ['#E07A5F', '#D4695E'] as readonly [string, string],
+  gradientCool: ['#2A9D8F', '#1A8D7F'] as readonly [string, string],
 };
 
-// Colorful palette - vibrant, bold, and eye-catching colors
+// Colorful palette - vibrant, bold gradient colors (purple/pink/cyan/green cards)
 const ColorfulPalette = {
   gold: '#FFD700',
   deepGold: '#FFA500',
@@ -38,11 +38,11 @@ const ColorfulPalette = {
   electric: '#7B68EE',
   magenta: '#FF00FF',
   sapphire: '#4169E1',
-  gradientPrimary: ['#FF6B6B', '#845EC2'] as readonly [string, string],
-  gradientSecondary: ['#00C9A7', '#4FFBDF'] as readonly [string, string],
-  gradientAccent: ['#FF9671', '#FFC75F'] as readonly [string, string],
-  gradientWarm: ['#F9F871', '#FF6F91'] as readonly [string, string],
-  gradientCool: ['#0081CF', '#00F5FF'] as readonly [string, string],
+  gradientPrimary: ['#667eea', '#764ba2'] as readonly [string, string],
+  gradientSecondary: ['#11998e', '#38ef7d'] as readonly [string, string],
+  gradientAccent: ['#f093fb', '#f5576c'] as readonly [string, string],
+  gradientWarm: ['#ff6b6b', '#ee5a5a'] as readonly [string, string],
+  gradientCool: ['#4facfe', '#00f2fe'] as readonly [string, string],
 };
 
 export type SchemePalette = typeof ColorfulPalette;
