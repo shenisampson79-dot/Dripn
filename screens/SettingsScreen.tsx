@@ -414,14 +414,14 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     }
   };
 
+  const headerGradientColors: readonly [string, string, string] = colorScheme === 'minimalist' 
+    ? ['#C9A87C', '#A88B5C', '#3D3426'] as const
+    : [ScreenGradients.settings.primary[0], ScreenGradients.settings.primary[1], LuxuryColors.obsidian] as const;
+
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
-        colors={[
-          ScreenGradients.settings.primary[0],
-          ScreenGradients.settings.primary[1],
-          LuxuryColors.obsidian,
-        ]}
+        colors={headerGradientColors}
         locations={[0, 0.35, 1]}
         style={StyleSheet.absoluteFill}
       />

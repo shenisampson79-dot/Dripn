@@ -117,7 +117,7 @@ const getGradientColors = (key: GradientKey, palette: any): readonly [string, st
 export default function StylistHubScreen({ navigation }: StylistHubScreenProps) {
   const { theme } = useTheme();
   const { tier } = useSubscription();
-  const { palette } = useColorScheme();
+  const { palette, colorScheme } = useColorScheme();
   const [tilesOrder, setTilesOrder] = useState<string[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -322,14 +322,14 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
 
   const isDark = theme.backgroundDefault === '#0D0B09' || theme.backgroundDefault === '#000000' || theme.backgroundDefault.toLowerCase() === '#1a1a2e';
 
+  const headerGradientColors: readonly [string, string, string] = colorScheme === 'minimalist' 
+    ? ['#C9A87C', '#A88B5C', '#3D3426'] as const
+    : [ScreenGradients.stylistHub.primary[0], ScreenGradients.stylistHub.primary[1], LuxuryColors.obsidian] as const;
+
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
-        colors={[
-          ScreenGradients.stylistHub.primary[0],
-          ScreenGradients.stylistHub.primary[1],
-          LuxuryColors.obsidian,
-        ]}
+        colors={headerGradientColors}
         locations={[0, 0.35, 1]}
         style={StyleSheet.absoluteFill}
       />

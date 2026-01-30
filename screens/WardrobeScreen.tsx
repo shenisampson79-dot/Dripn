@@ -24,6 +24,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import { useWardrobe, WardrobeItem, ClothingCategory, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { dfyService, DFYAccessStatus } from "@/services/DFYService";
 import apiService from "@/services/ApiService";
 import type { WardrobeStackParamList } from "@/navigation/WardrobeStackNavigator";
@@ -31,32 +32,31 @@ import type { WardrobeStackParamList } from "@/navigation/WardrobeStackNavigator
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const ITEM_SIZE = (SCREEN_WIDTH - Spacing.xl * 2 - Spacing.md) / 2;
 
-const LUXURY_COLORS = {
-  gold: '#C9A87C',
-  deepGold: '#A88B5C',
-  rose: '#E8B4B8',
-  berry: '#8B2F39',
-  violet: '#9B7EBD',
-  deepViolet: '#6B4E8D',
-  champagne: '#F5E6D3',
-  midnight: '#1A1A2E',
-  coral: '#E07A5F',
-  teal: '#2A9D8F',
-  emerald: '#059669',
-};
+const getMinimalistCategoryColors = (): Record<string, { gradient: readonly [string, string]; icon: string }> => ({
+  'all': { gradient: ['#C9A87C', '#A88B5C'] as const, icon: 'grid' },
+  'tops': { gradient: ['#C4A484', '#B49474'] as const, icon: 'sun' },
+  'bottoms': { gradient: ['#A69279', '#968269'] as const, icon: 'minimize-2' },
+  'dresses': { gradient: ['#D4C4B0', '#C4B4A0'] as const, icon: 'heart' },
+  'outerwear': { gradient: ['#8B7D6B', '#7B6D5B'] as const, icon: 'cloud' },
+  'shoes': { gradient: ['#C9A87C', '#A88B5C'] as const, icon: 'disc' },
+  'bags': { gradient: ['#8B7355', '#7B6345'] as const, icon: 'shopping-bag' },
+  'accessories': { gradient: ['#B8A898', '#A89888'] as const, icon: 'watch' },
+  'activewear': { gradient: ['#9C8B7A', '#8C7B6A'] as const, icon: 'activity' },
+  'formal': { gradient: ['#6B5B4F', '#5B4B3F'] as const, icon: 'star' },
+});
 
-const CATEGORY_COLORS: Record<string, { gradient: readonly [string, string]; icon: string }> = {
-  'all': { gradient: [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const, icon: 'grid' },
-  'tops': { gradient: [LUXURY_COLORS.coral, '#C46A4F'] as const, icon: 'sun' },
-  'bottoms': { gradient: [LUXURY_COLORS.teal, LUXURY_COLORS.emerald] as const, icon: 'minimize-2' },
-  'dresses': { gradient: [LUXURY_COLORS.rose, '#D4949A'] as const, icon: 'heart' },
+const getColorfulCategoryColors = (): Record<string, { gradient: readonly [string, string]; icon: string }> => ({
+  'all': { gradient: ['#9B7EBD', '#6B4E8D'] as const, icon: 'grid' },
+  'tops': { gradient: ['#E07A5F', '#C46A4F'] as const, icon: 'sun' },
+  'bottoms': { gradient: ['#2A9D8F', '#059669'] as const, icon: 'minimize-2' },
+  'dresses': { gradient: ['#E8B4B8', '#D4949A'] as const, icon: 'heart' },
   'outerwear': { gradient: ['#64748B', '#475569'] as const, icon: 'cloud' },
-  'shoes': { gradient: [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const, icon: 'disc' },
-  'bags': { gradient: [LUXURY_COLORS.berry, '#6B2430'] as const, icon: 'shopping-bag' },
+  'shoes': { gradient: ['#C9A87C', '#A88B5C'] as const, icon: 'disc' },
+  'bags': { gradient: ['#8B2F39', '#6B2430'] as const, icon: 'shopping-bag' },
   'accessories': { gradient: ['#8B5CF6', '#7C3AED'] as const, icon: 'watch' },
   'activewear': { gradient: ['#06B6D4', '#0891B2'] as const, icon: 'activity' },
   'formal': { gradient: ['#1E293B', '#0F172A'] as const, icon: 'star' },
-};
+});
 
 type WardrobeScreenProps = {
   navigation: NativeStackNavigationProp<WardrobeStackParamList, "Wardrobe">;
@@ -79,7 +79,26 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { colorScheme, palette } = useColorScheme();
   const { items, isLoading, deleteItem, toggleItemFavorite, markItemWorn, updateItem } = useWardrobe();
+  
+  const CATEGORY_COLORS = colorScheme === 'minimalist' 
+    ? getMinimalistCategoryColors() 
+    : getColorfulCategoryColors();
+
+  const LUXURY_COLORS = {
+    gold: palette.gold,
+    deepGold: palette.deepGold,
+    rose: palette.rose,
+    berry: palette.berry,
+    violet: palette.violet,
+    deepViolet: palette.deepViolet,
+    champagne: '#F5E6D3',
+    midnight: '#1A1A2E',
+    coral: palette.coral,
+    teal: palette.teal,
+    emerald: palette.emerald,
+  };
   const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'all'>('all');
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
   const [showItemModal, setShowItemModal] = useState(false);
@@ -548,14 +567,14 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     );
   }
 
+  const headerGradientColors: readonly [string, string, string] = colorScheme === 'minimalist' 
+    ? ['#C9A87C', '#A88B5C', '#3D3426'] as const
+    : [ScreenGradients.wardrobe.primary[0], ScreenGradients.wardrobe.primary[1], LuxuryColors.obsidian] as const;
+
   return (
     <View style={[styles.container, { backgroundColor: 'transparent' }]}>
       <LinearGradient
-        colors={[
-          ScreenGradients.wardrobe.primary[0],
-          ScreenGradients.wardrobe.primary[1],
-          LuxuryColors.obsidian,
-        ]}
+        colors={headerGradientColors}
         locations={[0, 0.35, 1]}
         style={StyleSheet.absoluteFill}
       />
@@ -1139,7 +1158,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.lg,
   },
   emptyButtonText: {
-    color: LUXURY_COLORS.midnight,
+    color: '#1A1A2E',
     fontWeight: "700",
   },
   emptyButtonSecondary: {
@@ -1175,7 +1194,7 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: LUXURY_COLORS.gold,
+    shadowColor: '#C9A87C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,

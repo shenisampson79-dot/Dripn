@@ -3,25 +3,25 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ColorSchemeMode = 'colorful' | 'minimalist';
 
-// Minimalist palette - original app colors (understated luxury tones - beige/cream/brown)
+// Minimalist palette - browns/beige/cream only (no other colors)
 const MinimalistPalette = {
   gold: '#C9A87C',
   deepGold: '#A88B5C',
-  rose: '#E8B4B8',
-  berry: '#8B2F39',
-  violet: '#9B7EBD',
-  deepViolet: '#6B4E8D',
-  coral: '#E07A5F',
-  teal: '#2A9D8F',
-  emerald: '#059669',
-  electric: '#7C3AED',
-  magenta: '#DB2777',
-  sapphire: '#2563EB',
+  rose: '#D4C4B0',
+  berry: '#8B7355',
+  violet: '#B8A898',
+  deepViolet: '#9C8B7A',
+  coral: '#C4A484',
+  teal: '#A69279',
+  emerald: '#8B7D6B',
+  electric: '#6B5B4F',
+  magenta: '#9C8674',
+  sapphire: '#7A6A5A',
   gradientPrimary: ['#C9A87C', '#A88B5C'] as readonly [string, string],
-  gradientSecondary: ['#E8B4B8', '#D4A5A5'] as readonly [string, string],
-  gradientAccent: ['#9B7EBD', '#8B6BAD'] as readonly [string, string],
-  gradientWarm: ['#E07A5F', '#D4695E'] as readonly [string, string],
-  gradientCool: ['#2A9D8F', '#1A8D7F'] as readonly [string, string],
+  gradientSecondary: ['#D4C4B0', '#C4B4A0'] as readonly [string, string],
+  gradientAccent: ['#B8A898', '#A89888'] as readonly [string, string],
+  gradientWarm: ['#C4A484', '#B49474'] as readonly [string, string],
+  gradientCool: ['#A69279', '#968269'] as readonly [string, string],
 };
 
 // Colorful palette - vibrant, bold gradient colors (purple/pink/cyan/green cards)

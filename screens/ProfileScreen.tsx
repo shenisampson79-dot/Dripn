@@ -47,7 +47,7 @@ type ProfileScreenProps = {
 
 export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScreenProps) {
   const { theme, isDark } = useTheme();
-  const { palette } = useColorScheme();
+  const { palette, colorScheme } = useColorScheme();
   const { user } = useAuth();
   const { limits } = useSubscription();
   const { getLikedOutfits, toggleOutfitLike, isOutfitLiked, isLoading: outfitsLoading } = useOutfitFavorites();
@@ -122,14 +122,14 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     { key: 'outfits', label: 'Saved Outfits', icon: 'bookmark', color: LUXURY_COLORS.gold },
   ];
 
+  const headerGradientColors: readonly [string, string, string] = colorScheme === 'minimalist' 
+    ? ['#C9A87C', '#A88B5C', '#3D3426'] as const
+    : [ScreenGradients.profile.primary[0], ScreenGradients.profile.primary[1], LuxuryColors.obsidian] as const;
+
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
-        colors={[
-          ScreenGradients.profile.primary[0],
-          ScreenGradients.profile.primary[1],
-          LuxuryColors.obsidian,
-        ]}
+        colors={headerGradientColors}
         locations={[0, 0.35, 1]}
         style={StyleSheet.absoluteFill}
       />
