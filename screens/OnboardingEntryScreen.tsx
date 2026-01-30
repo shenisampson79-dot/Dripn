@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, Pressable, Dimensions, Platform, Image } from "react-native";
+import { StyleSheet, View, Pressable, Dimensions, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -129,11 +129,6 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
 
       <View style={[styles.content, { paddingTop: insets.top + SPACING_XXL }]}>
         <Animated.View entering={FadeIn.delay(200)} style={styles.header}>
-          <Image 
-            source={require('@/assets/images/dripn-logo-icon.png')} 
-            style={[styles.logo, { borderRadius: 20 }]}
-            resizeMode="contain"
-          />
           <ThemedText type="h1" style={styles.title}>
             {entryData?.title || "What should I wear?"}
           </ThemedText>
@@ -253,11 +248,6 @@ const styles = StyleSheet.create({
   header: {
     alignItems: "center",
     marginTop: SPACING_XXL,
-  },
-  logo: {
-    width: 140,
-    height: 100,
-    marginBottom: Spacing.lg,
   },
   title: {
     color: "#FFFFFF",
