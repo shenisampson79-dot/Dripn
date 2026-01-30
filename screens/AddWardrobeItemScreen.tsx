@@ -124,7 +124,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         if (result.clothingAnalysis) {
           const analysis = result.clothingAnalysis;
           const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-          const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
+          const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
           const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
           const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
           
@@ -176,7 +176,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
     const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
-    const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'multicolor'];
+    const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
     const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
     const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
     
@@ -191,6 +191,9 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       }
       
       const result = await apiService.analyzeGarmentPhoto(imageBase64) as any;
+      
+      // Debug log to see what API returns
+      console.log('[AI Analysis] Full API result:', JSON.stringify(result, null, 2));
       
       // Handle guest limit reached
       if (!result.success && result.errorCode === 'GUEST_LIMIT_REACHED') {
@@ -221,22 +224,45 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       
       const analysis = result.analysis;
       
+      console.log('[AI Analysis] Analysis object:', analysis);
+      console.log('[AI Analysis] Valid categories:', validCategories);
+      console.log('[AI Analysis] Valid colors:', validColors);
+      
       if (analysis) {
-        if (analysis.category && validCategories.includes(analysis.category as ClothingCategory)) {
-          setCategory(analysis.category as ClothingCategory);
+        console.log('[AI Analysis] Setting fields from analysis...');
+        
+        if (analysis.category) {
+          console.log('[AI Analysis] Category from API:', analysis.category, 'Valid:', validCategories.includes(analysis.category as ClothingCategory));
+          if (validCategories.includes(analysis.category as ClothingCategory)) {
+            setCategory(analysis.category as ClothingCategory);
+          }
         }
-        if (analysis.color && validColors.includes(analysis.color as ClothingColor)) {
-          setColor(analysis.color as ClothingColor);
+        if (analysis.color) {
+          console.log('[AI Analysis] Color from API:', analysis.color, 'Valid:', validColors.includes(analysis.color as ClothingColor));
+          if (validColors.includes(analysis.color as ClothingColor)) {
+            setColor(analysis.color as ClothingColor);
+          }
         }
-        if (analysis.suggestedName) setName(analysis.suggestedName);
+        if (analysis.suggestedName) {
+          console.log('[AI Analysis] Setting name:', analysis.suggestedName);
+          setName(analysis.suggestedName);
+        }
         if (analysis.seasons && analysis.seasons.length > 0) {
+          console.log('[AI Analysis] Setting seasons:', analysis.seasons);
           setSeasons(analysis.seasons.filter((s: string) => validSeasons.includes(s as ClothingSeason)) as ClothingSeason[]);
         }
         if (analysis.occasions && analysis.occasions.length > 0) {
+          console.log('[AI Analysis] Setting occasions:', analysis.occasions);
           setOccasions(analysis.occasions.filter((o: string) => validOccasions.includes(o as ClothingOccasion)) as ClothingOccasion[]);
         }
-        if (analysis.brand) setBrand(analysis.brand);
-        if (analysis.description) setNotes(analysis.description);
+        if (analysis.brand) {
+          console.log('[AI Analysis] Setting brand:', analysis.brand);
+          setBrand(analysis.brand);
+        }
+        if (analysis.description) {
+          console.log('[AI Analysis] Setting notes:', analysis.description);
+          setNotes(analysis.description);
+        }
         setAiAnalyzed(true);
         
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -864,6 +890,8 @@ function getColorHex(color: ClothingColor): string {
     green: '#228B22',
     blue: '#4169E1',
     purple: '#9932CC',
+    denim: '#4682B4',
+    cream: '#FFFDD0',
     multicolor: 'linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 50%, #FFE66D 100%)',
   };
   return colorMap[color] || '#808080';
