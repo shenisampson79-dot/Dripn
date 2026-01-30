@@ -2142,7 +2142,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               ))}
             </View>
 
-            <View style={[styles.infoBox, { backgroundColor: theme.backgroundSecondary, marginTop: Spacing.xl }]}>
+            <View style={[styles.infoBox, { backgroundColor: theme.backgroundSecondary, marginTop: Spacing.xl, marginBottom: Spacing.xl }]}>
               <View style={styles.infoBoxHeader}>
                 <Feather name="help-circle" size={20} color={theme.link} />
                 <ThemedText type="body" style={[styles.infoBoxTitle, { color: theme.link }]}>
