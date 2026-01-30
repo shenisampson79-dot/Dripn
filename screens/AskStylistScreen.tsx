@@ -30,6 +30,7 @@ import {
   SecondOpinionResponse,
 } from "@/services/DecisionService";
 import { apiService } from "@/services/ApiService";
+import { convertImageToBase64 } from "@/services/VisionAnalysisService";
 import { ScrollView, ActivityIndicator } from "react-native";
 
 interface FashionRule {
@@ -356,9 +357,16 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         'event-outfit': 'event_outfit',
       };
 
+      const base64Images = await Promise.all(
+        images.map(async (imageUri) => {
+          const base64 = await convertImageToBase64(imageUri);
+          return `data:image/jpeg;base64,${base64}`;
+        })
+      );
+
       const apiResult = await apiService.submitDecisionCheck({
         decisionType: decisionTypeMap[selectedType] || 'sanity_check',
-        images,
+        images: base64Images,
         context,
         stylist: stylistId,
       });
