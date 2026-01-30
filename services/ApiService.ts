@@ -1188,10 +1188,8 @@ class ApiService {
     context: string;
     stylist: string;
   }) {
-    console.log('[Ask Stylist] Submitting to /api/decisions/ask with decisionType:', data.decisionType);
+    console.log('[Ask Stylist] Submitting to /api/decision/check/resilient with decisionType:', data.decisionType);
     console.log('[Ask Stylist] Number of images:', data.images.length);
-    console.log('[Ask Stylist] Context:', data.context);
-    console.log('[Ask Stylist] Stylist:', data.stylist);
     
     return this.request<{
       success: boolean;
@@ -1200,8 +1198,9 @@ class ApiService {
       recommendation?: string;
       reasoning?: string;
       stylistId?: string;
+      decisionType?: string;
       error?: string;
-    }>('/api/decisions/ask', {
+    }>('/api/decision/check/resilient', {
       method: 'POST',
       body: JSON.stringify(data),
     });
