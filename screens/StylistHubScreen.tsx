@@ -45,11 +45,11 @@ interface StylistFeature {
   premium?: boolean;
 }
 
-const getFeatures = (translations: any): StylistFeature[] => [
+const getFeatures = (t: any): StylistFeature[] => [
   {
     id: "ai-stylist",
-    title: translations.stylistHub.personalStylist,
-    description: translations.stylistHub.personalStylistDesc,
+    title: t?.stylistHub?.personalStylist || "Personal Stylist",
+    description: t?.stylistHub?.personalStylistDesc || "Chat with your AI stylist",
     icon: "message-circle",
     screen: "AIStylist",
     gradientKey: "primary",
@@ -57,8 +57,8 @@ const getFeatures = (translations: any): StylistFeature[] => [
   },
   {
     id: "voice-chat",
-    title: translations.stylistHub.voiceChat,
-    description: translations.stylistHub.voiceChatDesc,
+    title: t?.stylistHub?.voiceChat || "Voice Chat",
+    description: t?.stylistHub?.voiceChatDesc || "Talk to Ruby or Max",
     icon: "headphones",
     screen: "VoiceConversation",
     gradientKey: "accent",
@@ -66,8 +66,8 @@ const getFeatures = (translations: any): StylistFeature[] => [
   },
   {
     id: "outfit-calendar",
-    title: translations.stylistHub.outfitCalendar,
-    description: translations.stylistHub.outfitCalendarDesc,
+    title: t?.stylistHub?.outfitCalendar || "Outfit Calendar",
+    description: t?.stylistHub?.outfitCalendarDesc || "Plan your looks ahead",
     icon: "calendar",
     screen: "OutfitCalendar",
     gradientKey: "cool",
@@ -75,8 +75,8 @@ const getFeatures = (translations: any): StylistFeature[] => [
   },
   {
     id: "weather-outfit",
-    title: translations.stylistHub.weatherOutfits,
-    description: translations.stylistHub.weatherOutfitsDesc,
+    title: t?.stylistHub?.weatherOutfits || "Weather Outfits",
+    description: t?.stylistHub?.weatherOutfitsDesc || "Dress for the forecast",
     icon: "cloud",
     screen: "WeatherOutfit",
     gradientKey: "secondary",
@@ -84,8 +84,8 @@ const getFeatures = (translations: any): StylistFeature[] => [
   },
   {
     id: "fashion-blog",
-    title: translations.stylistHub.blog,
-    description: translations.stylistHub.blogDesc,
+    title: t?.stylistHub?.blog || "Blog",
+    description: t?.stylistHub?.blogDesc || "Fashion tips & guides",
     icon: "book-open",
     screen: "FashionBlog",
     gradientKey: "warm",
@@ -93,8 +93,8 @@ const getFeatures = (translations: any): StylistFeature[] => [
   },
   {
     id: "style-rules",
-    title: translations.stylistHub.styleRules,
-    description: translations.stylistHub.styleRulesDesc,
+    title: t?.stylistHub?.styleRules || "Style Rules",
+    description: t?.stylistHub?.styleRulesDesc || "Your personal guidelines",
     icon: "list",
     screen: "StyleRules",
     gradientKey: "primary",
@@ -123,25 +123,26 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
   const [tilesOrder, setTilesOrder] = useState<string[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  useEffect(() => {
-    loadTilesOrder();
-  }, []);
-
   const allFeatures = getFeatures(translations);
   
-  const loadTilesOrder = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(TILES_ORDER_KEY);
-      if (stored) {
-        setTilesOrder(JSON.parse(stored));
-      } else {
-        setTilesOrder(allFeatures.map(f => f.id));
+  useEffect(() => {
+    const loadTilesOrder = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(TILES_ORDER_KEY);
+        if (stored) {
+          setTilesOrder(JSON.parse(stored));
+        } else {
+          const defaultOrder = ["ai-stylist", "voice-chat", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules"];
+          setTilesOrder(defaultOrder);
+        }
+      } catch (error) {
+        console.error("Failed to load tiles order:", error);
+        const defaultOrder = ["ai-stylist", "voice-chat", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules"];
+        setTilesOrder(defaultOrder);
       }
-    } catch (error) {
-      console.error("Failed to load tiles order:", error);
-      setTilesOrder(allFeatures.map(f => f.id));
-    }
-  };
+    };
+    loadTilesOrder();
+  }, []);
 
   const saveTilesOrder = async (newOrder: string[]) => {
     try {
