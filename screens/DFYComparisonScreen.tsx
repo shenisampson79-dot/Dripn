@@ -6,6 +6,9 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  TextInput,
+  Modal,
+  Platform,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -61,6 +64,9 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
   const insets = useSafeAreaInsets();
   const [selectedTier, setSelectedTier] = useState<DFYTier>('lite');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   const tiers = dfyService.getComparisonTiers();
   
   const liteGlow = useSharedValue(0);
@@ -97,29 +103,86 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     shadowRadius: 20 * coreGlow.value,
   }));
 
-  const handleContinue = async () => {
+  const validateEmail = (emailVal: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(emailVal);
+  };
+
+  const handleContinue = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (user?.email) {
+      startCheckout(user.email);
+    } else {
+      setShowEmailModal(true);
+    }
+  };
+
+  const handleEmailSubmit = () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setEmailError('Please enter your email');
+      return;
+    }
+    if (!validateEmail(trimmedEmail)) {
+      setEmailError('Please enter a valid email');
+      return;
+    }
+    setEmailError('');
+    setShowEmailModal(false);
+    startCheckout(trimmedEmail);
+  };
+
+  const startCheckout = async (checkoutEmail: string) => {
     setIsProcessing(true);
     
     try {
-      const productId = DFY_PRODUCT_IDS[selectedTier];
-      const response = await apiService.createCheckoutSession(productId);
+      const response = await apiService.createDFYCheckoutSession(checkoutEmail, selectedTier);
       
       if (response.checkoutUrl) {
         const result = await WebBrowser.openBrowserAsync(response.checkoutUrl);
         
         if (result.type === 'cancel') {
+          const url = (result as any).url || '';
+          if (url.includes('success') || url.includes('payment-success')) {
+            try {
+              const sessionId = url.match(/session_id=([^&]+)/)?.[1];
+              if (sessionId) {
+                await apiService.verifyDFYPayment(sessionId, checkoutEmail);
+              }
+            } catch (e) {
+              console.log('DFY verification will happen async');
+            }
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            Alert.alert(
+              'Payment Successful!',
+              `Your ${selectedTier === 'lite' ? 'Outfit-Based' : 'Core Wardrobe'} setup is confirmed. Let's get started!`,
+              [{ text: 'Continue', onPress: () => {
+                if (selectedTier === 'lite') {
+                  navigation.navigate('DFYStylePlan');
+                } else {
+                  navigation.navigate('DFYCoreUpload' as any);
+                }
+              }}]
+            );
+          } else if (url.includes('cancel') || url.includes('payment-cancelled')) {
+            Alert.alert(
+              'Checkout Cancelled',
+              'You can complete your purchase at any time.',
+              [{ text: 'OK' }]
+            );
+          } else {
+            Alert.alert(
+              'Checkout Complete',
+              'If your payment was successful, your DFY setup will be activated shortly.',
+              [{ text: 'OK' }]
+            );
+          }
+        } else if (result.type === 'dismiss') {
           Alert.alert(
-            'Checkout Cancelled',
-            'You can complete your purchase at any time.',
+            'Checkout Complete',
+            'If your payment was successful, your DFY setup will be activated shortly.',
             [{ text: 'OK' }]
           );
-        } else {
-          if (selectedTier === 'lite') {
-            navigation.navigate('DFYStylePlan');
-          } else {
-            navigation.navigate('DFYCoreUpload');
-          }
         }
       } else {
         throw new Error('No checkout URL received');
@@ -348,6 +411,69 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           </LinearGradient>
         </View>
       </ScreenScrollView>
+
+      <Modal visible={showEmailModal} transparent animationType="fade">
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowEmailModal(false)}
+        >
+          <Pressable 
+            style={[styles.emailModalContent, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.emailModalHeader}>
+              <ThemedText type="h3" style={{ color: isDark ? '#FFFFFF' : '#1A1A2E' }}>
+                Enter your email
+              </ThemedText>
+              <Pressable onPress={() => setShowEmailModal(false)}>
+                <Feather name="x" size={22} color={isDark ? '#FFFFFF' : '#1A1A2E'} />
+              </Pressable>
+            </View>
+            <ThemedText type="body" style={{ color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)', marginBottom: Spacing.lg }}>
+              We'll send your purchase receipt and styling access to this email.
+            </ThemedText>
+            <TextInput
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (emailError) setEmailError('');
+              }}
+              placeholder="your@email.com"
+              placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={[
+                styles.emailInput,
+                { 
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  color: isDark ? '#FFFFFF' : '#1A1A2E',
+                  borderColor: emailError ? '#EF4444' : 'transparent',
+                  borderWidth: emailError ? 1 : 0,
+                },
+              ]}
+            />
+            {emailError ? (
+              <ThemedText type="caption" style={{ color: '#EF4444', marginTop: Spacing.xs }}>
+                {emailError}
+              </ThemedText>
+            ) : null}
+            <LinearGradient
+              colors={selectedTier === 'lite'
+                ? [LUXURY_COLORS.teal, LUXURY_COLORS.emerald]
+                : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
+              }
+              style={styles.emailSubmitButton}
+            >
+              <Pressable onPress={handleEmailSubmit} style={styles.emailSubmitInner}>
+                <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                  Continue to Checkout
+                </ThemedText>
+              </Pressable>
+            </LinearGradient>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -543,5 +669,38 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  emailModalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+  },
+  emailModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  emailInput: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    fontSize: 16,
+  },
+  emailSubmitButton: {
+    borderRadius: BorderRadius.full,
+    marginTop: Spacing.lg,
+  },
+  emailSubmitInner: {
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
   },
 });
