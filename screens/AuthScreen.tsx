@@ -292,11 +292,19 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
         <View style={styles.termsContainer}>
           <ThemedText type="small" style={styles.termsText}>
             By continuing, you agree to our{" "}
-            <ThemedText type="link" style={styles.termsLink}>
+            <ThemedText
+              type="link"
+              style={styles.termsLink}
+              onPress={() => navigation.navigate("TermsOfService" as any)}
+            >
               Terms of Service
             </ThemedText>{" "}
             and{" "}
-            <ThemedText type="link" style={styles.termsLink}>
+            <ThemedText
+              type="link"
+              style={styles.termsLink}
+              onPress={() => navigation.navigate("PrivacyPolicy" as any)}
+            >
               Privacy Policy
             </ThemedText>
           </ThemedText>

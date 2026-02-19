@@ -15,6 +15,8 @@ import OnboardingQuizScreen from "@/screens/OnboardingQuizScreen";
 import OnboardingStyleQuizScreen from "@/screens/OnboardingStyleQuizScreen";
 import StyleQuizOnboardingScreen from "@/screens/StyleQuizOnboardingScreen";
 import GuestBrowseScreen from "@/screens/GuestBrowseScreen";
+import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
+import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -34,6 +36,8 @@ export type AuthStackParamList = {
   OnboardingStyleQuiz: undefined;
   StyleQuizOnboarding: undefined;
   GuestBrowse: undefined;
+  TermsOfService: undefined;
+  PrivacyPolicy: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -68,6 +72,8 @@ export default function AuthStackNavigator({ initialRouteName = "Welcome" }: Aut
       <Stack.Screen name="OnboardingStyleQuiz" component={OnboardingStyleQuizScreen} />
       <Stack.Screen name="StyleQuizOnboarding" component={StyleQuizOnboardingScreen} />
       <Stack.Screen name="GuestBrowse" component={GuestBrowseScreen} />
+      <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ headerShown: true, title: "Terms of Service" }} />
+      <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ headerShown: true, title: "Privacy Policy" }} />
     </Stack.Navigator>
   );
 }
