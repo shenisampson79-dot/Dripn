@@ -11,6 +11,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useSocial } from "@/contexts/SocialContext";
 import { useMessaging } from "@/contexts/MessagingContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/Button";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
 
 type CommunityScreenProps = {
@@ -536,6 +537,12 @@ export default function CommunityScreen({ navigation }: CommunityScreenProps) {
         <ThemedText type="h2" style={styles.sectionTitle}>
           Community Stats
         </ThemedText>
+        <Button 
+          onPress={() => navigation.navigate('CommunityVoting', { session: null })}
+          style={{ marginBottom: Spacing.xl }}
+        >
+          Preview Voting Screen
+        </Button>
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: theme.backgroundDefault }]}>
             <Feather name="users" size={28} color={theme.link} />

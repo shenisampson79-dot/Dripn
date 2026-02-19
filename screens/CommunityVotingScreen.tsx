@@ -190,7 +190,6 @@ export default function CommunityVotingScreen({ navigation, route }: any) {
         <Button
           onPress={handleSubmitVote}
           disabled={!selectedOptionId || isSubmitting}
-          loading={isSubmitting}
           style={styles.submitButton}
         >
           Submit my opinion
