@@ -454,6 +454,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const newUser = createDefaultUser(email, name);
       newUser.id = backendUser.id?.toString() || newUser.id;
       await saveUser(newUser);
+
+      try {
+        const dfyLink = await apiService.linkDFYPayment(email);
+        if (dfyLink.linked && dfyLink.packageType) {
+          console.log(`DFY payment linked: ${dfyLink.packageType}`);
+        }
+      } catch (dfyError) {
+        console.log('No pending DFY payment to link');
+      }
     } finally {
       setIsAuthenticating(false);
     }
@@ -554,6 +563,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       newUser.id = backendUser.id.toString();
       await saveUser(newUser);
+
+      try {
+        const email = backendUser.email || userEmail;
+        if (email) {
+          const dfyLink = await apiService.linkDFYPayment(email);
+          if (dfyLink.linked && dfyLink.packageType) {
+            console.log(`DFY payment linked via social: ${dfyLink.packageType}`);
+          }
+        }
+      } catch (dfyError) {
+        console.log('No pending DFY payment to link');
+      }
     } finally {
       setIsAuthenticating(false);
     }
