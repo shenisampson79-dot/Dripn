@@ -1340,6 +1340,121 @@ class ApiService {
     return this.request<{ publishableKey: string }>('/api/stripe/config');
   }
 
+  async createDFYCheckoutSession(email: string, packageType: 'lite' | 'core') {
+    const headers: Record<string, string> = {};
+    if (this.guestToken) {
+      headers['X-Guest-Token'] = this.guestToken;
+    }
+    return this.request<{ checkoutUrl: string; sessionId: string }>('/api/checkout/dfy/create-session', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ email, packageType }),
+    });
+  }
+
+  async getDFYProducts() {
+    return this.request<{
+      products: Array<{
+        id: string;
+        name: string;
+        price: string;
+        priceAmount: number;
+        currency: string;
+        features: string[];
+        type: 'lite' | 'core';
+      }>;
+    }>('/api/checkout/dfy/products');
+  }
+
+  async verifyDFYPayment(sessionId: string, email?: string) {
+    const headers: Record<string, string> = {};
+    if (this.guestToken) {
+      headers['X-Guest-Token'] = this.guestToken;
+    }
+    return this.request<{
+      success: boolean;
+      verified: boolean;
+      packageType: string;
+      email: string;
+    }>('/api/checkout/dfy/verify', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ sessionId, email }),
+    });
+  }
+
+  async linkDFYPayment(email: string) {
+    return this.request<{
+      success: boolean;
+      linked: boolean;
+      packageType: string;
+    }>('/api/checkout/dfy/link-payment', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async getSubscriptionPlans() {
+    return this.request<{
+      plans: Array<{
+        id: string;
+        name: string;
+        monthlyPrice: string;
+        monthlyPriceAmount: number;
+        yearlyPrice: string;
+        yearlyPriceAmount: number;
+        yearlySavings: string;
+        currency: string;
+        features: string[];
+        popular?: boolean;
+      }>;
+    }>('/api/subscription/plans');
+  }
+
+  async getSubscriptionStatus() {
+    return this.request<{
+      active: boolean;
+      plan: string | null;
+      status: string;
+      currentPeriodEnd: string | null;
+      cancelAtPeriodEnd: boolean;
+      stripeCustomerId: string | null;
+      stripeSubscriptionId: string | null;
+    }>('/api/subscription/status');
+  }
+
+  async createSubscriptionCheckout(planId: string, billingCycle: 'monthly' | 'yearly') {
+    return this.request<{ checkoutUrl: string; sessionId: string }>('/api/subscription/create-checkout', {
+      method: 'POST',
+      body: JSON.stringify({ planId, billingCycle }),
+    });
+  }
+
+  async openBillingPortal() {
+    return this.request<{ url: string }>('/api/subscription/manage', {
+      method: 'POST',
+    });
+  }
+
+  async cancelSubscription() {
+    return this.request<{
+      success: boolean;
+      cancelAtPeriodEnd: boolean;
+      currentPeriodEnd: string;
+    }>('/api/subscription/cancel', {
+      method: 'POST',
+    });
+  }
+
+  async reactivateSubscription() {
+    return this.request<{
+      success: boolean;
+      reactivated: boolean;
+    }>('/api/subscription/reactivate', {
+      method: 'POST',
+    });
+  }
+
   async getLifestyleAffirmation() {
     return this.request<{ affirmation: string }>('/api/ai/lifestyle/affirmation');
   }
