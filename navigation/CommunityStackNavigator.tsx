@@ -15,6 +15,8 @@ import PersonalizedWardrobeFilterScreen from "@/screens/PersonalizedWardrobeFilt
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
+import CommunityVotingScreen from "@/screens/CommunityVotingScreen";
+
 export type CommunityStackParamList = {
   Community: undefined;
   UserProfile: { userId: string };
@@ -28,6 +30,7 @@ export type CommunityStackParamList = {
   ColorAnalysis: undefined;
   BodyShapeStylingGuide: undefined;
   PersonalizedWardrobeFilter: undefined;
+  CommunityVoting: { session: any };
 };
 
 const Stack = createNativeStackNavigator<CommunityStackParamList>();
@@ -43,6 +46,11 @@ export default function CommunityStackNavigator() {
         options={{
           title: "Community",
         }}
+      />
+      <Stack.Screen
+        name="CommunityVoting"
+        component={CommunityVotingScreen}
+        options={{ title: "Community Vote" }}
       />
       <Stack.Screen
         name="UserProfile"

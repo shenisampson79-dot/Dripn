@@ -125,6 +125,17 @@ export function SecondOpinionButton({
         isExpress
       );
       setSession(newSession);
+      
+      // For preview/demonstration purposes, navigate to the voting screen
+      // In a real app, this would be triggered by a notification for OTHER users
+      setTimeout(() => {
+        setShowModal(false);
+        navigation.navigate("CommunityStack", { 
+          screen: "CommunityVoting", 
+          params: { session: newSession } 
+        });
+      }, 500);
+      
     } catch (error) {
       console.error("Error creating voting session:", error);
     } finally {
