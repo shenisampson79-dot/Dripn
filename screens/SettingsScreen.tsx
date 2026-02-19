@@ -699,7 +699,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                 Community Voting
               </ThemedText>
               <ThemedText type="small" style={styles.settingSubtitle}>
-                Notify when friends need your fashion advice
+                Notify when other users need your fashion advice
               </ThemedText>
             </View>
             <Switch

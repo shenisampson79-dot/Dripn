@@ -17,7 +17,7 @@ Dripn is developed using Expo React Native with TypeScript, incorporating React 
 - **AI Stylists**: Three distinct personalities (Ruby, Max, Ace) with ElevenLabs TTS voices.
 - **Wardrobe Digital Twin**: AI-powered photo-based wardrobe management.
 - **Onboarding Flow**: Dual-path, trust-first onboarding for low-intent ("Decide for me") and high-intent ("Style me properly") users. A soft signup gate is triggered only after value delivery. Flow: Location → Gender → Body Measurements → Choose Stylist → Style Quiz → Tell Us More → Retailers → Goals → Dress Code (9 steps).
-- **Community Voting ("Second Opinion")**: A time-boxed (45-minute) feature for secondary validation, with AI interpreting results based on stylist personality. Members are notified via push notifications (controllable in Settings) when a friend requests a second opinion.
+- **Community Voting ("Second Opinion")**: A time-boxed (45-minute) feature for secondary validation, with AI interpreting results based on stylist personality. Members are notified via push notifications (controllable in Settings) when another user requests a second opinion.
 - **Advanced AI Capabilities**:
     - **Vision-Powered Analysis**: GPT-4o Vision for color extraction, style, and fit analysis.
     - **AI Stylist Chat**: Contextual conversations with persona options.
