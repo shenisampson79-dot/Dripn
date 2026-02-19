@@ -231,74 +231,6 @@ export default function UploadInstructionsScreen({ navigation, route }: UploadIn
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.delay(300)} style={styles.section}>
-          <ThemedText type="h3" style={[styles.sectionTitle, { color: theme.text }]}>
-            Visual guide - Clothing
-          </ThemedText>
-          <View style={styles.visualExamplesRow}>
-            <View style={styles.visualExampleCard}>
-              <View style={[styles.visualBadge, { backgroundColor: '#10B981' }]}>
-                <Feather name="check" size={12} color="#FFFFFF" />
-              </View>
-              <Image
-                source={require('@/assets/images/clothing-tips-correct.png')}
-                style={styles.visualExampleImage}
-                contentFit="cover"
-              />
-              <ThemedText type="caption" style={[styles.visualLabel, { color: theme.link }]}>
-                Correct
-              </ThemedText>
-            </View>
-            <View style={styles.visualExampleCard}>
-              <View style={[styles.visualBadge, { backgroundColor: '#E57373' }]}>
-                <Feather name="x" size={12} color="#FFFFFF" />
-              </View>
-              <Image
-                source={require('@/assets/images/clothing-tips-incorrect.png')}
-                style={styles.visualExampleImage}
-                contentFit="cover"
-              />
-              <ThemedText type="caption" style={[styles.visualLabel, { color: '#E57373' }]}>
-                Avoid
-              </ThemedText>
-            </View>
-          </View>
-        </Animated.View>
-
-        <Animated.View entering={FadeInUp.delay(350)} style={styles.section}>
-          <ThemedText type="h3" style={[styles.sectionTitle, { color: theme.text }]}>
-            Visual guide - Accessories
-          </ThemedText>
-          <View style={styles.visualExamplesRow}>
-            <View style={styles.visualExampleCard}>
-              <View style={[styles.visualBadge, { backgroundColor: '#10B981' }]}>
-                <Feather name="check" size={12} color="#FFFFFF" />
-              </View>
-              <Image
-                source={require('@/assets/images/accessory-tips-correct.png')}
-                style={styles.visualExampleImage}
-                contentFit="cover"
-              />
-              <ThemedText type="caption" style={[styles.visualLabel, { color: theme.link }]}>
-                Correct
-              </ThemedText>
-            </View>
-            <View style={styles.visualExampleCard}>
-              <View style={[styles.visualBadge, { backgroundColor: '#E57373' }]}>
-                <Feather name="x" size={12} color="#FFFFFF" />
-              </View>
-              <Image
-                source={require('@/assets/images/accessory-tips-incorrect.png')}
-                style={styles.visualExampleImage}
-                contentFit="cover"
-              />
-              <ThemedText type="caption" style={[styles.visualLabel, { color: '#E57373' }]}>
-                Avoid
-              </ThemedText>
-            </View>
-          </View>
-        </Animated.View>
-
         <Animated.View entering={FadeInUp.delay(400)} style={styles.section}>
           <View style={styles.examplesRow}>
             <View style={styles.exampleColumn}>
@@ -448,9 +380,8 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   visualExampleImage: {
-    width: "100%",
-    height: 120,
-    borderRadius: BorderRadius.lg,
+    width: "0%",
+    height: 0,
   },
   visualBadge: {
     position: "absolute",
