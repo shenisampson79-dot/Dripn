@@ -106,9 +106,33 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
 
     try {
       const base64 = await convertToBase64(image.uri);
-      const response = await apiService.post<{ item: AnalyzedItem }>("/api/wardrobe/analyze/resilient", {
-        imageBase64: base64,
-      });
+      const response = await apiService.analyzeGarmentPhoto(base64) as any;
+
+      const analysis = response.analysis || response.item || response;
+      
+      const primaryColor = typeof analysis.color === 'object' 
+        ? analysis.color?.primary || 'unknown'
+        : analysis.color || analysis.colorTag || 'unknown';
+      
+      const secondaryColor = typeof analysis.color === 'object'
+        ? analysis.color?.secondary || null
+        : null;
+
+      const itemName = analysis.name || analysis.suggestedName || analysis.itemName || `${primaryColor} ${analysis.subcategory || analysis.category || 'item'}`;
+      
+      const analyzedItem: AnalyzedItem = {
+        category: (analysis.category || 'tops') as Category,
+        subcategory: analysis.subcategory || analysis.category || 'item',
+        color: { primary: primaryColor, secondary: secondaryColor },
+        pattern: analysis.pattern || analysis.style || 'solid',
+        material: analysis.material || '',
+        brand: analysis.brand || null,
+        season: analysis.seasons || analysis.season || ['all-season'],
+        occasions: analysis.occasions || ['everyday'],
+        style: analysis.style || '',
+        formality: typeof analysis.formality === 'number' ? analysis.formality : 3,
+        versatilityScore: typeof analysis.versatilityScore === 'number' ? analysis.versatilityScore : 5,
+      };
 
       setImages((prev) =>
         prev.map((img) =>
@@ -116,14 +140,14 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
             ? {
                 ...img,
                 status: "analyzed",
-                analysis: response.item,
-                name: `${response.item.color.primary} ${response.item.subcategory}`,
+                analysis: analyzedItem,
+                name: itemName,
               }
             : img
         )
       );
-    } catch (error) {
-      console.error("Analysis error:", error);
+    } catch (error: any) {
+      console.error("Analysis error:", error?.message || error);
       setImages((prev) =>
         prev.map((img) => (img.id === image.id ? { ...img, status: "error" } : img))
       );
