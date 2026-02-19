@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, View, Pressable, ActivityIndicator, TextInput, Alert, Platform, Image } from "react-native";
+import { StyleSheet, View, Pressable, ActivityIndicator, TextInput, Alert, Platform, Image, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
@@ -760,16 +761,38 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       
       try {
         await styleDirectionService.recordStyleExpression(userExpression);
-        await recordInteraction("style_expression", userExpression);
+        recordInteraction("style_expression", userExpression).catch(() => {});
         
-        // Generate a tailored response based on user's expression
-        const tailoredRecommendation = generateTailoredRecommendation(userExpression, selectedOccasion || "work");
+        let gotApiResponse = false;
+        try {
+          const data = await apiService.post<{ id?: string; recommendation?: string; reasoning?: string; stylistName?: string }>("/api/onboarding/quick-recommendation", {
+            occasion: selectedOccasion || "work",
+            weather: weather,
+            region: weather?.location || "UK",
+            styleExpression: userExpression,
+          });
+          
+          if (data && data.recommendation) {
+            setRecommendation({
+              id: data.id,
+              outfit: data.recommendation,
+              reasoning: data.reasoning || "Tailored to what you told me.",
+              stylistName: data.stylistName || "Ruby",
+            });
+            gotApiResponse = true;
+          }
+        } catch (apiError) {
+          console.log("API call failed, using local fallback");
+        }
         
-        setRecommendation({
-          outfit: tailoredRecommendation.outfit,
-          reasoning: tailoredRecommendation.reasoning,
-          stylistName: "Ruby",
-        });
+        if (!gotApiResponse) {
+          const tailoredRecommendation = generateTailoredRecommendation(userExpression, selectedOccasion || "work");
+          setRecommendation({
+            outfit: tailoredRecommendation.outfit,
+            reasoning: tailoredRecommendation.reasoning,
+            stylistName: "Ruby",
+          });
+        }
         
         setExpressionText("");
       } catch (error) {
@@ -1175,15 +1198,30 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         <View style={styles.backButton} />
       </View>
 
-      <ScreenScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {step === "occasion" ? renderOccasionStep() : null}
-        {step === "loading" ? renderLoadingStep() : null}
-        {step === "result" ? renderResultStep() : null}
-      </ScreenScrollView>
+      {Platform.OS === 'web' ? (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {step === "occasion" ? renderOccasionStep() : null}
+          {step === "loading" ? renderLoadingStep() : null}
+          {step === "result" ? renderResultStep() : null}
+        </ScrollView>
+      ) : (
+        <KeyboardAwareScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          bottomOffset={20}
+        >
+          {step === "occasion" ? renderOccasionStep() : null}
+          {step === "loading" ? renderLoadingStep() : null}
+          {step === "result" ? renderResultStep() : null}
+        </KeyboardAwareScrollView>
+      )}
     </View>
   );
 }
