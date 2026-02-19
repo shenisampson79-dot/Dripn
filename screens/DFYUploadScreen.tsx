@@ -108,30 +108,32 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
       const base64 = await convertToBase64(image.uri);
       const response = await apiService.analyzeGarmentPhoto(base64) as any;
 
-      const analysis = response.analysis || response.item || response;
+      // The backend fix ensures every response has an 'item' object with 'color'
+      const itemData = response.item || response.analysis || response;
+      const colorData = itemData.color || { primary: 'unknown' };
       
-      const primaryColor = typeof analysis.color === 'object' 
-        ? analysis.color?.primary || 'unknown'
-        : analysis.color || analysis.colorTag || 'unknown';
+      const primaryColor = typeof colorData === 'object' 
+        ? colorData.primary || 'unknown'
+        : colorData;
       
-      const secondaryColor = typeof analysis.color === 'object'
-        ? analysis.color?.secondary || null
+      const secondaryColor = typeof colorData === 'object'
+        ? colorData.secondary || null
         : null;
 
-      const itemName = analysis.name || analysis.suggestedName || analysis.itemName || `${primaryColor} ${analysis.subcategory || analysis.category || 'item'}`;
+      const itemName = itemData.name || itemData.suggestedName || itemData.itemName || `${primaryColor} ${itemData.subcategory || itemData.category || 'item'}`;
       
       const analyzedItem: AnalyzedItem = {
-        category: (analysis.category || 'tops') as Category,
-        subcategory: analysis.subcategory || analysis.category || 'item',
+        category: (itemData.category || 'tops') as Category,
+        subcategory: itemData.subcategory || itemData.category || 'item',
         color: { primary: primaryColor, secondary: secondaryColor },
-        pattern: analysis.pattern || analysis.style || 'solid',
-        material: analysis.material || '',
-        brand: analysis.brand || null,
-        season: analysis.seasons || analysis.season || ['all-season'],
-        occasions: analysis.occasions || ['everyday'],
-        style: analysis.style || '',
-        formality: typeof analysis.formality === 'number' ? analysis.formality : 3,
-        versatilityScore: typeof analysis.versatilityScore === 'number' ? analysis.versatilityScore : 5,
+        pattern: itemData.pattern || itemData.style || 'solid',
+        material: itemData.material || '',
+        brand: itemData.brand || null,
+        season: itemData.seasons || itemData.season || ['all-season'],
+        occasions: itemData.occasions || ['everyday'],
+        style: itemData.style || '',
+        formality: typeof itemData.formality === 'number' ? itemData.formality : 3,
+        versatilityScore: typeof itemData.versatilityScore === 'number' ? itemData.versatilityScore : 5,
       };
 
       setImages((prev) =>
@@ -157,10 +159,16 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
   };
 
   const analyzeImagesInBatches = async (imagesToAnalyze: UploadedImage[]) => {
-    const BATCH_SIZE = 2;
+    // Backend now supports sequential processing with 300ms delay and 25s timeout
+    // We can still process in small batches on frontend to be extra safe
+    const BATCH_SIZE = 1; 
     for (let i = 0; i < imagesToAnalyze.length; i += BATCH_SIZE) {
       const batch = imagesToAnalyze.slice(i, i + BATCH_SIZE);
       await Promise.all(batch.map((img) => analyzeImage(img)));
+      // Add a small delay between batches to align with backend's preferred rate
+      if (i + BATCH_SIZE < imagesToAnalyze.length) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
     }
   };
 

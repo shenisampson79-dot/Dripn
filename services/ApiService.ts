@@ -500,6 +500,22 @@ class ApiService {
     return result;
   }
 
+  async analyzeGarmentBatchResilient(items: { imageBase64: string }[]) {
+    const headers: Record<string, string> = {};
+    if (this.sessionBackup) {
+      headers['X-Session-Backup'] = this.sessionBackup;
+    }
+    if (this.guestToken) {
+      headers['X-Guest-Token'] = this.guestToken;
+    }
+
+    return this.request<any>('/api/wardrobe/batch-analyze/resilient', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ items }),
+    });
+  }
+
   async analyzeOutfitPhoto(imageBase64: string, options?: { detailed?: boolean; wardrobeItems?: any[] }) {
     return this.request<{
       success: boolean;
