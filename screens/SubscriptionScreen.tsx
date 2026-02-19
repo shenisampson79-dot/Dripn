@@ -217,74 +217,41 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     
     try {
       if (planId === "free") {
-        await updateProfile({ subscriptionTier: planId });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert(
-          "Success",
-          "You've successfully downgraded to the Free plan!",
-          [{ text: "OK", onPress: () => navigation.goBack() }]
-        );
-      } else {
-        // Get the correct product ID based on billing cycle
-        let productId: string;
-        if (isYearly && YEARLY_PRICING[planId]) {
-          productId = YEARLY_PRICING[planId].productId;
+        if (user?.subscriptionTier && user.subscriptionTier !== 'free') {
+          await apiService.cancelSubscription();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          Alert.alert(
+            "Subscription Cancelled",
+            "Your subscription will remain active until the end of the current billing period.",
+            [{ text: "OK", onPress: () => navigation.goBack() }]
+          );
         } else {
-          const subscriptionPlan = SUBSCRIPTION_PLANS.find(p => p.tier === planId);
-          if (!subscriptionPlan?.productId) {
-            throw new Error("Product ID not found for this plan");
-          }
-          productId = subscriptionPlan.productId;
+          navigation.goBack();
         }
-
-        const response = await apiService.createCheckoutSession(productId);
+      } else {
+        const billingCycle = isYearly ? 'yearly' : 'monthly';
+        const response = await apiService.createSubscriptionCheckout(planId, billingCycle);
 
         if (response.checkoutUrl) {
           const result = await WebBrowser.openBrowserAsync(response.checkoutUrl);
           
-          // Check the redirect URL to determine payment outcome
           if (result.type === "dismiss" || result.type === "cancel") {
-            // Check if the URL contains payment-success or payment-cancelled
             const url = (result as any).url || "";
             
-            if (url.includes("payment-success")) {
-              // Extract session_id from URL and verify payment
-              const sessionIdMatch = url.match(/session_id=([^&]+)/);
-              const sessionId = sessionIdMatch ? sessionIdMatch[1] : null;
-              
-              if (sessionId) {
-                try {
-                  const sessionStatus = await apiService.getCheckoutSession(sessionId);
-                  if (sessionStatus.status === "paid") {
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                    Alert.alert(
-                      "Payment Successful!",
-                      `Your subscription has been activated. Welcome to ${PLANS.find(p => p.id === planId)?.name}!`,
-                      [{ text: "OK", onPress: () => navigation.goBack() }]
-                    );
-                    return;
-                  }
-                } catch (verifyError) {
-                  console.log("Could not verify payment status:", verifyError);
-                }
-              }
-              
-              // If we can't verify but URL says success, show success
+            if (url.includes("payment-success") || url.includes("success")) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               Alert.alert(
                 "Payment Successful!",
                 `Your subscription has been activated. Welcome to ${PLANS.find(p => p.id === planId)?.name}!`,
                 [{ text: "OK", onPress: () => navigation.goBack() }]
               );
-            } else if (url.includes("payment-cancelled")) {
+            } else if (url.includes("payment-cancelled") || url.includes("cancel")) {
               Alert.alert(
                 "Checkout Cancelled",
                 "You can complete your subscription upgrade at any time.",
                 [{ text: "OK" }]
               );
             } else {
-              // Browser was dismissed without clear redirect - don't assume cancelled
-              // User may have completed payment and manually closed browser
               Alert.alert(
                 "Checkout Complete",
                 "If your payment was successful, your subscription will be activated shortly. You can check your subscription status in your profile.",
@@ -305,6 +272,41 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
           ? "Please log in again to complete your subscription."
           : errorMessage
       );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsProcessing(true);
+    try {
+      const response = await apiService.openBillingPortal();
+      if (response.url) {
+        await WebBrowser.openBrowserAsync(response.url);
+      }
+    } catch (error: any) {
+      console.error("Billing portal error:", error);
+      Alert.alert("Error", "Unable to open billing management. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReactivateSubscription = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsProcessing(true);
+    try {
+      await apiService.reactivateSubscription();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        "Subscription Reactivated",
+        "Your subscription has been reactivated and will continue as normal.",
+        [{ text: "OK" }]
+      );
+    } catch (error: any) {
+      console.error("Reactivation error:", error);
+      Alert.alert("Error", error.message || "Failed to reactivate subscription.");
     } finally {
       setIsProcessing(false);
     }
@@ -490,6 +492,18 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
             </View>
           ) : null}
         </View>
+        {user?.subscriptionTier && user.subscriptionTier !== 'free' ? (
+          <Pressable 
+            onPress={handleManageSubscription}
+            disabled={isProcessing}
+            style={[styles.manageButton, { borderColor: getTierColor(user.subscriptionTier) + '40' }]}
+          >
+            <Feather name="settings" size={16} color={getTierColor(user.subscriptionTier)} />
+            <ThemedText type="body" style={{ color: getTierColor(user.subscriptionTier), fontWeight: '600' }}>
+              Manage Billing
+            </ThemedText>
+          </Pressable>
+        ) : null}
       </View>
 
       <View style={styles.billingToggleContainer}>
@@ -816,6 +830,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 6,
     borderRadius: BorderRadius.full,
+  },
+  manageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
   },
   plansContainer: {
     marginBottom: Spacing.lg,
