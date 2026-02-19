@@ -60,6 +60,7 @@ export interface NotificationPreferences {
   trendNotifications: boolean;
   trendFrequency: 'daily' | 'weekly' | 'realtime';
   styleOfTheDay: boolean;
+  communityVoting: boolean;
   eventReminders: boolean;
   weeklyDigest: boolean;
   quietHoursEnabled: boolean;
@@ -100,6 +101,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   trendNotifications: true,
   trendFrequency: 'daily',
   styleOfTheDay: true,
+  communityVoting: true,
   eventReminders: true,
   weeklyDigest: true,
   quietHoursEnabled: false,

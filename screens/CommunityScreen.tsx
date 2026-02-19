@@ -537,12 +537,6 @@ export default function CommunityScreen({ navigation }: CommunityScreenProps) {
         <ThemedText type="h2" style={styles.sectionTitle}>
           Community Stats
         </ThemedText>
-        <Button 
-          onPress={() => navigation.navigate('CommunityVoting', { session: null })}
-          style={{ marginBottom: Spacing.xl }}
-        >
-          Preview Voting Screen
-        </Button>
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: theme.backgroundDefault }]}>
             <Feather name="users" size={28} color={theme.link} />
