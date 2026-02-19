@@ -156,6 +156,14 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
     }
   };
 
+  const analyzeImagesInBatches = async (imagesToAnalyze: UploadedImage[]) => {
+    const BATCH_SIZE = 2;
+    for (let i = 0; i < imagesToAnalyze.length; i += BATCH_SIZE) {
+      const batch = imagesToAnalyze.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map((img) => analyzeImage(img)));
+    }
+  };
+
   const handlePickImages = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
@@ -193,7 +201,7 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
         status: "pending",
       }));
       setImages((prev) => [...prev, ...newImages].slice(0, maxItems));
-      newImages.forEach((img) => analyzeImage(img));
+      analyzeImagesInBatches(newImages);
     }
   };
 
