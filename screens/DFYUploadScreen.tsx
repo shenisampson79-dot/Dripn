@@ -272,15 +272,16 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
         analyzedImages.map(async (image) => {
           if (!image.analysis) return null;
           const base64 = await convertToBase64(image.uri);
+          const colorPrimary = image.analysis.color?.primary || 'unknown';
           return {
-            name: image.name || `${image.analysis.color.primary} ${image.analysis.subcategory}`,
-            category: image.analysis.category,
-            subcategory: image.analysis.subcategory,
+            name: image.name || `${colorPrimary} ${image.analysis.subcategory || 'item'}`,
+            category: image.analysis.category || 'tops',
+            subcategory: image.analysis.subcategory || image.analysis.category || 'item',
             imageBase64: base64,
-            color: image.analysis.color.primary,
-            season: image.analysis.season,
-            occasions: image.analysis.occasions,
-            brand: image.analysis.brand,
+            color: colorPrimary,
+            season: image.analysis.season || ['all-season'],
+            occasions: image.analysis.occasions || ['everyday'],
+            brand: image.analysis.brand || null,
             itemType: "owned",
           };
         })
@@ -415,11 +416,11 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
               ]}
             />
           </View>
-          {processingCount > 0 && (
+          {(processingCount > 0 || images.some(img => img.status === 'pending')) && (
             <View style={styles.processingRow}>
               <ActivityIndicator size="small" color={theme.link} />
               <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginLeft: Spacing.sm }}>
-                Analyzing {processingCount} {processingCount === 1 ? "item" : "items"}...
+                Analyzing items ({analyzedCount} of {images.length} done)...
               </ThemedText>
             </View>
           )}
@@ -620,7 +621,7 @@ function EditItemModal({ visible, item, theme, onClose, onSave }: EditItemModalP
                 Detected Details
               </ThemedText>
               <View style={[styles.detailsCard, { backgroundColor: theme.backgroundSecondary }]}>
-                <DetailRow label="Color" value={item.analysis.color.primary} theme={theme} />
+                <DetailRow label="Color" value={item.analysis.color?.primary || 'unknown'} theme={theme} />
                 <DetailRow label="Style" value={item.analysis.style} theme={theme} />
                 <DetailRow label="Pattern" value={item.analysis.pattern} theme={theme} />
                 <DetailRow label="Material" value={item.analysis.material} theme={theme} />
