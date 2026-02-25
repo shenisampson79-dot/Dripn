@@ -356,8 +356,11 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           });
         } else if (step.id === "restart") {
           buttons.push({
-            text: "Create account",
-            onPress: () => navigation.navigate("Auth", { mode: 'signup' }),
+            text: "Start again",
+            onPress: () => {
+              setStep("occasion");
+              setRecommendation(null);
+            },
           });
         }
       });
