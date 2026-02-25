@@ -883,7 +883,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               <Pressable 
                 onPress={() => {
                   setShowAIOutfitModal(false);
-                  navigation.navigate('DFYSetup' as any);
+                  navigation.navigate('StyleMeProperly' as any);
                 }}
                 style={[styles.dfyPromptCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}
               >
