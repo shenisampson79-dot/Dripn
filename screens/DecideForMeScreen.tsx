@@ -998,25 +998,25 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
               <Feather name="heart" size={16} color="#FFFFFF" />
             </View>
             <View style={styles.recommendationHeaderText}>
-              <ThemedText type="h4" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+              <ThemedText type="h4" style={{ color: LuxuryColors.obsidian, fontWeight: '700' }}>
                 Ruby's Pick
               </ThemedText>
-              <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              <ThemedText type="small" style={{ color: 'rgba(74, 52, 40, 0.6)' }}>
                 Your outfit recommendation
               </ThemedText>
             </View>
           </View>
           
           <View style={styles.recommendationCardBody}>
-            <ThemedText type="body" style={styles.recommendationCardText}>
+            <ThemedText type="body" style={[styles.recommendationCardText, { color: LuxuryColors.obsidian }]}>
               {recommendation?.outfit}
             </ThemedText>
           </View>
           
           {recommendation?.reasoning ? (
-            <View style={styles.recommendationReasoningSection}>
-              <Feather name="info" size={14} color="rgba(255,255,255,0.7)" />
-              <ThemedText type="small" style={styles.recommendationReasoningText}>
+            <View style={[styles.recommendationReasoningSection, { backgroundColor: 'rgba(74, 52, 40, 0.1)' }]}>
+              <Feather name="info" size={14} color="rgba(74, 52, 40, 0.7)" />
+              <ThemedText type="small" style={[styles.recommendationReasoningText, { color: 'rgba(74, 52, 40, 0.85)' }]}>
                 {recommendation.reasoning}
               </ThemedText>
             </View>
@@ -1185,16 +1185,16 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         colors={[
           ScreenGradients.decideForMe.primary[0],
           ScreenGradients.decideForMe.primary[1],
-          LuxuryColors.obsidian,
+          '#FAF8F5',
         ]}
         locations={[0, 0.35, 1]}
         style={StyleSheet.absoluteFill}
       />
       <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
-        <Pressable onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-          <Feather name="arrow-left" size={24} color="#FFFFFF" />
+        <Pressable onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: 'rgba(74, 52, 40, 0.1)' }]}>
+          <Feather name="arrow-left" size={24} color={ScreenGradients.decideForMe.accent} />
         </Pressable>
-        <ThemedText type="h3" style={{ color: '#FFFFFF' }}>Decide for me</ThemedText>
+        <ThemedText type="h3" style={{ color: ScreenGradients.decideForMe.accent }}>Decide for me</ThemedText>
         <View style={styles.backButton} />
       </View>
 
@@ -1265,15 +1265,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.md,
+    backgroundColor: 'rgba(74, 52, 40, 0.1)',
   },
   messageBubble: {
     flex: 1,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
   messageText: {
     fontSize: 16,
     lineHeight: 24,
+    color: '#4A3428',
   },
   weatherBadge: {
     flexDirection: "row",
@@ -1339,6 +1342,7 @@ const styles = StyleSheet.create({
   recommendationCardGradient: {
     padding: Spacing.lg,
     borderRadius: BorderRadius.xl,
+    backgroundColor: '#FAF8F5',
   },
   recommendationCardHeader: {
     flexDirection: "row",
@@ -1361,7 +1365,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   recommendationCardText: {
-    color: "#FFFFFF",
     fontSize: 17,
     lineHeight: 26,
     fontWeight: "500",
@@ -1369,14 +1372,12 @@ const styles = StyleSheet.create({
   recommendationReasoningSection: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.1)",
     padding: Spacing.sm,
     borderRadius: BorderRadius.md,
     gap: Spacing.xs,
   },
   recommendationReasoningText: {
     flex: 1,
-    color: "rgba(255,255,255,0.85)",
     fontSize: 13,
     lineHeight: 19,
     fontStyle: "italic",

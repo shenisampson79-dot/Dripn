@@ -429,9 +429,9 @@ export const ScreenGradients = {
     accent: '#C9A87C',
   },
   decideForMe: {
-    primary: ['#E07A5F', '#DB2777'] as const,      // Coral to Magenta - Energy & Action
-    secondary: ['#F59E0B', '#E07A5F'] as const,    // Amber to Coral
-    accent: '#FFFFFF',
+    primary: ['#F5E6D3', '#E5DED4'] as const,      // Champagne to Surface - Minimalist luxury
+    secondary: ['#E5DED4', '#D8CFC2'] as const,    // Neutral depth
+    accent: '#4A3428',                            // Deep brown for legibility
   },
   styleMeProperly: {
     primary: ['#9B7EBD', '#7C3AED'] as const,      // Violet to Electric - Premium feel
