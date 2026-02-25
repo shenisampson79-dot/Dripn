@@ -45,7 +45,23 @@ The app features a 4-tab structure: Home ("Today's Decision"), Wardrobe, Ask Sty
 
 ## Backend Configuration
 - **Backend API**: Express.js server hosted at https://dripn-server--shenisampson79.replit.app (port 5000)
+- **Local Backend**: Runs on port 8082 via "Backend API" workflow (`backend-code/index.js`)
 - **Frontend API URL**: Set via `EXPO_PUBLIC_API_URL` environment variable pointing to published backend
 - **Workflows**: 
   - "Start application" - Runs Expo Metro bundler on port 8081
+  - "Backend API" - Runs local Express.js backend on port 8082
 - **API Endpoints**: All endpoints use `/api/` prefix with resilient fallback versions available (e.g., `/api/wardrobe/analyze/resilient`)
+- **Subscription Endpoints** (added to local backend-code/index.js):
+  - `GET /api/subscription/plans` - List available subscription plans
+  - `GET /api/subscription/status` - Get user's subscription status (auth required)
+  - `POST /api/subscription/create-checkout` - Create Stripe checkout session for plan upgrade (auth required)
+  - `POST /api/subscription/manage` - Open Stripe billing portal (auth required)
+  - `POST /api/subscription/cancel` - Cancel subscription at period end (auth required)
+  - `POST /api/subscription/reactivate` - Reactivate cancelled subscription (auth required)
+  - `POST /api/subscription/cancel/start` - Start cancellation flow with stylist farewell
+  - `POST /api/subscription/cancel/feedback` - Submit cancellation feedback
+  - `POST /api/subscription/cancel/complete` - Complete cancellation with reactivation offers
+  - `POST /api/checkout/dfy/create-session` - Create DFY one-time payment checkout
+  - `GET /api/checkout/dfy/products` - List DFY product tiers
+  - `POST /api/checkout/dfy/verify` - Verify DFY payment
+- **Stripe Integration**: Uses Replit's connector system (`getStripeCredentials()`) for automatic Stripe key management. Customer IDs and subscription IDs stored in `users` table (`stripe_customer_id`, `stripe_subscription_id` columns).

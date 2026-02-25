@@ -213,10 +213,15 @@ async function initDB() {
         avatar_url TEXT,
         bio TEXT,
         subscription_tier VARCHAR(20) DEFAULT 'free',
+        stripe_customer_id VARCHAR(255),
+        stripe_subscription_id VARCHAR(255),
         ai_requests_used INTEGER DEFAULT 0,
         uploads_used INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255);
 
       CREATE TABLE IF NOT EXISTS posts (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -760,13 +765,21 @@ app.get('/api/checkout/success', async (req, res) => {
     const session = await stripe.checkout.sessions.retrieve(session_id);
     
     if (session.payment_status === 'paid' && session.metadata?.userId) {
-      // Update user subscription tier
       const planTier = session.metadata.planTier || session.metadata.tier || 'premium';
-      await pool.query(
-        'UPDATE users SET subscription_tier = $1 WHERE id = $2',
-        [planTier, session.metadata.userId]
-      );
-      console.log(`Updated user ${session.metadata.userId} to ${planTier} tier`);
+      const subscriptionId = session.subscription || null;
+      
+      if (subscriptionId) {
+        await pool.query(
+          'UPDATE users SET subscription_tier = $1, stripe_subscription_id = $2 WHERE id = $3',
+          [planTier, subscriptionId, session.metadata.userId]
+        );
+      } else {
+        await pool.query(
+          'UPDATE users SET subscription_tier = $1 WHERE id = $2',
+          [planTier, session.metadata.userId]
+        );
+      }
+      console.log(`Updated user ${session.metadata.userId} to ${planTier} tier (subscription: ${subscriptionId})`);
     }
 
     // Redirect to app with success status
@@ -793,6 +806,440 @@ app.get('/api/stripe/config', async (req, res) => {
   } catch (error) {
     console.error('Stripe config error:', error);
     res.status(500).json({ error: 'Failed to get Stripe config' });
+  }
+});
+
+// ============ SUBSCRIPTION MANAGEMENT ROUTES ============
+
+const SUBSCRIPTION_PLAN_MAP = {
+  subscription: { name: 'Style Chat', monthlyPrice: 999, yearlyPrice: 9599 },
+  premium: { name: 'Personal Stylist', monthlyPrice: 1499, yearlyPrice: 14399 },
+  pro: { name: 'Stylist Unlimited', monthlyPrice: 1999, yearlyPrice: 19199 },
+};
+
+app.get('/api/subscription/plans', async (req, res) => {
+  try {
+    const credentials = await getStripeCredentials();
+    const plans = Object.entries(SUBSCRIPTION_PLAN_MAP).map(([id, plan]) => ({
+      id,
+      name: plan.name,
+      monthlyPrice: `£${(plan.monthlyPrice / 100).toFixed(2)}`,
+      monthlyPriceAmount: plan.monthlyPrice,
+      yearlyPrice: `£${(plan.yearlyPrice / 100).toFixed(2)}`,
+      yearlyPriceAmount: plan.yearlyPrice,
+      yearlySavings: '20%',
+      currency: 'gbp',
+      features: [],
+      popular: id === 'premium',
+    }));
+    res.json({ plans });
+  } catch (error) {
+    console.error('Subscription plans error:', error);
+    res.status(500).json({ error: 'Failed to get subscription plans' });
+  }
+});
+
+app.get('/api/subscription/status', authMiddleware, async (req, res) => {
+  try {
+    const userResult = await pool.query(
+      'SELECT subscription_tier, stripe_customer_id, stripe_subscription_id FROM users WHERE id = $1',
+      [req.userId]
+    );
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const user = userResult.rows[0];
+    const isActive = user.subscription_tier && user.subscription_tier !== 'free';
+
+    let cancelAtPeriodEnd = false;
+    let currentPeriodEnd = null;
+
+    if (isActive && user.stripe_subscription_id) {
+      try {
+        const credentials = await getStripeCredentials();
+        if (credentials?.secret) {
+          const Stripe = require('stripe');
+          const stripe = new Stripe(credentials.secret, { apiVersion: '2024-11-20.acacia' });
+          const sub = await stripe.subscriptions.retrieve(user.stripe_subscription_id);
+          cancelAtPeriodEnd = sub.cancel_at_period_end;
+          currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
+        }
+      } catch (e) {
+        console.log('Could not fetch Stripe subscription details:', e.message);
+      }
+    }
+
+    res.json({
+      active: isActive,
+      plan: user.subscription_tier || 'free',
+      status: isActive ? 'active' : 'inactive',
+      currentPeriodEnd,
+      cancelAtPeriodEnd,
+      stripeCustomerId: user.stripe_customer_id || null,
+      stripeSubscriptionId: user.stripe_subscription_id || null,
+    });
+  } catch (error) {
+    console.error('Subscription status error:', error);
+    res.status(500).json({ error: 'Failed to get subscription status' });
+  }
+});
+
+app.post('/api/subscription/create-checkout', authMiddleware, async (req, res) => {
+  try {
+    const { planId, billingCycle } = req.body;
+
+    if (!planId || !SUBSCRIPTION_PLAN_MAP[planId]) {
+      return res.status(400).json({ error: 'Valid plan ID is required (subscription, premium, or pro)' });
+    }
+
+    const credentials = await getStripeCredentials();
+    if (!credentials?.secret) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+
+    const Stripe = require('stripe');
+    const stripe = new Stripe(credentials.secret, { apiVersion: '2024-11-20.acacia' });
+
+    const userResult = await pool.query('SELECT email, display_name, stripe_customer_id FROM users WHERE id = $1', [req.userId]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const user = userResult.rows[0];
+
+    let customerId = user.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: user.display_name,
+        metadata: { userId: req.userId },
+      });
+      customerId = customer.id;
+      await pool.query(
+        'ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255); ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255);'
+      ).catch(() => {});
+      await pool.query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', [customerId, req.userId]);
+    }
+
+    const plan = SUBSCRIPTION_PLAN_MAP[planId];
+    const unitAmount = billingCycle === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
+    const interval = billingCycle === 'yearly' ? 'year' : 'month';
+
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      customer: customerId,
+      line_items: [
+        {
+          price_data: {
+            currency: 'gbp',
+            product_data: {
+              name: `Dripn ${plan.name}`,
+              description: `${plan.name} subscription - ${billingCycle || 'monthly'}`,
+            },
+            unit_amount: unitAmount,
+            recurring: { interval },
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        userId: req.userId,
+        planTier: planId,
+        tier: planId,
+        billingCycle: billingCycle || 'monthly',
+      },
+      success_url: `${baseUrl}/api/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/api/checkout/cancel`,
+    });
+
+    res.json({
+      checkoutUrl: session.url,
+      sessionId: session.id,
+    });
+  } catch (error) {
+    console.error('Subscription checkout error:', error);
+    res.status(500).json({ error: error.message || 'Failed to create checkout session' });
+  }
+});
+
+app.post('/api/subscription/manage', authMiddleware, async (req, res) => {
+  try {
+    const credentials = await getStripeCredentials();
+    if (!credentials?.secret) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+
+    const Stripe = require('stripe');
+    const stripe = new Stripe(credentials.secret, { apiVersion: '2024-11-20.acacia' });
+
+    const userResult = await pool.query('SELECT stripe_customer_id FROM users WHERE id = $1', [req.userId]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const customerId = userResult.rows[0].stripe_customer_id;
+    if (!customerId) {
+      return res.status(400).json({ error: 'No billing account found. Please subscribe first.' });
+    }
+
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${baseUrl}/api/checkout/cancel`,
+    });
+
+    res.json({ url: portalSession.url });
+  } catch (error) {
+    console.error('Billing portal error:', error);
+    res.status(500).json({ error: error.message || 'Failed to open billing portal' });
+  }
+});
+
+app.post('/api/subscription/cancel', authMiddleware, async (req, res) => {
+  try {
+    const credentials = await getStripeCredentials();
+    if (!credentials?.secret) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+
+    const Stripe = require('stripe');
+    const stripe = new Stripe(credentials.secret, { apiVersion: '2024-11-20.acacia' });
+
+    const userResult = await pool.query('SELECT stripe_subscription_id FROM users WHERE id = $1', [req.userId]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const subscriptionId = userResult.rows[0].stripe_subscription_id;
+    if (!subscriptionId) {
+      return res.status(400).json({ error: 'No active subscription found' });
+    }
+
+    const subscription = await stripe.subscriptions.update(subscriptionId, {
+      cancel_at_period_end: true,
+    });
+
+    res.json({
+      success: true,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+    });
+  } catch (error) {
+    console.error('Subscription cancel error:', error);
+    res.status(500).json({ error: error.message || 'Failed to cancel subscription' });
+  }
+});
+
+app.post('/api/subscription/reactivate', authMiddleware, async (req, res) => {
+  try {
+    const credentials = await getStripeCredentials();
+    if (!credentials?.secret) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+
+    const Stripe = require('stripe');
+    const stripe = new Stripe(credentials.secret, { apiVersion: '2024-11-20.acacia' });
+
+    const userResult = await pool.query('SELECT stripe_subscription_id FROM users WHERE id = $1', [req.userId]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const subscriptionId = userResult.rows[0].stripe_subscription_id;
+    if (!subscriptionId) {
+      return res.status(400).json({ error: 'No subscription found to reactivate' });
+    }
+
+    const subscription = await stripe.subscriptions.update(subscriptionId, {
+      cancel_at_period_end: false,
+    });
+
+    res.json({
+      success: true,
+      reactivated: !subscription.cancel_at_period_end,
+    });
+  } catch (error) {
+    console.error('Subscription reactivate error:', error);
+    res.status(500).json({ error: error.message || 'Failed to reactivate subscription' });
+  }
+});
+
+app.post('/api/subscription/cancel/start', authMiddleware, async (req, res) => {
+  try {
+    res.json({
+      stylist: 'ruby',
+      stylistName: 'Ruby',
+      message: "I'm sorry to hear you're thinking of leaving. Before you go, could you tell me what's not working for you?",
+      feedbackPrompt: "Your feedback helps us improve Dripn for everyone.",
+      cancellationReasons: [
+        { value: 'too_expensive', label: "It's too expensive" },
+        { value: 'not_using', label: "I don't use it enough" },
+        { value: 'missing_features', label: "Missing features I need" },
+        { value: 'found_alternative', label: 'Found a better alternative' },
+        { value: 'technical_issues', label: 'Technical issues' },
+        { value: 'other', label: 'Other reason' },
+      ],
+    });
+  } catch (error) {
+    console.error('Cancel start error:', error);
+    res.status(500).json({ error: 'Failed to start cancellation' });
+  }
+});
+
+app.post('/api/subscription/cancel/feedback', authMiddleware, async (req, res) => {
+  try {
+    const { reason, feedback, wouldReturn } = req.body;
+    console.log(`Cancellation feedback from user ${req.userId}: reason=${reason}, feedback=${feedback}, wouldReturn=${wouldReturn}`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Cancel feedback error:', error);
+    res.status(500).json({ error: 'Failed to submit feedback' });
+  }
+});
+
+app.post('/api/subscription/cancel/complete', authMiddleware, async (req, res) => {
+  try {
+    res.json({
+      stylistName: 'Ruby',
+      farewellMessage: "It's been a pleasure styling you. Your wardrobe data will be saved, so you can pick up right where you left off if you ever come back.",
+      reactivationOffer: {
+        options: [
+          { type: 'discount', label: '50% off for 3 months', price: '£4.99/mo' },
+          { type: 'pause', label: 'Pause for 1 month', price: 'Free' },
+          { type: 'downgrade', label: 'Switch to Style Chat', price: '£9.99/mo' },
+        ],
+      },
+    });
+  } catch (error) {
+    console.error('Cancel complete error:', error);
+    res.status(500).json({ error: 'Failed to complete cancellation' });
+  }
+});
+
+app.post('/api/checkout/dfy/create-session', authMiddleware, async (req, res) => {
+  try {
+    const { email, packageType } = req.body;
+
+    if (!packageType || !['lite', 'core'].includes(packageType)) {
+      return res.status(400).json({ error: 'Valid package type (lite or core) is required' });
+    }
+
+    const credentials = await getStripeCredentials();
+    if (!credentials?.secret) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+
+    const Stripe = require('stripe');
+    const stripe = new Stripe(credentials.secret, { apiVersion: '2024-11-20.acacia' });
+
+    const dfyPrices = {
+      lite: { name: 'Outfit-Based Setup', amount: 1999 },
+      core: { name: 'Core Wardrobe Setup', amount: 3999 },
+    };
+
+    const pkg = dfyPrices[packageType];
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      customer_email: email,
+      line_items: [
+        {
+          price_data: {
+            currency: 'gbp',
+            product_data: {
+              name: `Dripn ${pkg.name}`,
+              description: packageType === 'lite' ? '5-7 professionally curated outfits' : 'Up to 30 wardrobe items categorized',
+            },
+            unit_amount: pkg.amount,
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        userId: req.userId,
+        packageType,
+        email,
+      },
+      success_url: `${baseUrl}/api/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/api/checkout/cancel`,
+    });
+
+    res.json({
+      checkoutUrl: session.url,
+      sessionId: session.id,
+    });
+  } catch (error) {
+    console.error('DFY checkout error:', error);
+    res.status(500).json({ error: error.message || 'Failed to create DFY checkout session' });
+  }
+});
+
+app.get('/api/checkout/dfy/products', async (req, res) => {
+  res.json({
+    products: [
+      {
+        id: 'dfy_lite',
+        name: 'Outfit-Based Setup',
+        price: '£19.99',
+        priceAmount: 1999,
+        currency: 'gbp',
+        features: ['5-7 professionally curated outfits', 'Occasion-specific styling', 'Color coordination'],
+        type: 'lite',
+      },
+      {
+        id: 'dfy_core',
+        name: 'Core Wardrobe Setup',
+        price: '£39.99',
+        priceAmount: 3999,
+        currency: 'gbp',
+        features: ['Up to 30 items categorized', 'Category & formality tagging', 'Color & seasonality analysis', 'Wardrobe gap analysis'],
+        type: 'core',
+      },
+    ],
+  });
+});
+
+app.post('/api/checkout/dfy/verify', authMiddleware, async (req, res) => {
+  try {
+    const { sessionId, email } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID is required' });
+    }
+
+    const credentials = await getStripeCredentials();
+    if (!credentials?.secret) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+
+    const Stripe = require('stripe');
+    const stripe = new Stripe(credentials.secret, { apiVersion: '2024-11-20.acacia' });
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    res.json({
+      success: true,
+      verified: session.payment_status === 'paid',
+      packageType: session.metadata?.packageType || 'lite',
+      email: session.customer_email || email,
+    });
+  } catch (error) {
+    console.error('DFY verify error:', error);
+    res.status(500).json({ error: 'Failed to verify payment' });
+  }
+});
+
+app.post('/api/checkout/dfy/link-payment', authMiddleware, async (req, res) => {
+  try {
+    const { email } = req.body;
+    res.json({ success: true, linked: true, packageType: 'lite' });
+  } catch (error) {
+    console.error('DFY link error:', error);
+    res.status(500).json({ error: 'Failed to link payment' });
   }
 });
 

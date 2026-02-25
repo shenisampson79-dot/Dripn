@@ -230,6 +230,15 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         }
       } else {
         const billingCycle = isYearly ? 'yearly' : 'monthly';
+        
+        const isHealthy = await apiService.checkHealth();
+        if (!isHealthy) {
+          const wake = await apiService.wakeBackend();
+          if (!wake.success) {
+            throw new Error("Unable to reach the server. Please check your connection and try again.");
+          }
+        }
+        
         const response = await apiService.createSubscriptionCheckout(planId, billingCycle);
 
         if (response.checkoutUrl) {
@@ -266,12 +275,17 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     } catch (error: any) {
       console.error("Subscription error:", error);
       const errorMessage = error?.message || "Failed to process subscription. Please try again.";
-      Alert.alert(
-        "Error",
-        errorMessage.includes("Unauthorized") 
-          ? "Please log in again to complete your subscription."
-          : errorMessage
-      );
+      let displayMessage = errorMessage;
+      
+      if (errorMessage.includes("Unauthorized") || errorMessage.includes("Authentication required")) {
+        displayMessage = "Please log in again to complete your subscription.";
+      } else if (errorMessage.includes("Network request failed") || errorMessage.includes("network") || errorMessage.includes("Unable to reach")) {
+        displayMessage = "Unable to connect to our servers. Please check your internet connection and try again.";
+      } else if (errorMessage.includes("No checkout URL")) {
+        displayMessage = "Payment setup is temporarily unavailable. Please try again shortly.";
+      }
+      
+      Alert.alert("Error", displayMessage);
     } finally {
       setIsProcessing(false);
     }
