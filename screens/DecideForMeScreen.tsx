@@ -33,11 +33,11 @@ const OCCASION_ICONS: Record<string, "briefcase" | "heart" | "coffee" | "calenda
 };
 
 const OCCASION_COLORS: Record<string, { bg: string; border: string; icon: string }> = {
-  work: { bg: "#1E3A5F", border: "#3B82F6", icon: "#60A5FA" },
-  date: { bg: "#4A1942", border: "#EC4899", icon: "#F472B6" },
-  casual: { bg: "#1A4D2E", border: "#22C55E", icon: "#4ADE80" },
-  event: { bg: "#4C1D95", border: "#A855F7", icon: "#C084FC" },
-  browsing: { bg: "#78350F", border: "#F59E0B", icon: "#FBBF24" },
+  work: { bg: "#E5DED4", border: "#D8CFC2", icon: "#4A3428" },
+  date: { bg: "#F0EBE4", border: "#E5DED4", icon: "#8B6F5C" },
+  casual: { bg: "#EBE0D3", border: "#D4A574", icon: "#4A3428" },
+  event: { bg: "#F5E6D3", border: "#C9A87C", icon: "#4A3428" },
+  browsing: { bg: "#D8CFC2", border: "#8B6F5C", icon: "#4A3428" },
 };
 
 const MAX_EXPRESSION_LENGTH = 280;
@@ -888,9 +888,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </View>
 
         {weather && !isLoadingWeather ? (
-          <Animated.View entering={FadeInDown.delay(200)} style={[styles.weatherBadge, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-            <Feather name="cloud" size={16} color="#FFFFFF" />
-            <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: Spacing.xs }}>
+          <Animated.View entering={FadeInDown.delay(200)} style={[styles.weatherBadge, { backgroundColor: 'rgba(74, 52, 40, 0.1)' }]}>
+            <Feather name="cloud" size={16} color="#4A3428" />
+            <ThemedText type="small" style={{ color: '#4A3428', marginLeft: Spacing.xs, fontWeight: '500' }}>
               {weather.temperature}° in {weather.location}
             </ThemedText>
           </Animated.View>
@@ -898,7 +898,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
         <View style={styles.optionsGrid}>
           {options.map((option, index) => {
-            const occasionColor = OCCASION_COLORS[option.id] || { bg: "#2D2D2D", border: "#888888", icon: "#FFFFFF" };
+            const occasionColor = OCCASION_COLORS[option.id] || { bg: "#E5DED4", border: "#D8CFC2", icon: "#4A3428" };
             const isSelected = selectedOccasion === option.id;
             
             return (
@@ -912,19 +912,19 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
                     styles.optionCard,
                     { 
                       backgroundColor: occasionColor.bg,
-                      borderWidth: isSelected ? 3 : 2,
-                      borderColor: isSelected ? '#FFFFFF' : occasionColor.border,
+                      borderWidth: isSelected ? 3 : 1.5,
+                      borderColor: isSelected ? '#4A3428' : occasionColor.border,
                       opacity: pressed ? 0.85 : 1,
-                      shadowColor: occasionColor.border,
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.4,
-                      shadowRadius: 8,
-                      elevation: 6,
+                      shadowColor: '#4A3428',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 4,
+                      elevation: 3,
                     }
                   ]}
                   onPress={() => handleOccasionSelect(option.id)}
                 >
-                  <View style={[styles.occasionIconCircle, { backgroundColor: `${occasionColor.border}30` }]}>
+                  <View style={[styles.occasionIconCircle, { backgroundColor: 'rgba(255, 255, 255, 0.5)' }]}>
                     <Feather 
                       name={OCCASION_ICONS[option.id] || "circle"} 
                       size={26} 
@@ -935,7 +935,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
                     type="body" 
                     style={[
                       styles.optionLabel,
-                      { color: '#FFFFFF', fontWeight: '600' }
+                      { color: '#4A3428', fontWeight: '600' }
                     ]}
                   >
                     {option.label}
