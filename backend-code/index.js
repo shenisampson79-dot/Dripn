@@ -924,7 +924,7 @@ app.post('/api/subscription/create-checkout', authMiddleware, async (req, res) =
     const unitAmount = billingCycle === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
     const interval = billingCycle === 'yearly' ? 'year' : 'month';
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL || `${req.protocol}://${req.get('host')}`;
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

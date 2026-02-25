@@ -29,23 +29,21 @@ class CurrencyService {
     if (this.initialized) return;
     
     try {
+      // Force GBP for now as per user request to use £
+      this.userCurrency = 'GBP';
+      
       const locales = Localization.getLocales();
       if (locales && locales.length > 0) {
         const locale = locales[0];
         const regionCode = locale.regionCode?.toUpperCase();
         
-        if (regionCode) {
-          if (UK_COUNTRIES.includes(regionCode)) {
-            this.userCurrency = 'GBP';
-          } else if (EUROZONE_COUNTRIES.includes(regionCode)) {
-            this.userCurrency = 'EUR';
-          } else {
-            this.userCurrency = 'USD';
-          }
+        // Only override if it's explicitly Eurozone, otherwise stick to GBP/USD preference
+        if (regionCode && EUROZONE_COUNTRIES.includes(regionCode)) {
+          this.userCurrency = 'EUR';
         }
       }
     } catch (error) {
-      this.userCurrency = 'USD';
+      this.userCurrency = 'GBP';
     }
     
     this.initialized = true;
