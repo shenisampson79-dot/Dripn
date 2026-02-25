@@ -616,7 +616,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
             <View style={styles.dfyFeatures}>
               {[
                 "You upload outfit photos",
-                "3-5 core outfits with rotations",
+                "5-7 core outfits with rotations",
                 "One occasion (work, holiday, event)",
                 "14-day access window",
                 "Stylist-led adjustments only",
