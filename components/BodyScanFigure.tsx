@@ -1,283 +1,260 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View } from "react-native";
+import Svg, {
+  Path,
+  Ellipse,
+  Line,
+  Defs,
+  LinearGradient,
+  Stop,
+  G,
+  Circle,
+  Rect,
+} from "react-native-svg";
 
 interface BodyScanFigureProps {
   color: string;
   size?: number;
 }
 
-export function BodyScanFigure({ color, size = 190 }: BodyScanFigureProps) {
-  const scale = size / 190;
-  const fill = color + "1A";
-  const stroke = color;
-  const glow = color + "22";
+export function BodyScanFigure({ color, size = 200 }: BodyScanFigureProps) {
+  const hex = color.replace("#", "");
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const rgba = (a: number) => `rgba(${r},${g},${b},${a})`;
 
-  const s = (v: number) => Math.round(v * scale);
+  // ViewBox: 110 × 310
+  const vW = 110;
+  const vH = 310;
+  const svgW = size * (vW / vH);
+  const svgH = size;
+
+  const stroke = rgba(0.82);
+  const fillBody = rgba(0.08);
+  const fillArm = rgba(0.06);
+  const guide = rgba(0.18);
+  const accent = rgba(0.45);
 
   return (
-    <View style={[styles.wrapper, { width: s(130), height: s(230) }]}>
-      {/* Ambient glow */}
-      <View
-        style={[
-          styles.glow,
-          {
-            width: s(100),
-            height: s(210),
-            backgroundColor: glow,
-            borderRadius: s(50),
-            shadowColor: color,
-          },
-        ]}
-      />
+    <View style={{ alignItems: "center" }}>
+      <Svg width={svgW} height={svgH} viewBox={`0 0 ${vW} ${vH}`}>
+        <Defs>
+          <LinearGradient id="bd" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={rgba(0.13)} />
+            <Stop offset="0.5" stopColor={rgba(0.08)} />
+            <Stop offset="1" stopColor={rgba(0.03)} />
+          </LinearGradient>
+          <LinearGradient id="am" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={rgba(0.09)} />
+            <Stop offset="1" stopColor={rgba(0.03)} />
+          </LinearGradient>
+          <LinearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={rgba(0.09)} />
+            <Stop offset="1" stopColor={rgba(0.02)} />
+          </LinearGradient>
+        </Defs>
 
-      {/* HEAD */}
-      <View
-        style={[
-          styles.head,
-          {
-            width: s(38),
-            height: s(42),
-            borderRadius: s(21),
-            backgroundColor: fill,
-            borderColor: stroke,
-            top: s(6),
-            left: s(46),
-          },
-        ]}
-      />
+        {/* ─── SCANNER CORNER BRACKETS ─── */}
+        <Path d="M 4,4 L 4,18 M 4,4 L 18,4"
+          fill="none" stroke={rgba(0.32)} strokeWidth="1.4" strokeLinecap="round" />
+        <Path d="M 106,4 L 106,18 M 106,4 L 92,4"
+          fill="none" stroke={rgba(0.32)} strokeWidth="1.4" strokeLinecap="round" />
+        <Path d="M 4,306 L 4,292 M 4,306 L 18,306"
+          fill="none" stroke={rgba(0.32)} strokeWidth="1.4" strokeLinecap="round" />
+        <Path d="M 106,306 L 106,292 M 106,306 L 92,306"
+          fill="none" stroke={rgba(0.32)} strokeWidth="1.4" strokeLinecap="round" />
 
-      {/* NECK */}
-      <View
-        style={[
-          styles.neck,
-          {
-            width: s(13),
-            height: s(12),
-            backgroundColor: fill,
-            borderLeftColor: stroke,
-            borderRightColor: stroke,
-            borderLeftWidth: 1.5,
-            borderRightWidth: 1.5,
-            top: s(46),
-            left: s(58),
-          },
-        ]}
-      />
+        {/* ─── CENTRE AXIS ─── */}
+        <Line x1="55" y1="40" x2="55" y2="295"
+          stroke={rgba(0.08)} strokeWidth="0.6" strokeDasharray="2,6" />
 
-      {/* SHOULDERS */}
-      <View
-        style={[
-          styles.shoulders,
-          {
-            width: s(88),
-            height: s(18),
-            backgroundColor: fill,
-            borderColor: stroke,
-            borderBottomWidth: 0,
-            borderTopLeftRadius: s(16),
-            borderTopRightRadius: s(16),
-            top: s(56),
-            left: s(21),
-          },
-        ]}
-      />
+        {/* ─── HORIZONTAL MEASUREMENT GUIDES ─── */}
+        {/* Shoulder */}
+        <Line x1="10" y1="76" x2="100" y2="76"
+          stroke={guide} strokeWidth="0.5" strokeDasharray="2,5" />
+        {/* Waist */}
+        <Line x1="32" y1="152" x2="78" y2="152"
+          stroke={guide} strokeWidth="0.5" strokeDasharray="2,5" />
+        {/* Hip */}
+        <Line x1="22" y1="180" x2="88" y2="180"
+          stroke={guide} strokeWidth="0.5" strokeDasharray="2,5" />
+        {/* Knee */}
+        <Line x1="30" y1="242" x2="80" y2="242"
+          stroke={guide} strokeWidth="0.5" strokeDasharray="2,5" />
 
-      {/* LEFT ARM */}
-      <View
-        style={[
-          styles.arm,
-          {
-            width: s(15),
-            height: s(78),
-            backgroundColor: fill,
-            borderColor: stroke,
-            top: s(62),
-            left: s(16),
-            borderRadius: s(8),
-            transform: [{ rotate: "8deg" }],
-          },
-        ]}
-      />
+        {/* Tick marks on centre axis */}
+        <Line x1="52" y1="76" x2="58" y2="76" stroke={accent} strokeWidth="1" />
+        <Line x1="52" y1="152" x2="58" y2="152" stroke={accent} strokeWidth="1" />
+        <Line x1="52" y1="180" x2="58" y2="180" stroke={accent} strokeWidth="1" />
+        <Line x1="52" y1="242" x2="58" y2="242" stroke={accent} strokeWidth="1" />
 
-      {/* RIGHT ARM */}
-      <View
-        style={[
-          styles.arm,
-          {
-            width: s(15),
-            height: s(78),
-            backgroundColor: fill,
-            borderColor: stroke,
-            top: s(62),
-            right: s(16),
-            borderRadius: s(8),
-            transform: [{ rotate: "-8deg" }],
-          },
-        ]}
-      />
+        {/* ─── LEFT ARM
+              Hangs from the shoulder, sweeps gently outward,
+              then straight down. Width ≈12px.
+              The arm top (y=70) begins near the shoulder joint.
+              The arm's rightmost edge (x≈34) leaves a clear ~8px
+              gap from the body's left edge (x≈42) below the shoulder.
+        ─── */}
+        <Path
+          d={`
+            M 34,68
+            C 30,76 22,108 19,140
+            C 17,162 17,176 18,188
+            C 19,194 20,197 21,199
+            L 30,199
+            C 30,197 30,194 30,188
+            C 30,176 30,162 31,140
+            C 32,108 34,76 36,68
+            Z
+          `}
+          fill="url(#am)"
+          stroke={stroke}
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
 
-      {/* TORSO */}
-      <View
-        style={[
-          styles.torso,
-          {
-            width: s(58),
-            height: s(72),
-            backgroundColor: fill,
-            borderColor: stroke,
-            top: s(71),
-            left: s(36),
-            borderTopLeftRadius: s(3),
-            borderTopRightRadius: s(3),
-            borderBottomLeftRadius: s(10),
-            borderBottomRightRadius: s(10),
-          },
-        ]}
-      />
+        {/* ─── RIGHT ARM (mirror) ─── */}
+        <Path
+          d={`
+            M 76,68
+            C 74,76 78,108 79,140
+            C 80,162 80,176 80,188
+            C 80,194 80,197 80,199
+            L 89,199
+            C 90,197 91,194 92,188
+            C 93,176 93,162 91,140
+            C 88,108 80,76 76,68
+            Z
+          `}
+          fill="url(#am)"
+          stroke={stroke}
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
 
-      {/* WAIST SEAM */}
-      <View
-        style={[
-          styles.waistSeam,
-          {
-            width: s(54),
-            top: s(118),
-            left: s(38),
-            borderBottomColor: stroke + "55",
-          },
-        ]}
-      />
+        {/* ─── TORSO + HIPS
+              Body path starts at shoulder joints (where arms attach).
+              Narrows clearly at waist (x=40 → x=70).
+              Flares at hips (x=24 → x=86).
+              The side edges are well clear of the arms at all heights.
+        ─── */}
+        <Path
+          d={`
+            M 36,66
+            C 42,60 48,57 55,57
+            C 62,57 68,60 74,66
+            C 76,70 76,74 74,78
+            C 71,82 67,84 63,86
+            C 60,96 59,116 60,136
+            C 61,148 63,156 66,162
+            C 70,168 74,174 76,182
+            C 78,188 77,198 74,206
+            C 68,210 62,212 55,212
+            C 48,212 42,210 36,206
+            C 33,198 32,188 34,182
+            C 36,174 40,168 44,162
+            C 47,156 49,148 50,136
+            C 51,116 50,96 47,86
+            C 43,84 39,82 36,78
+            C 34,74 34,70 36,66
+            Z
+          `}
+          fill="url(#bd)"
+          stroke={stroke}
+          strokeWidth="1.3"
+          strokeLinejoin="round"
+        />
 
-      {/* HIPS */}
-      <View
-        style={[
-          styles.hips,
-          {
-            width: s(68),
-            height: s(22),
-            backgroundColor: fill,
-            borderColor: stroke,
-            top: s(138),
-            left: s(31),
-            borderRadius: s(8),
-          },
-        ]}
-      />
+        {/* Collarbone subtle lines */}
+        <Path d="M 47,65 Q 52,70 55,72 Q 58,70 63,65"
+          fill="none" stroke={rgba(0.22)} strokeWidth="0.9" />
 
-      {/* LEFT LEG */}
-      <View
-        style={[
-          styles.leg,
-          {
-            width: s(24),
-            height: s(58),
-            backgroundColor: fill,
-            borderColor: stroke,
-            top: s(156),
-            left: s(31),
-            borderRadius: s(8),
-          },
-        ]}
-      />
+        {/* Waist seam hint */}
+        <Path d="M 43,155 Q 55,158 67,155"
+          fill="none" stroke={rgba(0.15)} strokeWidth="0.8" />
 
-      {/* RIGHT LEG */}
-      <View
-        style={[
-          styles.leg,
-          {
-            width: s(24),
-            height: s(58),
-            backgroundColor: fill,
-            borderColor: stroke,
-            top: s(156),
-            right: s(31),
-            borderRadius: s(8),
-          },
-        ]}
-      />
+        {/* ─── LEFT LEG ─── */}
+        <Path
+          d={`
+            M 32,210
+            C 30,218 28,232 28,248
+            C 28,262 29,274 31,282
+            C 33,288 36,293 38,296
+            L 50,296
+            C 52,293 54,288 54,282
+            C 55,274 55,262 54,248
+            C 53,232 51,218 50,210
+            Z
+          `}
+          fill="url(#lg)"
+          stroke={stroke}
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
 
-      {/* LEFT FOOT */}
-      <View
-        style={[
-          styles.foot,
-          {
-            width: s(22),
-            height: s(10),
-            backgroundColor: fill,
-            borderColor: stroke,
-            top: s(208),
-            left: s(29),
-            borderRadius: s(5),
-          },
-        ]}
-      />
+        {/* ─── RIGHT LEG ─── */}
+        <Path
+          d={`
+            M 60,210
+            C 59,218 57,232 57,248
+            C 57,262 57,274 59,282
+            C 61,288 63,293 64,296
+            L 76,296
+            C 78,293 80,288 80,282
+            C 81,274 82,262 81,248
+            C 80,232 78,218 77,210
+            Z
+          `}
+          fill="url(#lg)"
+          stroke={stroke}
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
 
-      {/* RIGHT FOOT */}
-      <View
-        style={[
-          styles.foot,
-          {
-            width: s(22),
-            height: s(10),
-            backgroundColor: fill,
-            borderColor: stroke,
-            top: s(208),
-            right: s(29),
-            borderRadius: s(5),
-          },
-        ]}
-      />
+        {/* Knee highlights — subtle oval */}
+        <Ellipse cx="41" cy="244" rx="7" ry="5"
+          fill="none" stroke={rgba(0.16)} strokeWidth="0.9" />
+        <Ellipse cx="69" cy="244" rx="7" ry="5"
+          fill="none" stroke={rgba(0.16)} strokeWidth="0.9" />
+
+        {/* ─── NECK ─── */}
+        <Path
+          d={`
+            M 50,38
+            C 49,44 48,50 48,56
+            L 62,56
+            C 62,50 61,44 60,38
+            Z
+          `}
+          fill={rgba(0.1)}
+          stroke={stroke}
+          strokeWidth="1.2"
+        />
+
+        {/* ─── HEAD ─── */}
+        <Ellipse cx="55" cy="22" rx="15" ry="17"
+          fill={rgba(0.1)} stroke={stroke} strokeWidth="1.4" />
+
+        {/* Ear details */}
+        <Path d="M 40,19 Q 38,22 40,25"
+          fill="none" stroke={rgba(0.28)} strokeWidth="1" strokeLinecap="round" />
+        <Path d="M 70,19 Q 72,22 70,25"
+          fill="none" stroke={rgba(0.28)} strokeWidth="1" strokeLinecap="round" />
+
+        {/* ─── SHOULDER JOINT ACCENT DOTS ─── */}
+        <Circle cx="36" cy="68" r="2.2" fill={rgba(0.5)} />
+        <Circle cx="74" cy="68" r="2.2" fill={rgba(0.5)} />
+
+        {/* ─── WAIST CENTRE DOT ─── */}
+        <Circle cx="55" cy="152" r="2.4" fill={rgba(0.38)} />
+
+        {/* ─── HEIGHT RULER – left side, fine dots ─── */}
+        {[76, 114, 152, 180, 212, 242, 275].map((y, i) => (
+          <Circle key={i} cx="8" cy={y} r="1.2" fill={rgba(0.22)} />
+        ))}
+
+      </Svg>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    position: "relative",
-    alignItems: "center",
-  },
-  glow: {
-    position: "absolute",
-    top: 10,
-    alignSelf: "center",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 18,
-    elevation: 4,
-  },
-  head: {
-    position: "absolute",
-    borderWidth: 1.5,
-  },
-  neck: {
-    position: "absolute",
-  },
-  shoulders: {
-    position: "absolute",
-    borderWidth: 1.5,
-  },
-  arm: {
-    position: "absolute",
-    borderWidth: 1.5,
-  },
-  torso: {
-    position: "absolute",
-    borderWidth: 1.5,
-  },
-  waistSeam: {
-    position: "absolute",
-    borderBottomWidth: 1,
-  },
-  hips: {
-    position: "absolute",
-    borderWidth: 1.5,
-  },
-  leg: {
-    position: "absolute",
-    borderWidth: 1.5,
-  },
-  foot: {
-    position: "absolute",
-    borderWidth: 1.5,
-  },
-});

@@ -3489,7 +3489,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 {cameraGuidance.overlay ? (
                   <View style={[styles.overlayPreview, { backgroundColor: theme.backgroundSecondary }]}>
                     {cameraGuidance.overlay.type === 'body-silhouette' ? (
-                      <BodyScanFigure color={theme.link} size={190} />
+                      <BodyScanFigure color={theme.link} size={260} />
                     ) : (
                       <View style={[styles.faceOvalPreview, { borderColor: theme.link }]} />
                     )}
