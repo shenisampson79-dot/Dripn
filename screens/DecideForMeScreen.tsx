@@ -1132,23 +1132,24 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </Pressable>
       </Animated.View>
 
-      <Animated.View entering={FadeInDown.delay(300)} style={styles.calibrationSection}>
+      <Animated.View entering={FadeInDown.delay(100)} style={styles.calibrationSection}>
         <ThemedText type="body" style={[styles.calibrationMessage, { color: theme.tabIconDefault }]}>
           {styleDirectionService.getCalibrationMessage()}
         </ThemedText>
         <View style={[styles.expressionInputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
           <TextInput
-            style={[styles.expressionInput, { color: theme.text, minHeight: 44, maxHeight: 120 }]}
+            style={[styles.expressionInput, { color: theme.text, minHeight: 52, maxHeight: 120 }]}
             placeholder={styleDirectionService.getExpressionPlaceholder()}
             placeholderTextColor={theme.tabIconDefault}
             value={expressionText}
             onChangeText={(text) => setExpressionText(text.slice(0, MAX_EXPRESSION_LENGTH))}
             returnKeyType="send"
-            blurOnSubmit={false}
+            blurOnSubmit={true}
             onSubmitEditing={handleExpressionSubmit}
             multiline={true}
             textAlignVertical="top"
             maxLength={MAX_EXPRESSION_LENGTH}
+            scrollEnabled={false}
           />
           {expressionText.trim() ? (
             <Pressable 
@@ -1215,10 +1216,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       ) : (
         <KeyboardAwareScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl * 4 }]}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bottomOffset={20}
+          keyboardShouldPersistTaps="always"
+          bottomOffset={120}
         >
           {step === "occasion" ? renderOccasionStep() : null}
           {step === "loading" ? renderLoadingStep() : null}
@@ -1462,16 +1463,18 @@ const styles = StyleSheet.create({
   },
   expressionInputContainer: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-end",
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.sm,
   },
   expressionInput: {
     flex: 1,
     fontSize: 15,
-    paddingVertical: 8,
+    paddingVertical: 6,
+    paddingTop: 0,
   },
   expressionSendButton: {
     padding: Spacing.sm,
