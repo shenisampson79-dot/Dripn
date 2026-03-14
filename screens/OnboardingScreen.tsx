@@ -24,6 +24,7 @@ import { OnboardingService, BodyScanResult, ColorScanResult, StyleQuizQuestion, 
 import { useTranslations } from "@/contexts/TranslationContext";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { setCurrentOnboardingStep } from "@/components/ErrorFallback";
+import { BodyScanFigure } from "@/components/BodyScanFigure";
 
 const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "woman", name: "Woman", icon: "user" },
@@ -3488,19 +3489,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 {cameraGuidance.overlay ? (
                   <View style={[styles.overlayPreview, { backgroundColor: theme.backgroundSecondary }]}>
                     {cameraGuidance.overlay.type === 'body-silhouette' ? (
-                      <View style={styles.bodySilhouetteContainer}>
-                        <View style={[styles.bodySilhouetteHead, { backgroundColor: theme.link, borderColor: theme.link }]} />
-                        <View style={styles.bodySilhouetteNeck} />
-                        <View style={styles.bodySilhouetteBodyWithArms}>
-                          <View style={[styles.bodySilhouetteArm, { backgroundColor: theme.link + '80', borderColor: theme.link }]} />
-                          <View style={[styles.bodySilhouetteBody, { backgroundColor: theme.link + 'B3', borderColor: theme.link }]} />
-                          <View style={[styles.bodySilhouetteArm, { backgroundColor: theme.link + '80', borderColor: theme.link }]} />
-                        </View>
-                        <View style={styles.bodySilhouetteLegsRow}>
-                          <View style={[styles.bodySilhouetteLeg, { backgroundColor: theme.link + '80', borderColor: theme.link }]} />
-                          <View style={[styles.bodySilhouetteLeg, { backgroundColor: theme.link + '80', borderColor: theme.link }]} />
-                        </View>
-                      </View>
+                      <BodyScanFigure color={theme.link} size={190} />
                     ) : (
                       <View style={[styles.faceOvalPreview, { borderColor: theme.link }]} />
                     )}
@@ -4382,50 +4371,6 @@ const styles = StyleSheet.create({
   },
   bodySilhouetteContainer: {
     alignItems: "center",
-  },
-  bodySilhouetteHead: {
-    width: 32,
-    height: 32,
-    borderWidth: 2,
-    borderRadius: 16,
-    marginBottom: 2,
-  },
-  bodySilhouetteNeck: {
-    width: 8,
-    height: 6,
-    backgroundColor: 'rgba(100, 100, 100, 0.3)',
-    alignSelf: 'center',
-  },
-  bodySilhouetteBodyWithArms: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 4,
-    marginTop: 2,
-    marginBottom: 2,
-  },
-  bodySilhouetteArm: {
-    width: 12,
-    height: 65,
-    borderWidth: 1.5,
-    borderRadius: 6,
-  },
-  bodySilhouetteBody: {
-    width: 55,
-    height: 75,
-    borderWidth: 1.5,
-    borderRadius: 6,
-    flex: 0,
-  },
-  bodySilhouetteLegsRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 2,
-  },
-  bodySilhouetteLeg: {
-    width: 16,
-    height: 55,
-    borderWidth: 1.5,
-    borderRadius: 8,
   },
   faceOvalPreview: {
     width: 100,
