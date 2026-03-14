@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { StyleSheet, View, Pressable, ActivityIndicator, TextInput, Alert, Platform, Image, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -7,6 +7,7 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated"
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import type { ScrollView as RNScrollView } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
@@ -250,10 +251,20 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   } | null>(null);
   const recommendationCountRef = useRef(0);
   const outfitIndexRef = useRef(0);
+  const scrollRef = useRef<RNScrollView>(null);
+  const expressionInputRef = useRef<TextInput>(null);
   const [isLoadingAnotherOption, setIsLoadingAnotherOption] = useState(false);
   const [isLoadingSecondOpinion, setIsLoadingSecondOpinion] = useState(false);
   const [styleAdvice, setStyleAdvice] = useState<StyleAdvice | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
+  const handleExpressionInputFocus = useCallback(() => {
+    setTimeout(() => {
+      if (scrollRef.current) {
+        (scrollRef.current as any).scrollToEnd?.({ animated: true });
+      }
+    }, 300);
+  }, []);
 
   useEffect(() => {
     fetchWeather();
@@ -1132,13 +1143,14 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </Pressable>
       </Animated.View>
 
-      <Animated.View entering={FadeInDown.delay(100)} style={styles.calibrationSection}>
+      <View style={styles.calibrationSection}>
         <ThemedText type="body" style={[styles.calibrationMessage, { color: theme.tabIconDefault }]}>
           {styleDirectionService.getCalibrationMessage()}
         </ThemedText>
         <View style={[styles.expressionInputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
           <TextInput
-            style={[styles.expressionInput, { color: theme.text, minHeight: 52, maxHeight: 120 }]}
+            ref={expressionInputRef}
+            style={[styles.expressionInput, { color: theme.text }]}
             placeholder={styleDirectionService.getExpressionPlaceholder()}
             placeholderTextColor={theme.tabIconDefault}
             value={expressionText}
@@ -1146,10 +1158,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             returnKeyType="send"
             blurOnSubmit={true}
             onSubmitEditing={handleExpressionSubmit}
+            onFocus={handleExpressionInputFocus}
             multiline={true}
             textAlignVertical="top"
             maxLength={MAX_EXPRESSION_LENGTH}
-            scrollEnabled={false}
           />
           {expressionText.trim() ? (
             <Pressable 
@@ -1161,7 +1173,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             </Pressable>
           ) : null}
         </View>
-      </Animated.View>
+      </View>
 
       <Animated.View entering={FadeInDown.delay(400)} style={styles.ctaSection}>
         <ThemedText type="body" style={[styles.ctaPrompt, { color: theme.tabIconDefault }]}>
@@ -1215,11 +1227,12 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </ScrollView>
       ) : (
         <KeyboardAwareScrollView
+          ref={scrollRef as any}
           style={styles.scrollView}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl * 4 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="always"
-          bottomOffset={120}
+          bottomOffset={180}
         >
           {step === "occasion" ? renderOccasionStep() : null}
           {step === "loading" ? renderLoadingStep() : null}
@@ -1473,8 +1486,9 @@ const styles = StyleSheet.create({
   expressionInput: {
     flex: 1,
     fontSize: 15,
-    paddingVertical: 6,
-    paddingTop: 0,
+    paddingVertical: 8,
+    minHeight: 52,
+    maxHeight: 120,
   },
   expressionSendButton: {
     padding: Spacing.sm,
