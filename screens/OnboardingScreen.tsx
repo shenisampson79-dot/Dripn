@@ -1338,7 +1338,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               <Feather name="search" size={20} color={theme.tabIconDefault} />
               <TextInput
                 style={[styles.countrySearchInput, { color: theme.text }]}
-                placeholder="Search countries..."
+                placeholder={t('onboarding.searchCountries') || 'Search countries...'}
                 placeholderTextColor={theme.tabIconDefault}
                 value={countrySearchQuery}
                 onChangeText={setCountrySearchQuery}
@@ -1399,7 +1399,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                     ))
                   ) : (
                     <ThemedText type="body" style={[styles.noResultsText, { color: theme.tabIconDefault }]}>
-                      No countries found
+                      {t('onboarding.noCountriesFound') || 'No countries found'}
                     </ThemedText>
                   )}
                 </View>
@@ -1423,12 +1423,12 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       <Feather name="navigation" size={20} color={theme.link} />
                     )}
                     <ThemedText type="body" style={{ color: theme.link, fontWeight: '500', marginLeft: Spacing.sm }}>
-                      {isDetectingLocation ? 'Detecting...' : 'Use my location'}
+                      {isDetectingLocation ? (t('onboarding.detecting') || 'Detecting...') : (t('onboarding.useMyLocation') || 'Use my location')}
                     </ThemedText>
                   </Pressable>
 
                   <ThemedText type="caption" style={[styles.countrySectionLabel, { color: theme.tabIconDefault }]}>
-                    Quick Select
+                    {t('onboarding.quickSelect') || 'Quick Select'}
                   </ThemedText>
                   <View style={styles.popularCountriesGrid}>
                     {QUICK_SELECT_COUNTRIES.map((c) => (
@@ -1458,7 +1458,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   </View>
 
                   <ThemedText type="caption" style={[styles.countrySectionLabel, { color: theme.tabIconDefault }]}>
-                    All Regions
+                    {t('onboarding.allRegions') || 'All Regions'}
                   </ThemedText>
                   {Object.entries(COUNTRY_REGIONS).map(([region, countries]) => (
                     <View key={region}>
@@ -1516,10 +1516,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              How do you identify?
+              {t('onboarding.steps.gender.title') || 'How do you identify?'}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              This helps us tailor style recommendations for you
+              {t('onboarding.steps.gender.description') || 'This helps us tailor style recommendations for you'}
             </ThemedText>
             <ScrollProgressIndicator />
             <ScrollView 
