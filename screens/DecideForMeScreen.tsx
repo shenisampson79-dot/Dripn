@@ -259,11 +259,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   const handleExpressionInputFocus = useCallback(() => {
-    setTimeout(() => {
-      if (scrollRef.current) {
-        (scrollRef.current as any).scrollToEnd?.({ animated: true });
-      }
-    }, 300);
+    // KeyboardAwareScrollView automatically scrolls to the focused TextInput
+    // using its bottomOffset prop — no manual scroll needed
   }, []);
 
   useEffect(() => {
