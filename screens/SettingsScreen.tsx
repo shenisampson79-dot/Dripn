@@ -371,8 +371,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   };
 
   const COLOR_SCHEME_OPTIONS: { value: ColorSchemeMode; label: string; description: string }[] = [
-    { value: 'colorful', label: 'Colorful', description: 'Vibrant gradients and bold colors' },
-    { value: 'minimalist', label: 'Minimalist', description: 'Subtle, understated tones' },
+    { value: 'colorful', label: t('settings.colorful'), description: t('settings.colorfulDesc') },
+    { value: 'minimalist', label: t('settings.minimalist'), description: t('settings.minimalistDesc') },
   ];
 
   const handleDFYToggle = async (tier: DFYTier, value: boolean) => {
@@ -433,7 +433,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           >
             <Feather name="arrow-left" size={20} color="#FFFFFF" />
           </Pressable>
-          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>Settings</ThemedText>
+          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{t('settings.title')}</ThemedText>
           <View style={{ width: 40 }} />
         </View>
 
@@ -445,12 +445,12 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           >
             <Feather name="user" size={12} color="#FFFFFF" />
           </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>Account</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.account')}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="user"
-            title="Edit Profile"
+            title={t('settings.editProfile')}
             subtitle={user?.name}
             onPress={() => navigation.navigate("EditProfile")}
             theme={theme}
@@ -459,7 +459,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="credit-card"
-            title="Subscription"
+            title={t('settings.subscription')}
             subtitle={user?.subscriptionTier === "free" ? "Free Plan" : `${user?.subscriptionTier} Plan`}
             onPress={() => navigation.navigate("Subscription")}
             theme={theme}
@@ -468,7 +468,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="mail"
-            title="Email"
+            title={t('settings.email')}
             subtitle={user?.email}
             onPress={() => {}}
             showChevron={false}
@@ -487,12 +487,12 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           >
             <Feather name="heart" size={12} color="#FFFFFF" />
           </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>Preferences</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.preferences')}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="heart"
-            title="Style Theme"
+            title={t('settings.styleTheme')}
             subtitle={STYLE_NAMES[user?.stylePreference || "luxury"]}
             onPress={handleChangeStyle}
             theme={theme}
@@ -501,8 +501,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="droplet"
-            title="Colour Scheme"
-            subtitle={colorScheme === 'colorful' ? 'Colorful' : 'Minimalist'}
+            title={t('settings.colourScheme')}
+            subtitle={colorScheme === 'colorful' ? t('settings.colorful') : t('settings.minimalist')}
             onPress={handleColorSchemeSelect}
             theme={theme}
             isDark={isDark}
@@ -510,8 +510,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="map-pin"
-            title="Country"
-            subtitle={user?.country || "Not set"}
+            title={t('settings.country')}
+            subtitle={user?.country || t('settings.notSet')}
             onPress={() => setShowCountryPicker(true)}
             theme={theme}
             isDark={isDark}
@@ -519,8 +519,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="user"
-            title="Body Measurements"
-            subtitle={user?.bodyMeasurements?.height ? `${user.bodyMeasurements.height} ${user.bodyMeasurements.heightUnit}` : 'Not set'}
+            title={t('settings.bodyMeasurements')}
+            subtitle={user?.bodyMeasurements?.height ? `${user.bodyMeasurements.height} ${user.bodyMeasurements.heightUnit}` : t('settings.notSet')}
             onPress={() => navigation.navigate("BodyMeasurements")}
             theme={theme}
             isDark={isDark}
@@ -537,7 +537,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           >
             <Feather name="droplet" size={12} color={LUXURY_COLORS.midnight} />
           </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>Trending Colors</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.trendingColors')}</ThemedText>
           {trendLoading || pantoneLoading ? (
             <ActivityIndicator size="small" color={LUXURY_COLORS.gold} style={{ marginLeft: Spacing.sm }} />
           ) : null}
@@ -566,7 +566,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               </View>
             ) : !pantoneLoading ? (
               <ThemedText type="small" style={styles.noTrendText}>
-                Pantone Color of the Year not available
+                {t('settings.pantoneNotAvailable')}
               </ThemedText>
             ) : null}
 
@@ -614,7 +614,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             ) : !trendLoading ? (
               <View style={styles.noTrendsContainer}>
                 <ThemedText type="small" style={styles.noTrendText}>
-                  Using base theme colors
+                  {t('settings.usingBaseColors')}
                 </ThemedText>
                 <LinearGradient
                   colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
@@ -626,7 +626,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                   >
                     <Feather name="refresh-cw" size={14} color="#FFFFFF" />
                     <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                      Check for trends
+                      {t('settings.checkForTrends')}
                     </ThemedText>
                   </Pressable>
                 </LinearGradient>
@@ -644,7 +644,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           >
             <Feather name="gift" size={12} color="#FFFFFF" />
           </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>Invite Friends</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.inviteFriends')}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <Pressable
@@ -662,12 +662,12 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={[styles.settingTitle, { color: LUXURY_COLORS.coral }]}>
-                Share Your Code: {referralCode}
+                {t('settings.shareYourCode')}: {referralCode}
               </ThemedText>
               <ThemedText type="small" style={styles.settingSubtitle}>
                 {totalReferrals > 0
                   ? `${totalReferrals} friends joined - ${bonusAIRequests} AI requests & 10% discount earned`
-                  : "Invite friends and you both get 20 AI requests & 10% discount"}
+                  : t('settings.inviteDescription')}
               </ThemedText>
             </View>
             <Feather name="share-2" size={18} color={LUXURY_COLORS.coral} />
@@ -684,7 +684,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           >
             <Feather name="bell" size={12} color="#FFFFFF" />
           </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>Notifications</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.notifications')}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
@@ -696,10 +696,10 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
-                Community Voting
+                {t('settings.communityVoting')}
               </ThemedText>
               <ThemedText type="small" style={styles.settingSubtitle}>
-                Notify when other users need your fashion advice
+                {t('settings.communityVotingDesc')}
               </ThemedText>
             </View>
             <Switch
@@ -718,10 +718,10 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
-                Price Alerts
+                {t('settings.priceAlerts')}
               </ThemedText>
               <ThemedText type="small" style={styles.settingSubtitle}>
-                Notify when tracked items drop in price
+                {t('settings.priceAlertsDesc')}
               </ThemedText>
             </View>
             <Switch
@@ -742,13 +742,13 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           >
             <Feather name="volume-2" size={12} color="#FFFFFF" />
           </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>{translations.settings?.voiceAndLanguage || 'Voice & Language'}</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.voiceAndLanguage')}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="globe"
-            title={translations.settings?.language || 'Language'}
-            subtitle={SUPPORTED_LANGUAGES.find(l => l.code === voiceSettings.preferredLanguage)?.name || "English"}
+            title={t('settings.language')}
+            subtitle={SUPPORTED_LANGUAGES.find(l => l.code === voiceSettings.preferredLanguage)?.nativeName || "English"}
             onPress={handleLanguageSelect}
             theme={theme}
             isDark={isDark}
@@ -756,7 +756,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="fast-forward"
-            title={translations.settings?.voiceSpeed || 'Voice Speed'}
+            title={t('settings.voiceSpeed')}
             subtitle={SPEED_OPTIONS.find(s => s.value === voiceSettings.voiceSpeed)?.label || "Normal"}
             onPress={handleSpeedSelect}
             theme={theme}
@@ -772,10 +772,10 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
-                {translations.settings?.autoPlayResponses || 'Auto-Play Responses'}
+                {t('settings.autoPlayResponses')}
               </ThemedText>
               <ThemedText type="small" style={styles.settingSubtitle}>
-                {translations.settings?.autoPlayDescription || 'Automatically play voice when stylist responds'}
+                {t('settings.autoPlayDescription')}
               </ThemedText>
             </View>
             <Switch
@@ -794,10 +794,10 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             </LinearGradient>
             <View style={styles.settingContent}>
               <ThemedText type="body" style={styles.settingTitle}>
-                {translations.settings?.showTranscriptions || 'Show Transcriptions'}
+                {t('settings.showTranscriptions')}
               </ThemedText>
               <ThemedText type="small" style={styles.settingSubtitle}>
-                {translations.settings?.showTranscriptionsDescription || 'Display text version of voice messages'}
+                {t('settings.showTranscriptionsDescription')}
               </ThemedText>
             </View>
             <Switch
@@ -818,13 +818,13 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           >
             <Feather name="help-circle" size={12} color="#FFFFFF" />
           </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>{translations.settings?.support || 'Support'}</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.support')}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="help-circle"
-            title={translations.settings?.helpAndFaq || 'Help & FAQ'}
-            subtitle="Browse questions and chat with Julia"
+            title={t('settings.helpAndFaq')}
+            subtitle={t('settings.helpSubtitle')}
             onPress={() => navigation.navigate("Help")}
             theme={theme}
             isDark={isDark}
@@ -832,8 +832,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="message-circle"
-            title={translations.settings?.chatWithJulia || 'Chat with Julia'}
-            subtitle="Get instant support from our assistant"
+            title={t('settings.chatWithJulia')}
+            subtitle={t('settings.chatWithJuliaSubtitle')}
             onPress={handleSupport}
             theme={theme}
             isDark={isDark}
@@ -841,8 +841,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="cpu"
-            title={translations.settings?.aiFeatureLab || 'AI Feature Lab'}
-            subtitle="View AI-generated feature suggestions"
+            title={t('settings.aiFeatureLab')}
+            subtitle={t('settings.aiFeatureLabSubtitle')}
             onPress={() => navigation.navigate("FeatureSuggestions")}
             theme={theme}
             isDark={isDark}
@@ -850,8 +850,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="edit-3"
-            title="Send Feedback"
-            subtitle="Report bugs, request features, or share thoughts"
+            title={t('settings.sendFeedback')}
+            subtitle={t('settings.sendFeedbackSubtitle')}
             onPress={() => navigation.navigate("Feedback")}
             theme={theme}
             isDark={isDark}
@@ -859,14 +859,14 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="file-text"
-            title={translations.settings?.termsOfService || 'Terms of Service'}
+            title={t('settings.termsOfService')}
             onPress={handleTerms}
             theme={theme}
             isDark={isDark}
           />
           <SettingItem
             icon="shield"
-            title={translations.settings?.privacyPolicy || 'Privacy Policy'}
+            title={t('settings.privacyPolicy')}
             onPress={handlePrivacy}
             theme={theme}
             isDark={isDark}
@@ -882,13 +882,13 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           >
             <Feather name="briefcase" size={12} color={LUXURY_COLORS.midnight} />
           </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>Company</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.company')}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="users"
-            title="Partner With Us"
-            subtitle="Stylists and brands enquiries"
+            title={t('settings.partnerWithUs')}
+            subtitle={t('settings.partnerWithUsSubtitle')}
             onPress={handlePartnerWithUs}
             theme={theme}
             isDark={isDark}
@@ -1044,12 +1044,12 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <View style={[styles.sectionIconPlain, { backgroundColor: 'rgba(255,59,48,0.15)' }]}>
             <Feather name="alert-circle" size={12} color="#FF3B30" />
           </View>
-          <ThemedText type="h4" style={styles.sectionTitle}>Account Actions</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.accountActions')}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="log-out"
-            title="Sign Out"
+            title={t('settings.signOut')}
             onPress={handleLogout}
             showChevron={false}
             theme={theme}
@@ -1057,7 +1057,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="trash-2"
-            title="Delete Account"
+            title={t('settings.deleteAccount')}
             onPress={handleDeleteAccount}
             showChevron={false}
             danger
@@ -1098,7 +1098,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             >
               <View style={styles.modalHeader}>
                 <ThemedText type="h3" style={styles.modalTitle}>
-                  {pickerModal.type === 'language' ? 'Select Language' : pickerModal.type === 'colorScheme' ? 'Colour Scheme' : 'Voice Speed'}
+                  {pickerModal.type === 'language' ? t('settings.selectLanguage') : pickerModal.type === 'colorScheme' ? t('settings.selectColourScheme') : t('settings.voiceSpeed')}
                 </ThemedText>
                 <Pressable 
                   onPress={closePickerModal} 

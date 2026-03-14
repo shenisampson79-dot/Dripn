@@ -138,6 +138,7 @@ export interface StyleSelectionTranslations {
 }
 
 export interface SettingsTranslations {
+  title: string;
   voiceAndLanguage: string;
   language: string;
   voiceSpeed: string;
@@ -148,8 +149,13 @@ export interface SettingsTranslations {
   support: string;
   helpCenter: string;
   helpAndFaq: string;
+  helpSubtitle: string;
   chatWithJulia: string;
+  chatWithJuliaSubtitle: string;
   aiFeatureLab: string;
+  aiFeatureLabSubtitle: string;
+  sendFeedback: string;
+  sendFeedbackSubtitle: string;
   termsOfService: string;
   privacyPolicy: string;
   subscription: string;
@@ -159,6 +165,36 @@ export interface SettingsTranslations {
   fast: string;
   contactUs: string;
   account: string;
+  editProfile: string;
+  email: string;
+  preferences: string;
+  styleTheme: string;
+  colourScheme: string;
+  selectColourScheme: string;
+  colorful: string;
+  colorfulDesc: string;
+  minimalist: string;
+  minimalistDesc: string;
+  country: string;
+  notSet: string;
+  bodyMeasurements: string;
+  trendingColors: string;
+  pantoneNotAvailable: string;
+  usingBaseColors: string;
+  checkForTrends: string;
+  inviteFriends: string;
+  shareYourCode: string;
+  inviteDescription: string;
+  communityVoting: string;
+  communityVotingDesc: string;
+  priceAlerts: string;
+  priceAlertsDesc: string;
+  company: string;
+  partnerWithUs: string;
+  partnerWithUsSubtitle: string;
+  accountActions: string;
+  signOut: string;
+  deleteAccount: string;
   notifications: string;
   privacy: string;
   about: string;
@@ -342,6 +378,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     },
   },
   settings: {
+    title: 'Settings',
     voiceAndLanguage: 'Voice & Language',
     language: 'Language',
     voiceSpeed: 'Voice Speed',
@@ -352,8 +389,13 @@ const DEFAULT_TRANSLATIONS: Translations = {
     support: 'Support',
     helpCenter: 'Help Center',
     helpAndFaq: 'Help & FAQ',
+    helpSubtitle: 'Browse questions and chat with Julia',
     chatWithJulia: 'Chat with Julia',
+    chatWithJuliaSubtitle: 'Get instant support from our assistant',
     aiFeatureLab: 'AI Feature Lab',
+    aiFeatureLabSubtitle: 'View AI-generated feature suggestions',
+    sendFeedback: 'Send Feedback',
+    sendFeedbackSubtitle: 'Report bugs, request features, or share thoughts',
     termsOfService: 'Terms of Service',
     privacyPolicy: 'Privacy Policy',
     subscription: 'Subscription',
@@ -363,6 +405,36 @@ const DEFAULT_TRANSLATIONS: Translations = {
     fast: 'Fast',
     contactUs: 'Contact Us',
     account: 'Account',
+    editProfile: 'Edit Profile',
+    email: 'Email',
+    preferences: 'Preferences',
+    styleTheme: 'Style Theme',
+    colourScheme: 'Colour Scheme',
+    selectColourScheme: 'Colour Scheme',
+    colorful: 'Colorful',
+    colorfulDesc: 'Vibrant gradients and bold colors',
+    minimalist: 'Minimalist',
+    minimalistDesc: 'Subtle, understated tones',
+    country: 'Country',
+    notSet: 'Not set',
+    bodyMeasurements: 'Body Measurements',
+    trendingColors: 'Trending Colors',
+    pantoneNotAvailable: 'Pantone Color of the Year not available',
+    usingBaseColors: 'Using base theme colors',
+    checkForTrends: 'Check for trends',
+    inviteFriends: 'Invite Friends',
+    shareYourCode: 'Share Your Code',
+    inviteDescription: 'Invite friends and you both get 20 AI requests & 10% discount',
+    communityVoting: 'Community Voting',
+    communityVotingDesc: 'Notify when other users need your fashion advice',
+    priceAlerts: 'Price Alerts',
+    priceAlertsDesc: 'Notify when tracked items drop in price',
+    company: 'Company',
+    partnerWithUs: 'Partner With Us',
+    partnerWithUsSubtitle: 'Stylists and brands enquiries',
+    accountActions: 'Account Actions',
+    signOut: 'Sign Out',
+    deleteAccount: 'Delete Account',
     notifications: 'Notifications',
     privacy: 'Privacy',
     about: 'About',
