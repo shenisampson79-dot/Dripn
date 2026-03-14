@@ -558,7 +558,7 @@ let hasPromptedForPronunciationThisSession = false;
 export default function OnboardingScreen({ navigation, route }: OnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { t, isRTL } = useTranslations();
+  const { t, isRTL, translations } = useTranslations();
   const { completeOnboarding, user } = useAuth();
 
   const translatedGenderOptions = useMemo(() => {
