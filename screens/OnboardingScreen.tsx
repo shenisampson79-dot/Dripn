@@ -3490,7 +3490,11 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                     {cameraGuidance.overlay.type === 'body-silhouette' ? (
                       <View style={styles.bodySilhouetteContainer}>
                         <View style={[styles.bodySilhouetteHead, { borderColor: theme.link }]} />
-                        <View style={[styles.bodySilhouetteBody, { borderColor: theme.link }]} />
+                        <View style={styles.bodySilhouetteBodyWithArms}>
+                          <View style={[styles.bodySilhouetteArm, { borderColor: theme.link }]} />
+                          <View style={[styles.bodySilhouetteBody, { borderColor: theme.link }]} />
+                          <View style={[styles.bodySilhouetteArm, { borderColor: theme.link }]} />
+                        </View>
                         <View style={styles.bodySilhouetteLegsRow}>
                           <View style={[styles.bodySilhouetteLeg, { borderColor: theme.link }]} />
                           <View style={[styles.bodySilhouetteLeg, { borderColor: theme.link }]} />
@@ -4386,13 +4390,26 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     marginBottom: 4,
   },
+  bodySilhouetteBodyWithArms: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  bodySilhouetteArm: {
+    width: 14,
+    height: 60,
+    borderWidth: 2,
+    borderRadius: 7,
+    borderStyle: "dashed",
+  },
   bodySilhouetteBody: {
     width: 50,
     height: 70,
     borderWidth: 2,
     borderRadius: 8,
     borderStyle: "dashed",
-    marginBottom: 4,
+    flex: 0,
   },
   bodySilhouetteLegsRow: {
     flexDirection: "row",
