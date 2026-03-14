@@ -290,7 +290,11 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
             <View style={styles.bodyGuide}>
               <View style={[styles.guideOutline, { borderColor: "rgba(255,255,255,0.5)" }]}>
                 <View style={styles.guideHead} />
-                <View style={styles.guideTorso} />
+                <View style={styles.torsoWithArms}>
+                  <View style={styles.guideArm} />
+                  <View style={styles.guideTorso} />
+                  <View style={styles.guideArm} />
+                </View>
                 <View style={styles.guideLegs} />
               </View>
             </View>
@@ -784,6 +788,20 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.5)",
     borderStyle: "dashed",
   },
+  torsoWithArms: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+    gap: 8,
+  },
+  guideArm: {
+    width: 35,
+    height: 120,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.5)",
+    borderStyle: "dashed",
+  },
   guideTorso: {
     width: 100,
     height: 140,
@@ -791,7 +809,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.5)",
     borderStyle: "dashed",
-    marginTop: 10,
+    flex: 0,
   },
   guideLegs: {
     width: 80,
