@@ -558,7 +558,7 @@ let hasPromptedForPronunciationThisSession = false;
 export default function OnboardingScreen({ navigation, route }: OnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { translations, isRTL } = useTranslations();
+  const { t, isRTL } = useTranslations();
   const { completeOnboarding, user } = useAuth();
   
   // Get user's first name for personalized greetings
@@ -2035,17 +2035,17 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               )}
               <View style={styles.aiShortcutText}>
                 <ThemedText type="body" style={{ color: theme.link, fontWeight: '600' }}>
-                  Take the Style Quiz
+                  {t('onboarding.styleQuiz') || 'Take the Style Quiz'}
                 </ThemedText>
                 <ThemedText type="small" style={{ opacity: 0.7 }}>
-                  7 quick questions to discover your style archetype
+                  {t('onboarding.styleQuizDesc') || '7 quick questions to discover your style archetype'}
                 </ThemedText>
               </View>
               <Feather name="chevron-right" size={20} color={theme.link} />
             </Pressable>
             
             <ThemedText type="small" style={[styles.orDivider, { color: theme.tabIconDefault }]}>
-              or choose below
+              {t('onboarding.orChoose') || 'or choose below'}
             </ThemedText>
             
             <ScrollProgressIndicator />
