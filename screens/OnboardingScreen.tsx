@@ -560,6 +560,88 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const { theme } = useTheme();
   const { t, isRTL } = useTranslations();
   const { completeOnboarding, user } = useAuth();
+
+  const translatedGenderOptions = useMemo(() => {
+    const genderKeyMap: Record<string, string> = {
+      'woman': 'woman',
+      'man': 'man',
+      'non-binary': 'nonBinary',
+      'prefer-not-to-say': 'preferNotToSay',
+    };
+    return GENDER_OPTIONS.map(g => ({
+      ...g,
+      name: t(`onboarding.gender.${genderKeyMap[g.id] || g.id}`) || g.name,
+    }));
+  }, [t]);
+
+  const translatedUndertoneOptions = useMemo(() => SKIN_UNDERTONE_OPTIONS.map(o => ({
+    ...o,
+    name: t(`onboarding.undertone.${o.id}.name`) || o.name,
+    description: t(`onboarding.undertone.${o.id}.description`) || o.description,
+  })), [t]);
+
+  const translatedFitOptions = useMemo(() => PREFERRED_FIT_OPTIONS.map(o => ({
+    ...o,
+    name: t(`onboarding.fit.${o.id}.name`) || o.name,
+    description: t(`onboarding.fit.${o.id}.description`) || o.description,
+  })), [t]);
+
+  const translatedShoppingOptions = useMemo(() => SHOPPING_FREQUENCY_OPTIONS.map(o => ({
+    ...o,
+    name: t(`onboarding.shopping.${o.id}.name`) || o.name,
+    description: t(`onboarding.shopping.${o.id}.description`) || o.description,
+  })), [t]);
+
+  const translatedGoals = useMemo(() => {
+    const goalKeyMap: Record<string, string> = {
+      'dress-better': 'dressBetter',
+      'get-inspired': 'getInspired',
+      'build-wardrobe': 'buildWardrobe',
+      'special-events': 'specialEvents',
+      'professional-image': 'professionalImage',
+    };
+    return DRIPN_GOALS.map(g => ({
+      ...g,
+      name: t(`onboarding.goals.${goalKeyMap[g.id] || g.id}.name`) || g.name,
+      description: t(`onboarding.goals.${goalKeyMap[g.id] || g.id}.description`) || g.description,
+    }));
+  }, [t]);
+
+  const translatedWomenBodyShapes = useMemo(() => {
+    const bsKeyMap: Record<string, string> = {
+      'Hourglass': 'hourglass',
+      'Pear': 'pear',
+      'Apple': 'apple',
+      'Rectangle': 'rectangle',
+      'Athletic': 'athletic',
+      'Trapezoid': 'trapezoid',
+      'Inverted Triangle': 'invertedTriangle',
+      'Oval': 'oval',
+    };
+    return WOMEN_BODY_SHAPES.map(s => ({
+      ...s,
+      name: t(`onboarding.bodyShape.${bsKeyMap[s.id] || s.id}`) || s.name,
+      description: t(`onboarding.bodyShape.${bsKeyMap[s.id] || s.id}Desc`) || s.description,
+    }));
+  }, [t]);
+
+  const translatedMenBodyShapes = useMemo(() => {
+    const bsKeyMap: Record<string, string> = {
+      'Hourglass': 'hourglass',
+      'Pear': 'pear',
+      'Apple': 'apple',
+      'Rectangle': 'rectangle',
+      'Athletic': 'athletic',
+      'Trapezoid': 'trapezoid',
+      'Inverted Triangle': 'invertedTriangle',
+      'Oval': 'oval',
+    };
+    return MEN_BODY_SHAPES.map(s => ({
+      ...s,
+      name: t(`onboarding.bodyShape.${bsKeyMap[s.id] || s.id}`) || s.name,
+      description: t(`onboarding.bodyShape.${bsKeyMap[s.id] || s.id}Desc`) || s.description,
+    }));
+  }, [t]);
   
   // Get user's first name for personalized greetings
   const userFirstName = user?.name?.split(' ')[0] || undefined;
@@ -1145,9 +1227,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   }, [quizAnswers, triggerConfetti]);
 
   const getBodyShapeOptions = () => {
-    if (gender === "man") return MEN_BODY_SHAPES;
-    if (gender === "woman") return WOMEN_BODY_SHAPES;
-    return [...WOMEN_BODY_SHAPES, ...MEN_BODY_SHAPES.filter(s => !WOMEN_BODY_SHAPES.find(w => w.id === s.id))];
+    if (gender === "man") return translatedMenBodyShapes;
+    if (gender === "woman") return translatedWomenBodyShapes;
+    const combined = [...translatedWomenBodyShapes, ...translatedMenBodyShapes.filter(s => !translatedWomenBodyShapes.find(w => w.id === s.id))];
+    return combined;
   };
 
   const handleCountrySelect = (c: string) => {
@@ -1331,7 +1414,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={[styles.countryTitle, isRTL && { textAlign: 'right' }]}>
-              {translations.onboarding.steps.location.title}
+              {t('onboarding.steps.location.title') || 'Where are you based?'}
             </ThemedText>
             
             <View style={[styles.countrySearchContainer, { backgroundColor: theme.backgroundSecondary }]}>
@@ -1529,7 +1612,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               scrollEventThrottle={16}
             >
               <View style={styles.genderOptions}>
-                {GENDER_OPTIONS.map((g) => {
+                {translatedGenderOptions.map((g) => {
                   const genderColor = GENDER_COLORS[g.id];
                   const isSelected = gender === g.id;
                   return (
@@ -1581,10 +1664,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              Your Body Measurements
+              {t('onboarding.steps.measurements.title') || 'Your Body Measurements'}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              Optional but helps us find your perfect fit
+              {t('onboarding.steps.measurements.description') || 'Optional but helps us find your perfect fit'}
             </ThemedText>
             <ScrollProgressIndicator />
             <ScrollView 
@@ -1595,7 +1678,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             >
               <View style={styles.measurementFormContainer}>
                 <View style={styles.measurementRow}>
-                  <ThemedText type="body" style={styles.measurementLabel}>Height</ThemedText>
+                  <ThemedText type="body" style={styles.measurementLabel}>{t('onboarding.measurements.height') || 'Height'}</ThemedText>
                   <View style={styles.measurementInputRow}>
                     <TextInput
                       style={[
@@ -1651,7 +1734,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 </View>
 
                 <View style={styles.measurementRow}>
-                  <ThemedText type="body" style={styles.measurementLabel}>Weight</ThemedText>
+                  <ThemedText type="body" style={styles.measurementLabel}>{t('onboarding.measurements.weight') || 'Weight'}</ThemedText>
                   <View style={styles.measurementInputRow}>
                     <TextInput
                       style={[
@@ -1709,7 +1792,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 <View style={styles.measurementNote}>
                   <Feather name="info" size={16} color={theme.tabIconDefault} />
                   <ThemedText type="small" style={{ color: theme.tabIconDefault, marginLeft: Spacing.xs, flex: 1 }}>
-                    This helps us recommend clothing that fits you perfectly. You can skip this step if you prefer.
+                    {t('onboarding.measurements.note') || 'This helps us recommend clothing that fits you perfectly. You can skip this step if you prefer.'}
                   </ThemedText>
                 </View>
               </View>
@@ -1722,10 +1805,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              Meet Your Personal Stylist
+              {t('onboarding.steps.stylist.title') || 'Meet Your Personal Stylist'}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              Choose who will guide your fashion journey
+              {t('onboarding.steps.stylist.description') || 'Choose who will guide your fashion journey'}
             </ThemedText>
             <ScrollProgressIndicator />
             <ScrollView 
@@ -1803,7 +1886,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                               type="small"
                               style={{ color: isSelected ? "rgba(255,255,255,0.9)" : theme.link, marginLeft: Spacing.xs }}
                             >
-                              Playing voice preview...
+                              {t('onboarding.stylist.playingVoice') || 'Playing voice preview...'}
                             </ThemedText>
                           </View>
                         ) : null}
@@ -1830,7 +1913,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
               <View style={styles.voiceSettingsSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>
-                  Language
+                  {t('onboarding.stylist.language') || 'Language'}
                 </ThemedText>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
                   <View style={styles.horizontalOptionsRow}>
@@ -1860,7 +1943,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
               <View style={styles.voiceSettingsSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>
-                  Accent
+                  {t('onboarding.stylist.accent') || 'Accent'}
                 </ThemedText>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
                   <View style={styles.horizontalOptionsRow}>
@@ -1903,7 +1986,9 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   <Feather name="arrow-left" size={20} color={theme.text} />
                 </Pressable>
                 <ThemedText type="small" style={{ opacity: 0.7 }}>
-                  Question {currentQuizQuestion + 1} of {quizQuestions.length}
+                  {t('onboarding.quiz.question')
+                    ? t('onboarding.quiz.question')!.replace('{current}', String(currentQuizQuestion + 1)).replace('{total}', String(quizQuestions.length))
+                    : `Question ${currentQuizQuestion + 1} of ${quizQuestions.length}`}
                 </ThemedText>
               </View>
               <View style={styles.quizProgressBar}>
@@ -1963,7 +2048,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       style={[styles.quizNavButton, { backgroundColor: theme.backgroundDefault }]}
                     >
                       <Feather name="chevron-left" size={20} color={theme.text} />
-                      <ThemedText type="body">Previous</ThemedText>
+                      <ThemedText type="body">{t('onboarding.quiz.previous') || 'Previous'}</ThemedText>
                     </Pressable>
                   ) : <View />}
                   {allAnswered ? (
@@ -1976,7 +2061,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                         <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : (
                         <>
-                          <ThemedText type="body" style={{ color: "#FFFFFF" }}>Submit</ThemedText>
+                          <ThemedText type="body" style={{ color: "#FFFFFF" }}>{t('onboarding.quiz.submit') || 'Submit'}</ThemedText>
                           <Feather name="check" size={20} color="#FFFFFF" />
                         </>
                       )}
@@ -1986,7 +2071,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       onPress={() => setCurrentQuizQuestion(prev => prev + 1)}
                       style={[styles.quizNavButton, { backgroundColor: theme.link }]}
                     >
-                      <ThemedText type="body" style={{ color: "#FFFFFF" }}>Next</ThemedText>
+                      <ThemedText type="body" style={{ color: "#FFFFFF" }}>{t('onboarding.quiz.next') || 'Next'}</ThemedText>
                       <Feather name="chevron-right" size={20} color="#FFFFFF" />
                     </Pressable>
                   ) : null}
@@ -2101,14 +2186,14 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              What's your skin undertone?
+              {t('onboarding.steps.undertone.title') || "What's your skin undertone?"}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              This helps us recommend colours that complement you
+              {t('onboarding.steps.undertone.description') || 'This helps us recommend colours that complement you'}
             </ThemedText>
 
             <View style={styles.undertoneOptions}>
-              {SKIN_UNDERTONE_OPTIONS.map((option) => (
+              {translatedUndertoneOptions.map((option) => (
                 <Pressable
                   key={option.id}
                   onPress={() => setSkinUndertone(option.id)}
@@ -2146,25 +2231,25 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               <View style={styles.infoBoxHeader}>
                 <Feather name="help-circle" size={20} color={theme.link} />
                 <ThemedText type="body" style={[styles.infoBoxTitle, { color: theme.link }]}>
-                  How to find your undertone
+                  {t('onboarding.steps.undertone.tip') || 'How to find your undertone'}
                 </ThemedText>
               </View>
               <ThemedText type="caption" style={[styles.infoBoxText, { marginTop: Spacing.sm }]}>
-                Look at the veins on your inner wrist in natural light:
+                {t('onboarding.steps.undertone.tipInstruction') || 'Look at the veins on your inner wrist in natural light:'}
               </ThemedText>
               <View style={styles.infoBoxList}>
                 <ThemedText type="caption" style={styles.infoBoxListItem}>
-                  Blue or purple veins = Cool undertone
+                  {t('onboarding.steps.undertone.tipCool') || 'Blue or purple veins = Cool undertone'}
                 </ThemedText>
                 <ThemedText type="caption" style={styles.infoBoxListItem}>
-                  Green veins = Warm undertone
+                  {t('onboarding.steps.undertone.tipWarm') || 'Green veins = Warm undertone'}
                 </ThemedText>
                 <ThemedText type="caption" style={styles.infoBoxListItem}>
-                  Mix of both = Neutral undertone
+                  {t('onboarding.steps.undertone.tipNeutral') || 'Mix of both = Neutral undertone'}
                 </ThemedText>
               </View>
               <ThemedText type="caption" style={[styles.infoBoxText, { marginTop: Spacing.sm, fontStyle: 'italic' }]}>
-                Your undertone affects which clothing colours make you look radiant vs washed out.
+                {t('onboarding.steps.undertone.tipNote') || 'Your undertone affects which clothing colours make you look radiant vs washed out.'}
               </ThemedText>
             </View>
           </View>
@@ -2174,14 +2259,14 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              What fit do you prefer?
+              {t('onboarding.steps.fit.title') || 'What fit do you prefer?'}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              How do you like your clothes to fit?
+              {t('onboarding.steps.fit.description') || 'How do you like your clothes to fit?'}
             </ThemedText>
 
             <View style={styles.fitOptionsGrid}>
-              {PREFERRED_FIT_OPTIONS.map((option) => (
+              {translatedFitOptions.map((option) => (
                 <Pressable
                   key={option.id}
                   onPress={() => setPreferredFit(option.id)}
@@ -2214,15 +2299,15 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              What are your clothing sizes?
+              {t('onboarding.steps.sizes.title') || 'What are your clothing sizes?'}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              Enter your UK, US, or EU size (e.g., M, L, UK 12, US 8)
+              {t('onboarding.steps.sizes.description') || 'Enter your UK, US, or EU size (e.g., M, L, UK 12, US 8)'}
             </ThemedText>
 
             <View style={styles.sizeInputGroup}>
               <ThemedText type="body" style={[styles.sizeLabel, { color: theme.text }]}>
-                {isMale ? 'Shirt / Top Size' : 'Top Size'}
+                {isMale ? (t('onboarding.sizes.topMale') || 'Shirt / Top Size') : (t('onboarding.sizes.topFemale') || 'Top Size')}
               </ThemedText>
               <TextInput
                 style={[
@@ -2242,7 +2327,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
             <View style={[styles.sizeInputGroup, { marginTop: Spacing.lg }]}>
               <ThemedText type="body" style={[styles.sizeLabel, { color: theme.text }]}>
-                {isMale ? 'Trouser / Waist Size' : 'Bottom Size (skirts, trousers, jeans)'}
+                {isMale ? (t('onboarding.sizes.bottomMale') || 'Trouser / Waist Size') : (t('onboarding.sizes.bottomFemale') || 'Bottom Size (skirts, trousers, jeans)')}
               </ThemedText>
               <TextInput
                 style={[
@@ -2263,7 +2348,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             <View style={[styles.infoCard, { backgroundColor: theme.link + '15', marginTop: Spacing.xl }]}>
               <Feather name="info" size={20} color={theme.link} />
               <ThemedText type="caption" style={[styles.infoText, { color: theme.text, marginLeft: Spacing.sm, flex: 1 }]}>
-                This helps us suggest items in your size when shopping. You can update this anytime in Settings.
+                {t('onboarding.sizes.note') || 'This helps us suggest items in your size when shopping. You can update this anytime in Settings.'}
               </ThemedText>
             </View>
           </View>
@@ -2273,10 +2358,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              What's your age range?
+              {t('onboarding.steps.age.title') || "What's your age range?"}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              Helps us tailor style recommendations
+              {t('onboarding.steps.age.description') || 'Helps us tailor style recommendations'}
             </ThemedText>
 
             <View style={styles.ageOptionsGrid}>
@@ -2312,14 +2397,14 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              How often do you shop?
+              {t('onboarding.steps.shopping.title') || 'How often do you shop?'}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              Your shopping habits help us tailor recommendations
+              {t('onboarding.steps.shopping.description') || 'Your shopping habits help us tailor recommendations'}
             </ThemedText>
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.optionsScroll}>
-              {SHOPPING_FREQUENCY_OPTIONS.map((option) => (
+              {translatedShoppingOptions.map((option) => (
                 <Pressable
                   key={option.id}
                   onPress={() => setShoppingFrequency(option.id)}
@@ -2348,9 +2433,9 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
               <View style={[styles.toggleRow, { marginTop: Spacing["2xl"] }]}>
                 <View style={styles.toggleContent}>
-                  <ThemedText type="body" style={styles.optionTitle}>Prefer online shopping</ThemedText>
+                  <ThemedText type="body" style={styles.optionTitle}>{t('onboarding.shopping.preferOnline') || 'Prefer online shopping'}</ThemedText>
                   <ThemedText type="caption" style={styles.optionDescription}>
-                    You prefer shopping online over in-store
+                    {t('onboarding.shopping.preferOnlineDesc') || 'You prefer shopping online over in-store'}
                   </ThemedText>
                 </View>
                 <Switch
@@ -2367,10 +2452,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              Sustainability matters?
+              {t('onboarding.steps.sustainability.title') || 'Sustainability matters?'}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              Let us know if eco-friendly fashion is important to you
+              {t('onboarding.steps.sustainability.description') || 'Let us know if eco-friendly fashion is important to you'}
             </ThemedText>
 
             <Pressable
@@ -2388,10 +2473,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 <Feather name="globe" size={28} color="#FFFFFF" />
               </View>
               <ThemedText type="h3" style={[styles.sustainabilityTitle, sustainabilityImportant && { color: theme.success }]}>
-                Yes, it's important to me
+                {t('onboarding.sustainability.yes') || "Yes, it's important to me"}
               </ThemedText>
               <ThemedText type="body" style={styles.sustainabilityDescription}>
-                I prefer sustainable, eco-friendly and ethical fashion choices
+                {t('onboarding.sustainability.yesDesc') || 'I prefer sustainable, eco-friendly and ethical fashion choices'}
               </ThemedText>
             </Pressable>
 
@@ -2410,10 +2495,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 <Feather name="shopping-bag" size={28} color="#FFFFFF" />
               </View>
               <ThemedText type="h3" style={[styles.sustainabilityTitle, !sustainabilityImportant && { color: theme.link }]}>
-                Not a priority right now
+                {t('onboarding.sustainability.no') || 'Not a priority right now'}
               </ThemedText>
               <ThemedText type="body" style={styles.sustainabilityDescription}>
-                I'm open to all fashion options regardless of sustainability
+                {t('onboarding.sustainability.noDesc') || "I'm open to all fashion options regardless of sustainability"}
               </ThemedText>
             </Pressable>
           </View>
@@ -2423,10 +2508,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              Tell us more (optional)
+              {t('onboarding.steps.tellMore.title') || 'Tell us more (optional)'}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              Help us personalize your recommendations
+              {t('onboarding.steps.tellMore.description') || 'Help us personalize your recommendations'}
             </ThemedText>
             <ScrollProgressIndicator />
             <ScrollView 
@@ -2455,12 +2540,12 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   )}
                   <View style={styles.aiShortcutText}>
                     <ThemedText type="body" style={{ color: theme.link, fontWeight: '600' }}>
-                      {bodyScanResult ? 'Body Scan Complete' : 'AI Body Scan'}
+                      {bodyScanResult ? (t('onboarding.tellMore.bodyScanComplete') || 'Body Scan Complete') : (t('onboarding.tellMore.bodyScan') || 'AI Body Scan')}
                     </ThemedText>
                     <ThemedText type="small" style={{ opacity: 0.7 }}>
                       {bodyScanResult 
                         ? `${bodyScanResult.bodyType} - ${bodyScanResult.kibbeBodyType}`
-                        : 'Take a photo to detect your body type'}
+                        : (t('onboarding.tellMore.bodyScanDesc') || 'Take a photo to detect your body type')}
                     </ThemedText>
                   </View>
                   {bodyScanResult ? (
@@ -2491,17 +2576,17 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   <View style={styles.aiShortcutText}>
                     <ThemedText type="body" style={{ color: theme.link, fontWeight: '600' }}>
                       {isColorScanning 
-                        ? 'Analyzing...' 
+                        ? (t('onboarding.tellMore.analyzing') || 'Analyzing...') 
                         : colorScanResult 
-                          ? 'Color Analysis Complete' 
-                          : 'AI Color Analysis'}
+                          ? (t('onboarding.tellMore.colorAnalysisComplete') || 'Color Analysis Complete') 
+                          : (t('onboarding.tellMore.colorAnalysis') || 'AI Color Analysis')}
                     </ThemedText>
                     <ThemedText type="small" style={{ opacity: 0.7 }}>
                       {isColorScanning && colorScanProgress
                         ? colorScanProgress
                         : colorScanResult 
                           ? `${colorScanResult.colorSeasonType} ${colorScanResult.seasonSubtype}`
-                          : 'Selfie to find your best colors'}
+                          : (t('onboarding.tellMore.colorAnalysisDesc') || 'Selfie to find your best colors')}
                     </ThemedText>
                   </View>
                   {colorScanResult ? (
@@ -2514,7 +2599,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
               <View style={styles.optionalSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>
-                  Body Shape
+                  {t('onboarding.tellMore.bodyShape') || 'Body Shape'}
                 </ThemedText>
                 <View style={styles.bodyShapeOptions}>
                   {getBodyShapeOptions().map((shape) => {
@@ -2566,10 +2651,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
               <View style={styles.optionalSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>
-                  Areas You Feel Confident About
+                  {t('onboarding.tellMore.confidentAreas') || 'Areas You Feel Confident About'}
                 </ThemedText>
                 <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
-                  Select all that apply - stylists will highlight these
+                  {t('onboarding.tellMore.confidentAreasDesc') || 'Select all that apply - stylists will highlight these'}
                 </ThemedText>
                 <View style={styles.multiSelectGrid}>
                   {CONFIDENT_AREAS.map((area) => {
@@ -2607,10 +2692,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
               <View style={styles.optionalSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>
-                  Areas to Minimize
+                  {t('onboarding.tellMore.minimizeAreas') || 'Areas to Minimize'}
                 </ThemedText>
                 <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
-                  Stylists will suggest flattering options for these
+                  {t('onboarding.tellMore.minimizeAreasDesc') || 'Stylists will suggest flattering options for these'}
                 </ThemedText>
                 <View style={styles.multiSelectGrid}>
                   {MINIMIZE_AREAS.map((area) => {
@@ -2658,7 +2743,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       type="small"
                       style={{ color: preferToMinimize.length === 0 ? "#FFFFFF" : theme.text }}
                     >
-                      I'm happy with everything!
+                      {t('onboarding.tellMore.happyWithEverything') || "I'm happy with everything!"}
                     </ThemedText>
                   </Pressable>
                 </View>
@@ -2666,7 +2751,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
               <View style={styles.optionalSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>
-                  Budget Range
+                  {t('onboarding.tellMore.budget') || 'Budget Range'}
                 </ThemedText>
                 <View style={styles.optionsRow}>
                   {BUDGET_OPTIONS.map((budget) => (
@@ -2701,10 +2786,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
               <View style={styles.optionalSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>
-                  Favorite Colors
+                  {t('onboarding.tellMore.favoriteColors') || 'Favorite Colors'}
                 </ThemedText>
                 <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
-                  Select colors you love to wear
+                  {t('onboarding.tellMore.favoriteColorsDesc') || 'Select colors you love to wear'}
                 </ThemedText>
                 <View style={styles.colorGrid}>
                   {FAVORITE_COLORS.map((color) => {
@@ -2740,10 +2825,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
               <View style={styles.optionalSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>
-                  Colors to Avoid
+                  {t('onboarding.tellMore.colorsToAvoid') || 'Colors to Avoid'}
                 </ThemedText>
                 <ThemedText type="small" style={{ color: theme.tabIconDefault, marginBottom: Spacing.sm }}>
-                  Stylists will skip these in recommendations
+                  {t('onboarding.tellMore.colorsToAvoidDesc') || 'Stylists will skip these in recommendations'}
                 </ThemedText>
                 <View style={styles.multiSelectGrid}>
                   {AVOID_COLORS.map((colorName) => {
@@ -2789,12 +2874,12 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              Where do you shop?
+              {t('onboarding.steps.retailers.title') || 'Where do you shop?'}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
               {suggestedRetailers.length > 0 
-                ? `Select up to 10 of your favorites`
-                : 'Select up to 10 shops you love (helps AI personalize recommendations)'}
+                ? (t('onboarding.steps.retailers.descriptionPersonalized') || 'Select up to 10 of your favorites')
+                : (t('onboarding.steps.retailers.descriptionGeneral') || 'Select up to 10 shops you love (helps AI personalize recommendations)')}
             </ThemedText>
 
             <View style={styles.searchContainer}>
@@ -2808,7 +2893,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                     flex: 1,
                   }
                 ]}
-                placeholder="Search or add a shop..."
+                placeholder={t('onboarding.retailers.searchPlaceholder') || 'Search or add a shop...'}
                 placeholderTextColor={theme.tabIconDefault}
                 value={shopSearchQuery}
                 onChangeText={setShopSearchQuery}
@@ -2828,7 +2913,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   style={[styles.addButton, { backgroundColor: theme.link }]}
                 >
                   <Feather name="plus" size={16} color="#FFFFFF" />
-                  <ThemedText type="small" style={{ color: "#FFFFFF", marginLeft: 4 }}>Add</ThemedText>
+                  <ThemedText type="small" style={{ color: "#FFFFFF", marginLeft: 4 }}>{t('onboarding.retailers.add') || 'Add'}</ThemedText>
                 </Pressable>
               ) : null}
             </View>
@@ -2836,7 +2921,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             {favoriteShops.length > 0 ? (
               <View style={styles.selectedShopsContainer}>
                 <ThemedText type="small" style={styles.selectedLabel}>
-                  Selected ({favoriteShops.length}/10)
+                  {t('onboarding.retailers.selected') ? `${t('onboarding.retailers.selected')} (${favoriteShops.length}/10)` : `Selected (${favoriteShops.length}/10)`}
                 </ThemedText>
                 <View style={styles.shopsGrid}>
                   {favoriteShops.map((shop) => (
@@ -2857,7 +2942,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
             {favoriteShops.length >= 10 ? (
               <ThemedText type="small" style={{ opacity: 0.7, marginBottom: Spacing.md }}>
-                Maximum 10 shops selected
+                {t('onboarding.retailers.maxSelected') || 'Maximum 10 shops selected'}
               </ThemedText>
             ) : null}
 
@@ -2865,7 +2950,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               <View style={styles.loadingRetailersContainer}>
                 <ActivityIndicator size="small" color={theme.link} />
                 <ThemedText type="small" style={{ marginLeft: Spacing.sm, opacity: 0.7 }}>
-                  Finding stores in {country}...
+                  {t('onboarding.retailers.findingStores') ? `${t('onboarding.retailers.findingStores')} ${country}...` : `Finding stores in ${country}...`}
                 </ThemedText>
               </View>
             ) : null}
@@ -2874,7 +2959,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               <View style={[styles.aiSuggestionHint, { backgroundColor: theme.link + '10', borderColor: theme.link + '30' }]}>
                 <Feather name="zap" size={14} color={theme.link} />
                 <ThemedText type="small" style={{ color: theme.link, marginLeft: Spacing.xs, flex: 1 }}>
-                  AI-curated stores that ship to or operate in {country}
+                  {t('onboarding.retailers.aiCurated') ? `${t('onboarding.retailers.aiCurated')} ${country}` : `AI-curated stores that ship to or operate in ${country}`}
                 </ThemedText>
               </View>
             ) : null}
@@ -2929,14 +3014,14 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              What brings you to Dripn?
+              {t('onboarding.steps.goals.title') || 'What brings you to Dripn?'}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              Choose up to 3 goals (helps AI understand your needs)
+              {t('onboarding.steps.goals.description') || 'Choose up to 3 goals (helps AI understand your needs)'}
             </ThemedText>
             {usageGoals.length >= 3 ? (
               <ThemedText type="small" style={{ opacity: 0.7, marginBottom: Spacing.md }}>
-                Maximum 3 goals selected
+                {t('onboarding.goals.maxSelected') || 'Maximum 3 goals selected'}
               </ThemedText>
             ) : null}
 
@@ -2948,7 +3033,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               scrollEventThrottle={16}
             >
               <View style={styles.goalsContainer}>
-                {DRIPN_GOALS.map((goal) => {
+                {translatedGoals.map((goal) => {
                   const isSelected = usageGoals.includes(goal.id);
                   const isDisabled = !isSelected && usageGoals.length >= 3;
                   return (
@@ -3034,12 +3119,12 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              {gender === 'man' ? "Style & Cultural Preferences" : "Style & Cultural Preferences"}
+              {t('onboarding.steps.cultural.title') || 'Style & Cultural Preferences'}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
               {gender === 'man' 
-                ? "Help Ruby & Max understand your style boundaries (optional)"
-                : "Help Ruby & Max respect your style and cultural preferences (optional)"}
+                ? (t('onboarding.steps.cultural.descriptionMale') || 'Help Ruby & Max understand your style boundaries (optional)')
+                : (t('onboarding.steps.cultural.descriptionFemale') || 'Help Ruby & Max respect your style and cultural preferences (optional)')}
             </ThemedText>
 
             <ScrollProgressIndicator />
@@ -3051,7 +3136,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               bottomOffset={200}
             >
               <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
-                Religious/Modest Dress Code
+                {t('onboarding.cultural.religiousDressCode') || 'Religious/Modest Dress Code'}
               </ThemedText>
               <View style={styles.goalsContainer}>
                 {DRESS_CODE_OPTIONS.map((option) => {
@@ -3119,7 +3204,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                     textAlignVertical="top"
                   />
                   <ThemedText type="small" style={{ marginTop: Spacing.xs, color: theme.tabIconDefault, marginBottom: Spacing.lg }}>
-                    Our AI will research this to give you appropriate suggestions
+                    {t('onboarding.cultural.aiResearch') || 'Our AI will research this to give you appropriate suggestions'}
                   </ThemedText>
                 </View>
               ) : null}
@@ -3127,7 +3212,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               {dressCodePreference && dressCodePreference !== "none" ? (
                 <>
                   <ThemedText type="h3" style={{ marginTop: Spacing.lg, marginBottom: Spacing.sm }}>
-                    How strictly should we follow this?
+                    {t('onboarding.cultural.strictnessTitle') || 'How strictly should we follow this?'}
                   </ThemedText>
                   <View style={{ flexDirection: "row", gap: Spacing.sm, marginBottom: Spacing.lg }}>
                     {STRICTNESS_OPTIONS.map((option) => {
@@ -3169,10 +3254,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               ) : null}
 
               <ThemedText type="h3" style={{ marginTop: Spacing.md, marginBottom: Spacing.sm }}>
-                Subculture/Aesthetic Style
+                {t('onboarding.cultural.subcultureTitle') || 'Subculture/Aesthetic Style'}
               </ThemedText>
               <ThemedText type="small" style={{ marginBottom: Spacing.md, color: theme.tabIconDefault }}>
-                Optional: If you identify with a specific fashion subculture
+                {t('onboarding.cultural.subcultureDesc') || 'Optional: If you identify with a specific fashion subculture'}
               </ThemedText>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginBottom: Spacing.md }}>
                 {SUBCULTURE_OPTIONS.map((option) => {
