@@ -13,13 +13,13 @@ Dripn is developed using Expo React Native with TypeScript, incorporating React 
 
 ### Core Features
 - **Subscription Tiers**: Freemium model with Free, Style Chat (£9.99/mo), Personal Stylist (£14.99/mo), and Stylist Unlimited (£19.99/mo). No free trial offered.
-- **AI Fashion Advice**: Leverages GPT-4.1 for chat/vision and GPT-4.1-nano for rapid tasks.
+- **AI Fashion Advice**: Leverages GPT-5.2 for chat/vision and GPT-5-mini for rapid tasks. The backend uses an autonomous model manager that auto-discovers and selects the best available model from OpenAI's API (fallback chain: `gpt-5.2` → `gpt-5` → `gpt-4o` → `gpt-4-turbo`).
 - **AI Stylists**: Three distinct personalities (Ruby, Max, Ace) with ElevenLabs TTS voices.
 - **Wardrobe Digital Twin**: AI-powered photo-based wardrobe management.
 - **Onboarding Flow**: Dual-path, trust-first onboarding for low-intent ("Decide for me") and high-intent ("Style me properly") users. A soft signup gate is triggered only after value delivery. Flow: Location → Gender → Body Measurements → Choose Stylist → Style Quiz → Tell Us More → Retailers → Goals → Dress Code (9 steps).
 - **Community Voting ("Second Opinion")**: A time-boxed (45-minute) feature for secondary validation, with AI interpreting results based on stylist personality. Members are notified via push notifications (controllable in Settings) when another user requests a second opinion.
 - **Advanced AI Capabilities**:
-    - **Vision-Powered Analysis**: GPT-4o Vision for color extraction, style, and fit analysis.
+    - **Vision-Powered Analysis**: GPT-5.2 for color extraction, style, and fit analysis.
     - **AI Stylist Chat**: Contextual conversations with persona options.
     - **Personality Learning**: Captures user communication style and fashion preferences.
     - **Semantic Style Search**: Uses text-embedding-3-large for outfit matching.
@@ -36,7 +36,7 @@ The app features a 4-tab structure: Home ("Today's Decision"), Wardrobe, Ask Sty
 - **SendGrid**: Transactional emails and newsletters.
 - **Twilio**: SMS notifications.
 - **Expo**: Utilized for audio, sharing, store review, and linking functionalities.
-- **OpenAI API**: Powers GPT-4.1, GPT-4.1-nano, GPT-4o, DALL-E 3, Whisper, and text-embedding-3-large.
+- **OpenAI API**: Powers GPT-5.2, GPT-5-mini, DALL-E 3, Whisper, text-embedding-3-large, and o3-mini reasoning models.
 - **ElevenLabs**: Provides TTS for the 4 AI stylist personas using `eleven_multilingual_v2`.
 - **Replicate**: Used for IDM-VTON virtual try-on (backend ready, frontend hidden until launch).
 - **PostgreSQL**: The backend database.
