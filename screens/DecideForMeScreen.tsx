@@ -954,8 +954,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
   const renderLoadingStep = () => (
     <Animated.View entering={FadeIn} style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#FFFFFF" />
-      <ThemedText type="body" style={[styles.loadingText, { color: 'rgba(255,255,255,0.8)' }]}>
+      <ActivityIndicator size="large" color="#4A3428" />
+      <ThemedText type="body" style={[styles.loadingText, { color: '#4A3428', fontWeight: '600' }]}>
         Ruby is deciding your outfit...
       </ThemedText>
     </Animated.View>

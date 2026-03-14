@@ -159,10 +159,10 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
             >
               <View style={styles.ctaContent}>
                 <View style={styles.ctaTextContainer}>
-                  <ThemedText type="h3" style={styles.ctaLabel}>
+                  <ThemedText type="h3" style={[styles.ctaLabel, { color: '#4A3428', fontWeight: '700' }]}>
                     {decideForMe?.label || "Decide for me"}
                   </ThemedText>
-                  <ThemedText type="small" style={styles.ctaSubtitle}>
+                  <ThemedText type="small" style={[styles.ctaSubtitle, { color: '#4A3428', opacity: 0.8, fontWeight: '500' }]}>
                     {decideForMe?.subtitle || "Fast, confident advice"}
                   </ThemedText>
                 </View>
