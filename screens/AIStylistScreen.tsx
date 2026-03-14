@@ -1093,7 +1093,7 @@ function generateAIResponse(
 
 export default function AIStylistScreen() {
   const { theme } = useTheme();
-  const { t } = useTranslations();
+  const { t, currentLanguage } = useTranslations();
   const { limits, tier } = useSubscription();
   const { items: wardrobeItems } = useWardrobe();
   const { user } = useAuth();
@@ -1689,68 +1689,6 @@ export default function AIStylistScreen() {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
     
-    const lowerMessage = text.trim().toLowerCase();
-    const emotionalKeywords = [
-      'sad', 'upset', 'angry', 'frustrated', 'stressed', 'anxious', 'worried', 'tired',
-      'depressed', 'lonely', 'hurt', 'bad day', 'terrible', 'awful', 'horrible',
-      'broke up', 'breakup', 'break up', 'dumped', 'heartbroken', 'heartbreak',
-      'crying', 'cried', 'tears', 'i miss', 'lost someone', 'died', 'death', 'grief',
-      'hate', 'so mad', 'furious', 'annoyed', 'irritated',
-      'scared', 'afraid', 'nervous', 'panic', 'overwhelmed',
-      'failed', 'failure', 'rejected', 'fired', 'laid off',
-      'broke up with', 'my boyfriend', 'my girlfriend', 'my partner', 'my relationship', 'my marriage', 'divorce'
-    ];
-    const positiveKeywords = [
-      'happy', 'excited', 'great', 'amazing', 'wonderful', 'fantastic', 'love it',
-      'grateful', 'thankful', 'blessed', 'lucky', 'awesome', 'brilliant'
-    ];
-    
-    // Use word boundary matching to avoid false positives (e.g., "made" matching "mad")
-    const matchesWord = (message: string, keyword: string) => {
-      const regex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-      return regex.test(message);
-    };
-    
-    const hasEmotionalContent = emotionalKeywords.some(keyword => matchesWord(lowerMessage, keyword));
-    const hasPositiveContent = positiveKeywords.some(keyword => matchesWord(lowerMessage, keyword));
-    const seemsNegative = hasEmotionalContent && !hasPositiveContent;
-    
-    if (seemsNegative) {
-      const supportiveResponses = [
-        "I'm really sorry to hear you're going through this. That sounds incredibly tough. I'm here for you - sometimes just having someone to talk to can help. Would you like to chat about what's on your mind, or would you prefer a distraction? I'm happy to help with either.",
-        "Oh, I can hear that you're hurting right now. Please know that your feelings are completely valid. I'm here to listen if you want to share more. Sometimes when we're going through difficult times, a little self-care goes a long way. Is there anything I can do to help you feel a bit better?",
-        "That sounds really difficult, and I'm so sorry you're dealing with this. Please be gentle with yourself - it's okay to not be okay sometimes. I'm here if you want to talk, or if you'd like a distraction, I could suggest something to brighten your day.",
-        "I hear you, and I want you to know I'm here for you. Going through tough times is never easy, but you don't have to face it alone. Take all the time you need. When you're ready, I'm here - whether you want to talk about what's happening or just need a friendly chat.",
-      ];
-      
-      const supportiveResponse = supportiveResponses[Math.floor(Math.random() * supportiveResponses.length)];
-      
-      setDetectedMood('sad');
-      
-      const assistantMessage: ChatMessage = {
-        id: `msg_${Date.now()}_assistant`,
-        role: 'assistant',
-        content: supportiveResponse,
-        timestamp: new Date().toISOString(),
-      };
-      
-      const finalMessages = [...updatedMessages, assistantMessage];
-      setMessages(finalMessages);
-      setIsTyping(false);
-      
-      await saveChatHistory(finalMessages);
-      
-      if (voiceSettings.autoPlayResponses && ttsEnabled) {
-        playTTSAudio(supportiveResponse);
-      }
-      
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-      
-      return;
-    }
-    
     try {
       const wardrobeContext = wardrobeItems.map(item => ({
         id: item.id,
@@ -1776,7 +1714,7 @@ export default function AIStylistScreen() {
         wardrobeItems: wardrobeContext,
         userGender: user?.gender || 'unspecified',
         subscriptionTier: tier,
-        language: voiceSettings.preferredLanguage,
+        language: currentLanguage,
       });
       
       console.log('Backend response received:', JSON.stringify(response));

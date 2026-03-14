@@ -4405,7 +4405,7 @@ app.post('/api/notifications/test', authMiddleware, async (req, res) => {
 // AI Stylist Chat - Main conversation endpoint
 app.post('/api/stylist/chat', async (req, res) => {
   try {
-    const { stylistId, messages, userMessage, wardrobeItems, userGender, subscriptionTier } = req.body;
+    const { stylistId, messages, userMessage, wardrobeItems, userGender, subscriptionTier, language } = req.body;
 
     if (!userMessage || typeof userMessage !== 'string') {
       return res.status(400).json({ error: 'userMessage is required' });
@@ -4415,6 +4415,8 @@ app.post('/api/stylist/chat', async (req, res) => {
       return res.status(400).json({ error: 'Valid stylistId (ruby or max) is required' });
     }
 
+    const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === language) || SUPPORTED_LANGUAGES[0];
+
     const response = await generateStylistResponse({
       stylistId,
       messages: messages || [],
@@ -4422,6 +4424,8 @@ app.post('/api/stylist/chat', async (req, res) => {
       wardrobeItems: wardrobeItems || [],
       userGender: userGender || 'not specified',
       subscriptionTier: subscriptionTier || 'free',
+      languageCode: language || 'en',
+      languageName: langInfo.name,
     });
 
     res.json({
