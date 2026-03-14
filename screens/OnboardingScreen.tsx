@@ -3489,15 +3489,16 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                   <View style={[styles.overlayPreview, { backgroundColor: theme.backgroundSecondary }]}>
                     {cameraGuidance.overlay.type === 'body-silhouette' ? (
                       <View style={styles.bodySilhouetteContainer}>
-                        <View style={[styles.bodySilhouetteHead, { borderColor: theme.link }]} />
+                        <View style={[styles.bodySilhouetteHead, { backgroundColor: theme.link, borderColor: theme.link }]} />
+                        <View style={styles.bodySilhouetteNeck} />
                         <View style={styles.bodySilhouetteBodyWithArms}>
-                          <View style={[styles.bodySilhouetteArm, { borderColor: theme.link }]} />
-                          <View style={[styles.bodySilhouetteBody, { borderColor: theme.link }]} />
-                          <View style={[styles.bodySilhouetteArm, { borderColor: theme.link }]} />
+                          <View style={[styles.bodySilhouetteArm, { backgroundColor: theme.link + '80', borderColor: theme.link }]} />
+                          <View style={[styles.bodySilhouetteBody, { backgroundColor: theme.link + 'B3', borderColor: theme.link }]} />
+                          <View style={[styles.bodySilhouetteArm, { backgroundColor: theme.link + '80', borderColor: theme.link }]} />
                         </View>
                         <View style={styles.bodySilhouetteLegsRow}>
-                          <View style={[styles.bodySilhouetteLeg, { borderColor: theme.link }]} />
-                          <View style={[styles.bodySilhouetteLeg, { borderColor: theme.link }]} />
+                          <View style={[styles.bodySilhouetteLeg, { backgroundColor: theme.link + '80', borderColor: theme.link }]} />
+                          <View style={[styles.bodySilhouetteLeg, { backgroundColor: theme.link + '80', borderColor: theme.link }]} />
                         </View>
                       </View>
                     ) : (
@@ -4383,44 +4384,48 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   bodySilhouetteHead: {
-    width: 30,
-    height: 30,
+    width: 32,
+    height: 32,
     borderWidth: 2,
-    borderRadius: 15,
-    borderStyle: "dashed",
-    marginBottom: 4,
+    borderRadius: 16,
+    marginBottom: 2,
+  },
+  bodySilhouetteNeck: {
+    width: 8,
+    height: 6,
+    backgroundColor: 'rgba(100, 100, 100, 0.3)',
+    alignSelf: 'center',
   },
   bodySilhouetteBodyWithArms: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 4,
+    alignItems: "flex-start",
+    gap: 4,
+    marginTop: 2,
+    marginBottom: 2,
   },
   bodySilhouetteArm: {
-    width: 14,
-    height: 60,
-    borderWidth: 2,
-    borderRadius: 7,
-    borderStyle: "dashed",
+    width: 12,
+    height: 65,
+    borderWidth: 1.5,
+    borderRadius: 6,
   },
   bodySilhouetteBody: {
-    width: 50,
-    height: 70,
-    borderWidth: 2,
-    borderRadius: 8,
-    borderStyle: "dashed",
+    width: 55,
+    height: 75,
+    borderWidth: 1.5,
+    borderRadius: 6,
     flex: 0,
   },
   bodySilhouetteLegsRow: {
     flexDirection: "row",
-    gap: 6,
+    gap: 8,
+    marginTop: 2,
   },
   bodySilhouetteLeg: {
-    width: 18,
-    height: 50,
-    borderWidth: 2,
-    borderRadius: 6,
-    borderStyle: "dashed",
+    width: 16,
+    height: 55,
+    borderWidth: 1.5,
+    borderRadius: 8,
   },
   faceOvalPreview: {
     width: 100,
