@@ -24,7 +24,6 @@ import { OnboardingService, BodyScanResult, ColorScanResult, StyleQuizQuestion, 
 import { useTranslations } from "@/contexts/TranslationContext";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { setCurrentOnboardingStep } from "@/components/ErrorFallback";
-import { BodyScanFigure } from "@/components/BodyScanFigure";
 
 const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "woman", name: "Woman", icon: "user" },
@@ -3488,9 +3487,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               >
                 {cameraGuidance.overlay ? (
                   <View style={[styles.overlayPreview, { backgroundColor: theme.backgroundSecondary }]}>
-                    {cameraGuidance.overlay.type === 'body-silhouette' ? (
-                      <BodyScanFigure color={theme.link} size={260} />
-                    ) : (
+                    {cameraGuidance.overlay.type !== 'body-silhouette' && (
                       <View style={[styles.faceOvalPreview, { borderColor: theme.link }]} />
                     )}
                     <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: Spacing.md, textAlign: 'center' }}>
