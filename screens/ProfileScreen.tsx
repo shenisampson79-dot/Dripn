@@ -49,7 +49,7 @@ type ProfileScreenProps = {
 export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScreenProps) {
   const { theme, isDark } = useTheme();
   const { palette, colorScheme } = useColorScheme();
-  const { translations } = useTranslations();
+  const { translations, t } = useTranslations();
   const { user } = useAuth();
   const { limits } = useSubscription();
   const { getLikedOutfits, toggleOutfitLike, isOutfitLiked, isLoading: outfitsLoading } = useOutfitFavorites();
@@ -138,7 +138,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
       <ScreenScrollView style={{ backgroundColor: 'transparent' }}>
         <View style={styles.header}>
           <View style={{ width: 40 }} />
-          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>Profile</ThemedText>
+          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{t('profile.profile')}</ThemedText>
           <View style={{ width: 40 }} />
         </View>
 
@@ -229,9 +229,9 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
       <View style={[styles.styleProfileSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
         <View style={styles.styleProfileHeader}>
-          <ThemedText type="h3" style={styles.styleProfileTitle}>Your Style Profile</ThemedText>
+          <ThemedText type="h3" style={styles.styleProfileTitle}>{t('profile.yourStyleProfile')}</ThemedText>
           <ThemedText type="small" style={styles.styleProfileSubtitle}>
-            These help us give you better outfit suggestions and send relevant looks to your stylist community for second opinions.
+            {t('profile.styleProfileSubtitle')}
           </ThemedText>
         </View>
 
@@ -257,7 +257,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 </ThemedText>
               ) : (
                 <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.coral }]}>
-                  Not completed
+                  {t('profile.notCompleted')}
                 </ThemedText>
               )}
             </View>
@@ -285,7 +285,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 </ThemedText>
               ) : (
                 <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.coral }]}>
-                  Not completed
+                  {t('profile.notCompleted')}
                 </ThemedText>
               )}
             </View>
@@ -313,7 +313,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 </ThemedText>
               ) : (
                 <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.coral }]}>
-                  Not completed
+                  {t('profile.notCompleted')}
                 </ThemedText>
               )}
             </View>
@@ -325,7 +325,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           <View style={[styles.styleProfileTip, { backgroundColor: LUXURY_COLORS.gold + '15' }]}>
             <Feather name="info" size={16} color={LUXURY_COLORS.gold} />
             <ThemedText type="small" style={styles.styleProfileTipText}>
-              Complete your style profile for personalized outfit suggestions and better second opinions from the community.
+              {t('profile.completeStyleProfile')}
             </ThemedText>
           </View>
         ) : null}
@@ -373,7 +373,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 <ActivityIndicator size="large" color={LUXURY_COLORS.midnight} />
               </LinearGradient>
               <ThemedText type="body" style={styles.emptySubtitle}>
-                Loading liked outfits...
+                {t('profile.loadingOutfits')}
               </ThemedText>
             </View>
           ) : likedOutfits.length > 0 ? (
@@ -426,7 +426,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                         >
                           <Feather name="grid" size={10} color="#FFFFFF" />
                           <ThemedText type="caption" style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 10 }}>
-                            Similar Outfit
+                            {t('profile.similarOutfit')}
                           </ThemedText>
                         </LinearGradient>
                         <Pressable
@@ -515,10 +515,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 </LinearGradient>
               </LinearGradient>
               <ThemedText type="h3" style={styles.emptyTitle}>
-                No liked outfits
+                {t('profile.noLikedOutfits')}
               </ThemedText>
               <ThemedText type="body" style={styles.emptySubtitle}>
-                Save outfits from your stylist recommendations
+                {t('profile.noLikedOutfitsHint')}
               </ThemedText>
             </View>
           )

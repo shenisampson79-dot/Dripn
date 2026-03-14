@@ -44,6 +44,7 @@ import { Card } from '@/components/Card';
 import { Spacing, BorderRadius, Typography, LuxuryColors as ThemeLuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useTranslations } from '@/contexts/TranslationContext';
 import { useWardrobe, WardrobeItem, ClothingOccasion, ClothingSeason } from '@/contexts/WardrobeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation, CommonActions } from '@react-navigation/native';
@@ -1092,6 +1093,7 @@ function generateAIResponse(
 
 export default function AIStylistScreen() {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { limits, tier } = useSubscription();
   const { items: wardrobeItems } = useWardrobe();
   const { user } = useAuth();
@@ -1953,7 +1955,7 @@ export default function AIStylistScreen() {
           {item.outfitSuggestion && item.outfitSuggestion.items.length > 0 ? (
             <View style={styles.outfitSuggestionContainer}>
               <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
-              <ThemedText style={styles.outfitTitle}>Suggested Outfit</ThemedText>
+              <ThemedText style={styles.outfitTitle}>{t('aiStylist.suggestedOutfit')}</ThemedText>
               <View style={styles.outfitItemsRow}>
                 {item.outfitSuggestion.items.slice(0, 4).map((wardrobeItem) => (
                   <View key={wardrobeItem.id} style={styles.outfitItemContainer}>
@@ -1996,7 +1998,7 @@ export default function AIStylistScreen() {
                   color={messageFeedback[item.id] === 'helpful' ? LUXURY_COLORS.emerald : theme.tabIconDefault} 
                 />
                 <ThemedText style={[styles.feedbackText, { color: theme.tabIconDefault }]}>
-                  {messageFeedback[item.id] === 'helpful' ? 'Thanks!' : 'Noted'}
+                  {messageFeedback[item.id] === 'helpful' ? t('aiStylist.thanks') : t('aiStylist.noted')}
                 </ThemedText>
               </View>
             ) : (
@@ -2021,12 +2023,12 @@ export default function AIStylistScreen() {
     );
   };
 
-  const FEEDBACK_OPTIONS = [
-    { id: 'not_my_style', label: 'Not my style', icon: 'x-circle' },
-    { id: 'too_western', label: 'Too Western', icon: 'globe' },
-    { id: 'body_type_mismatch', label: "Didn't fit my body type", icon: 'user-x' },
-    { id: 'cultural_miss', label: 'Cultural mismatch', icon: 'flag' },
-  ] as const;
+  const FEEDBACK_OPTIONS: Array<{ id: string; label: string; icon: string }> = [
+    { id: 'not_my_style', label: t('aiStylist.notMyStyle'), icon: 'x-circle' },
+    { id: 'too_western', label: t('aiStylist.tooWestern'), icon: 'globe' },
+    { id: 'body_type_mismatch', label: t('aiStylist.didntFitBodyType'), icon: 'user-x' },
+    { id: 'cultural_miss', label: t('aiStylist.culturalMismatch'), icon: 'flag' },
+  ];
 
   const renderFeedbackModal = () => (
     <Modal
@@ -2041,10 +2043,10 @@ export default function AIStylistScreen() {
       >
         <View style={[styles.feedbackModalContent, { backgroundColor: theme.backgroundSecondary }]}>
           <ThemedText type="h3" style={styles.feedbackModalTitle}>
-            What wasn't quite right?
+            {t('aiStylist.whatWasntRight')}
           </ThemedText>
           <ThemedText type="small" style={[styles.feedbackModalSubtitle, { color: theme.tabIconDefault }]}>
-            This helps your stylist learn your preferences
+            {t('aiStylist.learnPreferences')}
           </ThemedText>
           
           <View style={styles.feedbackOptionsGrid}>
@@ -2064,7 +2066,7 @@ export default function AIStylistScreen() {
             onPress={() => setShowFeedbackModal(false)}
             style={[styles.feedbackCancelButton, { borderColor: theme.border }]}
           >
-            <ThemedText style={{ color: theme.tabIconDefault }}>Skip</ThemedText>
+            <ThemedText style={{ color: theme.tabIconDefault }}>{t('aiStylist.skip')}</ThemedText>
           </Pressable>
         </View>
       </Pressable>
@@ -2074,7 +2076,7 @@ export default function AIStylistScreen() {
   const renderQuickPrompts = () => (
     <View style={styles.quickPromptsContainer}>
       <ThemedText style={[styles.quickPromptsTitle, { color: theme.tabIconDefault }]}>
-        Quick suggestions
+        {t('aiStylist.quickSuggestions')}
       </ThemedText>
       <View style={styles.quickPromptsGrid}>
         {QUICK_PROMPTS.map((prompt) => (

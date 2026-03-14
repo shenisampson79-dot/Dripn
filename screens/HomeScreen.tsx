@@ -28,6 +28,7 @@ import { usePosts, Post } from "@/contexts/PostsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocial, SAMPLE_USERS, UserSummary } from "@/contexts/SocialContext";
 import { sharePostWithBranding } from "@/services/SharingService";
+import { useTranslations } from "@/contexts/TranslationContext";
 import type { HomeStackParamList } from "@/navigation/HomeStackNavigator";
 
 type HomeScreenProps = {
@@ -52,6 +53,7 @@ function StoryAvatar({
   isCurrentUser?: boolean;
 }) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const rotation = useSharedValue(0);
 
   useEffect(() => {
@@ -151,7 +153,7 @@ function StoryAvatar({
           { color: user.hasNewPost ? theme.text : theme.tabIconDefault }
         ]}
       >
-        {isCurrentUser ? 'Your Story' : user.name.split(' ')[0]}
+        {isCurrentUser ? t('home.yourStory') : user.name.split(' ')[0]}
       </ThemedText>
     </Pressable>
   );
@@ -259,6 +261,7 @@ function StoryReel({
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { posts, isLoading, refreshPosts, votePost, voteComparison, thankPost } = usePosts();
   const { user } = useAuth();
   const [feedFilter, setFeedFilter] = useState<"global" | "regional">("global");
@@ -320,7 +323,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             type="small"
             style={{ color: feedFilter === "global" ? "#FFFFFF" : theme.text }}
           >
-            Global
+            {t('home.global')}
           </ThemedText>
         </Pressable>
         <Pressable
@@ -342,7 +345,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             type="small"
             style={{ color: feedFilter === "regional" ? "#FFFFFF" : theme.text }}
           >
-            My Region
+            {t('home.myRegion')}
           </ThemedText>
         </Pressable>
       </View>
@@ -364,10 +367,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     <View style={styles.emptyContainer}>
       <Feather name="camera" size={64} color={theme.tabIconDefault} />
       <ThemedText type="h3" style={styles.emptyTitle}>
-        No posts yet
+        {t('home.noPostsYet')}
       </ThemedText>
       <ThemedText type="body" style={styles.emptySubtitle}>
-        Be the first to share your style with the community
+        {t('home.beFirstToShare')}
       </ThemedText>
     </View>
   );

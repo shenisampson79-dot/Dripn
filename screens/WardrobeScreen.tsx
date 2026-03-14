@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -63,17 +63,17 @@ type WardrobeScreenProps = {
   navigation: NativeStackNavigationProp<WardrobeStackParamList, "Wardrobe">;
 };
 
-const ALL_CATEGORY_OPTIONS: Array<{ key: ClothingCategory | 'all'; label: string; icon: string }> = [
-  { key: 'all', label: 'All', icon: 'grid' },
-  { key: 'tops', label: 'Tops', icon: 'sun' },
-  { key: 'bottoms', label: 'Bottoms', icon: 'minimize-2' },
-  { key: 'dresses', label: 'Dresses', icon: 'heart' },
-  { key: 'outerwear', label: 'Outerwear', icon: 'cloud' },
-  { key: 'shoes', label: 'Shoes', icon: 'disc' },
-  { key: 'bags', label: 'Bags', icon: 'shopping-bag' },
-  { key: 'accessories', label: 'Accessories', icon: 'watch' },
-  { key: 'activewear', label: 'Active', icon: 'activity' },
-  { key: 'formal', label: 'Formal', icon: 'star' },
+const CATEGORY_KEYS: Array<{ key: ClothingCategory | 'all'; icon: string; translationKey: string }> = [
+  { key: 'all', icon: 'grid', translationKey: 'wardrobe.categoryAll' },
+  { key: 'tops', icon: 'sun', translationKey: 'wardrobe.categoryTops' },
+  { key: 'bottoms', icon: 'minimize-2', translationKey: 'wardrobe.categoryBottoms' },
+  { key: 'dresses', icon: 'heart', translationKey: 'wardrobe.categoryDresses' },
+  { key: 'outerwear', icon: 'cloud', translationKey: 'wardrobe.categoryOuterwear' },
+  { key: 'shoes', icon: 'disc', translationKey: 'wardrobe.categoryShoes' },
+  { key: 'bags', icon: 'shopping-bag', translationKey: 'wardrobe.categoryBags' },
+  { key: 'accessories', icon: 'watch', translationKey: 'wardrobe.categoryAccessories' },
+  { key: 'activewear', icon: 'activity', translationKey: 'wardrobe.categoryActivewear' },
+  { key: 'formal', icon: 'star', translationKey: 'wardrobe.categoryFormal' },
 ];
 
 export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
@@ -81,7 +81,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { colorScheme, palette } = useColorScheme();
-  const { translations } = useTranslations();
+  const { translations, t } = useTranslations();
+  const ALL_CATEGORY_OPTIONS = useMemo(
+    () => CATEGORY_KEYS.map(({ key, icon, translationKey }) => ({ key, icon, label: t(translationKey) })),
+    [t]
+  );
   const { items, isLoading, deleteItem, toggleItemFavorite, markItemWorn, updateItem } = useWardrobe();
   
   const CATEGORY_COLORS = colorScheme === 'minimalist' 
@@ -417,7 +421,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               >
                 <Feather name="x" size={24} color={theme.text} />
               </Pressable>
-              <ThemedText type="h3">Item Details</ThemedText>
+              <ThemedText type="h3">{t('wardrobe.itemDetails')}</ThemedText>
               <Pressable
                 onPress={() => handleToggleFavorite(selectedItem)}
                 style={[styles.modalCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
@@ -510,7 +514,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                             <Feather name="plus" size={16} color={LUXURY_COLORS.teal} />
                           </Pressable>
                         </View>
-                        <ThemedText type="caption" style={{ opacity: 0.6 }}>Times Worn</ThemedText>
+                        <ThemedText type="caption" style={{ opacity: 0.6 }}>{t('wardrobe.timesWorn')}</ThemedText>
                       </View>
                       <View style={[styles.statDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
                       <View style={styles.statItem}>
@@ -612,7 +616,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           <ActivityIndicator size="large" color="#FFFFFF" />
         </LinearGradient>
         <ThemedText type="body" style={{ marginTop: Spacing.lg }}>
-          Loading your wardrobe...
+          {t('wardrobe.loadingWardrobe')}
         </ThemedText>
       </View>
     );
@@ -638,7 +642,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             <Feather name="arrow-left" size={20} color="#FFFFFF" />
           </Pressable>
           <View style={styles.headerTitleContainer}>
-            <ThemedText type="h2" style={{ color: '#FFFFFF' }}>My Wardrobe</ThemedText>
+            <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{t('wardrobe.myWardrobe')}</ThemedText>
             <View style={[styles.itemCountBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
               <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>
                 {items.length} {items.length === 1 ? 'piece' : 'pieces'}
@@ -683,7 +687,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     <Feather name="book-open" size={20} color="#FFFFFF" />
                     <View style={styles.dfyCardText}>
                       <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                        My Lookbook
+                        {t('wardrobe.myLookbook')}
                       </ThemedText>
                       <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
                         {dfyAccess.daysRemaining}d left
@@ -708,7 +712,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     <Feather name="calendar" size={20} color="#FFFFFF" />
                     <View style={styles.dfyCardText}>
                       <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                        14-Day Calendar
+                        {t('wardrobe.calendar14Day')}
                       </ThemedText>
                       <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
                         Daily outfits
@@ -736,7 +740,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     <Feather name="grid" size={20} color={LUXURY_COLORS.midnight} />
                     <View style={styles.dfyCardText}>
                       <ThemedText type="small" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>
-                        Modular Wardrobe
+                        {t('wardrobe.modularWardrobe')}
                       </ThemedText>
                       <ThemedText type="caption" style={{ color: 'rgba(0,0,0,0.6)' }}>
                         Mix & match
@@ -761,7 +765,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     <Feather name="calendar" size={20} color="#FFFFFF" />
                     <View style={styles.dfyCardText}>
                       <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                        30-Day Calendar
+                        {t('wardrobe.calendar30Day')}
                       </ThemedText>
                       <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
                         {dfyAccess.daysRemaining}d left
@@ -836,7 +840,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               >
                 <Feather name="x" size={24} color={theme.text} />
               </Pressable>
-              <ThemedText type="h3">AI Outfit Creator</ThemedText>
+              <ThemedText type="h3">{t('wardrobe.aiOutfitCreator')}</ThemedText>
               <View style={{ width: 40 }} />
             </View>
           </LinearGradient>
@@ -890,7 +894,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                 <View style={styles.dfyPromptContent}>
                   <Feather name="gift" size={24} color={LUXURY_COLORS.coral} />
                   <View style={{ flex: 1, marginLeft: Spacing.md }}>
-                    <ThemedText type="body" style={{ fontWeight: '600' }}>Unlock Done-For-You Setup</ThemedText>
+                    <ThemedText type="body" style={{ fontWeight: '600' }}>{t('wardrobe.unlockDFY')}</ThemedText>
                     <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
                       Get professionally curated outfits from £19.99
                     </ThemedText>

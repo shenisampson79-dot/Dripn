@@ -60,6 +60,25 @@ export interface WardrobeTranslations {
   bulkUpload: string;
   lastWorn: string;
   wornTimes: string;
+  itemDetails: string;
+  timesWorn: string;
+  loadingWardrobe: string;
+  myLookbook: string;
+  calendar14Day: string;
+  calendar30Day: string;
+  modularWardrobe: string;
+  aiOutfitCreator: string;
+  unlockDFY: string;
+  categoryAll: string;
+  categoryTops: string;
+  categoryBottoms: string;
+  categoryDresses: string;
+  categoryOuterwear: string;
+  categoryShoes: string;
+  categoryBags: string;
+  categoryAccessories: string;
+  categoryActivewear: string;
+  categoryFormal: string;
 }
 
 export interface ProfileTranslations {
@@ -76,6 +95,66 @@ export interface ProfileTranslations {
   noLikedOutfits: string;
   styleOfTheDay: string;
   viewDetails: string;
+  profile: string;
+  adminDashboard: string;
+  yourStyleProfile: string;
+  styleProfileSubtitle: string;
+  notCompleted: string;
+  completeStyleProfile: string;
+  savedOutfits: string;
+  similarOutfit: string;
+  loadingOutfits: string;
+  noLikedOutfitsHint: string;
+}
+
+export interface HomeTranslations {
+  yourStory: string;
+  global: string;
+  myRegion: string;
+  noPostsYet: string;
+  beFirstToShare: string;
+}
+
+export interface AuthTranslations {
+  createAccount: string;
+  welcomeBack: string;
+  joinCommunity: string;
+  signInContinue: string;
+  continueWithGoogle: string;
+  continueWithFacebook: string;
+  continueWithApple: string;
+  or: string;
+  fullName: string;
+  email: string;
+  password: string;
+  enterName: string;
+  emailPlaceholder: string;
+  enterPassword: string;
+  alreadyHaveAccount: string;
+  dontHaveAccount: string;
+  signIn: string;
+  signUp: string;
+  agreeTerms: string;
+  termsOfService: string;
+  and: string;
+  privacyPolicy: string;
+  fillRequired: string;
+  enterYourName: string;
+  authFailed: string;
+}
+
+export interface AIStylistTranslations {
+  suggestedOutfit: string;
+  thanks: string;
+  noted: string;
+  whatWasntRight: string;
+  learnPreferences: string;
+  skip: string;
+  quickSuggestions: string;
+  notMyStyle: string;
+  tooWestern: string;
+  didntFitBodyType: string;
+  culturalMismatch: string;
 }
 
 export interface StylistHubTranslations {
@@ -234,6 +313,9 @@ export interface Translations {
   styleArchetypes: Record<string, StyleArchetypeTranslation>;
   styleSelection: StyleSelectionTranslations;
   settings: SettingsTranslations;
+  home: HomeTranslations;
+  auth: AuthTranslations;
+  aiStylist: AIStylistTranslations;
 }
 
 const DEFAULT_TRANSLATIONS: Translations = {
@@ -286,6 +368,25 @@ const DEFAULT_TRANSLATIONS: Translations = {
     bulkUpload: 'Bulk Upload',
     lastWorn: 'Last worn',
     wornTimes: 'times',
+    itemDetails: 'Item Details',
+    timesWorn: 'Times Worn',
+    loadingWardrobe: 'Loading your wardrobe...',
+    myLookbook: 'My Lookbook',
+    calendar14Day: '14-Day Calendar',
+    calendar30Day: '30-Day Calendar',
+    modularWardrobe: 'Modular Wardrobe',
+    aiOutfitCreator: 'AI Outfit Creator',
+    unlockDFY: 'Unlock Done-For-You Setup',
+    categoryAll: 'All',
+    categoryTops: 'Tops',
+    categoryBottoms: 'Bottoms',
+    categoryDresses: 'Dresses',
+    categoryOuterwear: 'Outerwear',
+    categoryShoes: 'Shoes',
+    categoryBags: 'Bags',
+    categoryAccessories: 'Accessories',
+    categoryActivewear: 'Active',
+    categoryFormal: 'Formal',
   },
   profile: {
     guestUser: 'Guest User',
@@ -301,6 +402,16 @@ const DEFAULT_TRANSLATIONS: Translations = {
     noLikedOutfits: 'No liked outfits yet',
     styleOfTheDay: 'Style of the Day',
     viewDetails: 'View Details',
+    profile: 'Profile',
+    adminDashboard: 'Admin Dashboard',
+    yourStyleProfile: 'Your Style Profile',
+    styleProfileSubtitle: 'These help us give you better outfit suggestions and send relevant looks to your stylist community for second opinions.',
+    notCompleted: 'Not completed',
+    completeStyleProfile: 'Complete your style profile for personalized outfit suggestions and better second opinions from the community.',
+    savedOutfits: 'Saved Outfits',
+    similarOutfit: 'Similar Outfit',
+    loadingOutfits: 'Loading liked outfits...',
+    noLikedOutfitsHint: 'Save outfits from your stylist recommendations',
   },
   stylistHub: {
     personalStylist: 'Personal Stylist',
@@ -443,6 +554,53 @@ const DEFAULT_TRANSLATIONS: Translations = {
     selectLanguage: 'Select Language',
     voiceSettings: 'Voice Settings',
   },
+  home: {
+    yourStory: 'Your Story',
+    global: 'Global',
+    myRegion: 'My Region',
+    noPostsYet: 'No posts yet',
+    beFirstToShare: 'Be the first to share your style with the community',
+  },
+  auth: {
+    createAccount: 'Create Account',
+    welcomeBack: 'Welcome Back',
+    joinCommunity: 'Join the Dripn community',
+    signInContinue: 'Sign in to continue your style journey',
+    continueWithGoogle: 'Continue with Google',
+    continueWithFacebook: 'Continue with Facebook',
+    continueWithApple: 'Continue with Apple',
+    or: 'or',
+    fullName: 'Full Name',
+    email: 'Email',
+    password: 'Password',
+    enterName: 'Enter your name',
+    emailPlaceholder: 'your.email@example.com',
+    enterPassword: 'Enter your password',
+    alreadyHaveAccount: 'Already have an account? ',
+    dontHaveAccount: "Don't have an account? ",
+    signIn: 'Sign In',
+    signUp: 'Sign Up',
+    agreeTerms: 'By continuing, you agree to our',
+    termsOfService: 'Terms of Service',
+    and: 'and',
+    privacyPolicy: 'Privacy Policy',
+    fillRequired: 'Please fill in all required fields',
+    enterYourName: 'Please enter your name',
+    authFailed: 'Authentication failed. Please try again.',
+  },
+  aiStylist: {
+    suggestedOutfit: 'Suggested Outfit',
+    thanks: 'Thanks!',
+    noted: 'Noted',
+    whatWasntRight: "What wasn't quite right?",
+    learnPreferences: 'This helps your stylist learn your preferences',
+    skip: 'Skip',
+    quickSuggestions: 'Quick suggestions',
+    notMyStyle: 'Not my style',
+    tooWestern: 'Too Western',
+    didntFitBodyType: "Didn't fit my body type",
+    culturalMismatch: 'Cultural mismatch',
+  },
 };
 
 class TranslationServiceClass {
@@ -540,6 +698,9 @@ class TranslationServiceClass {
         },
       },
       settings: { ...DEFAULT_TRANSLATIONS.settings, ...nested.settings },
+      home: { ...DEFAULT_TRANSLATIONS.home, ...nested.home },
+      auth: { ...DEFAULT_TRANSLATIONS.auth, ...nested.auth },
+      aiStylist: { ...DEFAULT_TRANSLATIONS.aiStylist, ...nested.aiStylist },
     };
   }
 

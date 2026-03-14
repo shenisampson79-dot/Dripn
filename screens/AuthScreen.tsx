@@ -13,6 +13,7 @@ import { ScreenKeyboardAwareScrollView } from "@/components/ScreenKeyboardAwareS
 import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 
 type AuthScreenProps = {
@@ -25,6 +26,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const { login, signup, socialLogin, isAuthenticating } = useAuth();
+  const { t } = useTranslations();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,12 +55,12 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
     setErrorMessage(null);
     
     if (!email || !password) {
-      setErrorMessage("Please fill in all required fields");
+      setErrorMessage(t('auth.fillRequired'));
       return;
     }
 
     if (isSignup && !name) {
-      setErrorMessage("Please enter your name");
+      setErrorMessage(t('auth.enterYourName'));
       return;
     }
 
@@ -70,7 +72,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
       }
       navigation.replace("Onboarding");
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Authentication failed. Please try again.";
+      const errorMsg = error instanceof Error ? error.message : t('auth.authFailed');
       setErrorMessage(errorMsg);
     }
   };
@@ -102,12 +104,12 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
       >
         <View style={styles.titleContainer}>
           <ThemedText type="h1" style={styles.title}>
-            {isSignup ? "Create Account" : "Welcome Back"}
+            {isSignup ? t('auth.createAccount') : t('auth.welcomeBack')}
           </ThemedText>
           <ThemedText type="body" style={styles.subtitle}>
             {isSignup
-              ? "Join the Dripn community"
-              : "Sign in to continue your style journey"}
+              ? t('auth.joinCommunity')
+              : t('auth.signInContinue')}
           </ThemedText>
         </View>
 
@@ -130,7 +132,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
               <>
                 <FontAwesome name="google" size={20} color="#DB4437" />
                 <ThemedText style={[styles.socialButtonText, { color: '#333333' }]}>
-                  Continue with Google
+                  {t('auth.continueWithGoogle')}
                 </ThemedText>
               </>
             )}
@@ -153,7 +155,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
               <>
                 <FontAwesome name="facebook" size={20} color="#FFFFFF" />
                 <ThemedText style={[styles.socialButtonText, { color: '#FFFFFF' }]}>
-                  Continue with Facebook
+                  {t('auth.continueWithFacebook')}
                 </ThemedText>
               </>
             )}
@@ -177,7 +179,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
                 <>
                   <FontAwesome name="apple" size={22} color={isDark ? '#000000' : '#FFFFFF'} />
                   <ThemedText style={[styles.socialButtonText, { color: isDark ? '#000000' : '#FFFFFF' }]}>
-                    Continue with Apple
+                    {t('auth.continueWithApple')}
                   </ThemedText>
                 </>
               )}
@@ -187,7 +189,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
         <View style={styles.dividerContainer}>
           <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
-          <ThemedText type="small" style={styles.dividerText}>or</ThemedText>
+          <ThemedText type="small" style={styles.dividerText}>{t('auth.or')}</ThemedText>
           <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
         </View>
 
@@ -195,13 +197,13 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           {isSignup ? (
             <View style={styles.fieldContainer}>
               <ThemedText type="small" style={styles.label}>
-                Full Name
+                {t('auth.fullName')}
               </ThemedText>
               <TextInput
                 style={inputStyle}
                 value={name}
                 onChangeText={setName}
-                placeholder="Enter your name"
+                placeholder={t('auth.enterName')}
                 placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
                 autoCapitalize="words"
                 returnKeyType="next"
@@ -211,13 +213,13 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
           <View style={styles.fieldContainer}>
             <ThemedText type="small" style={styles.label}>
-              Email
+              {t('auth.email')}
             </ThemedText>
             <TextInput
               style={inputStyle}
               value={email}
               onChangeText={setEmail}
-              placeholder="your.email@example.com"
+              placeholder={t('auth.emailPlaceholder')}
               placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -228,14 +230,14 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
           <View style={styles.fieldContainer}>
             <ThemedText type="small" style={styles.label}>
-              Password
+              {t('auth.password')}
             </ThemedText>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={[inputStyle, styles.passwordInput]}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Enter your password"
+                placeholder={t('auth.enterPassword')}
                 placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
@@ -265,9 +267,9 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
             {isAuthenticating ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : isSignup ? (
-              "Create Account"
+              t('auth.createAccount')
             ) : (
-              "Sign In"
+              t('auth.signIn')
             )}
           </Button>
 
@@ -281,9 +283,9 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
             ]}
           >
             <ThemedText type="body" style={styles.switchModeText}>
-              {isSignup ? "Already have an account? " : "Don't have an account? "}
+              {isSignup ? t('auth.alreadyHaveAccount') : t('auth.dontHaveAccount')}
               <ThemedText type="link" style={styles.linkText}>
-                {isSignup ? "Sign In" : "Sign Up"}
+                {isSignup ? t('auth.signIn') : t('auth.signUp')}
               </ThemedText>
             </ThemedText>
           </Pressable>
@@ -291,21 +293,21 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
         <View style={styles.termsContainer}>
           <ThemedText type="small" style={styles.termsText}>
-            By continuing, you agree to our{" "}
+            {t('auth.agreeTerms')}{" "}
             <ThemedText
               type="link"
               style={styles.termsLink}
               onPress={() => navigation.navigate("TermsOfService" as any)}
             >
-              Terms of Service
+              {t('auth.termsOfService')}
             </ThemedText>{" "}
-            and{" "}
+            {t('auth.and')}{" "}
             <ThemedText
               type="link"
               style={styles.termsLink}
               onPress={() => navigation.navigate("PrivacyPolicy" as any)}
             >
-              Privacy Policy
+              {t('auth.privacyPolicy')}
             </ThemedText>
           </ThemedText>
         </View>
