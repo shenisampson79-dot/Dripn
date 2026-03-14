@@ -907,6 +907,21 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           </Animated.View>
         ) : null}
 
+        <Animated.View entering={FadeInDown.delay(300)} style={styles.promptInputContainer}>
+          <Feather name="edit-3" size={16} color="rgba(74, 52, 40, 0.5)" style={{ marginTop: 4 }} />
+          <TextInput
+            style={styles.promptInput}
+            placeholder="Add context... (e.g. outdoor event, smart casual)"
+            placeholderTextColor="rgba(74, 52, 40, 0.4)"
+            value={expressionText}
+            onChangeText={setExpressionText}
+            multiline
+            maxLength={200}
+            returnKeyType="done"
+            blurOnSubmit
+          />
+        </Animated.View>
+
         <View style={styles.optionsGrid}>
           {options.map((option, index) => {
             const occasionColor = OCCASION_COLORS[option.id] || { bg: "#E5DED4", border: "#D8CFC2", icon: "#4A3428" };
@@ -1300,6 +1315,26 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     marginBottom: Spacing.lg,
+  },
+  promptInputContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Spacing.sm,
+    backgroundColor: 'rgba(74, 52, 40, 0.07)',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(74, 52, 40, 0.15)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  promptInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#4A3428',
+    paddingVertical: Spacing.xs,
+    minHeight: 40,
+    maxHeight: 100,
   },
   optionsGrid: {
     flexDirection: "row",
