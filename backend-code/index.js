@@ -6489,6 +6489,48 @@ app.get('/', (req, res) => {
   });
 });
 
+// Decision check endpoint - handles context from frontend
+app.post('/api/decision/check/resilient', async (req, res) => {
+  try {
+    const { decisionType, images, context, stylist } = req.body;
+    
+    if (!decisionType || !images || !context || !stylist) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: decisionType, images, context, and stylist'
+      });
+    }
+
+    console.log('[Decision Check] Received context:', context);
+    console.log('[Decision Check] Decision type:', decisionType);
+    console.log('[Decision Check] Stylist:', stylist);
+
+    // Call the AI stylist service with context included
+    const response = await generateStylistResponse(
+      images[0] || '',
+      context,
+      stylist,
+      decisionType
+    );
+
+    res.json({
+      success: true,
+      decision: response || 'Here is my recommendation based on your preferences.',
+      recommendation: response,
+      reasoning: `I considered your preferences: ${context}`,
+      decisionType,
+      stylistId: stylist
+    });
+  } catch (error) {
+    console.error('[Decision Check Error]:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process decision check',
+      message: error.message
+    });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy' });
 });
