@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -111,6 +111,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     venue: '',
     timeOfDay: '',
   });
+  const contextInputRef = useRef<TextInput>(null);
   const [accessStatus, setAccessStatus] = useState<DecisionAccessStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<DecisionResponse | null>(null);
@@ -1120,6 +1121,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
       </View>
 
       <TextInput
+        ref={contextInputRef}
         style={styles.contextInput}
         placeholder="Add any extra details (optional)"
         placeholderTextColor="rgba(255,255,255,0.4)"
