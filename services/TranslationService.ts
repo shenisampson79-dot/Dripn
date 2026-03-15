@@ -443,16 +443,30 @@ const DEFAULT_TRANSLATIONS: Translations = {
     resultsDescription: 'Based on your answers, here is your fashion personality',
   },
   onboarding: {
+    searchCountries: 'Search countries...',
+    noCountriesFound: 'No countries found',
+    detecting: 'Detecting...',
+    useMyLocation: 'Use my location',
+    quickSelect: 'Quick select',
+    allRegions: 'All regions',
+    styleQuiz: 'Take the style quiz',
+    styleQuizDesc: '7 quick questions to discover your style archetype',
+    orChoose: 'or choose below',
     steps: {
-      location: { title: 'Select your country', description: 'Where are you located?' },
-      basics: { title: 'The Basics', description: 'Tell us about yourself' },
-      body: { title: 'Body', description: 'Help us understand your body type' },
-      coloring: { title: 'Coloring', description: 'Your skin tone and features' },
-      lifestyle: { title: 'Lifestyle', description: 'How do you spend your time?' },
-      style: { title: 'Style', description: 'What styles appeal to you?' },
-      colors: { title: 'Colors', description: 'Your color preferences' },
-      shopping: { title: 'Shopping', description: 'Where do you like to shop?' },
-      voice: { title: 'Voice', description: 'Set up your AI stylist voice' },
+      location: { title: 'Where are you based?', description: 'This helps us personalise your experience with local trends and stores.' },
+      gender: { title: 'How do you identify?', description: 'This helps us tailor style recommendations for you' },
+      measurements: { title: 'Your body measurements', description: 'Optional, but helps us find your perfect fit' },
+      stylist: { title: 'Meet your personal stylist', description: 'Choose who will guide your fashion journey' },
+      undertone: { title: "What's your skin undertone?", description: 'This helps us recommend colours that complement you' },
+      fit: { title: 'What fit do you prefer?', description: 'How do you like your clothes to fit?' },
+      sizes: { title: "What are your sizes?", description: 'Enter your UK, US or EU size (e.g. M, L, UK 12, US 8)' },
+      age: { title: 'What is your age range?', description: 'Helps us tailor style recommendations' },
+      shopping: { title: 'How often do you shop?', description: 'Your shopping habits help us tailor recommendations' },
+      sustainability: { title: 'Do you care about sustainability?', description: 'Tell us if eco-conscious fashion matters to you' },
+      tellMore: { title: 'Tell us more (optional)', description: 'Help us personalise your recommendations' },
+      retailers: { title: 'Where do you shop?', description: 'Select up to 10 of your favourites' },
+      goals: { title: 'Why have you come to Dripn?', description: 'Choose up to 3 goals (helps the AI understand your needs)' },
+      cultural: { title: 'Style & cultural preferences', description: 'Help Ruby & Max respect your style and cultural preferences (optional)' },
     },
   },
   styleArchetypes: {
@@ -903,6 +917,7 @@ class TranslationServiceClass {
       colorScan: { ...DEFAULT_TRANSLATIONS.colorScan, ...nested.colorScan },
       quiz: { ...DEFAULT_TRANSLATIONS.quiz, ...nested.quiz },
       onboarding: {
+        ...DEFAULT_TRANSLATIONS.onboarding,
         ...nested.onboarding,
         steps: { ...DEFAULT_TRANSLATIONS.onboarding.steps, ...nested.onboarding?.steps },
       },
@@ -968,14 +983,41 @@ class TranslationServiceClass {
       const cached = await AsyncStorage.getItem(TRANSLATIONS_CACHE_KEY);
       
       if (cached && cachedLang) {
-        this.translations = JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        if (cachedLang !== 'en') {
+          const localFlat = LOCAL_TRANSLATIONS[cachedLang] || {};
+          const merged = this.mergeTranslations({ ...localFlat, ...this.flattenTranslations(parsed) }, cachedLang);
+          this.translations = merged;
+        } else {
+          this.translations = parsed;
+        }
         this.currentLang = cachedLang;
         return this.translations;
+      }
+      
+      if (cachedLang && cachedLang !== 'en' && LOCAL_TRANSLATIONS[cachedLang]) {
+        const merged = this.mergeTranslations(LOCAL_TRANSLATIONS[cachedLang], cachedLang);
+        this.translations = merged;
+        this.currentLang = cachedLang;
+        return merged;
       }
     } catch (error) {
       console.log('Failed to load cached translations:', error);
     }
     return DEFAULT_TRANSLATIONS;
+  }
+
+  private flattenTranslations(obj: Record<string, any>, prefix = ''): Record<string, string> {
+    const result: Record<string, string> = {};
+    for (const key in obj) {
+      const fullKey = prefix ? `${prefix}.${key}` : key;
+      if (typeof obj[key] === 'string') {
+        result[fullKey] = obj[key];
+      } else if (obj[key] && typeof obj[key] === 'object') {
+        Object.assign(result, this.flattenTranslations(obj[key], fullKey));
+      }
+    }
+    return result;
   }
 
   private async cacheTranslations(translations: Translations, langCode: string): Promise<void> {
