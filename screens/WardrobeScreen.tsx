@@ -358,10 +358,10 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         </LinearGradient>
       </LinearGradient>
       <ThemedText type="h2" style={styles.emptyTitle}>
-        Your wardrobe awaits
+        {translations.wardrobe.wardrobeAwaits || 'Your wardrobe awaits'}
       </ThemedText>
       <ThemedText type="body" style={styles.emptyText}>
-        Start building your digital closet by adding photos of your favorite pieces
+        {translations.wardrobe.wardrobeAwaitsDesc || 'Start building your digital closet by adding photos of your favourite pieces'}
       </ThemedText>
       <LinearGradient
         colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
@@ -372,7 +372,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         <Pressable onPress={handleQuickAdd} style={styles.emptyButtonInner}>
           <Feather name="layers" size={18} color={LUXURY_COLORS.midnight} />
           <ThemedText type="body" style={styles.emptyButtonText}>
-            Quick Add Multiple Items
+            {translations.wardrobe.quickAddMultiple || 'Quick Add Multiple Items'}
           </ThemedText>
         </Pressable>
       </LinearGradient>
@@ -382,7 +382,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       >
         <Feather name="plus" size={18} color={LUXURY_COLORS.gold} />
         <ThemedText type="body" style={{ marginLeft: Spacing.sm, color: LUXURY_COLORS.gold }}>
-          Add Single Item
+          {translations.wardrobe.addSingleItem || 'Add Single Item'}
         </ThemedText>
       </Pressable>
     </View>
@@ -645,7 +645,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{t('wardrobe.myWardrobe')}</ThemedText>
             <View style={[styles.itemCountBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
               <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                {items.length} {items.length === 1 ? 'piece' : 'pieces'}
+                {items.length} {items.length === 1 ? (translations.wardrobe.piece || 'piece') : (translations.wardrobe.pieces || 'pieces')}
               </ThemedText>
             </View>
           </View>

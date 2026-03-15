@@ -121,7 +121,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   };
 
   const tabConfig = [
-    { key: 'outfits', label: 'Saved Outfits', icon: 'bookmark', color: LUXURY_COLORS.gold },
+    { key: 'outfits', label: translations.profile.savedOutfits || 'Saved Outfits', icon: 'bookmark', color: LUXURY_COLORS.gold },
   ];
 
   const headerGradientColors: readonly [string, string, string] = colorScheme === 'minimalist' 
@@ -220,7 +220,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             >
               <Feather name="bar-chart-2" size={18} color={LUXURY_COLORS.gold} />
               <ThemedText type="body" style={{ color: LUXURY_COLORS.gold, fontWeight: '600' }}>
-                Admin Dashboard
+                {translations.profile.adminDashboard || 'Admin Dashboard'}
               </ThemedText>
             </Pressable>
           </LinearGradient>

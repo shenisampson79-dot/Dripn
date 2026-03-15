@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from './ApiService';
 
-const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v2';
+const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v3';
 const TRANSLATIONS_LANG_KEY = '@dripn_translations_lang';
 
 export interface OnboardingStepTranslations {
@@ -80,6 +80,12 @@ export interface WardrobeTranslations {
   categoryAccessories: string;
   categoryActivewear: string;
   categoryFormal: string;
+  wardrobeAwaits?: string;
+  wardrobeAwaitsDesc?: string;
+  quickAddMultiple?: string;
+  addSingleItem?: string;
+  piece?: string;
+  pieces?: string;
 }
 
 export interface ProfileTranslations {
@@ -156,6 +162,19 @@ export interface AIStylistTranslations {
   tooWestern: string;
   didntFitBodyType: string;
   culturalMismatch: string;
+  askStylistTitle?: string;
+  whatDecisionHelp?: string;
+  fashionRules?: string;
+  todayTip?: string;
+  oneDecisionDay?: string;
+  decisionShopping?: string;
+  decisionShoppingDesc?: string;
+  decisionWhatToWear?: string;
+  decisionWhatToWearDesc?: string;
+  decisionEventOutfit?: string;
+  decisionEventOutfitDesc?: string;
+  decisionSanityCheck?: string;
+  decisionSanityCheckDesc?: string;
 }
 
 export interface StylistHubTranslations {
@@ -384,6 +403,12 @@ const DEFAULT_TRANSLATIONS: Translations = {
     categoryAccessories: 'Accessories',
     categoryActivewear: 'Active',
     categoryFormal: 'Formal',
+    wardrobeAwaits: 'Your wardrobe awaits',
+    wardrobeAwaitsDesc: 'Start building your digital closet by adding photos of your favourite pieces',
+    quickAddMultiple: 'Quick Add Multiple Items',
+    addSingleItem: 'Add Single Item',
+    piece: 'piece',
+    pieces: 'pieces',
   },
   profile: {
     guestUser: 'Guest User',
@@ -615,6 +640,19 @@ const DEFAULT_TRANSLATIONS: Translations = {
     tooWestern: 'Too Western',
     didntFitBodyType: "Didn't fit my body type",
     culturalMismatch: 'Cultural mismatch',
+    askStylistTitle: 'Ask the Stylist',
+    whatDecisionHelp: 'What decision can I help you with?',
+    fashionRules: 'Fashion Rules',
+    todayTip: "Today's Tip",
+    oneDecisionDay: 'One decision a day, on me.',
+    decisionShopping: 'Choosing what to buy',
+    decisionShoppingDesc: 'Help me decide between options',
+    decisionWhatToWear: 'What should I wear?',
+    decisionWhatToWearDesc: 'Pick my outfit for today',
+    decisionEventOutfit: 'Outfit for an event',
+    decisionEventOutfitDesc: 'Something specific coming up',
+    decisionSanityCheck: 'Quick sanity check',
+    decisionSanityCheckDesc: 'Just need a second pair of eyes',
   },
 };
 
@@ -671,6 +709,17 @@ const LOCAL_TRANSLATIONS: Record<string, Record<string, string>> = {
     'aiStylist.skip': 'Omitir', 'aiStylist.quickSuggestions': 'Sugerencias rápidas', 'aiStylist.notMyStyle': 'No es mi estilo',
     'aiStylist.tooWestern': 'Demasiado occidental', 'aiStylist.didntFitBodyType': 'No se adapta a mi tipo de cuerpo',
     'aiStylist.culturalMismatch': 'No encaja culturalmente',
+    'aiStylist.askStylistTitle': 'Pregunta al estilista', 'aiStylist.whatDecisionHelp': '¿En qué decisión puedo ayudarte?',
+    'aiStylist.fashionRules': 'Reglas de moda', 'aiStylist.todayTip': 'Consejo del día',
+    'aiStylist.oneDecisionDay': 'Una decisión al día, cortesía mía.',
+    'aiStylist.decisionShopping': 'Elegir qué comprar', 'aiStylist.decisionShoppingDesc': 'Ayúdame a decidir entre opciones',
+    'aiStylist.decisionWhatToWear': '¿Qué debería ponerme?', 'aiStylist.decisionWhatToWearDesc': 'Escoge mi outfit para hoy',
+    'aiStylist.decisionEventOutfit': 'Outfit para un evento', 'aiStylist.decisionEventOutfitDesc': 'Algo específico que se avecina',
+    'aiStylist.decisionSanityCheck': 'Revisión rápida', 'aiStylist.decisionSanityCheckDesc': 'Solo necesito una segunda opinión',
+    'wardrobe.wardrobeAwaits': 'Tu armario te espera',
+    'wardrobe.wardrobeAwaitsDesc': 'Empieza a construir tu armario digital añadiendo fotos de tus prendas favoritas',
+    'wardrobe.quickAddMultiple': 'Añadir varios artículos rápido', 'wardrobe.addSingleItem': 'Añadir un artículo',
+    'wardrobe.piece': 'prenda', 'wardrobe.pieces': 'prendas',
     'settings.title': 'Configuración', 'settings.account': 'Cuenta', 'settings.editProfile': 'Editar perfil',
     'settings.email': 'Correo electrónico', 'settings.subscription': 'Suscripción', 'settings.preferences': 'Preferencias',
     'settings.styleTheme': 'Tema de estilo', 'settings.colourScheme': 'Esquema de color',

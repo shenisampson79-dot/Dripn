@@ -20,6 +20,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 import {
   decisionService,
   DecisionType,
@@ -95,6 +96,7 @@ type AskStylistScreenProps = {
 export default function AskStylistScreen({ navigation }: AskStylistScreenProps) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
+  const { translations } = useTranslations();
   const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<'type' | 'upload' | 'event-questions' | 'context' | 'response'>('type');
@@ -473,10 +475,23 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     return 'Your Stylist';
   };
 
+  const DECISION_LABEL_KEYS: Record<string, string | undefined> = {
+    shopping: translations.aiStylist?.decisionShopping,
+    'what-to-wear': translations.aiStylist?.decisionWhatToWear,
+    'event-outfit': translations.aiStylist?.decisionEventOutfit,
+    'sanity-check': translations.aiStylist?.decisionSanityCheck,
+  };
+  const DECISION_DESC_KEYS: Record<string, string | undefined> = {
+    shopping: translations.aiStylist?.decisionShoppingDesc,
+    'what-to-wear': translations.aiStylist?.decisionWhatToWearDesc,
+    'event-outfit': translations.aiStylist?.decisionEventOutfitDesc,
+    'sanity-check': translations.aiStylist?.decisionSanityCheckDesc,
+  };
+
   const renderTypeSelection = () => (
     <View style={styles.stepContent}>
       <ThemedText type="h2" style={styles.stepTitle}>
-        What decision can I help you with?
+        {translations.aiStylist?.whatDecisionHelp || 'What decision can I help you with?'}
       </ThemedText>
 
       <View style={styles.typeGrid}>
@@ -506,10 +521,10 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
                   <Feather name={type.icon as any} size={24} color="#FFFFFF" />
                 </View>
                 <ThemedText type="body" style={styles.typeLabel}>
-                  {type.label}
+                  {DECISION_LABEL_KEYS[type.id] || type.label}
                 </ThemedText>
                 <ThemedText type="small" style={styles.typeDescription}>
-                  {type.description}
+                  {DECISION_DESC_KEYS[type.id] || type.description}
                 </ThemedText>
               </LinearGradient>
             )}
@@ -521,7 +536,9 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         <View style={styles.limitInfo}>
           <Feather name="info" size={14} color="rgba(255,255,255,0.5)" />
           <ThemedText type="small" style={styles.limitText}>
-            {decisionService.getLimitCopy(user?.subscriptionTier || 'free').subtitle}
+            {decisionService.getLimitCopy(user?.subscriptionTier || 'free').subtitle === "One decision a day, on me."
+              ? (translations.aiStylist?.oneDecisionDay || "One decision a day, on me.")
+              : decisionService.getLimitCopy(user?.subscriptionTier || 'free').subtitle}
           </ThemedText>
         </View>
       ) : null}
@@ -531,7 +548,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           <View style={styles.blogHeader}>
             <Feather name="book-open" size={20} color={LUXURY_COLORS.gold} />
             <ThemedText type="h3" style={styles.blogTitle}>
-              Fashion Rules
+              {translations.aiStylist?.fashionRules || 'Fashion Rules'}
             </ThemedText>
           </View>
 
@@ -539,7 +556,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
             <View style={styles.dailyRuleBadge}>
               <Feather name="sun" size={12} color="#FFFFFF" />
               <ThemedText type="small" style={styles.dailyRuleBadgeText}>
-                Today's Tip
+                {translations.aiStylist?.todayTip || "Today's Tip"}
               </ThemedText>
             </View>
             <View style={styles.ruleNumberContainer}>
@@ -1233,7 +1250,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
             <Feather name="x" size={24} color="#FFFFFF" />
           </Pressable>
           <ThemedText type="h3" style={styles.headerTitle}>
-            Ask the Stylist
+            {translations.aiStylist?.askStylistTitle || 'Ask the Stylist'}
           </ThemedText>
           <View style={{ width: 40 }} />
         </View>
