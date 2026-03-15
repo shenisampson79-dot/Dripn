@@ -117,6 +117,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   const [response, setResponse] = useState<DecisionResponse | null>(null);
   const [secondOpinion, setSecondOpinion] = useState<SecondOpinionResponse | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   const [fashionRules, setFashionRules] = useState<FashionRule[]>([]);
   const [dailyRule, setDailyRule] = useState<FashionRule | null>(null);
@@ -420,7 +421,12 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   };
 
   const handleSecondOpinion = async () => {
-    if (!user?.id || !response) return;
+    if (!response) return;
+
+    if (!user?.id) {
+      setShowRegisterModal(true);
+      return;
+    }
 
     if (!accessStatus?.hasSecondOpinion) {
       setShowUpgradeModal(true);
@@ -1265,6 +1271,54 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           {step === 'response' && renderResponse()}
         </View>
       </ScreenScrollView>
+
+      <Modal
+        visible={showRegisterModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowRegisterModal(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowRegisterModal(false)}
+        >
+          <Pressable style={styles.upgradeModal} onPress={e => e.stopPropagation()}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+              style={styles.upgradeModalGradient}
+            >
+              <View style={styles.upgradeIconContainer}>
+                <Feather name="user-plus" size={32} color={LUXURY_COLORS.midnight} />
+              </View>
+              <ThemedText type="h2" style={styles.upgradeTitle}>
+                Register to access second opinions
+              </ThemedText>
+              <ThemedText style={styles.upgradeDescription}>
+                Create an account so we can get your style details and send you personalized recommendations. Your registered profile helps our stylists understand your preferences better.
+              </ThemedText>
+              <Pressable
+                onPress={() => {
+                  setShowRegisterModal(false);
+                  navigation.navigate('Auth');
+                }}
+                style={styles.upgradeButton}
+              >
+                <ThemedText type="body" style={styles.upgradeButtonText}>
+                  Sign up now
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={() => setShowRegisterModal(false)}
+                style={[styles.upgradeButton, { backgroundColor: 'transparent', borderWidth: 1, borderColor: LUXURY_COLORS.gold }]}
+              >
+                <ThemedText type="body" style={[styles.upgradeButtonText, { color: LUXURY_COLORS.gold }]}>
+                  Maybe later
+                </ThemedText>
+              </Pressable>
+            </LinearGradient>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal
         visible={showUpgradeModal}
