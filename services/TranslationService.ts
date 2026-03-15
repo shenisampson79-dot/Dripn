@@ -284,17 +284,8 @@ export interface SettingsTranslations {
 }
 
 export interface OnboardingTranslations {
-  steps: {
-    location: OnboardingStepTranslations;
-    basics: OnboardingStepTranslations;
-    body: OnboardingStepTranslations;
-    coloring: OnboardingStepTranslations;
-    lifestyle: OnboardingStepTranslations;
-    style: OnboardingStepTranslations;
-    colors: OnboardingStepTranslations;
-    shopping: OnboardingStepTranslations;
-    voice: OnboardingStepTranslations;
-  };
+  steps: Record<string, OnboardingStepTranslations>;
+  [key: string]: any;
 }
 
 export interface Translations {
@@ -686,6 +677,7 @@ class TranslationServiceClass {
       colorScan: { ...DEFAULT_TRANSLATIONS.colorScan, ...nested.colorScan },
       quiz: { ...DEFAULT_TRANSLATIONS.quiz, ...nested.quiz },
       onboarding: {
+        ...nested.onboarding,
         steps: { ...DEFAULT_TRANSLATIONS.onboarding.steps, ...nested.onboarding?.steps },
       },
       styleArchetypes: { ...DEFAULT_TRANSLATIONS.styleArchetypes, ...nested.styleArchetypes },

@@ -127,11 +127,11 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
       if (current && typeof current === 'object' && part in current) {
         current = current[part];
       } else {
-        return key;
+        return '';
       }
     }
     
-    return typeof current === 'string' ? current : key;
+    return typeof current === 'string' ? current : '';
   }, [translations]);
 
   const isRTL = translations.localeInfo.direction === 'rtl';
@@ -171,7 +171,7 @@ export function useTranslations() {
       refreshTranslations: async () => {},
       setLanguage: async () => {},
       syncFromAccent: async () => {},
-      t: (key: string) => key,
+      t: (_key: string) => '',
     };
   }
   return context;
