@@ -11,6 +11,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, LuxuryColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { apiService } from "@/services/ApiService";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
@@ -41,6 +42,7 @@ const CATEGORY_ICONS: Record<string, keyof typeof Feather.glyphMap> = {
 
 export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) {
   const { theme, isDark } = useTheme();
+  const { translations } = useTranslations();
   const { palette } = useColorScheme();
   const [rules, setRules] = useState<FashionRule[]>(FASHION_RULES);
   const [categories, setCategories] = useState<CategoryInfo[]>(FASHION_CATEGORIES);
@@ -238,7 +240,7 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
           <View style={styles.headerIconContainer}>
             <Feather name="book" size={32} color="#FFF" />
           </View>
-          <ThemedText style={styles.headerTitle}>Style Rules</ThemedText>
+          <ThemedText style={styles.headerTitle}>{translations.stylistHub?.styleRules || 'Style Rules'}</ThemedText>
           <ThemedText style={styles.headerSubtitle}>
             {allRules.length}+ essential fashion guidelines
           </ThemedText>

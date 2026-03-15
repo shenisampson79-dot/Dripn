@@ -33,6 +33,7 @@ export interface NavTranslations {
   chat: string;
   profile: string;
   settings: string;
+  stylist?: string;
 }
 
 export interface StylistTranslations {
@@ -158,6 +159,10 @@ export interface AIStylistTranslations {
 }
 
 export interface StylistHubTranslations {
+  screenTitle?: string;
+  styleToolsTitle?: string;
+  styleToolsSubtitle?: string;
+  customizeLayout?: string;
   personalStylist: string;
   personalStylistDesc: string;
   voiceChat: string;
@@ -334,6 +339,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     chat: 'Chat',
     profile: 'Profile',
     settings: 'Settings',
+    stylist: 'Stylist',
   },
   stylist: {
     greeting: 'Hello! How can I help you today?',
@@ -405,6 +411,9 @@ const DEFAULT_TRANSLATIONS: Translations = {
     noLikedOutfitsHint: 'Save outfits from your stylist recommendations',
   },
   stylistHub: {
+    screenTitle: 'Stylist',
+    styleToolsTitle: 'Style Tools',
+    styleToolsSubtitle: 'Your personal fashion assistant',
     personalStylist: 'Personal Stylist',
     personalStylistDesc: 'Chat with your AI stylist',
     voiceChat: 'Voice Chat',
@@ -418,6 +427,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     styleRules: 'Style Rules',
     styleRulesDesc: 'Your personal guidelines',
     holdToRearrange: 'Hold to rearrange',
+    customizeLayout: 'Long press any tile to customise your layout',
   },
   bodyScan: {
     title: 'Body Scan',
@@ -693,6 +703,17 @@ const LOCAL_TRANSLATIONS: Record<string, Record<string, string>> = {
     'settings.slow': 'Lenta', 'settings.normal': 'Normal', 'settings.fast': 'Rápida', 'settings.logout': 'Cerrar sesión',
     'settings.contactUs': 'Contáctanos', 'settings.privacy': 'Privacidad', 'settings.about': 'Acerca de',
     'settings.currentPlan': 'Plan actual', 'settings.managePlan': 'Gestionar plan',
+    'nav.stylist': 'Estilista',
+    'stylistHub.screenTitle': 'Estilista', 'stylistHub.styleToolsTitle': 'Herramientas de estilo',
+    'stylistHub.styleToolsSubtitle': 'Tu asistente de moda personal',
+    'stylistHub.personalStylist': 'Estilista Personal', 'stylistHub.personalStylistDesc': 'Chatea con tu estilista IA',
+    'stylistHub.voiceChat': 'Chat de voz', 'stylistHub.voiceChatDesc': 'Habla con Ruby o Max',
+    'stylistHub.outfitCalendar': 'Calendario de outfits', 'stylistHub.outfitCalendarDesc': 'Planifica tus looks con antelación',
+    'stylistHub.weatherOutfits': 'Outfits según el clima', 'stylistHub.weatherOutfitsDesc': 'Vístete según la previsión',
+    'stylistHub.blog': 'Blog', 'stylistHub.blogDesc': 'Consejos y guías de moda',
+    'stylistHub.styleRules': 'Reglas de estilo', 'stylistHub.styleRulesDesc': 'Tus pautas personales',
+    'stylistHub.holdToRearrange': 'Mantén pulsado para reorganizar',
+    'stylistHub.customizeLayout': 'Mantén pulsado cualquier ficha para personalizar tu diseño',
     'styleSelection.title': '¿Cuál es tu estilo?', 'styleSelection.subtitle': 'Elige la estética que te identifica',
     'styleSelection.styles.streetwear.name': 'Streetwear', 'styleSelection.styles.streetwear.description': 'Urbano, atrevido, tendencia',
     'styleSelection.styles.business.name': 'Negocios', 'styleSelection.styles.business.description': 'Trajes profesionales, camisas y ropa formal',

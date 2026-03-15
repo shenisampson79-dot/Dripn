@@ -25,6 +25,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslations } from '@/contexts/TranslationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWardrobe } from '@/contexts/WardrobeContext';
 import weatherService, { WeatherCondition, WeatherOutfitRecommendation } from '@/services/WeatherService';
@@ -46,6 +47,7 @@ const WEATHER_GRADIENTS: Record<string, [string, string]> = {
 
 export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenProps) {
   const { theme } = useTheme();
+  const { translations } = useTranslations();
   const { user } = useAuth();
   const { items } = useWardrobe();
   const [weather, setWeather] = useState<WeatherCondition | null>(null);
@@ -150,7 +152,7 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
           >
             <Feather name="arrow-left" size={20} color={theme.text} />
           </Pressable>
-          <ThemedText type="h2">Weather Outfits</ThemedText>
+          <ThemedText type="h2">{translations.stylistHub?.weatherOutfits || 'Weather Outfits'}</ThemedText>
           <View style={styles.headerSpacer} />
         </View>
         
@@ -211,7 +213,7 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
         >
           <Feather name="arrow-left" size={20} color={theme.text} />
         </Pressable>
-        <ThemedText type="h2">Weather Outfits</ThemedText>
+        <ThemedText type="h2">{translations.stylistHub?.weatherOutfits || 'Weather Outfits'}</ThemedText>
         <Pressable
           onPress={handleRefresh}
           style={[styles.backButton, { backgroundColor: theme.backgroundDefault }]}

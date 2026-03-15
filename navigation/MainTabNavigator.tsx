@@ -18,6 +18,7 @@ import SettingsStackNavigator from "@/navigation/SettingsStackNavigator";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 export type MainTabParamList = {
   StylistTab: undefined;
@@ -39,9 +40,17 @@ interface CustomTabBarProps extends BottomTabBarProps {
   onCreatePost: () => void;
 }
 
+const TAB_TRANSLATION_KEYS: Record<string, (nav: any) => string> = {
+  StylistTab: (nav) => nav?.stylist || 'Stylist',
+  WardrobeTab: (nav) => nav?.wardrobe || 'Wardrobe',
+  ProfileTab: (nav) => nav?.profile || 'Profile',
+  SettingsTab: (nav) => nav?.settings || 'Settings',
+};
+
 function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTabBarProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { translations } = useTranslations();
 
   const leftTabs = TAB_CONFIG.slice(0, 2);
   const rightTabs = TAB_CONFIG.slice(2);
@@ -92,7 +101,7 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
           ]}
           numberOfLines={1}
         >
-          {tabConfig.label}
+          {TAB_TRANSLATION_KEYS[tabConfig.name]?.(translations.nav) ?? tabConfig.label}
         </ThemedText>
       </Pressable>
     );

@@ -341,7 +341,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
       <ScreenScrollView style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerContent}>
           <View style={{ width: 40 }} />
-          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>Stylist</ThemedText>
+          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{translations.stylistHub?.screenTitle || 'Stylist'}</ThemedText>
           {/* Edit button hidden for now - re-enable when more features are added */}
           <View style={{ width: 40 }} />
         </View>
@@ -351,10 +351,10 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             <View style={styles.headerRow}>
               <View>
                 <ThemedText type="h3" style={[styles.title, { color: '#3D3426' }]}>
-                  Style Tools
+                  {translations.stylistHub?.styleToolsTitle || 'Style Tools'}
                 </ThemedText>
                 <ThemedText style={[styles.subtitle, { color: '#5A4D3A' }]}>
-                  Your personal fashion assistant
+                  {translations.stylistHub?.styleToolsSubtitle || 'Your personal fashion assistant'}
                 </ThemedText>
               </View>
             </View>
@@ -363,7 +363,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
               <View style={[styles.editHint, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
                 <Feather name="info" size={14} color="#FFFFFF" />
                 <ThemedText type="caption" style={{ color: '#FFFFFF', marginLeft: Spacing.xs }}>
-                  Long press any tile to customize your layout
+                  {translations.stylistHub?.customizeLayout || 'Long press any tile to customise your layout'}
                 </ThemedText>
               </View>
             ) : null}

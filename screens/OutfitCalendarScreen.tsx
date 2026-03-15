@@ -21,6 +21,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { Card } from '@/components/Card';
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslations } from '@/contexts/TranslationContext';
 import { useWardrobe, WardrobeItem, PlannedOutfit, PlannedEventType } from '@/contexts/WardrobeContext';
 import type { ProfileStackParamList } from '@/navigation/ProfileStackNavigator';
 import { apiService } from '@/services/ApiService';
@@ -49,6 +50,7 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 
 export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScreenProps) {
   const { theme, isDark } = useTheme();
+  const { translations } = useTranslations();
   const secondaryTextColor = getSecondaryTextColor(isDark);
   const tertiaryTextColor = getTertiaryTextColor(isDark);
   const { 
@@ -494,7 +496,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={theme.text} />
         </Pressable>
-        <ThemedText type="h2">Outfit Calendar</ThemedText>
+        <ThemedText type="h2">{translations.stylistHub?.outfitCalendar || 'Outfit Calendar'}</ThemedText>
         <View style={{ width: 40 }} />
       </View>
 
