@@ -6563,6 +6563,47 @@ app.get('/api/guest/stylists', async (req, res) => {
   }
 });
 
+// Helper: Extract user profile from conversation history
+function extractUserProfile(messages) {
+  const fullText = messages.map(m => m.content).join(' ').toLowerCase();
+  
+  let gender = null;
+  if (fullText.includes('male') || fullText.includes('man') || fullText.includes('guy') || fullText.includes('boy')) {
+    gender = 'male';
+  } else if (fullText.includes('female') || fullText.includes('woman') || fullText.includes('girl') || fullText.includes('lady')) {
+    gender = 'female';
+  } else if (fullText.includes('non-binary') || fullText.includes('nonbinary')) {
+    gender = 'non-binary';
+  }
+  
+  let occasion = null;
+  const occasionKeywords = ['date', 'work', 'casual', 'formal', 'party', 'beach', 'gym', 'wedding', 'interview', 'brunch', 'dinner', 'event'];
+  for (const occ of occasionKeywords) {
+    if (fullText.includes(occ)) {
+      occasion = occ;
+      break;
+    }
+  }
+  
+  let fit = null;
+  if (fullText.includes('loose') || fullText.includes('comfortable') || fullText.includes('oversized')) {
+    fit = 'loose';
+  } else if (fullText.includes('fitted') || fullText.includes('tailored') || fullText.includes('tight')) {
+    fit = 'fitted';
+  }
+  
+  let vibe = null;
+  const vibeKeywords = ['sporty', 'athletic', 'minimalist', 'clean', 'edgy', 'casual', 'formal', 'smart', 'polished', 'preppy', 'vintage', 'bohemian', 'eco'];
+  for (const v of vibeKeywords) {
+    if (fullText.includes(v)) {
+      vibe = v;
+      break;
+    }
+  }
+  
+  return { gender, occasion, fit, vibe };
+}
+
 app.post('/api/guest/chat', async (req, res) => {
   try {
     const { message, stylistId, conversationHistory = [] } = req.body;
@@ -6585,11 +6626,18 @@ app.post('/api/guest/chat', async (req, res) => {
       { role: 'user', content: message }
     ];
 
-    // Call the AI stylist service with proper context
+    // Extract user profile data to guide AI constraints
+    const profile = extractUserProfile(messages);
+
+    // Call the AI stylist service with proper context and extracted profile
     const response = await generateStylistResponse({
+      stylistId: normalizedStylistId,
       messages,
-      stylist: normalizedStylistId,
-      guestMode: true // Flag to indicate this is guest demo mode
+      userMessage: message,
+      userGender: profile.gender,
+      subscriptionTier: 'free',
+      guestMode: true, // Flag to indicate this is guest demo mode
+      profileData: profile // Pass explicit profile for AI constraints
     });
 
     res.json({ 

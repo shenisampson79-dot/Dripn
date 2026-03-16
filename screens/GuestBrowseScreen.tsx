@@ -207,10 +207,15 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       setMessagesRemaining(remaining);
 
       // Check if AI response contains outfit recommendations - detect keywords
+      // ONLY generate images after profile collection (after several exchanges)
       const outfitKeywords = ['outfit', 'wear', 'style', 'look', 'pieces', 'top', 'bottom', 'blazer', 'jeans', 'dress', 'shoes', 'accessories'];
       const hasOutfitContent = outfitKeywords.some(keyword => aiContent.toLowerCase().includes(keyword));
       
-      if (hasOutfitContent && sessionToken) {
+      // Count user messages to determine if we're past profile collection phase (step >= 3)
+      const userMessageCount = messages.filter(m => m.isUser).length;
+      const isPastProfileCollection = userMessageCount >= 3;
+      
+      if (hasOutfitContent && sessionToken && isPastProfileCollection) {
         // Try to generate outfit image in background
         try {
           console.log("Generating outfit image...");
