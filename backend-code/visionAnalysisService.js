@@ -97,6 +97,30 @@ Respond in JSON:
   "quickTip": "one actionable styling tip"
 }`;
 
+const GARMENT_ANALYSIS_PROMPT = `You are an expert fashion analyst specialising in wardrobe cataloguing. Look at this single clothing item or pair of shoes and extract precise details for a digital wardrobe.
+
+Return ONLY valid JSON in exactly this format with no extra text or markdown:
+{
+  "name": "short descriptive name, e.g. Navy Slim-Fit Chinos",
+  "category": "tops|bottoms|outerwear|footwear|accessories|dresses|activewear|underwear",
+  "subcategory": "e.g. jeans, t-shirt, blazer, sneakers, dress, hoodie",
+  "color": {
+    "primary": "main colour as a simple word (e.g. black, navy, white, grey)",
+    "secondary": "second colour or null if none"
+  },
+  "pattern": "solid|stripes|check|floral|graphic|camo|animal-print|other",
+  "material": "e.g. cotton, denim, leather, polyester, wool, or empty string if unsure",
+  "brand": "visible brand name or null",
+  "seasons": ["spring","summer","autumn","winter","all-season"],
+  "occasions": ["everyday","smart-casual","formal","sportswear","evening","beach"],
+  "style": "e.g. casual, minimalist, streetwear, formal, athletic",
+  "formality": 1,
+  "versatilityScore": 7
+}
+
+formality scale: 1=very casual, 3=smart-casual, 5=business, 7=formal, 10=black-tie.
+versatilityScore: 1-10 how many different outfits this piece can work with.`;
+
 const WARDROBE_MATCH_PROMPT = `You are a fashion stylist. The user has uploaded an outfit photo and wants suggestions from their wardrobe.
 
 UPLOADED OUTFIT:
@@ -338,8 +362,48 @@ Respond in JSON:
   }
 }
 
+async function analyzeGarmentItem(imageBase64) {
+  try {
+    const visionModel = await getBestModel('vision');
+    console.log(`[GarmentAnalysis] Using model: ${visionModel}`);
+
+    const response = await openai.chat.completions.create({
+      model: visionModel,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: GARMENT_ANALYSIS_PROMPT },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${imageBase64}`,
+                detail: 'high',
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 600,
+      temperature: 0.3,
+    });
+
+    const content = response.choices[0]?.message?.content?.trim();
+    if (!content) throw new Error('Empty response from vision model');
+
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+    const item = JSON.parse(cleanedContent);
+
+    return { success: true, item, modelUsed: visionModel };
+  } catch (error) {
+    console.error('[GarmentAnalysis] Error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 module.exports = {
   analyzeOutfitPhoto,
   compareOutfits,
   extractColorsFromPhoto,
+  analyzeGarmentItem,
 };

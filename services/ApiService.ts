@@ -460,6 +460,7 @@ class ApiService {
     console.log('[Wardrobe] Calling /api/wardrobe/analyze/resilient endpoint');
     
     // Use ONLY the resilient endpoint - no fallback to old auth-required endpoint
+    // Vision analysis via GPT-4 can take up to 60s — use a 90s timeout
     const result = await this.request<{
       success: boolean;
       analysis: {
@@ -489,6 +490,7 @@ class ApiService {
         detailed: options?.detailed ?? true,
         analysisType: 'garment'
       }),
+      timeout: 90000,
     });
     
     console.log('[Wardrobe] Resilient endpoint response received');

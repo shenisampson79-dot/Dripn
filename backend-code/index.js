@@ -11,7 +11,7 @@ const { sendPushNotification, sendBatchPushNotifications, processEventReminders 
 const colorTrendService = require('./colorTrendService');
 const { generateStylistResponse, detectMood, performComplexAnalysis, getAvailableAnalysisTypes, getBestReasoningModel } = require('./aiStylistService');
 const { getBestModel, getModelStatus, refreshAllModels, performHealthCheck, checkForNewModels } = require('./modelLifecycleService');
-const { analyzeOutfitPhoto, compareOutfits, extractColorsFromPhoto } = require('./visionAnalysisService');
+const { analyzeOutfitPhoto, compareOutfits, extractColorsFromPhoto, analyzeGarmentItem } = require('./visionAnalysisService');
 const { transcribeAudio, synthesizeSpeech, processVoiceMessage, createVoiceResponse, getAllVoices, generateVoicePreview, getSupportedLanguages } = require('./voiceService');
 const { getMoodBasedOutfit, getBodyPositivityAdvice, getCapsuleWardrobePlan, getConfidenceRitual, getWellnessOutfit, getDailyAffirmation } = require('./lifestyleStylistService');
 const { semanticStyleSearch, findComplementaryPieces, generateEmbedding, getCacheStats } = require('./styleEmbeddingService');
@@ -6603,6 +6603,33 @@ function extractUserProfile(messages) {
   
   return { gender, occasion, fit, vibe };
 }
+
+// Garment analysis endpoint — works without auth (used by DFY upload flow)
+app.post('/api/wardrobe/analyze/resilient', async (req, res) => {
+  try {
+    const { imageBase64 } = req.body;
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'imageBase64 is required' });
+    }
+
+    const result = await analyzeGarmentItem(imageBase64);
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error || 'Analysis failed' });
+    }
+
+    res.json({
+      success: true,
+      item: result.item,
+      analysis: result.item, // also expose under 'analysis' key for compatibility
+      modelUsed: result.modelUsed,
+      authMode: 'guest',
+    });
+  } catch (error) {
+    console.error('[Wardrobe/Analyze] Error:', error.message);
+    res.status(500).json({ error: 'Failed to analyze garment' });
+  }
+});
 
 // Track image generation per guest session (in-memory, 1 per session)
 const guestImageUsage = new Map();
