@@ -6646,7 +6646,7 @@ app.post('/api/guest/chat', async (req, res) => {
     });
 
     res.json({ 
-      response, 
+      response: response.content, // Return just the text content, not the full object
       timestamp: new Date(),
       stylistId: normalizedStylistId
     });
