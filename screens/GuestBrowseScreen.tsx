@@ -102,6 +102,18 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   const [showLimitReached, setShowLimitReached] = useState(false);
   const [signupPrompt, setSignupPrompt] = useState<string | null>(null);
 
+  // Conversation phase management - keeps frontend in control, bypasses broken backend templates
+  type ConversationPhase = 'initial' | 'profiling' | 'recommendations';
+  const [conversationPhase, setConversationPhase] = useState<ConversationPhase>('initial');
+  const [userProfile, setUserProfile] = useState<{
+    gender?: string;
+    location?: string;
+    weather?: string;
+    vibe?: string;
+    fit?: string;
+    occasion?: string;
+  } | null>(null);
+
   useEffect(() => {
     initializeGuestSession();
   }, []);
@@ -148,9 +160,88 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     }
   };
 
+  // Extract user profile from their answers to the 5 questions
+  const extractProfileFromText = (text: string) => {
+    const t = text.toLowerCase();
+    
+    // Gender detection - look near "4)" pattern first, then full text
+    let gender: string | undefined;
+    const genderPatterns = [
+      /4[).\s:]+[^0-9]*\b(male|man|guy|dude|bloke|he\/him)\b/i,
+      /gender[^a-z]*(male|man|guy)\b/i,
+      /i(?:'m| am) a? ?(male|man|guy)\b/i,
+      /\b(male|man|guy)\b/i,
+    ];
+    const femalePatterns = [
+      /4[).\s:]+[^0-9]*\b(female|woman|girl|lady|she\/her)\b/i,
+      /gender[^a-z]*(female|woman|girl)\b/i,
+      /i(?:'m| am) a? ?(female|woman|girl)\b/i,
+      /\b(female|woman|girl)\b/i,
+    ];
+    const nonBinaryPatterns = [/non.?binary|they\/them|enby/i];
+    
+    for (const p of genderPatterns) { if (p.test(t)) { gender = 'male'; break; } }
+    if (!gender) { for (const p of femalePatterns) { if (p.test(t)) { gender = 'female'; break; } } }
+    if (!gender) { for (const p of nonBinaryPatterns) { if (p.test(t)) { gender = 'non-binary'; break; } } }
+
+    // Fit detection
+    let fit: string | undefined;
+    if (/loose|comfortable|relaxed/i.test(t)) fit = 'loose and comfortable';
+    else if (/fitted|tailored|slim/i.test(t)) fit = 'fitted and tailored';
+    else if (/oversized/i.test(t)) fit = 'oversized';
+
+    // Vibe detection
+    let vibe: string | undefined;
+    if (/sporty.{0,15}polish|polished.{0,15}sport/i.test(t)) vibe = 'sporty but polished';
+    else if (/athletic|athlet/i.test(t)) vibe = 'athletic';
+    else if (/minimal|clean/i.test(t)) vibe = 'clean and minimal';
+    else if (/casual/i.test(t)) vibe = 'casual';
+    else if (/formal|smart/i.test(t)) vibe = 'smart and polished';
+
+    return { gender, fit, vibe };
+  };
+
+  // Get the 5-question profiling template for each stylist
+  const getProfilingTemplate = (stylistId: string): string => {
+    const templates: Record<string, string> = {
+      max: `To dial this in without overcomplicating it, tell me 5 quick things:\n1) Where exactly is the occasion (coffee walk, mini golf, climbing gym, dinner, etc.)?\n2) Weather + time of day (temp, day or evening)?\n3) Your vibe goal: more "athletic core" or "sporty but polished"?\n4) Your gender/how you identify?\n5) Do you prefer your clothes fitted & tailored, loose & comfortable, or oversized?`,
+      ruby: `Let me help you look amazing! Tell me 5 things:\n1) Where's the occasion?\n2) Weather + time (temp, day or evening)?\n3) What vibe are you feeling - bold or effortless chic?\n4) Your gender/how you identify?\n5) Fitted & tailored, loose & comfortable, or oversized?`,
+      ace: `Yo, let's get you sorted. 5 quick things:\n1) Where's the date/event?\n2) Weather + time?\n3) Vibe: street-smart or clean & polished?\n4) Your gender/how you identify?\n5) Fit preference: fitted, loose, or oversized?`,
+      ivy: `Let's find you something perfect and sustainable! Quick 5:\n1) Where's the occasion?\n2) Weather + time?\n3) Vibe: natural & minimal or earthy bold?\n4) Your gender/how you identify?\n5) Fitted & tailored, loose & comfortable, or oversized?`,
+    };
+    return templates[stylistId] || templates.max;
+  };
+
+  // Build the explicit backend prompt after profile is collected
+  const buildRecommendationPrompt = (
+    userAnswers: string,
+    profile: NonNullable<typeof userProfile>,
+    originalOccasion: string
+  ): string => {
+    const genderLine = profile.gender === 'male'
+      ? 'GENDER: MALE — recommend menswear only. DO NOT suggest female-oriented styles.'
+      : profile.gender === 'female'
+      ? 'GENDER: FEMALE — recommend womenswear appropriate for the occasion.'
+      : profile.gender === 'non-binary'
+      ? 'GENDER: NON-BINARY — recommend gender-neutral or androgynous styles.'
+      : 'GENDER: not specified';
+
+    return `Please give me specific outfit recommendations based on my full profile:
+
+${genderLine}
+OCCASION: ${originalOccasion}
+DETAILS: ${userAnswers}
+FIT PREFERENCE: ${profile.fit || 'not specified'}
+VIBE GOAL: ${profile.vibe || 'not specified'}
+
+Give me 3 specific, complete outfit options with exact clothing items (tops, bottoms, shoes, outerwear if needed). Be direct and practical.`;
+  };
+
   const handleSelectStylist = (stylist: GuestStylist) => {
     setSelectedStylist(stylist);
-    const greeting = stylist.greeting || STYLIST_GREETINGS[stylist.id] || `Hi! I'm ${stylist.name}. What can I help you with today?`;
+    setConversationPhase('initial');
+    setUserProfile(null);
+    const greeting = STYLIST_GREETINGS[stylist.id] || `Hi! I'm ${stylist.name}. What can I help you with today?`;
     setMessages([{
       id: "greeting",
       content: greeting,
@@ -162,9 +253,10 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   const handleSendMessage = async () => {
     if (!inputText.trim() || !sessionToken || !selectedStylist || isSending) return;
 
+    const userText = inputText.trim();
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
-      content: inputText.trim(),
+      content: userText,
       isUser: true,
       timestamp: new Date(),
     };
@@ -174,24 +266,103 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     setIsSending(true);
 
     try {
-      console.log("Sending chat request to stylist:", selectedStylist.id);
-      
-      // Build conversation history for context (exclude the message we just added)
+      // PHASE 1: First user message → show 5-question template from frontend
+      // This completely bypasses the deployed backend's broken profile collection
+      if (conversationPhase === 'initial') {
+        const profilingTemplate = getProfilingTemplate(selectedStylist.id);
+        const templateMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          content: profilingTemplate,
+          isUser: false,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, templateMessage]);
+        setConversationPhase('profiling');
+        setIsSending(false);
+        return;
+      }
+
+      // PHASE 2: User answered the 5 questions → extract profile and get recommendations
+      if (conversationPhase === 'profiling') {
+        // Extract profile from user's answers
+        const extractedProfile = extractProfileFromText(userText);
+        
+        // Also check the initial message for context
+        const initialUserMsg = messages.find(m => m.isUser)?.content || '';
+        const fullContext = `${initialUserMsg} ${userText}`;
+        const fullProfile = extractProfileFromText(fullContext);
+        
+        const finalProfile = {
+          gender: extractedProfile.gender || fullProfile.gender,
+          fit: extractedProfile.fit || fullProfile.fit,
+          vibe: extractedProfile.vibe || fullProfile.vibe,
+          occasion: initialUserMsg,
+        };
+        
+        setUserProfile(finalProfile);
+        setConversationPhase('recommendations');
+
+        // Build an explicit, gender-aware prompt for the backend
+        const recommendationPrompt = buildRecommendationPrompt(userText, finalProfile, initialUserMsg);
+        
+        // Call backend with explicit profile context
+        const conversationHistory = [
+          { role: 'user' as const, content: initialUserMsg },
+          { role: 'assistant' as const, content: getProfilingTemplate(selectedStylist.id) },
+          { role: 'user' as const, content: userText },
+        ];
+
+        const rawResponse = await apiService.guestChat(
+          sessionToken, 
+          recommendationPrompt, 
+          selectedStylist.id, 
+          conversationHistory
+        ) as any;
+
+        let aiContent = rawResponse?.response || rawResponse?.message || rawResponse?.text || "Let me put together some looks for you!";
+        aiContent = aiContent.replace(/\*\*/g, '').replace(/\*/g, '');
+
+        const aiMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          content: aiContent,
+          isUser: false,
+          timestamp: new Date(),
+        };
+
+        setMessages(prev => [...prev, aiMessage]);
+        const remaining = rawResponse?.remainingMessages ?? messagesRemaining - 1;
+        setMessagesRemaining(remaining);
+
+        if (rawResponse?.limitReached === true || remaining <= 0) {
+          setShowLimitReached(true);
+        }
+        setIsSending(false);
+        return;
+      }
+
+      // PHASE 3+: Ongoing recommendations chat — call backend normally with full history
       const conversationHistory = messages.map(msg => ({
-        role: msg.isUser ? 'user' : 'assistant',
+        role: msg.isUser ? 'user' as const : 'assistant' as const,
         content: msg.content
       }));
-      
-      const rawResponse = await apiService.guestChat(sessionToken, userMessage.content, selectedStylist.id, conversationHistory) as any;
-      console.log("Chat response received:", JSON.stringify(rawResponse));
-      
-      // The backend returns: { success, response, stylist, remainingMessages, showSignupPrompt }
+
+      // Add gender context to follow-up messages too
+      const genderPrefix = userProfile?.gender === 'male'
+        ? '[User is male — menswear only] '
+        : userProfile?.gender === 'female'
+        ? '[User is female] '
+        : '';
+
+      const rawResponse = await apiService.guestChat(
+        sessionToken, 
+        `${genderPrefix}${userText}`, 
+        selectedStylist.id, 
+        conversationHistory
+      ) as any;
+
       let aiContent = rawResponse?.response || rawResponse?.message || rawResponse?.text || "I'm here to help with your style!";
-      
-      // Strip markdown asterisks from response
       aiContent = aiContent.replace(/\*\*/g, '').replace(/\*/g, '');
-      console.log("AI content extracted:", aiContent.substring(0, 50));
-      
+
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         content: aiContent,
@@ -199,81 +370,26 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         timestamp: new Date(),
       };
 
-      console.log("Adding AI message to chat");
       setMessages(prev => [...prev, aiMessage]);
-      
       const remaining = rawResponse?.remainingMessages ?? messagesRemaining - 1;
-      console.log("Remaining messages:", remaining);
       setMessagesRemaining(remaining);
 
-      // Check if AI response contains outfit recommendations - detect keywords
-      // ONLY generate images after profile collection (after several exchanges)
-      const outfitKeywords = ['outfit', 'wear', 'style', 'look', 'pieces', 'top', 'bottom', 'blazer', 'jeans', 'dress', 'shoes', 'accessories'];
-      const hasOutfitContent = outfitKeywords.some(keyword => aiContent.toLowerCase().includes(keyword));
-      
-      // Count user messages to determine if we're past profile collection phase (step >= 3)
-      const userMessageCount = messages.filter(m => m.isUser).length;
-      const isPastProfileCollection = userMessageCount >= 3;
-      
-      if (hasOutfitContent && sessionToken && isPastProfileCollection) {
-        // Try to generate outfit image in background
-        try {
-          console.log("Generating outfit image...");
-          // Extract a style from the conversation (default to casual)
-          const styleKeywords = ['clean girl', 'minimal', 'streetwear', 'vintage', 'casual', 'formal', 'edgy', 'classic'];
-          let detectedStyle = 'casual';
-          for (const style of styleKeywords) {
-            if (aiContent.toLowerCase().includes(style) || userMessage.content.toLowerCase().includes(style)) {
-              detectedStyle = style;
-              break;
-            }
-          }
-          
-          const imageResponse = await apiService.guestGenerateOutfitImage(
-            sessionToken,
-            aiContent.substring(0, 500), // Use AI response as description
-            detectedStyle,
-            selectedStylist.id
-          );
-          
-          if (imageResponse?.success && imageResponse?.imageUrl) {
-            // Add image as a separate message (only after we've given outfit recommendations)
-            const imageMessage: ChatMessage = {
-              id: (Date.now() + 2).toString(),
-              content: imageResponse.isPlaceholder ? "Upgrade for AI-generated looks" : "Here's what that could look like:",
-              isUser: false,
-              timestamp: new Date(),
-              imageUrl: imageResponse.imageUrl,
-              isPlaceholder: imageResponse.isPlaceholder,
-            };
-            setMessages(prev => [...prev, imageMessage]);
-          }
-        } catch (imageError) {
-          console.log("Image generation failed (non-critical):", imageError);
-          // Don't show error to user - image generation is optional
-        }
-      }
-
-      // Only show limit reached when actually out of messages
       if (rawResponse?.limitReached === true || remaining <= 0) {
-        console.log("Limit reached - showing signup prompt");
         setShowLimitReached(true);
         if (rawResponse?.signupPrompt) {
           setSignupPrompt(rawResponse.signupPrompt);
         }
       }
-      console.log("Chat response processed successfully");
     } catch (error: any) {
       console.log("Guest chat error:", error?.message || error);
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: `Something went wrong: ${error?.message || 'Please try again.'}`,
+        content: "Something went wrong. Please try again.",
         isUser: false,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
-      console.log("Setting isSending to false");
       setIsSending(false);
     }
   };
@@ -286,6 +402,8 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     if (selectedStylist) {
       setSelectedStylist(null);
       setMessages([]);
+      setConversationPhase('initial');
+      setUserProfile(null);
     } else {
       navigation.goBack();
     }
