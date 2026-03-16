@@ -4,6 +4,25 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// GPT-5 and o-series models use max_completion_tokens and don't support presence/frequency_penalty
+function isNewGenerationModel(model) {
+  if (!model) return false;
+  const m = model.toLowerCase();
+  return m.startsWith('gpt-5') || m.startsWith('o1') || m.startsWith('o3') || m.startsWith('o4');
+}
+
+function buildCompletionParams(model, maxTokens, extra = {}) {
+  const tokenParam = isNewGenerationModel(model)
+    ? { max_completion_tokens: maxTokens }
+    : { max_tokens: maxTokens };
+  if (isNewGenerationModel(model)) {
+    // Newer models: remove presence_penalty, frequency_penalty, and non-default temperature
+    const { presence_penalty, frequency_penalty, temperature, ...rest } = extra;
+    return { ...tokenParam, ...rest };
+  }
+  return { ...tokenParam, ...extra };
+}
+
 const MODEL_PREFERENCE_ORDER = [
   'gpt-5.2',
   'gpt-5.1',
@@ -367,8 +386,7 @@ Provide a comprehensive, well-structured analysis. Use headers, bullet points, a
           { role: 'system', content: systemMessage },
           { role: 'user', content: userMessage },
         ],
-        temperature: 0.7,
-        max_tokens: 4000,
+        ...buildCompletionParams(reasoningModel, 4000, { temperature: 0.7 }),
       });
     }
 
@@ -403,8 +421,7 @@ Provide a comprehensive, well-structured analysis. Use headers, bullet points, a
           { role: 'system', content: systemMessage },
           { role: 'user', content: userMessage },
         ],
-        temperature: 0.7,
-        max_tokens: 4000,
+        ...buildCompletionParams(fallbackModel, 4000, { temperature: 0.7 }),
       });
 
       const analysisContent = response.choices[0]?.message?.content?.trim();
@@ -729,8 +746,7 @@ async function detectMood(userMessage) {
         { role: 'system', content: MOOD_DETECTION_PROMPT },
         { role: 'user', content: userMessage },
       ],
-      temperature: 0.3,
-      max_tokens: 200,
+      ...buildCompletionParams(miniModel, 200, { temperature: 0.3 }),
     });
 
     const content = response.choices[0]?.message?.content?.trim();
@@ -903,10 +919,11 @@ Remember: You are ${stylist.name}. Stay completely in character. Make this perso
         { role: 'system', content: systemMessage },
         ...conversationHistory,
       ],
-      temperature: 0.85,
-      max_tokens: 800,
-      presence_penalty: 0.2,
-      frequency_penalty: 0.15,
+      ...buildCompletionParams(bestModel, 800, {
+        temperature: 0.85,
+        presence_penalty: 0.2,
+        frequency_penalty: 0.15,
+      }),
     });
 
     const assistantMessage = response.choices[0]?.message?.content?.trim();
