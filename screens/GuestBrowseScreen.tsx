@@ -211,7 +211,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       ) as any;
 
       let aiContent = rawResponse?.response || rawResponse?.message || rawResponse?.text || "I'm here to help with your style!";
-      aiContent = aiContent.replace(/\*\*/g, '').replace(/\*/g, '');
+      aiContent = aiContent.replace(/^#{1,6}\s+/gm, '').replace(/\*\*/g, '').replace(/\*/g, '');
 
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
