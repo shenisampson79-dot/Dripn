@@ -856,7 +856,26 @@ async function generateStylistResponse({
     ? `\n\nLANGUAGE: You MUST respond entirely in ${languageName}. The user's preferred language is ${languageName}. Every word of your response must be in ${languageName}, including affectionate terms, fashion advice, and sign-offs. Do not switch to English under any circumstances.`
     : '';
 
-  const systemMessage = `${stylist.systemPrompt}${languageInstruction}
+  // CRITICAL: Add mandatory gender-specific constraints to force AI to respect user's gender
+  let genderConstraint = '';
+  if (userGender === 'male') {
+    genderConstraint = `\n\nMANDATORY GENDER CONSTRAINT: This user is MALE. 
+- DO NOT suggest female-oriented styles like "clean girl vibe", "soft girl aesthetic", "girlboss", "coquette", "e-girl", "that girl energy"
+- DO NOT reference female fashion influencers or female-specific trends
+- DO recommend masculine or unisex styles appropriate for men
+- You MUST respect this user's stated gender in every recommendation`;
+  } else if (userGender === 'female') {
+    genderConstraint = `\n\nMANDATORY GENDER CONSTRAINT: This user is FEMALE.
+- You can reference female fashion influences and trends appropriate for women
+- Respect this user's stated gender in all recommendations`;
+  } else if (userGender === 'non-binary') {
+    genderConstraint = `\n\nMANDATORY GENDER CONSTRAINT: This user is NON-BINARY.
+- Recommend gender-neutral and androgynous styles
+- Avoid gendered fashion language
+- Respect this user's stated gender identity in all recommendations`;
+  }
+
+  const systemMessage = `${stylist.systemPrompt}${languageInstruction}${genderConstraint}
 
 CURRENT USER CONTEXT:
 - Gender: ${userGender || 'not specified'}

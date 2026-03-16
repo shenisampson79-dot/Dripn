@@ -6606,21 +6606,25 @@ function extractUserProfile(messages) {
 
 app.post('/api/guest/chat', async (req, res) => {
   try {
-    const { message, stylistId, conversationHistory = [] } = req.body;
-    if (!message || !stylistId) {
+    // Handle both stylist/stylistId field names from different frontend versions
+    const { message, stylist, stylistId, history, conversationHistory = [] } = req.body;
+    const receivedStylistId = stylist || stylistId;
+    const receivedHistory = history || conversationHistory || [];
+    
+    if (!message || !receivedStylistId) {
       return res.status(400).json({ error: 'Message and stylistId required' });
     }
 
     // Convert stylistId to proper format (ruby, max, ace, ivy)
-    const normalizedStylistId = stylistId.toLowerCase();
+    const normalizedStylistId = receivedStylistId.toLowerCase();
     if (!['ruby', 'max', 'ace', 'ivy'].includes(normalizedStylistId)) {
       return res.status(400).json({ error: 'Invalid stylistId' });
     }
 
-    // Build conversation context
+    // Build conversation context - handle both field name formats
     const messages = [
-      ...conversationHistory.map(msg => ({ 
-        role: msg.isUser ? 'user' : 'assistant', 
+      ...receivedHistory.map(msg => ({ 
+        role: msg.role || (msg.isUser ? 'user' : 'assistant'), 
         content: msg.content 
       })),
       { role: 'user', content: message }
@@ -6628,6 +6632,7 @@ app.post('/api/guest/chat', async (req, res) => {
 
     // Extract user profile data to guide AI constraints
     const profile = extractUserProfile(messages);
+    console.log(`[Guest Chat] Extracted profile - Gender: ${profile.gender}, Occasion: ${profile.occasion}, Fit: ${profile.fit}, Vibe: ${profile.vibe}`);
 
     // Call the AI stylist service with proper context and extracted profile
     const response = await generateStylistResponse({
