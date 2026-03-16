@@ -6565,12 +6565,38 @@ app.get('/api/guest/stylists', async (req, res) => {
 
 app.post('/api/guest/chat', async (req, res) => {
   try {
-    const { message, stylistId } = req.body;
+    const { message, stylistId, conversationHistory = [] } = req.body;
     if (!message || !stylistId) {
       return res.status(400).json({ error: 'Message and stylistId required' });
     }
-    const response = `Thanks for chatting with me! This is a demo response.`;
-    res.json({ response, timestamp: new Date() });
+
+    // Convert stylistId to proper format (ruby, max, ace, ivy)
+    const normalizedStylistId = stylistId.toLowerCase();
+    if (!['ruby', 'max', 'ace', 'ivy'].includes(normalizedStylistId)) {
+      return res.status(400).json({ error: 'Invalid stylistId' });
+    }
+
+    // Build conversation context
+    const messages = [
+      ...conversationHistory.map(msg => ({ 
+        role: msg.isUser ? 'user' : 'assistant', 
+        content: msg.content 
+      })),
+      { role: 'user', content: message }
+    ];
+
+    // Call the AI stylist service with proper context
+    const response = await generateStylistResponse({
+      messages,
+      stylist: normalizedStylistId,
+      guestMode: true // Flag to indicate this is guest demo mode
+    });
+
+    res.json({ 
+      response, 
+      timestamp: new Date(),
+      stylistId: normalizedStylistId
+    });
   } catch (error) {
     console.error('Guest chat error:', error);
     res.status(500).json({ error: 'Failed to process chat' });

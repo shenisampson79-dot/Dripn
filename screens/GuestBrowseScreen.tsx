@@ -232,10 +232,10 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
           );
           
           if (imageResponse?.success && imageResponse?.imageUrl) {
-            // Add image as a separate message
+            // Add image as a separate message (only after we've given outfit recommendations)
             const imageMessage: ChatMessage = {
               id: (Date.now() + 2).toString(),
-              content: imageResponse.isPlaceholder ? "Here's some style inspiration:" : "Here's what that could look like:",
+              content: imageResponse.isPlaceholder ? "Upgrade for AI-generated looks" : "Here's what that could look like:",
               isUser: false,
               timestamp: new Date(),
               imageUrl: imageResponse.imageUrl,
