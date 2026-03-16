@@ -161,7 +161,29 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   };
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || !sessionToken || !selectedStylist || isSending) return;
+    if (!inputText.trim() || !selectedStylist || isSending) return;
+
+    // If session isn't ready yet, try to re-initialise it before giving up
+    let activeToken = sessionToken;
+    if (!activeToken) {
+      setIsSending(true);
+      try {
+        const session = await apiService.createGuestSession() as any;
+        activeToken = session.sessionToken;
+        await AsyncStorage.setItem(GUEST_TOKEN_KEY, activeToken);
+        setSessionToken(activeToken);
+      } catch {
+        const errorMessage: ChatMessage = {
+          id: Date.now().toString(),
+          content: "Couldn't connect to your stylist. Please check your connection and try again.",
+          isUser: false,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        setIsSending(false);
+        return;
+      }
+    }
 
     const userText = inputText.trim();
     const userMessage: ChatMessage = {
@@ -182,7 +204,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       }));
 
       const rawResponse = await apiService.guestChat(
-        sessionToken,
+        activeToken,
         userText,
         selectedStylist.id,
         conversationHistory
@@ -476,7 +498,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
                 ]}
               >
                 {isSending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={inputText.trim() ? "#FFFFFF" : theme.tabIconDefault} />
                 ) : (
                   <Feather name="send" size={18} color={inputText.trim() ? "#FFFFFF" : theme.tabIconDefault} />
                 )}
