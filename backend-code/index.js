@@ -6535,6 +6535,60 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy' });
 });
 
+// ============ GUEST DEMO ENDPOINTS ============
+app.post('/api/guest/session', async (req, res) => {
+  try {
+    const sessionToken = require('crypto').randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    res.json({ sessionToken, expiresAt });
+  } catch (error) {
+    console.error('Guest session error:', error);
+    res.status(500).json({ error: 'Failed to create guest session' });
+  }
+});
+
+app.get('/api/guest/stylists', async (req, res) => {
+  try {
+    // Only return the 4 main stylists - NO Julia (she's support, not a main stylist)
+    const stylists = [
+      { id: 'ruby', name: 'Ruby', personality: 'Bold & glamorous', greeting: 'Hey there! Ready to make a statement?', avatar: '' },
+      { id: 'max', name: 'Max', personality: 'Clean & minimal', greeting: 'Less is more. Let\'s find your perfect look.', avatar: '' },
+      { id: 'ace', name: 'Ace', personality: 'Street-smart', greeting: 'What\'s good! Let\'s get you styled up.', avatar: '' },
+      { id: 'ivy', name: 'Ivy', personality: 'Eco-conscious', greeting: 'Sustainable style starts here!', avatar: '' }
+    ];
+    res.json({ stylists });
+  } catch (error) {
+    console.error('Guest stylists error:', error);
+    res.status(500).json({ error: 'Failed to load stylists' });
+  }
+});
+
+app.post('/api/guest/chat', async (req, res) => {
+  try {
+    const { message, stylistId } = req.body;
+    if (!message || !stylistId) {
+      return res.status(400).json({ error: 'Message and stylistId required' });
+    }
+    const response = `Thanks for chatting with me! This is a demo response.`;
+    res.json({ response, timestamp: new Date() });
+  } catch (error) {
+    console.error('Guest chat error:', error);
+    res.status(500).json({ error: 'Failed to process chat' });
+  }
+});
+
+app.get('/api/guest/status', async (req, res) => {
+  try {
+    res.json({ 
+      session: { messagesRemaining: 5 },
+      isActive: true
+    });
+  } catch (error) {
+    console.error('Guest status error:', error);
+    res.status(500).json({ error: 'Failed to get status' });
+  }
+});
+
 // User Feedback endpoint - no auth required for guest access
 app.post('/api/feedback', async (req, res) => {
   try {
