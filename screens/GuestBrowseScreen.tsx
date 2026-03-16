@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   View,
+  Text,
   Pressable,
   TextInput,
   FlatList,
@@ -44,6 +45,9 @@ interface ChatMessage {
   timestamp: Date;
   imageUrl?: string;
   isPlaceholder?: boolean;
+  showVisualizeButton?: boolean;
+  isGeneratingImage?: boolean;
+  outfitContext?: string;
 }
 
 const DEFAULT_STYLISTS: GuestStylist[] = [
@@ -101,6 +105,8 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   const [messagesRemaining, setMessagesRemaining] = useState(5);
   const [showLimitReached, setShowLimitReached] = useState(false);
   const [signupPrompt, setSignupPrompt] = useState<string | null>(null);
+  const [userGender, setUserGender] = useState<string | null>(null);
+  const [imageGenUsed, setImageGenUsed] = useState(false);
 
 
   useEffect(() => {
@@ -211,13 +217,26 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       ) as any;
 
       let aiContent = rawResponse?.response || rawResponse?.message || rawResponse?.text || "I'm here to help with your style!";
-      aiContent = aiContent.replace(/^#{1,6}\s+/gm, '').replace(/\*\*/g, '').replace(/\*/g, '');
+      // Replace ### headings with ► so renderer can bold them; strip other markdown
+      aiContent = aiContent.replace(/^#{1,6}\s+(.+)/gm, '►$1').replace(/\*\*/g, '').replace(/\*/g, '');
+
+      // Track gender for image generation context
+      const lowerUserText = userText.toLowerCase();
+      if (!userGender) {
+        if (/\b(male|man|guy|he|him|bloke|lad)\b/.test(lowerUserText)) setUserGender('male');
+        else if (/\b(female|woman|girl|she|her|lady)\b/.test(lowerUserText)) setUserGender('female');
+      }
+
+      const outfitContext = aiContent.replace(/►/g, '').substring(0, 400);
+      const showVisualizeButton = !imageGenUsed && (rawResponse?.hasOutfitRecommendation === true);
 
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         content: aiContent,
         isUser: false,
         timestamp: new Date(),
+        showVisualizeButton,
+        outfitContext,
       };
 
       setMessages(prev => [...prev, aiMessage]);
@@ -247,6 +266,29 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
 
   const handleSignUp = () => {
     navigation.navigate("Auth", { mode: "signup" });
+  };
+
+  const handleGenerateOutfitImage = async (messageId: string, outfitContext: string) => {
+    if (!sessionToken || !selectedStylist) return;
+    setMessages(prev => prev.map(m => m.id === messageId ? { ...m, isGeneratingImage: true } : m));
+    try {
+      const result = await apiService.guestGenerateOutfitImage(
+        sessionToken,
+        outfitContext,
+        userGender || "neutral",
+        selectedStylist.id
+      ) as any;
+      setMessages(prev => prev.map(m =>
+        m.id === messageId
+          ? { ...m, isGeneratingImage: false, showVisualizeButton: false, imageUrl: result.imageUrl, isPlaceholder: false }
+          : m
+      ));
+      setImageGenUsed(true);
+    } catch (err: any) {
+      setMessages(prev => prev.map(m =>
+        m.id === messageId ? { ...m, isGeneratingImage: false, showVisualizeButton: false } : m
+      ));
+    }
   };
 
   const handleBack = () => {
@@ -297,6 +339,31 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     );
   };
 
+  const renderFormattedContent = (text: string, textColor: string) => {
+    const lines = text.split('\n');
+    return (
+      <View>
+        {lines.map((line, i) => {
+          if (line.startsWith('►')) {
+            return (
+              <Text key={i} style={{ fontWeight: '700', fontSize: 15, color: textColor, marginTop: i > 0 ? 8 : 0, marginBottom: 2 }}>
+                {line.substring(1)}
+              </Text>
+            );
+          }
+          if (line.trim() === '') {
+            return <View key={i} style={{ height: 5 }} />;
+          }
+          return (
+            <Text key={i} style={{ fontSize: 15, color: textColor, lineHeight: 22 }}>
+              {line}
+            </Text>
+          );
+        })}
+      </View>
+    );
+  };
+
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const colors = selectedStylist ? STYLIST_COLORS[selectedStylist.id] : { primary: "#6B7280", secondary: "#374151" };
     
@@ -310,12 +377,8 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
               : { backgroundColor: theme.backgroundSecondary, borderBottomLeftRadius: 4 },
           ]}
         >
-          <ThemedText
-            type="body"
-            style={{ color: item.isUser ? "#FFFFFF" : theme.text }}
-          >
-            {item.content}
-          </ThemedText>
+          {renderFormattedContent(item.content, item.isUser ? "#FFFFFF" : theme.text)}
+
           {item.imageUrl && (
             <View style={styles.outfitImageContainer}>
               <Image
@@ -323,14 +386,24 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
                 style={styles.outfitImage}
                 resizeMode="cover"
               />
-              {item.isPlaceholder && (
-                <View style={[styles.placeholderBadge, { backgroundColor: colors.primary }]}>
-                  <ThemedText type="small" style={{ color: "#FFFFFF", fontWeight: "600" }}>
-                    Upgrade for AI-generated looks
-                  </ThemedText>
+            </View>
+          )}
+
+          {!item.imageUrl && item.showVisualizeButton && (
+            <Pressable
+              onPress={() => handleGenerateOutfitImage(item.id, item.outfitContext || item.content)}
+              disabled={item.isGeneratingImage}
+              style={[styles.visualizeButton, { backgroundColor: colors.primary }]}
+            >
+              {item.isGeneratingImage ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Feather name="image" size={14} color="#FFFFFF" />
+                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>Visualize this outfit</Text>
                 </View>
               )}
-            </View>
+            </Pressable>
           )}
         </View>
       </View>
@@ -621,18 +694,17 @@ const styles = StyleSheet.create({
   },
   outfitImage: {
     width: "100%",
-    height: 200,
+    height: 260,
     borderRadius: BorderRadius.md,
   },
-  placeholderBadge: {
-    position: "absolute",
-    bottom: Spacing.sm,
-    left: Spacing.sm,
-    right: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    alignItems: "center",
+  visualizeButton: {
+    marginTop: Spacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 38,
   },
   inputContainer: {
     paddingHorizontal: Spacing.lg,

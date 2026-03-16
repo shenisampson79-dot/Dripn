@@ -6604,6 +6604,45 @@ function extractUserProfile(messages) {
   return { gender, occasion, fit, vibe };
 }
 
+// Track image generation per guest session (in-memory, 1 per session)
+const guestImageUsage = new Map();
+
+app.post('/api/guest/generate-outfit-image', async (req, res) => {
+  try {
+    const sessionToken = req.headers['x-guest-token'] || req.body.sessionToken;
+    const { outfitDescription, style, stylist } = req.body;
+
+    if (!sessionToken || !outfitDescription) {
+      return res.status(400).json({ error: 'Session token and outfit description required' });
+    }
+
+    const used = guestImageUsage.get(sessionToken) || 0;
+    if (used >= 1) {
+      return res.status(429).json({ error: 'Image limit reached for guest session', limitReached: true });
+    }
+
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const genderTerm = style === 'male' ? 'man, male model' : style === 'female' ? 'woman, female model' : 'fashion model';
+    const prompt = `High-end fashion editorial photograph of a ${genderTerm} wearing: ${outfitDescription}. Full body shot, clean neutral background, natural lighting, professional fashion photography, modern and stylish. Absolutely no text, letters, numbers, or alphanumeric characters visible anywhere.`;
+
+    const response = await openai.images.generate({
+      model: 'dall-e-3',
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      quality: 'standard',
+    });
+
+    guestImageUsage.set(sessionToken, used + 1);
+    res.json({ success: true, imageUrl: response.data[0].url, isPlaceholder: false });
+  } catch (error) {
+    console.error('Outfit image generation error:', error);
+    res.status(500).json({ error: 'Failed to generate outfit image' });
+  }
+});
+
 app.post('/api/guest/chat', async (req, res) => {
   try {
     // Handle both stylist/stylistId field names from different frontend versions
@@ -6645,8 +6684,13 @@ app.post('/api/guest/chat', async (req, res) => {
       profileData: profile // Pass explicit profile for AI constraints
     });
 
+    const outfitKeywords = ['tee', 'jeans', 'sneakers', 'jacket', 'trousers', 'shirt', 'hoodie', 'shoes', 'boots', 'chinos', 'blazer', 'trainers', 'loafers', 'coat', 'cardigan', 'sweater'];
+    const text = response.content.toLowerCase();
+    const hasOutfitRecommendation = outfitKeywords.some(kw => text.includes(kw)) && text.includes('+');
+
     res.json({ 
-      response: response.content, // Return just the text content, not the full object
+      response: response.content,
+      hasOutfitRecommendation,
       timestamp: new Date(),
       stylistId: normalizedStylistId
     });
