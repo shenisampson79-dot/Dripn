@@ -222,9 +222,22 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         }
       }
       
-      const analysis = result.analysis;
+      // The deployed backend returns flat fields at the top level of result
+      // AND a nested result.analysis.item object — prefer the flat top-level fields
+      // since those are already normalised strings (e.g. color = "black" not { primary: "black" })
+      const nested = result.analysis?.item || result.analysis || {};
+      const analysis = {
+        name:        result.name        || result.suggestedName  || result.itemName    || result.detectedName || nested.name,
+        category:    result.category    || result.garmentType    || nested.category,
+        color:       result.color       || result.colorTag       || result.primaryColor || result.detectedColor
+                     || (typeof nested.color === 'string' ? nested.color : nested.color?.primary),
+        seasons:     result.seasons     || result.season         || nested.seasons      || nested.season,
+        occasions:   result.occasions   || nested.occasions,
+        brand:       result.brand       || nested.brand,
+        description: result.styleNotes  || result.style_notes    || result.analysis?.styleNotes || nested.description,
+      };
       
-      console.log('[AI Analysis] Full analysis object:', JSON.stringify(analysis, null, 2));
+      console.log('[AI Analysis] Normalised analysis:', JSON.stringify(analysis, null, 2));
       
       // Color mapping for API values that don't match our predefined colors
       const colorMap: Record<string, ClothingColor> = {
@@ -282,12 +295,23 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         fall: 'autumn',
         'all-year': 'all-season',
         'all year': 'all-season',
+        'all season': 'all-season',
+        'all seasons': 'all-season',
+        allseason: 'all-season',
         'year-round': 'all-season',
         'year round': 'all-season',
       };
       
       // Occasion mapping for API values
       const occasionMap: Record<string, ClothingOccasion> = {
+        sport: 'workout',
+        sports: 'workout',
+        gym: 'workout',
+        sportswear: 'workout',
+        athletic: 'workout',
+        exercise: 'workout',
+        'smart-casual': 'casual',
+        'smart casual': 'casual',
         outdoor: 'casual',
         outdoors: 'casual',
         travel: 'vacation',
