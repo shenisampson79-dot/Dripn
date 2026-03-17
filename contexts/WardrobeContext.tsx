@@ -155,6 +155,7 @@ interface WardrobeContextType {
   isLoading: boolean;
   error: string | null;
   addItem: (item: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>) => Promise<WardrobeItem>;
+  addItemsBatch: (items: Array<Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>>) => Promise<WardrobeItem[]>;
   updateItem: (id: string, updates: Partial<WardrobeItem>) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
   markItemWorn: (id: string) => Promise<void>;
@@ -353,6 +354,25 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     const updatedItems = [...itemsRef.current, newItem];
     await saveItems(updatedItems);
     return newItem;
+  }, [user]);
+
+  const addItemsBatch = useCallback(async (
+    itemsData: Array<Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>>
+  ): Promise<WardrobeItem[]> => {
+    if (!user) throw new Error('Not authenticated');
+    const now = new Date().toISOString();
+    const newItems: WardrobeItem[] = itemsData.map((itemData, i) => ({
+      ...itemData,
+      id: `item_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
+      userId: user.id,
+      origin: itemData.origin || 'owned',
+      timesWorn: 0,
+      createdAt: now,
+      updatedAt: now,
+    }));
+    const updatedItems = [...itemsRef.current, ...newItems];
+    await saveItems(updatedItems);
+    return newItems;
   }, [user]);
 
   const updateItem = useCallback(async (id: string, updates: Partial<WardrobeItem>) => {
@@ -689,6 +709,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     isLoading,
     error,
     addItem,
+    addItemsBatch,
     updateItem,
     deleteItem,
     markItemWorn,

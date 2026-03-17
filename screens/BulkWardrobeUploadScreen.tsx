@@ -57,7 +57,7 @@ interface PendingItem extends DetectedGarment {
 export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUploadScreenProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { addItem, items: existingItems } = useWardrobe();
+  const { addItem, addItemsBatch, items: existingItems } = useWardrobe();
 
   const [inputMethod, setInputMethod] = useState<InputMethod | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -457,9 +457,12 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     setIsProcessing(true);
     let savedCount = 0;
 
-    for (const item of itemsToSave) {
-      try {
-        await addItem({
+    try {
+      // Build the full array first then write once — avoids a race condition
+      // where sequential addItem() calls each read a stale itemsRef.current
+      // and overwrite each other, leaving only the last item.
+      const savedItems = await addItemsBatch(
+        itemsToSave.map(item => ({
           imageUri: item.imageUri || 'https://via.placeholder.com/300',
           name: item.suggestedName,
           category: item.category,
@@ -468,16 +471,16 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           occasions: item.occasions.length > 0 ? item.occasions : ['everyday'],
           brand: item.brand,
           notes: item.description,
-          origin: 'owned',
+          origin: 'owned' as const,
           sourceUrl: item.sourceUrl,
           purchasePrice: item.price,
           aiAnalyzed: true,
           isFavorite: false,
-        });
-        savedCount++;
-      } catch (error) {
-        console.error('Failed to save item:', error);
-      }
+        }))
+      );
+      savedCount = savedItems.length;
+    } catch (error) {
+      console.error('Failed to save items:', error);
     }
 
     setIsProcessing(false);
