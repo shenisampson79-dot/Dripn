@@ -457,11 +457,13 @@ class ApiService {
       headers['X-Guest-Token'] = this.guestToken;
     }
     
-    console.log('[Wardrobe] Calling /api/wardrobe/analyze/resilient endpoint');
-    
-    // Use ONLY the resilient endpoint - no fallback to old auth-required endpoint
-    // Vision analysis via GPT-4 can take up to 60s — use a 90s timeout
-    const result = await this.request<{
+    const requestBody = JSON.stringify({ 
+      imageBase64, 
+      detailed: options?.detailed ?? true,
+      analysisType: 'garment'
+    });
+
+    type AnalysisResult = {
       success: boolean;
       analysis: {
         category: string;
@@ -482,18 +484,28 @@ class ApiService {
       authMode?: string;
       errorCode?: string;
       message?: string;
-    }>('/api/wardrobe/analyze/resilient', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ 
-        imageBase64, 
-        detailed: options?.detailed ?? true,
-        analysisType: 'garment'
-      }),
-      timeout: 90000,
-    });
-    
-    console.log('[Wardrobe] Resilient endpoint response received');
+    };
+
+    let result: AnalysisResult;
+    try {
+      console.log('[Wardrobe] Trying /api/wardrobe/analyze/resilient');
+      result = await this.request<AnalysisResult>('/api/wardrobe/analyze/resilient', {
+        method: 'POST',
+        headers,
+        body: requestBody,
+        timeout: 90000,
+      });
+    } catch (resilientError: any) {
+      // Resilient endpoint not available on this backend — fall back to standard endpoint
+      console.log('[Wardrobe] Resilient endpoint unavailable, falling back to /api/wardrobe/analyze');
+      result = await this.request<AnalysisResult>('/api/wardrobe/analyze', {
+        method: 'POST',
+        body: requestBody,
+        timeout: 90000,
+      });
+    }
+
+    console.log('[Wardrobe] Analysis response received');
     
     // Store tokens for future requests
     if (result.guestToken) this.guestToken = result.guestToken;
