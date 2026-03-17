@@ -157,12 +157,7 @@ const normalizeTier = (tier?: string): SubscriptionTier => {
 };
 
 const toApiPlanId = (planId: SubscriptionTier): string => {
-  const map: Record<string, string> = {
-    subscription: 'style_chat',
-    premium: 'personal_stylist',
-    pro: 'stylist_unlimited',
-  };
-  return map[planId] || planId;
+  return planId;
 };
 
 const getTierDisplayName = (tier?: SubscriptionTier): string => {

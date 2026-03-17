@@ -137,7 +137,11 @@ class ApiService {
       console.log('=== API ERROR ===');
       console.log('Status:', response.status);
       console.log('Endpoint:', endpoint);
-      console.log('Error body:', JSON.stringify(error));
+      console.log('Full error response:', JSON.stringify(error, null, 2));
+      
+      if (endpoint.includes('subscription')) {
+        console.log('[Subscription DEBUG] Full error details:', { status: response.status, endpoint, error });
+      }
       
       if (!errorMessage || errorMessage.startsWith('HTTP')) {
         switch (response.status) {
