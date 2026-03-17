@@ -44,11 +44,12 @@ The app features a 4-tab structure: Home ("Today's Decision"), Wardrobe, Ask Sty
 - **Event APIs**: Timeout, TodayTix, Eventbrite, and Meetup are integrated for event discovery.
 
 ## Backend Configuration
-- **Backend API**: Express.js server hosted at https://dripn-server--shenisampson79.replit.app (port 5000)
-- **Local Backend**: Runs on port 8082 via "Backend API" workflow (`backend-code/index.js`)
-- **Frontend API URL**: Set via `EXPO_PUBLIC_API_URL` environment variable pointing to published backend
+- **Deployed Backend**: https://dripn-server--shenisampson79.replit.app — source of truth for user accounts, auth, and subscription data
+- **Local Backend**: Runs on port 8082 via "Backend API" workflow (`backend-code/index.js`) — handles guest chat (real AI) and wardrobe analysis; proxies auth/profile routes to the deployed backend
+- **Auth Proxy Architecture**: Local backend proxies `/api/auth/login`, `/api/auth/register`, `/api/auth/me`, and `/api/auth/profile` to the deployed backend. `authMiddleware` first validates JWT locally, then falls back to the deployed backend's `/api/auth/me` for tokens issued by the deployed backend. This means the app uses the local backend for everything, with auth data transparently served from the deployed backend.
+- **Frontend API URL**: `EXPO_PUBLIC_API_URL` is auto-set to `https://$REPLIT_DEV_DOMAIN:3000` (local backend) by the "Start application" workflow command on every session start — no manual updates needed after Replit restarts
 - **Workflows**: 
-  - "Start application" - Runs Expo Metro bundler on port 8081
+  - "Start application" - Runs Expo Metro bundler on port 8081 with `EXPO_PUBLIC_API_URL` auto-injected from `$REPLIT_DEV_DOMAIN`
   - "Backend API" - Runs local Express.js backend on port 8082
 - **API Endpoints**: All endpoints use `/api/` prefix with resilient fallback versions available (e.g., `/api/wardrobe/analyze/resilient`)
 - **Subscription Endpoints** (added to local backend-code/index.js):

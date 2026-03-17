@@ -200,6 +200,22 @@ const pool = new Pool({
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'dripn-secret-key-change-in-production';
+const DEPLOYED_BACKEND_URL = 'https://dripn-server--shenisampson79.replit.app';
+
+async function proxyToDeployed(req, res, path) {
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (req.headers.authorization) headers['Authorization'] = req.headers.authorization;
+    const opts = { method: req.method, headers };
+    if (req.method !== 'GET' && req.method !== 'HEAD') opts.body = JSON.stringify(req.body);
+    const response = await fetch(`${DEPLOYED_BACKEND_URL}${path}`, opts);
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (error) {
+    console.error(`[Proxy] Failed to proxy ${path}:`, error.message);
+    res.status(503).json({ error: 'Service temporarily unavailable' });
+  }
+}
 
 // Initialize database tables
 async function initDB() {
@@ -507,12 +523,28 @@ function authMiddleware(req, res, next) {
   }
 
   const token = authHeader.split(' ')[1];
+
+  // Try local JWT first
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.userId = decoded.userId;
-    next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
+    return next();
+  } catch (localError) {
+    // Fall back: validate against deployed backend
+    fetch(`${DEPLOYED_BACKEND_URL}/api/auth/me`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then(response => {
+      if (response.ok) {
+        return response.json().then(user => {
+          req.userId = user.id;
+          next();
+        });
+      } else {
+        res.status(401).json({ error: 'Invalid token' });
+      }
+    }).catch(() => {
+      res.status(401).json({ error: 'Authentication failed' });
+    });
   }
 }
 
@@ -556,134 +588,19 @@ function adminAuthMiddleware(req, res, next) {
   }
 }
 
-// ============ AUTH ROUTES ============
+// ============ AUTH ROUTES (proxied to deployed backend) ============
 
-// Register
-app.post('/api/auth/register', async (req, res) => {
-  try {
-    const { email, password, displayName } = req.body;
+// Register — proxy to deployed backend (source of truth for user accounts)
+app.post('/api/auth/register', (req, res) => proxyToDeployed(req, res, '/api/auth/register'));
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password required' });
-    }
+// Login — proxy to deployed backend
+app.post('/api/auth/login', (req, res) => proxyToDeployed(req, res, '/api/auth/login'));
 
-    const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (existingUser.rows.length > 0) {
-      return res.status(400).json({ error: 'Email already registered' });
-    }
+// Get current user — proxy to deployed backend
+app.get('/api/auth/me', (req, res) => proxyToDeployed(req, res, '/api/auth/me'));
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    const result = await pool.query(
-      'INSERT INTO users (email, password_hash, display_name) VALUES ($1, $2, $3) RETURNING id, email, display_name, subscription_tier',
-      [email, passwordHash, displayName || email.split('@')[0]]
-    );
-
-    const user = result.rows[0];
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
-
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        displayName: user.display_name,
-        subscriptionTier: user.subscription_tier
-      }
-    });
-  } catch (error) {
-    console.error('Register error:', error);
-    res.status(500).json({ error: 'Registration failed' });
-  }
-});
-
-// Login
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    const user = result.rows[0];
-    const validPassword = await bcrypt.compare(password, user.password_hash);
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
-
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        displayName: user.display_name,
-        avatarUrl: user.avatar_url,
-        bio: user.bio,
-        subscriptionTier: user.subscription_tier
-      }
-    });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
-  }
-});
-
-// Get current user
-app.get('/api/auth/me', authMiddleware, async (req, res) => {
-  try {
-    const result = await pool.query(
-      'SELECT id, email, display_name, avatar_url, bio, subscription_tier, ai_requests_used, uploads_used FROM users WHERE id = $1',
-      [req.userId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const user = result.rows[0];
-    res.json({
-      id: user.id,
-      email: user.email,
-      displayName: user.display_name,
-      avatarUrl: user.avatar_url,
-      bio: user.bio,
-      subscriptionTier: user.subscription_tier,
-      aiRequestsUsed: user.ai_requests_used,
-      uploadsUsed: user.uploads_used
-    });
-  } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({ error: 'Failed to get user' });
-  }
-});
-
-// Update profile
-app.put('/api/auth/profile', authMiddleware, async (req, res) => {
-  try {
-    const { displayName, bio, avatarUrl } = req.body;
-
-    const result = await pool.query(
-      'UPDATE users SET display_name = COALESCE($1, display_name), bio = COALESCE($2, bio), avatar_url = COALESCE($3, avatar_url) WHERE id = $4 RETURNING id, email, display_name, avatar_url, bio, subscription_tier',
-      [displayName, bio, avatarUrl, req.userId]
-    );
-
-    const user = result.rows[0];
-    res.json({
-      id: user.id,
-      email: user.email,
-      displayName: user.display_name,
-      avatarUrl: user.avatar_url,
-      bio: user.bio,
-      subscriptionTier: user.subscription_tier
-    });
-  } catch (error) {
-    console.error('Update profile error:', error);
-    res.status(500).json({ error: 'Failed to update profile' });
-  }
-});
+// Update profile — proxy to deployed backend
+app.put('/api/auth/profile', (req, res) => proxyToDeployed(req, res, '/api/auth/profile'));
 
 // ============ STRIPE CHECKOUT ROUTES ============
 
