@@ -143,6 +143,28 @@ const getLocalizedPlans = (prices: LocalizedPrices, isYearly: boolean): Plan[] =
   ];
 };
 
+const normalizeTier = (tier?: string): SubscriptionTier => {
+  if (!tier) return 'free';
+  const map: Record<string, SubscriptionTier> = {
+    style_chat: 'subscription', style_chat_monthly: 'subscription', style_chat_yearly: 'subscription',
+    style_chat_plan: 'subscription', styleChatMonthly: 'subscription', styleChatYearly: 'subscription',
+    personal_stylist: 'premium', personal_stylist_monthly: 'premium', personal_stylist_yearly: 'premium',
+    personalStylistMonthly: 'premium', personalStylistYearly: 'premium',
+    stylist_unlimited: 'pro', stylist_unlimited_monthly: 'pro', stylist_unlimited_yearly: 'pro',
+    stylistUnlimitedMonthly: 'pro', stylistUnlimitedYearly: 'pro',
+  };
+  return map[tier] || (tier as SubscriptionTier);
+};
+
+const toApiPlanId = (planId: SubscriptionTier): string => {
+  const map: Record<string, string> = {
+    subscription: 'style_chat',
+    premium: 'personal_stylist',
+    pro: 'stylist_unlimited',
+  };
+  return map[planId] || planId;
+};
+
 const getTierDisplayName = (tier?: SubscriptionTier): string => {
   switch (tier) {
     case 'pro': return 'Stylist Unlimited';
@@ -174,9 +196,11 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
   const { theme, isDark } = useTheme();
   const { user, updateProfile } = useAuth();
   const { referralCode } = useSubscription();
+
+  const normalizedTier = normalizeTier(user?.subscriptionTier);
   
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>(
-    user?.subscriptionTier || "free"
+    normalizeTier(user?.subscriptionTier)
   );
   const [isProcessing, setIsProcessing] = useState(false);
   const [isYearly, setIsYearly] = useState(false);
@@ -210,14 +234,14 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
   const PLANS = getLocalizedPlans(currentPrices, isYearly);
 
   const handleSelectPlan = async (planId: SubscriptionTier) => {
-    if (planId === user?.subscriptionTier) return;
+    if (planId === normalizeTier(user?.subscriptionTier)) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsProcessing(true);
     
     try {
       if (planId === "free") {
-        if (user?.subscriptionTier && user.subscriptionTier !== 'free') {
+        if (normalizedTier && normalizedTier !== 'free') {
           await apiService.cancelSubscription();
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           Alert.alert(
@@ -239,7 +263,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
           }
         }
         
-        const response = await apiService.createSubscriptionCheckout(planId, billingCycle);
+        const response = await apiService.createSubscriptionCheckout(toApiPlanId(planId), billingCycle);
 
         if (response.checkoutUrl) {
           const result = await WebBrowser.openBrowserAsync(response.checkoutUrl);
@@ -329,7 +353,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
 
   const renderPlanCard = (plan: Plan, index: number) => {
     const isSelected = selectedPlan === plan.id;
-    const isCurrent = plan.id === user?.subscriptionTier;
+    const isCurrent = plan.id === normalizedTier;
 
     return (
       <Pressable
@@ -486,34 +510,34 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
 
       <View style={[styles.currentTierSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
         <View style={styles.currentTierRow}>
-          <View style={[styles.currentTierIcon, { backgroundColor: getTierColor(user?.subscriptionTier) + '20' }]}>
+          <View style={[styles.currentTierIcon, { backgroundColor: getTierColor(normalizedTier) + '20' }]}>
             <Feather 
-              name={getTierIcon(user?.subscriptionTier)} 
+              name={getTierIcon(normalizedTier)} 
               size={20} 
-              color={getTierColor(user?.subscriptionTier)} 
+              color={getTierColor(normalizedTier)} 
             />
           </View>
           <View style={styles.currentTierText}>
             <ThemedText type="small" style={{ opacity: 0.6 }}>You're on</ThemedText>
             <ThemedText type="h3">
-              {getTierDisplayName(user?.subscriptionTier)}
+              {getTierDisplayName(normalizedTier)}
             </ThemedText>
           </View>
-          {user?.subscriptionTier && user.subscriptionTier !== 'free' ? (
-            <View style={[styles.tierBadge, { backgroundColor: getTierColor(user.subscriptionTier) + '20' }]}>
-              <Feather name="check" size={14} color={getTierColor(user.subscriptionTier)} />
-              <ThemedText type="caption" style={{ color: getTierColor(user.subscriptionTier), fontWeight: '600' }}>Active</ThemedText>
+          {normalizedTier !== 'free' ? (
+            <View style={[styles.tierBadge, { backgroundColor: getTierColor(normalizedTier) + '20' }]}>
+              <Feather name="check" size={14} color={getTierColor(normalizedTier)} />
+              <ThemedText type="caption" style={{ color: getTierColor(normalizedTier), fontWeight: '600' }}>Active</ThemedText>
             </View>
           ) : null}
         </View>
-        {user?.subscriptionTier && user.subscriptionTier !== 'free' ? (
+        {normalizedTier !== 'free' ? (
           <Pressable 
             onPress={handleManageSubscription}
             disabled={isProcessing}
-            style={[styles.manageButton, { borderColor: getTierColor(user.subscriptionTier) + '40' }]}
+            style={[styles.manageButton, { borderColor: getTierColor(normalizedTier) + '40' }]}
           >
-            <Feather name="settings" size={16} color={getTierColor(user.subscriptionTier)} />
-            <ThemedText type="body" style={{ color: getTierColor(user.subscriptionTier), fontWeight: '600' }}>
+            <Feather name="settings" size={16} color={getTierColor(normalizedTier)} />
+            <ThemedText type="body" style={{ color: getTierColor(normalizedTier), fontWeight: '600' }}>
               Manage Billing
             </ThemedText>
           </Pressable>
