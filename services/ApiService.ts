@@ -9,6 +9,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://dripn-server--shenis
 const ADMIN_API_URL = process.env.EXPO_PUBLIC_ADMIN_API_URL || API_URL;
 
 const TOKEN_KEY = '@dripn_token';
+const ADMIN_TOKEN_KEY = '@dripn_admin_token';
 
 const DEFAULT_TIMEOUT = 30000;
 
@@ -181,7 +182,9 @@ class ApiService {
       ...(options.headers || {}),
     };
 
-    const token = await this.getToken();
+    // Admin endpoints require the admin JWT, not the regular user token
+    const adminToken = await AsyncStorage.getItem(ADMIN_TOKEN_KEY).catch(() => null);
+    const token = adminToken || await this.getToken();
     if (token) {
       (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
     }
