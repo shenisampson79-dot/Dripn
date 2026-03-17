@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from './ApiService';
 
-const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v3';
+const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v4';
 const TRANSLATIONS_LANG_KEY = '@dripn_translations_lang';
 
 export interface OnboardingStepTranslations {

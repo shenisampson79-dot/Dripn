@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { StyleSheet, View, Pressable, ActivityIndicator, TextInput, Alert, Platform, Image, ScrollView } from "react-native";
+import { StyleSheet, View, Pressable, ActivityIndicator, TextInput, Alert, Platform, Image, ScrollView, Keyboard } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -806,6 +806,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         }
         
         setExpressionText("");
+        Keyboard.dismiss();
       } catch (error) {
         console.log("Failed to submit expression");
       } finally {
@@ -907,9 +908,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           </Animated.View>
         ) : null}
 
-        <Animated.View entering={FadeInDown.delay(300)} style={styles.promptInputContainer}>
+        <View style={styles.promptInputContainer}>
           <Feather name="edit-3" size={16} color="rgba(74, 52, 40, 0.5)" style={{ marginTop: 4 }} />
           <TextInput
+            ref={expressionInputRef}
             style={styles.promptInput}
             placeholder="Add context... (e.g. outdoor event, smart casual)"
             placeholderTextColor="rgba(74, 52, 40, 0.4)"
@@ -919,8 +921,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             maxLength={200}
             returnKeyType="done"
             blurOnSubmit
+            onSubmitEditing={Keyboard.dismiss}
           />
-        </Animated.View>
+        </View>
 
         <View style={styles.optionsGrid}>
           {options.map((option, index) => {
@@ -1169,10 +1172,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             onChangeText={(text) => setExpressionText(text.slice(0, MAX_EXPRESSION_LENGTH))}
             returnKeyType="send"
             blurOnSubmit={true}
-            onSubmitEditing={handleExpressionSubmit}
+            onSubmitEditing={() => { handleExpressionSubmit(); Keyboard.dismiss(); }}
             onFocus={handleExpressionInputFocus}
-            multiline={true}
-            textAlignVertical="top"
+            multiline={false}
             maxLength={MAX_EXPRESSION_LENGTH}
           />
           {expressionText.trim() ? (
@@ -1280,7 +1282,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
   },
   stepContainer: {
-    flex: 1,
+    paddingBottom: Spacing.xl,
   },
   stylistMessage: {
     flexDirection: "row",
@@ -1372,7 +1374,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   resultContainer: {
-    flex: 1,
+    paddingBottom: Spacing.xl,
   },
   resultBubble: {
     backgroundColor: "rgba(233,30,99,0.1)",
@@ -1508,19 +1510,17 @@ const styles = StyleSheet.create({
   },
   expressionInputContainer: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   expressionInput: {
     flex: 1,
     fontSize: 15,
-    paddingVertical: 8,
-    minHeight: 52,
-    maxHeight: 120,
+    paddingVertical: 12,
+    height: 44,
   },
   expressionSendButton: {
     padding: Spacing.sm,
