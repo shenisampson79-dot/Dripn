@@ -46,6 +46,7 @@ const ADMIN_STORAGE_KEY = '@dripn_admin';
 const ADMIN_TOKEN_KEY = '@dripn_admin_token';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://dripn-server--shenisampson79.replit.app';
+const ADMIN_API_URL = process.env.EXPO_PUBLIC_ADMIN_API_URL || API_BASE_URL;
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
@@ -90,7 +91,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
+      const response = await fetch(`${ADMIN_API_URL}/api/admin/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +114,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const setupAdmin = async (email: string, password: string, displayName: string, setupKey: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/setup`, {
+      const response = await fetch(`${ADMIN_API_URL}/api/admin/setup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -151,7 +152,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     if (!token) return [];
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/stylists`, {
+      const response = await fetch(`${ADMIN_API_URL}/api/admin/stylists`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -179,7 +180,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }): Promise<StylistRecord> => {
     if (!token) throw new Error('Not authenticated');
 
-    const response = await fetch(`${API_BASE_URL}/api/admin/stylists`, {
+    const response = await fetch(`${ADMIN_API_URL}/api/admin/stylists`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -200,7 +201,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const approveStylist = async (id: string, password: string) => {
     if (!token) throw new Error('Not authenticated');
 
-    const response = await fetch(`${API_BASE_URL}/api/admin/stylists/${id}/approve`, {
+    const response = await fetch(`${ADMIN_API_URL}/api/admin/stylists/${id}/approve`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -219,7 +220,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const revokeStylist = async (id: string) => {
     if (!token) throw new Error('Not authenticated');
 
-    const response = await fetch(`${API_BASE_URL}/api/admin/stylists/${id}/revoke`, {
+    const response = await fetch(`${ADMIN_API_URL}/api/admin/stylists/${id}/revoke`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

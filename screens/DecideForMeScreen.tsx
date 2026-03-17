@@ -907,10 +907,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           </Animated.View>
         ) : null}
 
-        <Pressable
-          style={styles.promptInputContainer}
-          onPress={() => expressionInputRef.current?.focus()}
-        >
+        <View style={styles.promptInputContainer} pointerEvents="box-none">
           <Feather name="edit-3" size={16} color="rgba(74, 52, 40, 0.5)" style={{ marginTop: 4 }} />
           <TextInput
             ref={expressionInputRef}
@@ -924,8 +921,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             returnKeyType="done"
             blurOnSubmit={true}
             onSubmitEditing={Keyboard.dismiss}
+            onFocus={handleExpressionInputFocus}
           />
-        </Pressable>
+        </View>
 
         <View style={styles.optionsGrid}>
           {options.map((option, index) => {
@@ -1250,8 +1248,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           style={styles.scrollView}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl * 4 }]}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="always"
-          bottomOffset={80}
+          keyboardShouldPersistTaps="handled"
+          bottomOffset={120}
+          scrollOnFocus={true}
+          extraKeyboardSpace={0}
         >
           {step === "occasion" ? renderOccasionStep() : null}
           {step === "loading" ? renderLoadingStep() : null}

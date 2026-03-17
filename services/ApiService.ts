@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://dripn-server--shenisampson79.replit.app';
+const ADMIN_API_URL = process.env.EXPO_PUBLIC_ADMIN_API_URL || API_URL;
 
 const TOKEN_KEY = '@dripn_token';
 
@@ -166,6 +167,41 @@ class ApiService {
       }
       
       throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  private async adminRequest<T>(
+    endpoint: string,
+    options: RequestInit & { timeout?: number } = {}
+  ): Promise<T> {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    };
+
+    const token = await this.getToken();
+    if (token) {
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
+
+    let response: Response;
+    try {
+      response = await this.fetchWithTimeout(`${ADMIN_API_URL}${endpoint}`, {
+        ...options,
+        headers,
+      });
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request was cancelled.');
+      }
+      throw error;
+    }
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Admin request failed' }));
+      throw new Error(error.error || error.message || 'Admin request failed');
     }
 
     return response.json();
@@ -3219,8 +3255,7 @@ class ApiService {
   }
 
   async getAdminDashboard() {
-    // Always use real backend - no mock mode
-    return this.request<{
+    return this.adminRequest<{
       users: {
         total: number;
         today: number;
@@ -3246,8 +3281,7 @@ class ApiService {
   }
 
   async getAdminPayments() {
-    // Always use real backend - no mock mode
-    return this.request<{
+    return this.adminRequest<{
       summary: {
         totalRevenue: number;
         monthlyRecurringRevenue: number;
@@ -3266,8 +3300,7 @@ class ApiService {
   }
 
   async getAdminSubscriptions() {
-    // Always use real backend - no mock mode
-    return this.request<{
+    return this.adminRequest<{
       mrr: number;
       stats: {
         active: number;
@@ -3283,8 +3316,7 @@ class ApiService {
   }
 
   async getAdminModels() {
-    // Always use real backend - no mock mode
-    return this.request<{
+    return this.adminRequest<{
       current: {
         main_stylist: string;
         quick_decisions: string;
@@ -3297,7 +3329,7 @@ class ApiService {
   }
 
   async checkAdminModels() {
-    return this.request<{
+    return this.adminRequest<{
       message: string;
       newModelsFound: number;
       models?: string[];

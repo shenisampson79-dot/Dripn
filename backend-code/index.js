@@ -1553,6 +1553,203 @@ app.post('/api/admin/setup', async (req, res) => {
   }
 });
 
+// Admin dashboard stats
+app.get('/api/admin/dashboard', adminAuthMiddleware, async (req, res) => {
+  try {
+    // Try to fetch stats from deployed backend (which has the real user data)
+    const deployedResponse = await fetch(`${DEPLOYED_BACKEND_URL}/api/admin/stats`, {
+      headers: { 'Authorization': req.headers.authorization || '' }
+    }).catch(() => null);
+
+    if (deployedResponse && deployedResponse.ok) {
+      const data = await deployedResponse.json();
+      return res.json(data);
+    }
+
+    // Fall back to local database stats
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [totalResult, todayResult, weekResult, subResult, chatResult] = await Promise.all([
+      pool.query('SELECT COUNT(*) FROM users').catch(() => ({ rows: [{ count: 0 }] })),
+      pool.query('SELECT COUNT(*) FROM users WHERE created_at >= $1', [todayStart]).catch(() => ({ rows: [{ count: 0 }] })),
+      pool.query('SELECT COUNT(*) FROM users WHERE created_at >= $1', [weekStart]).catch(() => ({ rows: [{ count: 0 }] })),
+      pool.query("SELECT COUNT(*) FROM users WHERE subscription_tier != 'free' AND subscription_tier IS NOT NULL").catch(() => ({ rows: [{ count: 0 }] })),
+      pool.query('SELECT COUNT(*) FROM chat_sessions').catch(() => ({ rows: [{ count: 0 }] })),
+    ]);
+
+    const totalUsers = parseInt(totalResult.rows[0].count) || 0;
+    const activeSubscriptions = parseInt(subResult.rows[0].count) || 0;
+
+    // Get recent users
+    const recentResult = await pool.query(
+      'SELECT id, email, display_name as name, created_at, subscription_tier FROM users ORDER BY created_at DESC LIMIT 10'
+    ).catch(() => ({ rows: [] }));
+
+    res.json({
+      users: {
+        total: totalUsers,
+        today: parseInt(todayResult.rows[0].count) || 0,
+        thisWeek: parseInt(weekResult.rows[0].count) || 0,
+      },
+      subscriptions: {
+        active: activeSubscriptions,
+        conversionRate: totalUsers > 0 ? activeSubscriptions / totalUsers : 0,
+      },
+      engagement: {
+        totalChats: parseInt(chatResult.rows[0].count) || 0,
+        chatsToday: 0,
+      },
+      recentUsers: recentResult.rows.map(u => ({
+        id: u.id,
+        email: u.email,
+        name: u.name || u.email?.split('@')[0] || 'User',
+        createdAt: u.created_at,
+        subscriptionTier: u.subscription_tier || 'free',
+      })),
+    });
+  } catch (error) {
+    console.error('Admin dashboard error:', error);
+    res.status(500).json({ error: 'Failed to load dashboard' });
+  }
+});
+
+// Admin payments
+app.get('/api/admin/payments', adminAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM payments ORDER BY created_at DESC LIMIT 50'
+    ).catch(() => ({ rows: [] }));
+
+    const totalRevenue = result.rows.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+
+    res.json({
+      summary: {
+        totalRevenue,
+        monthlyRecurringRevenue: 0,
+      },
+      payments: result.rows.map(p => ({
+        id: p.id,
+        userId: p.user_id,
+        userEmail: p.user_email || '',
+        amount: parseFloat(p.amount) || 0,
+        currency: p.currency || 'gbp',
+        status: p.status || 'succeeded',
+        productId: p.product_id || '',
+        createdAt: p.created_at,
+      })),
+    });
+  } catch (error) {
+    console.error('Admin payments error:', error);
+    res.json({
+      summary: { totalRevenue: 0, monthlyRecurringRevenue: 0 },
+      payments: [],
+    });
+  }
+});
+
+// Admin subscriptions
+app.get('/api/admin/subscriptions', adminAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT subscription_tier, COUNT(*) as count FROM users GROUP BY subscription_tier"
+    ).catch(() => ({ rows: [] }));
+
+    const dist = { free: 0, style_chat: 0, personal_stylist: 0, stylist_unlimited: 0 };
+    let active = 0;
+    result.rows.forEach(row => {
+      const tier = row.subscription_tier || 'free';
+      const count = parseInt(row.count) || 0;
+      if (tier === 'free' || !tier) dist.free += count;
+      else if (tier === 'style_chat') { dist.style_chat += count; active += count; }
+      else if (tier === 'personal_stylist') { dist.personal_stylist += count; active += count; }
+      else if (tier === 'stylist_unlimited') { dist.stylist_unlimited += count; active += count; }
+    });
+
+    res.json({
+      mrr: 0,
+      stats: {
+        active,
+        canceled: 0,
+        planDistribution: dist,
+      },
+    });
+  } catch (error) {
+    console.error('Admin subscriptions error:', error);
+    res.json({
+      mrr: 0,
+      stats: { active: 0, canceled: 0, planDistribution: { free: 0, style_chat: 0, personal_stylist: 0, stylist_unlimited: 0 } },
+    });
+  }
+});
+
+// Admin AI models status
+app.get('/api/admin/models', adminAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT key, value FROM app_settings WHERE key IN ('ai_main_model', 'ai_quick_model', 'ai_reasoning_model', 'ai_models_last_checked')"
+    ).catch(() => ({ rows: [] }));
+
+    const settings = {};
+    result.rows.forEach(r => { settings[r.key] = r.value; });
+
+    res.json({
+      current: {
+        main_stylist: settings['ai_main_model'] || 'gpt-4o',
+        quick_decisions: settings['ai_quick_model'] || 'gpt-4o-mini',
+        second_opinions: settings['ai_reasoning_model'] || 'gpt-4o',
+      },
+      available: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
+      newModelsDetected: 0,
+      lastChecked: settings['ai_models_last_checked'] || new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Admin models error:', error);
+    res.json({
+      current: { main_stylist: 'gpt-4o', quick_decisions: 'gpt-4o-mini', second_opinions: 'gpt-4o' },
+      available: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
+      newModelsDetected: 0,
+      lastChecked: new Date().toISOString(),
+    });
+  }
+});
+
+// Admin check for new AI models
+app.post('/api/admin/models/check', adminAuthMiddleware, async (req, res) => {
+  try {
+    // Try to discover new models from OpenAI
+    const openaiResponse = await fetch('https://api.openai.com/v1/models', {
+      headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` }
+    }).catch(() => null);
+
+    let newModels = [];
+    if (openaiResponse && openaiResponse.ok) {
+      const data = await openaiResponse.json();
+      const gptModels = (data.data || [])
+        .filter(m => m.id.startsWith('gpt-') || m.id.startsWith('o1') || m.id.startsWith('o3'))
+        .map(m => m.id)
+        .sort();
+      newModels = gptModels;
+    }
+
+    // Update last checked timestamp
+    await pool.query(
+      "INSERT INTO app_settings (key, value) VALUES ('ai_models_last_checked', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+      [new Date().toISOString()]
+    ).catch(() => {});
+
+    res.json({
+      message: `Found ${newModels.length} models`,
+      newModelsFound: newModels.length,
+      models: newModels,
+    });
+  } catch (error) {
+    console.error('Admin models check error:', error);
+    res.json({ message: 'Check complete', newModelsFound: 0, models: [] });
+  }
+});
+
 // ============ LANGUAGE & TRANSLATIONS ============
 
 const SUPPORTED_LANGUAGES = [
