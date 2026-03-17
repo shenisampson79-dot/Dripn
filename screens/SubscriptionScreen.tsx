@@ -259,7 +259,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         }
         
         const apiPlanId = toApiPlanId(planId);
-        console.log('[Subscription] Sending to API:', { planId: apiPlanId, billingCycle });
+        console.log('[Subscription] Sending to API:', { planId: apiPlanId, billingCycle, apiUrl: process.env.EXPO_PUBLIC_API_URL });
         const response = await apiService.createSubscriptionCheckout(apiPlanId, billingCycle);
 
         if (response.checkoutUrl) {
@@ -295,6 +295,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
       }
     } catch (error: any) {
       console.error("Subscription error:", error);
+      console.log("[Subscription] Full error object:", JSON.stringify(error, null, 2));
       const errorMessage = error?.message || "Failed to process subscription. Please try again.";
       let displayMessage = errorMessage;
       
@@ -304,6 +305,8 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         displayMessage = "Unable to connect to our servers. Please check your internet connection and try again.";
       } else if (errorMessage.includes("No checkout URL")) {
         displayMessage = "Payment setup is temporarily unavailable. Please try again shortly.";
+      } else if (errorMessage.includes("Invalid product")) {
+        displayMessage = "Subscription setup error. Please contact support. Error: " + errorMessage;
       }
       
       Alert.alert("Error", displayMessage);
