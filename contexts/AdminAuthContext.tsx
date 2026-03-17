@@ -64,13 +64,36 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         AsyncStorage.getItem(ADMIN_TOKEN_KEY),
       ]);
       if (adminData && tokenData) {
-        setAdmin(JSON.parse(adminData));
-        setToken(tokenData);
+        // Validate the token is still accepted by the backend
+        const valid = await validateToken(tokenData);
+        if (valid) {
+          setAdmin(JSON.parse(adminData));
+          setToken(tokenData);
+        } else {
+          // Stale / invalid token — clear it so login screen appears
+          await Promise.all([
+            AsyncStorage.removeItem(ADMIN_STORAGE_KEY),
+            AsyncStorage.removeItem(ADMIN_TOKEN_KEY),
+          ]).catch(() => {});
+        }
       }
     } catch (error) {
       console.error('Failed to load admin:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const validateToken = async (tokenData: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${ADMIN_API_URL}/api/admin/stylists`, {
+        headers: { 'Authorization': `Bearer ${tokenData}` },
+        signal: AbortSignal.timeout(5000),
+      });
+      return response.status !== 401 && response.status !== 403;
+    } catch {
+      // Network error — treat as valid so offline usage still works
+      return true;
     }
   };
 

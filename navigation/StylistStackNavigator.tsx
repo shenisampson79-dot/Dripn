@@ -17,8 +17,6 @@ export type StylistStackParamList = {
   StylistLogin: undefined;
   StylistDashboard: undefined;
   SessionDetail: { sessionId: string };
-  AdminLogin: undefined;
-  AdminDashboard: undefined;
 };
 
 const Stack = createNativeStackNavigator<StylistStackParamList>();
@@ -45,34 +43,23 @@ export default function StylistStackNavigator({ mode, onExit }: StylistStackNavi
     onExit();
   };
 
+  // Admin mode: render screens directly to avoid iOS touch conflicts
+  // caused by nested GestureHandlerRootView + NavigationIndependentTree inside a Modal
   if (mode === 'admin') {
+    if (isAdminAuth) {
+      return (
+        <AdminStylistScreen
+          navigation={{} as any}
+          onExit={onExit}
+          onLogout={handleAdminLogout}
+        />
+      );
+    }
     return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <NavigationIndependentTree>
-          <NavigationContainer>
-            <Stack.Navigator
-              screenOptions={{
-                ...commonOptions,
-                headerShown: false,
-              }}
-            >
-              {isAdminAuth ? (
-                <Stack.Screen
-                  name="AdminDashboard"
-                >
-                  {(props) => <AdminStylistScreen {...props} onExit={onExit} onLogout={handleAdminLogout} />}
-                </Stack.Screen>
-              ) : (
-                <Stack.Screen
-                  name="AdminLogin"
-                >
-                  {(props) => <AdminLoginScreen {...props} onExit={onExit} />}
-                </Stack.Screen>
-              )}
-            </Stack.Navigator>
-          </NavigationContainer>
-        </NavigationIndependentTree>
-      </GestureHandlerRootView>
+      <AdminLoginScreen
+        navigation={{} as any}
+        onExit={onExit}
+      />
     );
   }
 
