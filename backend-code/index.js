@@ -6796,10 +6796,91 @@ app.post('/api/wardrobe/analyze/resilient', async (req, res) => {
       return res.status(500).json({ error: result.error || 'Analysis failed' });
     }
 
+    // Normalize the AI response to match exactly what the frontend expects
+    const raw = result.item || {};
+
+    // Flatten color if AI returned nested object { primary, secondary }
+    let color = raw.color;
+    let secondaryColor = raw.secondaryColor || null;
+    if (color && typeof color === 'object') {
+      secondaryColor = color.secondary || null;
+      color = color.primary || null;
+    }
+    if (color) color = String(color).toLowerCase().split(/[\s,]+/)[0];
+
+    // Map category values the AI might use to what the frontend accepts
+    const categoryMap = {
+      footwear: 'shoes', sneakers: 'shoes', boots: 'shoes', heels: 'shoes', sandals: 'shoes',
+      underwear: 'accessories', lingerie: 'accessories',
+      jacket: 'outerwear', coat: 'outerwear', blazer: 'outerwear', cardigan: 'outerwear',
+      shirt: 'tops', blouse: 'tops', sweater: 'tops', hoodie: 'tops', tshirt: 'tops', 'knitwear': 'tops',
+      trousers: 'bottoms', jeans: 'bottoms', shorts: 'bottoms', skirt: 'bottoms', pants: 'bottoms',
+      jumpsuit: 'dresses', romper: 'dresses', gown: 'dresses',
+      bag: 'bags', purse: 'bags', backpack: 'bags', handbag: 'bags',
+      belt: 'accessories', hat: 'accessories', scarf: 'accessories', watch: 'accessories', jewellery: 'accessories',
+      jewelry: 'accessories',
+      suit: 'formal', tuxedo: 'formal',
+      gym: 'activewear', sportswear: 'activewear', athletic: 'activewear',
+      loungewear: 'sleepwear', pyjamas: 'sleepwear', pajamas: 'sleepwear',
+      swimsuit: 'swimwear', bikini: 'swimwear',
+    };
+    const validCategories = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+    let category = (raw.category || '').toLowerCase();
+    if (!validCategories.includes(category)) {
+      category = categoryMap[category] || category;
+    }
+
+    // Map occasion values to valid frontend values
+    const occasionMap = {
+      'smart-casual': 'casual', 'smart casual': 'casual', outdoor: 'casual', outdoors: 'casual',
+      lounging: 'casual', lounge: 'casual', brunch: 'casual', daily: 'everyday', day: 'everyday',
+      daytime: 'everyday', travel: 'vacation', beach: 'vacation', office: 'work', professional: 'work',
+      business: 'work', evening: 'date-night', night: 'date-night', 'night out': 'date-night',
+      sport: 'workout', sports: 'workout', sportswear: 'workout', gym: 'workout', exercise: 'workout',
+      athletic: 'workout', 'special occasion': 'formal', wedding: 'formal', gala: 'formal',
+      cocktail: 'party', festival: 'party', club: 'party',
+    };
+    const validOccasions = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
+    const rawOccasions = Array.isArray(raw.occasions) ? raw.occasions : [];
+    const occasions = rawOccasions
+      .map(o => {
+        const lower = String(o).toLowerCase();
+        if (validOccasions.includes(lower)) return lower;
+        return occasionMap[lower] || null;
+      })
+      .filter(Boolean);
+
+    const validSeasons = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
+    const seasonMap = { fall: 'autumn', 'all-year': 'all-season', 'year-round': 'all-season', 'all year': 'all-season' };
+    const rawSeasons = Array.isArray(raw.seasons) ? raw.seasons : [];
+    const seasons = rawSeasons
+      .map(s => {
+        const lower = String(s).toLowerCase();
+        if (validSeasons.includes(lower)) return lower;
+        return seasonMap[lower] || null;
+      })
+      .filter(Boolean);
+
+    const normalized = {
+      name: raw.name || raw.suggestedName || raw.itemName || null,
+      category: validCategories.includes(category) ? category : null,
+      color: color || null,
+      secondaryColor,
+      pattern: raw.pattern || null,
+      material: raw.material || null,
+      brand: raw.brand || null,
+      seasons: seasons.length > 0 ? seasons : ['all-season'],
+      occasions: occasions.length > 0 ? occasions : ['everyday'],
+      style: raw.style || null,
+      description: raw.description || null,
+    };
+
+    console.log('[Wardrobe/Analyze] Normalized result:', JSON.stringify(normalized));
+
     res.json({
       success: true,
-      item: result.item,
-      analysis: result.item, // also expose under 'analysis' key for compatibility
+      item: normalized,
+      analysis: normalized,
       modelUsed: result.modelUsed,
       authMode: 'guest',
     });

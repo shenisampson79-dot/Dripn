@@ -102,24 +102,20 @@ const GARMENT_ANALYSIS_PROMPT = `You are an expert fashion analyst specialising 
 Return ONLY valid JSON in exactly this format with no extra text or markdown:
 {
   "name": "short descriptive name, e.g. Navy Slim-Fit Chinos",
-  "category": "tops|bottoms|outerwear|footwear|accessories|dresses|activewear|underwear",
-  "subcategory": "e.g. jeans, t-shirt, blazer, sneakers, dress, hoodie",
-  "color": {
-    "primary": "main colour as a simple word (e.g. black, navy, white, grey)",
-    "secondary": "second colour or null if none"
-  },
+  "category": "one of exactly: tops, bottoms, dresses, outerwear, shoes, bags, accessories, activewear, swimwear, sleepwear, formal",
+  "color": "primary colour as a single simple word, e.g. black, white, gray, navy, brown, beige, red, pink, orange, yellow, green, blue, purple, denim, cream",
+  "secondaryColor": "second colour as a single word, or null",
   "pattern": "solid|stripes|check|floral|graphic|camo|animal-print|other",
   "material": "e.g. cotton, denim, leather, polyester, wool, or empty string if unsure",
   "brand": "visible brand name or null",
-  "seasons": ["spring","summer","autumn","winter","all-season"],
-  "occasions": ["everyday","smart-casual","formal","sportswear","evening","beach"],
+  "seasons": ["one or more of: spring, summer, autumn, winter, all-season"],
+  "occasions": ["one or more of: casual, work, formal, date-night, workout, vacation, party, everyday"],
   "style": "e.g. casual, minimalist, streetwear, formal, athletic",
-  "formality": 1,
-  "versatilityScore": 7
+  "description": "one sentence describing the item for a wardrobe app"
 }
 
-formality scale: 1=very casual, 3=smart-casual, 5=business, 7=formal, 10=black-tie.
-versatilityScore: 1-10 how many different outfits this piece can work with.`;
+Category rules: use "shoes" for all footwear, "tops" for shirts/blouses/sweaters/hoodies, "bottoms" for trousers/jeans/shorts/skirts, "outerwear" for jackets/coats/blazers/cardigans, "dresses" for dresses/jumpsuits, "bags" for bags/purses/backpacks, "accessories" for belts/hats/scarves/watches/jewellery, "activewear" for gym/sport clothing, "swimwear" for swimwear, "sleepwear" for pyjamas/loungewear, "formal" for suits/tuxedos.
+Color rules: return a plain lowercase single word only, no compound words. Map charcoal/slate/ash → gray, khaki/tan/sand/nude/taupe/camel → beige, navy/midnight/indigo → navy, burgundy/maroon/wine → red, mustard/gold/lemon → yellow, teal/aqua/cobalt/sapphire → blue, coral/mauve/blush/rose → pink, olive/sage/forest/mint/emerald → green, rust/terracotta/peach → orange, lavender/lilac/plum/violet → purple.`;
 
 const WARDROBE_MATCH_PROMPT = `You are a fashion stylist. The user has uploaded an outfit photo and wants suggestions from their wardrobe.
 
