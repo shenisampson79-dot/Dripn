@@ -19,6 +19,21 @@ import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+const STRIPE_PAYMENT_LINKS: Record<string, Record<string, string>> = {
+  subscription: {
+    monthly: "https://buy.stripe.com/test_6oUfZh6Gm5jI2cqdQ13gk02",
+    yearly: "https://buy.stripe.com/test_fZucN54ye13s4kyfY93gk03",
+  },
+  premium: {
+    monthly: "https://buy.stripe.com/test_9B628re8O13saIW7rD3gk04",
+    yearly: "https://buy.stripe.com/test_5kQ14n9Sy27w9ES4fr3gk05",
+  },
+  pro: {
+    monthly: "https://buy.stripe.com/test_00w9ATggW5jIdV85jv3gk06",
+    yearly: "https://buy.stripe.com/test_8x2fZh7Kq13sbN0h2d3gk07",
+  },
+};
+
 const LUXURY_COLORS = {
   gold: '#C9A87C',
   deepGold: '#A88B5C',
@@ -156,10 +171,6 @@ const normalizeTier = (tier?: string): SubscriptionTier => {
   return map[tier] || (tier as SubscriptionTier);
 };
 
-const toApiPlanId = (planId: SubscriptionTier): string => {
-  return planId;
-};
-
 const getTierDisplayName = (tier?: SubscriptionTier): string => {
   switch (tier) {
     case 'pro': return 'Stylist Unlimited';
@@ -189,7 +200,7 @@ const getTierIcon = (tier?: SubscriptionTier): "award" | "star" | "message-circl
 
 export default function SubscriptionScreen({ navigation }: SubscriptionScreenProps) {
   const { theme, isDark } = useTheme();
-  const { user, updateProfile } = useAuth();
+  const { user } = useAuth();
   const { referralCode } = useSubscription();
 
   const normalizedTier = normalizeTier(user?.subscriptionTier);
@@ -249,67 +260,45 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         }
       } else {
         const billingCycle = isYearly ? 'yearly' : 'monthly';
-        
-        const isHealthy = await apiService.checkHealth();
-        if (!isHealthy) {
-          const wake = await apiService.wakeBackend();
-          if (!wake.success) {
-            throw new Error("Unable to reach the server. Please check your connection and try again.");
-          }
-        }
-        
-        const apiPlanId = toApiPlanId(planId);
-        console.log('[Subscription] Sending to API:', { planId: apiPlanId, billingCycle, apiUrl: process.env.EXPO_PUBLIC_API_URL });
-        const response = await apiService.createSubscriptionCheckout(apiPlanId, billingCycle);
+        const planLinks = STRIPE_PAYMENT_LINKS[planId];
+        const paymentLinkBase = planLinks?.[billingCycle];
 
-        if (response.checkoutUrl) {
-          const result = await WebBrowser.openBrowserAsync(response.checkoutUrl);
-          
-          if (result.type === "dismiss" || result.type === "cancel") {
-            const url = (result as any).url || "";
-            
-            if (url.includes("payment-success") || url.includes("success")) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert(
-                "Payment Successful!",
-                `Your subscription has been activated. Welcome to ${PLANS.find(p => p.id === planId)?.name}!`,
-                [{ text: "OK", onPress: () => navigation.goBack() }]
-              );
-            } else if (url.includes("payment-cancelled") || url.includes("cancel")) {
-              Alert.alert(
-                "Checkout Cancelled",
-                "You can complete your subscription upgrade at any time.",
-                [{ text: "OK" }]
-              );
-            } else {
-              Alert.alert(
-                "Checkout Complete",
-                "If your payment was successful, your subscription will be activated shortly. You can check your subscription status in your profile.",
-                [{ text: "OK" }]
-              );
-            }
-          }
-        } else {
-          throw new Error("No checkout URL received");
+        if (!paymentLinkBase) {
+          throw new Error("Payment not available for this plan.");
+        }
+
+        const queryParts: string[] = [];
+        if (user?.id) queryParts.push(`client_reference_id=${encodeURIComponent(String(user.id))}`);
+        if (user?.email) queryParts.push(`prefilled_email=${encodeURIComponent(user.email)}`);
+        const paymentUrl = queryParts.length > 0
+          ? `${paymentLinkBase}?${queryParts.join("&")}`
+          : paymentLinkBase;
+
+        const planName = PLANS.find(p => p.id === planId)?.name ?? planId;
+        const result = await WebBrowser.openBrowserAsync(paymentUrl);
+
+        if (result.type === "dismiss" || result.type === "cancel") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          Alert.alert(
+            "Almost there!",
+            `If you completed your payment, your ${planName} subscription will activate within a few minutes. Pull down to refresh your profile to see your updated plan.`,
+            [
+              {
+                text: "Refresh Now",
+                onPress: async () => {
+                  try { await apiService.getSubscriptionStatus(); } catch (_) {}
+                  navigation.goBack();
+                },
+              },
+              { text: "Done", onPress: () => navigation.goBack() },
+            ]
+          );
         }
       }
     } catch (error: any) {
       console.error("Subscription error:", error);
-      console.log("[Subscription] Full error object:", JSON.stringify(error, null, 2));
-      const errorMessage = error?.message || "Failed to process subscription. Please try again.";
-      let displayMessage = errorMessage;
-      
-      if (errorMessage.includes("Unauthorized") || errorMessage.includes("Authentication required")) {
-        displayMessage = "Please log in again to complete your subscription.";
-      } else if (errorMessage.includes("Network request failed") || errorMessage.includes("network") || errorMessage.includes("Unable to reach")) {
-        displayMessage = "Unable to connect to our servers. Please check your internet connection and try again.";
-      } else if (errorMessage.includes("No checkout URL")) {
-        displayMessage = "Payment setup is temporarily unavailable. Please try again shortly.";
-      } else if (errorMessage.includes("Invalid product")) {
-        displayMessage = "Subscription setup error. Please contact support. Error: " + errorMessage;
-      }
-      
-      Alert.alert("Error", displayMessage);
+      const errorMessage = error?.message || "Failed to open payment page. Please try again.";
+      Alert.alert("Error", errorMessage);
     } finally {
       setIsProcessing(false);
     }

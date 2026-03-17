@@ -66,3 +66,10 @@ The app features a 4-tab structure: Home ("Today's Decision"), Wardrobe, Ask Sty
   - `GET /api/checkout/dfy/products` - List DFY product tiers
   - `POST /api/checkout/dfy/verify` - Verify DFY payment
 - **Stripe Integration**: Uses Replit's connector system (`getStripeCredentials()`) for automatic Stripe key management. Customer IDs and subscription IDs stored in `users` table (`stripe_customer_id`, `stripe_subscription_id` columns).
+- **Stripe Payment Links** (test mode): Created static payment links for all 6 tier+cycle combos (3 tiers × monthly/yearly). Hardcoded in `SubscriptionScreen.tsx` in `STRIPE_PAYMENT_LINKS` constant. These bypass the deployed backend's broken checkout endpoint. Links pass `client_reference_id=userId` and `prefilled_email` as URL params so Stripe can associate payment with user. Webhook handler updated with `STRIPE_PRICE_TO_TIER` mapping for automated tier activation.
+  - Style Chat monthly: `price_1TByjREAiPWLqq8VeIHAxvDa`
+  - Style Chat yearly: `price_1TByjSEAiPWLqq8VlCzeALdH`
+  - Personal Stylist monthly: `price_1TByjTEAiPWLqq8VBCTvuUNs`
+  - Personal Stylist yearly: `price_1TByjTEAiPWLqq8VZ6CI2fsn`
+  - Stylist Unlimited monthly: `price_1TByjUEAiPWLqq8V6m8Va31v`
+  - Stylist Unlimited yearly: `price_1TByjUEAiPWLqq8V3MnQ3Vfg`

@@ -16,7 +16,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
-import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { stylistUpgradeService } from "@/services/StylistUpgradeService";
 import { styleDirectionService, StyleDirection } from "@/services/StyleDirectionService";
 import { getStyleRuleForOccasion, generateOutfitImage } from "@/services/OutfitImageService";
@@ -908,7 +907,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           </Animated.View>
         ) : null}
 
-        <View style={styles.promptInputContainer}>
+        <Pressable
+          style={styles.promptInputContainer}
+          onPress={() => expressionInputRef.current?.focus()}
+        >
           <Feather name="edit-3" size={16} color="rgba(74, 52, 40, 0.5)" style={{ marginTop: 4 }} />
           <TextInput
             ref={expressionInputRef}
@@ -920,10 +922,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             multiline
             maxLength={200}
             returnKeyType="done"
-            blurOnSubmit
+            blurOnSubmit={true}
             onSubmitEditing={Keyboard.dismiss}
           />
-        </View>
+        </Pressable>
 
         <View style={styles.optionsGrid}>
           {options.map((option, index) => {
@@ -1162,7 +1164,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         <ThemedText type="body" style={[styles.calibrationMessage, { color: theme.tabIconDefault }]}>
           {styleDirectionService.getCalibrationMessage()}
         </ThemedText>
-        <View style={[styles.expressionInputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+        <Pressable
+          style={[styles.expressionInputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
+          onPress={() => expressionInputRef.current?.focus()}
+        >
           <TextInput
             ref={expressionInputRef}
             style={[styles.expressionInput, { color: theme.text }]}
@@ -1186,7 +1191,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
               <Feather name="send" size={18} color={isSubmittingExpression ? theme.tabIconDefault : theme.link} />
             </Pressable>
           ) : null}
-        </View>
+        </Pressable>
       </View>
 
       <Animated.View entering={FadeInDown.delay(400)} style={styles.ctaSection}>
@@ -1246,7 +1251,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl * 4 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="always"
-          bottomOffset={180}
+          bottomOffset={80}
         >
           {step === "occasion" ? renderOccasionStep() : null}
           {step === "loading" ? renderLoadingStep() : null}

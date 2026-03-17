@@ -23,6 +23,16 @@ const PORT = process.env.PORT || 3000;
 // VIP price IDs - used to detect VIP purchases
 const VIP_PRICE_IDS = ['price_vip_monthly', 'price_vip_yearly'];
 
+// Stripe price IDs → subscription tier mapping (created via Stripe Payment Links)
+const STRIPE_PRICE_TO_TIER = {
+  'price_1TByjREAiPWLqq8VeIHAxvDa': 'subscription', // Style Chat monthly
+  'price_1TByjSEAiPWLqq8VlCzeALdH': 'subscription', // Style Chat yearly
+  'price_1TByjTEAiPWLqq8VBCTvuUNs': 'premium',      // Personal Stylist monthly
+  'price_1TByjTEAiPWLqq8VZ6CI2fsn': 'premium',      // Personal Stylist yearly
+  'price_1TByjUEAiPWLqq8V6m8Va31v': 'pro',          // Stylist Unlimited monthly
+  'price_1TByjUEAiPWLqq8V3MnQ3Vfg': 'pro',          // Stylist Unlimited yearly
+};
+
 // Helper to get Stripe credentials from Replit connector (cached)
 let stripeCredentialsCache = null;
 let stripeCredentialsCacheTime = 0;
@@ -112,50 +122,113 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
 
     console.log('Stripe webhook received:', event.type);
 
+    // Helper: update subscription_tier in the DB for a given userId or email
+    async function updateUserSubscriptionTier(userId, email, tier, stripeSubscriptionId, stripeCustomerId) {
+      try {
+        let result;
+        if (userId) {
+          result = await pool.query(
+            `UPDATE users SET subscription_tier = $1, stripe_subscription_id = COALESCE($2, stripe_subscription_id), stripe_customer_id = COALESCE($3, stripe_customer_id), updated_at = NOW() WHERE id = $4 RETURNING id, email, subscription_tier`,
+            [tier, stripeSubscriptionId || null, stripeCustomerId || null, userId]
+          );
+        }
+        if (!result?.rows?.length && email) {
+          result = await pool.query(
+            `UPDATE users SET subscription_tier = $1, stripe_subscription_id = COALESCE($2, stripe_subscription_id), stripe_customer_id = COALESCE($3, stripe_customer_id), updated_at = NOW() WHERE email = $4 RETURNING id, email, subscription_tier`,
+            [tier, stripeSubscriptionId || null, stripeCustomerId || null, email]
+          );
+        }
+        if (result?.rows?.length) {
+          console.log(`Webhook: updated user ${result.rows[0].id} (${result.rows[0].email}) to tier=${tier}`);
+          return result.rows[0];
+        }
+        console.warn(`Webhook: no user found for userId=${userId} email=${email}`);
+      } catch (err) {
+        console.error('Webhook updateUserSubscriptionTier error:', err.message);
+      }
+      return null;
+    }
+
+    // Helper: get tier from price IDs in a subscription's line items
+    function getTierFromPriceIds(priceIds) {
+      for (const pid of priceIds) {
+        if (STRIPE_PRICE_TO_TIER[pid]) return STRIPE_PRICE_TO_TIER[pid];
+        if (isVIPPriceId(pid)) return 'vip';
+      }
+      return null;
+    }
+
     // Handle checkout session completed
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       const customerEmail = session.customer_email || session.customer_details?.email;
       const customerName = session.customer_details?.name;
-      
+      const clientReferenceId = session.client_reference_id;
+      const stripeCustomerId = session.customer;
+      const stripeSubscriptionId = session.subscription;
+
       // Check metadata for VIP tier
-      const isVIP = session.metadata?.tier === 'vip' || 
-                    session.metadata?.planTier === 'vip';
-      
+      const isVIP = session.metadata?.tier === 'vip' || session.metadata?.planTier === 'vip';
+
       if (isVIP) {
         console.log('VIP purchase detected via metadata for:', customerEmail);
         const result = await notifyVIPPurchase(customerEmail, customerName, new Date().toISOString());
         console.log('VIP notification result:', result);
+        await updateUserSubscriptionTier(clientReferenceId, customerEmail, 'vip', stripeSubscriptionId, stripeCustomerId);
+      } else if (stripeSubscriptionId) {
+        // Determine tier from the subscription's price IDs
+        try {
+          const Stripe = require('stripe');
+          const creds = await getStripeCredentials();
+          if (creds?.secret) {
+            const stripeClient = new Stripe(creds.secret, { apiVersion: '2024-11-20.acacia' });
+            const sub = await stripeClient.subscriptions.retrieve(stripeSubscriptionId);
+            const priceIds = (sub.items?.data || []).map(i => i.price?.id).filter(Boolean);
+            const tier = getTierFromPriceIds(priceIds);
+            if (tier) {
+              console.log(`Checkout complete: tier=${tier} for clientRef=${clientReferenceId} email=${customerEmail}`);
+              await updateUserSubscriptionTier(clientReferenceId, customerEmail, tier, stripeSubscriptionId, stripeCustomerId);
+            }
+          }
+        } catch (err) {
+          console.error('Webhook: error looking up subscription after checkout:', err.message);
+        }
       }
     }
 
     // Handle subscription creation/update
     if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
       const subscription = event.data.object;
-      
-      // Check if any item has a VIP price
-      let hasVIPPrice = false;
-      if (subscription.items?.data) {
-        hasVIPPrice = subscription.items.data.some(item => isVIPPriceId(item.price?.id));
-      }
-      
-      // Also check metadata
-      const hasVIPMetadata = subscription.metadata?.tier === 'vip' || 
-                             subscription.metadata?.planTier === 'vip';
-      
-      if (hasVIPPrice || hasVIPMetadata) {
+      const priceIds = (subscription.items?.data || []).map(i => i.price?.id).filter(Boolean);
+      const tier = getTierFromPriceIds(priceIds);
+
+      if (tier === 'vip') {
         try {
-          const customer = await stripe.customers.retrieve(subscription.customer);
-          console.log('VIP subscription detected for:', customer.email);
-          
-          const result = await notifyVIPPurchase(
-            customer.email,
-            customer.name,
-            new Date(subscription.created * 1000).toISOString()
-          );
-          console.log('VIP notification result:', result);
+          const Stripe = require('stripe');
+          const creds = await getStripeCredentials();
+          if (creds?.secret) {
+            const stripeClient = new Stripe(creds.secret, { apiVersion: '2024-11-20.acacia' });
+            const customer = await stripeClient.customers.retrieve(subscription.customer);
+            console.log('VIP subscription detected for:', customer.email);
+            await notifyVIPPurchase(customer.email, customer.name, new Date(subscription.created * 1000).toISOString());
+          }
         } catch (err) {
-          console.error('Error retrieving customer:', err.message);
+          console.error('Error retrieving customer for VIP notification:', err.message);
+        }
+      }
+
+      if (tier && subscription.status === 'active') {
+        const clientRef = subscription.metadata?.userId || subscription.metadata?.client_reference_id;
+        try {
+          const Stripe = require('stripe');
+          const creds = await getStripeCredentials();
+          if (creds?.secret) {
+            const stripeClient = new Stripe(creds.secret, { apiVersion: '2024-11-20.acacia' });
+            const customer = await stripeClient.customers.retrieve(subscription.customer);
+            await updateUserSubscriptionTier(clientRef, customer.email, tier, subscription.id, subscription.customer);
+          }
+        } catch (err) {
+          console.error('Webhook: error updating tier from subscription:', err.message);
         }
       }
     }
@@ -163,21 +236,12 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
     // Handle invoice.paid for subscription renewals
     if (event.type === 'invoice.paid') {
       const invoice = event.data.object;
-      
-      // Check if any line item has a VIP price
-      let hasVIPItem = false;
-      if (invoice.lines?.data) {
-        hasVIPItem = invoice.lines.data.some(line => isVIPPriceId(line.price?.id));
-      }
-      
-      if (hasVIPItem && invoice.billing_reason === 'subscription_create') {
+      const lineItemPriceIds = (invoice.lines?.data || []).map(l => l.price?.id).filter(Boolean);
+      const tier = getTierFromPriceIds(lineItemPriceIds);
+
+      if (tier === 'vip' && invoice.billing_reason === 'subscription_create') {
         console.log('VIP invoice paid for:', invoice.customer_email);
-        const result = await notifyVIPPurchase(
-          invoice.customer_email,
-          invoice.customer_name,
-          new Date(invoice.created * 1000).toISOString()
-        );
-        console.log('VIP notification result:', result);
+        await notifyVIPPurchase(invoice.customer_email, invoice.customer_name, new Date(invoice.created * 1000).toISOString());
       }
     }
 
