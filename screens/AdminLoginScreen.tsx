@@ -1,16 +1,15 @@
 import React, { useState } from "react";
-import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, Alert } from "react-native";
+import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, Alert, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
-import { ScreenKeyboardAwareScrollView } from "@/components/ScreenKeyboardAwareScrollView";
-import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { LinearGradient } from "expo-linear-gradient";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 
 type AdminLoginScreenProps = {
@@ -32,41 +31,31 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
-    console.log('handleLogin called - email:', email, 'password length:', password.length, 'isLoading:', isLoading);
     if (!email || !password) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
-
     try {
-      console.log('Attempting login...');
       await login(email, password);
-      console.log('Login successful');
       if (onLoginSuccess) {
         onLoginSuccess();
       }
     } catch (error: any) {
-      console.log('Login error:', error);
       Alert.alert("Login Failed", error.message || "Please check your credentials and try again.");
     }
   };
 
   const handleSetup = async () => {
-    console.log('handleSetup called - email:', email, 'displayName:', displayName, 'isLoading:', isLoading);
     if (!email || !password || !displayName || !setupKey) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
-
     try {
-      console.log('Attempting admin setup...');
       await setupAdmin(email, password, displayName, setupKey);
-      console.log('Setup successful');
       if (onLoginSuccess) {
         onLoginSuccess();
       }
     } catch (error: any) {
-      console.log('Setup error:', error);
       Alert.alert("Setup Failed", error.message || "Please check your setup key and try again.");
     }
   };
@@ -82,21 +71,31 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
 
   return (
     <ThemedView style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.lg }]}>
-        <Pressable
-          onPress={onExit}
-          style={({ pressed }) => [
-            styles.backButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
-        >
-          <Feather name="x" size={24} color={theme.text} />
-        </Pressable>
-      </View>
-
-      <ScreenKeyboardAwareScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
+      <KeyboardAwareScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: insets.top + Spacing.md,
+            paddingBottom: insets.bottom + Spacing.xl,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
+        <View style={styles.header}>
+          <Pressable
+            onPress={onExit}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            style={({ pressed }) => [
+              styles.backButton,
+              { opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Feather name="x" size={24} color={theme.text} />
+          </Pressable>
+        </View>
+
         <View style={styles.iconContainer}>
           <View style={[styles.iconCircle, { backgroundColor: '#EF444420' }]}>
             <Feather name="shield" size={48} color="#EF4444" />
@@ -108,7 +107,7 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
             Admin Portal
           </ThemedText>
           <ThemedText type="body" style={styles.subtitle}>
-            {mode === 'login' 
+            {mode === 'login'
               ? "Sign in to manage stylists and sessions"
               : "Set up your admin account"}
           </ThemedText>
@@ -116,38 +115,32 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
 
         <View style={styles.modeToggle}>
           <Pressable
-            onPress={() => {
-              console.log('Sign In mode pressed');
-              setMode('login');
-            }}
+            onPress={() => setMode('login')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={({ pressed }) => [
               styles.modeButton,
-              { 
+              {
                 backgroundColor: mode === 'login' ? theme.link : theme.backgroundSecondary,
-                opacity: pressed ? 0.7 : 1,
+                opacity: pressed ? 0.8 : 1,
               },
             ]}
-            android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
           >
-            <ThemedText type="small" style={{ color: mode === 'login' ? '#FFFFFF' : theme.text }}>
+            <ThemedText type="small" style={{ color: mode === 'login' ? '#FFFFFF' : theme.text, fontWeight: '600' }}>
               Sign In
             </ThemedText>
           </Pressable>
           <Pressable
-            onPress={() => {
-              console.log('First Time Setup mode pressed');
-              setMode('setup');
-            }}
+            onPress={() => setMode('setup')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={({ pressed }) => [
               styles.modeButton,
-              { 
+              {
                 backgroundColor: mode === 'setup' ? theme.link : theme.backgroundSecondary,
-                opacity: pressed ? 0.7 : 1,
+                opacity: pressed ? 0.8 : 1,
               },
             ]}
-            android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
           >
-            <ThemedText type="small" style={{ color: mode === 'setup' ? '#FFFFFF' : theme.text }}>
+            <ThemedText type="small" style={{ color: mode === 'setup' ? '#FFFFFF' : theme.text, fontWeight: '600' }}>
               First Time Setup
             </ThemedText>
           </Pressable>
@@ -167,6 +160,7 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
                   placeholder="Admin Name"
                   placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
                   editable={!isLoading}
+                  returnKeyType="next"
                 />
               </View>
 
@@ -182,6 +176,7 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
                   placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
                   secureTextEntry
                   editable={!isLoading}
+                  returnKeyType="next"
                 />
               </View>
             </>
@@ -224,6 +219,7 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
               <Pressable
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.passwordToggle}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Feather
                   name={showPassword ? "eye-off" : "eye"}
@@ -236,7 +232,6 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
 
           <Button
             onPress={() => {
-              console.log('Main button pressed - mode:', mode, 'isLoading:', isLoading);
               if (mode === 'login') {
                 handleLogin();
               } else {
@@ -246,7 +241,9 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
             disabled={isLoading}
             style={[styles.button, { backgroundColor: '#EF4444' }]}
           >
-            {isLoading ? (mode === 'login' ? "Signing In..." : "Setting Up...") : (mode === 'login' ? "Sign In" : "Create Admin Account")}
+            {isLoading
+              ? (mode === 'login' ? "Signing In..." : "Setting Up...")
+              : (mode === 'login' ? "Sign In" : "Create Admin Account")}
           </Button>
 
           {isLoading ? (
@@ -262,7 +259,7 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
             </ThemedText>
           </View>
         </View>
-      </ScreenKeyboardAwareScrollView>
+      </KeyboardAwareScrollView>
     </ThemedView>
   );
 }
@@ -271,8 +268,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   header: {
     paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
   },
   backButton: {
     width: 40,
@@ -283,7 +284,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
   },
   iconContainer: {
     alignItems: "center",
