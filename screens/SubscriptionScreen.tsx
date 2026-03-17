@@ -156,14 +156,13 @@ const normalizeTier = (tier?: string): SubscriptionTier => {
   return map[tier] || (tier as SubscriptionTier);
 };
 
-const toApiPlanId = (planId: SubscriptionTier, billingCycle: 'monthly' | 'yearly'): string => {
-  const base: Record<string, string> = {
+const toApiPlanId = (planId: SubscriptionTier): string => {
+  const map: Record<string, string> = {
     subscription: 'style_chat',
     premium: 'personal_stylist',
     pro: 'stylist_unlimited',
   };
-  const baseName = base[planId] || planId;
-  return `${baseName}_${billingCycle}`;
+  return map[planId] || planId;
 };
 
 const getTierDisplayName = (tier?: SubscriptionTier): string => {
@@ -264,7 +263,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
           }
         }
         
-        const apiPlanId = toApiPlanId(planId, billingCycle);
+        const apiPlanId = toApiPlanId(planId);
         console.log('[Subscription] Sending to API:', { planId: apiPlanId, billingCycle });
         const response = await apiService.createSubscriptionCheckout(apiPlanId, billingCycle);
 
