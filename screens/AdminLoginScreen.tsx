@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, Alert, Platform } from "react-native";
+import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, Alert, Platform, ScrollView, KeyboardAvoidingView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
@@ -71,201 +70,207 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
 
   return (
     <ThemedView style={styles.container}>
-      <KeyboardAwareScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.content,
-          {
-            paddingTop: insets.top + Spacing.md,
-            paddingBottom: insets.bottom + Spacing.xl,
-          },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={insets.top}
       >
-        <View style={styles.header}>
-          <Pressable
-            onPress={onExit}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            style={({ pressed }) => [
-              styles.backButton,
-              { opacity: pressed ? 0.7 : 1 },
-            ]}
-          >
-            <Feather name="x" size={24} color={theme.text} />
-          </Pressable>
-        </View>
-
-        <View style={styles.iconContainer}>
-          <View style={[styles.iconCircle, { backgroundColor: '#EF444420' }]}>
-            <Feather name="shield" size={48} color="#EF4444" />
-          </View>
-        </View>
-
-        <View style={styles.titleContainer}>
-          <ThemedText type="h1" style={styles.title}>
-            Admin Portal
-          </ThemedText>
-          <ThemedText type="body" style={styles.subtitle}>
-            {mode === 'login'
-              ? "Sign in to manage stylists and sessions"
-              : "Set up your admin account"}
-          </ThemedText>
-        </View>
-
-        <View style={styles.modeToggle}>
-          <Pressable
-            onPress={() => setMode('login')}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={({ pressed }) => [
-              styles.modeButton,
-              {
-                backgroundColor: mode === 'login' ? theme.link : theme.backgroundSecondary,
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            <ThemedText type="small" style={{ color: mode === 'login' ? '#FFFFFF' : theme.text, fontWeight: '600' }}>
-              Sign In
-            </ThemedText>
-          </Pressable>
-          <Pressable
-            onPress={() => setMode('setup')}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={({ pressed }) => [
-              styles.modeButton,
-              {
-                backgroundColor: mode === 'setup' ? theme.link : theme.backgroundSecondary,
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            <ThemedText type="small" style={{ color: mode === 'setup' ? '#FFFFFF' : theme.text, fontWeight: '600' }}>
-              First Time Setup
-            </ThemedText>
-          </Pressable>
-        </View>
-
-        <View style={styles.form}>
-          {mode === 'setup' ? (
-            <>
-              <View style={styles.fieldContainer}>
-                <ThemedText type="small" style={styles.label}>
-                  Your Name
-                </ThemedText>
-                <TextInput
-                  style={inputStyle}
-                  value={displayName}
-                  onChangeText={setDisplayName}
-                  placeholder="Admin Name"
-                  placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
-                  editable={!isLoading}
-                  returnKeyType="next"
-                />
-              </View>
-
-              <View style={styles.fieldContainer}>
-                <ThemedText type="small" style={styles.label}>
-                  Setup Key
-                </ThemedText>
-                <TextInput
-                  style={inputStyle}
-                  value={setupKey}
-                  onChangeText={setSetupKey}
-                  placeholder="Enter setup key"
-                  placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
-                  secureTextEntry
-                  editable={!isLoading}
-                  returnKeyType="next"
-                />
-              </View>
-            </>
-          ) : null}
-
-          <View style={styles.fieldContainer}>
-            <ThemedText type="small" style={styles.label}>
-              Email
-            </ThemedText>
-            <TextInput
-              style={inputStyle}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="admin@dripn.com"
-              placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              returnKeyType="next"
-              editable={!isLoading}
-            />
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: insets.top + Spacing.md,
+              paddingBottom: insets.bottom + Spacing.xl,
+            },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Pressable
+              onPress={onExit}
+              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+              style={({ pressed }) => [
+                styles.backButton,
+                { opacity: pressed ? 0.6 : 1 },
+              ]}
+            >
+              <Feather name="x" size={24} color={theme.text} />
+            </Pressable>
           </View>
 
-          <View style={styles.fieldContainer}>
-            <ThemedText type="small" style={styles.label}>
-              Password
-            </ThemedText>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={[inputStyle, styles.passwordInput]}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Enter your password"
-                placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
-                secureTextEntry={!showPassword}
-                returnKeyType="done"
-                onSubmitEditing={mode === 'login' ? handleLogin : handleSetup}
-                editable={!isLoading}
-              />
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.passwordToggle}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Feather
-                  name={showPassword ? "eye-off" : "eye"}
-                  size={20}
-                  color={theme.tabIconDefault}
-                />
-              </Pressable>
+          <View style={styles.iconContainer}>
+            <View style={[styles.iconCircle, { backgroundColor: '#EF444420' }]}>
+              <Feather name="shield" size={48} color="#EF4444" />
             </View>
           </View>
 
-          <Button
-            onPress={() => {
-              if (mode === 'login') {
-                handleLogin();
-              } else {
-                handleSetup();
-              }
-            }}
-            disabled={isLoading}
-            style={[styles.button, { backgroundColor: '#EF4444' }]}
-          >
-            {isLoading
-              ? (mode === 'login' ? "Signing In..." : "Setting Up...")
-              : (mode === 'login' ? "Sign In" : "Create Admin Account")}
-          </Button>
-
-          {isLoading ? (
-            <ActivityIndicator size="small" color="#EF4444" style={styles.loader} />
-          ) : null}
-        </View>
-
-        <View style={styles.infoContainer}>
-          <View style={[styles.infoBox, { backgroundColor: theme.backgroundSecondary }]}>
-            <Feather name="lock" size={16} color={theme.tabIconDefault} />
-            <ThemedText type="small" style={styles.infoText}>
-              Admin access is restricted to authorized personnel only. Contact the system administrator if you need access.
+          <View style={styles.titleContainer}>
+            <ThemedText type="h1" style={styles.title}>
+              Admin Portal
+            </ThemedText>
+            <ThemedText type="body" style={styles.subtitle}>
+              {mode === 'login'
+                ? "Sign in to manage stylists and sessions"
+                : "Set up your admin account"}
             </ThemedText>
           </View>
-        </View>
-      </KeyboardAwareScrollView>
+
+          <View style={styles.modeToggle}>
+            <Pressable
+              onPress={() => setMode('login')}
+              hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+              style={({ pressed }) => [
+                styles.modeButton,
+                {
+                  backgroundColor: mode === 'login' ? theme.link : theme.backgroundSecondary,
+                  opacity: pressed ? 0.75 : 1,
+                },
+              ]}
+            >
+              <ThemedText type="small" style={{ color: mode === 'login' ? '#FFFFFF' : theme.text, fontWeight: '600' }}>
+                Sign In
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={() => setMode('setup')}
+              hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+              style={({ pressed }) => [
+                styles.modeButton,
+                {
+                  backgroundColor: mode === 'setup' ? theme.link : theme.backgroundSecondary,
+                  opacity: pressed ? 0.75 : 1,
+                },
+              ]}
+            >
+              <ThemedText type="small" style={{ color: mode === 'setup' ? '#FFFFFF' : theme.text, fontWeight: '600' }}>
+                First Time Setup
+              </ThemedText>
+            </Pressable>
+          </View>
+
+          <View style={styles.form}>
+            {mode === 'setup' ? (
+              <>
+                <View style={styles.fieldContainer}>
+                  <ThemedText type="small" style={styles.label}>
+                    Your Name
+                  </ThemedText>
+                  <TextInput
+                    style={inputStyle}
+                    value={displayName}
+                    onChangeText={setDisplayName}
+                    placeholder="Admin Name"
+                    placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
+                    editable={!isLoading}
+                    returnKeyType="next"
+                  />
+                </View>
+
+                <View style={styles.fieldContainer}>
+                  <ThemedText type="small" style={styles.label}>
+                    Setup Key
+                  </ThemedText>
+                  <TextInput
+                    style={inputStyle}
+                    value={setupKey}
+                    onChangeText={setSetupKey}
+                    placeholder="Enter setup key"
+                    placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
+                    secureTextEntry
+                    editable={!isLoading}
+                    returnKeyType="next"
+                  />
+                </View>
+              </>
+            ) : null}
+
+            <View style={styles.fieldContainer}>
+              <ThemedText type="small" style={styles.label}>
+                Email
+              </ThemedText>
+              <TextInput
+                style={inputStyle}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="admin@dripn.com"
+                placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                returnKeyType="next"
+                editable={!isLoading}
+              />
+            </View>
+
+            <View style={styles.fieldContainer}>
+              <ThemedText type="small" style={styles.label}>
+                Password
+              </ThemedText>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={[inputStyle, styles.passwordInput]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Enter your password"
+                  placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
+                  secureTextEntry={!showPassword}
+                  returnKeyType="done"
+                  onSubmitEditing={mode === 'login' ? handleLogin : handleSetup}
+                  editable={!isLoading}
+                />
+                <Pressable
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.passwordToggle}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Feather
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={20}
+                    color={theme.tabIconDefault}
+                  />
+                </Pressable>
+              </View>
+            </View>
+
+            <Pressable
+              onPress={isLoading ? undefined : (mode === 'login' ? handleLogin : handleSetup)}
+              disabled={isLoading}
+              style={({ pressed }) => [
+                styles.submitButton,
+                { opacity: isLoading ? 0.6 : pressed ? 0.85 : 1 },
+              ]}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <ThemedText type="body" style={styles.submitButtonText}>
+                  {mode === 'login' ? "Sign In" : "Create Admin Account"}
+                </ThemedText>
+              )}
+            </Pressable>
+          </View>
+
+          <View style={styles.infoContainer}>
+            <View style={[styles.infoBox, { backgroundColor: theme.backgroundSecondary }]}>
+              <Feather name="lock" size={16} color={theme.tabIconDefault} />
+              <ThemedText type="small" style={styles.infoText}>
+                Admin access is restricted to authorized personnel only. Contact the system administrator if you need access.
+              </ThemedText>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  flex: {
     flex: 1,
   },
   scrollView: {
@@ -351,11 +356,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  button: {
+  submitButton: {
     marginTop: Spacing.md,
+    height: 52,
+    borderRadius: BorderRadius.full,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  loader: {
-    marginTop: Spacing.md,
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   infoContainer: {
     marginTop: Spacing["2xl"],
