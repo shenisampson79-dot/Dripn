@@ -256,19 +256,19 @@ type OnboardingScreenProps = {
 };
 
 const STYLE_OPTIONS_FEMALE: { id: StyleTheme; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { id: "streetwear", name: "Casual", description: "Relaxed, everyday comfort", icon: "sun" },
+  { id: "streetwear", name: "Casual", description: "Relaxed, everyday comfort", icon: "zap" },
   { id: "business", name: "Professional", description: "Office-ready, polished looks", icon: "briefcase" },
-  { id: "sporty", name: "Active", description: "Sporty, athleisure focused", icon: "activity" },
-  { id: "boho", name: "Creative", description: "Artistic, expressive style", icon: "edit-3" },
+  { id: "sporty", name: "Active", description: "Sporty, athleisure focused", icon: "chevrons-right" },
+  { id: "boho", name: "Creative", description: "Artistic, expressive style", icon: "feather" },
   { id: "luxury", name: "Minimalist", description: "Simple, timeless pieces", icon: "square" },
   { id: "edgy", name: "Trendsetter", description: "Latest fashion, bold choices", icon: "trending-up" },
 ];
 
 const STYLE_OPTIONS_MALE: { id: StyleTheme; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { id: "streetwear", name: "Casual", description: "Relaxed, everyday comfort", icon: "sun" },
+  { id: "streetwear", name: "Casual", description: "Relaxed, everyday comfort", icon: "zap" },
   { id: "business", name: "Professional", description: "Office-ready, polished looks", icon: "briefcase" },
-  { id: "sporty", name: "Active", description: "Sporty, athleisure focused", icon: "activity" },
-  { id: "boho", name: "Creative", description: "Artistic, expressive style", icon: "edit-3" },
+  { id: "sporty", name: "Active", description: "Sporty, athleisure focused", icon: "chevrons-right" },
+  { id: "boho", name: "Creative", description: "Artistic, expressive style", icon: "feather" },
   { id: "luxury", name: "Minimalist", description: "Simple, timeless pieces", icon: "square" },
   { id: "edgy", name: "Trendsetter", description: "Latest fashion, bold choices", icon: "trending-up" },
 ];
@@ -335,10 +335,10 @@ const SKIN_UNDERTONE_OPTIONS: { id: SkinUndertone; name: string; description: st
 ];
 
 const PREFERRED_FIT_OPTIONS: { id: PreferredFit; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { id: 'fitted', name: 'Fitted', description: 'Close to the body, shows your shape', icon: 'minimize-2' },
-  { id: 'tailored', name: 'Tailored', description: 'Structured, professional look', icon: 'align-center' },
-  { id: 'relaxed', name: 'Relaxed', description: 'Comfortable, easy movement', icon: 'maximize-2' },
-  { id: 'oversize', name: 'Oversize', description: 'Loose, trendy, extra room', icon: 'maximize' },
+  { id: 'fitted', name: 'Fitted', description: 'Close to the body, shows your shape', icon: 'arrow-up-right' },
+  { id: 'tailored', name: 'Tailored', description: 'Structured, professional look', icon: 'list' },
+  { id: 'relaxed', name: 'Relaxed', description: 'Comfortable, easy movement', icon: 'arrow-down-left' },
+  { id: 'oversize', name: 'Oversize', description: 'Loose, trendy, extra room', icon: 'square' },
 ];
 
 const AGE_RANGE_OPTIONS: { id: AgeRange; name: string }[] = [
