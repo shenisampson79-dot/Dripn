@@ -683,7 +683,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 style={styles.dfyButtonInner}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  navigation.navigate('DFYComparison' as any);
+                  navigation.navigate('DFYComparison' as any, { selectedTier: 'lite', autoCheckout: true });
                 }}
               >
                 <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Style me for this</ThemedText>
@@ -741,7 +741,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 style={styles.dfyButtonInner}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  navigation.navigate('DFYComparison' as any);
+                  navigation.navigate('DFYComparison' as any, { selectedTier: 'core', autoCheckout: true });
                 }}
               >
                 <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '600' }}>Build my wardrobe</ThemedText>

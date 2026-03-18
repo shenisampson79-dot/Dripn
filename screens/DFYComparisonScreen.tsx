@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -10,7 +10,7 @@ import {
   Modal,
   Platform,
 } from "react-native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { NativeStackNavigationProp, useRoute } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -59,10 +59,12 @@ const DFY_PRODUCT_IDS: Record<DFYTier, string> = {
 };
 
 export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenProps) {
+  const route = useRoute();
+  const routeParams = route.params as { selectedTier?: DFYTier; autoCheckout?: boolean } | undefined;
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const [selectedTier, setSelectedTier] = useState<DFYTier>('lite');
+  const [selectedTier, setSelectedTier] = useState<DFYTier>(routeParams?.selectedTier || 'lite');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [email, setEmail] = useState('');
@@ -73,6 +75,20 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
   const coreGlow = useSharedValue(0);
   const liteScale = useSharedValue(1);
   const coreScale = useSharedValue(1);
+
+  // Auto-start checkout if routed from subscription screen with autoCheckout flag
+  useEffect(() => {
+    if (routeParams?.autoCheckout && routeParams?.selectedTier) {
+      const timer = setTimeout(() => {
+        if (user?.email) {
+          startCheckout(user.email);
+        } else {
+          setShowEmailModal(true);
+        }
+      }, 300); // Small delay to ensure screen is rendered
+      return () => clearTimeout(timer);
+    }
+  }, [routeParams?.autoCheckout]);
 
   const handleTierSelect = (tierId: DFYTier) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
