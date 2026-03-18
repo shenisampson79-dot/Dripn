@@ -335,10 +335,10 @@ const SKIN_UNDERTONE_OPTIONS: { id: SkinUndertone; name: string; description: st
 ];
 
 const PREFERRED_FIT_OPTIONS: { id: PreferredFit; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { id: 'fitted', name: 'Fitted', description: 'Close to the body, shows your shape', icon: 'arrow-up-right' },
-  { id: 'tailored', name: 'Tailored', description: 'Structured, professional look', icon: 'list' },
-  { id: 'relaxed', name: 'Relaxed', description: 'Comfortable, easy movement', icon: 'arrow-down-left' },
-  { id: 'oversize', name: 'Oversize', description: 'Loose, trendy, extra room', icon: 'square' },
+  { id: 'fitted', name: 'Fitted', description: 'Close to the body, shows your shape', icon: 'target' },
+  { id: 'tailored', name: 'Tailored', description: 'Structured, professional look', icon: 'grid' },
+  { id: 'relaxed', name: 'Relaxed', description: 'Comfortable, easy movement', icon: 'wind' },
+  { id: 'oversize', name: 'Oversize', description: 'Loose, trendy, extra room', icon: 'maximize' },
 ];
 
 const AGE_RANGE_OPTIONS: { id: AgeRange; name: string }[] = [
