@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { StyleSheet, View, Pressable, Alert, Dimensions } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -198,10 +198,11 @@ const getTierIcon = (tier?: SubscriptionTier): "award" | "star" | "message-circl
   }
 };
 
-export default function SubscriptionScreen({ navigation }: SubscriptionScreenProps) {
+export default function SubscriptionScreen({ navigation, route }: SubscriptionScreenProps & { route: any }) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
   const { referralCode } = useSubscription();
+  const scrollViewRef = useRef<any>(null);
 
   const normalizedTier = normalizeTier(user?.subscriptionTier);
   
@@ -235,6 +236,15 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
     };
     initCurrency();
   }, []);
+
+  // Scroll to DFY section if navigated from upgrade flow
+  useEffect(() => {
+    if (route?.params?.scrollToDFY && scrollViewRef.current) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 300);
+    }
+  }, [route?.params?.scrollToDFY]);
 
   const currentPrices = isYearly ? yearlyPrices : localizedPrices;
   const PLANS = getLocalizedPlans(currentPrices, isYearly);
@@ -469,7 +479,7 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
   };
 
   return (
-    <ScreenScrollView style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}>
+    <ScreenScrollView ref={scrollViewRef} style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}>
       <LinearGradient
         colors={isDark 
           ? [LUXURY_COLORS.deepViolet, LUXURY_COLORS.berry, '#0D0B09'] 
@@ -671,7 +681,10 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
             <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
               <Pressable 
                 style={styles.dfyButtonInner}
-                onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  navigation.navigate('DFYComparison' as any);
+                }}
               >
                 <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Style me for this</ThemedText>
               </Pressable>
@@ -726,7 +739,10 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
             <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(26,26,46,0.2)' }]}>
               <Pressable 
                 style={styles.dfyButtonInner}
-                onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  navigation.navigate('DFYComparison' as any);
+                }}
               >
                 <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '600' }}>Build my wardrobe</ThemedText>
               </Pressable>

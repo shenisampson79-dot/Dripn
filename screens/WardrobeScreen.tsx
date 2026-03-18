@@ -895,7 +895,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               <Pressable 
                 onPress={() => {
                   setShowAIOutfitModal(false);
-                  navigation.navigate('ProfileTab' as any, { screen: 'Subscription' });
+                  navigation.navigate('ProfileTab' as any, { screen: 'Subscription', params: { scrollToDFY: true } });
                 }}
                 style={[styles.dfyPromptCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}
               >
