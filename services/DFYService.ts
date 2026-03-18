@@ -192,14 +192,14 @@ const COMPARISON_TIERS: DFYComparisonTier[] = [
   {
     id: 'lite',
     name: 'Outfit-Based Setup',
-    tagline: 'Ready-to-wear looks for this moment.',
+    tagline: 'Ready-to-wear looks for a trip or event (14 days).',
     price: '£19.99',
     mentalModel: 'tactical',
-    description: 'Need outfits fast for a specific event? I\'ll create 5-7 complete, ready-to-wear looks from what you send. You get styled outfits immediately. No wardrobe building, no long-term system—just decisions made for you.',
+    description: 'Perfect for a holiday, weekend trip, or special event. I\'ll create 5-7 complete, ready-to-wear looks you can wear immediately. You have 14 days to use them—after that, the styling ends. No wardrobe building, no long-term commitment.',
     features: [
       { text: '5-7 complete, ready-to-wear outfits', included: true },
       { text: 'Styled for one occasion (work, holiday, event)', included: true },
-      { text: '14-day access to outfits', included: true },
+      { text: '14-day access window only', included: true },
       { text: 'Stylist adjustments during window', included: true },
       { text: 'Save outfits as reference cards', included: true },
       { text: 'Build your wardrobe system', included: false },
