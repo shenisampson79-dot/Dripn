@@ -215,10 +215,10 @@ const COMPARISON_TIERS: DFYComparisonTier[] = [
   {
     id: 'core',
     name: 'Core Wardrobe Setup',
-    tagline: 'Build your personal wardrobe system.',
+    tagline: 'Build a system that generates unlimited outfits (keep forever).',
     price: '£39.99',
     mentalModel: 'structural',
-    description: 'Want wardrobe flexibility and confidence? I\'ll organize your 30 items properly, then generate unlimited outfit combinations. Your wardrobe stays forever, you can edit and remix pieces endlessly, and I\'ll keep learning your style.',
+    description: 'Build a dynamic wardrobe system that works for you forever. I\'ll organize your 30 items properly, then generate unlimited outfit combinations from them. You get 30 days of active styling, but your wardrobe stays saved forever. Edit, swap, and remix pieces endlessly—no more repeating the same looks.',
     features: [
       { text: 'Organize up to 30 individual items', included: true },
       { text: 'Proper categorization & tagging', included: true },
