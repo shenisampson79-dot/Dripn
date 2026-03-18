@@ -51,10 +51,10 @@ type AddWardrobeItemScreenProps = {
 const getCategoryOptions = (isMale: boolean): Array<{ key: ClothingCategory; icon: string; iconSet: 'feather' | 'material' }> => {
   const all: Array<{ key: ClothingCategory; icon: string; iconSet: 'feather' | 'material' }> = [
     { key: 'tops', icon: 'tshirt-crew', iconSet: 'material' },
-    { key: 'bottoms', icon: 'jeans', iconSet: 'material' },
+    { key: 'bottoms', icon: 'minimize-2', iconSet: 'feather' },
     // dresses excluded for male users
     ...(!isMale ? [{ key: 'dresses' as ClothingCategory, icon: 'human-female', iconSet: 'material' as const }] : []),
-    { key: 'outerwear', icon: 'hoodie', iconSet: 'material' },
+    { key: 'outerwear', icon: 'cloud', iconSet: 'feather' },
     { key: 'shoes', icon: isMale ? 'shoe-formal' : 'shoe-heel', iconSet: 'material' },
     { key: 'bags', icon: isMale ? 'briefcase' : 'bag-personal', iconSet: 'material' },
     { key: 'accessories', icon: isMale ? 'watch' : 'necklace', iconSet: 'material' },
