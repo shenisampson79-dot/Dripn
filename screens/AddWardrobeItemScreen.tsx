@@ -50,18 +50,18 @@ type AddWardrobeItemScreenProps = {
 
 const getCategoryOptions = (isMale: boolean): Array<{ key: ClothingCategory; icon: string; iconSet: 'feather' | 'material' }> => {
   const all: Array<{ key: ClothingCategory; icon: string; iconSet: 'feather' | 'material' }> = [
-    { key: 'tops', icon: 'shirt', iconSet: 'material' },
-    { key: 'bottoms', icon: 'pants', iconSet: 'material' },
+    { key: 'tops', icon: 'tshirt-crew', iconSet: 'material' },
+    { key: 'bottoms', icon: 'hanger', iconSet: 'material' },
     // dresses excluded for male users
-    ...(!isMale ? [{ key: 'dresses' as ClothingCategory, icon: 'human-female-dress', iconSet: 'material' as const }] : []),
-    { key: 'outerwear', icon: 'jacket', iconSet: 'material' },
+    ...(!isMale ? [{ key: 'dresses' as ClothingCategory, icon: 'human-female', iconSet: 'material' as const }] : []),
+    { key: 'outerwear', icon: 'coat-rack', iconSet: 'material' },
     { key: 'shoes', icon: isMale ? 'shoe-formal' : 'shoe-heel', iconSet: 'material' },
-    { key: 'bags', icon: isMale ? 'briefcase' : 'purse', iconSet: 'material' },
+    { key: 'bags', icon: isMale ? 'briefcase' : 'bag-personal', iconSet: 'material' },
     { key: 'accessories', icon: isMale ? 'watch' : 'necklace', iconSet: 'material' },
     { key: 'activewear', icon: 'dumbbell', iconSet: 'material' },
-    { key: 'swimwear', icon: 'swimming', iconSet: 'material' },
+    { key: 'swimwear', icon: 'swim', iconSet: 'material' },
     { key: 'sleepwear', icon: 'bed', iconSet: 'material' },
-    { key: 'formal', icon: 'tuxedo', iconSet: 'material' },
+    { key: 'formal', icon: 'bow-tie', iconSet: 'material' },
   ];
   return all;
 };
