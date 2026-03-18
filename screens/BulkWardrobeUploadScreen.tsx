@@ -26,6 +26,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "expo-linear-gradient";
 import { useWardrobe, ClothingCategory, ClothingColor, ClothingSeason, ClothingOccasion } from "@/contexts/WardrobeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   scanBulkItems,
   extractProductFromText,
@@ -57,7 +58,9 @@ interface PendingItem extends DetectedGarment {
 export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUploadScreenProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const { addItem, addItemsBatch, items: existingItems } = useWardrobe();
+  const isMale = user?.gender === 'man';
 
   const [inputMethod, setInputMethod] = useState<InputMethod | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -76,7 +79,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
   const CATEGORY_OPTIONS: { value: ClothingCategory; label: string }[] = [
     { value: 'tops', label: 'Tops' },
     { value: 'bottoms', label: 'Bottoms' },
-    { value: 'dresses', label: 'Dresses' },
+    ...(!isMale ? [{ value: 'dresses' as ClothingCategory, label: 'Dresses' }] : []),
     { value: 'outerwear', label: 'Outerwear' },
     { value: 'shoes', label: 'Shoes' },
     { value: 'bags', label: 'Bags' },
@@ -84,6 +87,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     { value: 'activewear', label: 'Activewear' },
     { value: 'swimwear', label: 'Swimwear' },
     { value: 'sleepwear', label: 'Sleepwear' },
+    { value: 'formal', label: 'Formal' },
   ];
   
   const COLOR_OPTIONS: { value: ClothingColor; label: string }[] = [

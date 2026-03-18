@@ -48,19 +48,23 @@ type AddWardrobeItemScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "AddWardrobeItem">;
 };
 
-const getCategoryOptions = (isMale: boolean): Array<{ key: ClothingCategory; icon: string; iconSet: 'feather' | 'material' }> => [
-  { key: 'tops', icon: 'shirt', iconSet: 'material' },
-  { key: 'bottoms', icon: 'pants', iconSet: 'material' },
-  { key: 'dresses', icon: isMale ? 'human-male-female' : 'human-female-dress', iconSet: 'material' },
-  { key: 'outerwear', icon: 'jacket', iconSet: 'material' },
-  { key: 'shoes', icon: isMale ? 'shoe-formal' : 'shoe-heel', iconSet: 'material' },
-  { key: 'bags', icon: isMale ? 'briefcase' : 'purse', iconSet: 'material' },
-  { key: 'accessories', icon: isMale ? 'watch' : 'necklace', iconSet: 'material' },
-  { key: 'activewear', icon: 'dumbbell', iconSet: 'material' },
-  { key: 'swimwear', icon: 'swimming', iconSet: 'material' },
-  { key: 'sleepwear', icon: 'bed', iconSet: 'material' },
-  { key: 'formal', icon: 'tuxedo', iconSet: 'material' },
-];
+const getCategoryOptions = (isMale: boolean): Array<{ key: ClothingCategory; icon: string; iconSet: 'feather' | 'material' }> => {
+  const all: Array<{ key: ClothingCategory; icon: string; iconSet: 'feather' | 'material' }> = [
+    { key: 'tops', icon: 'shirt', iconSet: 'material' },
+    { key: 'bottoms', icon: 'pants', iconSet: 'material' },
+    // dresses excluded for male users
+    ...(!isMale ? [{ key: 'dresses' as ClothingCategory, icon: 'human-female-dress', iconSet: 'material' as const }] : []),
+    { key: 'outerwear', icon: 'jacket', iconSet: 'material' },
+    { key: 'shoes', icon: isMale ? 'shoe-formal' : 'shoe-heel', iconSet: 'material' },
+    { key: 'bags', icon: isMale ? 'briefcase' : 'purse', iconSet: 'material' },
+    { key: 'accessories', icon: isMale ? 'watch' : 'necklace', iconSet: 'material' },
+    { key: 'activewear', icon: 'dumbbell', iconSet: 'material' },
+    { key: 'swimwear', icon: 'swimming', iconSet: 'material' },
+    { key: 'sleepwear', icon: 'bed', iconSet: 'material' },
+    { key: 'formal', icon: 'tuxedo', iconSet: 'material' },
+  ];
+  return all;
+};
 
 const COLOR_OPTIONS: ClothingColor[] = [
   'black', 'white', 'gray', 'navy', 'brown', 'beige',
