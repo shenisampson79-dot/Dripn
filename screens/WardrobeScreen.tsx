@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Image } from "expo-image";
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -63,17 +63,17 @@ type WardrobeScreenProps = {
   navigation: NativeStackNavigationProp<WardrobeStackParamList, "Wardrobe">;
 };
 
-const CATEGORY_KEYS: Array<{ key: ClothingCategory | 'all'; icon: string; translationKey: string }> = [
-  { key: 'all', icon: 'grid', translationKey: 'wardrobe.categoryAll' },
-  { key: 'tops', icon: 'sun', translationKey: 'wardrobe.categoryTops' },
-  { key: 'bottoms', icon: 'minimize-2', translationKey: 'wardrobe.categoryBottoms' },
-  { key: 'dresses', icon: 'heart', translationKey: 'wardrobe.categoryDresses' },
-  { key: 'outerwear', icon: 'cloud', translationKey: 'wardrobe.categoryOuterwear' },
-  { key: 'shoes', icon: 'disc', translationKey: 'wardrobe.categoryShoes' },
-  { key: 'bags', icon: 'shopping-bag', translationKey: 'wardrobe.categoryBags' },
-  { key: 'accessories', icon: 'watch', translationKey: 'wardrobe.categoryAccessories' },
-  { key: 'activewear', icon: 'activity', translationKey: 'wardrobe.categoryActivewear' },
-  { key: 'formal', icon: 'star', translationKey: 'wardrobe.categoryFormal' },
+const CATEGORY_KEYS: Array<{ key: ClothingCategory | 'all'; icon: string; iconSet: 'feather' | 'material'; translationKey: string }> = [
+  { key: 'all', icon: 'grid', iconSet: 'feather', translationKey: 'wardrobe.categoryAll' },
+  { key: 'tops', icon: 'tshirt-crew', iconSet: 'material', translationKey: 'wardrobe.categoryTops' },
+  { key: 'bottoms', icon: 'layers', iconSet: 'feather', translationKey: 'wardrobe.categoryBottoms' },
+  { key: 'dresses', icon: 'human-female', iconSet: 'material', translationKey: 'wardrobe.categoryDresses' },
+  { key: 'outerwear', icon: 'cloud', iconSet: 'feather', translationKey: 'wardrobe.categoryOuterwear' },
+  { key: 'shoes', icon: 'shoe-formal', iconSet: 'material', translationKey: 'wardrobe.categoryShoes' },
+  { key: 'bags', icon: 'briefcase', iconSet: 'material', translationKey: 'wardrobe.categoryBags' },
+  { key: 'accessories', icon: 'watch', iconSet: 'material', translationKey: 'wardrobe.categoryAccessories' },
+  { key: 'activewear', icon: 'dumbbell', iconSet: 'material', translationKey: 'wardrobe.categoryActivewear' },
+  { key: 'formal', icon: 'bow-tie', iconSet: 'material', translationKey: 'wardrobe.categoryFormal' },
 ];
 
 export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
@@ -83,7 +83,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const { colorScheme, palette } = useColorScheme();
   const { translations, t } = useTranslations();
   const ALL_CATEGORY_OPTIONS = useMemo(
-    () => CATEGORY_KEYS.map(({ key, icon, translationKey }) => ({ key, icon, label: t(translationKey) })),
+    () => CATEGORY_KEYS.map(({ key, icon, iconSet, translationKey }) => ({ key, icon, iconSet, label: t(translationKey) })),
     [t]
   );
   const { items, isLoading, deleteItem, toggleItemFavorite, markItemWorn, updateItem } = useWardrobe();
@@ -238,14 +238,22 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             end={{ x: 1, y: 0 }}
             style={styles.categoryTab}
           >
-            <Feather name={item.icon as any} size={14} color="#FFFFFF" />
+            {item.iconSet === 'material' ? (
+              <MaterialCommunityIcons name={item.icon as any} size={14} color="#FFFFFF" />
+            ) : (
+              <Feather name={item.icon as any} size={14} color="#FFFFFF" />
+            )}
             <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>
               {item.label}
             </ThemedText>
           </LinearGradient>
         ) : (
           <View style={[styles.categoryTab, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
-            <Feather name={item.icon as any} size={14} color={theme.tabIconDefault} />
+            {item.iconSet === 'material' ? (
+              <MaterialCommunityIcons name={item.icon as any} size={14} color={theme.tabIconDefault} />
+            ) : (
+              <Feather name={item.icon as any} size={14} color={theme.tabIconDefault} />
+            )}
             <ThemedText type="caption">{item.label}</ThemedText>
           </View>
         )}
