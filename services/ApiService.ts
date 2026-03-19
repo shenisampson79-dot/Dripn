@@ -4,8 +4,24 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://dripn-server--shenisampson79.replit.app';
+// Use local backend for development (port 8082)
+// On web, use localhost; on mobile, use the Replit dev domain
+const getDefaultAPIUrl = (): string => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  // Development fallback: always try local backend on port 8082
+  if (Platform.OS === 'web') {
+    return 'http://localhost:8082';
+  }
+  // For mobile in Expo Go, return the full Replit dev domain
+  // This will be resolved at runtime by the environment variable
+  return 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:8082';
+};
+
+const API_URL = getDefaultAPIUrl();
 const ADMIN_API_URL = process.env.EXPO_PUBLIC_ADMIN_API_URL || API_URL;
 
 const TOKEN_KEY = '@dripn_token';
