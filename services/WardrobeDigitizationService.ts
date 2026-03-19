@@ -547,7 +547,7 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       detectedItems: [],
       totalItemsFound: 0,
       processingTime: Date.now() - startTime,
-      error: 'AI analysis temporarily unavailable. Please try again in a moment.',
+      error: 'QUOTA_EXCEEDED',
     };
   } catch (error: any) {
     console.error('Bulk scan error:', error);

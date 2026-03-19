@@ -241,6 +241,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     setIsProcessing(true);
     const allItems: PendingItem[] = [];
     const failedUris: string[] = [];
+    let quotaExceeded = false;
     setProcessingProgress({ current: 0, total: imageUris.length });
 
     for (let i = 0; i < imageUris.length; i++) {
@@ -257,7 +258,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           }));
           allItems.push(...items);
         } else {
-          // AI analysis failed for this image
+          if (result.error === 'QUOTA_EXCEEDED') quotaExceeded = true;
           failedUris.push(imageUris[i]);
           console.log(`[BulkUpload] Analysis failed for image ${i + 1}: ${result.error}`);
         }
@@ -289,14 +290,22 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       }
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(
-        "Analysis Failed",
-        "AI analysis is temporarily unavailable. This may be due to network issues. Please try again in a moment.",
-        [
-          { text: "Try Again", onPress: () => processBulkImages(imageUris, true) },
-          { text: "Cancel", style: "cancel" },
-        ]
-      );
+      if (quotaExceeded) {
+        Alert.alert(
+          "AI Credits Exhausted",
+          "Your OpenAI API quota has been exceeded. Please top up your OpenAI account at platform.openai.com/billing to continue using AI analysis.",
+          [{ text: "OK", style: "cancel" }]
+        );
+      } else {
+        Alert.alert(
+          "Analysis Failed",
+          "AI analysis is temporarily unavailable. Please check your connection and try again.",
+          [
+            { text: "Try Again", onPress: () => processBulkImages(imageUris, true) },
+            { text: "Cancel", style: "cancel" },
+          ]
+        );
+      }
     }
   };
 
