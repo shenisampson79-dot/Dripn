@@ -652,19 +652,75 @@ function adminAuthMiddleware(req, res, next) {
   }
 }
 
-// ============ AUTH ROUTES (proxied to deployed backend) ============
+// ============ AUTH ROUTES (local database — deployed backend is unavailable) ============
 
-// Register — proxy to deployed backend (source of truth for user accounts)
-app.post('/api/auth/register', (req, res) => proxyToDeployed(req, res, '/api/auth/register'));
+// Register — create user in local DB
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { email, password, displayName } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    if (existing.rows.length > 0) return res.status(409).json({ error: 'An account with this email already exists' });
+    const passwordHash = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      `INSERT INTO users (email, password_hash, display_name) VALUES ($1, $2, $3) RETURNING *`,
+      [email.toLowerCase().trim(), passwordHash, displayName || email.split('@')[0]]
+    );
+    const user = result.rows[0];
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
+    res.json({ token, user: { id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url } });
+  } catch (error) {
+    console.error('[Auth] Register error:', error);
+    res.status(500).json({ error: 'Registration failed. Please try again.' });
+  }
+});
 
-// Login — proxy to deployed backend
-app.post('/api/auth/login', (req, res) => proxyToDeployed(req, res, '/api/auth/login'));
+// Login — verify against local DB
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    const user = result.rows[0];
+    if (!user) return res.status(401).json({ error: 'Invalid email or password' });
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
+    res.json({ token, user: { id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url } });
+  } catch (error) {
+    console.error('[Auth] Login error:', error);
+    res.status(500).json({ error: 'Login failed. Please try again.' });
+  }
+});
 
-// Get current user — proxy to deployed backend
-app.get('/api/auth/me', (req, res) => proxyToDeployed(req, res, '/api/auth/me'));
+// Get current user — from local DB
+app.get('/api/auth/me', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.userId]);
+    const user = result.rows[0];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url, bio: user.bio });
+  } catch (error) {
+    console.error('[Auth] Me error:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
 
-// Update profile — proxy to deployed backend
-app.put('/api/auth/profile', (req, res) => proxyToDeployed(req, res, '/api/auth/profile'));
+// Update profile — in local DB
+app.put('/api/auth/profile', authMiddleware, async (req, res) => {
+  try {
+    const { displayName, bio, avatarUrl } = req.body;
+    const result = await pool.query(
+      `UPDATE users SET display_name = COALESCE($1, display_name), bio = COALESCE($2, bio), avatar_url = COALESCE($3, avatar_url) WHERE id = $4 RETURNING *`,
+      [displayName, bio, avatarUrl, req.userId]
+    );
+    const user = result.rows[0];
+    res.json({ id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url, bio: user.bio });
+  } catch (error) {
+    console.error('[Auth] Profile update error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
 
 // ============ STRIPE CHECKOUT ROUTES ============
 

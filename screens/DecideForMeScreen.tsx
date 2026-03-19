@@ -1162,9 +1162,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         <ThemedText type="body" style={[styles.calibrationMessage, { color: theme.tabIconDefault }]}>
           {styleDirectionService.getCalibrationMessage()}
         </ThemedText>
-        <Pressable
+        <View
           style={[styles.expressionInputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
-          onPress={() => expressionInputRef.current?.focus()}
+          pointerEvents="box-none"
         >
           <TextInput
             ref={expressionInputRef}
@@ -1176,7 +1176,6 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             returnKeyType="send"
             blurOnSubmit={true}
             onSubmitEditing={() => { handleExpressionSubmit(); Keyboard.dismiss(); }}
-            onFocus={handleExpressionInputFocus}
             multiline={false}
             maxLength={MAX_EXPRESSION_LENGTH}
           />
@@ -1189,7 +1188,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
               <Feather name="send" size={18} color={isSubmittingExpression ? theme.tabIconDefault : theme.link} />
             </Pressable>
           ) : null}
-        </Pressable>
+        </View>
       </View>
 
       <Animated.View entering={FadeInDown.delay(400)} style={styles.ctaSection}>
@@ -1246,12 +1245,11 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         <KeyboardAwareScrollView
           ref={scrollRef as any}
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl * 4 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl * 6 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          bottomOffset={120}
+          bottomOffset={160}
           scrollOnFocus={true}
-          extraKeyboardSpace={0}
         >
           {step === "occasion" ? renderOccasionStep() : null}
           {step === "loading" ? renderLoadingStep() : null}

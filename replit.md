@@ -44,10 +44,10 @@ The app features a 4-tab structure: Home ("Today's Decision"), Wardrobe, Ask Sty
 - **Event APIs**: Timeout, TodayTix, Eventbrite, and Meetup are integrated for event discovery.
 
 ## Backend Configuration
-- **Deployed Backend**: https://dripn-server--shenisampson79.replit.app — source of truth for user accounts, auth, and subscription data
-- **Local Backend**: Runs on port 8082 via "Backend API" workflow (`backend-code/index.js`) — handles guest chat (real AI) and wardrobe analysis; proxies auth/profile routes to the deployed backend
-- **Auth Proxy Architecture**: Local backend proxies `/api/auth/login`, `/api/auth/register`, `/api/auth/me`, and `/api/auth/profile` to the deployed backend. `authMiddleware` first validates JWT locally, then falls back to the deployed backend's `/api/auth/me` for tokens issued by the deployed backend. This means the app uses the local backend for everything, with auth data transparently served from the deployed backend.
-- **Frontend API URL**: `EXPO_PUBLIC_API_URL` is set to `https://dripn-server--shenisampson79.replit.app` (stable, never changes on restart). Stored in shared env vars AND injected inline in the "Start application" workflow command for double assurance.
+- **Deployed Backend**: https://dripn-server--shenisampson79.replit.app — NOTE: Currently returning 404 on all endpoints (sleeping/down). Auth has been moved to local backend.
+- **Local Backend**: Runs on port 8082 via "Backend API" workflow (`backend-code/index.js`) — handles ALL auth, guest chat (real AI), wardrobe analysis, and subscriptions.
+- **Auth Architecture**: Auth endpoints (`/api/auth/login`, `/api/auth/register`, `/api/auth/me`, `/api/auth/profile`) now work directly against the local PostgreSQL database. No longer proxied to the deployed backend. `authMiddleware` validates JWT locally only.
+- **Frontend API URL**: Mobile Expo Go uses `https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:8082` (local backend). Set as fallback in `services/ApiService.ts` when `EXPO_PUBLIC_API_URL` env var is not set.
 - **Workflows**: 
   - "Start application" - Runs Expo Metro bundler on port 8081 with `EXPO_PUBLIC_API_URL=https://dripn-server--shenisampson79.replit.app` injected in the command
   - "Backend API" - Runs local Express.js backend on port 8082 (secondary; used for wardrobe analysis resilient endpoint and guest chat with real AI)
