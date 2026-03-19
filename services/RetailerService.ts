@@ -1,6 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://dripn-server--shenisampson79.replit.app';
+const BROKEN_DEPLOYED_BACKEND = 'https://dripn-server--shenisampson79.replit.app';
+const LOCAL_BACKEND_MOBILE = 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:3000';
+const LOCAL_BACKEND_WEB = 'http://localhost:8082';
+
+const getApiUrl = (): string => {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl && envUrl !== BROKEN_DEPLOYED_BACKEND) return envUrl;
+  return Platform.OS === 'web' ? LOCAL_BACKEND_WEB : LOCAL_BACKEND_MOBILE;
+};
 
 export interface Retailer {
   name: string;
@@ -16,20 +25,124 @@ export interface RetailerSuggestionsResponse {
   cachedAt?: number;
 }
 
-const CACHE_KEY = '@dripn_retailer_suggestions';
+const CACHE_KEY = '@dripn_retailer_suggestions_v2';
 const CACHE_DURATION = 24 * 60 * 60 * 1000;
+
+const UK_RETAILERS: Retailer[] = [
+  { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Marks & Spencer', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'John Lewis', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Next', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'River Island', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Primark', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: false },
+  { name: 'Topshop', category: 'fast-fashion', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Selfridges', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Harvey Nichols', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Harrods', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Matches Fashion', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Flannels', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Reiss', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Ted Baker', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'AllSaints', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Whistles', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Phase Eight', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Hobbs', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Karen Millen', category: 'contemporary', hasLocalStores: false, shipsToCountry: true },
+  { name: 'LK Bennett', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Jigsaw', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Massimo Dutti', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'COS', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: '& Other Stories', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Arket', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'The White Company', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Boden', category: 'basics', hasLocalStores: false, shipsToCountry: true },
+  { name: 'White Stuff', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'FatFace', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Jack Wills', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Superdry', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Gymshark', category: 'sportswear', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'JD Sports', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'New Balance', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Under Armour', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'END Clothing', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Size?', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Boohoo', category: 'fast-fashion', hasLocalStores: false, shipsToCountry: true },
+  { name: 'PrettyLittleThing', category: 'fast-fashion', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Rixo', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Nordstrom', category: 'department-store', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Gap', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+];
+
+const US_RETAILERS: Retailer[] = [
+  { name: 'Nordstrom', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Macy\'s', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Bloomingdale\'s', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Saks Fifth Avenue', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Neiman Marcus', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+  { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Gap', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Banana Republic', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'J.Crew', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Anthropologie', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Free People', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Urban Outfitters', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Everlane', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Reformation', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Madewell', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Ralph Lauren', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Tommy Hilfiger', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Calvin Klein', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+];
+
+const AU_RETAILERS: Retailer[] = [
+  { name: 'David Jones', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Myer', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Country Road', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Witchery', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Seed Heritage', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Trenery', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+  { name: 'The Iconic', category: 'online', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Zimmermann', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Camilla', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Cotton On', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Sportsgirl', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+];
 
 class RetailerServiceImpl {
   private cache: Map<string, RetailerSuggestionsResponse> = new Map();
-  
+
   async getRetailerSuggestions(country: string): Promise<Retailer[]> {
     const cacheKey = country.toLowerCase().replace(/\s+/g, '-');
-    
+
     const cached = this.cache.get(cacheKey);
     if (cached && cached.cachedAt && Date.now() - cached.cachedAt < CACHE_DURATION) {
       return cached.retailers;
     }
-    
+
     try {
       const storedCache = await AsyncStorage.getItem(`${CACHE_KEY}_${cacheKey}`);
       if (storedCache) {
@@ -42,74 +155,55 @@ class RetailerServiceImpl {
     } catch (error) {
       console.log('Error reading retailer cache:', error);
     }
-    
+
     try {
+      const apiUrl = getApiUrl();
       const response = await fetch(
-        `${API_URL}/api/retailers/suggestions?country=${encodeURIComponent(country)}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+        `${apiUrl}/api/retailers/suggestions?country=${encodeURIComponent(country)}`,
+        { method: 'GET', headers: { 'Content-Type': 'application/json' } }
       );
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch retailers: ${response.status}`);
-      }
-      
+
+      if (!response.ok) throw new Error(`Failed to fetch retailers: ${response.status}`);
+
       const data = await response.json();
       const retailers: Retailer[] = data.retailers || [];
-      
-      const cacheData: RetailerSuggestionsResponse = {
-        country,
-        retailers,
-        cachedAt: Date.now(),
-      };
-      
+
+      const cacheData: RetailerSuggestionsResponse = { country, retailers, cachedAt: Date.now() };
       this.cache.set(cacheKey, cacheData);
-      
       try {
         await AsyncStorage.setItem(`${CACHE_KEY}_${cacheKey}`, JSON.stringify(cacheData));
-      } catch (error) {
-        console.log('Error saving retailer cache:', error);
-      }
-      
+      } catch {}
+
       return retailers;
     } catch (error) {
-      console.log('Error fetching retailer suggestions:', error);
+      console.log('Error fetching retailer suggestions, using local list:', error);
       return this.getFallbackRetailers(country);
     }
   }
-  
+
   private getFallbackRetailers(country: string): Retailer[] {
-    const commonRetailers: Retailer[] = [
-      { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
-      { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
-      { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
-      { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
-      { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
-      { name: 'Nordstrom', category: 'department-store', hasLocalStores: false, shipsToCountry: true },
-      { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
-      { name: 'Massimo Dutti', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
-    ];
-    
-    return commonRetailers;
+    const c = country.toLowerCase();
+    if (c.includes('united kingdom') || c.includes('uk') || c.includes('england') || c.includes('scotland') || c.includes('wales')) {
+      return UK_RETAILERS;
+    }
+    if (c.includes('australia')) return AU_RETAILERS;
+    if (c.includes('united states') || c.includes('usa') || c.includes('us')) return US_RETAILERS;
+    return UK_RETAILERS;
   }
-  
+
   getRetailersByCategory(retailers: Retailer[], category?: Retailer['category']): Retailer[] {
     if (!category) return retailers;
     return retailers.filter(r => r.category === category);
   }
-  
+
   getLocalRetailers(retailers: Retailer[]): Retailer[] {
     return retailers.filter(r => r.hasLocalStores);
   }
-  
+
   getOnlineRetailers(retailers: Retailer[]): Retailer[] {
     return retailers.filter(r => !r.hasLocalStores && r.shipsToCountry);
   }
-  
+
   getCategoryLabel(category: Retailer['category']): string {
     const labels: Record<Retailer['category'], string> = {
       'luxury': 'Luxury',
@@ -122,14 +216,12 @@ class RetailerServiceImpl {
     };
     return labels[category] || category;
   }
-  
+
   async clearCache(): Promise<void> {
     this.cache.clear();
     const keys = await AsyncStorage.getAllKeys();
     const cacheKeys = keys.filter(k => k.startsWith(CACHE_KEY));
-    if (cacheKeys.length > 0) {
-      await AsyncStorage.multiRemove(cacheKeys);
-    }
+    if (cacheKeys.length > 0) await AsyncStorage.multiRemove(cacheKeys);
   }
 }
 
