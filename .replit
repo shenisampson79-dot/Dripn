@@ -49,6 +49,10 @@ author = "agent"
 task = "workflow.run"
 args = "Start application"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Backend API"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -64,11 +68,14 @@ waitForPort = 8081
 [[workflows.workflow]]
 name = "Backend API"
 mode = "sequential"
-author = 50694868
+author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd backend-code && npm install && PORT=8082 node index.js"
+args = "cd backend-code && npm install --silent && while true; do PORT=8082 node index.js; echo '[Backend] Process exited - restarting in 3s...'; sleep 3; done"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 stack = "EXPO"
