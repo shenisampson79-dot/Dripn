@@ -822,6 +822,15 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           <Feather name="zap" size={20} color={LUXURY_COLORS.coral} />
         </Pressable>
         <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            navigation.navigate('OutfitBuilder');
+          }}
+          style={[styles.fabSecondary, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
+        >
+          <Feather name="shuffle" size={20} color={LUXURY_COLORS.teal} />
+        </Pressable>
+        <Pressable
           onPress={handleQuickAdd}
           style={[styles.fabSecondary, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
         >

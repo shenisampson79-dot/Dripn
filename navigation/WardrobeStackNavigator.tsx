@@ -4,6 +4,7 @@ import WardrobeScreen from "@/screens/WardrobeScreen";
 import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
 import BulkWardrobeUploadScreen from "@/screens/BulkWardrobeUploadScreen";
 import OutfitCalendarScreen from "@/screens/OutfitCalendarScreen";
+import OutfitBuilderScreen from "@/screens/OutfitBuilderScreen";
 import WardrobeDigitalTwinScreen from "@/screens/WardrobeDigitalTwinScreen";
 import CostPerWearScreen from "@/screens/CostPerWearScreen";
 import StyleDNAScreen from "@/screens/StyleDNAScreen";
@@ -23,6 +24,7 @@ export type WardrobeStackParamList = {
   AddWardrobeItem: undefined;
   BulkWardrobeUpload: undefined;
   OutfitCalendar: undefined;
+  OutfitBuilder: undefined;
   WardrobeDigitalTwin: undefined;
   CostPerWear: undefined;
   StyleDNA: undefined;
@@ -73,6 +75,14 @@ export default function WardrobeStackNavigator() {
         component={OutfitCalendarScreen}
         options={{
           title: "Outfit Calendar",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="OutfitBuilder"
+        component={OutfitBuilderScreen}
+        options={{
+          title: "Outfit Builder",
           headerShown: false,
         }}
       />
