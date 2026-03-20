@@ -380,6 +380,13 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         try {
           const result = await apiService.generateOutfit({
             occasionType,
+            localItems: items.map(i => ({
+              id: i.id,
+              name: i.name,
+              category: i.category,
+              color: i.color,
+              imageUri: i.imageUri,
+            })),
           });
           
           if (result.success && result.outfit && result.outfit.items.length > 0) {
