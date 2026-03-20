@@ -198,7 +198,7 @@ async function testModelHealth(modelId, category = 'chat') {
       const response = await openai.chat.completions.create({
         model: modelId,
         messages: [{ role: 'user', content: 'Say "OK" if you can respond.' }],
-        max_tokens: 5,
+        max_completion_tokens: 5,
         temperature: 0,
       });
       

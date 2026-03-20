@@ -238,7 +238,7 @@ async function getMoodBasedOutfit(options = {}) {
         { role: 'user', content: prompt },
       ],
       temperature: 0.8,
-      max_tokens: 1000,
+      max_completion_tokens: 1000,
     });
 
     const content = response.choices[0]?.message?.content?.trim();
@@ -287,7 +287,7 @@ async function getBodyPositivityAdvice(options = {}) {
         { role: 'user', content: prompt },
       ],
       temperature: 0.85,
-      max_tokens: 1200,
+      max_completion_tokens: 1200,
     });
 
     const content = response.choices[0]?.message?.content?.trim();
@@ -337,7 +337,7 @@ async function getCapsuleWardrobePlan(options = {}) {
         { role: 'user', content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: 1500,
+      max_completion_tokens: 1500,
     });
 
     const content = response.choices[0]?.message?.content?.trim();
@@ -386,7 +386,7 @@ async function getConfidenceRitual(options = {}) {
         { role: 'user', content: prompt },
       ],
       temperature: 0.8,
-      max_tokens: 1200,
+      max_completion_tokens: 1200,
     });
 
     const content = response.choices[0]?.message?.content?.trim();
@@ -437,7 +437,7 @@ async function getWellnessOutfit(options = {}) {
         { role: 'user', content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: 1000,
+      max_completion_tokens: 1000,
     });
 
     const content = response.choices[0]?.message?.content?.trim();
@@ -475,7 +475,7 @@ async function getDailyAffirmation(userProfile = {}) {
         },
       ],
       temperature: 0.9,
-      max_tokens: 100,
+      max_completion_tokens: 100,
     });
 
     return {

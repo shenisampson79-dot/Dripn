@@ -89,7 +89,7 @@ Provide your analysis in this JSON format:
         }
       ],
       temperature: 0.8,
-      max_tokens: 2500,
+      max_completion_tokens: 2500,
     });
 
     const content = response.choices[0].message.content.trim();
@@ -154,7 +154,7 @@ Respond in JSON format:
         }
       ],
       temperature: 0.9,
-      max_tokens: 1500,
+      max_completion_tokens: 1500,
     });
 
     const content = response.choices[0].message.content.trim();
@@ -225,7 +225,7 @@ Respond in JSON format:
         }
       ],
       temperature: 0.9,
-      max_tokens: 1200,
+      max_completion_tokens: 1200,
     });
 
     const content = response.choices[0].message.content.trim();
@@ -290,7 +290,7 @@ Respond in JSON format:
         }
       ],
       temperature: 0.7,
-      max_tokens: 1000,
+      max_completion_tokens: 1000,
     });
 
     const content = response.choices[0].message.content.trim();
