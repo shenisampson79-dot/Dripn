@@ -9,8 +9,11 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  Switch,
+  ActivityIndicator,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
@@ -18,12 +21,14 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Spacing, BorderRadius, LuxuryColors } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useWardrobe, WardrobeItem, ClothingCategory, PlannedEventType } from '@/contexts/WardrobeContext';
+import { apiService } from '@/services/ApiService';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 
 const { width: SW } = Dimensions.get('window');
@@ -199,12 +204,16 @@ function CategoryReel({ category, label, icon, items, selectedId, onSelect, isDa
 export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { items, saveOutfit } = useWardrobe();
+  const { items } = useWardrobe();
 
   const [selection, setSelection] = useState<Partial<Record<ClothingCategory, string | null>>>({});
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [outfitName, setOutfitName] = useState('');
   const [eventType, setEventType] = useState<PlannedEventType>('casual');
+  const [pinToCalendar, setPinToCalendar] = useState(false);
+  const [calendarDate, setCalendarDate] = useState<Date>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const itemsByCategory = useMemo(() => {
     const map: Partial<Record<ClothingCategory, WardrobeItem[]>> = {};
@@ -240,31 +249,40 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     }
     setOutfitName('');
     setEventType('casual');
+    setPinToCalendar(false);
+    setCalendarDate(new Date());
     setShowSaveModal(true);
   };
 
+  const formatDate = (d: Date) =>
+    d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' });
+
   const confirmSave = async () => {
+    setIsSaving(true);
     try {
       const name = outfitName.trim() || 'My Outfit';
-      const occasionMap: Record<string, string> = {
-        casual: 'casual', work: 'work', 'date-night': 'date-night',
-        party: 'party', formal: 'formal', everyday: 'everyday',
-        workout: 'workout', travel: 'casual', wedding: 'formal',
-      };
-      await saveOutfit({
+      const payload: Parameters<typeof apiService.saveMixAndMatchOutfit>[0] = {
         name,
-        itemIds: selectedItemIds,
-        occasion: (occasionMap[eventType] ?? 'casual') as any,
-        isFavorite: false,
-      } as any);
+        occasion: eventType,
+        wardrobeItemIds: selectedItemIds,
+      };
+      if (pinToCalendar) {
+        payload.calendarDate = calendarDate.toISOString().split('T')[0];
+      }
+      const result = await apiService.saveMixAndMatchOutfit(payload);
       setShowSaveModal(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Outfit saved', `"${name}" is now in your wardrobe.`, [
+      const calMsg = result.calendarEntry
+        ? `\n\nAlso pinned to ${formatDate(calendarDate)}.`
+        : '';
+      Alert.alert('Outfit saved', `"${name}" is ready in your wardrobe.${calMsg}`, [
         { text: 'Keep building', style: 'cancel' },
         { text: 'Done', onPress: () => navigation.goBack() },
       ]);
     } catch {
       Alert.alert('Error', 'Could not save outfit. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -374,8 +392,12 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
               <ThemedText type="body" style={{ color: theme.link }}>Cancel</ThemedText>
             </Pressable>
             <ThemedText type="h3">Save Outfit</ThemedText>
-            <Pressable onPress={confirmSave}>
-              <ThemedText type="body" style={{ color: theme.link, fontWeight: '700' }}>Save</ThemedText>
+            <Pressable onPress={confirmSave} disabled={isSaving}>
+              {isSaving ? (
+                <ActivityIndicator size="small" color={theme.link} />
+              ) : (
+                <ThemedText type="body" style={{ color: theme.link, fontWeight: '700' }}>Save</ThemedText>
+              )}
             </Pressable>
           </View>
 
@@ -426,6 +448,56 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
                 </Pressable>
               ))}
             </View>
+
+            {/* Calendar pin toggle */}
+            <View style={[styles.calendarToggleRow, { borderColor: theme.border }]}>
+              <View style={{ flex: 1 }}>
+                <ThemedText type="body" style={{ fontWeight: '600', fontSize: 14 }}>
+                  Pin to calendar
+                </ThemedText>
+                <ThemedText type="caption" style={{ color: secondaryText, marginTop: 2 }}>
+                  Also schedule this outfit for a date
+                </ThemedText>
+              </View>
+              <Switch
+                value={pinToCalendar}
+                onValueChange={v => {
+                  setPinToCalendar(v);
+                  if (v) setShowDatePicker(true);
+                }}
+                trackColor={{ false: isDark ? '#333' : '#ddd', true: theme.link }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            {pinToCalendar ? (
+              <Pressable
+                onPress={() => setShowDatePicker(prev => !prev)}
+                style={[styles.datePickerButton, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
+              >
+                <Feather name="calendar" size={16} color={theme.link} />
+                <ThemedText type="body" style={{ color: theme.link, fontWeight: '600', marginLeft: 8 }}>
+                  {formatDate(calendarDate)}
+                </ThemedText>
+                <Feather name="chevron-down" size={14} color={secondaryText} style={{ marginLeft: 'auto' }} />
+              </Pressable>
+            ) : null}
+
+            {pinToCalendar && showDatePicker ? (
+              <DateTimePicker
+                value={calendarDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                minimumDate={new Date()}
+                onChange={(_, date) => {
+                  if (date) {
+                    setCalendarDate(date);
+                    if (Platform.OS === 'android') setShowDatePicker(false);
+                  }
+                }}
+                style={{ alignSelf: 'stretch' }}
+              />
+            ) : null}
 
             <ThemedText type="caption" style={[styles.modalLabel, { color: secondaryText }]}>
               {selectedItemIds.length} items selected
@@ -628,6 +700,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
+  },
+  calendarToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
   },
   selectedItemsPreview: {
     flexDirection: 'row',

@@ -3028,6 +3028,47 @@ class ApiService {
     });
   }
 
+  // Mix & Match Outfit Builder
+  async saveMixAndMatchOutfit(data: {
+    name: string;
+    occasion: string;
+    wardrobeItemIds: string[];
+    calendarDate?: string; // ISO date string — pins to calendar in same call
+  }) {
+    return this.request<{
+      success: boolean;
+      outfit: { id: string; name: string; occasion: string; wardrobeItemIds: string[] };
+      calendarEntry?: { id: string; date: string };
+    }>('/api/outfits/mix-and-match/save', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMixAndMatchOutfits() {
+    return this.request<{
+      success: boolean;
+      outfits: Array<{
+        id: string;
+        name: string;
+        occasion: string;
+        items: Array<{
+          id: string;
+          name: string;
+          category: string;
+          colour: string;
+          imageUri?: string;
+        }>;
+      }>;
+    }>('/api/outfits/mix-and-match');
+  }
+
+  async deleteMixAndMatchOutfit(id: string) {
+    return this.request<{ success: boolean }>(`/api/outfits/mix-and-match/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Shopping - Product Search with Affiliate Links
   async searchProducts(query: string, limit: number = 5) {
     return this.request<{
