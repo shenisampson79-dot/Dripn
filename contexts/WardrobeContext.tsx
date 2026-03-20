@@ -6,6 +6,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiService } from '@/services/ApiService';
 
 export type ClothingCategory = 
   | 'tops' 
@@ -166,6 +167,7 @@ interface WardrobeContextType {
   planOutfit: (plan: Omit<PlannedOutfit, 'id' | 'userId' | 'createdAt' | 'wasWorn'>) => Promise<PlannedOutfit>;
   updatePlannedOutfit: (id: string, updates: { itemIds?: string[]; eventName?: string; eventType?: PlannedEventType; notes?: string }) => Promise<void>;
   deletePlannedOutfit: (id: string) => Promise<void>;
+  removeItemFromPlannedOutfit: (outfitId: string, wardrobeItemId: string) => Promise<void>;
   markPlannedOutfitWorn: (id: string) => Promise<void>;
   generateOutfitSuggestions: (occasion?: ClothingOccasion, season?: ClothingSeason) => Promise<OutfitSuggestion[]>;
   getItemsByCategory: (category: ClothingCategory) => WardrobeItem[];
@@ -476,18 +478,48 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
   }, [user, plannedOutfits]);
 
   const deletePlannedOutfit = useCallback(async (id: string) => {
+    // Optimistically update local state first
     const updatedPlanned = plannedOutfits.filter(plan => plan.id !== id);
     await savePlannedOutfits(updatedPlanned);
+    // Then sync to backend (non-blocking, best-effort)
+    try {
+      await apiService.deleteOutfitCalendarEntry(id);
+    } catch (err) {
+      console.log('[WardrobeContext] Backend delete outfit-calendar failed (local already updated):', err);
+    }
   }, [plannedOutfits]);
 
   const updatePlannedOutfit = useCallback(async (
     id: string,
     updates: { itemIds?: string[]; eventName?: string; eventType?: PlannedEventType; notes?: string }
   ) => {
+    // Optimistically update local state first
     const updatedPlanned = plannedOutfits.map(plan =>
       plan.id === id ? { ...plan, ...updates } : plan
     );
     await savePlannedOutfits(updatedPlanned);
+    // Then sync to backend via PUT (no duplicate created)
+    try {
+      await apiService.updateOutfitCalendarEntry(id, updates);
+    } catch (err) {
+      console.log('[WardrobeContext] Backend PUT outfit-calendar failed (local already updated):', err);
+    }
+  }, [plannedOutfits]);
+
+  const removeItemFromPlannedOutfit = useCallback(async (outfitId: string, wardrobeItemId: string) => {
+    // Update local state: filter out the item
+    const updatedPlanned = plannedOutfits.map(plan =>
+      plan.id === outfitId
+        ? { ...plan, itemIds: plan.itemIds.filter(id => id !== wardrobeItemId) }
+        : plan
+    );
+    await savePlannedOutfits(updatedPlanned);
+    // Sync to backend
+    try {
+      await apiService.removeItemFromOutfitCalendarEntry(outfitId, wardrobeItemId);
+    } catch (err) {
+      console.log('[WardrobeContext] Backend DELETE outfit item failed (local already updated):', err);
+    }
   }, [plannedOutfits]);
 
   const markPlannedOutfitWorn = useCallback(async (id: string) => {
@@ -731,6 +763,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     planOutfit,
     updatePlannedOutfit,
     deletePlannedOutfit,
+    removeItemFromPlannedOutfit,
     markPlannedOutfitWorn,
     generateOutfitSuggestions,
     getItemsByCategory,

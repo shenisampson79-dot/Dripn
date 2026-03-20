@@ -151,7 +151,8 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
     savedOutfits,
     planOutfit,
     updatePlannedOutfit,
-    deletePlannedOutfit, 
+    deletePlannedOutfit,
+    removeItemFromPlannedOutfit,
     markPlannedOutfitWorn,
     getItemsByCategory 
   } = useWardrobe();
@@ -160,6 +161,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showItemSelector, setShowItemSelector] = useState(false);
+  const [isFetchingOutfit, setIsFetchingOutfit] = useState(false);
   
   const [newEventName, setNewEventName] = useState('');
   const [newEventType, setNewEventType] = useState<PlannedEventType>('casual');
@@ -265,13 +267,30 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
     setShowAddModal(true);
   };
 
-  const handleEditOutfit = (outfit: PlannedOutfit) => {
+  const handleEditOutfit = async (outfit: PlannedOutfit) => {
+    // Pre-populate from local state immediately so modal opens fast
     setEditingOutfitId(outfit.id);
     setNewEventName(outfit.eventName || '');
     setNewEventType(outfit.eventType || 'casual');
     setSelectedItems([...outfit.itemIds]);
     setNotes(outfit.notes || '');
     setShowAddModal(true);
+    // Then fetch fresh data from backend to overwrite with authoritative version
+    setIsFetchingOutfit(true);
+    try {
+      const result = await apiService.getOutfitCalendarEntry(outfit.id);
+      if (result?.success && result.outfit) {
+        setNewEventName(result.outfit.eventName || '');
+        setNewEventType((result.outfit.eventType as PlannedEventType) || 'casual');
+        setSelectedItems(result.outfit.itemIds ?? []);
+        setNotes(result.outfit.notes || '');
+      }
+    } catch (err) {
+      // Backend unavailable — local data already loaded, no action needed
+      console.log('[OutfitCalendar] GET outfit-calendar/:id failed, using local data:', err);
+    } finally {
+      setIsFetchingOutfit(false);
+    }
   };
 
   const handleSaveOutfit = async () => {
@@ -714,7 +733,12 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
                 Cancel
               </ThemedText>
             </Pressable>
-            <ThemedText type="h3">{editingOutfitId ? 'Edit Outfit' : 'Plan Outfit'}</ThemedText>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <ThemedText type="h3">{editingOutfitId ? 'Edit Outfit' : 'Plan Outfit'}</ThemedText>
+              {isFetchingOutfit ? (
+                <ActivityIndicator size="small" color={theme.link} />
+              ) : null}
+            </View>
             <Pressable onPress={handleSaveOutfit}>
               <ThemedText type="body" style={{ color: theme.link, fontWeight: '600' }}>
                 Save
@@ -731,6 +755,40 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
                 <StackedOutfitPreview
                   outfitItems={selectedItems.map(id => items.find(i => i.id === id)).filter(Boolean) as WardrobeItem[]}
                 />
+                {/* Item-level removal strip — only shown in edit mode */}
+                {editingOutfitId ? (
+                  <View>
+                    <ThemedText type="caption" style={[styles.sectionLabel, { color: secondaryTextColor }]}>
+                      Tap to remove an item
+                    </ThemedText>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+                      {selectedItems.map(id => {
+                        const it = items.find(i => i.id === id);
+                        if (!it) return null;
+                        return (
+                          <Pressable
+                            key={id}
+                            onPress={async () => {
+                              if (!editingOutfitId) return;
+                              await removeItemFromPlannedOutfit(editingOutfitId, id);
+                              setSelectedItems(prev => prev.filter(sid => sid !== id));
+                            }}
+                            style={[styles.removeItemChip, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
+                          >
+                            {it.imageUri ? (
+                              <Image source={{ uri: it.imageUri }} style={styles.removeItemThumb} contentFit="contain" />
+                            ) : (
+                              <Feather name="image" size={18} color={secondaryTextColor} />
+                            )}
+                            <View style={[styles.removeItemX, { backgroundColor: theme.error }]}>
+                              <Feather name="x" size={9} color="#fff" />
+                            </View>
+                          </Pressable>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                ) : null}
               </View>
             ) : null}
 
@@ -1238,6 +1296,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
+  },
+  removeItemChip: {
+    width: 60,
+    height: 60,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'visible',
+    position: 'relative',
+  },
+  removeItemThumb: {
+    width: '100%',
+    height: '100%',
+    borderRadius: BorderRadius.md,
+  },
+  removeItemX: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   aiCreateButton: {
     marginHorizontal: Spacing.lg,

@@ -2988,6 +2988,46 @@ class ApiService {
     });
   }
 
+  // Outfit Calendar CRUD
+  async getOutfitCalendarEntry(id: string) {
+    return this.request<{
+      success: boolean;
+      outfit: {
+        id: string;
+        date: string;
+        itemIds: string[];
+        eventName?: string;
+        eventType?: string;
+        notes?: string;
+        wasWorn: boolean;
+      };
+    }>(`/api/outfit-calendar/${id}`);
+  }
+
+  async updateOutfitCalendarEntry(id: string, updates: {
+    itemIds?: string[];
+    eventName?: string;
+    eventType?: string;
+    notes?: string;
+  }) {
+    return this.request<{ success: boolean; outfit: any }>(`/api/outfit-calendar/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteOutfitCalendarEntry(id: string) {
+    return this.request<{ success: boolean }>(`/api/outfit-calendar/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async removeItemFromOutfitCalendarEntry(id: string, wardrobeItemId: string) {
+    return this.request<{ success: boolean }>(`/api/outfit-calendar/${id}/items/${wardrobeItemId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Shopping - Product Search with Affiliate Links
   async searchProducts(query: string, limit: number = 5) {
     return this.request<{
