@@ -17,6 +17,7 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import * as Haptics from "expo-haptics";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -104,19 +105,25 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   const [scansRemaining, setScansRemaining] = useState<number | null>(null);
   const [isGuest, setIsGuest] = useState(false);
 
+  const toJpegBase64 = async (uri: string): Promise<string> => {
+    if (uri.startsWith('data:')) return uri.split(',')[1];
+    if (Platform.OS !== 'web') {
+      try {
+        const r = await ImageManipulator.manipulateAsync(
+          uri, [{ resize: { width: 1200 } }], { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        uri = r.uri;
+      } catch (_) {}
+    }
+    return FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+  };
+
   const processImageWithAI = async (uri: string) => {
     setIsProcessingImage(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
     try {
-      let imageBase64: string;
-      if (uri.startsWith('data:')) {
-        imageBase64 = uri.split(',')[1];
-      } else {
-        imageBase64 = await FileSystem.readAsStringAsync(uri, {
-          encoding: 'base64',
-        });
-      }
+      const imageBase64 = await toJpegBase64(uri);
       
       const result = await apiService.extractClothing({ imageBase64 });
       
@@ -185,14 +192,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
     
     try {
-      let imageBase64: string;
-      if (imageUri.startsWith('data:')) {
-        imageBase64 = imageUri.split(',')[1];
-      } else {
-        imageBase64 = await FileSystem.readAsStringAsync(imageUri, {
-          encoding: 'base64',
-        });
-      }
+      const imageBase64 = await toJpegBase64(imageUri);
       
       const result = await apiService.analyzeGarmentPhoto(imageBase64) as any;
       

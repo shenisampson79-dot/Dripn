@@ -7779,9 +7779,24 @@ app.post('/api/feedback', async (req, res) => {
   }
 });
 
-// Start server
+// Start server — kill any stale process on the port first to prevent EADDRINUSE loops
+const { execSync } = require('child_process');
+try {
+  execSync(`fuser -k ${PORT}/tcp 2>/dev/null || true`, { stdio: 'ignore' });
+} catch (_) {}
+
 initDB().then(() => {
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Dripn API running on port ${PORT}`);
+  });
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`[Server] Port ${PORT} still in use, retrying in 2s...`);
+      setTimeout(() => {
+        try { execSync(`fuser -k ${PORT}/tcp 2>/dev/null || true`, { stdio: 'ignore' }); } catch (_) {}
+        server.close();
+        app.listen(PORT, '0.0.0.0', () => console.log(`Dripn API running on port ${PORT} (retry)`));
+      }, 2000);
+    }
   });
 });

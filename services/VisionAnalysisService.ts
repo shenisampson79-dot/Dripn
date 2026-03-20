@@ -1,4 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { ClothingCategory, ClothingColor, ClothingSeason, ClothingOccasion } from '@/contexts/WardrobeContext';
 
@@ -63,8 +65,24 @@ export async function convertImageToBase64(imageUri: string): Promise<string> {
     if (fileInfo.exists && 'size' in fileInfo && fileInfo.size && fileInfo.size > MAX_IMAGE_SIZE_BYTES) {
       throw new Error(`Image is too large (${Math.round(fileInfo.size / 1024 / 1024)}MB). Please use an image under 10MB.`);
     }
-    
-    const base64 = await FileSystem.readAsStringAsync(imageUri, {
+
+    // On native, always convert to JPEG to handle HEIC/HEIF from iPhone cameras
+    // and guarantee OpenAI-compatible format (png/jpeg/gif/webp only)
+    let finalUri = imageUri;
+    if (Platform.OS !== 'web') {
+      try {
+        const manipResult = await ImageManipulator.manipulateAsync(
+          imageUri,
+          [{ resize: { width: 1200 } }],
+          { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        finalUri = manipResult.uri;
+      } catch (manipError) {
+        console.log('[Vision] JPEG conversion failed, using original:', manipError);
+      }
+    }
+
+    const base64 = await FileSystem.readAsStringAsync(finalUri, {
       encoding: Base64Encoding,
     });
     return base64;
