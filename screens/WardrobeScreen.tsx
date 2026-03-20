@@ -941,6 +941,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                 { id: 'work_outfit', icon: 'briefcase', label: 'Work Outfit', desc: 'Professional & polished' },
                 { id: 'date_night', icon: 'heart', label: 'Date Night', desc: 'Stylish & confident' },
                 { id: 'casual_day', icon: 'coffee', label: 'Casual Day', desc: 'Comfortable & effortless' },
+                { id: 'weekend', icon: 'sunset', label: 'Weekend', desc: 'Relaxed & put-together' },
+                { id: 'smart_casual', icon: 'layers', label: 'Smart Casual', desc: 'Elevated everyday style' },
+                { id: 'gym', icon: 'activity', label: 'Gym', desc: 'Functional & stylish' },
+                { id: 'evening_out', icon: 'star', label: 'Evening Out', desc: 'Elevated & memorable' },
+                { id: 'travel', icon: 'navigation', label: 'Travel', desc: 'Comfortable yet stylish' },
               ].map((option) => (
                 <Pressable
                   key={option.id}
@@ -953,6 +958,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                       
                       const result = await apiService.generateOutfit({
                         occasionType: option.id as any,
+                        stylistId: user?.stylistPreferences?.selectedStylistId || 'ruby',
                         saveToCalendar: true,
                         calendarDate: new Date().toISOString().split('T')[0],
                         localItems: items.map(i => ({

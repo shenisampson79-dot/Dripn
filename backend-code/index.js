@@ -7435,8 +7435,8 @@ app.post('/api/decision/check/resilient', async (req, res) => {
 
 app.post('/api/wardrobe/generate-outfit/resilient', authMiddleware, async (req, res) => {
   try {
-    const { occasionType = 'casual_day', weather, saveToCalendar, calendarDate, localItems } = req.body;
-    // Use client-provided items if present, otherwise fall back to DB
+    const { occasionType = 'casual_day', stylistId = 'ruby', weather, saveToCalendar, calendarDate, localItems } = req.body;
+
     let wardrobeItems = [];
     if (Array.isArray(localItems) && localItems.length > 0) {
       wardrobeItems = localItems.map(i => ({
@@ -7455,7 +7455,7 @@ app.post('/api/wardrobe/generate-outfit/resilient', authMiddleware, async (req, 
     }
 
     if (wardrobeItems.length === 0) {
-      return res.status(400).json({ success: false, error: 'No wardrobe items found. Add some items first.' });
+      return res.status(400).json({ success: false, error: 'NO_ITEMS', message: 'No wardrobe items found. Add some items first.' });
     }
 
     const occasionLabels = {
@@ -7463,8 +7463,22 @@ app.post('/api/wardrobe/generate-outfit/resilient', authMiddleware, async (req, 
       work_outfit: 'a professional, polished work outfit',
       date_night: 'a stylish, confident date night outfit',
       casual_day: 'a comfortable, effortless casual day outfit',
+      weekend: 'a relaxed, stylish weekend look',
+      smart_casual: 'a smart casual outfit that bridges work and leisure',
+      gym: 'a functional, stylish gym or activewear outfit',
+      evening_out: 'an elevated evening out look',
+      travel: 'a comfortable yet put-together travel outfit',
+      custom: 'a versatile, stylish outfit',
     };
     const occasionLabel = occasionLabels[occasionType] || 'a stylish casual outfit';
+
+    const stylistPersonas = {
+      ruby: { name: 'Ruby', voice: 'warm, enthusiastic, and encouraging. Use "darling" occasionally. Be bold with colour suggestions.' },
+      max: { name: 'Max', voice: 'direct, confident, and minimal. No filler words. Focus on clean lines and structure.' },
+      ace: { name: 'Ace', voice: 'cool, laid-back, and streetwear-aware. Keep it real and practical.' },
+      ivy: { name: 'Ivy', voice: 'sophisticated, editorial, and precise. Reference silhouette and proportion.' },
+    };
+    const persona = stylistPersonas[stylistId] || stylistPersonas.ruby;
 
     const weatherNote = weather
       ? `Current weather: ${weather.temperature}°C, ${weather.condition}.`
@@ -7478,26 +7492,29 @@ app.post('/api/wardrobe/generate-outfit/resilient', authMiddleware, async (req, 
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const prompt = `You are a professional fashion stylist. The user wants to create ${occasionLabel}. ${weatherNote}
+    const prompt = `You are ${persona.name}, a fashion stylist. Your voice is ${persona.voice}
 
-Their wardrobe contains:
+The client wants ${occasionLabel}. ${weatherNote}
+
+Their wardrobe:
 ${itemList}
 
-Select 2-5 items from the wardrobe that work together as a cohesive outfit for this occasion. Prioritise items that complement each other in colour and style. You MUST only select items that appear in the list above using their exact [id].
+Select 2-5 items that work as a cohesive outfit. Only use items from the list above by their exact [id]. Then write a short stylistMessage in your voice (1-2 sentences, no quotes).
 
-Respond ONLY with valid JSON, no markdown, no explanation:
+Respond ONLY with valid JSON, no markdown:
 {
   "selectedIds": ["id1", "id2"],
   "stylingTips": ["tip1", "tip2", "tip3"],
-  "colorHarmony": "brief description of the colour palette",
-  "vibe": "1-3 word vibe label e.g. Smart Casual"
+  "colourHarmony": "brief colour palette description",
+  "vibeLabel": "1-3 word vibe e.g. Smart Casual",
+  "stylistMessage": "Your personal message to the client in your voice"
 }`;
 
     const aiResponse = await openai.chat.completions.create({
       model: chatModel,
       messages: [{ role: 'user', content: prompt }],
-      max_completion_tokens: 600,
-      temperature: 0.7,
+      max_completion_tokens: 700,
+      temperature: 0.75,
     });
 
     const raw = aiResponse.choices[0]?.message?.content?.trim() || '';
@@ -7517,12 +7534,16 @@ Respond ONLY with valid JSON, no markdown, no explanation:
 
     let calendarEntry = null;
     if (saveToCalendar && calendarDate && selectedIds.length > 0) {
-      const calResult = await pool.query(
-        `INSERT INTO outfit_calendar (user_id, date, item_ids, event_type)
-         VALUES ($1, $2, $3, $4) RETURNING id`,
-        [req.userId, calendarDate, selectedIds, occasionType.replace(/_/g, '-')]
-      );
-      calendarEntry = calResult.rows[0];
+      try {
+        const calResult = await pool.query(
+          `INSERT INTO outfit_calendar (user_id, date, item_ids, event_type)
+           VALUES ($1, $2, $3, $4) RETURNING id`,
+          [req.userId, calendarDate, selectedIds, occasionType.replace(/_/g, '-')]
+        );
+        calendarEntry = calResult.rows[0];
+      } catch (calErr) {
+        console.warn('[GenerateOutfit] Calendar save failed (non-fatal):', calErr.message);
+      }
     }
 
     res.json({
@@ -7530,9 +7551,14 @@ Respond ONLY with valid JSON, no markdown, no explanation:
       outfit: {
         id: calendarEntry?.id || `gen_${Date.now()}`,
         items: selectedItems,
+        hydratedItems: selectedItems,
         stylingTips: parsed.stylingTips || [],
-        colorHarmony: parsed.colorHarmony || '',
-        vibe: parsed.vibe || '',
+        colourHarmony: parsed.colourHarmony || parsed.colorHarmony || '',
+        colorHarmony: parsed.colourHarmony || parsed.colorHarmony || '',
+        vibeLabel: parsed.vibeLabel || parsed.vibe || '',
+        vibe: parsed.vibeLabel || parsed.vibe || '',
+        stylistMessage: parsed.stylistMessage || '',
+        stylistId,
         savedToCalendar: !!calendarEntry,
         calendarDate: calendarEntry ? calendarDate : undefined,
       },

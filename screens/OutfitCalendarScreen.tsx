@@ -22,6 +22,7 @@ import { Card } from '@/components/Card';
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useWardrobe, WardrobeItem, PlannedOutfit, PlannedEventType } from '@/contexts/WardrobeContext';
 import type { ProfileStackParamList } from '@/navigation/ProfileStackNavigator';
 import { apiService } from '@/services/ApiService';
@@ -143,6 +144,7 @@ function StackedOutfitPreview({ outfitItems }: StackedOutfitPreviewProps) {
 export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScreenProps) {
   const { theme, isDark } = useTheme();
   const { translations } = useTranslations();
+  const { user } = useAuth();
   const secondaryTextColor = getSecondaryTextColor(isDark);
   const tertiaryTextColor = getTertiaryTextColor(isDark);
   const { 
@@ -380,6 +382,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         try {
           const result = await apiService.generateOutfit({
             occasionType,
+            stylistId: user?.stylistPreferences?.selectedStylistId || 'ruby',
             localItems: items.map(i => ({
               id: i.id,
               name: i.name,

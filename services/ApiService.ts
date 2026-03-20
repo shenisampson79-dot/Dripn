@@ -2747,7 +2747,8 @@ class ApiService {
   }
 
   async generateOutfit(data: {
-    occasionType: 'todays_look' | 'work_outfit' | 'date_night' | 'casual_day';
+    occasionType: 'todays_look' | 'work_outfit' | 'date_night' | 'casual_day' | 'weekend' | 'smart_casual' | 'gym' | 'evening_out' | 'travel' | 'custom';
+    stylistId?: string;
     weather?: {
       temperature: number;
       condition: string;
@@ -2767,9 +2768,14 @@ class ApiService {
           category: string;
           color: string;
         }>;
+        hydratedItems: Array<{ id: string; name: string; imageUri: string; category: string; color: string }>;
         stylingTips: string[];
+        colourHarmony: string;
         colorHarmony: string;
+        vibeLabel: string;
         vibe: string;
+        stylistMessage: string;
+        stylistId: string;
         savedToCalendar: boolean;
         calendarDate?: string;
       };
