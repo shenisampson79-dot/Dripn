@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useVoiceCredits } from "@/hooks/useVoiceCredits";
 import { apiService } from "@/services/ApiService";
+import { getStylistForUser } from "@/services/PersonalStylistService";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
 
 type VoiceConversationScreenProps = {
@@ -52,6 +53,14 @@ const MAX_RESPONSES = [
   "That color would work great with your complexion! Try pairing it with navy or charcoal for a sophisticated look.",
 ];
 
+const IVY_RESPONSES = [
+  "Straight answer: that works. Wear it.",
+  "Good foundation. Add one quality piece — a sharp jacket or clean leather shoe — and you're done.",
+  "Skip the trend. Classic, well-fitted basics will always outperform whatever's popular right now.",
+  "That outfit has one too many things going on. Drop the accessory. Keep it clean.",
+  "Solid choice. Stop second-guessing and wear it with confidence.",
+];
+
 export default function VoiceConversationScreen({ navigation }: VoiceConversationScreenProps) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
@@ -64,9 +73,16 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
     updateBalance,
     refreshBalance,
   } = useVoiceCredits();
-  const gender = user?.gender || "female";
   const messagesScrollRef = useRef<ScrollView>(null);
-  
+  const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
+  const stylistName = stylist.name;
+  const stylistResponses = stylist.id === 'ruby' ? RUBY_RESPONSES : stylist.id === 'ivy' ? IVY_RESPONSES : MAX_RESPONSES;
+  const gradientColors: readonly [string, string] = stylist.id === 'ruby'
+    ? ["#f093fb", "#f5576c"]
+    : stylist.id === 'ivy'
+    ? ["#059669", "#0d9488"]
+    : ["#667eea", "#764ba2"];
+
   const [conversationState, setConversationState] = useState<ConversationState>("idle");
   const [messages, setMessages] = useState<VoiceMessage[]>([]);
   const [currentTranscript, setCurrentTranscript] = useState("");
@@ -76,12 +92,6 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
   const recordingRef = useRef<Audio.Recording | null>(null);
-
-  const stylistName = gender === "female" ? "Ruby" : "Max";
-  const stylistResponses = gender === "female" ? RUBY_RESPONSES : MAX_RESPONSES;
-  const gradientColors: readonly [string, string] = gender === "female" 
-    ? ["#f093fb", "#f5576c"] 
-    : ["#667eea", "#764ba2"];
 
   useEffect(() => {
     checkPermissions();
@@ -531,7 +541,7 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
                   end={{ x: 1, y: 1 }}
                   style={styles.compactStylistAvatar}
                 >
-                  <Feather name={gender === "female" ? "heart" : "star"} size={18} color="#FFFFFF" />
+                  <Feather name={stylist.gender === "female" ? "heart" : "star"} size={18} color="#FFFFFF" />
                 </LinearGradient>
                 <View style={styles.stylistDetails}>
                   <ThemedText type="body" style={{ fontWeight: '600' }}>{stylistName}</ThemedText>
