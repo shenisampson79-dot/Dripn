@@ -1111,7 +1111,7 @@ export default function AIStylistScreen() {
   const navigation = useNavigation();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
   
-  const stylist = getStylistForUser(user?.gender || null);
+  const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');

@@ -1904,7 +1904,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               {showPronunciationPrompt && userFirstName && selectedStylistId ? (
                 <NamePronunciationPrompt
                   memberName={userFirstName}
-                  stylistName={selectedStylistId === 'ruby' ? 'Ruby' : 'Max'}
+                  stylistName={STYLISTS[selectedStylistId]?.name || 'Ruby'}
                   onConfirmCorrect={handlePronunciationCorrect}
                   onConfirmIncorrect={handlePronunciationIncorrect}
                   onDismiss={() => setShowPronunciationPrompt(false)}
