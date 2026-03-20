@@ -7,15 +7,14 @@ const openai = new OpenAI({
 const MODEL_REGISTRY = {
   chat: {
     preferenceOrder: [
-      'o1',
-      'o1-2024-12-17',
-      'gpt-4.1',
-      'gpt-4.5-preview',
-      'gpt-4o-2024-11-20',
+      'gpt-5.2',
+      'gpt-5.2-turbo',
+      'gpt-5',
+      'gpt-5-preview',
       'gpt-4o',
-      'gpt-4-turbo-preview',
       'gpt-4-turbo',
-      'gpt-4',
+      'gpt-4-turbo-preview',
+      'gpt-4o-2024-11-20',
       'gpt-3.5-turbo',
     ],
     default: 'gpt-4o',
@@ -24,10 +23,12 @@ const MODEL_REGISTRY = {
   reasoning: {
     preferenceOrder: [
       'o1',
+      'o3-mini',
       'o1-2024-12-17',
       'o1-preview',
       'o1-mini',
-      'gpt-4.1',
+      'gpt-5.2',
+      'gpt-5',
       'gpt-4o',
     ],
     default: 'o1',
@@ -35,9 +36,12 @@ const MODEL_REGISTRY = {
   },
   vision: {
     preferenceOrder: [
-      'gpt-4.1',
-      'gpt-4o-2024-11-20',
+      'gpt-5.2',
+      'gpt-5.2-turbo',
+      'gpt-5',
+      'gpt-5-preview',
       'gpt-4o',
+      'gpt-4o-2024-11-20',
       'gpt-4-turbo',
       'gpt-4-vision-preview',
     ],
