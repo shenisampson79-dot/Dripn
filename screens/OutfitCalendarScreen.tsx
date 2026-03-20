@@ -48,6 +48,98 @@ const EVENT_TYPES: { value: PlannedEventType; label: string; icon: keyof typeof 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+// ── Flat-lay stacked outfit preview (Indyx style) ──────────────────────────
+type StackedOutfitPreviewProps = {
+  outfitItems: WardrobeItem[];
+};
+
+function StackedOutfitPreview({ outfitItems }: StackedOutfitPreviewProps) {
+  const { theme, isDark } = useTheme();
+
+  const outerwear = outfitItems.filter(i => i.category === 'outerwear');
+  const tops = outfitItems.filter(i => ['tops', 'activewear', 'formal'].includes(i.category));
+  const bottoms = outfitItems.filter(i => ['bottoms', 'dresses'].includes(i.category));
+  const shoes = outfitItems.filter(i => i.category === 'shoes');
+  const accessories = outfitItems.filter(i => ['bags', 'accessories'].includes(i.category));
+  const others = outfitItems.filter(i =>
+    !['outerwear', 'tops', 'activewear', 'formal', 'bottoms', 'dresses', 'shoes', 'bags', 'accessories'].includes(i.category)
+  );
+
+  const slotBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+  const canvasBg = isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)';
+
+  const hasTopRow = outerwear.length > 0 || tops.length > 0;
+  const hasMidRow = bottoms.length > 0;
+  const hasFootRow = shoes.length > 0 || accessories.length > 0;
+
+  const renderSlot = (item: WardrobeItem, slotStyle?: object) => (
+    <View key={item.id} style={[styles.flatLaySlot, { backgroundColor: slotBg }, slotStyle]}>
+      {item.imageUri ? (
+        <Image
+          source={{ uri: item.imageUri }}
+          style={styles.flatLayImage}
+          contentFit="contain"
+        />
+      ) : (
+        <Feather name="image" size={28} color={isDark ? '#555' : '#ccc'} />
+      )}
+    </View>
+  );
+
+  if (outfitItems.length === 0) return null;
+
+  return (
+    <View style={[styles.flatLayCanvas, { backgroundColor: canvasBg }]}>
+      {/* Row 1: Outerwear + Top (side by side) */}
+      {hasTopRow ? (
+        <View style={styles.flatLayRow}>
+          {outerwear[0] ? renderSlot(outerwear[0], styles.flatLayHalfSlot) : null}
+          {tops[0] ? renderSlot(tops[0], styles.flatLayHalfSlot) : null}
+          {/* If only outerwear or only top, show it full-width */}
+          {!outerwear[0] && !tops[0] ? null : null}
+        </View>
+      ) : null}
+
+      {/* Row 2: Bottoms / Dress — centered, narrower */}
+      {hasMidRow ? (
+        <View style={styles.flatLayCenterRow}>
+          {renderSlot(bottoms[0], styles.flatLayCenterSlot)}
+          {/* Show second item (e.g. second dress/bottom) if exists and no top row */}
+          {!hasTopRow && bottoms[1] ? renderSlot(bottoms[1], styles.flatLayCenterSlot) : null}
+        </View>
+      ) : null}
+
+      {/* Row 3: Shoes + Bag/Accessory */}
+      {hasFootRow ? (
+        <View style={styles.flatLayRow}>
+          {shoes[0] ? renderSlot(shoes[0], styles.flatLayFootSlot) : null}
+          {shoes[1]
+            ? renderSlot(shoes[1], styles.flatLayFootSlot)
+            : accessories[0]
+            ? renderSlot(accessories[0], styles.flatLayFootSlot)
+            : null}
+        </View>
+      ) : null}
+
+      {/* Row 4: Any remaining items (swimwear, sleepwear, other) */}
+      {others.length > 0 ? (
+        <View style={styles.flatLayRow}>
+          {others.slice(0, 2).map(item => renderSlot(item, styles.flatLayHalfSlot))}
+        </View>
+      ) : null}
+
+      {/* Item count label */}
+      <View style={styles.flatLayItemCount}>
+        <ThemedText type="caption" style={{ color: isDark ? '#888' : '#999', fontSize: 11 }}>
+          {outfitItems.length} {outfitItems.length === 1 ? 'item' : 'items'}
+        </ThemedText>
+      </View>
+    </View>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
 export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScreenProps) {
   const { theme, isDark } = useTheme();
   const { translations } = useTranslations();
@@ -57,7 +149,8 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
     items, 
     plannedOutfits, 
     savedOutfits,
-    planOutfit, 
+    planOutfit,
+    updatePlannedOutfit,
     deletePlannedOutfit, 
     markPlannedOutfitWorn,
     getItemsByCategory 
@@ -73,6 +166,8 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   
+  const [editingOutfitId, setEditingOutfitId] = useState<string | null>(null);
+
   const [showAIModal, setShowAIModal] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [generatingDays, setGeneratingDays] = useState<number>(7);
@@ -162,6 +257,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   };
 
   const handleAddOutfit = () => {
+    setEditingOutfitId(null);
     setNewEventName('');
     setNewEventType('casual');
     setSelectedItems([]);
@@ -169,23 +265,41 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
     setShowAddModal(true);
   };
 
+  const handleEditOutfit = (outfit: PlannedOutfit) => {
+    setEditingOutfitId(outfit.id);
+    setNewEventName(outfit.eventName || '');
+    setNewEventType(outfit.eventType || 'casual');
+    setSelectedItems([...outfit.itemIds]);
+    setNotes(outfit.notes || '');
+    setShowAddModal(true);
+  };
+
   const handleSaveOutfit = async () => {
-    if (!selectedDate) return;
-    
     if (selectedItems.length === 0) {
       Alert.alert('No Items Selected', 'Please select at least one item for your outfit.');
       return;
     }
 
     try {
-      await planOutfit({
-        date: selectedDate.toISOString(),
-        itemIds: selectedItems,
-        eventName: newEventName || undefined,
-        eventType: newEventType,
-        notes: notes || undefined,
-      });
+      if (editingOutfitId) {
+        await updatePlannedOutfit(editingOutfitId, {
+          itemIds: selectedItems,
+          eventName: newEventName || undefined,
+          eventType: newEventType,
+          notes: notes || undefined,
+        });
+      } else {
+        if (!selectedDate) return;
+        await planOutfit({
+          date: selectedDate.toISOString(),
+          itemIds: selectedItems,
+          eventName: newEventName || undefined,
+          eventType: newEventType,
+          notes: notes || undefined,
+        });
+      }
       setShowAddModal(false);
+      setEditingOutfitId(null);
     } catch (error) {
       Alert.alert('Error', 'Failed to save outfit plan.');
     }
@@ -398,28 +512,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
           ) : null}
         </View>
 
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.outfitItemsScroll}
-        >
-          {outfitItems.map(wardrobeItem => (
-            <View 
-              key={wardrobeItem.id} 
-              style={[styles.outfitItemThumb, { backgroundColor: theme.backgroundSecondary }]}
-            >
-              {wardrobeItem.imageUri ? (
-                <Image
-                  source={{ uri: wardrobeItem.imageUri }}
-                  style={styles.outfitItemImage}
-                  contentFit="cover"
-                />
-              ) : (
-                <Feather name="image" size={24} color={tertiaryTextColor} />
-              )}
-            </View>
-          ))}
-        </ScrollView>
+        <StackedOutfitPreview outfitItems={outfitItems} />
 
         {item.notes ? (
           <ThemedText type="caption" style={[styles.notesText, { color: secondaryTextColor }]}>
@@ -439,6 +532,15 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
               </ThemedText>
             </Pressable>
           ) : null}
+          <Pressable
+            onPress={() => handleEditOutfit(item)}
+            style={[styles.actionButton, { backgroundColor: theme.link }]}
+          >
+            <Feather name="edit-2" size={16} color="#FFFFFF" />
+            <ThemedText type="caption" style={{ color: '#FFFFFF', marginLeft: 4 }}>
+              Edit
+            </ThemedText>
+          </Pressable>
           <Pressable
             onPress={() => handleDeleteOutfit(item.id)}
             style={[styles.actionButton, { backgroundColor: theme.error }]}
@@ -607,12 +709,12 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
       >
         <ThemedView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Pressable onPress={() => setShowAddModal(false)}>
+            <Pressable onPress={() => { setShowAddModal(false); setEditingOutfitId(null); }}>
               <ThemedText type="body" style={{ color: theme.link }}>
                 Cancel
               </ThemedText>
             </Pressable>
-            <ThemedText type="h3">Plan Outfit</ThemedText>
+            <ThemedText type="h3">{editingOutfitId ? 'Edit Outfit' : 'Plan Outfit'}</ThemedText>
             <Pressable onPress={handleSaveOutfit}>
               <ThemedText type="body" style={{ color: theme.link, fontWeight: '600' }}>
                 Save
@@ -621,6 +723,17 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
           </View>
 
           <ScrollView style={styles.modalContent}>
+            {selectedItems.length > 0 ? (
+              <View style={styles.modalPreviewContainer}>
+                <ThemedText type="caption" style={[styles.sectionLabel, { color: secondaryTextColor, marginTop: 0 }]}>
+                  Outfit Preview
+                </ThemedText>
+                <StackedOutfitPreview
+                  outfitItems={selectedItems.map(id => items.find(i => i.id === id)).filter(Boolean) as WardrobeItem[]}
+                />
+              </View>
+            ) : null}
+
             <ThemedText type="caption" style={[styles.sectionLabel, { color: secondaryTextColor }]}>
               Event Name (Optional)
             </ThemedText>
@@ -951,22 +1064,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
   },
-  outfitItemsScroll: {
-    marginBottom: Spacing.md,
-  },
-  outfitItemThumb: {
-    width: 60,
-    height: 60,
-    borderRadius: BorderRadius.sm,
-    marginRight: Spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  outfitItemImage: {
-    width: '100%',
-    height: '100%',
-  },
   notesText: {
     marginBottom: Spacing.md,
     fontStyle: 'italic',
@@ -974,6 +1071,7 @@ const styles = StyleSheet.create({
   outfitCardActions: {
     flexDirection: 'row',
     gap: Spacing.sm,
+    flexWrap: 'wrap',
   },
   actionButton: {
     flexDirection: 'row',
@@ -981,6 +1079,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.sm,
+  },
+  flatLayCanvas: {
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+    padding: Spacing.sm,
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  flatLayRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    justifyContent: 'center',
+  },
+  flatLayCenterRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+  },
+  flatLaySlot: {
+    borderRadius: BorderRadius.sm,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  flatLayHalfSlot: {
+    flex: 1,
+    aspectRatio: 0.82,
+  },
+  flatLayCenterSlot: {
+    width: '52%',
+    aspectRatio: 0.62,
+  },
+  flatLayFootSlot: {
+    flex: 1,
+    aspectRatio: 1.3,
+  },
+  flatLayImage: {
+    width: '100%',
+    height: '100%',
+  },
+  flatLayItemCount: {
+    alignItems: 'center',
+    paddingTop: Spacing.xs,
+  },
+  modalPreviewContainer: {
+    marginBottom: Spacing.sm,
   },
   emptyCard: {
     alignItems: 'center',

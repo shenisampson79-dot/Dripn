@@ -164,6 +164,7 @@ interface WardrobeContextType {
   deleteOutfit: (id: string) => Promise<void>;
   markOutfitWorn: (id: string) => Promise<void>;
   planOutfit: (plan: Omit<PlannedOutfit, 'id' | 'userId' | 'createdAt' | 'wasWorn'>) => Promise<PlannedOutfit>;
+  updatePlannedOutfit: (id: string, updates: { itemIds?: string[]; eventName?: string; eventType?: PlannedEventType; notes?: string }) => Promise<void>;
   deletePlannedOutfit: (id: string) => Promise<void>;
   markPlannedOutfitWorn: (id: string) => Promise<void>;
   generateOutfitSuggestions: (occasion?: ClothingOccasion, season?: ClothingSeason) => Promise<OutfitSuggestion[]>;
@@ -479,6 +480,16 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     await savePlannedOutfits(updatedPlanned);
   }, [plannedOutfits]);
 
+  const updatePlannedOutfit = useCallback(async (
+    id: string,
+    updates: { itemIds?: string[]; eventName?: string; eventType?: PlannedEventType; notes?: string }
+  ) => {
+    const updatedPlanned = plannedOutfits.map(plan =>
+      plan.id === id ? { ...plan, ...updates } : plan
+    );
+    await savePlannedOutfits(updatedPlanned);
+  }, [plannedOutfits]);
+
   const markPlannedOutfitWorn = useCallback(async (id: string) => {
     const plan = plannedOutfits.find(p => p.id === id);
     if (plan) {
@@ -718,6 +729,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     deleteOutfit,
     markOutfitWorn,
     planOutfit,
+    updatePlannedOutfit,
     deletePlannedOutfit,
     markPlannedOutfitWorn,
     generateOutfitSuggestions,
