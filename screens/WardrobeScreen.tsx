@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -14,6 +14,7 @@ import {
 import { Image } from "expo-image";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -114,15 +115,17 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const [generatingOccasion, setGeneratingOccasion] = useState<string | null>(null);
   const [generatedOutfit, setGeneratedOutfit] = useState<any>(null);
 
-  useEffect(() => {
-    const loadDFYAccess = async () => {
-      if (user?.id) {
-        const access = await dfyService.getDFYAccessStatus(user.id);
-        setDfyAccess(access);
-      }
-    };
-    loadDFYAccess();
-  }, [user?.id]);
+  useFocusEffect(
+    useCallback(() => {
+      const loadDFYAccess = async () => {
+        if (user?.id) {
+          const access = await dfyService.getDFYAccessStatus(user.id);
+          setDfyAccess(access);
+        }
+      };
+      loadDFYAccess();
+    }, [user?.id])
+  );
 
   const CATEGORY_OPTIONS = user?.gender === 'man' 
     ? ALL_CATEGORY_OPTIONS.filter(cat => cat.key !== 'dresses')
@@ -142,7 +145,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     navigation.navigate("BulkWardrobeUpload");
   };
 
-  const handleAICreateOutfit = () => {
+  const handleAICreateOutfit = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (items.length < 3) {
       Alert.alert(
@@ -151,6 +154,13 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         [{ text: translations.common.done }]
       );
       return;
+    }
+    // Always refresh DFY access status right before opening the modal
+    if (user?.id) {
+      try {
+        const access = await dfyService.getDFYAccessStatus(user.id);
+        setDfyAccess(access);
+      } catch (_) {}
     }
     setShowAIOutfitModal(true);
   };
