@@ -5,6 +5,7 @@ import {
   Pressable,
   Alert,
   Platform,
+  Linking,
   TextInput,
   Dimensions,
   Modal,
@@ -131,10 +132,29 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
+  const openAppSettings = async () => {
+    if (Platform.OS !== 'web') {
+      try {
+        await Linking.openSettings();
+      } catch {}
+    }
+  };
+
   const handlePickMultipleImages = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert("Permission Required", "Please allow access to your photo library.");
+      if (!permissionResult.canAskAgain && Platform.OS !== 'web') {
+        Alert.alert(
+          "Permission Required",
+          "Please allow access to your photo library in Settings to upload clothes.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Open Settings", onPress: openAppSettings },
+          ]
+        );
+      } else {
+        Alert.alert("Permission Required", "Please allow access to your photo library.");
+      }
       return;
     }
 
@@ -168,7 +188,18 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
   const handleTakePhoto = async () => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert("Permission Required", "Please allow access to your camera.");
+      if (!permissionResult.canAskAgain && Platform.OS !== 'web') {
+        Alert.alert(
+          "Permission Required",
+          "Please allow camera access in Settings to take photos of your clothes.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Open Settings", onPress: openAppSettings },
+          ]
+        );
+      } else {
+        Alert.alert("Permission Required", "Please allow access to your camera.");
+      }
       return;
     }
 
@@ -187,7 +218,18 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
   const handlePickScreenshot = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert("Permission Required", "Please allow access to your photo library.");
+      if (!permissionResult.canAskAgain && Platform.OS !== 'web') {
+        Alert.alert(
+          "Permission Required",
+          "Please allow access to your photo library in Settings to upload clothes.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Open Settings", onPress: openAppSettings },
+          ]
+        );
+      } else {
+        Alert.alert("Permission Required", "Please allow access to your photo library.");
+      }
       return;
     }
 
