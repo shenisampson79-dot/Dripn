@@ -14,6 +14,7 @@ import {
   Linking,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
@@ -386,7 +387,16 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
                     style={[styles.wardrobeItem, { backgroundColor: theme.backgroundDefault }]}
                   >
                     <View style={[styles.wardrobeItemImage, { backgroundColor: theme.backgroundSecondary }]}>
-                      <Feather name="image" size={24} color={theme.tabIconDefault} />
+                      {item.imageUri ? (
+                        <Image
+                          source={{ uri: item.imageUri }}
+                          style={{ width: 100, height: 100 }}
+                          contentFit="cover"
+                          transition={200}
+                        />
+                      ) : (
+                        <Feather name="image" size={24} color={theme.tabIconDefault} />
+                      )}
                     </View>
                     <ThemedText type="caption" numberOfLines={1} style={styles.wardrobeItemName}>
                       {item.name}
