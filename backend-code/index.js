@@ -1492,10 +1492,11 @@ Provide advice in this format:
 
 Be positive, specific, and actionable.`;
 
+      const bestModel = await getBestModel('chat');
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: bestModel,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 500
+        max_completion_tokens: 500
       });
 
       const advice = completion.choices[0].message.content;

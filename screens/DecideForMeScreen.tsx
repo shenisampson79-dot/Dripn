@@ -252,15 +252,15 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const outfitIndexRef = useRef(0);
   const scrollRef = useRef<RNScrollView>(null);
   const expressionInputRef = useRef<TextInput>(null);
+  const resultExpressionInputRef = useRef<TextInput>(null);
   const [isLoadingAnotherOption, setIsLoadingAnotherOption] = useState(false);
   const [isLoadingSecondOpinion, setIsLoadingSecondOpinion] = useState(false);
   const [styleAdvice, setStyleAdvice] = useState<StyleAdvice | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   const handleExpressionInputFocus = useCallback(() => {
-    setTimeout(() => {
-      scrollRef.current?.scrollToEnd?.({ animated: true });
-    }, 150);
+    // KeyboardAwareScrollView handles scroll-to-input automatically via scrollOnFocus
+    // No manual scroll needed — calling scrollToEnd here would scroll past the input
   }, []);
 
   useEffect(() => {
@@ -881,7 +881,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     const message = firstMessages?.message || "Tell me what you're dressing for — I'll decide the outfit.";
 
     return (
-      <Animated.View entering={FadeIn} style={styles.stepContainer}>
+      <Animated.View entering={FadeIn} style={styles.stepContainer} pointerEvents="box-none">
         <View style={styles.stylistMessage}>
           <LinearGradient
             colors={[ScreenGradients.ruby.primary[0], ScreenGradients.ruby.primary[1]]}
@@ -1017,7 +1017,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   );
 
   const renderResultStep = () => (
-    <Animated.View entering={FadeIn} style={styles.resultContainer}>
+    <Animated.View entering={FadeIn} style={styles.resultContainer} pointerEvents="box-none">
       <Animated.View entering={FadeInDown.delay(100)} style={styles.outfitRecommendationCard}>
         <LinearGradient
           colors={[ScreenGradients.ruby.primary[0], ScreenGradients.ruby.primary[1]]}
@@ -1167,7 +1167,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           style={[styles.expressionInputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
         >
           <TextInput
-            ref={expressionInputRef}
+            ref={resultExpressionInputRef}
             style={[styles.expressionInput, { color: theme.text }]}
             placeholder={styleDirectionService.getExpressionPlaceholder()}
             placeholderTextColor={theme.tabIconDefault}

@@ -8,7 +8,7 @@ const openai = new OpenAI({
 function isNewGenerationModel(model) {
   if (!model) return false;
   const m = model.toLowerCase();
-  return m.startsWith('gpt-5') || m.startsWith('o1') || m.startsWith('o3') || m.startsWith('o4');
+  return m.startsWith('gpt-5') || m.startsWith('gpt-4.5') || m.startsWith('gpt-4.1') || m.startsWith('o1') || m.startsWith('o3') || m.startsWith('o4');
 }
 
 function buildCompletionParams(model, maxTokens, extra = {}) {
@@ -24,14 +24,19 @@ function buildCompletionParams(model, maxTokens, extra = {}) {
 }
 
 const MODEL_PREFERENCE_ORDER = [
+  'gpt-5.4-2026-03-05',
+  'gpt-5.4',
+  'gpt-5.4-pro-2026-03-05',
+  'gpt-5.4-pro',
+  'gpt-5.2-pro-2025-12-11',
+  'gpt-5.2-2025-12-11',
   'gpt-5.2',
+  'gpt-5.1-2025-11-13',
   'gpt-5.1',
+  'gpt-5-2025-08-07',
   'gpt-5',
-  'gpt-4.5',
-  'gpt-4.5-preview',
   'o3',
   'o1',
-  'gpt-4.1',
   'gpt-4o-2024-11-20',
   'gpt-4o',
   'gpt-4-turbo',
@@ -40,6 +45,9 @@ const MODEL_PREFERENCE_ORDER = [
 ];
 
 const MINI_MODEL_PREFERENCE_ORDER = [
+  'gpt-5.4-mini',
+  'gpt-5.4-nano',
+  'gpt-5.3-mini',
   'gpt-5.2-mini',
   'gpt-5.1-mini',
   'gpt-5-mini',
