@@ -366,26 +366,27 @@ async function analyzeGarmentWithReplicate(imageBase64) {
     const Replicate = require('replicate');
     const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 
-    console.log('[GarmentAnalysis] Using Replicate llama-3.2-11b-vision as fallback');
+    console.log('[GarmentAnalysis] Using Replicate LLaVA-13b as fallback');
 
     const output = await replicate.run(
-      'meta/llama-3.2-11b-vision-instruct',
+      'yorickvp/llava-13b:80537f9eead1a5bfa72d5ac6ea6414379be41d4d4f6679fd776e9535d1eb58bb',
       {
         input: {
           image: `data:image/jpeg;base64,${imageBase64}`,
           prompt: GARMENT_ANALYSIS_PROMPT,
-          max_tokens: 600,
+          max_tokens: 800,
           temperature: 0.3,
+          top_p: 0.9,
         },
       }
     );
 
     const content = (Array.isArray(output) ? output.join('') : String(output)).trim();
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const jsonMatch = content.match(/\{[\s\S]*?\}/);
     if (!jsonMatch) throw new Error('No JSON found in Replicate response');
     const item = JSON.parse(jsonMatch[0]);
 
-    return { success: true, item, modelUsed: 'replicate/llama-3.2-11b-vision' };
+    return { success: true, item, modelUsed: 'replicate/llava-13b' };
   } catch (error) {
     console.error('[GarmentAnalysis] Replicate fallback error:', error.message);
     return { success: false, error: error.message };
