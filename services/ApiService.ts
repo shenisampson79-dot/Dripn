@@ -2754,6 +2754,7 @@ class ApiService {
     };
     saveToCalendar?: boolean;
     calendarDate?: string;
+    localItems?: Array<{ id: string; name: string; category: string; color?: string; imageUri?: string }>;
   }) {
     return this.request<{
       success: boolean;

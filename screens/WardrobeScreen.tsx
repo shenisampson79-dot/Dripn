@@ -955,6 +955,13 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                         occasionType: option.id as any,
                         saveToCalendar: true,
                         calendarDate: new Date().toISOString().split('T')[0],
+                        localItems: items.map(i => ({
+                          id: i.id,
+                          name: i.name,
+                          category: i.category,
+                          color: i.color,
+                          imageUri: i.imageUri,
+                        })),
                       });
                       
                       if (result.success && result.outfit) {

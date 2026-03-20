@@ -7431,6 +7431,118 @@ app.post('/api/decision/check/resilient', async (req, res) => {
   }
 });
 
+// ===== AI OUTFIT GENERATOR =====
+
+app.post('/api/wardrobe/generate-outfit/resilient', authMiddleware, async (req, res) => {
+  try {
+    const { occasionType = 'casual_day', weather, saveToCalendar, calendarDate, localItems } = req.body;
+    // Use client-provided items if present, otherwise fall back to DB
+    let wardrobeItems = [];
+    if (Array.isArray(localItems) && localItems.length > 0) {
+      wardrobeItems = localItems.map(i => ({
+        id: i.id,
+        name: i.name,
+        category: i.category,
+        color: i.color || '',
+        image_url: i.imageUri || null,
+      }));
+    } else {
+      const wardrobeResult = await pool.query(
+        `SELECT id, name, category, color, brand, image_url FROM wardrobe_items WHERE user_id = $1 ORDER BY created_at DESC LIMIT 60`,
+        [req.userId]
+      );
+      wardrobeItems = wardrobeResult.rows;
+    }
+
+    if (wardrobeItems.length === 0) {
+      return res.status(400).json({ success: false, error: 'No wardrobe items found. Add some items first.' });
+    }
+
+    const occasionLabels = {
+      todays_look: 'a stylish everyday look appropriate for today',
+      work_outfit: 'a professional, polished work outfit',
+      date_night: 'a stylish, confident date night outfit',
+      casual_day: 'a comfortable, effortless casual day outfit',
+    };
+    const occasionLabel = occasionLabels[occasionType] || 'a stylish casual outfit';
+
+    const weatherNote = weather
+      ? `Current weather: ${weather.temperature}°C, ${weather.condition}.`
+      : '';
+
+    const itemList = wardrobeItems
+      .map((i, idx) => `${idx + 1}. [${i.id}] ${i.name} (${i.category}${i.color ? ', ' + i.color : ''})`)
+      .join('\n');
+
+    const chatModel = await getBestModel('chat');
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const prompt = `You are a professional fashion stylist. The user wants to create ${occasionLabel}. ${weatherNote}
+
+Their wardrobe contains:
+${itemList}
+
+Select 2-5 items from the wardrobe that work together as a cohesive outfit for this occasion. Prioritise items that complement each other in colour and style. You MUST only select items that appear in the list above using their exact [id].
+
+Respond ONLY with valid JSON, no markdown, no explanation:
+{
+  "selectedIds": ["id1", "id2"],
+  "stylingTips": ["tip1", "tip2", "tip3"],
+  "colorHarmony": "brief description of the colour palette",
+  "vibe": "1-3 word vibe label e.g. Smart Casual"
+}`;
+
+    const aiResponse = await openai.chat.completions.create({
+      model: chatModel,
+      messages: [{ role: 'user', content: prompt }],
+      max_completion_tokens: 600,
+      temperature: 0.7,
+    });
+
+    const raw = aiResponse.choices[0]?.message?.content?.trim() || '';
+    let parsed;
+    try {
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+    } catch {
+      return res.status(500).json({ success: false, error: 'AI returned an invalid response. Please try again.' });
+    }
+
+    const selectedIds = (parsed.selectedIds || []).filter(id => wardrobeItems.some(w => w.id === id));
+    const selectedItems = selectedIds.map(id => {
+      const w = wardrobeItems.find(w => w.id === id);
+      return { id: w.id, name: w.name, imageUri: w.image_url || null, category: w.category, color: w.color || '' };
+    });
+
+    let calendarEntry = null;
+    if (saveToCalendar && calendarDate && selectedIds.length > 0) {
+      const calResult = await pool.query(
+        `INSERT INTO outfit_calendar (user_id, date, item_ids, event_type)
+         VALUES ($1, $2, $3, $4) RETURNING id`,
+        [req.userId, calendarDate, selectedIds, occasionType.replace(/_/g, '-')]
+      );
+      calendarEntry = calResult.rows[0];
+    }
+
+    res.json({
+      success: true,
+      outfit: {
+        id: calendarEntry?.id || `gen_${Date.now()}`,
+        items: selectedItems,
+        stylingTips: parsed.stylingTips || [],
+        colorHarmony: parsed.colorHarmony || '',
+        vibe: parsed.vibe || '',
+        savedToCalendar: !!calendarEntry,
+        calendarDate: calendarEntry ? calendarDate : undefined,
+      },
+    });
+  } catch (error) {
+    console.error('[GenerateOutfit] Error:', error);
+    res.status(500).json({ success: false, error: 'Failed to generate outfit. Please try again.' });
+  }
+});
+
 // ===== OUTFIT CALENDAR CRUD =====
 
 app.get('/api/outfit-calendar/:id', authMiddleware, async (req, res) => {
