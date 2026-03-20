@@ -169,32 +169,42 @@ function CategoryReel({ category, label, icon, items, selectedId, onSelect, isDa
         <ThemedText type="caption" style={[styles.reelLabel, { color: theme.link }]}>
           {label}
         </ThemedText>
-        {selectedId ? (
-          <ThemedText type="caption" style={{ color: isDark ? '#555' : '#bbb', fontSize: 10 }}>
-            {items.find(i => i.id === selectedId)?.name ?? ''}
+        <ThemedText type="caption" style={{ color: isDark ? '#555' : '#bbb', fontSize: 10 }}>
+          {items.length} {items.length === 1 ? 'item' : 'items'}
+        </ThemedText>
+        {selectedId ? null : (
+          <ThemedText type="caption" style={{ color: isDark ? '#444' : '#ccc', fontSize: 10, marginLeft: 4 }}>
+            · skipped
           </ThemedText>
-        ) : (
-          <ThemedText type="caption" style={{ color: isDark ? '#555' : '#bbb', fontSize: 10 }}>skipped</ThemedText>
         )}
       </View>
 
-      <FlatList
-        ref={listRef}
-        data={data}
-        renderItem={renderItem}
-        keyExtractor={(item, i) => item ? item.id : `none-${i}`}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={SNAP_INTERVAL}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        contentInset={{ left: SIDE_INSET - SIDE_GAP / 2, right: SIDE_INSET - SIDE_GAP / 2 }}
-        contentOffset={{ x: -(SIDE_INSET - SIDE_GAP / 2), y: 0 }}
-        contentContainerStyle={styles.reelListContent}
-        onMomentumScrollEnd={handleScrollEnd}
-        initialScrollIndex={initialIndex}
-        getItemLayout={(_, index) => ({ length: SNAP_INTERVAL, offset: SNAP_INTERVAL * index, index })}
-      />
+      <View style={{ position: 'relative' }}>
+        <FlatList
+          ref={listRef}
+          data={data}
+          renderItem={renderItem}
+          keyExtractor={(item, i) => item ? item.id : `none-${i}`}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={SNAP_INTERVAL}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          contentInset={{ left: SIDE_INSET - SIDE_GAP / 2, right: SIDE_INSET - SIDE_GAP / 2 }}
+          contentOffset={{ x: -(SIDE_INSET - SIDE_GAP / 2), y: 0 }}
+          contentContainerStyle={styles.reelListContent}
+          onMomentumScrollEnd={handleScrollEnd}
+          initialScrollIndex={initialIndex}
+          getItemLayout={(_, index) => ({ length: SNAP_INTERVAL, offset: SNAP_INTERVAL * index, index })}
+        />
+        {/* Swipe hint arrows on edges */}
+        <View pointerEvents="none" style={[styles.reelArrowLeft, { height: rowH }]}>
+          <Feather name="chevron-left" size={16} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'} />
+        </View>
+        <View pointerEvents="none" style={[styles.reelArrowRight, { height: rowH }]}>
+          <Feather name="chevron-right" size={16} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'} />
+        </View>
+      </View>
     </View>
   );
 }
@@ -206,7 +216,15 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const insets = useSafeAreaInsets();
   const { items } = useWardrobe();
 
-  const [selection, setSelection] = useState<Partial<Record<ClothingCategory, string | null>>>({});
+  // Pre-select the first item per category so the carousel opens on a real garment
+  const [selection, setSelection] = useState<Partial<Record<ClothingCategory, string | null>>>(() => {
+    const initial: Partial<Record<ClothingCategory, string | null>> = {};
+    for (const { key } of REEL_ORDER) {
+      const first = items.find(i => i.category === key);
+      if (first) initial[key] = first.id;
+    }
+    return initial;
+  });
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [outfitName, setOutfitName] = useState('');
@@ -239,7 +257,13 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
 
   const handleClear = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setSelection({});
+    // Reset to first item per category (not fully empty)
+    const reset: Partial<Record<ClothingCategory, string | null>> = {};
+    for (const { key } of REEL_ORDER) {
+      const first = items.find(i => i.category === key);
+      if (first) reset[key] = first.id;
+    }
+    setSelection(reset);
   };
 
   const handleSave = () => {
@@ -600,6 +624,22 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reelArrowLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reelArrowRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
