@@ -258,8 +258,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   const handleExpressionInputFocus = useCallback(() => {
-    // KeyboardAwareScrollView automatically scrolls to the focused TextInput
-    // using its bottomOffset prop — no manual scroll needed
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd?.({ animated: true });
+    }, 150);
   }, []);
 
   useEffect(() => {
@@ -907,7 +908,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           </Animated.View>
         ) : null}
 
-        <View style={styles.promptInputContainer} pointerEvents="box-none">
+        <View style={styles.promptInputContainer}>
           <Feather name="edit-3" size={16} color="rgba(74, 52, 40, 0.5)" style={{ marginTop: 4 }} />
           <TextInput
             ref={expressionInputRef}
@@ -1164,7 +1165,6 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         </ThemedText>
         <View
           style={[styles.expressionInputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
-          pointerEvents="box-none"
         >
           <TextInput
             ref={expressionInputRef}

@@ -338,11 +338,13 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     }
     
     let result: any;
+    let apiErrorMessage = '';
     try {
       result = await apiService.analyzeGarmentPhoto(base64Image, { detailed: true });
       console.log('[BulkScan] API response:', JSON.stringify(result).substring(0, 200));
     } catch (apiError: any) {
-      console.log('[BulkScan] API call failed:', apiError.message);
+      apiErrorMessage = apiError.message || '';
+      console.log('[BulkScan] API call failed:', apiErrorMessage);
       result = null;
     }
     
@@ -541,13 +543,14 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     }
     
     // Absolute last resort - return error so user knows analysis failed
-    console.log('[BulkScan] All analysis methods failed');
+    console.log('[BulkScan] All analysis methods failed. API error was:', apiErrorMessage);
+    const isQuotaError = apiErrorMessage.includes('429') || apiErrorMessage.includes('quota') || apiErrorMessage.includes('billing') || apiErrorMessage.includes('insufficient_quota');
     return {
       success: false,
       detectedItems: [],
       totalItemsFound: 0,
       processingTime: Date.now() - startTime,
-      error: 'QUOTA_EXCEEDED',
+      error: isQuotaError ? 'QUOTA_EXCEEDED' : 'ANALYSIS_FAILED',
     };
   } catch (error: any) {
     console.error('Bulk scan error:', error);
