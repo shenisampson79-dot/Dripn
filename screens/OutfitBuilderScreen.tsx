@@ -59,13 +59,14 @@ const ROW_HEIGHTS: Partial<Record<ClothingCategory, number>> = {
 };
 
 // Category display order (body top → bottom → feet → sides)
+// 'activewear' row is kept for legacy items; activewear_tops merge into tops, activewear_bottoms into bottoms
 const REEL_ORDER: Array<{ key: ClothingCategory; label: string; icon: keyof typeof Feather.glyphMap }> = [
   { key: 'outerwear',   label: 'Outerwear',   icon: 'cloud' },
   { key: 'tops',        label: 'Tops',         icon: 'sun' },
   { key: 'dresses',     label: 'Dresses',      icon: 'heart' },
   { key: 'formal',      label: 'Formal',       icon: 'star' },
-  { key: 'activewear',  label: 'Activewear',   icon: 'activity' },
   { key: 'bottoms',     label: 'Bottoms',      icon: 'minus' },
+  { key: 'activewear',  label: 'Activewear',   icon: 'activity' },
   { key: 'shoes',       label: 'Shoes',        icon: 'disc' },
   { key: 'bags',        label: 'Bags',         icon: 'shopping-bag' },
   { key: 'accessories', label: 'Accessories',  icon: 'watch' },
@@ -220,7 +221,12 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const [selection, setSelection] = useState<Partial<Record<ClothingCategory, string | null>>>(() => {
     const initial: Partial<Record<ClothingCategory, string | null>> = {};
     for (const { key } of REEL_ORDER) {
-      const first = items.find(i => i.category === key);
+      const cats = key === 'tops'
+        ? (['tops', 'activewear_tops'] as const)
+        : key === 'bottoms'
+          ? (['bottoms', 'activewear_bottoms'] as const)
+          : [key] as const;
+      const first = items.find(i => (cats as readonly string[]).includes(i.category));
       if (first) initial[key] = first.id;
     }
     return initial;
@@ -236,7 +242,15 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const itemsByCategory = useMemo(() => {
     const map: Partial<Record<ClothingCategory, WardrobeItem[]>> = {};
     for (const { key } of REEL_ORDER) {
-      map[key] = items.filter(i => i.category === key);
+      if (key === 'tops') {
+        // Merge activewear_tops into the Tops row
+        map[key] = items.filter(i => i.category === 'tops' || i.category === 'activewear_tops');
+      } else if (key === 'bottoms') {
+        // Merge activewear_bottoms into the Bottoms row
+        map[key] = items.filter(i => i.category === 'bottoms' || i.category === 'activewear_bottoms');
+      } else {
+        map[key] = items.filter(i => i.category === key);
+      }
     }
     return map;
   }, [items]);
@@ -260,7 +274,12 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     // Reset to first item per category (not fully empty)
     const reset: Partial<Record<ClothingCategory, string | null>> = {};
     for (const { key } of REEL_ORDER) {
-      const first = items.find(i => i.category === key);
+      const cats = key === 'tops'
+        ? (['tops', 'activewear_tops'] as const)
+        : key === 'bottoms'
+          ? (['bottoms', 'activewear_bottoms'] as const)
+          : [key] as const;
+      const first = items.find(i => (cats as readonly string[]).includes(i.category));
       if (first) reset[key] = first.id;
     }
     setSelection(reset);

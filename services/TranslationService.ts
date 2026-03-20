@@ -79,6 +79,8 @@ export interface WardrobeTranslations {
   categoryBags: string;
   categoryAccessories: string;
   categoryActivewear: string;
+  categoryActivewearTops?: string;
+  categoryActivewearBottoms?: string;
   categoryFormal: string;
   wardrobeAwaits?: string;
   wardrobeAwaitsDesc?: string;
@@ -402,6 +404,8 @@ const DEFAULT_TRANSLATIONS: Translations = {
     categoryBags: 'Bags',
     categoryAccessories: 'Accessories',
     categoryActivewear: 'Active',
+    categoryActivewearTops: 'Active Top',
+    categoryActivewearBottoms: 'Active Bottom',
     categoryFormal: 'Formal',
     wardrobeAwaits: 'Your wardrobe awaits',
     wardrobeAwaitsDesc: 'Start building your digital closet by adding photos of your favourite pieces',
@@ -677,7 +681,7 @@ const LOCAL_TRANSLATIONS: Record<string, Record<string, string>> = {
     'wardrobe.unlockDFY': 'Desbloquear configuración lista para usar', 'wardrobe.categoryAll': 'Todo',
     'wardrobe.categoryTops': 'Tops', 'wardrobe.categoryBottoms': 'Pantalones', 'wardrobe.categoryDresses': 'Vestidos',
     'wardrobe.categoryOuterwear': 'Ropa de abrigo', 'wardrobe.categoryShoes': 'Zapatos', 'wardrobe.categoryBags': 'Bolsos',
-    'wardrobe.categoryAccessories': 'Accesorios', 'wardrobe.categoryActivewear': 'Deporte', 'wardrobe.categoryFormal': 'Formal',
+    'wardrobe.categoryAccessories': 'Accesorios', 'wardrobe.categoryActivewear': 'Deporte', 'wardrobe.categoryActivewearTops': 'Deporte Top', 'wardrobe.categoryActivewearBottoms': 'Deporte Bottom', 'wardrobe.categoryFormal': 'Formal',
     'profile.guestUser': 'Usuario invitado', 'profile.upgradeToPersonal': 'Mejorar a Estilista Personal',
     'profile.manageSubscription': 'Gestionar suscripción', 'profile.styleDna': 'ADN de estilo',
     'profile.styleDnaDesc': 'Tu perfil de estilo único', 'profile.colorAnalysis': 'Análisis de color',

@@ -17,6 +17,8 @@ export type ClothingCategory =
   | 'bags' 
   | 'accessories' 
   | 'activewear'
+  | 'activewear_tops'
+  | 'activewear_bottoms'
   | 'swimwear'
   | 'sleepwear'
   | 'formal';
@@ -196,6 +198,8 @@ const CATEGORY_LABELS: Record<ClothingCategory, string> = {
   bags: 'Bags',
   accessories: 'Accessories',
   activewear: 'Activewear',
+  activewear_tops: 'Activewear Top',
+  activewear_bottoms: 'Activewear Bottom',
   swimwear: 'Swimwear',
   sleepwear: 'Sleepwear & Loungewear',
   formal: 'Formal & Special Occasion',

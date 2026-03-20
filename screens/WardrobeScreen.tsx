@@ -44,6 +44,8 @@ const getMinimalistCategoryColors = (): Record<string, { gradient: readonly [str
   'bags': { gradient: ['#8B7355', '#7B6345'] as const, icon: 'shopping-bag' },
   'accessories': { gradient: ['#B8A898', '#A89888'] as const, icon: 'watch' },
   'activewear': { gradient: ['#9C8B7A', '#8C7B6A'] as const, icon: 'activity' },
+  'activewear_tops': { gradient: ['#9C8B7A', '#8C7B6A'] as const, icon: 'activity' },
+  'activewear_bottoms': { gradient: ['#9C8B7A', '#8C7B6A'] as const, icon: 'activity' },
   'formal': { gradient: ['#6B5B4F', '#5B4B3F'] as const, icon: 'star' },
 });
 
@@ -57,6 +59,8 @@ const getColorfulCategoryColors = (): Record<string, { gradient: readonly [strin
   'bags': { gradient: ['#8B2F39', '#6B2430'] as const, icon: 'shopping-bag' },
   'accessories': { gradient: ['#8B5CF6', '#7C3AED'] as const, icon: 'watch' },
   'activewear': { gradient: ['#06B6D4', '#0891B2'] as const, icon: 'activity' },
+  'activewear_tops': { gradient: ['#06B6D4', '#0891B2'] as const, icon: 'activity' },
+  'activewear_bottoms': { gradient: ['#0284C7', '#0369A1'] as const, icon: 'activity' },
   'formal': { gradient: ['#1E293B', '#0F172A'] as const, icon: 'star' },
 });
 
@@ -74,6 +78,8 @@ const CATEGORY_KEYS: Array<{ key: ClothingCategory | 'all'; icon: string; iconSe
   { key: 'bags', icon: 'briefcase', iconSet: 'material', translationKey: 'wardrobe.categoryBags' },
   { key: 'accessories', icon: 'watch', iconSet: 'material', translationKey: 'wardrobe.categoryAccessories' },
   { key: 'activewear', icon: 'dumbbell', iconSet: 'material', translationKey: 'wardrobe.categoryActivewear' },
+  { key: 'activewear_tops', icon: 'run-fast', iconSet: 'material', translationKey: 'wardrobe.categoryActivewearTops' },
+  { key: 'activewear_bottoms', icon: 'run', iconSet: 'material', translationKey: 'wardrobe.categoryActivewearBottoms' },
   { key: 'formal', icon: 'bow-tie', iconSet: 'material', translationKey: 'wardrobe.categoryFormal' },
 ];
 

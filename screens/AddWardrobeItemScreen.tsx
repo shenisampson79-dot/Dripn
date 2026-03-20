@@ -59,7 +59,8 @@ const getCategoryOptions = (isMale: boolean): Array<{ key: ClothingCategory; ico
     { key: 'shoes', icon: isMale ? 'shoe-formal' : 'shoe-heel', iconSet: 'material' },
     { key: 'bags', icon: isMale ? 'briefcase' : 'bag-personal', iconSet: 'material' },
     { key: 'accessories', icon: isMale ? 'watch' : 'necklace', iconSet: 'material' },
-    { key: 'activewear', icon: 'dumbbell', iconSet: 'material' },
+    { key: 'activewear_tops' as ClothingCategory, icon: 'run-fast', iconSet: 'material' },
+    { key: 'activewear_bottoms' as ClothingCategory, icon: 'dumbbell', iconSet: 'material' },
     { key: 'swimwear', icon: 'swim', iconSet: 'material' },
     { key: 'sleepwear', icon: 'bed', iconSet: 'material' },
     { key: 'formal', icon: 'bow-tie', iconSet: 'material' },
@@ -134,7 +135,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         
         if (result.clothingAnalysis) {
           const analysis = result.clothingAnalysis;
-          const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+          const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
           const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
           const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
           const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
@@ -147,6 +148,11 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
             'shoes': 'shoes', 'sneakers': 'shoes', 'boots': 'shoes', 'heels': 'shoes', 'sandals': 'shoes',
             'bag': 'bags', 'purse': 'bags', 'backpack': 'bags', 'handbag': 'bags',
             'watch': 'accessories', 'jewelry': 'accessories', 'belt': 'accessories', 'hat': 'accessories', 'scarf': 'accessories',
+            'jersey': 'activewear_tops', 'sports shirt': 'activewear_tops', 'athletic top': 'activewear_tops',
+            'sports top': 'activewear_tops', 'gym top': 'activewear_tops', 'training top': 'activewear_tops',
+            'track pants': 'activewear_bottoms', 'joggers': 'activewear_bottoms', 'leggings': 'activewear_bottoms',
+            'sweatpants': 'activewear_bottoms', 'gym shorts': 'activewear_bottoms', 'training pants': 'activewear_bottoms',
+            'running shorts': 'activewear_bottoms', 'athletic pants': 'activewear_bottoms',
           };
           
           const detectedType = analysis.type?.toLowerCase() || '';
@@ -186,7 +192,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     setIsAnalyzing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
-    const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+    const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
     const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
     const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
     const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
@@ -357,13 +363,24 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
           setName(itemName);
         }
         
-        // Handle category
+        // Handle category — map generic 'activewear' to subcategory based on item name
         if (analysis.category) {
           const cat = analysis.category.toLowerCase();
+          const nameForMapping = (itemName || '').toLowerCase();
           console.log('[AI Analysis] Category from API:', cat);
-          if (validCategories.includes(cat as ClothingCategory)) {
-            setCategory(cat as ClothingCategory);
+          
+          let resolvedCategory: ClothingCategory | null = null;
+          
+          if (cat === 'activewear') {
+            // Determine if top or bottom by inspecting the item name
+            const bottomKeywords = ['pants', 'shorts', 'joggers', 'leggings', 'sweatpants', 'bottoms', 'tights', 'track pant', 'running pant'];
+            const isBottom = bottomKeywords.some(kw => nameForMapping.includes(kw));
+            resolvedCategory = isBottom ? 'activewear_bottoms' : 'activewear_tops';
+          } else if (validCategories.includes(cat as ClothingCategory)) {
+            resolvedCategory = cat as ClothingCategory;
           }
+          
+          if (resolvedCategory) setCategory(resolvedCategory);
         }
         
         // Handle color - check multiple field variations and map if needed
