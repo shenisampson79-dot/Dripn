@@ -132,6 +132,44 @@ const AU_RETAILERS: Retailer[] = [
   { name: 'Sportsgirl', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
 ];
 
+const DE_RETAILERS: Retailer[] = [
+  { name: 'Zalando', category: 'online', hasLocalStores: false, shipsToCountry: true },
+  { name: 'About You', category: 'online', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Peek & Cloppenburg', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Karstadt', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Galeria', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'C&A', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Primark', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+  { name: '& Other Stories', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'COS', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Arket', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Boden', category: 'basics', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Puma', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Gymshark', category: 'sportswear', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Lululemon', category: 'sportswear', hasLocalStores: false, shipsToCountry: true },
+  { name: 'JD Sports', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Foot Locker', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Intersport', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Breuninger', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Hugo Boss', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Balsamik', category: 'contemporary', hasLocalStores: false, shipsToCountry: true },
+  { name: 'Esprit', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Tom Tailor', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Bogner', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Escada', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Jil Sander', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Marc Cain', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  { name: 'Closed', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+];
+
 class RetailerServiceImpl {
   private cache: Map<string, RetailerSuggestionsResponse> = new Map();
 
@@ -188,6 +226,7 @@ class RetailerServiceImpl {
     }
     if (c.includes('australia')) return AU_RETAILERS;
     if (c.includes('united states') || c.includes('usa') || c.includes('us')) return US_RETAILERS;
+    if (c.includes('germany') || c.includes('deutschland') || c === 'de') return DE_RETAILERS;
     return UK_RETAILERS;
   }
 
