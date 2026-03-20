@@ -358,6 +358,40 @@ Respond in JSON:
   }
 }
 
+async function analyzeGarmentWithReplicate(imageBase64) {
+  try {
+    if (!process.env.REPLICATE_API_TOKEN) {
+      throw new Error('REPLICATE_API_TOKEN not configured');
+    }
+    const Replicate = require('replicate');
+    const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
+
+    console.log('[GarmentAnalysis] Using Replicate llama-3.2-11b-vision as fallback');
+
+    const output = await replicate.run(
+      'meta/llama-3.2-11b-vision-instruct',
+      {
+        input: {
+          image: `data:image/jpeg;base64,${imageBase64}`,
+          prompt: GARMENT_ANALYSIS_PROMPT,
+          max_tokens: 600,
+          temperature: 0.3,
+        },
+      }
+    );
+
+    const content = (Array.isArray(output) ? output.join('') : String(output)).trim();
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in Replicate response');
+    const item = JSON.parse(jsonMatch[0]);
+
+    return { success: true, item, modelUsed: 'replicate/llama-3.2-11b-vision' };
+  } catch (error) {
+    console.error('[GarmentAnalysis] Replicate fallback error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 async function analyzeGarmentItem(imageBase64) {
   try {
     const visionModel = await getBestModel('vision');
@@ -392,6 +426,14 @@ async function analyzeGarmentItem(imageBase64) {
 
     return { success: true, item, modelUsed: visionModel };
   } catch (error) {
+    const isQuotaError = error.status === 429 ||
+      (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('billing')));
+
+    if (isQuotaError) {
+      console.warn('[GarmentAnalysis] OpenAI quota exceeded — switching to Replicate fallback');
+      return await analyzeGarmentWithReplicate(imageBase64);
+    }
+
     console.error('[GarmentAnalysis] Error:', error.message);
     return { success: false, error: error.message };
   }
