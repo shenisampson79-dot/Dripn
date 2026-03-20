@@ -572,6 +572,33 @@ async function initDB() {
 
       CREATE INDEX IF NOT EXISTS idx_user_feedback_type ON user_feedback(feedback_type, status);
       CREATE INDEX IF NOT EXISTS idx_user_feedback_created ON user_feedback(created_at DESC);
+
+      -- Outfit Calendar Table
+      CREATE TABLE IF NOT EXISTS outfit_calendar (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        date DATE NOT NULL,
+        item_ids TEXT[] NOT NULL DEFAULT '{}',
+        event_name VARCHAR(255),
+        event_type VARCHAR(50) DEFAULT 'casual',
+        notes TEXT,
+        was_worn BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_outfit_calendar_user ON outfit_calendar(user_id, date);
+
+      -- Mix & Match Saved Outfits Table
+      CREATE TABLE IF NOT EXISTS mix_and_match_outfits (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        occasion VARCHAR(100) DEFAULT 'casual',
+        wardrobe_item_ids TEXT[] NOT NULL DEFAULT '{}',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_mix_and_match_user ON mix_and_match_outfits(user_id, created_at);
     `);
     console.log('Database tables initialized');
   } catch (error) {
@@ -7401,6 +7428,191 @@ app.post('/api/decision/check/resilient', async (req, res) => {
       error: 'Failed to process decision check',
       message: error.message
     });
+  }
+});
+
+// ===== OUTFIT CALENDAR CRUD =====
+
+app.get('/api/outfit-calendar/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT * FROM outfit_calendar WHERE id = $1 AND user_id = $2`,
+      [id, req.userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Outfit not found' });
+    }
+    const row = result.rows[0];
+    res.json({
+      success: true,
+      outfit: {
+        id: row.id,
+        date: row.date,
+        itemIds: row.item_ids || [],
+        eventName: row.event_name,
+        eventType: row.event_type,
+        notes: row.notes,
+        wasWorn: row.was_worn,
+      }
+    });
+  } catch (error) {
+    console.error('[OutfitCalendar] GET /:id error:', error);
+    res.status(500).json({ error: 'Failed to fetch outfit' });
+  }
+});
+
+app.put('/api/outfit-calendar/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { itemIds, eventName, eventType, notes } = req.body;
+    const result = await pool.query(
+      `UPDATE outfit_calendar
+       SET item_ids = COALESCE($1, item_ids),
+           event_name = COALESCE($2, event_name),
+           event_type = COALESCE($3, event_type),
+           notes = COALESCE($4, notes),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5 AND user_id = $6
+       RETURNING *`,
+      [itemIds || null, eventName || null, eventType || null, notes || null, id, req.userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Outfit not found' });
+    }
+    const row = result.rows[0];
+    res.json({
+      success: true,
+      outfit: {
+        id: row.id,
+        date: row.date,
+        itemIds: row.item_ids || [],
+        eventName: row.event_name,
+        eventType: row.event_type,
+        notes: row.notes,
+        wasWorn: row.was_worn,
+      }
+    });
+  } catch (error) {
+    console.error('[OutfitCalendar] PUT /:id error:', error);
+    res.status(500).json({ error: 'Failed to update outfit' });
+  }
+});
+
+app.delete('/api/outfit-calendar/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `DELETE FROM outfit_calendar WHERE id = $1 AND user_id = $2 RETURNING id`,
+      [id, req.userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Outfit not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[OutfitCalendar] DELETE /:id error:', error);
+    res.status(500).json({ error: 'Failed to delete outfit' });
+  }
+});
+
+app.delete('/api/outfit-calendar/:id/items/:wardrobeItemId', authMiddleware, async (req, res) => {
+  try {
+    const { id, wardrobeItemId } = req.params;
+    const result = await pool.query(
+      `UPDATE outfit_calendar
+       SET item_ids = array_remove(item_ids, $1::text),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2 AND user_id = $3
+       RETURNING id, item_ids`,
+      [wardrobeItemId, id, req.userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Outfit not found' });
+    }
+    res.json({ success: true, itemIds: result.rows[0].item_ids });
+  } catch (error) {
+    console.error('[OutfitCalendar] DELETE /:id/items/:wardrobeItemId error:', error);
+    res.status(500).json({ error: 'Failed to remove item from outfit' });
+  }
+});
+
+// ===== MIX & MATCH OUTFIT BUILDER =====
+
+app.post('/api/outfits/mix-and-match/save', authMiddleware, async (req, res) => {
+  try {
+    const { name, occasion, wardrobeItemIds, calendarDate } = req.body;
+    if (!name) return res.status(400).json({ error: 'name is required' });
+
+    const outfitResult = await pool.query(
+      `INSERT INTO mix_and_match_outfits (user_id, name, occasion, wardrobe_item_ids)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [req.userId, name, occasion || 'casual', wardrobeItemIds || []]
+    );
+    const outfit = outfitResult.rows[0];
+
+    let calendarEntry = null;
+    if (calendarDate) {
+      const calResult = await pool.query(
+        `INSERT INTO outfit_calendar (user_id, date, item_ids, event_name, event_type)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id, date`,
+        [req.userId, calendarDate, wardrobeItemIds || [], name, occasion || 'casual']
+      );
+      calendarEntry = calResult.rows[0];
+    }
+
+    res.json({
+      success: true,
+      outfit: {
+        id: outfit.id,
+        name: outfit.name,
+        occasion: outfit.occasion,
+        wardrobeItemIds: outfit.wardrobe_item_ids,
+      },
+      calendarEntry: calendarEntry ? { id: calendarEntry.id, date: calendarEntry.date } : null,
+    });
+  } catch (error) {
+    console.error('[MixAndMatch] POST /save error:', error);
+    res.status(500).json({ error: 'Failed to save outfit' });
+  }
+});
+
+app.get('/api/outfits/mix-and-match', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM mix_and_match_outfits WHERE user_id = $1 ORDER BY created_at DESC`,
+      [req.userId]
+    );
+    res.json({
+      success: true,
+      outfits: result.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        occasion: row.occasion,
+        wardrobeItemIds: row.wardrobe_item_ids,
+        createdAt: row.created_at,
+      }))
+    });
+  } catch (error) {
+    console.error('[MixAndMatch] GET error:', error);
+    res.status(500).json({ error: 'Failed to fetch outfits' });
+  }
+});
+
+app.delete('/api/outfits/mix-and-match/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `DELETE FROM mix_and_match_outfits WHERE id = $1 AND user_id = $2 RETURNING id`,
+      [id, req.userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Outfit not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[MixAndMatch] DELETE /:id error:', error);
+    res.status(500).json({ error: 'Failed to delete outfit' });
   }
 });
 
