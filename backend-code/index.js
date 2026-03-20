@@ -5919,7 +5919,7 @@ app.post('/api/onboarding/body-scan', authMiddleware, async (req, res) => {
           ],
         },
       ],
-      max_tokens: 1000,
+      max_completion_tokens: 1000,
       temperature: 0.7,
     });
 
@@ -6026,7 +6026,7 @@ app.post('/api/onboarding/color-scan', authMiddleware, async (req, res) => {
           ],
         },
       ],
-      max_tokens: 1000,
+      max_completion_tokens: 1000,
       temperature: 0.7,
     });
 
@@ -6170,7 +6170,7 @@ Respond in JSON:
     const response = await openai.chat.completions.create({
       model: chatModel,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1500,
+      max_completion_tokens: 1500,
       temperature: 0.7,
     });
 
@@ -6405,7 +6405,7 @@ Create a minimal, versatile capsule wardrobe. Respond in JSON:
     const response = await openai.chat.completions.create({
       model: chatModel,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1500,
+      max_completion_tokens: 1500,
       temperature: 0.7,
     });
 
@@ -6445,7 +6445,7 @@ Consider upcoming seasons and trends. Respond in JSON:
     const response = await openai.chat.completions.create({
       model: chatModel,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1200,
+      max_completion_tokens: 1200,
       temperature: 0.8,
     });
 
@@ -6561,7 +6561,7 @@ app.get('/api/cultural-style/:countryCode', async (req, res) => {
     const response = await openai.chat.completions.create({
       model: chatModel,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 800,
+      max_completion_tokens: 800,
       temperature: 0.5,
     });
 
@@ -6627,7 +6627,7 @@ Respond in JSON:
     const response = await openai.chat.completions.create({
       model: chatModel,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1500,
+      max_completion_tokens: 1500,
       temperature: 0.9,
     });
 
@@ -6718,7 +6718,7 @@ app.get('/api/collective/trends', authMiddleware, async (req, res) => {
     const response = await openai.chat.completions.create({
       model: chatModel,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 800,
+      max_completion_tokens: 800,
       temperature: 0.6,
     });
 

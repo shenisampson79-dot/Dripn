@@ -180,7 +180,7 @@ async function analyzeOutfitPhoto(imageBase64, options = {}) {
           ],
         },
       ],
-      max_tokens: detailed ? 1500 : 500,
+      max_completion_tokens: detailed ? 1500 : 500,
       temperature: 0.7,
     });
 
@@ -270,7 +270,7 @@ Respond in JSON:
           ],
         },
       ],
-      max_tokens: 1200,
+      max_completion_tokens: 1200,
       temperature: 0.7,
     });
 
@@ -336,7 +336,7 @@ Respond in JSON:
           ],
         },
       ],
-      max_tokens: 600,
+      max_completion_tokens: 600,
       temperature: 0.5,
     });
 
@@ -415,7 +415,7 @@ async function analyzeGarmentItem(imageBase64) {
           ],
         },
       ],
-      max_tokens: 600,
+      max_completion_tokens: 600,
       temperature: 0.3,
     });
 
