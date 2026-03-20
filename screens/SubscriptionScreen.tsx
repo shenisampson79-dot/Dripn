@@ -200,7 +200,7 @@ const getTierIcon = (tier?: SubscriptionTier): "award" | "star" | "message-circl
 
 export default function SubscriptionScreen({ navigation, route }: SubscriptionScreenProps & { route: any }) {
   const { theme, isDark } = useTheme();
-  const { user } = useAuth();
+  const { user, refreshSubscriptionFromBackend } = useAuth();
   const { referralCode } = useSubscription();
   const scrollViewRef = useRef<any>(null);
 
@@ -288,15 +288,17 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         const result = await WebBrowser.openBrowserAsync(paymentUrl);
 
         if (result.type === "dismiss" || result.type === "cancel") {
+          // Silently try to refresh subscription as webhook may have already fired
+          refreshSubscriptionFromBackend().catch(() => {});
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           Alert.alert(
             "Almost there!",
-            `If you completed your payment, your ${planName} subscription will activate within a few minutes. Pull down to refresh your profile to see your updated plan.`,
+            `If you completed your payment, your ${planName} subscription will activate shortly. Tap "Refresh" to check now.`,
             [
               {
-                text: "Refresh Now",
+                text: "Refresh",
                 onPress: async () => {
-                  try { await apiService.getSubscriptionStatus(); } catch (_) {}
+                  await refreshSubscriptionFromBackend().catch(() => {});
                   navigation.goBack();
                 },
               },
@@ -321,6 +323,8 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       const response = await apiService.openBillingPortal();
       if (response.url) {
         await WebBrowser.openBrowserAsync(response.url);
+        // Refresh after billing portal closes — catches cancellations, plan changes, etc.
+        refreshSubscriptionFromBackend().catch(() => {});
       }
     } catch (error: any) {
       console.error("Billing portal error:", error);

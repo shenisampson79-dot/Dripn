@@ -62,7 +62,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
   const route = useRoute();
   const routeParams = route.params as { selectedTier?: DFYTier; autoCheckout?: boolean } | undefined;
   const { theme, isDark } = useTheme();
-  const { user } = useAuth();
+  const { user, refreshSubscriptionFromBackend } = useAuth();
   const insets = useSafeAreaInsets();
   const [selectedTier, setSelectedTier] = useState<DFYTier>(routeParams?.selectedTier || 'lite');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -168,6 +168,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
             } catch (e) {
               console.log('DFY verification will happen async');
             }
+            refreshSubscriptionFromBackend().catch(() => {});
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert(
               'Payment Successful!',
@@ -187,6 +188,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
               [{ text: 'OK' }]
             );
           } else {
+            refreshSubscriptionFromBackend().catch(() => {});
             Alert.alert(
               'Checkout Complete',
               'If your payment was successful, your DFY setup will be activated shortly.',
@@ -194,6 +196,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
             );
           }
         } else if (result.type === 'dismiss') {
+          refreshSubscriptionFromBackend().catch(() => {});
           Alert.alert(
             'Checkout Complete',
             'If your payment was successful, your DFY setup will be activated shortly.',

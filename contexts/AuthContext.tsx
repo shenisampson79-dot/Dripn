@@ -9,7 +9,7 @@ import * as Location from 'expo-location';
 import * as AuthSession from 'expo-auth-session';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
-import { Platform } from 'react-native';
+import { Platform, AppState } from 'react-native';
 import { StyleTheme } from '@/constants/theme';
 import { apiService } from '@/services/ApiService';
 
@@ -156,6 +156,7 @@ interface AuthContextType {
   completeQuiz: (quizData: Partial<UserProfile>) => Promise<void>;
   switchBackToActualLocation: () => Promise<void>;
   detectActualLocation: () => Promise<void>;
+  refreshSubscriptionFromBackend: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -687,6 +688,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await saveUser(updatedUser);
   };
 
+  const refreshSubscriptionFromBackend = useCallback(async () => {
+    if (!user) return;
+    try {
+      const freshData = await apiService.getCurrentUser();
+      if (freshData?.subscriptionTier && freshData.subscriptionTier !== user.subscriptionTier) {
+        const updatedUser = { ...user, subscriptionTier: freshData.subscriptionTier as SubscriptionTier };
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+        setUser(updatedUser);
+      }
+    } catch {
+      // Silently fail — stale data is preferable to a crash
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const appStateRef = { current: AppState.currentState };
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
+        refreshSubscriptionFromBackend();
+      }
+      appStateRef.current = nextAppState;
+    });
+    return () => subscription.remove();
+  }, [refreshSubscriptionFromBackend]);
+
   const completeOnboarding = async (profile: Partial<UserProfile>) => {
     if (!user) return;
     const updatedUser = { 
@@ -749,6 +775,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         completeQuiz,
         switchBackToActualLocation,
         detectActualLocation,
+        refreshSubscriptionFromBackend,
       }}
     >
       {children}
