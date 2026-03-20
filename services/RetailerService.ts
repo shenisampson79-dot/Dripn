@@ -25,7 +25,7 @@ export interface RetailerSuggestionsResponse {
   cachedAt?: number;
 }
 
-const CACHE_KEY = '@dripn_retailer_suggestions_v2';
+const CACHE_KEY = '@dripn_retailer_suggestions_v3';
 const CACHE_DURATION = 24 * 60 * 60 * 1000;
 
 const UK_RETAILERS: Retailer[] = [

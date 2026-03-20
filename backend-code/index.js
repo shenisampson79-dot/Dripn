@@ -6696,6 +6696,538 @@ app.get('/api/collective/peer-comparison', authMiddleware, async (req, res) => {
   }
 });
 
+// ============ RETAILER SUGGESTIONS ============
+
+const retailerCache = new Map();
+const RETAILER_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+const CURATED_RETAILERS = {
+  'united kingdom': [
+    { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Marks & Spencer', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'John Lewis', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Next', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'River Island', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Primark', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Selfridges', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Harvey Nichols', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Harrods', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Reiss', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Ted Baker', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'AllSaints', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'COS', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: '& Other Stories', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Arket', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'The White Company', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Boden', category: 'basics', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Massimo Dutti', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Jigsaw', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Whistles', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Phase Eight', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Hobbs', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'LK Bennett', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Gymshark', category: 'sportswear', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'JD Sports', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Boohoo', category: 'fast-fashion', hasLocalStores: false, shipsToCountry: true },
+    { name: 'PrettyLittleThing', category: 'fast-fashion', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Flannels', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Matches Fashion', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Gap', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'FatFace', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'White Stuff', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Jack Wills', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Superdry', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Rixo', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'END Clothing', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  ],
+  'united states': [
+    { name: 'Nordstrom', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: "Macy's", category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: "Bloomingdale's", category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Saks Fifth Avenue', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Neiman Marcus', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Bergdorf Goodman', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Gap', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Banana Republic', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'J.Crew', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Anthropologie', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Free People', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Urban Outfitters', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Everlane', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Reformation', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Madewell', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Ralph Lauren', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Tommy Hilfiger', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Calvin Klein', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Target', category: 'basics', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Old Navy', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Express', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Coach', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Kate Spade', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Michael Kors', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  ],
+  'australia': [
+    { name: 'David Jones', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Myer', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'The Iconic', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Country Road', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Witchery', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Seed Heritage', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Trenery', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Zimmermann', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Camilla', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Cotton On', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Sportsgirl', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Bonds', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Sheike', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Forever New', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Saba', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+  ],
+  'germany': [
+    { name: 'Zalando', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'About You', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Peek & Cloppenburg', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Galeria', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Breuninger', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Hugo Boss', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'C&A', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Primark', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'COS', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: '& Other Stories', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Arket', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Esprit', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Tom Tailor', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Marc Cain', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Closed', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Bogner', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Jil Sander', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Puma', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Gymshark', category: 'sportswear', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Lululemon', category: 'sportswear', hasLocalStores: false, shipsToCountry: true },
+    { name: 'JD Sports', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Intersport', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  ],
+  'france': [
+    { name: 'Galeries Lafayette', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Printemps', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Le Bon Marché', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Monoprix', category: 'basics', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'COS', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: '& Other Stories', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Sandro', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Maje', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Ba&sh', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Isabel Marant', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'A.P.C.', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Jacquemus', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Lacoste', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Zalando', category: 'online', hasLocalStores: false, shipsToCountry: true },
+  ],
+  'italy': [
+    { name: 'La Rinascente', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Coin', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'OVS', category: 'basics', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'COS', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Massimo Dutti', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Luisa Via Roma', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Mytheresa', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Zalando', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Prada', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Gucci', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Dolce & Gabbana', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Valentino', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Armani', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Versace', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+  ],
+  'spain': [
+    { name: 'El Corte Inglés', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Massimo Dutti', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Bershka', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Stradivarius', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Pull&Bear', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'COS', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: '& Other Stories', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Zalando', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Decathlon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  ],
+  'canada': [
+    { name: 'Hudson\'s Bay', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Simons', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Holt Renfrew', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Aritzia', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Reitmans', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Moose Knuckles', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Canada Goose', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Frank And Oak', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Nordstrom', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+  ],
+  'japan': [
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'GU', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: false },
+    { name: 'BEAMS', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'United Arrows', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Ships', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Urban Research', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Isetan', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Mitsukoshi', category: 'department-store', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Takashimaya', category: 'department-store', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Comme des Garçons', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Issey Miyake', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Yohji Yamamoto', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'ZOZOTOWN', category: 'online', hasLocalStores: false, shipsToCountry: false },
+  ],
+  'uae': [
+    { name: 'Harvey Nichols', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Bloomingdale\'s', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Galeries Lafayette', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Namshi', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Ounass', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Level Shoes', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Massimo Dutti', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'COS', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  ],
+  'netherlands': [
+    { name: 'de Bijenkorf', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Zalando', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'About You', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'COS', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: '& Other Stories', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Scotch & Soda', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'G-Star RAW', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Arket', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  ],
+  'sweden': [
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Arket', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'COS', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: '& Other Stories', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Weekday', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Monki', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Zalando', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Lindex', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'KappAhl', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Filippa K', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Acne Studios', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Tiger of Sweden', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  ],
+  'brazil': [
+    { name: 'Renner', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'C&A', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Riachuelo', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Farm Rio', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Arezzo', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Forum', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Ellus', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Osklen', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Lupo', category: 'basics', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Dafiti', category: 'online', hasLocalStores: false, shipsToCountry: false },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+  ],
+  'south africa': [
+    { name: 'Woolworths', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Edgars', category: 'department-store', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Truworths', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Foschini', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Mr Price', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: false, shipsToCountry: true },
+    { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Superbalist', category: 'online', hasLocalStores: false, shipsToCountry: false },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Lululemon', category: 'sportswear', hasLocalStores: false, shipsToCountry: true },
+  ],
+  'india': [
+    { name: 'Myntra', category: 'online', hasLocalStores: false, shipsToCountry: false },
+    { name: 'Ajio', category: 'online', hasLocalStores: false, shipsToCountry: false },
+    { name: 'Nykaa Fashion', category: 'online', hasLocalStores: false, shipsToCountry: false },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'FabIndia', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Biba', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'W for Woman', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Allen Solly', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Van Heusen', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Puma', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Westside', category: 'department-store', hasLocalStores: true, shipsToCountry: false },
+  ],
+  'singapore': [
+    { name: 'Takashimaya', category: 'department-store', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Robinsons', category: 'department-store', hasLocalStores: true, shipsToCountry: false },
+    { name: 'BHG', category: 'department-store', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Charles & Keith', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Love, Bonito', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Club21', category: 'luxury', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Zalora', category: 'online', hasLocalStores: false, shipsToCountry: false },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  ],
+  'new zealand': [
+    { name: 'Farmers', category: 'department-store', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Smith & Caughey\'s', category: 'department-store', hasLocalStores: true, shipsToCountry: false },
+    { name: 'The Iconic', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Glassons', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Hallensteins', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Moochi', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Country Road', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Witchery', category: 'contemporary', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+  ],
+  'mexico': [
+    { name: 'Liverpool', category: 'department-store', hasLocalStores: true, shipsToCountry: true },
+    { name: 'El Palacio de Hierro', category: 'luxury', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Suburbia', category: 'contemporary', hasLocalStores: true, shipsToCountry: false },
+    { name: 'Zara', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'H&M', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Mango', category: 'fast-fashion', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Nike', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Adidas', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Net-a-Porter', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Farfetch', category: 'luxury', hasLocalStores: false, shipsToCountry: true },
+    { name: 'ASOS', category: 'online', hasLocalStores: false, shipsToCountry: true },
+    { name: 'Lululemon', category: 'sportswear', hasLocalStores: true, shipsToCountry: true },
+    { name: 'Uniqlo', category: 'basics', hasLocalStores: true, shipsToCountry: true },
+  ],
+};
+
+function normalizeCuratedKey(country) {
+  const c = country.toLowerCase().trim();
+  if (c.includes('united kingdom') || c.includes('great britain') || c.includes('england') || c.includes('scotland') || c.includes('wales') || c === 'uk' || c === 'gb') return 'united kingdom';
+  if (c.includes('united states') || c.includes('usa') || c === 'us' || c === 'america') return 'united states';
+  if (c.includes('australia') || c === 'au') return 'australia';
+  if (c.includes('germany') || c.includes('deutschland') || c === 'de') return 'germany';
+  if (c.includes('france') || c === 'fr') return 'france';
+  if (c.includes('italy') || c.includes('italia') || c === 'it') return 'italy';
+  if (c.includes('spain') || c.includes('españa') || c === 'es') return 'spain';
+  if (c.includes('canada') || c === 'ca') return 'canada';
+  if (c.includes('japan') || c.includes('nippon') || c === 'jp') return 'japan';
+  if (c.includes('united arab emirates') || c.includes('uae') || c.includes('dubai') || c.includes('abu dhabi')) return 'uae';
+  if (c.includes('netherlands') || c.includes('holland') || c === 'nl') return 'netherlands';
+  if (c.includes('sweden') || c === 'se') return 'sweden';
+  if (c.includes('brazil') || c.includes('brasil') || c === 'br') return 'brazil';
+  if (c.includes('south africa') || c === 'za') return 'south africa';
+  if (c.includes('india') || c === 'in') return 'india';
+  if (c.includes('singapore') || c === 'sg') return 'singapore';
+  if (c.includes('new zealand') || c === 'nz') return 'new zealand';
+  if (c.includes('mexico') || c.includes('méxico') || c === 'mx') return 'mexico';
+  return null;
+}
+
+app.get('/api/retailers/suggestions', async (req, res) => {
+  const country = (req.query.country || '').trim();
+  if (!country) {
+    return res.status(400).json({ error: 'country parameter is required' });
+  }
+
+  const cacheKey = country.toLowerCase().replace(/\s+/g, '-');
+
+  // Check in-memory cache
+  const cached = retailerCache.get(cacheKey);
+  if (cached && Date.now() - cached.cachedAt < RETAILER_CACHE_TTL) {
+    return res.json({ country, retailers: cached.retailers, source: 'cache' });
+  }
+
+  // Check if we have a curated list
+  const curatedKey = normalizeCuratedKey(country);
+  if (curatedKey && CURATED_RETAILERS[curatedKey]) {
+    const retailers = CURATED_RETAILERS[curatedKey];
+    retailerCache.set(cacheKey, { retailers, cachedAt: Date.now() });
+    return res.json({ country, retailers, source: 'curated' });
+  }
+
+  // Use OpenAI to generate retailers for any other country
+  if (!process.env.OPENAI_API_KEY) {
+    // Fallback to UK list if no AI
+    return res.json({ country, retailers: CURATED_RETAILERS['united kingdom'], source: 'fallback' });
+  }
+
+  try {
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const modelToUse = await getBestModel('fast');
+    const response = await openai.chat.completions.create({
+      model: modelToUse,
+      messages: [
+        {
+          role: 'system',
+          content: `You are a fashion retail expert. Return ONLY valid JSON, no markdown, no explanation. Generate a list of 15-25 fashion retailers available in the specified country. Include a mix of local/regional retailers, international brands that operate there, and online stores that ship there. Focus on where people actually shop for fashion in that country.`
+        },
+        {
+          role: 'user',
+          content: `Generate a fashion retailer list for: ${country}
+
+Return JSON in this exact format:
+{
+  "retailers": [
+    {"name": "Store Name", "category": "luxury|contemporary|fast-fashion|sportswear|department-store|online|basics", "hasLocalStores": true|false, "shipsToCountry": true|false}
+  ]
+}
+
+Categories: luxury (high-end designer), contemporary (mid-range quality), fast-fashion (trend-led affordable), sportswear (athletic/activewear), department-store (multi-brand), online (digital-only), basics (essentials/everyday).
+hasLocalStores: true if they have physical stores in ${country}.
+shipsToCountry: true if they deliver to ${country}.`
+        }
+      ],
+      max_completion_tokens: 2000,
+      temperature: 0.3
+    });
+
+    const rawContent = response.choices[0].message.content.trim();
+    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in AI response');
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    const retailers = parsed.retailers || [];
+
+    if (retailers.length === 0) throw new Error('Empty retailers list from AI');
+
+    // Store in cache
+    retailerCache.set(cacheKey, { retailers, cachedAt: Date.now() });
+
+    console.log(`[Retailers] AI generated ${retailers.length} retailers for ${country}`);
+    return res.json({ country, retailers, source: 'ai-generated' });
+
+  } catch (error) {
+    console.error(`[Retailers] AI generation failed for ${country}:`, error.message);
+    // Return UK list as last resort fallback
+    return res.json({ country, retailers: CURATED_RETAILERS['united kingdom'], source: 'fallback' });
+  }
+});
+
 // ============ HEALTH CHECK ============
 
 app.get('/', (req, res) => {
