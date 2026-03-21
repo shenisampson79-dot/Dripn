@@ -1403,7 +1403,7 @@ app.get('/api/dfy/access-status', authMiddleware, async (req, res) => {
 app.post('/api/dfy/generate-delivery', authMiddleware, async (req, res) => {
   try {
     const { tier = 'lite', stylistId = 'ruby' } = req.body;
-    const outfitCount = tier === 'lite' ? 5 : 10;
+    const outfitCount = tier === 'lite' ? 14 : 30;
 
     const wardrobeResult = await pool.query(
       `SELECT id, name, category, color, brand, image_url FROM wardrobe_items WHERE user_id = $1 ORDER BY created_at DESC LIMIT 60`,

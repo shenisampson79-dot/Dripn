@@ -540,10 +540,10 @@ class DFYService {
 
     // Note: Stylist analysis is generated server-side and will be populated via API
     // Do not use hardcoded dummy comments to avoid misleading users about AI analysis
-    const mockOutfits: DFYOutfit[] = Array.from({ length: 5 }, (_, i) => ({
+    const mockOutfits: DFYOutfit[] = Array.from({ length: 14 }, (_, i) => ({
       id: `outfit-${i + 1}`,
-      dayNumber: (i * 3) + 1,
-      title: i === 0 ? "Today's Look" : `Day ${(i * 3) + 1} Look`,
+      dayNumber: i + 1,
+      title: i === 0 ? "Today's Look" : `Day ${i + 1} Look`,
       description: `A curated outfit rotated for your 14-day plan`,
       items: [],
       occasion: 'work' as DFYOccasion,
