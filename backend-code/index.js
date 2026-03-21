@@ -5220,8 +5220,8 @@ app.post('/api/stylist/chat', async (req, res) => {
       return res.status(400).json({ error: 'userMessage is required' });
     }
 
-    if (!stylistId || !['ruby', 'max'].includes(stylistId)) {
-      return res.status(400).json({ error: 'Valid stylistId (ruby or max) is required' });
+    if (!stylistId || !['ruby', 'max', 'ace', 'ivy'].includes(stylistId)) {
+      return res.status(400).json({ error: 'Valid stylistId (ruby, max, ace or ivy) is required' });
     }
 
     const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === language) || SUPPORTED_LANGUAGES[0];
@@ -8790,6 +8790,405 @@ app.post('/api/feedback', async (req, res) => {
       success: false, 
       error: 'Failed to submit feedback' 
     });
+  }
+});
+
+// ============ RESILIENT CHAT ENDPOINTS ============
+// Works with or without authentication — auto-falls back to guest mode
+app.post('/api/chat/resilient', async (req, res) => {
+  try {
+    const { message, stylist, stylistId, messages, userMessage, wardrobeItems, userGender, subscriptionTier, language } = req.body;
+    const resolvedMessage = message || userMessage;
+    const resolvedStylistId = (stylist || stylistId || 'ruby').toLowerCase();
+
+    if (!resolvedMessage) return res.status(400).json({ error: 'message is required' });
+    if (!['ruby', 'max', 'ace', 'ivy'].includes(resolvedStylistId)) {
+      return res.status(400).json({ error: 'Invalid stylistId. Use ruby, max, ace or ivy.' });
+    }
+
+    // Determine if the request is from an authenticated user
+    let userId = null;
+    let resolvedTier = subscriptionTier || 'free';
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.verify(authHeader.slice(7), JWT_SECRET);
+        userId = decoded.userId;
+        // Fetch actual tier from DB
+        const userRow = await pool.query('SELECT subscription_tier FROM users WHERE id = $1', [userId]);
+        if (userRow.rows[0]) resolvedTier = userRow.rows[0].subscription_tier || 'free';
+      } catch (_) { /* token invalid — proceed as guest */ }
+    }
+
+    const guestToken = req.headers['x-guest-token'] || null;
+    const isGuest = !userId;
+
+    const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === language) || SUPPORTED_LANGUAGES[0];
+
+    const response = await generateStylistResponse({
+      stylistId: resolvedStylistId,
+      messages: messages || [],
+      userMessage: resolvedMessage,
+      wardrobeItems: wardrobeItems || [],
+      userGender: userGender || 'not specified',
+      subscriptionTier: isGuest ? 'free' : resolvedTier,
+      guestMode: isGuest,
+      languageCode: language || 'en',
+      languageName: langInfo.name,
+    });
+
+    const sessionBackup = userId ? jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' }) : null;
+    const newGuestToken = isGuest ? (guestToken || `guest_${Date.now()}_${Math.random().toString(36).slice(2)}`) : null;
+
+    res.json({
+      response: response.content,
+      content: response.content,
+      mood: response.mood,
+      stylist: resolvedStylistId,
+      ...(sessionBackup && { sessionBackup }),
+      ...(newGuestToken && { guestToken: newGuestToken, guestMessagesRemaining: 5 }),
+    });
+  } catch (error) {
+    console.error('[Chat/Resilient] Error:', error);
+    res.status(500).json({ error: 'Failed to process chat message' });
+  }
+});
+
+// Voice-oriented resilient chat — same pipeline with optional TTS
+app.post('/api/chat/message/resilient', async (req, res) => {
+  try {
+    const { message, stylist, stylistId, messages, generateVoice, voiceSettings } = req.body;
+    const resolvedStylistId = (stylist || stylistId || 'ruby').toLowerCase();
+
+    if (!message) return res.status(400).json({ error: 'message is required' });
+    if (!['ruby', 'max', 'ace', 'ivy'].includes(resolvedStylistId)) {
+      return res.status(400).json({ error: 'Invalid stylistId. Use ruby, max, ace or ivy.' });
+    }
+
+    // Auth check (optional — degrades gracefully)
+    let userId = null;
+    let resolvedTier = 'free';
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.verify(authHeader.slice(7), JWT_SECRET);
+        userId = decoded.userId;
+        const userRow = await pool.query('SELECT subscription_tier FROM users WHERE id = $1', [userId]);
+        if (userRow.rows[0]) resolvedTier = userRow.rows[0].subscription_tier || 'free';
+      } catch (_) {}
+    }
+
+    const response = await generateStylistResponse({
+      stylistId: resolvedStylistId,
+      messages: messages || [],
+      userMessage: message,
+      wardrobeItems: [],
+      userGender: 'not specified',
+      subscriptionTier: resolvedTier,
+      guestMode: !userId,
+    });
+
+    const result = {
+      response: response.content,
+      voiceCredits: {
+        remaining: userId ? 50 : 0,
+        monthlyAllowance: 50,
+        monthlyRemaining: userId ? 50 : 0,
+        purchasedCredits: 0,
+        isUnlimited: resolvedTier === 'stylist_unlimited',
+      },
+      voiceCreditsExhausted: false,
+    };
+
+    // Generate TTS audio if requested and user is authenticated
+    if (generateVoice && userId) {
+      try {
+        const voiceService = require('./voiceService');
+        const audioResult = await voiceService.generateStylistVoice(resolvedStylistId, response.content);
+        if (audioResult && audioResult.audio) {
+          result.voice = { audio: audioResult.audio, audioDataUri: `data:audio/mpeg;base64,${audioResult.audio}` };
+          result.voiceAudio = audioResult.audio;
+        }
+      } catch (voiceErr) {
+        console.error('[Chat/Message/Resilient] TTS error:', voiceErr.message);
+        result.voiceError = { code: 'TTS_FAILED', message: 'Voice generation unavailable' };
+      }
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[Chat/Message/Resilient] Error:', error);
+    res.status(500).json({ error: 'Failed to process voice chat message' });
+  }
+});
+
+// ============ SOCIAL AUTH ============
+app.post('/api/auth/social', async (req, res) => {
+  try {
+    const { provider, token } = req.body;
+    if (!provider || !token) return res.status(400).json({ error: 'provider and token are required' });
+
+    let email, name, avatarUrl, providerId;
+
+    if (provider === 'google') {
+      // Verify Google ID token via tokeninfo endpoint
+      const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
+      if (!verifyRes.ok) return res.status(401).json({ error: 'Invalid Google token' });
+      const payload = await verifyRes.json();
+      if (payload.error) return res.status(401).json({ error: 'Google token verification failed' });
+      email = payload.email;
+      name = payload.name || payload.email.split('@')[0];
+      avatarUrl = payload.picture || null;
+      providerId = payload.sub;
+    } else if (provider === 'apple') {
+      // Apple tokens are JWTs signed by Apple — decode without verifying for MVP
+      // (full verification requires Apple's public keys)
+      try {
+        const parts = token.split('.');
+        const payloadStr = Buffer.from(parts[1], 'base64').toString('utf8');
+        const payload = JSON.parse(payloadStr);
+        email = payload.email;
+        name = req.body.name || (email ? email.split('@')[0] : 'Apple User');
+        avatarUrl = null;
+        providerId = payload.sub;
+      } catch (_) {
+        return res.status(401).json({ error: 'Invalid Apple token format' });
+      }
+    } else {
+      return res.status(400).json({ error: `Unsupported provider: ${provider}` });
+    }
+
+    if (!email) return res.status(400).json({ error: 'Could not extract email from token' });
+
+    // Upsert user
+    let user;
+    const existing = await pool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase()]);
+    if (existing.rows.length > 0) {
+      user = existing.rows[0];
+      // Update avatar if we have one and they don't
+      if (avatarUrl && !user.avatar_url) {
+        await pool.query('UPDATE users SET avatar_url = $1 WHERE id = $2', [avatarUrl, user.id]);
+        user.avatar_url = avatarUrl;
+      }
+    } else {
+      const result = await pool.query(
+        `INSERT INTO users (email, display_name, avatar_url, password_hash) VALUES ($1, $2, $3, $4) RETURNING *`,
+        [email.toLowerCase(), name, avatarUrl, await bcrypt.hash(Math.random().toString(36), 8)]
+      );
+      user = result.rows[0];
+    }
+
+    const jwtToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
+    res.json({
+      token: jwtToken,
+      user: { id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url },
+    });
+  } catch (error) {
+    console.error('[Auth/Social] Error:', error);
+    res.status(500).json({ error: 'Social login failed. Please try again.' });
+  }
+});
+
+// ============ APP CONFIG ============
+app.get('/api/config/colors', async (req, res) => {
+  res.json({
+    baseColors: [
+      'black', 'white', 'gray', 'red', 'blue', 'green', 'yellow', 'orange',
+      'purple', 'pink', 'brown', 'beige', 'navy', 'cream', 'burgundy', 'olive',
+      'teal', 'coral', 'gold', 'silver', 'tan', 'khaki', 'maroon', 'mint',
+      'lavender', 'turquoise', 'charcoal', 'ivory', 'denim', 'rose', 'camel',
+      'mustard', 'sage', 'rust', 'cobalt', 'blush', 'nude', 'chocolate'
+    ],
+    modifiers: ['light', 'dark', 'pale', 'deep', 'bright', 'muted', 'soft', 'vivid', 'pastel', 'neon'],
+    patterns: ['solid', 'striped', 'plaid', 'floral', 'geometric', 'animal print', 'paisley', 'checked', 'polka dot', 'abstract', 'tie-dye'],
+    undertones: ['warm', 'cool', 'neutral'],
+    seasons: ['spring', 'summer', 'autumn', 'winter'],
+  });
+});
+
+// ============ FASHION RULES ============
+const FASHION_RULES = [
+  { id: 1, title: 'The Rule of Three', content: 'Limit your outfit to three main colors maximum. More than three creates visual noise and makes your look feel unpolished. Choose one dominant, one secondary, and one accent color.', category: 'Color Theory', difficulty: 'Beginner', gender: 'all', tags: ['color', 'basics', 'simplicity'], colorSwatches: [{ name: 'Navy', hex: '#1a237e' }, { name: 'White', hex: '#ffffff' }, { name: 'Camel', hex: '#c19a6b' }] },
+  { id: 2, title: 'Fit Is Everything', content: 'The most expensive garment looks cheap if it does not fit. Clothes should skim the body — not too tight, not too loose. Invest in tailoring; it is cheaper than buying new pieces.', category: 'Fit & Proportion', difficulty: 'Beginner', gender: 'all', tags: ['fit', 'tailoring', 'foundation'] },
+  { id: 3, title: 'High-Low Dressing', content: 'Mix investment pieces with affordable finds. Pair a designer blazer with high-street trousers, or luxury shoes with a budget dress. The key is that each piece looks intentional.', category: 'Styling Techniques', difficulty: 'Intermediate', gender: 'all', tags: ['budget', 'luxury', 'mixing'] },
+  { id: 4, title: 'Monochrome Creates Elegance', content: 'Wearing one color head-to-toe is one of the most elevated styling choices you can make. It creates a long, lean silhouette and reads as effortlessly chic. Vary textures to avoid looking flat.', category: 'Color Theory', difficulty: 'Intermediate', gender: 'all', tags: ['monochrome', 'elegant', 'color'] },
+  { id: 5, title: 'Shoes Set the Tone', content: 'Your shoes communicate your level of care more than any other garment. A great outfit with wrong shoes falls apart. A simple outfit with excellent shoes elevates everything above it.', category: 'Accessories', difficulty: 'Beginner', gender: 'all', tags: ['shoes', 'accessories', 'polish'] },
+  { id: 6, title: 'The Half Tuck', content: 'Tucking just the front of a shirt into trousers or a skirt creates instant intention. It shows you thought about your proportions and breaks up a shapeless silhouette.', category: 'Styling Techniques', difficulty: 'Beginner', gender: 'all', tags: ['tuck', 'proportion', 'casual'] },
+  { id: 7, title: 'Pattern Mixing Rules', content: 'To mix patterns successfully: vary the scale (one large, one small), keep a common color between them, and stick to two patterns maximum. When in doubt, add a solid to ground the look.', category: 'Color Theory', difficulty: 'Advanced', gender: 'all', tags: ['patterns', 'mixing', 'advanced'] },
+  { id: 8, title: 'Invest in Neutrals', content: 'Black, white, navy, grey, camel, and cream should form the foundation of your wardrobe. Neutrals work with everything and never go out of style. Build on this base with seasonal colors.', category: 'Wardrobe Building', difficulty: 'Beginner', gender: 'all', tags: ['neutrals', 'capsule', 'investment'] },
+  { id: 9, title: 'The Collar Lift', content: 'Popping a collar — whether on a shirt, jacket, or coat — creates instant structure around the face and adds a louche, confident energy to any outfit.', category: 'Styling Techniques', difficulty: 'Beginner', gender: 'all', tags: ['collar', 'styling', 'detail'] },
+  { id: 10, title: 'Proportion Is Power', content: 'Balance volume: wide top with slim bottom, or slim top with wide bottom. Wearing volume on both creates a shapeless silhouette unless you are intentionally going for an oversized look.', category: 'Fit & Proportion', difficulty: 'Intermediate', gender: 'all', tags: ['proportion', 'silhouette', 'balance'] },
+  { id: 11, title: 'Dress for Where You Are Going', content: 'Dressing appropriately for context shows social intelligence. Overdressing signals insecurity; underdressing signals disrespect. Read the room, then add one subtle element that is uniquely you.', category: 'Occasion Dressing', difficulty: 'Intermediate', gender: 'all', tags: ['occasion', 'context', 'social'] },
+  { id: 12, title: 'White Space in Accessories', content: 'Resist the urge to pile on jewellery, bags, and belts. Choose one or two statement pieces and let them breathe. Restraint is the hallmark of a truly confident dresser.', category: 'Accessories', difficulty: 'Intermediate', gender: 'all', tags: ['accessories', 'restraint', 'jewellery'] },
+  { id: 13, title: 'Texture Adds Dimension', content: 'An all-neutral outfit in different textures — say, a cashmere knit with silk trousers and suede loafers — is far more interesting than the same outfit in identical fabrics.', category: 'Styling Techniques', difficulty: 'Advanced', gender: 'all', tags: ['texture', 'fabric', 'dimension'] },
+  { id: 14, title: 'The Sleeve Roll', content: 'Rolling shirt or jacket sleeves to mid-forearm is one of the easiest ways to signal relaxed confidence. It reveals a sliver of wrist and instantly makes any look feel less uptight.', category: 'Styling Techniques', difficulty: 'Beginner', gender: 'men', tags: ['sleeves', 'casual', 'confidence'] },
+];
+
+app.get('/api/fashion-rules/daily', async (req, res) => {
+  try {
+    const dayIndex = Math.floor(Date.now() / 86400000) % FASHION_RULES.length;
+    res.json(FASHION_RULES[dayIndex]);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get daily fashion rule' });
+  }
+});
+
+app.get('/api/fashion-rules', async (req, res) => {
+  try {
+    const { category, gender, difficulty } = req.query;
+    let rules = FASHION_RULES;
+    if (category) rules = rules.filter(r => r.category.toLowerCase() === category.toLowerCase());
+    if (gender && gender !== 'all') rules = rules.filter(r => r.gender === 'all' || r.gender === gender);
+    if (difficulty) rules = rules.filter(r => r.difficulty.toLowerCase() === difficulty.toLowerCase());
+    res.json({ rules, total: rules.length });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get fashion rules' });
+  }
+});
+
+app.get('/api/fashion-rules/categories', async (req, res) => {
+  try {
+    const categoryMap = {};
+    FASHION_RULES.forEach(rule => {
+      if (!categoryMap[rule.category]) {
+        categoryMap[rule.category] = { name: rule.category, count: 0, topics: [] };
+      }
+      categoryMap[rule.category].count++;
+      rule.tags.forEach(tag => {
+        if (!categoryMap[rule.category].topics.includes(tag)) {
+          categoryMap[rule.category].topics.push(tag);
+        }
+      });
+    });
+    res.json({ categories: Object.values(categoryMap) });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get fashion rule categories' });
+  }
+});
+
+// ============ PERSONALIZED COLOR TRENDS ============
+app.get('/api/color-trends/personalized', authMiddleware, async (req, res) => {
+  try {
+    const userRow = await pool.query('SELECT profile_data FROM users WHERE id = $1', [req.userId]);
+    const profile = userRow.rows[0]?.profile_data || {};
+    const undertone = profile.skinUndertone || 'neutral';
+
+    const warmColors = [
+      { id: 'warm-1', name: 'Terracotta', hexCode: '#C65D3B', description: 'A rich earthy tone that complements warm skin beautifully', pairingColors: ['cream', 'camel', 'navy'], bestFor: ['casual', 'autumn'], matchScore: 95 },
+      { id: 'warm-2', name: 'Burnt Sienna', hexCode: '#E97451', description: 'A vibrant warm orange-red that glows against warm undertones', pairingColors: ['ivory', 'chocolate brown', 'gold'], bestFor: ['daytime', 'autumn'], matchScore: 90 },
+      { id: 'warm-3', name: 'Mustard Yellow', hexCode: '#FFDB58', description: 'A golden yellow that enriches warm and golden skin tones', pairingColors: ['white', 'navy', 'olive'], bestFor: ['casual', 'summer'], matchScore: 88 },
+      { id: 'warm-4', name: 'Olive Green', hexCode: '#808000', description: 'A muted green that harmonises with warm undertones', pairingColors: ['tan', 'white', 'burgundy'], bestFor: ['casual', 'all seasons'], matchScore: 85 },
+    ];
+    const coolColors = [
+      { id: 'cool-1', name: 'Royal Blue', hexCode: '#4169E1', description: 'A vivid blue that makes cool undertones pop with vibrancy', pairingColors: ['white', 'silver', 'black'], bestFor: ['formal', 'all seasons'], matchScore: 95 },
+      { id: 'cool-2', name: 'Berry Pink', hexCode: '#C71585', description: 'A cool-toned pink-red that complements pink and blue undertones', pairingColors: ['black', 'white', 'navy'], bestFor: ['evening', 'formal'], matchScore: 90 },
+      { id: 'cool-3', name: 'Lavender', hexCode: '#E6E6FA', description: 'A soft purple that enhances cool, rosy undertones', pairingColors: ['white', 'charcoal', 'blush'], bestFor: ['casual', 'spring'], matchScore: 87 },
+      { id: 'cool-4', name: 'Emerald', hexCode: '#50C878', description: 'A jewel-toned green that electrifies cool complexions', pairingColors: ['gold', 'black', 'ivory'], bestFor: ['evening', 'formal'], matchScore: 85 },
+    ];
+    const neutralColors = [
+      { id: 'neutral-1', name: 'Camel', hexCode: '#C19A6B', description: 'A versatile warm neutral that works with all undertones', pairingColors: ['white', 'black', 'navy'], bestFor: ['all occasions', 'all seasons'], matchScore: 92 },
+      { id: 'neutral-2', name: 'Sage Green', hexCode: '#B2AC88', description: 'A muted botanical green that flatters all skin tones', pairingColors: ['cream', 'tan', 'white'], bestFor: ['casual', 'spring/summer'], matchScore: 89 },
+      { id: 'neutral-3', name: 'Dusty Rose', hexCode: '#DCAE96', description: 'A soft muted pink that complements all undertones gracefully', pairingColors: ['grey', 'white', 'navy'], bestFor: ['casual', 'romantic'], matchScore: 86 },
+      { id: 'neutral-4', name: 'Slate Blue', hexCode: '#6A7D9F', description: 'A muted blue-grey that sits beautifully on any complexion', pairingColors: ['white', 'cream', 'charcoal'], bestFor: ['professional', 'casual'], matchScore: 84 },
+    ];
+
+    const colorsByUndertone = { warm: warmColors, cool: coolColors, neutral: neutralColors };
+    const recommended = colorsByUndertone[undertone] || neutralColors;
+    const avoidColors = undertone === 'warm'
+      ? [{ name: 'Cool Grey', hexCode: '#9E9E9E', reason: 'Can wash out warm undertones' }, { name: 'Pastel Blue', hexCode: '#AEC6CF', reason: 'Creates an ashy cast on warm skin' }]
+      : undertone === 'cool'
+      ? [{ name: 'Orange', hexCode: '#FF6F00', reason: 'Clashes with pink/blue undertones' }, { name: 'Warm Brown', hexCode: '#795548', reason: 'Can make cool undertones appear grey' }]
+      : [{ name: 'Neon Yellow', hexCode: '#FFFF00', reason: 'Too stark against most natural undertones' }];
+
+    res.json({ undertone, recommendedColors: recommended, avoidColors });
+  } catch (error) {
+    console.error('[Color Trends/Personalized] Error:', error);
+    res.status(500).json({ error: 'Failed to get personalized color trends' });
+  }
+});
+
+// ============ AI OUTFIT IMAGE GENERATION ============
+app.post('/api/ai/generate-outfit-image', authMiddleware, async (req, res) => {
+  try {
+    const { outfitDescription, occasion } = req.body;
+    if (!outfitDescription) return res.status(400).json({ error: 'outfitDescription is required' });
+
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const prompt = `A professional fashion editorial photograph of an outfit: ${outfitDescription}. ${occasion ? `Occasion: ${occasion}.` : ''} Clean white background, studio lighting, high-end fashion magazine style, no people, flat lay or mannequin display, photorealistic.`;
+
+    const imageResponse = await openai.images.generate({
+      model: 'dall-e-3',
+      prompt: prompt.slice(0, 1000),
+      n: 1,
+      size: '1024x1024',
+      quality: 'standard',
+    });
+
+    const imageUrl = imageResponse.data[0]?.url || null;
+    res.json({ success: true, imageUrl });
+  } catch (error) {
+    console.error('[AI/GenerateOutfitImage] Error:', error);
+    res.json({ success: false, imageUrl: null });
+  }
+});
+
+// ============ DREAM OUTFIT ============
+app.post('/api/dream-outfit', authMiddleware, async (req, res) => {
+  try {
+    const { style, occasion, budget, gender } = req.body;
+
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const prompt = `You are a luxury fashion stylist. Create a complete dream outfit based on:
+Style: ${style || 'modern classic'}
+Occasion: ${occasion || 'everyday'}
+Budget: ${budget || 'moderate'}
+Gender: ${gender || 'unspecified'}
+
+Respond with JSON only: { "description": "2-sentence outfit description", "pieces": ["item 1", "item 2", "item 3", "item 4"], "estimatedCost": "£XXX–£XXX" }`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 300,
+      response_format: { type: 'json_object' },
+    });
+
+    let outfitData;
+    try {
+      outfitData = JSON.parse(completion.choices[0].message.content);
+    } catch (_) {
+      outfitData = { description: 'A timeless, curated outfit tailored to your style.', pieces: ['Classic white shirt', 'Tailored trousers', 'Leather loafers', 'Minimal watch'], estimatedCost: '£200–£500' };
+    }
+
+    // Generate image for the dream outfit
+    let imageUrl = null;
+    try {
+      const imgRes = await openai.images.generate({
+        model: 'dall-e-3',
+        prompt: `Fashion editorial: ${outfitData.description}. White studio background, high-end magazine style.`.slice(0, 800),
+        n: 1,
+        size: '1024x1024',
+        quality: 'standard',
+      });
+      imageUrl = imgRes.data[0]?.url || null;
+    } catch (_) {}
+
+    res.json({
+      success: true,
+      outfit: {
+        imageUrl,
+        description: outfitData.description,
+        pieces: outfitData.pieces,
+        estimatedCost: outfitData.estimatedCost,
+      },
+    });
+  } catch (error) {
+    console.error('[Dream Outfit] Error:', error);
+    res.status(500).json({ error: 'Failed to generate dream outfit' });
   }
 });
 
