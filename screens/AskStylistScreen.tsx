@@ -345,13 +345,15 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   };
 
   const handleSubmit = async () => {
-    if (!user?.id || !selectedType || images.length === 0) return;
+    if (!selectedType) return;
+    // Images are only required when NOT using Surprise Me
+    if (!isSurpriseMe && images.length === 0) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsLoading(true);
 
     try {
-      const stylistId = user.stylistPreferences?.selectedStylistId || 'ruby';
+      const stylistId = user?.stylistPreferences?.selectedStylistId || 'ruby';
       const context = decisionService.formatContextForApi(selectedContexts, contextNotes.trim() || undefined);
       
       const decisionTypeMap: Record<string, 'sanity_check' | 'shopping' | 'what_to_wear' | 'event_outfit'> = {
@@ -384,8 +386,10 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         timestamp: new Date().toISOString(),
       };
 
-      await decisionService.incrementDecisionsToday(user.id);
-      await decisionService.incrementTotalDecisions(user.id);
+      if (user?.id) {
+        await decisionService.incrementDecisionsToday(user.id);
+        await decisionService.incrementTotalDecisions(user.id);
+      }
 
       setResponse(result);
       setStep('response');
