@@ -6066,6 +6066,9 @@ app.post('/api/onboarding/body-scan', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Image is required' });
     }
 
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
     const visionModel = await getBestModel('vision');
     console.log(`[BodyScan] Using model: ${visionModel}`);
 
@@ -6095,19 +6098,34 @@ app.post('/api/onboarding/body-scan', authMiddleware, async (req, res) => {
       throw new Error('Empty response from vision model');
     }
 
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
-    const result = JSON.parse(cleanedContent);
+    // Strip markdown code fences and extract JSON
+    let cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+    // Try to extract first JSON object if there's surrounding text
+    const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+    if (jsonMatch) cleanedContent = jsonMatch[0];
+
+    let result;
+    try {
+      result = JSON.parse(cleanedContent);
+    } catch (parseErr) {
+      console.error('[BodyScan] JSON parse error, raw content:', content.substring(0, 500));
+      throw new Error('Failed to parse AI response as JSON');
+    }
 
     if (autoSave && req.userId) {
-      await pool.query(
-        `UPDATE users SET body_type = $1, kibbe_body_type = $2 WHERE id = $3`,
-        [result.bodyType, result.kibbeBodyType, req.userId]
-      );
+      try {
+        await pool.query(
+          `UPDATE users SET body_type = $1, kibbe_body_type = $2 WHERE id = $3`,
+          [result.bodyType || null, result.kibbeBodyType || null, req.userId]
+        );
+      } catch (dbErr) {
+        console.error('[BodyScan] DB update error (non-fatal):', dbErr.message);
+      }
     }
 
     res.json(result);
   } catch (error) {
-    console.error('Body scan error:', error);
+    console.error('[BodyScan] Error:', error.message || error);
     res.status(500).json({ error: 'Body scan failed. Please try again.' });
   }
 });
@@ -6173,6 +6191,9 @@ app.post('/api/onboarding/color-scan', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Image is required' });
     }
 
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
     const visionModel = await getBestModel('vision');
     console.log(`[ColorScan] Using model: ${visionModel}`);
 
@@ -6202,19 +6223,32 @@ app.post('/api/onboarding/color-scan', authMiddleware, async (req, res) => {
       throw new Error('Empty response from vision model');
     }
 
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, '');
-    const result = JSON.parse(cleanedContent);
+    let cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+    const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+    if (jsonMatch) cleanedContent = jsonMatch[0];
+
+    let result;
+    try {
+      result = JSON.parse(cleanedContent);
+    } catch (parseErr) {
+      console.error('[ColorScan] JSON parse error, raw content:', content.substring(0, 500));
+      throw new Error('Failed to parse AI response as JSON');
+    }
 
     if (autoSave && req.userId) {
-      await pool.query(
-        `UPDATE users SET color_season = $1, skin_undertone = $2 WHERE id = $3`,
-        [result.colorSeasonType, result.undertone, req.userId]
-      );
+      try {
+        await pool.query(
+          `UPDATE users SET color_season = $1, skin_undertone = $2 WHERE id = $3`,
+          [result.colorSeasonType || null, result.undertone || null, req.userId]
+        );
+      } catch (dbErr) {
+        console.error('[ColorScan] DB update error (non-fatal):', dbErr.message);
+      }
     }
 
     res.json(result);
   } catch (error) {
-    console.error('Color scan error:', error);
+    console.error('[ColorScan] Error:', error.message || error);
     res.status(500).json({ error: 'Color scan failed. Please try again.' });
   }
 });
