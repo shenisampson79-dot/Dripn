@@ -538,33 +538,8 @@ class DFYService {
     const startDate = new Date().toISOString();
     const expiryDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
 
-    const STYLIST_NOTES = {
-      ruby: [
-        "This look is effortlessly chic, darling. You'll feel put together without trying too hard.",
-        "Love how this balances comfort and style - very you!",
-        "This combo is giving understated elegance. Trust me on this one.",
-        "Here's a look that works harder than it appears to. Easy win!",
-        "Layered for flexibility - you can dress this up or down as the day unfolds.",
-      ],
-      max: [
-        "Clean lines, neutral base. This reads confident without being loud.",
-        "Balanced effort and comfort. You'll feel put together without feeling overdone.",
-        "This outfit does the thinking for you. Grab and go.",
-        "Smart casual done right. Works in more situations than you'd expect.",
-        "Timeless choice that won't date. Good investment in looking good.",
-      ],
-      ace: [
-        "This look says 'I know what I'm doing' without saying a word.",
-        "Effortless balance of style and function. You'll feel good all day.",
-        "A versatile combo that adapts to whatever your day throws at you.",
-        "Sharp but not overdone. Perfect for your occasion.",
-        "This one's a quiet confidence builder. Trust the process.",
-      ],
-    };
-
-    const validStylistId = stylistId && stylistId in STYLIST_NOTES ? stylistId : 'ruby';
-    const notes = STYLIST_NOTES[validStylistId as keyof typeof STYLIST_NOTES];
-
+    // Note: Stylist analysis is generated server-side and will be populated via API
+    // Do not use hardcoded dummy comments to avoid misleading users about AI analysis
     const mockOutfits: DFYOutfit[] = Array.from({ length: 5 }, (_, i) => ({
       id: `outfit-${i + 1}`,
       dayNumber: (i * 3) + 1,
@@ -572,7 +547,7 @@ class DFYService {
       description: `A curated outfit rotated for your 14-day plan`,
       items: [],
       occasion: 'work' as DFYOccasion,
-      stylistNote: notes[i % notes.length],
+      stylistNote: undefined, // Real AI analysis will be generated server-side
       stylistId,
       userReaction: null,
       saved: false,
