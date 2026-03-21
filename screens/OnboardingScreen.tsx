@@ -329,9 +329,9 @@ type AgeRange = '18-24' | '25-34' | '35-44' | '45-54' | '55+';
 type ShoppingFrequency = 'weekly' | 'monthly' | 'seasonal' | 'rarely';
 
 const SKIN_UNDERTONE_OPTIONS: { id: SkinUndertone; name: string; description: string; colors: string[] }[] = [
-  { id: 'warm', name: 'Warm', description: 'Yellow, peachy, or golden undertones', colors: ['#FFD89B', '#F5C07B', '#E8A954'] },
-  { id: 'cool', name: 'Cool', description: 'Pink, red, or bluish undertones', colors: ['#F5C6C6', '#E8B8D4', '#C9B8E8'] },
-  { id: 'neutral', name: 'Neutral', description: 'Mix of warm and cool', colors: ['#E8D8C8', '#D4C4B4', '#C0B0A0'] },
+  { id: 'warm', name: 'Warm', description: 'Golden, peachy or yellow cast — from fair to deep', colors: ['#F9DEC0', '#EAB98A', '#C88B50', '#A0642A', '#7B4219', '#4A250E'] },
+  { id: 'cool', name: 'Cool', description: 'Pink, rosy or bluish cast — from fair to deep', colors: ['#F5D4CF', '#E4A99B', '#C07B6F', '#954E44', '#6B2D26', '#3D1612'] },
+  { id: 'neutral', name: 'Neutral', description: 'Balanced mix of warm and cool — from fair to deep', colors: ['#F6D8C0', '#E0B48A', '#BC8C5E', '#8F6035', '#67401E', '#3A200C'] },
 ];
 
 const PREFERRED_FIT_OPTIONS: { id: PreferredFit; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
@@ -2805,7 +2805,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                           }
                         }}
                         style={({ pressed }) => [
-                          styles.colorSwatch,
+                          styles.colorSwatchLarge,
                           {
                             backgroundColor: color.hex,
                             borderWidth: isSelected ? 3 : 1,
@@ -3771,7 +3771,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       const colorName = color.replace(/#[0-9A-Fa-f]{6}/g, '').trim();
                       return (
                         <View key={i} style={styles.colorSwatchItem}>
-                          <View style={[styles.colorSwatch, { backgroundColor: hexColor }]} />
+                          <View style={[styles.colorSwatchLarge, { backgroundColor: hexColor }]} />
                           <ThemedText type="caption" style={{ fontSize: 10, textAlign: 'center' }}>
                             {colorName}
                           </ThemedText>
@@ -4070,7 +4070,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: Spacing.sm,
   },
-  colorSwatch: {
+  colorSwatchLarge: {
     width: 44,
     height: 44,
     borderRadius: BorderRadius.md,
@@ -4704,9 +4704,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   colorSwatch: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   undertoneTitle: {
     marginBottom: Spacing.xs,
