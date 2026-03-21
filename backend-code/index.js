@@ -1428,7 +1428,7 @@ app.post('/api/dfy/generate-delivery', authMiddleware, async (req, res) => {
     const chatModel = await getBestModel('chat');
 
     const itemList = wardrobeItems
-      .map((i, idx) => `${idx + 1}. [${i.id}] ${i.name} (${i.category}${i.color ? ', ' + i.color : ''})`)
+      .map((i, idx) => `${idx + 1}. ${i.name} (${i.category}${i.color ? ', ' + i.color : ''})`)
       .join('\n');
 
     const occasionTypes = ['todays_look', 'work_outfit', 'casual_day', 'date_night', 'weekend'];
@@ -1448,7 +1448,7 @@ app.post('/api/dfy/generate-delivery', authMiddleware, async (req, res) => {
       try {
         const aiResponse = await openai.chat.completions.create({
           model: chatModel,
-          messages: [{ role: 'user', content: `You are ${persona.name}, a fashion stylist. Your voice is ${persona.voice}\n\nCreate ${occasionLabel} for Day ${dayNumber} of a curated 14-day style plan.\n\nWardrobe:\n${itemList}\n\nSelect 2-5 items that work together. Only use items from the list by their exact [id]. Write a short stylistMessage in your voice (1-2 sentences, warm and personal).\n\nRespond ONLY with valid JSON:\n{"selectedIds": ["id1", "id2"], "vibeLabel": "1-3 word vibe", "stylistMessage": "Your personal message"}` }],
+          messages: [{ role: 'user', content: `You are ${persona.name}, a fashion stylist. Your voice is ${persona.voice}\n\nCreate ${occasionLabel} for Day ${dayNumber} of a curated 14-day style plan.\n\nWardrobe (use item numbers from this list):\n${itemList}\n\nSelect 2-5 items by their NUMBER (1, 2, 3, etc) that work together. Write a short stylistMessage in your voice (1-2 sentences, warm and personal).\n\nRespond ONLY with valid JSON:\n{"selectedItemNumbers": [1, 2], "vibeLabel": "1-3 word vibe", "stylistMessage": "Your personal message"}` }],
           max_completion_tokens: 350,
           temperature: 0.85,
         });
@@ -1457,10 +1457,17 @@ app.post('/api/dfy/generate-delivery', authMiddleware, async (req, res) => {
         const jsonMatch = raw.match(/\{[\s\S]*\}/);
         const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
 
-        const selectedIds = (parsed.selectedIds || []).filter(id => wardrobeItems.some(w => w.id === id));
-        const selectedItems = selectedIds.map(id => {
-          const w = wardrobeItems.find(w => w.id === id);
-          return { id: w.id, name: w.name, imageUri: w.image_url || null, category: w.category, color: w.color || '' };
+        // Convert item numbers (1-indexed) back to wardrobe items (0-indexed array)
+        const selectedNumbers = (parsed.selectedItemNumbers || []).filter(n => typeof n === 'number' && n > 0 && n <= wardrobeItems.length);
+        const selectedItems = selectedNumbers.map(num => {
+          const w = wardrobeItems[num - 1]; // Convert 1-indexed to 0-indexed
+          return { 
+            id: w.id, 
+            name: w.name, 
+            imageUri: w.image_url || null, 
+            category: w.category, 
+            color: w.color || '' 
+          };
         });
 
         return {
