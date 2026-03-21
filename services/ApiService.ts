@@ -275,6 +275,26 @@ class ApiService {
     });
   }
 
+  async syncProfile(profileData: Record<string, any>): Promise<void> {
+    try {
+      await this.request<{ success: boolean }>('/api/auth/profile/sync', {
+        method: 'PUT',
+        body: JSON.stringify({ profileData }),
+      });
+    } catch {
+      // Silently swallow — device still has AsyncStorage as source of truth
+    }
+  }
+
+  async fetchProfileFromBackend(): Promise<Record<string, any> | null> {
+    try {
+      const result = await this.request<{ profileData: Record<string, any> | null }>('/api/auth/me');
+      return result?.profileData ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   async getStylists() {
     return this.request<{
       stylists: Array<{

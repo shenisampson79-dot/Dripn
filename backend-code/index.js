@@ -302,6 +302,9 @@ async function initDB() {
 
       ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_data JSONB;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMP;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
       CREATE TABLE IF NOT EXISTS posts (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -726,7 +729,7 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
     const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.userId]);
     const user = result.rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url, bio: user.bio });
+    res.json({ id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url, bio: user.bio, profileData: user.profile_data || null, onboardingCompletedAt: user.onboarding_completed_at || null });
   } catch (error) {
     console.error('[Auth] Me error:', error);
     res.status(500).json({ error: 'Failed to fetch user' });
@@ -746,6 +749,29 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('[Auth] Profile update error:', error);
     res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// Sync full onboarding profile — persists all preferences to DB
+app.put('/api/auth/profile/sync', authMiddleware, async (req, res) => {
+  try {
+    const { profileData, onboardingCompleted } = req.body;
+    if (!profileData) return res.status(400).json({ error: 'profileData is required' });
+
+    const now = new Date();
+    await pool.query(
+      `UPDATE users
+       SET profile_data = $1,
+           onboarding_completed_at = COALESCE(onboarding_completed_at, $2),
+           updated_at = $2
+       WHERE id = $3`,
+      [JSON.stringify(profileData), now, req.userId]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Auth] Profile sync error:', error);
+    res.status(500).json({ error: 'Failed to sync profile' });
   }
 });
 

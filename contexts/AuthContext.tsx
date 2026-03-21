@@ -34,6 +34,7 @@ export type DressCodePreference = 'hijab-friendly' | 'tzniut' | 'lds-modest' | '
 export type SubcultureStyle = 'goth' | 'emo' | 'punk' | 'cottagecore' | 'dark-academia' | 'light-academia' | 'y2k' | 'vintage' | 'grunge' | 'kawaii' | 'streetwear' | 'hypebeast' | 'old-money' | 'clean-girl' | 'coastal-grandmother' | 'other' | 'none' | null;
 export type DressCodeStrictness = 'flexible' | 'moderate' | 'strict' | null;
 export type FitPreference = 'Fitted' | 'Tailored' | 'Relaxed' | 'Oversized' | null;
+export type SkinUndertone = 'warm' | 'cool' | 'neutral' | null;
 export type BodyArea = 'Arms' | 'Shoulders' | 'Chest' | 'Waist' | 'Hips' | 'Legs' | 'Back' | 'Neck' | 'Tummy' | 'Thighs';
 export type RubyVoicePitch = 'mezzo-soprano';
 export type MaxVoiceRange = 'tenor' | 'baritone' | 'bass';
@@ -118,6 +119,7 @@ export interface UserProfile {
   sizeRange: SizeRange;
   bodyShape: BodyShape;
   budgetRange: BudgetRange;
+  skinUndertone: SkinUndertone;
   subscriptionTier: SubscriptionTier;
   contributorTier: ContributorTier;
   feedPreference: FeedPreference;
@@ -174,6 +176,7 @@ const createDefaultUser = (email: string, name: string): UserProfile => ({
   sizeRange: null,
   bodyShape: null,
   budgetRange: null,
+  skinUndertone: null,
   subscriptionTier: 'free',
   contributorTier: 'none',
   feedPreference: 'global',
@@ -415,6 +418,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
       setUser(userData);
+      // Background sync to backend so profile survives device changes / reinstalls
+      if (userData.id) {
+        const { id, email, hasCompletedOnboarding: _hco, ...profileData } = userData as any;
+        apiService.syncProfile(profileData).catch(() => {});
+      }
     } catch (error) {
       console.error('Failed to save user:', error);
       throw error;
@@ -426,21 +434,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await apiService.login(email, password);
       const backendUser = result.user;
+      const userId = backendUser.id?.toString();
       const existingData = await AsyncStorage.getItem(STORAGE_KEY);
       let userProfile: UserProfile;
-      
+
       if (existingData) {
         const existingUser = JSON.parse(existingData);
         if (existingUser.email === email) {
-          userProfile = { ...existingUser, id: backendUser.id?.toString() || existingUser.id };
+          userProfile = { ...existingUser, id: userId || existingUser.id };
         } else {
+          // Different account on this device — start fresh, then try to restore from backend
           userProfile = createDefaultUser(email, backendUser.displayName || email.split('@')[0]);
-          userProfile.id = backendUser.id?.toString() || userProfile.id;
+          userProfile.id = userId || userProfile.id;
         }
       } else {
+        // No local data at all (new device / reinstall) — restore from backend
         userProfile = createDefaultUser(email, backendUser.displayName || email.split('@')[0]);
-        userProfile.id = backendUser.id?.toString() || userProfile.id;
+        userProfile.id = userId || userProfile.id;
       }
+
+      // If local profile has no onboarding data but backend does, restore it
+      if (!userProfile.hasCompletedOnboarding && backendUser.profileData) {
+        userProfile = {
+          ...userProfile,
+          ...backendUser.profileData,
+          id: userId || userProfile.id,
+          email,
+          hasCompletedOnboarding: true,
+        };
+      }
+
       await saveUser(userProfile);
     } finally {
       setIsAuthenticating(false);
@@ -558,11 +581,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Authentication failed: No user ID received');
       }
       
-      const newUser = createDefaultUser(
+      let newUser = createDefaultUser(
         backendUser.email || userEmail || `${provider}_user@${provider}.com`,
         backendUser.displayName || userName || `${provider.charAt(0).toUpperCase() + provider.slice(1)} User`
       );
       newUser.id = backendUser.id.toString();
+
+      // Restore profile from backend if logging in on a new device
+      if (!newUser.hasCompletedOnboarding && backendUser.profileData) {
+        newUser = {
+          ...newUser,
+          ...backendUser.profileData,
+          id: backendUser.id.toString(),
+          email: backendUser.email || userEmail || newUser.email,
+          hasCompletedOnboarding: true,
+        };
+      }
+
       await saveUser(newUser);
 
       try {

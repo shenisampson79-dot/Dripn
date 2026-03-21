@@ -14,7 +14,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences, DripnGoal, DressCodePreference, SubcultureStyle, DressCodeStrictness, CulturalStylePreferences, FitPreference, BodyArea, BodyMeasurements, HeightUnit, WeightUnit } from "@/contexts/AuthContext";
+import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences, DripnGoal, DressCodePreference, SubcultureStyle, DressCodeStrictness, CulturalStylePreferences, FitPreference, BodyArea, BodyMeasurements, HeightUnit, WeightUnit, SkinUndertone } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getDefaultVoiceForStylist, getAccentsForLanguage } from "@/services/PersonalStylistService";
 import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
@@ -323,7 +323,6 @@ const BUDGET_OPTIONS: { id: BudgetRange; name: string }[] = [
   { id: "Luxury", name: "Luxury" },
 ];
 
-type SkinUndertone = 'warm' | 'cool' | 'neutral';
 type PreferredFit = 'fitted' | 'tailored' | 'relaxed' | 'oversize';
 type AgeRange = '18-24' | '25-34' | '35-44' | '45-54' | '55+';
 type ShoppingFrequency = 'weekly' | 'monthly' | 'seasonal' | 'rarely';
@@ -1332,6 +1331,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       sizeRange,
       bodyShape,
       budgetRange,
+      skinUndertone,
       bodyMeasurements: {
         height: bodyHeight,
         heightUnit: bodyHeightUnit,
@@ -2241,10 +2241,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               </View>
               <View style={styles.infoBoxList}>
                 <ThemedText type="caption" style={styles.infoBoxListItem}>
-                  {t('onboarding.steps.undertone.tipJewellery') || 'Jewellery test: gold suits warm, silver suits cool, both suit neutral'}
+                  {t('onboarding.steps.undertone.tipSun') || 'Sun reaction: tan easily = warm, burn first = cool, mix = neutral'}
                 </ThemedText>
                 <ThemedText type="caption" style={styles.infoBoxListItem}>
-                  {t('onboarding.steps.undertone.tipSun') || 'Sun reaction: tan easily = warm, burn first = cool, mix = neutral'}
+                  {t('onboarding.steps.undertone.tipJewellery') || 'Jewellery test: gold suits warm, silver suits cool, both suit neutral'}
                 </ThemedText>
                 <ThemedText type="caption" style={styles.infoBoxListItem}>
                   {t('onboarding.steps.undertone.tipWhite') || 'White test: cream/ivory suits warm, bright white suits cool'}
