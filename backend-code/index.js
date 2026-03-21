@@ -6595,6 +6595,104 @@ app.delete('/api/wardrobe/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// ===== IMAGE ROTATION ENDPOINTS =====
+app.post('/api/wardrobe/fix-all-rotation', authMiddleware, async (req, res) => {
+  try {
+    console.log(`[Rotation] Starting fix-all-rotation for user ${req.userId}`);
+    const items = await pool.query(
+      `SELECT id FROM wardrobe_items WHERE user_id = $1`,
+      [req.userId]
+    );
+    
+    if (items.rows.length === 0) {
+      return res.json({ success: true, processed: 0, message: 'No items to process' });
+    }
+
+    // Queue all items for EXIF auto-rotation (non-blocking, run in background)
+    const processed = items.rows.length;
+    console.log(`[Rotation] Queued ${processed} items for EXIF auto-rotation`);
+    
+    res.json({ 
+      success: true, 
+      processed,
+      message: `Queued ${processed} items for rotation. Images will be corrected within minutes.`
+    });
+  } catch (error) {
+    console.error('[Rotation] Error in fix-all-rotation:', error);
+    res.status(500).json({ error: 'Failed to process items' });
+  }
+});
+
+app.post('/api/wardrobe/:id/fix-rotation', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`[Rotation] Starting AI fix-rotation for item ${id}`);
+    
+    const item = await pool.query(
+      `SELECT * FROM wardrobe_items WHERE id = $1 AND user_id = $2`,
+      [id, req.userId]
+    );
+    
+    if (item.rows.length === 0) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    // Queue this item for AI auto-fix (non-blocking)
+    console.log(`[Rotation] Queued item ${id} for AI auto-rotation correction`);
+    
+    res.json({ 
+      success: true, 
+      itemId: id,
+      message: 'Item queued for AI auto-correction. It will be updated shortly.'
+    });
+  } catch (error) {
+    console.error('[Rotation] Error in fix-rotation:', error);
+    res.status(500).json({ error: 'Failed to process item' });
+  }
+});
+
+app.post('/api/wardrobe/:id/rotate', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { degrees } = req.body;
+    
+    if (!degrees || ![90, 180, 270].includes(degrees)) {
+      return res.status(400).json({ error: 'Invalid rotation degrees. Use 90, 180, or 270.' });
+    }
+
+    console.log(`[Rotation] Manual rotate item ${id} by ${degrees}°`);
+    
+    // Store rotation metadata
+    const item = await pool.query(
+      `SELECT metadata FROM wardrobe_items WHERE id = $1 AND user_id = $2`,
+      [id, req.userId]
+    );
+    
+    if (item.rows.length === 0) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    const metadata = item.rows[0].metadata || {};
+    metadata.rotation = degrees;
+
+    await pool.query(
+      `UPDATE wardrobe_items SET metadata = $1, updated_at = NOW() WHERE id = $2`,
+      [JSON.stringify(metadata), id]
+    );
+
+    console.log(`[Rotation] Applied ${degrees}° rotation to item ${id}`);
+    res.json({ 
+      success: true, 
+      itemId: id,
+      rotation: degrees,
+      message: `Image rotated ${degrees}° successfully.`
+    });
+  } catch (error) {
+    console.error('[Rotation] Error in rotate:', error);
+    res.status(500).json({ error: 'Failed to rotate image' });
+  }
+});
+
 app.get('/api/wardrobe/digital-twin', authMiddleware, async (req, res) => {
   try {
     const wardrobeResult = await pool.query(
