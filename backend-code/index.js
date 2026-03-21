@@ -306,6 +306,30 @@ async function initDB() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMP;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
+      CREATE TABLE IF NOT EXISTS wardrobe_items (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL DEFAULT 'Untitled Item',
+        category VARCHAR(50) NOT NULL DEFAULT 'tops',
+        subcategory VARCHAR(100),
+        image_url TEXT,
+        color VARCHAR(50),
+        brand VARCHAR(100),
+        season TEXT[] DEFAULT '{}',
+        occasions TEXT[] DEFAULT '{}',
+        item_type VARCHAR(20) DEFAULT 'owned',
+        is_favorite BOOLEAN DEFAULT FALSE,
+        times_worn INTEGER DEFAULT 0,
+        metadata JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      ALTER TABLE wardrobe_items ADD COLUMN IF NOT EXISTS metadata JSONB;
+      ALTER TABLE wardrobe_items ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN DEFAULT FALSE;
+      ALTER TABLE wardrobe_items ADD COLUMN IF NOT EXISTS times_worn INTEGER DEFAULT 0;
+      ALTER TABLE wardrobe_items ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
       CREATE TABLE IF NOT EXISTS posts (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -6375,11 +6399,16 @@ app.post('/api/wardrobe/batch', authMiddleware, async (req, res) => {
           // TODO: Integrate with cloud storage for production
         }
         
+        const itemSeasons = item.seasons || item.season || [];
+        const itemOccasions = item.occasions || [];
+        const itemOrigin = item.itemType || item.origin || 'owned';
+        const itemMetadata = item.metadata ? JSON.stringify(item.metadata) : null;
+
         const result = await pool.query(
           `INSERT INTO wardrobe_items 
-           (user_id, name, category, subcategory, image_url, color, brand, season, occasions, item_type)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-           RETURNING id, name, category, color, image_url`,
+           (user_id, name, category, subcategory, image_url, color, brand, season, occasions, item_type, is_favorite, metadata, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+           RETURNING id, name, category, color, image_url, metadata`,
           [
             req.userId,
             item.name || 'Untitled Item',
@@ -6388,9 +6417,11 @@ app.post('/api/wardrobe/batch', authMiddleware, async (req, res) => {
             imageUrl || null,
             item.color || null,
             item.brand || null,
-            item.season || [],
-            item.occasions || [],
-            item.itemType || 'owned'
+            itemSeasons,
+            itemOccasions,
+            itemOrigin,
+            item.isFavorite || false,
+            itemMetadata
           ]
         );
         
@@ -6431,26 +6462,28 @@ app.post('/api/wardrobe/batch', authMiddleware, async (req, res) => {
 // ===== WARDROBE SINGLE ITEM UPLOAD =====
 app.post('/api/wardrobe', authMiddleware, async (req, res) => {
   try {
-    const { name, category, subcategory, imageUrl, imageBase64, color, brand, season, occasions, itemType } = req.body;
+    const { name, category, subcategory, imageUrl, color, brand, season, seasons, occasions, itemType, origin, isFavorite, metadata } = req.body;
     
-    if (!name || !category) {
-      return res.status(400).json({ error: 'Name and category are required' });
+    if (!category) {
+      return res.status(400).json({ error: 'Category is required' });
     }
     
-    let finalImageUrl = imageUrl;
-    if (imageBase64) {
-      finalImageUrl = `data:image/jpeg;base64,${imageBase64.substring(0, 100)}...`;
-    }
-    
+    const itemName = name || metadata?.name || 'Untitled Item';
+    const itemColor = color || metadata?.color || null;
+    const itemSeasons = seasons || season || metadata?.seasons || [];
+    const itemOccasions = occasions || metadata?.occasions || [];
+    const itemType2 = itemType || origin || metadata?.origin || 'owned';
+    const fullMetadata = metadata ? JSON.stringify(metadata) : null;
+
     const result = await pool.query(
       `INSERT INTO wardrobe_items 
-       (user_id, name, category, subcategory, image_url, color, brand, season, occasions, item_type)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       (user_id, name, category, subcategory, image_url, color, brand, season, occasions, item_type, is_favorite, metadata, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
        RETURNING *`,
-      [req.userId, name, category, subcategory || null, finalImageUrl || null, color || null, brand || null, season || [], occasions || [], itemType || 'owned']
+      [req.userId, itemName, category, subcategory || null, imageUrl || null, itemColor, brand || null, itemSeasons, itemOccasions, itemType2, isFavorite || false, fullMetadata]
     );
     
-    console.log(`[Wardrobe] Added item: ${name} for user ${req.userId}`);
+    console.log(`[Wardrobe] Added item: ${itemName} for user ${req.userId}`);
     res.json({ success: true, item: result.rows[0] });
   } catch (error) {
     console.error('[Wardrobe] Error adding item:', error);
@@ -6469,6 +6502,62 @@ app.get('/api/wardrobe', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('[Wardrobe] Error fetching items:', error);
     res.status(500).json({ error: 'Failed to fetch wardrobe items' });
+  }
+});
+
+// ===== UPDATE WARDROBE ITEM =====
+app.put('/api/wardrobe/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, category, subcategory, color, brand, season, seasons, occasions, isFavorite, timesWorn, metadata } = req.body;
+    
+    const itemSeasons = seasons || season;
+    const fullMetadata = metadata ? JSON.stringify(metadata) : null;
+
+    const result = await pool.query(
+      `UPDATE wardrobe_items
+       SET name = COALESCE($1, name),
+           category = COALESCE($2, category),
+           subcategory = COALESCE($3, subcategory),
+           color = COALESCE($4, color),
+           brand = COALESCE($5, brand),
+           season = COALESCE($6, season),
+           occasions = COALESCE($7, occasions),
+           is_favorite = COALESCE($8, is_favorite),
+           times_worn = COALESCE($9, times_worn),
+           metadata = COALESCE($10, metadata),
+           updated_at = NOW()
+       WHERE id = $11 AND user_id = $12
+       RETURNING *`,
+      [name, category, subcategory, color, brand, itemSeasons, occasions, isFavorite, timesWorn, fullMetadata, id, req.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    res.json({ success: true, item: result.rows[0] });
+  } catch (error) {
+    console.error('[Wardrobe] Error updating item:', error);
+    res.status(500).json({ error: 'Failed to update wardrobe item' });
+  }
+});
+
+// ===== DELETE WARDROBE ITEM =====
+app.delete('/api/wardrobe/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `DELETE FROM wardrobe_items WHERE id = $1 AND user_id = $2 RETURNING id`,
+      [id, req.userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    console.log(`[Wardrobe] Deleted item ${id} for user ${req.userId}`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Wardrobe] Error deleting item:', error);
+    res.status(500).json({ error: 'Failed to delete wardrobe item' });
   }
 });
 

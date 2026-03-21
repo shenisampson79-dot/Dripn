@@ -1837,6 +1837,59 @@ class ApiService {
     });
   }
 
+  async fetchWardrobeItems(): Promise<{ success: boolean; items: any[] }> {
+    return this.request<{ success: boolean; items: any[] }>('/api/wardrobe');
+  }
+
+  async addWardrobeItem(item: {
+    name: string;
+    category: string;
+    subcategory?: string;
+    color?: string;
+    brand?: string;
+    seasons?: string[];
+    occasions?: string[];
+    origin?: string;
+    isFavorite?: boolean;
+    metadata?: Record<string, any>;
+  }): Promise<{ success: boolean; item: any }> {
+    return this.request<{ success: boolean; item: any }>('/api/wardrobe', {
+      method: 'POST',
+      body: JSON.stringify(item),
+    });
+  }
+
+  async updateWardrobeItem(id: string, updates: {
+    name?: string;
+    category?: string;
+    color?: string;
+    brand?: string;
+    seasons?: string[];
+    occasions?: string[];
+    isFavorite?: boolean;
+    timesWorn?: number;
+    metadata?: Record<string, any>;
+  }): Promise<{ success: boolean; item: any }> {
+    return this.request<{ success: boolean; item: any }>(`/api/wardrobe/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteWardrobeItem(id: string): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(`/api/wardrobe/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async batchAddWardrobeItems(items: any[]): Promise<{ success: boolean; items: any[]; saved: number; failed: number; errors: any[] }> {
+    return this.request<{ success: boolean; items: any[]; saved: number; failed: number; errors: any[] }>('/api/wardrobe/batch', {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+      timeout: 120000,
+    });
+  }
+
   // ===== VISUAL SEARCH =====
   async visualSearchMarketplace(data: {
     imageUrl?: string;
