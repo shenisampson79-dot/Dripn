@@ -115,7 +115,21 @@ class ColorTrendService {
         return null;
       }
 
-      return response.json();
+      const data = await response.json();
+
+      // Backend wraps the color under colorOfTheYear — flatten to top level for the UI
+      if (data && data.colorOfTheYear) {
+        return {
+          year: data.year,
+          hex: data.colorOfTheYear.hex,
+          name: data.colorOfTheYear.name,
+          pantoneCode: data.colorOfTheYear.pantoneCode,
+          description: data.colorOfTheYear.description,
+          fashionAdoption: data.fashionAdoption,
+        };
+      }
+
+      return data;
     } catch (error) {
       console.error('Error fetching Pantone data:', error);
       return null;

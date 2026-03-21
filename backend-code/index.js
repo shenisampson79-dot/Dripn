@@ -3568,6 +3568,96 @@ app.get('/api/color-trends/pantone/:year', async (req, res) => {
   }
 });
 
+// ============ COLOR TRENDS REFRESH ============
+
+app.post('/api/color-trends/refresh', async (req, res) => {
+  try {
+    const { region = 'Global' } = req.body;
+    const year = new Date().getFullYear();
+
+    const FALLBACK_PALETTES = {
+      luxury: {
+        secondary: { hex: '#9B7A5E', name: 'Warm Cognac', mood: 'opulent' },
+        accent:    { hex: '#C4956A', name: 'Liquid Gold', mood: 'elevated' },
+      },
+      streetwear: {
+        secondary: { hex: '#2D4A7A', name: 'Urban Cobalt', mood: 'bold' },
+        accent:    { hex: '#C8D400', name: 'Acid Lime', mood: 'electric' },
+      },
+      boho: {
+        secondary: { hex: '#B87A5A', name: 'Desert Clay', mood: 'earthy' },
+        accent:    { hex: '#7A9E72', name: 'Sage Mist', mood: 'organic' },
+      },
+      sporty: {
+        secondary: { hex: '#0055AA', name: 'Performance Blue', mood: 'energetic' },
+        accent:    { hex: '#E85D35', name: 'Burst Coral', mood: 'dynamic' },
+      },
+      'smart-casual': {
+        secondary: { hex: '#6B7A8D', name: 'Storm Slate', mood: 'refined' },
+        accent:    { hex: '#C49A6A', name: 'Camel Sand', mood: 'warm' },
+      },
+      business: {
+        secondary: { hex: '#1E2D4A', name: 'Midnight Navy', mood: 'authoritative' },
+        accent:    { hex: '#C4B08A', name: 'Champagne Beige', mood: 'sophisticated' },
+      },
+      edgy: {
+        secondary: { hex: '#2A2A2A', name: 'Carbon Black', mood: 'fierce' },
+        accent:    { hex: '#D4E020', name: 'Electric Citron', mood: 'subversive' },
+      },
+    };
+
+    try {
+      const OpenAI = require('openai');
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      const themes = Object.keys(FALLBACK_PALETTES);
+      const prompt = `You are a luxury fashion color consultant. Generate ${year} trend-driven secondary and accent colors for a fashion styling app with these 7 style themes: ${themes.join(', ')}.
+
+Key ${year} fashion color directions: mocha mousse neutrals, digital lavender, warm terracotta, sage green, burgundy wine, coastal cerulean, sheer ecru.
+
+Return ONLY valid JSON in this exact shape — no markdown, no extra keys:
+{
+  "palettes": {
+    "luxury": { "secondary": { "hex": "#RRGGBB", "name": "Color Name", "mood": "one word" }, "accent": { "hex": "#RRGGBB", "name": "Color Name", "mood": "one word" } },
+    "streetwear": { "secondary": { ... }, "accent": { ... } },
+    "boho": { "secondary": { ... }, "accent": { ... } },
+    "sporty": { "secondary": { ... }, "accent": { ... } },
+    "smart-casual": { "secondary": { ... }, "accent": { ... } },
+    "business": { "secondary": { ... }, "accent": { ... } },
+    "edgy": { "secondary": { ... }, "accent": { ... } }
+  }
+}
+
+Rules: all hex values must be 7-character #RRGGBB strings. Keep colors wearable and season-appropriate for ${year}.`;
+
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        max_completion_tokens: 800,
+        temperature: 0.7,
+      });
+
+      const aiResult = JSON.parse(completion.choices[0].message.content);
+      const palettes = aiResult.palettes || {};
+
+      // Merge AI result with fallbacks so every theme is always present
+      const mergedPalettes = {};
+      for (const theme of themes) {
+        mergedPalettes[theme] = palettes[theme] || FALLBACK_PALETTES[theme];
+      }
+
+      return res.json({ year, region, palettes: mergedPalettes });
+    } catch (aiErr) {
+      console.warn('[ColorTrends] AI generation failed, using fallback:', aiErr.message);
+      return res.json({ year, region, palettes: FALLBACK_PALETTES });
+    }
+  } catch (error) {
+    console.error('Color trends refresh error:', error);
+    res.status(500).json({ error: 'Failed to refresh color trends' });
+  }
+});
+
 // ============ NEWSLETTER SIGNUP ============
 
 app.post('/api/newsletter/subscribe', async (req, res) => {
