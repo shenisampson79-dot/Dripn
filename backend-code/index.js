@@ -6693,6 +6693,67 @@ app.post('/api/wardrobe/:id/rotate', authMiddleware, async (req, res) => {
   }
 });
 
+// ===== IMAGE PROCESSING (Background Removal) =====
+app.post('/api/wardrobe/process-image/resilient', authMiddleware, async (req, res) => {
+  try {
+    const { imageBase64, removeBackground, straighten, targetSize } = req.body;
+    
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'Image is required' });
+    }
+
+    const shouldRemoveBg = removeBackground !== false;
+    console.log(`[ImageProcess] Processing image (bg removal: ${shouldRemoveBg}, straighten: ${straighten})`);
+
+    // Check if Replicate token is available
+    const replicateToken = process.env.REPLICATE_API_TOKEN;
+    if (!replicateToken) {
+      console.warn('[ImageProcess] Replicate token not available, returning raw image');
+      return res.json({ 
+        success: true, 
+        processedImageBase64: imageBase64,
+        maskQuality: 0,
+        straightened: false
+      });
+    }
+
+    let processedImage = imageBase64;
+
+    // Background removal via Replicate rembg model
+    if (shouldRemoveBg) {
+      try {
+        const Replicate = require('replicate');
+        const replicate = new Replicate({ auth: replicateToken });
+        
+        console.log('[ImageProcess] Running rembg on Replicate...');
+        
+        // Use rembg v0 model for background removal
+        const output = await replicate.run('cjwbw/rembg:fb9a3f51b5c65c937641993201eba02c1dfb2282053430bb0f3766b1447f596a', {
+          image: `data:image/png;base64,${imageBase64}`,
+        });
+
+        if (output) {
+          processedImage = output;
+          console.log('[ImageProcess] Background removed successfully');
+        }
+      } catch (bgErr) {
+        console.warn('[ImageProcess] Background removal failed, continuing with original:', bgErr.message);
+        // Continue with original image on error
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      processedImageBase64: processedImage,
+      maskQuality: shouldRemoveBg ? 85 : 0,
+      straightened: straighten === true ? true : false
+    });
+  } catch (error) {
+    console.error('[ImageProcess] Error processing image:', error);
+    res.status(500).json({ error: 'Image processing failed' });
+  }
+});
+
 app.get('/api/wardrobe/digital-twin', authMiddleware, async (req, res) => {
   try {
     const wardrobeResult = await pool.query(
