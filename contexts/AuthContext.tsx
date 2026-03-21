@@ -151,6 +151,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   socialLogin: (provider: 'google' | 'facebook' | 'apple') => Promise<void>;
+  googleLoginWithTokens: (accessToken: string, idToken?: string, userEmail?: string, userName?: string) => Promise<void>;
   loginAsTestUser: () => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
@@ -616,6 +617,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Called from AuthScreen after Google OAuth hook resolves tokens
+  const googleLoginWithTokens = async (accessToken: string, idToken?: string, userEmail?: string, userName?: string) => {
+    setIsAuthenticating(true);
+    try {
+      const result = await apiService.socialLogin('google', accessToken, idToken);
+      if (!result || !result.token || !result.user) {
+        throw new Error('Invalid response from authentication server');
+      }
+      const backendUser = result.user;
+      if (!backendUser.id) throw new Error('Authentication failed: No user ID received');
+
+      let newUser = createDefaultUser(
+        backendUser.email || userEmail || 'google_user@gmail.com',
+        backendUser.displayName || userName || 'Google User'
+      );
+      newUser.id = backendUser.id.toString();
+
+      if (!newUser.hasCompletedOnboarding && backendUser.profileData) {
+        newUser = {
+          ...newUser,
+          ...backendUser.profileData,
+          id: backendUser.id.toString(),
+          email: backendUser.email || userEmail || newUser.email,
+          hasCompletedOnboarding: true,
+        };
+      }
+
+      await saveUser(newUser);
+
+      try {
+        const email = backendUser.email || userEmail;
+        if (email) {
+          const dfyLink = await apiService.linkDFYPayment(email);
+          if (dfyLink.linked && dfyLink.packageType) {
+            console.log(`DFY payment linked via Google: ${dfyLink.packageType}`);
+          }
+        }
+      } catch (_) {}
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
   const loginAsTestUser = async () => {
     if (!__DEV__) {
       console.warn('loginAsTestUser is only available in development mode');
@@ -803,6 +847,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         signup,
         socialLogin,
+        googleLoginWithTokens,
         loginAsTestUser,
         logout,
         updateProfile,

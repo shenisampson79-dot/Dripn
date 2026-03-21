@@ -8931,13 +8931,25 @@ app.post('/api/auth/social', async (req, res) => {
     let email, name, avatarUrl, providerId;
 
     if (provider === 'google') {
-      // Verify Google ID token via tokeninfo endpoint
-      const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
-      if (!verifyRes.ok) return res.status(401).json({ error: 'Invalid Google token' });
-      const payload = await verifyRes.json();
-      if (payload.error) return res.status(401).json({ error: 'Google token verification failed' });
+      // Try ID token first (more secure), fall back to access token userinfo
+      let payload;
+      const idTokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
+      const idTokenData = await idTokenRes.json();
+
+      if (!idTokenData.error && idTokenData.email) {
+        payload = idTokenData;
+      } else {
+        // Try treating it as an access token instead
+        const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!userInfoRes.ok) return res.status(401).json({ error: 'Invalid Google token' });
+        payload = await userInfoRes.json();
+        if (!payload.email) return res.status(401).json({ error: 'Could not retrieve email from Google' });
+      }
+
       email = payload.email;
-      name = payload.name || payload.email.split('@')[0];
+      name = payload.name || payload.given_name || payload.email.split('@')[0];
       avatarUrl = payload.picture || null;
       providerId = payload.sub;
     } else if (provider === 'apple') {

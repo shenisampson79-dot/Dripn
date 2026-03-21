@@ -1,10 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, Alert, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { Feather, FontAwesome } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Google from 'expo-auth-session/providers/google';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+
+WebBrowser.maybeCompleteAuthSession();
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -25,7 +30,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const { mode } = route.params;
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
-  const { login, signup, socialLogin, isAuthenticating } = useAuth();
+  const { login, signup, socialLogin, googleLoginWithTokens, isAuthenticating } = useAuth();
   const { t } = useTranslations();
 
   const [email, setEmail] = useState("");
@@ -37,9 +42,64 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
   const isSignup = mode === "signup";
 
+  // Google OAuth hook — uses authorization code + PKCE (correct modern flow)
+  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
+    scopes: ['openid', 'profile', 'email'],
+  });
+
+  useEffect(() => {
+    if (!googleResponse) return;
+    if (googleResponse.type === 'success') {
+      (async () => {
+        try {
+          let accessToken = '';
+          let idToken: string | undefined;
+
+          // If we already have tokens (implicit / token flow)
+          if (googleResponse.authentication?.accessToken) {
+            accessToken = googleResponse.authentication.accessToken;
+            idToken = googleResponse.authentication.idToken ?? undefined;
+          } else if (googleResponse.params?.code && googleRequest) {
+            // Authorization code flow — exchange the code for tokens
+            const tokenResult = await googleRequest.exchangeCodeAsync({
+              clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
+              redirectUri: AuthSession.makeRedirectUri({ scheme: 'dripn' }),
+            }, {
+              authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+              tokenEndpoint: 'https://oauth2.googleapis.com/token',
+            });
+            accessToken = tokenResult.accessToken;
+            idToken = tokenResult.idToken ?? undefined;
+          } else {
+            throw new Error('No tokens in Google response');
+          }
+
+          await googleLoginWithTokens(accessToken, idToken);
+          navigation.replace("Onboarding");
+        } catch (error) {
+          setErrorMessage('Could not sign in with Google. Please try again.');
+        } finally {
+          setSocialLoading(null);
+        }
+      })();
+    } else if (googleResponse.type === 'error') {
+      setErrorMessage('Google sign-in failed. Please try again.');
+      setSocialLoading(null);
+    } else if (googleResponse.type === 'cancel') {
+      setSocialLoading(null);
+    }
+  }, [googleResponse]);
+
   const handleSocialAuth = async (provider: 'google' | 'facebook' | 'apple') => {
     setSocialLoading(provider);
     setErrorMessage(null);
+    if (provider === 'google') {
+      await googlePromptAsync();
+      return;
+    }
     try {
       await socialLogin(provider);
       navigation.replace("Onboarding");
