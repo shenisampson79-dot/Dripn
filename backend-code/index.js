@@ -3631,7 +3631,7 @@ Return ONLY valid JSON in this exact shape — no markdown, no extra keys:
 Rules: all hex values must be 7-character #RRGGBB strings. Keep colors wearable and season-appropriate for ${year}.`;
 
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5.4-2026-03-05',
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
         max_completion_tokens: 800,
