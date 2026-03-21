@@ -329,9 +329,9 @@ type AgeRange = '18-24' | '25-34' | '35-44' | '45-54' | '55+';
 type ShoppingFrequency = 'weekly' | 'monthly' | 'seasonal' | 'rarely';
 
 const SKIN_UNDERTONE_OPTIONS: { id: SkinUndertone; name: string; description: string; colors: string[] }[] = [
-  { id: 'warm', name: 'Warm', description: 'Golden, peachy or yellow cast — from fair to deep', colors: ['#F9DEC0', '#EAB98A', '#C88B50', '#A0642A', '#7B4219', '#4A250E'] },
-  { id: 'cool', name: 'Cool', description: 'Pink, rosy or bluish cast — from fair to deep', colors: ['#F5D4CF', '#E4A99B', '#C07B6F', '#954E44', '#6B2D26', '#3D1612'] },
-  { id: 'neutral', name: 'Neutral', description: 'Balanced mix of warm and cool — from fair to deep', colors: ['#F6D8C0', '#E0B48A', '#BC8C5E', '#8F6035', '#67401E', '#3A200C'] },
+  { id: 'warm', name: 'Warm', description: 'Golden or peachy cast — gold jewellery flatters you', colors: ['#FDEBD0', '#E8B97A', '#C4793A', '#96501C', '#6B320C', '#3C1A04'] },
+  { id: 'cool', name: 'Cool', description: 'Pink or ashy cast — silver jewellery flatters you', colors: ['#F5D0D8', '#D99BAA', '#B5687A', '#8A3D50', '#601E30', '#320A16'] },
+  { id: 'neutral', name: 'Neutral', description: 'No strong cast — both gold and silver suit you', colors: ['#F5DCCA', '#D4A878', '#A87040', '#7A4820', '#50280C', '#281204'] },
 ];
 
 const PREFERRED_FIT_OPTIONS: { id: PreferredFit; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
@@ -2231,25 +2231,22 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               <View style={styles.infoBoxHeader}>
                 <Feather name="help-circle" size={20} color={theme.link} />
                 <ThemedText type="body" style={[styles.infoBoxTitle, { color: theme.link }]}>
-                  {t('onboarding.steps.undertone.tip') || 'How to find your undertone'}
+                  {t('onboarding.steps.undertone.tip') || 'Not sure? Try these tests'}
                 </ThemedText>
               </View>
-              <ThemedText type="caption" style={[styles.infoBoxText, { marginTop: Spacing.sm }]}>
-                {t('onboarding.steps.undertone.tipInstruction') || 'Look at the veins on your inner wrist in natural light:'}
-              </ThemedText>
               <View style={styles.infoBoxList}>
                 <ThemedText type="caption" style={styles.infoBoxListItem}>
-                  {t('onboarding.steps.undertone.tipCool') || 'Blue or purple veins = Cool undertone'}
+                  {t('onboarding.steps.undertone.tipJewellery') || 'Jewellery test: gold suits warm, silver suits cool, both suit neutral'}
                 </ThemedText>
                 <ThemedText type="caption" style={styles.infoBoxListItem}>
-                  {t('onboarding.steps.undertone.tipWarm') || 'Green veins = Warm undertone'}
+                  {t('onboarding.steps.undertone.tipSun') || 'Sun reaction: tan easily = warm, burn first = cool, mix = neutral'}
                 </ThemedText>
                 <ThemedText type="caption" style={styles.infoBoxListItem}>
-                  {t('onboarding.steps.undertone.tipNeutral') || 'Mix of both = Neutral undertone'}
+                  {t('onboarding.steps.undertone.tipWhite') || 'White test: cream/ivory suits warm, bright white suits cool'}
                 </ThemedText>
               </View>
               <ThemedText type="caption" style={[styles.infoBoxText, { marginTop: Spacing.sm, fontStyle: 'italic' }]}>
-                {t('onboarding.steps.undertone.tipNote') || 'Your undertone affects which clothing colours make you look radiant vs washed out.'}
+                {t('onboarding.steps.undertone.tipNote') || 'Not sure? Pick the swatches that feel most like you — you can always update this later.'}
               </ThemedText>
             </View>
           </View>

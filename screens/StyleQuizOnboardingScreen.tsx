@@ -44,9 +44,9 @@ const BODY_SHAPE_OPTIONS: { id: BodyShape; name: string; description: string }[]
 ];
 
 const SKIN_UNDERTONE_OPTIONS: { id: SkinUndertone; name: string; description: string; colors: string[] }[] = [
-  { id: 'warm', name: 'Warm', description: 'Golden, peachy or yellow cast — from fair to deep', colors: ['#F9DEC0', '#EAB98A', '#C88B50', '#A0642A', '#7B4219', '#4A250E'] },
-  { id: 'cool', name: 'Cool', description: 'Pink, rosy or bluish cast — from fair to deep', colors: ['#F5D4CF', '#E4A99B', '#C07B6F', '#954E44', '#6B2D26', '#3D1612'] },
-  { id: 'neutral', name: 'Neutral', description: 'Balanced mix of warm and cool — from fair to deep', colors: ['#F6D8C0', '#E0B48A', '#BC8C5E', '#8F6035', '#67401E', '#3A200C'] },
+  { id: 'warm', name: 'Warm', description: 'Golden or peachy cast — gold jewellery flatters you', colors: ['#FDEBD0', '#E8B97A', '#C4793A', '#96501C', '#6B320C', '#3C1A04'] },
+  { id: 'cool', name: 'Cool', description: 'Pink or ashy cast — silver jewellery flatters you', colors: ['#F5D0D8', '#D99BAA', '#B5687A', '#8A3D50', '#601E30', '#320A16'] },
+  { id: 'neutral', name: 'Neutral', description: 'No strong cast — both gold and silver suit you', colors: ['#F5DCCA', '#D4A878', '#A87040', '#7A4820', '#50280C', '#281204'] },
 ];
 
 const PREFERRED_FIT_OPTIONS: { id: PreferredFit; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
@@ -527,7 +527,7 @@ export default function StyleQuizOnboardingScreen({ navigation }: StyleQuizOnboa
       <View style={[styles.infoCard, { backgroundColor: theme.link + '15', marginTop: Spacing.xl }]}>
         <Feather name="help-circle" size={20} color={theme.link} />
         <ThemedText type="caption" style={[styles.infoText, { color: theme.text }]}>
-          Not sure? Check the veins on your wrist: blue/purple = cool, green = warm, mix = neutral
+          Try the jewellery test: gold flatters warm, silver flatters cool, both suit neutral. Or pick the swatches that feel most like you.
         </ThemedText>
       </View>
     </Animated.View>
