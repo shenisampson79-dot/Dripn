@@ -5435,8 +5435,8 @@ app.post('/api/ai/voice-preview', async (req, res) => {
   try {
     const { stylistId, language, voiceRange } = req.body;
 
-    if (!stylistId || !['ruby', 'max'].includes(stylistId)) {
-      return res.status(400).json({ error: 'Valid stylistId (ruby or max) is required' });
+    if (!stylistId || !['ruby', 'max', 'ace', 'ivy'].includes(stylistId)) {
+      return res.status(400).json({ error: 'Valid stylistId (ruby, max, ace, or ivy) is required' });
     }
 
     const result = await generateVoicePreview(
@@ -5460,6 +5460,105 @@ app.post('/api/ai/voice-preview', async (req, res) => {
   } catch (error) {
     console.error('Voice preview error:', error);
     res.status(500).json({ error: 'Failed to generate voice preview' });
+  }
+});
+
+// Combined voice-chat endpoint: transcribe → AI response → TTS in one call
+app.post('/api/ai/voice-chat', authMiddleware, async (req, res) => {
+  try {
+    const { audio, mimeType = 'audio/webm', stylist = 'ruby', voiceRange = null } = req.body;
+
+    if (!audio) {
+      return res.status(400).json({ success: false, error: 'audio (base64) is required' });
+    }
+
+    const stylistId = stylist.toLowerCase();
+
+    // 1. Decode base64 audio to buffer
+    const audioBuffer = Buffer.from(audio, 'base64');
+
+    // 2. Transcribe audio → text
+    const transcription = await transcribeAudio(audioBuffer, { mimeType });
+    if (!transcription.success || !transcription.text) {
+      return res.status(500).json({ success: false, error: 'Failed to transcribe audio. Please try again.' });
+    }
+    const userText = transcription.text.trim();
+    console.log(`[VoiceChat] Transcribed (${stylistId}): "${userText.substring(0, 80)}..."`);
+
+    // 3. Generate AI response with stylist personality
+    const stylistPersonalities = {
+      ruby: {
+        name: 'Ruby',
+        systemPrompt: `You are Ruby, a warm, enthusiastic, and encouraging fashion stylist. You use "darling" occasionally. You're bold with colour suggestions and make clients feel beautiful and confident. Keep responses concise (2-4 sentences) and conversational — this is a voice chat.`,
+      },
+      max: {
+        name: 'Max',
+        systemPrompt: `You are Max, a direct, confident, and no-nonsense fashion stylist. You focus on clean lines and structure. No filler words. You give sharp, actionable advice. Keep responses concise (2-4 sentences) and conversational — this is a voice chat.`,
+      },
+      ace: {
+        name: 'Ace',
+        systemPrompt: `You are Ace, a cool, laid-back streetwear-aware stylist. You keep it real and practical. You reference street culture and current trends without being pretentious. Keep responses concise (2-4 sentences) and conversational — this is a voice chat.`,
+      },
+      ivy: {
+        name: 'Ivy',
+        systemPrompt: `You are Ivy, a sophisticated, editorial fashion stylist. You're precise and uncompromising. You reference silhouette, proportion, and intention. You have an eye for the details that elevate an outfit. Keep responses concise (2-4 sentences) and conversational — this is a voice chat.`,
+      },
+    };
+
+    const persona = stylistPersonalities[stylistId] || stylistPersonalities.ruby;
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const chatModel = await getBestModel('chat');
+
+    const chatResponse = await openai.chat.completions.create({
+      model: chatModel,
+      messages: [
+        { role: 'system', content: persona.systemPrompt },
+        { role: 'user', content: userText },
+      ],
+      max_completion_tokens: 200,
+      temperature: 0.85,
+    });
+
+    const aiText = chatResponse.choices[0]?.message?.content?.trim();
+    if (!aiText) {
+      return res.status(500).json({ success: false, error: 'AI failed to generate a response. Please try again.' });
+    }
+    console.log(`[VoiceChat] ${persona.name} responded: "${aiText.substring(0, 80)}..."`);
+
+    // 4. Synthesize AI response → speech
+    const synthesis = await synthesizeSpeech(aiText, {
+      stylistId,
+      highQuality: true,
+      voiceRange,
+    });
+
+    if (!synthesis.success) {
+      // Return text response even if TTS fails
+      console.error('[VoiceChat] TTS failed, returning text-only response');
+      return res.json({
+        success: true,
+        userMessage: userText,
+        aiResponse: aiText,
+        audioBase64: null,
+        stylist: stylistId,
+        voice: null,
+      });
+    }
+
+    const audioBase64 = synthesis.audioBuffer.toString('base64');
+
+    res.json({
+      success: true,
+      userMessage: userText,
+      aiResponse: aiText,
+      audioBase64,
+      stylist: stylistId,
+      voice: synthesis.voice,
+    });
+  } catch (error) {
+    console.error('[VoiceChat] Error:', error.message);
+    res.status(500).json({ success: false, error: 'Voice chat failed. Please try again.' });
   }
 });
 
