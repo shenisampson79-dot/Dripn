@@ -329,9 +329,9 @@ type AgeRange = '18-24' | '25-34' | '35-44' | '45-54' | '55+';
 type ShoppingFrequency = 'weekly' | 'monthly' | 'seasonal' | 'rarely';
 
 const SKIN_UNDERTONE_OPTIONS: { id: SkinUndertone; name: string; description: string; colors: string[] }[] = [
-  { id: 'warm', name: 'Warm', description: 'Golden or peachy cast — gold jewellery flatters you', colors: ['#FDEBD0', '#E8B97A', '#C4793A', '#96501C', '#6B320C', '#3C1A04'] },
-  { id: 'cool', name: 'Cool', description: 'Pink or ashy cast — silver jewellery flatters you', colors: ['#F5D0D8', '#D99BAA', '#B5687A', '#8A3D50', '#601E30', '#320A16'] },
-  { id: 'neutral', name: 'Neutral', description: 'No strong cast — both gold and silver suit you', colors: ['#F5DCCA', '#D4A878', '#A87040', '#7A4820', '#50280C', '#281204'] },
+  { id: 'warm', name: 'Warm', description: 'Yellow, peachy or golden undertones', colors: ['#FFD89B', '#F5C07B', '#E8A954'] },
+  { id: 'cool', name: 'Cool', description: 'Pink, red or bluish undertones', colors: ['#F5C6C6', '#E8B8D4', '#C9B8E8'] },
+  { id: 'neutral', name: 'Neutral', description: 'Mix of warm and cool', colors: ['#E8D8C8', '#D4C4B4', '#C0B0A0'] },
 ];
 
 const PREFERRED_FIT_OPTIONS: { id: PreferredFit; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
@@ -2184,7 +2184,12 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
       case 5:
         return (
-          <View style={styles.stepContent}>
+          <ScrollView
+            style={styles.stepContent}
+            contentContainerStyle={{ paddingBottom: Spacing.xl * 2 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             <ThemedText type="h2" style={styles.stepTitle}>
               {t('onboarding.steps.undertone.title') || "What's your skin undertone?"}
             </ThemedText>
@@ -2227,7 +2232,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               ))}
             </View>
 
-            <View style={[styles.infoBox, { backgroundColor: theme.backgroundSecondary, marginTop: Spacing.xl, marginBottom: Spacing.xl }]}>
+            <View style={[styles.infoBox, { backgroundColor: theme.backgroundSecondary, marginTop: Spacing.lg, marginBottom: Spacing.lg }]}>
               <View style={styles.infoBoxHeader}>
                 <Feather name="help-circle" size={20} color={theme.link} />
                 <ThemedText type="body" style={[styles.infoBoxTitle, { color: theme.link }]}>
@@ -2249,7 +2254,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 {t('onboarding.steps.undertone.tipNote') || 'Not sure? Pick the swatches that feel most like you — you can always update this later.'}
               </ThemedText>
             </View>
-          </View>
+          </ScrollView>
         );
 
       case 6:
@@ -4701,9 +4706,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   colorSwatch: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   undertoneTitle: {
     marginBottom: Spacing.xs,

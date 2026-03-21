@@ -44,9 +44,9 @@ const BODY_SHAPE_OPTIONS: { id: BodyShape; name: string; description: string }[]
 ];
 
 const SKIN_UNDERTONE_OPTIONS: { id: SkinUndertone; name: string; description: string; colors: string[] }[] = [
-  { id: 'warm', name: 'Warm', description: 'Golden or peachy cast — gold jewellery flatters you', colors: ['#FDEBD0', '#E8B97A', '#C4793A', '#96501C', '#6B320C', '#3C1A04'] },
-  { id: 'cool', name: 'Cool', description: 'Pink or ashy cast — silver jewellery flatters you', colors: ['#F5D0D8', '#D99BAA', '#B5687A', '#8A3D50', '#601E30', '#320A16'] },
-  { id: 'neutral', name: 'Neutral', description: 'No strong cast — both gold and silver suit you', colors: ['#F5DCCA', '#D4A878', '#A87040', '#7A4820', '#50280C', '#281204'] },
+  { id: 'warm', name: 'Warm', description: 'Yellow, peachy or golden undertones', colors: ['#FFD89B', '#F5C07B', '#E8A954'] },
+  { id: 'cool', name: 'Cool', description: 'Pink, red or bluish undertones', colors: ['#F5C6C6', '#E8B8D4', '#C9B8E8'] },
+  { id: 'neutral', name: 'Neutral', description: 'Mix of warm and cool', colors: ['#E8D8C8', '#D4C4B4', '#C0B0A0'] },
 ];
 
 const PREFERRED_FIT_OPTIONS: { id: PreferredFit; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
