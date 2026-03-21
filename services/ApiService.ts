@@ -2819,6 +2819,37 @@ class ApiService {
     }>('/api/dfy/access-status');
   }
 
+  async generateDFYDelivery(data: { tier: 'lite' | 'core'; stylistId: string }) {
+    return this.request<{
+      success: boolean;
+      delivery: {
+        userId: string;
+        tier: 'lite' | 'core';
+        startDate: string;
+        expiryDate: string;
+        totalDays: number;
+        outfits: Array<{
+          id: string;
+          dayNumber: number;
+          title: string;
+          description: string;
+          items: Array<{ id: string; name: string; imageUri: string | null; category: string; color: string }>;
+          occasion: string;
+          stylistNote: string;
+          stylistId: string;
+          userReaction: null;
+          saved: boolean;
+        }>;
+        currentDay: number;
+        completed: boolean;
+        nudgesShown: number[];
+      };
+    }>('/api/dfy/generate-delivery', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async generateOutfit(data: {
     occasionType: 'todays_look' | 'work_outfit' | 'date_night' | 'casual_day' | 'weekend' | 'smart_casual' | 'gym' | 'evening_out' | 'travel' | 'custom';
     stylistId?: string;

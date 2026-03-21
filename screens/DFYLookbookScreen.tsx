@@ -6,6 +6,8 @@ import {
   FlatList,
   Dimensions,
   Modal,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -19,6 +21,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { dfyService, DFYOutfit, DFYLiteDelivery, StylistId } from "@/services/DFYService";
+import { apiService } from "@/services/ApiService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
@@ -58,6 +61,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   const [selectedOutfit, setSelectedOutfit] = useState<DFYOutfit | null>(null);
   const [showOutfitModal, setShowOutfitModal] = useState(false);
   const [currentDay, setCurrentDay] = useState(1);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     loadDelivery();
@@ -69,6 +73,33 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     if (saved && saved.tier === 'lite') {
       setDelivery(saved as DFYLiteDelivery);
       setCurrentDay(saved.currentDay);
+      // If all outfits have empty items, auto-generate real outfits from the wardrobe
+      const allEmpty = saved.outfits.every(o => !o.items || o.items.length === 0);
+      if (allEmpty) {
+        generateRealOutfits(saved as DFYLiteDelivery);
+      }
+    }
+  };
+
+  const generateRealOutfits = async (existingDelivery: DFYLiteDelivery) => {
+    if (!user?.id || isGenerating) return;
+    setIsGenerating(true);
+    try {
+      const stylistId = user.stylistPreferences?.selectedStylistId || 'ruby';
+      const result = await apiService.generateDFYDelivery({ tier: 'lite', stylistId });
+      if (result.success && result.delivery) {
+        // Merge the generated outfits with the existing delivery structure (preserve startDate/expiryDate)
+        const updatedDelivery: DFYLiteDelivery = {
+          ...existingDelivery,
+          outfits: result.delivery.outfits as any,
+        };
+        await dfyService.saveDFYDelivery(updatedDelivery);
+        setDelivery(updatedDelivery);
+      }
+    } catch (err) {
+      console.log('[DFYLookbook] Auto-generation failed:', err);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -120,8 +151,9 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
 
   const renderOutfitCard = useCallback(({ item, index }: { item: DFYOutfit; index: number }) => {
     const isCurrentDay = item.dayNumber === currentDay;
-    const isPast = item.dayNumber < currentDay;
     const colors = item.stylistId ? STYLIST_COLORS[item.stylistId] : STYLIST_COLORS.ruby;
+    const hasItems = item.items && item.items.length > 0;
+    const itemsWithImages = hasItems ? item.items.filter(i => i.imageUri) : [];
 
     return (
       <Pressable
@@ -149,15 +181,41 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
           )}
 
           <View style={styles.outfitImageContainer}>
-            <LinearGradient
-              colors={[colors.gradient[0] + '40', colors.gradient[1] + '20']}
-              style={styles.outfitImagePlaceholder}
-            >
-              <Feather name="image" size={48} color={colors.accent} />
-              <ThemedText type="caption" style={{ color: colors.accent, marginTop: Spacing.sm }}>
-                Outfit {index + 1}
-              </ThemedText>
-            </LinearGradient>
+            {itemsWithImages.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.itemImagesRow}
+                contentContainerStyle={{ paddingHorizontal: Spacing.md, gap: Spacing.sm }}
+              >
+                {itemsWithImages.map((wardrobeItem) => (
+                  <View key={wardrobeItem.id} style={styles.itemImageWrapper}>
+                    <Image
+                      source={{ uri: wardrobeItem.imageUri! }}
+                      style={styles.itemImage}
+                      contentFit="cover"
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+            ) : isGenerating ? (
+              <View style={[styles.outfitImagePlaceholder, { backgroundColor: colors.gradient[0] + '20' }]}>
+                <ActivityIndicator color={colors.accent} />
+                <ThemedText type="caption" style={{ color: colors.accent, marginTop: Spacing.sm }}>
+                  Curating your look...
+                </ThemedText>
+              </View>
+            ) : (
+              <LinearGradient
+                colors={[colors.gradient[0] + '40', colors.gradient[1] + '20']}
+                style={styles.outfitImagePlaceholder}
+              >
+                <Feather name="image" size={48} color={colors.accent} />
+                <ThemedText type="caption" style={{ color: colors.accent, marginTop: Spacing.sm }}>
+                  Outfit {index + 1}
+                </ThemedText>
+              </LinearGradient>
+            )}
           </View>
 
           <View style={styles.outfitInfo}>
@@ -250,15 +308,37 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
             renderItem={() => (
               <>
                 <View style={[styles.outfitDetailImage, { backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
-                  <LinearGradient
-                    colors={[colors.gradient[0] + '40', colors.gradient[1] + '20']}
-                    style={styles.detailImagePlaceholder}
-                  >
-                    <Feather name="image" size={80} color={colors.accent} />
-                    <ThemedText style={{ color: colors.accent, marginTop: Spacing.md }}>
-                      Complete Outfit Photo
-                    </ThemedText>
-                  </LinearGradient>
+                  {selectedOutfit.items && selectedOutfit.items.length > 0 ? (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ padding: Spacing.md, gap: Spacing.md }}>
+                      {selectedOutfit.items.map((wardrobeItem) => (
+                        <View key={wardrobeItem.id} style={styles.modalItemCard}>
+                          {wardrobeItem.imageUri ? (
+                            <Image source={{ uri: wardrobeItem.imageUri }} style={styles.modalItemImage} contentFit="cover" />
+                          ) : (
+                            <View style={[styles.modalItemImage, { backgroundColor: isDark ? '#2A2A3E' : '#F0EDE8', alignItems: 'center', justifyContent: 'center' }]}>
+                              <Feather name="package" size={24} color={colors.accent} />
+                            </View>
+                          )}
+                          <ThemedText type="caption" numberOfLines={1} style={{ marginTop: 4, textAlign: 'center' }}>
+                            {wardrobeItem.name}
+                          </ThemedText>
+                          <ThemedText type="caption" style={{ opacity: 0.5, textAlign: 'center' }}>
+                            {wardrobeItem.category}
+                          </ThemedText>
+                        </View>
+                      ))}
+                    </ScrollView>
+                  ) : (
+                    <LinearGradient
+                      colors={[colors.gradient[0] + '40', colors.gradient[1] + '20']}
+                      style={styles.detailImagePlaceholder}
+                    >
+                      <Feather name="image" size={80} color={colors.accent} />
+                      <ThemedText style={{ color: colors.accent, marginTop: Spacing.md }}>
+                        Complete Outfit Photo
+                      </ThemedText>
+                    </LinearGradient>
+                  )}
                 </View>
 
                 {selectedOutfit.stylistNote && (
@@ -403,12 +483,34 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         </ThemedText>
       </View>
 
+      {isGenerating && (
+        <View style={[styles.generatingBanner, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+          <ActivityIndicator color="#FFFFFF" size="small" />
+          <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: Spacing.sm }}>
+            Your stylist is curating your outfits from your wardrobe...
+          </ThemedText>
+        </View>
+      )}
+
       <FlatList
         data={delivery.outfits}
         renderItem={renderOutfitCard}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
+        ListFooterComponent={
+          !isGenerating ? (
+            <Pressable
+              onPress={() => delivery && generateRealOutfits(delivery)}
+              style={[styles.regenerateButton, { borderColor: 'rgba(255,255,255,0.3)' }]}
+            >
+              <Feather name="refresh-cw" size={14} color="rgba(255,255,255,0.7)" />
+              <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.7)', marginLeft: Spacing.xs }}>
+                Refresh outfits from wardrobe
+              </ThemedText>
+            </Pressable>
+          ) : null
+        }
       />
 
       {renderOutfitModal()}
@@ -496,6 +598,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  itemImagesRow: {
+    flex: 1,
+  },
+  itemImageWrapper: {
+    width: 120,
+    height: '100%',
+    borderRadius: BorderRadius.sm,
+    overflow: 'hidden',
+  },
+  itemImage: {
+    width: '100%',
+    height: '100%',
+  },
   outfitInfo: {
     padding: Spacing.lg,
   },
@@ -530,6 +645,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: Spacing.sm,
+  },
+  generatingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.xl,
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  regenerateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: BorderRadius.full,
+    gap: Spacing.xs,
   },
   emptyState: {
     flex: 1,
@@ -569,6 +704,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  modalItemCard: {
+    width: 120,
+    alignItems: 'center',
+  },
+  modalItemImage: {
+    width: 120,
+    height: 160,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
   },
   stylistNoteCard: {
     flexDirection: 'row',

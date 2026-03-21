@@ -1357,6 +1357,166 @@ app.post('/api/checkout/dfy/link-payment', authMiddleware, async (req, res) => {
   }
 });
 
+// ============ DFY (DONE-FOR-YOU) ROUTES ============
+
+// GET /api/dfy/access-status
+app.get('/api/dfy/access-status', authMiddleware, async (req, res) => {
+  try {
+    const userResult = await pool.query(
+      'SELECT profile_data, subscription_tier FROM users WHERE id = $1',
+      [req.userId]
+    );
+    if (userResult.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+
+    const profileData = userResult.rows[0].profile_data || {};
+    const dfyAccess = profileData.dfyAccess || null;
+
+    if (!dfyAccess || !dfyAccess.expiryDate) {
+      return res.json({
+        success: true,
+        hasAccess: false,
+        tier: null,
+        daysRemaining: 0,
+        canGenerateOutfits: false,
+        upsellMessage: 'Upgrade to get your personalized 14-day style plan',
+      });
+    }
+
+    const now = new Date();
+    const expiry = new Date(dfyAccess.expiryDate);
+    const daysRemaining = Math.max(0, Math.ceil((expiry - now) / (1000 * 60 * 60 * 24)));
+
+    res.json({
+      success: true,
+      hasAccess: daysRemaining > 0,
+      tier: dfyAccess.tier || 'lite',
+      daysRemaining,
+      canGenerateOutfits: daysRemaining > 0,
+    });
+  } catch (error) {
+    console.error('DFY access status error:', error);
+    res.status(500).json({ error: 'Failed to get DFY access status' });
+  }
+});
+
+// POST /api/dfy/generate-delivery - generate real outfits from user's wardrobe for their lookbook
+app.post('/api/dfy/generate-delivery', authMiddleware, async (req, res) => {
+  try {
+    const { tier = 'lite', stylistId = 'ruby' } = req.body;
+    const outfitCount = tier === 'lite' ? 5 : 10;
+
+    const wardrobeResult = await pool.query(
+      `SELECT id, name, category, color, brand, image_url FROM wardrobe_items WHERE user_id = $1 ORDER BY created_at DESC LIMIT 60`,
+      [req.userId]
+    );
+    const wardrobeItems = wardrobeResult.rows;
+
+    if (wardrobeItems.length === 0) {
+      return res.status(400).json({ success: false, error: 'NO_ITEMS', message: 'No wardrobe items found. Add some items first.' });
+    }
+
+    const stylistPersonas = {
+      ruby: { name: 'Ruby', voice: 'warm, enthusiastic, and encouraging. Use "darling" occasionally.' },
+      max: { name: 'Max', voice: 'direct, confident, and minimal. No filler words.' },
+      ace: { name: 'Ace', voice: 'cool, laid-back, and streetwear-aware. Keep it real.' },
+      ivy: { name: 'Ivy', voice: 'sophisticated, editorial, and precise. Reference silhouette and proportion.' },
+    };
+    const persona = stylistPersonas[stylistId] || stylistPersonas.ruby;
+
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const chatModel = await getBestModel('chat');
+
+    const itemList = wardrobeItems
+      .map((i, idx) => `${idx + 1}. [${i.id}] ${i.name} (${i.category}${i.color ? ', ' + i.color : ''})`)
+      .join('\n');
+
+    const occasionTypes = ['todays_look', 'work_outfit', 'casual_day', 'date_night', 'weekend'];
+    const occasionLabels = {
+      todays_look: 'a stylish everyday look for today',
+      work_outfit: 'a professional, polished work outfit',
+      date_night: 'a stylish, confident date night outfit',
+      casual_day: 'a comfortable, effortless casual day outfit',
+      weekend: 'a relaxed, stylish weekend look',
+    };
+
+    const outfitPromises = Array.from({ length: outfitCount }, async (_, i) => {
+      const occasion = occasionTypes[i % occasionTypes.length];
+      const occasionLabel = occasionLabels[occasion] || 'a stylish outfit';
+      const dayNumber = i === 0 ? 1 : (i * 3) + 1;
+
+      try {
+        const aiResponse = await openai.chat.completions.create({
+          model: chatModel,
+          messages: [{ role: 'user', content: `You are ${persona.name}, a fashion stylist. Your voice is ${persona.voice}\n\nCreate ${occasionLabel} for Day ${dayNumber} of a curated 14-day style plan.\n\nWardrobe:\n${itemList}\n\nSelect 2-5 items that work together. Only use items from the list by their exact [id]. Write a short stylistMessage in your voice (1-2 sentences, warm and personal).\n\nRespond ONLY with valid JSON:\n{"selectedIds": ["id1", "id2"], "vibeLabel": "1-3 word vibe", "stylistMessage": "Your personal message"}` }],
+          max_completion_tokens: 350,
+          temperature: 0.85,
+        });
+
+        const raw = aiResponse.choices[0]?.message?.content?.trim() || '';
+        const jsonMatch = raw.match(/\{[\s\S]*\}/);
+        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+
+        const selectedIds = (parsed.selectedIds || []).filter(id => wardrobeItems.some(w => w.id === id));
+        const selectedItems = selectedIds.map(id => {
+          const w = wardrobeItems.find(w => w.id === id);
+          return { id: w.id, name: w.name, imageUri: w.image_url || null, category: w.category, color: w.color || '' };
+        });
+
+        return {
+          id: `outfit-${i + 1}`,
+          dayNumber,
+          title: i === 0 ? "Today's Look" : `Day ${dayNumber} Look`,
+          description: `${persona.name}'s pick for ${occasionLabel}`,
+          items: selectedItems,
+          occasion,
+          stylistNote: parsed.stylistMessage || '',
+          stylistId,
+          userReaction: null,
+          saved: false,
+        };
+      } catch (err) {
+        console.warn(`[DFY] Failed to generate outfit ${i + 1}:`, err.message);
+        return {
+          id: `outfit-${i + 1}`,
+          dayNumber,
+          title: i === 0 ? "Today's Look" : `Day ${dayNumber} Look`,
+          description: 'A curated outfit for your style plan',
+          items: [],
+          occasion,
+          stylistNote: '',
+          stylistId,
+          userReaction: null,
+          saved: false,
+        };
+      }
+    });
+
+    const outfits = await Promise.all(outfitPromises);
+    const startDate = new Date().toISOString();
+    const days = tier === 'lite' ? 14 : 30;
+    const expiryDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+
+    res.json({
+      success: true,
+      delivery: {
+        userId: req.userId,
+        tier,
+        startDate,
+        expiryDate,
+        totalDays: days,
+        outfits,
+        currentDay: 1,
+        completed: false,
+        nudgesShown: [],
+      },
+    });
+  } catch (error) {
+    console.error('DFY generate delivery error:', error);
+    res.status(500).json({ error: 'Failed to generate delivery' });
+  }
+});
+
 // ============ POSTS ROUTES ============
 
 // Get all posts

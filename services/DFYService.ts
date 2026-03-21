@@ -20,7 +20,7 @@ export interface DFYOutfit {
   imageUri?: string;
   items: DFYOutfitItem[];
   occasion: DFYOccasion;
-  stylistNote: string;
+  stylistNote?: string;
   stylistId: StylistId;
   userReaction?: 'love' | 'not-me' | null;
   adjustmentRequest?: string;
