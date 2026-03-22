@@ -50,6 +50,8 @@ export const SPEED_OPTIONS: { value: VoiceSpeed; label: string }[] = [
   { value: 2.0, label: 'Maximum' },
 ];
 
+export type StylistId = 'ruby' | 'max' | 'ace' | 'ivy';
+
 export interface VoiceSettings {
   ttsEnabled: boolean;
   preferredLanguage: string;
@@ -57,6 +59,8 @@ export interface VoiceSettings {
   preferredVoice: VoiceId;
   rubyVoice: VoiceId;
   maxVoice: VoiceId;
+  aceVoice: VoiceId;
+  ivyVoice: VoiceId;
   autoPlayResponses: boolean;
   showTranscriptions: boolean;
 }
@@ -66,7 +70,7 @@ interface VoiceSettingsContextType {
   isLoading: boolean;
   updateSettings: (updates: Partial<VoiceSettings>) => Promise<void>;
   resetSettings: () => Promise<void>;
-  getVoiceForStylist: (stylistId: 'ruby' | 'max') => VoiceId;
+  getVoiceForStylist: (stylistId: StylistId) => VoiceId;
 }
 
 const VoiceSettingsContext = createContext<VoiceSettingsContextType | null>(null);
@@ -78,8 +82,10 @@ const DEFAULT_SETTINGS: VoiceSettings = {
   preferredLanguage: 'en',
   voiceSpeed: 1.0,
   preferredVoice: 'nova',
-  rubyVoice: 'nova',
+  rubyVoice: 'shimmer',
   maxVoice: 'onyx',
+  aceVoice: 'echo',
+  ivyVoice: 'fable',
   autoPlayResponses: true,
   showTranscriptions: true,
 };
@@ -127,13 +133,15 @@ export function VoiceSettingsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const getVoiceForStylist = useCallback((stylistId: 'ruby' | 'max'): VoiceId => {
-    if (stylistId === 'ruby') {
-      return settings.rubyVoice;
-    } else {
-      return settings.maxVoice;
+  const getVoiceForStylist = useCallback((stylistId: StylistId): VoiceId => {
+    switch (stylistId) {
+      case 'ruby': return settings.rubyVoice;
+      case 'max':  return settings.maxVoice;
+      case 'ace':  return settings.aceVoice;
+      case 'ivy':  return settings.ivyVoice;
+      default:     return settings.preferredVoice;
     }
-  }, [settings.rubyVoice, settings.maxVoice]);
+  }, [settings.rubyVoice, settings.maxVoice, settings.aceVoice, settings.ivyVoice, settings.preferredVoice]);
 
   return (
     <VoiceSettingsContext.Provider

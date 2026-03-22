@@ -75,7 +75,7 @@ const WaveformBar = ({ bar, color, style }: WaveformBarProps) => {
   );
 };
 import { apiService } from '@/services/ApiService';
-import { useVoiceSettings, VoiceId } from '@/contexts/VoiceSettingsContext';
+import { useVoiceSettings, VoiceId, StylistId } from '@/contexts/VoiceSettingsContext';
 import * as FileSystem from 'expo-file-system/legacy';
 import Constants from 'expo-constants';
 
@@ -1272,7 +1272,7 @@ export default function AIStylistScreen() {
         ttsPlayerRef.current = null;
       }
 
-      const voiceId = getVoiceForStylist(stylist.id as 'ruby' | 'max');
+      const voiceId = getVoiceForStylist(stylist.id as StylistId);
       
       const response = await apiService.createVoiceResponse({
         textResponse: text,

@@ -5407,14 +5407,26 @@ app.post('/api/ai/speak', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'text is required' });
     }
 
-    const audio = await synthesizeSpeech({
-      text,
+    const result = await synthesizeSpeech(text, {
       voice,
-      stylistId,
-      speed: speed || 1.0
+      stylistId: stylistId || 'ruby',
+      speed: speed || null,
+      highQuality: true,
     });
 
-    res.json({ success: true, audio });
+    if (!result.success) {
+      return res.status(500).json({ error: result.error || 'Speech synthesis failed' });
+    }
+
+    const audioBase64 = result.audioBuffer.toString('base64');
+    res.json({
+      success: true,
+      audio: {
+        audioBuffer: audioBase64,
+        voice: result.voice,
+        format: result.format,
+      },
+    });
   } catch (error) {
     console.error('Speech synthesis error:', error);
     res.status(500).json({ error: 'Failed to synthesize speech' });
@@ -5597,19 +5609,28 @@ app.post('/api/ai/voice-message', authMiddleware, async (req, res) => {
 
 app.post('/api/ai/voice-response', authMiddleware, async (req, res) => {
   try {
-    const { textResponse, stylistId, speed } = req.body;
+    const { textResponse, stylist, stylistId, speed } = req.body;
+    const resolvedStylistId = stylist || stylistId || 'ruby';
 
     if (!textResponse || typeof textResponse !== 'string') {
       return res.status(400).json({ error: 'textResponse is required' });
     }
 
-    const audio = await createVoiceResponse({
-      textResponse,
-      stylistId: stylistId || 'ruby',
-      speed: speed || 1.0
-    });
+    const result = await createVoiceResponse(textResponse, resolvedStylistId, { speed: speed || null });
 
-    res.json({ success: true, audio });
+    if (!result.success) {
+      return res.status(500).json({ error: result.error || 'Voice synthesis failed' });
+    }
+
+    const audioBase64 = result.audioBuffer.toString('base64');
+    res.json({
+      success: true,
+      audio: {
+        audioBuffer: audioBase64,
+        voice: result.voice,
+        format: result.format,
+      },
+    });
   } catch (error) {
     console.error('Voice response error:', error);
     res.status(500).json({ error: 'Failed to create voice response' });
