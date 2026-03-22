@@ -259,14 +259,159 @@ class OnboardingServiceClass {
   }
 
   async getStyleQuiz(gender?: string): Promise<StyleQuizConfig> {
-    const questions: StyleQuizQuestion[] = [
+    const isMale = gender === 'male' || gender === 'man' || gender === 'Male' || gender === 'Man';
+    const isFemale = gender === 'female' || gender === 'woman' || gender === 'Female' || gender === 'Woman';
+
+    const questions: StyleQuizQuestion[] = isMale ? [
       {
         id: 1,
         question: "What's your go-to outfit on a day off?",
         options: [
           { value: 'streetwear', text: 'Oversized hoodie, cargos, fresh trainers' },
-          { value: 'classic', text: 'Neat jeans, a crisp shirt or blouse' },
-          { value: 'bohemian', text: 'Flowy layers, prints, something relaxed' },
+          { value: 'classic', text: 'Dark jeans, a crisp Oxford shirt, clean sneakers' },
+          { value: 'bohemian', text: 'Linen trousers, an open shirt, relaxed layers' },
+          { value: 'minimalist', text: 'Simple tee, slim trousers — nothing fussy' },
+        ],
+      },
+      {
+        id: 2,
+        question: 'Which word best describes your ideal wardrobe?',
+        options: [
+          { value: 'edgy', text: 'Unexpected — raw cuts, attitude, edge' },
+          { value: 'classic', text: 'Sharp — tailored, polished, always right' },
+          { value: 'streetwear', text: 'Hype — limited drops, logos, cultural currency' },
+          { value: 'minimalist', text: 'Functional — every piece earns its place' },
+        ],
+      },
+      {
+        id: 3,
+        question: 'When getting dressed for an evening out, you reach for…',
+        options: [
+          { value: 'classic', text: 'A well-fitted blazer and dark trousers' },
+          { value: 'streetwear', text: 'Premium streetwear — elevated but still me' },
+          { value: 'edgy', text: 'Something unexpected — dark, bold, my own rules' },
+          { value: 'bohemian', text: 'Smart-casual layers with interesting texture' },
+        ],
+      },
+      {
+        id: 4,
+        question: 'Which colour palette speaks to you most?',
+        options: [
+          { value: 'minimalist', text: 'Neutrals — black, white, grey, stone' },
+          { value: 'bohemian', text: 'Earthy — olive, rust, camel, brown' },
+          { value: 'classic', text: 'Navy and white — clean, nautical, refined' },
+          { value: 'edgy', text: 'Dark tones — black, charcoal, burgundy' },
+        ],
+      },
+      {
+        id: 5,
+        question: 'Your relationship with trends is…',
+        options: [
+          { value: 'streetwear', text: "On it — I follow drops and know what's next" },
+          { value: 'classic', text: "Selective — quality classics, nothing trend-driven" },
+          { value: 'eclectic', text: "Fluid — I take what I like and leave the rest" },
+          { value: 'minimalist', text: "Detached — I buy what works, trends don't factor in" },
+        ],
+      },
+      {
+        id: 6,
+        question: 'Which aesthetic resonates most with you?',
+        options: [
+          { value: 'preppy', text: 'Collegiate — clean, smart, always put-together' },
+          { value: 'edgy', text: 'Dark and deconstructed — avant-garde edge' },
+          { value: 'athleisure', text: 'Sporty — performance fabrics, sleek silhouettes' },
+          { value: 'bohemian', text: 'Relaxed — textured, global-inspired, unhurried' },
+        ],
+      },
+      {
+        id: 7,
+        question: 'What do you want your clothes to say about you?',
+        options: [
+          { value: 'classic', text: "I'm disciplined, sharp, and always appropriate" },
+          { value: 'edgy', text: "I'm confident and I make my own rules" },
+          { value: 'streetwear', text: "I'm plugged in — I know culture" },
+          { value: 'minimalist', text: "I'm intentional — quality over quantity" },
+        ],
+      },
+    ] : isFemale ? [
+      {
+        id: 1,
+        question: "What's your go-to outfit on a day off?",
+        options: [
+          { value: 'streetwear', text: 'Oversized hoodie, wide-leg trousers, fresh trainers' },
+          { value: 'classic', text: 'Tailored trousers, a silk blouse, neat flats' },
+          { value: 'bohemian', text: 'Flowy midi skirt, layered jewellery, something relaxed' },
+          { value: 'minimalist', text: 'Simple matching set or a clean co-ord — nothing fussy' },
+        ],
+      },
+      {
+        id: 2,
+        question: 'Which word best describes your ideal wardrobe?',
+        options: [
+          { value: 'edgy', text: 'Unexpected — bold cuts, attitude, edge' },
+          { value: 'classic', text: 'Timeless — polished, elegant, always appropriate' },
+          { value: 'romantic', text: 'Feminine — soft fabrics, florals, beautiful detail' },
+          { value: 'minimalist', text: 'Functional — every piece earns its place' },
+        ],
+      },
+      {
+        id: 3,
+        question: 'When getting dressed for an evening out, you reach for…',
+        options: [
+          { value: 'glamorous', text: 'Something that turns heads — glam, sparkle, statement' },
+          { value: 'classic', text: 'A trusted LBD or tailored suit that always looks sharp' },
+          { value: 'edgy', text: 'Something unexpected that shows your personality' },
+          { value: 'bohemian', text: 'Effortless layers and interesting textures' },
+        ],
+      },
+      {
+        id: 4,
+        question: 'Which colour palette speaks to you most?',
+        options: [
+          { value: 'minimalist', text: 'Neutrals — black, white, beige, grey' },
+          { value: 'bohemian', text: 'Earthy — terracotta, mustard, rust, olive' },
+          { value: 'romantic', text: 'Soft — dusty rose, lavender, cream, blush' },
+          { value: 'glamorous', text: 'Bold — jewel tones, metallics, rich colour' },
+        ],
+      },
+      {
+        id: 5,
+        question: 'Your relationship with trends is…',
+        options: [
+          { value: 'streetwear', text: "On it — I follow what's new and love a drop" },
+          { value: 'classic', text: "Selective — I cherry-pick, quality classics only" },
+          { value: 'eclectic', text: "Playful — I mix trends with whatever I love" },
+          { value: 'minimalist', text: "Detached — trends come and go, I don't chase them" },
+        ],
+      },
+      {
+        id: 6,
+        question: 'Which aesthetic resonates most with you?',
+        options: [
+          { value: 'preppy', text: 'Polished and feminine — always put-together' },
+          { value: 'edgy', text: 'Dark, deconstructed, avant-garde' },
+          { value: 'bohemian', text: 'Free-spirited, artistic, globally inspired' },
+          { value: 'athleisure', text: 'Sporty and sleek — effortlessly cool' },
+        ],
+      },
+      {
+        id: 7,
+        question: 'What do you want your clothes to say about you?',
+        options: [
+          { value: 'classic', text: "I'm reliable, tasteful, and always appropriate" },
+          { value: 'edgy', text: "I'm confident and I don't follow anyone's rules" },
+          { value: 'romantic', text: "I'm thoughtful, creative, and love beauty" },
+          { value: 'streetwear', text: "I'm aware, current, and know my culture" },
+        ],
+      },
+    ] : [
+      {
+        id: 1,
+        question: "What's your go-to outfit on a day off?",
+        options: [
+          { value: 'streetwear', text: 'Oversized hoodie, relaxed trousers, fresh trainers' },
+          { value: 'classic', text: 'Tailored pieces — clean, crisp, effortlessly sharp' },
+          { value: 'bohemian', text: 'Flowy layers, prints, something free and relaxed' },
           { value: 'minimalist', text: 'Simple, clean pieces — nothing fussy' },
         ],
       },
@@ -276,7 +421,7 @@ class OnboardingServiceClass {
         options: [
           { value: 'edgy', text: 'Unexpected — bold cuts, attitude, edge' },
           { value: 'classic', text: 'Timeless — polished and always appropriate' },
-          { value: 'romantic', text: 'Feminine — soft fabrics, detail, beauty' },
+          { value: 'romantic', text: 'Expressive — soft fabrics, detail, beauty' },
           { value: 'minimalist', text: 'Functional — every piece earns its place' },
         ],
       },
@@ -284,7 +429,7 @@ class OnboardingServiceClass {
         id: 3,
         question: 'When getting dressed for an evening out, you reach for…',
         options: [
-          { value: 'glamorous', text: 'Something that turns heads — glam, sparkle, statement' },
+          { value: 'glamorous', text: 'Something that turns heads — bold, statement-making' },
           { value: 'classic', text: 'A trusted favourite that always looks sharp' },
           { value: 'edgy', text: 'Something unexpected that shows your personality' },
           { value: 'bohemian', text: 'Effortless layers with interesting textures' },
@@ -292,7 +437,7 @@ class OnboardingServiceClass {
       },
       {
         id: 4,
-        question: 'Which of these colour palettes speaks to you most?',
+        question: 'Which colour palette speaks to you most?',
         options: [
           { value: 'minimalist', text: 'Neutrals — black, white, beige, grey' },
           { value: 'bohemian', text: 'Earthy — terracotta, mustard, rust, olive' },
@@ -312,7 +457,7 @@ class OnboardingServiceClass {
       },
       {
         id: 6,
-        question: 'Which style icon resonates with you most?',
+        question: 'Which aesthetic resonates most with you?',
         options: [
           { value: 'preppy', text: 'Crisp, collegiate, always put-together' },
           { value: 'edgy', text: 'Dark, deconstructed, avant-garde' },
