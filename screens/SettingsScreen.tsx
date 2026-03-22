@@ -976,7 +976,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             icon="users"
             title="Community Vote Preview"
             subtitle="View voting screen as a member"
-            onPress={() => navigation.navigate("CommunityStack", { screen: "CommunityVoting", params: { session: null } })}
+            onPress={() => navigation.navigate("CommunityVoting", { session: null })}
             theme={theme}
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
@@ -1031,7 +1031,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             icon="users"
             title="Community Vote Preview"
             subtitle="View voting screen as a member"
-            onPress={() => navigation.navigate("CommunityStack", { screen: "CommunityVoting", params: { session: null } })}
+            onPress={() => navigation.navigate("CommunityVoting", { session: null })}
             theme={theme}
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}

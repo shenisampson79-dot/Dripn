@@ -15,6 +15,7 @@ import PartnerScreen from "@/screens/PartnerScreen";
 import CancelSubscriptionScreen from "@/screens/CancelSubscriptionScreen";
 import BodyMeasurementsScreen from "@/screens/BodyMeasurementsScreen";
 import FeedbackScreen from "@/screens/FeedbackScreen";
+import CommunityVotingScreen from "@/screens/CommunityVotingScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -35,6 +36,7 @@ export type SettingsStackParamList = {
   CancelSubscription: undefined;
   BodyMeasurements: undefined;
   Feedback: undefined;
+  CommunityVoting: { session: any };
 };
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
@@ -164,6 +166,15 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         options={{
           title: "Send Feedback",
           headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="CommunityVoting"
+        component={CommunityVotingScreen}
+        options={{
+          title: "Community Vote",
+          headerShown: false,
+          presentation: "modal",
         }}
       />
     </Stack.Navigator>
