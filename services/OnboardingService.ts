@@ -1,7 +1,19 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 import { apiService } from "@/services/ApiService";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://dripn-server--shenisampson79.replit.app';
+const BROKEN_DEPLOYED_BACKEND = 'https://dripn-server--shenisampson79.replit.app';
+const LOCAL_BACKEND_WEB = 'http://localhost:8082';
+const LOCAL_BACKEND_MOBILE = 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:3000';
+
+const getAPIUrl = (): string => {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl && envUrl !== BROKEN_DEPLOYED_BACKEND) return envUrl;
+  if (Platform.OS === 'web') return LOCAL_BACKEND_WEB;
+  return LOCAL_BACKEND_MOBILE;
+};
+
+const API_URL = getAPIUrl();
 
 export interface ScanReview {
   showCapturedImage: boolean;

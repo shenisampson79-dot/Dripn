@@ -666,6 +666,22 @@ function authMiddleware(req, res, next) {
   }
 }
 
+// Optional auth — attaches userId if token present, but always calls next()
+function optionalAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.userId;
+  } catch {
+    // Invalid token — just continue unauthenticated
+  }
+  next();
+}
+
 // Auth middleware for stylists
 function stylistAuthMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -6344,6 +6360,257 @@ Respond in JSON format:
     "retakeButtonText": "Retake"
   }
 }`;
+
+// ============ STYLE QUIZ ============
+
+const STYLE_QUIZ_QUESTIONS = [
+  {
+    id: 1,
+    question: "What's your go-to outfit on a day off?",
+    options: [
+      { value: 'streetwear', text: 'Oversized hoodie, cargos, fresh trainers' },
+      { value: 'classic', text: 'Neat jeans, a crisp shirt or blouse' },
+      { value: 'bohemian', text: 'Flowy layers, prints, something relaxed' },
+      { value: 'minimalist', text: 'Simple, clean pieces — nothing fussy' },
+    ],
+  },
+  {
+    id: 2,
+    question: 'Which word best describes your ideal wardrobe?',
+    options: [
+      { value: 'edgy', text: 'Unexpected — bold cuts, attitude, edge' },
+      { value: 'classic', text: 'Timeless — polished and always appropriate' },
+      { value: 'romantic', text: 'Feminine — soft fabrics, detail, beauty' },
+      { value: 'minimalist', text: 'Functional — every piece earns its place' },
+    ],
+  },
+  {
+    id: 3,
+    question: 'When getting dressed for an evening out, you reach for…',
+    options: [
+      { value: 'glamorous', text: 'Something that turns heads — glam, sparkle, statement' },
+      { value: 'classic', text: 'A trusted favourite that always looks sharp' },
+      { value: 'edgy', text: 'Something unexpected that shows your personality' },
+      { value: 'bohemian', text: 'Effortless layers with interesting textures' },
+    ],
+  },
+  {
+    id: 4,
+    question: 'Which of these colour palettes speaks to you most?',
+    options: [
+      { value: 'minimalist', text: 'Neutrals — black, white, beige, grey' },
+      { value: 'bohemian', text: 'Earthy — terracotta, mustard, rust, olive' },
+      { value: 'romantic', text: 'Soft — dusty rose, lavender, cream, blush' },
+      { value: 'glamorous', text: 'Bold — jewel tones, metallics, rich colour' },
+    ],
+  },
+  {
+    id: 5,
+    question: 'Your relationship with trends is…',
+    options: [
+      { value: 'streetwear', text: "On it — I follow drops and know what's new" },
+      { value: 'classic', text: "Selective — I cherry-pick, classic pieces only" },
+      { value: 'eclectic', text: "Playful — I mix trends with whatever I love" },
+      { value: 'minimalist', text: "Detached — trends come and go, I don't chase" },
+    ],
+  },
+  {
+    id: 6,
+    question: 'Which style icon resonates with you most?',
+    options: [
+      { value: 'preppy', text: 'Crisp, collegiate, always put-together' },
+      { value: 'edgy', text: 'Dark, deconstructed, avant-garde' },
+      { value: 'bohemian', text: 'Free-spirited, artistic, globally inspired' },
+      { value: 'athleisure', text: 'Sporty, sleek, always looks effortless' },
+    ],
+  },
+  {
+    id: 7,
+    question: 'What do you want your clothes to say about you?',
+    options: [
+      { value: 'classic', text: "I'm reliable, tasteful, and always appropriate" },
+      { value: 'edgy', text: "I'm confident and I don't follow anyone's rules" },
+      { value: 'romantic', text: "I'm thoughtful, creative, and love beauty" },
+      { value: 'streetwear', text: "I'm aware, current, and know my culture" },
+    ],
+  },
+];
+
+const STYLE_ARCHETYPES = {
+  minimalist: {
+    id: 'minimalist', name: 'The Minimalist', tagline: 'Less is always more',
+    description: 'You build a wardrobe of intentional, high-quality pieces. Every item earns its place. Clean lines, neutral palette, and quiet confidence define your look.',
+    keyPieces: ['Tailored trousers', 'White shirt', 'Quality leather belt', 'Simple sneakers', 'Structured tote'],
+    colors: ['Black', 'White', 'Cream', 'Grey', 'Stone'],
+    icons: ['scissors', 'box', 'circle'],
+    tip: 'Invest in fit — a perfectly fitting simple piece will always outperform a busy outfit.',
+  },
+  classic: {
+    id: 'classic', name: 'The Classic', tagline: 'Elegance never expires',
+    description: "You dress with timeless intention. Your wardrobe is thoughtful and polished — a wardrobe that doesn't shout, but always impresses.",
+    keyPieces: ['Blazer', 'Oxford shirt', 'Straight-leg trousers', 'Leather loafers', 'Silk scarf'],
+    colors: ['Navy', 'Ivory', 'Camel', 'Burgundy', 'Forest green'],
+    icons: ['briefcase', 'clock', 'star'],
+    tip: 'A well-fitted blazer is your cheat code — it elevates everything underneath it.',
+  },
+  bohemian: {
+    id: 'bohemian', name: 'The Free Spirit', tagline: 'Dressed by wanderlust',
+    description: "Your style tells stories. You mix prints, layers, and textures with an ease that makes it look effortless. You're drawn to the handmade, the vintage, the globally inspired.",
+    keyPieces: ['Flowy maxi skirt', 'Embroidered blouse', 'Stacked jewellery', 'Suede boots', 'Woven bag'],
+    colors: ['Terracotta', 'Mustard', 'Rust', 'Sage', 'Cream'],
+    icons: ['sun', 'feather', 'wind'],
+    tip: 'Layer textures deliberately — a structured piece anchors a boho look beautifully.',
+  },
+  edgy: {
+    id: 'edgy', name: 'The Nonconformist', tagline: 'Rules are suggestions',
+    description: "Your style is a statement. You wear silhouettes others wouldn't dare, play with proportion, and use fashion as a form of self-expression that needs no explanation.",
+    keyPieces: ['Leather jacket', 'Cropped moto boots', 'Graphic tee', 'Asymmetric hem', 'Hardware accessories'],
+    colors: ['Black', 'Graphite', 'Oxblood', 'White', 'Cobalt'],
+    icons: ['zap', 'slash', 'triangle'],
+    tip: 'Pick one statement element per outfit — it lands harder than stacking them all.',
+  },
+  romantic: {
+    id: 'romantic', name: 'The Romantic', tagline: 'Beauty is in the details',
+    description: 'Soft fabrics, delicate prints, and feminine silhouettes define your aesthetic. You dress with an eye for beauty and a love for the poetic detail that others might miss.',
+    keyPieces: ['Wrap dress', 'Lace camisole', 'Kitten heels', 'Pearl earrings', 'Mini bag'],
+    colors: ['Blush', 'Lavender', 'Ivory', 'Dusty rose', 'Sage'],
+    icons: ['heart', 'flower', 'star'],
+    tip: 'Balance softness with structure — one tailored piece grounds a romantic outfit.',
+  },
+  streetwear: {
+    id: 'streetwear', name: 'The Culturalist', tagline: 'Rooted in the culture',
+    description: "You live at the intersection of fashion and culture. You know what's dropping, what's rare, and what means something. Your wardrobe is a curated archive of moments.",
+    keyPieces: ['Premium hoodie', 'Cargo trousers', 'Collectible trainers', 'Puffer jacket', 'Logo accessories'],
+    colors: ['Tonal neutrals', 'Washed black', 'Olive', 'Off-white', 'Bold accent'],
+    icons: ['tag', 'trending-up', 'award'],
+    tip: 'Tonal dressing — head-to-toe in one colour family — makes every fit look elevated.',
+  },
+  glamorous: {
+    id: 'glamorous', name: 'The Showstopper', tagline: 'Dress like the main character',
+    description: "You walk in and people notice. You love fashion that makes a moment — rich fabrics, sculptural silhouettes, and pieces that were made to be seen.",
+    keyPieces: ['Sequin top', 'Tailored jumpsuit', 'Strappy heels', 'Statement earrings', 'Evening clutch'],
+    colors: ['Gold', 'Emerald', 'Cobalt', 'Black', 'Crimson'],
+    icons: ['star', 'sun', 'zap'],
+    tip: 'Own the room with one focal point — let your statement piece speak alone.',
+  },
+  preppy: {
+    id: 'preppy', name: 'The Prepster', tagline: 'Polished with personality',
+    description: "Clean, collegiate, and always put-together. You balance structure and personality with an ease that makes the dressed-up look entirely natural.",
+    keyPieces: ['Cable-knit sweater', 'Chino trousers', 'Polo shirt', 'Penny loafers', 'Canvas tote'],
+    colors: ['Navy', 'Stripe', 'Racing green', 'Cream', 'Burgundy'],
+    icons: ['bookmark', 'anchor', 'compass'],
+    tip: 'Mix a classic prep piece with something sportier — it keeps the look fresh.',
+  },
+  athleisure: {
+    id: 'athleisure', name: 'The Athlete', tagline: 'Performance meets style',
+    description: "You dress for life in motion. Technical fabrics, clean silhouettes, and effortless cool — your wardrobe moves with you without sacrificing style.",
+    keyPieces: ['Quality joggers', 'Performance jacket', 'Clean sneakers', 'Sports-luxe top', 'Minimal accessories'],
+    colors: ['Monochrome', 'Navy', 'Slate', 'White', 'Neon accent'],
+    icons: ['activity', 'target', 'zap'],
+    tip: "Fit is everything in athleisure — baggy isn't relaxed, it's just unflattering.",
+  },
+  eclectic: {
+    id: 'eclectic', name: 'The Maximalist', tagline: 'More is more',
+    description: "Your style refuses to be categorised. You mix periods, aesthetics, and influences with total confidence — and somehow, it always works.",
+    keyPieces: ['Vintage blazer', 'Printed trousers', 'Mixed-metal jewellery', 'Statement bag', 'Mismatched textures'],
+    colors: ['Bold mix', 'Unexpected contrasts', 'Jewel tones', 'Patterned', 'Anything goes'],
+    icons: ['shuffle', 'layers', 'palette'],
+    tip: 'Ground a maximalist look with neutral shoes — it stops the eye from being overwhelmed.',
+  },
+};
+
+app.get('/api/onboarding/style-quiz', (req, res) => {
+  const { gender, lang } = req.query;
+  const questions = STYLE_QUIZ_QUESTIONS.map(q => ({ ...q }));
+  res.json({
+    success: true,
+    questions,
+    totalQuestions: questions.length,
+    estimatedTime: '2 minutes',
+    description: 'Answer 7 quick questions to discover your style archetype',
+  });
+});
+
+app.post('/api/onboarding/style-quiz/submit', optionalAuth, (req, res) => {
+  try {
+    const { answers } = req.body;
+    if (!answers || !Array.isArray(answers)) {
+      return res.status(400).json({ error: 'answers array is required' });
+    }
+
+    const scores = {};
+    for (const archetype of Object.keys(STYLE_ARCHETYPES)) {
+      scores[archetype] = 0;
+    }
+    for (const { answer } of answers) {
+      if (answer && scores[answer] !== undefined) {
+        scores[answer]++;
+      }
+    }
+
+    const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+    const primaryId = sorted[0][0];
+    const secondaryId = sorted[1][0] || 'classic';
+
+    const primaryArchetype = {
+      ...STYLE_ARCHETYPES[primaryId],
+      matchScore: Math.round((sorted[0][1] / answers.length) * 100),
+    };
+    const secondaryArchetype = {
+      ...STYLE_ARCHETYPES[secondaryId],
+      matchScore: Math.round((sorted[1][1] / answers.length) * 100),
+    };
+
+    const allScores = {};
+    for (const [k, v] of sorted) {
+      allScores[k] = Math.round((v / answers.length) * 100);
+    }
+
+    const CELEBRATION_MAP = {
+      minimalist: { title: 'The Minimalist', subtitle: 'Quiet luxury is your superpower', emoji: 'clean', matchMessage: `You scored ${primaryArchetype.matchScore}% Minimalist`, reaction: 'Refined. Intentional. Timeless.', showConfetti: true },
+      classic: { title: 'The Classic', subtitle: 'Style that never dates', emoji: 'star', matchMessage: `You scored ${primaryArchetype.matchScore}% Classic`, reaction: 'Elegant. Dependable. Always right.', showConfetti: true },
+      bohemian: { title: 'The Free Spirit', subtitle: "You dress like you've been everywhere", emoji: 'sun', matchMessage: `You scored ${primaryArchetype.matchScore}% Bohemian`, reaction: 'Effortless. Soulful. Unforgettable.', showConfetti: true },
+      edgy: { title: 'The Nonconformist', subtitle: "Fashion follows you, not the other way round", emoji: 'bolt', matchMessage: `You scored ${primaryArchetype.matchScore}% Edgy`, reaction: 'Bold. Unapologetic. Iconic.', showConfetti: true },
+      romantic: { title: 'The Romantic', subtitle: 'You find beauty in every detail', emoji: 'heart', matchMessage: `You scored ${primaryArchetype.matchScore}% Romantic`, reaction: 'Soft. Thoughtful. Deeply stylish.', showConfetti: true },
+      streetwear: { title: 'The Culturalist', subtitle: "You're in the culture, not just watching it", emoji: 'fire', matchMessage: `You scored ${primaryArchetype.matchScore}% Streetwear`, reaction: 'Aware. Current. Authentic.', showConfetti: true },
+      glamorous: { title: 'The Showstopper', subtitle: "Rooms change when you walk in", emoji: 'sparkle', matchMessage: `You scored ${primaryArchetype.matchScore}% Glamorous`, reaction: 'Magnetic. Fearless. Unforgettable.', showConfetti: true },
+      preppy: { title: 'The Prepster', subtitle: 'Polished without even trying', emoji: 'check', matchMessage: `You scored ${primaryArchetype.matchScore}% Preppy`, reaction: 'Sharp. Confident. Always appropriate.', showConfetti: true },
+      athleisure: { title: 'The Athlete', subtitle: 'You look good on the move', emoji: 'flash', matchMessage: `You scored ${primaryArchetype.matchScore}% Athleisure`, reaction: 'Sleek. Effortless. Performance-ready.', showConfetti: true },
+      eclectic: { title: 'The Maximalist', subtitle: 'You make every outfit an event', emoji: 'rainbow', matchMessage: `You scored ${primaryArchetype.matchScore}% Eclectic`, reaction: 'Fearless. Joyful. Completely original.', showConfetti: true },
+    };
+
+    const celebration = CELEBRATION_MAP[primaryId] || CELEBRATION_MAP.classic;
+
+    res.json({
+      success: true,
+      primaryArchetype,
+      secondaryArchetype,
+      allScores,
+      autoFillFields: { preferredStyles: [primaryId, secondaryId] },
+      personalizedMessage: `You're a ${primaryArchetype.name} with a ${secondaryArchetype.name} edge. ${primaryArchetype.tip}`,
+      message: `${primaryArchetype.name} — ${primaryArchetype.tagline}`,
+      celebration,
+      styleBlend: {
+        headline: `${primaryArchetype.name} meets ${secondaryArchetype.name}`,
+        subheadline: `${primaryArchetype.matchScore}% ${primaryArchetype.name}, ${secondaryArchetype.matchScore}% ${secondaryArchetype.name}`,
+        description: `You lead with ${primaryArchetype.name.toLowerCase()} instincts but bring ${secondaryArchetype.name.toLowerCase()} energy when it counts.`,
+        superpower: primaryArchetype.tip,
+        vibes: [...primaryArchetype.icons, ...secondaryArchetype.icons].slice(0, 4),
+        perfectFor: primaryArchetype.keyPieces.slice(0, 3),
+        funFact: `${primaryArchetype.matchScore}% of your answers pointed to ${primaryArchetype.name}.`,
+      },
+      quickStats: {
+        keyPieces: primaryArchetype.keyPieces,
+        colors: primaryArchetype.colors,
+        icons: primaryArchetype.icons,
+        stylistTip: primaryArchetype.tip,
+      },
+    });
+  } catch (error) {
+    console.error('Quiz submit error:', error);
+    res.status(500).json({ error: 'Failed to process quiz results' });
+  }
+});
 
 app.post('/api/onboarding/body-scan', authMiddleware, async (req, res) => {
   try {
