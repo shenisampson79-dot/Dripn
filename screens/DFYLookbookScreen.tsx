@@ -71,12 +71,35 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     if (!user?.id) return;
     const saved = await dfyService.getDFYDelivery(user.id);
     if (saved && saved.tier === 'lite') {
-      setDelivery(saved as DFYLiteDelivery);
-      setCurrentDay(saved.currentDay);
+      const liteDelivery = saved as DFYLiteDelivery;
+      const totalDays = liteDelivery.totalDays || 14;
+
+      // Normalise corrupted dayNumbers — if any outfit has a dayNumber > totalDays
+      // the delivery was generated with the wrong formula and needs to be fixed in-place.
+      const hasCorruptedDayNumbers = liteDelivery.outfits.some(o => o.dayNumber > totalDays);
+      const normalised: DFYLiteDelivery = hasCorruptedDayNumbers
+        ? {
+            ...liteDelivery,
+            outfits: liteDelivery.outfits.map((o, idx) => ({
+              ...o,
+              dayNumber: idx + 1,
+              title: idx === 0 ? "Today's Look" : `Day ${idx + 1} Look`,
+            })),
+          }
+        : liteDelivery;
+
+      if (hasCorruptedDayNumbers) {
+        // Persist the corrected delivery so it doesn't re-corrupt on next load
+        await dfyService.saveDFYDelivery(normalised);
+      }
+
+      setDelivery(normalised);
+      setCurrentDay(normalised.currentDay);
+
       // If all outfits have empty items, auto-generate real outfits from the wardrobe
-      const allEmpty = saved.outfits.every(o => !o.items || o.items.length === 0);
+      const allEmpty = normalised.outfits.every(o => !o.items || o.items.length === 0);
       if (allEmpty) {
-        generateRealOutfits(saved as DFYLiteDelivery);
+        generateRealOutfits(normalised);
       }
     }
   };
@@ -205,6 +228,31 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
                   Curating your look...
                 </ThemedText>
               </View>
+            ) : hasItems ? (
+              <LinearGradient
+                colors={[colors.gradient[0] + '30', colors.gradient[1] + '15']}
+                style={styles.outfitItemsPlaceholder}
+              >
+                <View style={[styles.outfitIconRow, { borderColor: colors.accent + '40' }]}>
+                  <Feather name="layers" size={18} color={colors.accent} />
+                  <ThemedText type="small" style={{ color: colors.accent, fontWeight: '600', marginLeft: 6 }}>
+                    {item.items.length} piece{item.items.length !== 1 ? 's' : ''}
+                  </ThemedText>
+                </View>
+                {item.items.slice(0, 4).map((it, k) => (
+                  <View key={k} style={styles.outfitItemRow}>
+                    <View style={[styles.outfitItemDot, { backgroundColor: colors.accent }]} />
+                    <ThemedText type="small" numberOfLines={1} style={{ flex: 1, opacity: 0.85 }}>
+                      {it.name}
+                    </ThemedText>
+                  </View>
+                ))}
+                {item.items.length > 4 && (
+                  <ThemedText type="caption" style={{ color: colors.accent, opacity: 0.7, marginTop: 4 }}>
+                    +{item.items.length - 4} more
+                  </ThemedText>
+                )}
+              </LinearGradient>
             ) : (
               <LinearGradient
                 colors={[colors.gradient[0] + '40', colors.gradient[1] + '20']}
@@ -610,6 +658,30 @@ const styles = StyleSheet.create({
   itemImage: {
     width: '100%',
     height: '100%',
+  },
+  outfitItemsPlaceholder: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    justifyContent: 'center',
+    gap: 8,
+  },
+  outfitIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+  },
+  outfitItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  outfitItemDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
   },
   outfitInfo: {
     padding: Spacing.lg,
