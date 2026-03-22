@@ -259,21 +259,85 @@ class OnboardingServiceClass {
   }
 
   async getStyleQuiz(gender?: string): Promise<StyleQuizConfig> {
-    const headers = await this.getAuthHeaders();
-    const url = gender 
-      ? `${API_URL}/api/onboarding/style-quiz?gender=${encodeURIComponent(gender)}`
-      : `${API_URL}/api/onboarding/style-quiz`;
-    const response = await fetch(url, {
-      method: "GET",
-      headers,
-    });
+    const questions: StyleQuizQuestion[] = [
+      {
+        id: 1,
+        question: "What's your go-to outfit on a day off?",
+        options: [
+          { value: 'streetwear', text: 'Oversized hoodie, cargos, fresh trainers' },
+          { value: 'classic', text: 'Neat jeans, a crisp shirt or blouse' },
+          { value: 'bohemian', text: 'Flowy layers, prints, something relaxed' },
+          { value: 'minimalist', text: 'Simple, clean pieces — nothing fussy' },
+        ],
+      },
+      {
+        id: 2,
+        question: 'Which word best describes your ideal wardrobe?',
+        options: [
+          { value: 'edgy', text: 'Unexpected — bold cuts, attitude, edge' },
+          { value: 'classic', text: 'Timeless — polished and always appropriate' },
+          { value: 'romantic', text: 'Feminine — soft fabrics, detail, beauty' },
+          { value: 'minimalist', text: 'Functional — every piece earns its place' },
+        ],
+      },
+      {
+        id: 3,
+        question: 'When getting dressed for an evening out, you reach for…',
+        options: [
+          { value: 'glamorous', text: 'Something that turns heads — glam, sparkle, statement' },
+          { value: 'classic', text: 'A trusted favourite that always looks sharp' },
+          { value: 'edgy', text: 'Something unexpected that shows your personality' },
+          { value: 'bohemian', text: 'Effortless layers with interesting textures' },
+        ],
+      },
+      {
+        id: 4,
+        question: 'Which of these colour palettes speaks to you most?',
+        options: [
+          { value: 'minimalist', text: 'Neutrals — black, white, beige, grey' },
+          { value: 'bohemian', text: 'Earthy — terracotta, mustard, rust, olive' },
+          { value: 'romantic', text: 'Soft — dusty rose, lavender, cream, blush' },
+          { value: 'glamorous', text: 'Bold — jewel tones, metallics, rich colour' },
+        ],
+      },
+      {
+        id: 5,
+        question: 'Your relationship with trends is…',
+        options: [
+          { value: 'streetwear', text: "On it — I follow drops and know what's new" },
+          { value: 'classic', text: "Selective — I cherry-pick, classic pieces only" },
+          { value: 'eclectic', text: "Playful — I mix trends with whatever I love" },
+          { value: 'minimalist', text: "Detached — trends come and go, I don't chase" },
+        ],
+      },
+      {
+        id: 6,
+        question: 'Which style icon resonates with you most?',
+        options: [
+          { value: 'preppy', text: 'Crisp, collegiate, always put-together' },
+          { value: 'edgy', text: 'Dark, deconstructed, avant-garde' },
+          { value: 'bohemian', text: 'Free-spirited, artistic, globally inspired' },
+          { value: 'athleisure', text: 'Sporty, sleek, always looks effortless' },
+        ],
+      },
+      {
+        id: 7,
+        question: 'What do you want your clothes to say about you?',
+        options: [
+          { value: 'classic', text: "I'm reliable, tasteful, and always appropriate" },
+          { value: 'edgy', text: "I'm confident and I don't follow anyone's rules" },
+          { value: 'romantic', text: "I'm thoughtful, creative, and love beauty" },
+          { value: 'streetwear', text: "I'm aware, current, and know my culture" },
+        ],
+      },
+    ];
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to get style quiz: ${error}`);
-    }
-
-    return response.json();
+    return {
+      questions,
+      totalQuestions: questions.length,
+      estimatedTime: '2 minutes',
+      description: 'Answer 7 quick questions to discover your style archetype',
+    };
   }
 
   async submitStyleQuiz(answers: { questionId: number; answer: string }[]): Promise<StyleQuizResult> {
