@@ -9417,6 +9417,66 @@ app.get('/api/outfit-calendar/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// Get outfits for a specific date (by-date endpoint)
+app.get('/api/outfit-calendar/by-date/:date', authMiddleware, async (req, res) => {
+  try {
+    let { date } = req.params;
+    
+    // Normalize date to YYYY-MM-DD format
+    let normalizedDate = date;
+    if (date.includes('/')) {
+      // Handle M/D/YYYY or MM/DD/YYYY format
+      const parts = date.split('/');
+      if (parts.length === 3) {
+        const month = parts[0].padStart(2, '0');
+        const day = parts[1].padStart(2, '0');
+        const year = parts[2];
+        normalizedDate = `${year}-${month}-${day}`;
+      }
+    } else if (date.includes('-') && !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Handle other dash formats like D-M-YYYY
+      const parts = date.split('-');
+      if (parts.length === 3) {
+        const year = parts[2] || parts[0];
+        const month = parts[1].padStart(2, '0');
+        const day = parts[0].padStart(2, '0');
+        if (year.length === 4) {
+          normalizedDate = `${year}-${month}-${day}`;
+        }
+      }
+    }
+    
+    console.log(`[OutfitCalendar] Fetching outfits for date: ${date} (normalized: ${normalizedDate}) for user: ${req.userId}`);
+    
+    const result = await pool.query(
+      `SELECT * FROM outfit_calendar 
+       WHERE user_id = $1 AND date::text LIKE $2
+       ORDER BY created_at DESC`,
+      [req.userId, `${normalizedDate}%`]
+    );
+    
+    const outfits = result.rows.map(row => ({
+      id: row.id,
+      date: row.date,
+      itemIds: row.item_ids || [],
+      eventName: row.event_name,
+      eventType: row.event_type,
+      notes: row.notes,
+      wasWorn: row.was_worn,
+    }));
+    
+    console.log(`[OutfitCalendar] Found ${outfits.length} outfit(s) for date`);
+    
+    res.json({
+      success: true,
+      outfits,
+    });
+  } catch (error) {
+    console.error('[OutfitCalendar] GET /by-date/:date error:', error);
+    res.status(500).json({ error: 'Failed to fetch outfits for date' });
+  }
+});
+
 app.put('/api/outfit-calendar/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;

@@ -3172,6 +3172,22 @@ class ApiService {
     });
   }
 
+  async getOutfitForDate(date: Date) {
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return this.request<{
+      success: boolean;
+      outfits: Array<{
+        id: string;
+        date: string;
+        itemIds: string[];
+        eventName: string;
+        eventType: string;
+        notes?: string;
+        wasWorn: boolean;
+      }>;
+    }>(`/api/outfit-calendar/by-date/${dateStr}`);
+  }
+
   // Mix & Match Outfit Builder
   async saveMixAndMatchOutfit(data: {
     name: string;

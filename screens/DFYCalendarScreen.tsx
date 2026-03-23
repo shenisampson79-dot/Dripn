@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -21,6 +21,7 @@ import { Spacing, BorderRadius } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { DFYTier, StylistId } from '@/services/DFYService';
+import apiService from '@/services/ApiService';
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -69,6 +70,8 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [showOutfitDetail, setShowOutfitDetail] = useState(false);
   const [selectedOutfit, setSelectedOutfit] = useState<DFYCalendarOutfit | null>(null);
+  const [calendarOutfits, setCalendarOutfits] = useState<DFYCalendarOutfit[]>([]);
+  const [loadingDate, setLoadingDate] = useState<string | null>(null);
 
   const totalDays = tier === 'lite' ? 14 : 30;
   const startDate = useMemo(() => {
@@ -77,33 +80,48 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     return d;
   }, []);
 
-  const mockOutfits = useMemo((): DFYCalendarOutfit[] => {
-    return Array.from({ length: totalDays }, (_, i) => {
-      const date = new Date(startDate);
-      date.setDate(date.getDate() + i);
-      return {
-        id: `outfit-${i + 1}`,
-        date: date.toISOString(),
-        title: `Day ${i + 1} Look`,
-        stylistNote: i % 3 === 0 
-          ? "This look balances comfort and style perfectly." 
-          : i % 3 === 1 
-          ? "A versatile outfit that works for multiple occasions."
-          : "Clean lines with a touch of personality.",
-        stylistId: 'ruby' as StylistId,
-        weatherNote: i % 4 === 0 ? 'Light layers recommended' : undefined,
-        wasWorn: i < 2,
-        alternativesCount: Math.floor(Math.random() * 3) + 1,
-      };
-    });
-  }, [totalDays, startDate]);
+  // Fetch outfit for a specific date from backend
+  const fetchOutfitForDate = async (date: Date) => {
+    try {
+      setLoadingDate(formatDateKey(date));
+      const result = await apiService.getOutfitForDate(date);
+      if (result.success && result.outfits && result.outfits.length > 0) {
+        const outfit = result.outfits[0];
+        const dfiOutfit: DFYCalendarOutfit = {
+          id: outfit.id,
+          date: outfit.date,
+          title: outfit.eventName || 'Outfit',
+          stylistNote: outfit.notes || '',
+          stylistId: 'ruby' as StylistId,
+          wasWorn: outfit.wasWorn,
+          alternativesCount: 0,
+        };
+        setCalendarOutfits(prev => {
+          const idx = prev.findIndex(o => o.id === dfiOutfit.id);
+          if (idx >= 0) {
+            const newList = [...prev];
+            newList[idx] = dfiOutfit;
+            return newList;
+          }
+          return [...prev, dfiOutfit];
+        });
+        return dfiOutfit;
+      }
+    } catch (err) {
+      console.log('Error fetching outfit for date:', err);
+    } finally {
+      setLoadingDate(null);
+    }
+    return undefined;
+  };
 
-  const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-  const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
-
+  // Format date as YYYY-MM-DD
   const formatDateKey = (date: Date) => {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
+
+  const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
   const calendarDays = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -119,14 +137,23 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
 
   const getOutfitForDate = (date: Date): DFYCalendarOutfit | undefined => {
     const dateKey = formatDateKey(date);
-    return mockOutfits.find(o => o.date.split('T')[0] === dateKey);
+    return calendarOutfits.find(o => {
+      const oDateKey = formatDateKey(new Date(o.date));
+      return oDateKey === dateKey;
+    });
   };
 
-  const handleDayPress = (day: number) => {
+  const handleDayPress = async (day: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     setSelectedDate(date);
-    const outfit = getOutfitForDate(date);
+    
+    // First check if we already have this outfit in cache
+    let outfit = getOutfitForDate(date);
+    if (!outfit) {
+      // If not, fetch from backend
+      outfit = await fetchOutfitForDate(date);
+    }
     if (outfit) {
       setSelectedOutfit(outfit);
     }
@@ -271,7 +298,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
 
   const renderListView = () => (
     <FlatList
-      data={mockOutfits}
+      data={calendarOutfits}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.listContent}
       showsVerticalScrollIndicator={false}
