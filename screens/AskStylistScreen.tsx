@@ -99,7 +99,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   const { translations } = useTranslations();
   const insets = useSafeAreaInsets();
 
-  const [step, setStep] = useState<'type' | 'upload' | 'event-questions' | 'context' | 'response' | 'colour-insights'>('type');
+  const [step, setStep] = useState<'type' | 'upload' | 'event-questions' | 'context' | 'response'>('type');
   const [selectedType, setSelectedType] = useState<DecisionType | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [contextNotes, setContextNotes] = useState("");
@@ -547,42 +547,6 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
             )}
           </Pressable>
         ))}
-
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setStep('colour-insights');
-          }}
-          style={({ pressed }) => [
-            styles.typeCard,
-            pressed && styles.typeCardPressed,
-          ]}
-        >
-          {({ pressed }) => (
-            <LinearGradient
-              colors={pressed
-                ? ['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.15)']
-                : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-              style={[
-                styles.typeCardGradient,
-                pressed && styles.typeCardGradientPressed,
-              ]}
-            >
-              <View style={[
-                styles.typeIconContainer,
-                pressed && { backgroundColor: 'rgba(255,255,255,0.25)' }
-              ]}>
-                <Feather name="droplet" size={24} color="#FFFFFF" />
-              </View>
-              <ThemedText type="body" style={styles.typeLabel}>
-                Colour Insights
-              </ThemedText>
-              <ThemedText type="small" style={styles.typeDescription}>
-                Your palette, trends & harmony
-              </ThemedText>
-            </LinearGradient>
-          )}
-        </Pressable>
       </View>
 
       {accessStatus ? (
@@ -1487,7 +1451,6 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
 
         <View style={styles.content}>
           {step === 'type' && renderTypeSelection()}
-          {step === 'colour-insights' && renderColourInsights()}
           {step === 'upload' && renderUpload()}
           {step === 'event-questions' && renderEventQuestions()}
           {step === 'context' && renderContext()}
