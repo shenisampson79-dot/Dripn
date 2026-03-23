@@ -9340,6 +9340,10 @@ Respond ONLY with valid JSON, no markdown:
     }
 
     const selectedIds = (parsed.selectedIds || []).filter(id => wardrobeItems.some(w => w.id === id));
+    console.log(`[GenerateOutfit] AI returned IDs: ${JSON.stringify(parsed.selectedIds)}`);
+    console.log(`[GenerateOutfit] Available wardrobe IDs: ${wardrobeItems.map(w => w.id).join(', ')}`);
+    console.log(`[GenerateOutfit] Matched IDs after filter: ${selectedIds.join(', ') || 'NONE'}`);
+    
     const selectedItems = selectedIds.map(id => {
       const w = wardrobeItems.find(w => w.id === id);
       return { id: w.id, name: w.name, imageUri: w.image_url || null, category: w.category, color: w.color || '' };
