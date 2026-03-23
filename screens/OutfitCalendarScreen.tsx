@@ -58,12 +58,12 @@ function StackedOutfitPreview({ outfitItems }: StackedOutfitPreviewProps) {
   const { theme, isDark } = useTheme();
 
   const outerwear = outfitItems.filter(i => i.category === 'outerwear');
-  const tops = outfitItems.filter(i => ['tops', 'activewear', 'formal'].includes(i.category));
-  const bottoms = outfitItems.filter(i => ['bottoms', 'dresses'].includes(i.category));
+  const tops = outfitItems.filter(i => ['tops', 'activewear_tops', 'formal'].includes(i.category));
+  const bottoms = outfitItems.filter(i => ['bottoms', 'dresses', 'activewear_bottoms'].includes(i.category));
   const shoes = outfitItems.filter(i => i.category === 'shoes');
   const accessories = outfitItems.filter(i => ['bags', 'accessories'].includes(i.category));
   const others = outfitItems.filter(i =>
-    !['outerwear', 'tops', 'activewear', 'formal', 'bottoms', 'dresses', 'shoes', 'bags', 'accessories'].includes(i.category)
+    !['outerwear', 'tops', 'activewear_tops', 'activewear_bottoms', 'formal', 'bottoms', 'dresses', 'shoes', 'bags', 'accessories'].includes(i.category)
   );
 
   const slotBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';

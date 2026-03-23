@@ -75,7 +75,7 @@ For each item detected, provide:
 {
   "items": [
     {
-      "category": "tops" | "bottoms" | "dresses" | "outerwear" | "shoes" | "bags" | "accessories" | "activewear" | "swimwear" | "sleepwear" | "formal",
+      "category": "tops" | "bottoms" | "dresses" | "outerwear" | "shoes" | "bags" | "accessories" | "activewear_tops" | "activewear_bottoms" | "swimwear" | "sleepwear" | "formal",
       "color": "black" | "white" | "gray" | "navy" | "brown" | "beige" | "red" | "pink" | "orange" | "yellow" | "green" | "blue" | "purple" | "multicolor",
       "suggestedName": "Descriptive name for this specific item",
       "brand": (optional, if visible),
@@ -124,7 +124,7 @@ Extract all available product details:
   "currency": "USD" | "GBP" | "EUR" | etc.,
   "originalPrice": number (if on sale, original price),
   "description": "Product description",
-  "category": "tops" | "bottoms" | "dresses" | "outerwear" | "shoes" | "bags" | "accessories" | "activewear" | "swimwear" | "sleepwear" | "formal",
+  "category": "tops" | "bottoms" | "dresses" | "outerwear" | "shoes" | "bags" | "accessories" | "activewear_tops" | "activewear_bottoms" | "swimwear" | "sleepwear" | "formal",
   "color": "black" | "white" | "gray" | "navy" | "brown" | "beige" | "red" | "pink" | "orange" | "yellow" | "green" | "blue" | "purple" | "multicolor",
   "size": "size if mentioned",
   "material": "material/fabric if mentioned",
@@ -317,7 +317,7 @@ IMPORTANT:
 export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
   const startTime = Date.now();
   
-  const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+  const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
   const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
   const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
   const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
@@ -565,7 +565,7 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
 }
 
 export async function extractProductFromText(text: string): Promise<ProductLinkResult> {
-  const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+  const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
   const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
 
   try {
@@ -665,7 +665,7 @@ If you cannot determine a field, use null. For category and color, only use the 
 }
 
 export async function extractProductFromImage(imageUri: string): Promise<ProductLinkResult> {
-  const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+  const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
   const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
   
   const base64Image = await convertImageToBase64(imageUri);

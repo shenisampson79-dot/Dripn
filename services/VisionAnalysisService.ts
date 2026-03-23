@@ -31,7 +31,7 @@ const GARMENT_ANALYSIS_PROMPT = `You are a fashion expert analyzing an image of 
 
 Provide your analysis in this exact JSON format:
 {
-  "category": "tops" | "bottoms" | "dresses" | "outerwear" | "shoes" | "bags" | "accessories" | "activewear" | "swimwear" | "sleepwear" | "formal",
+  "category": "tops" | "bottoms" | "dresses" | "outerwear" | "shoes" | "bags" | "accessories" | "activewear_tops" | "activewear_bottoms" | "swimwear" | "sleepwear" | "formal",
   "color": "black" | "white" | "gray" | "navy" | "brown" | "beige" | "red" | "pink" | "orange" | "yellow" | "green" | "blue" | "purple" | "multicolor",
   "secondaryColor": (optional, same options as color),
   "suggestedName": "A descriptive name for this item (e.g., 'Navy Blazer', 'Floral Summer Dress')",
@@ -158,7 +158,7 @@ export async function analyzeGarmentImage(imageUri: string): Promise<GarmentAnal
     const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const analysis = JSON.parse(cleanedContent);
 
-    const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+    const validCategories: ClothingCategory[] = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
     const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
     const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
     const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];

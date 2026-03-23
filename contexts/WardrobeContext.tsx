@@ -16,7 +16,6 @@ export type ClothingCategory =
   | 'shoes' 
   | 'bags' 
   | 'accessories' 
-  | 'activewear'
   | 'activewear_tops'
   | 'activewear_bottoms'
   | 'swimwear'
@@ -205,9 +204,8 @@ export const CATEGORY_LABELS: Record<ClothingCategory, string> = {
   shoes: 'Shoes',
   bags: 'Bags',
   accessories: 'Accessories',
-  activewear: 'Activewear',
-  activewear_tops: 'Activewear Tops',
-  activewear_bottoms: 'Activewear Bottoms',
+  activewear_tops: 'Active Tops',
+  activewear_bottoms: 'Active Bottoms',
   swimwear: 'Swimwear',
   sleepwear: 'Sleepwear',
   formal: 'Formal',
@@ -258,7 +256,18 @@ function mapBackendItemToFrontend(row: any, imageCache: ImageCache): WardrobeIte
     id: row.id,
     userId: row.user_id,
     name: row.name || (meta as any).name || 'Untitled Item',
-    category: (row.category || (meta as any).category || 'tops') as ClothingCategory,
+    category: (() => {
+      const rawCat = row.category || (meta as any).category || 'tops';
+      if (rawCat === 'activewear') {
+        const n = (row.name || '').toLowerCase();
+        const topKw = ['jersey', 'singlet', 'vest', 'shirt', 'top', 'hoodie', 'zip', 'bra', 'tank', 'tee', 'pullover', 'sweatshirt'];
+        const bottomKw = ['pants', 'shorts', 'joggers', 'leggings', 'sweatpants', 'tights', 'track', 'capri', 'drawstring', 'bottom'];
+        if (topKw.some(k => n.includes(k))) return 'activewear_tops';
+        if (bottomKw.some(k => n.includes(k))) return 'activewear_bottoms';
+        return 'activewear_tops';
+      }
+      return rawCat;
+    })() as ClothingCategory,
     subcategory: row.subcategory || (meta as any).subcategory,
     color: (row.color || (meta as any).color || 'black') as ClothingColor,
     secondaryColor: (meta as any).secondaryColor,
@@ -379,6 +388,9 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
+      // Silently migrate any legacy 'activewear' items to the correct subcategory
+      apiService.post('/api/wardrobe/migrate-activewear', {}).catch(() => {});
+
       const imageCache = await getImageCache();
 
       // Load outfits and planned from local storage (they remain local-only)

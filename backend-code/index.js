@@ -7391,6 +7391,39 @@ app.post('/api/wardrobe/extract-clothing/resilient', async (req, res) => {
   }
 });
 
+// Migrate legacy 'activewear' items to activewear_tops or activewear_bottoms
+app.post('/api/wardrobe/migrate-activewear', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { rows } = await pool.query(
+      `SELECT id, name, metadata FROM wardrobe_items WHERE user_id = $1 AND category = 'activewear'`,
+      [userId]
+    );
+    if (rows.length === 0) return res.json({ success: true, migrated: 0 });
+
+    const topKw = ['jersey', 'singlet', 'vest', 'shirt', 'top', 'hoodie', 'zip', 'bra', 'tank', 'tee', 'pullover', 'sweatshirt', 'jacket'];
+    const bottomKw = ['pants', 'shorts', 'joggers', 'leggings', 'sweatpants', 'tights', 'track', 'capri', 'drawstring', 'bottom'];
+    let migrated = 0;
+    for (const row of rows) {
+      const nameLower = (row.name || '').toLowerCase();
+      const metaName = ((row.metadata || {}).description || '').toLowerCase();
+      const combined = `${nameLower} ${metaName}`;
+      const isTop = topKw.some(k => combined.includes(k));
+      const isBottom = !isTop && bottomKw.some(k => combined.includes(k));
+      const newCategory = isBottom ? 'activewear_bottoms' : 'activewear_tops';
+      await pool.query(
+        `UPDATE wardrobe_items SET category = $1 WHERE id = $2`,
+        [newCategory, row.id]
+      );
+      migrated++;
+    }
+    res.json({ success: true, migrated });
+  } catch (error) {
+    console.error('[MigrateActivewear] Error:', error);
+    res.status(500).json({ error: 'Migration failed' });
+  }
+});
+
 app.get('/api/wardrobe/digital-twin', authMiddleware, async (req, res) => {
   try {
     const wardrobeResult = await pool.query(
@@ -8900,12 +8933,22 @@ app.post('/api/wardrobe/analyze/resilient', async (req, res) => {
       belt: 'accessories', hat: 'accessories', scarf: 'accessories', watch: 'accessories', jewellery: 'accessories',
       jewelry: 'accessories',
       suit: 'formal', tuxedo: 'formal',
-      gym: 'activewear', sportswear: 'activewear', athletic: 'activewear',
+      jersey: 'activewear_tops', 'sports shirt': 'activewear_tops', 'athletic top': 'activewear_tops', 'gym top': 'activewear_tops', 'training top': 'activewear_tops',
+      gym: 'activewear_tops', athletic: 'activewear_tops',
+      sportswear: 'activewear_tops',
+      trackpants: 'activewear_bottoms', joggers: 'activewear_bottoms', leggings: 'activewear_bottoms',
+      sweatpants: 'activewear_bottoms', 'gym shorts': 'activewear_bottoms', 'running shorts': 'activewear_bottoms',
       loungewear: 'sleepwear', pyjamas: 'sleepwear', pajamas: 'sleepwear',
       swimsuit: 'swimwear', bikini: 'swimwear',
     };
-    const validCategories = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear', 'swimwear', 'sleepwear', 'formal'];
+    const validCategories = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
     let category = (raw.category || '').toLowerCase();
+    // Remap legacy 'activewear' to a subcategory based on item name hint
+    if (category === 'activewear') {
+      const nameHint = (raw.name || raw.suggestedName || raw.itemName || '').toLowerCase();
+      const bottomKw = ['pants', 'shorts', 'joggers', 'leggings', 'sweatpants', 'tights', 'track', 'capri', 'drawstring', 'running'];
+      category = bottomKw.some(k => nameHint.includes(k)) ? 'activewear_bottoms' : 'activewear_tops';
+    }
     if (!validCategories.includes(category)) {
       category = categoryMap[category] || category;
     }

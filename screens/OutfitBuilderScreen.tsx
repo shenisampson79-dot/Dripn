@@ -65,9 +65,10 @@ const REEL_ORDER: Array<{ key: ClothingCategory; label: string; icon: keyof type
   { key: 'tops',        label: 'Tops',         icon: 'sun' },
   { key: 'dresses',     label: 'Dresses',      icon: 'heart' },
   { key: 'formal',      label: 'Formal',       icon: 'star' },
-  { key: 'bottoms',     label: 'Bottoms',      icon: 'minus' },
-  { key: 'activewear',  label: 'Activewear',   icon: 'activity' },
-  { key: 'shoes',       label: 'Shoes',        icon: 'disc' },
+  { key: 'bottoms',          label: 'Bottoms',         icon: 'minus' },
+  { key: 'activewear_tops',  label: 'Active Tops',     icon: 'activity' },
+  { key: 'activewear_bottoms', label: 'Active Bottoms', icon: 'activity' },
+  { key: 'shoes',            label: 'Shoes',           icon: 'disc' },
   { key: 'bags',        label: 'Bags',         icon: 'shopping-bag' },
   { key: 'accessories', label: 'Accessories',  icon: 'watch' },
 ];
