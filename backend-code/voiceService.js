@@ -1,68 +1,303 @@
 const OpenAI = require('openai');
-const { getBestModel, getVoiceOptions } = require('./modelLifecycleService');
+const https = require('https');
+const { getBestModel } = require('./modelLifecycleService');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// All 4 stylists mapped to best-fit OpenAI TTS voices
-const STYLIST_VOICES = {
-  ruby: 'shimmer',  // Clear, optimistic — warm and encouraging
-  max: 'onyx',      // Deep, authoritative — direct and confident
-  ace: 'echo',      // Warm, conversational — laid-back and cool
-  ivy: 'fable',     // British, expressive — sophisticated and editorial
+// ============ ELEVENLABS MODEL ============
+const ELEVENLABS_MODEL = 'eleven_multilingual_v2';
+
+// ============ MARCH 16 VOICE CHARACTER MAPPINGS ============
+
+// RUBY — English: Tiffany | Italian: Rachel | Spanish: Glinda | French: Grace | German: Emily | Portuguese: Alice | All others: Jessica
+const RUBY_VOICES = {
+  en: 'x9leqC0AX0cmC5jtkq65',      // Tiffany (English all accents)
+  it: '21m00Tcm4TlvDq8ikWAM',      // Rachel (Italian)
+  es: 'z9fAnlkpzviPz146aGWa',      // Glinda (Spanish)
+  fr: 'pqHfZKP75CvOlQylNhV4',      // Grace (French)
+  de: 'jBpfuIE2acCO8z3wKNLl',      // Emily (German)
+  pt: 'Xb7hH8MSUJpSbSDYk0k2',      // Alice (Portuguese)
+  default: 'cgSgspJ2msm6clMCkdW9', // Jessica (Japanese, Korean, Mandarin, Arabic, Hindi, Dutch, Russian, Swedish, all others)
 };
 
-// Default speed per stylist (OpenAI TTS range: 0.25–4.0)
-const STYLIST_DEFAULT_SPEEDS = {
-  ruby: 0.95,  // Slightly warm/measured pace
-  max: 1.05,   // Slightly brisk and direct
-  ace: 0.95,   // Relaxed, conversational
-  ivy: 0.88,   // Measured, editorial
+// MAX — English by voice range: Josh(tenor) / Adam(baritone) / Arnold(bass) | Non-English: Daniel
+const MAX_ENGLISH_VOICES = {
+  tenor: 'TxGEqnHWrfWFTfGW9XjX',   // Josh
+  baritone: 'pNInz6obpgDQGcFmaJgB', // Adam
+  bass: 'VR6AewLTigWG4xSOukaG',     // Arnold
+  default: 'pNInz6obpgDQGcFmaJgB',  // Adam (baritone default)
+};
+const MAX_NON_ENGLISH_VOICE = 'onwK4e9ZLuTAKqWW03F9'; // Daniel
+
+// ACE — English: Callum | Non-English (all): Arnold
+const ACE_VOICES = {
+  en: 'N2lVS1w4EtoT3dr4eOWO',      // Callum (English all accents)
+  default: 'VR6AewLTigWG4xSOukaG', // Arnold (non-English all)
 };
 
-const RUBY_VOICE_SPEEDS = {
-  'soprano': 1.05,
-  'mezzo-soprano': 0.95,
-  'contralto': 0.88,
+// IVY — English: Charlotte | Italian: Manuela | All other non-English: Charlotte
+const IVY_VOICES = {
+  en: 'XB0fDUnXU5powFXDhCwa',      // Charlotte (English all accents)
+  it: 'oVJbgLwL0s5pk9e2U6QH',      // Manuela (Italian only)
+  default: 'XB0fDUnXU5powFXDhCwa', // Charlotte (all other non-English)
 };
 
-const MAX_VOICE_SPEEDS = {
-  'tenor': 1.1,
-  'baritone': 1.0,
-  'bass': 0.9,
+// ============ LANGUAGE CODE HELPERS ============
+
+const LANGUAGE_NAME_TO_CODE = {
+  english: 'en', italian: 'it', spanish: 'es', french: 'fr',
+  german: 'de', portuguese: 'pt', japanese: 'ja', korean: 'ko',
+  mandarin: 'zh', chinese: 'zh', arabic: 'ar', hindi: 'hi',
+  dutch: 'nl', russian: 'ru', swedish: 'sv', polish: 'pl',
+  turkish: 'tr', danish: 'da', finnish: 'fi', norwegian: 'no',
+  greek: 'el', hebrew: 'he', hungarian: 'hu', indonesian: 'id',
+  malay: 'ms', romanian: 'ro', thai: 'th', vietnamese: 'vi',
+  ukrainian: 'uk', czech: 'cs', slovak: 'sk',
 };
 
-const ACE_VOICE_SPEEDS = {
-  'tenor': 1.05,
-  'baritone': 0.95,
-  'bass': 0.88,
-};
-
-const IVY_VOICE_SPEEDS = {
-  'soprano': 0.92,
-  'mezzo-soprano': 0.88,
-  'contralto': 0.82,
-};
-
-function getSpeedForVoice(stylistId, voiceRange) {
-  if (!voiceRange) return STYLIST_DEFAULT_SPEEDS[stylistId] || 1.0;
-  if (stylistId === 'max') return MAX_VOICE_SPEEDS[voiceRange] || STYLIST_DEFAULT_SPEEDS.max;
-  if (stylistId === 'ace') return ACE_VOICE_SPEEDS[voiceRange] || STYLIST_DEFAULT_SPEEDS.ace;
-  if (stylistId === 'ivy') return IVY_VOICE_SPEEDS[voiceRange] || STYLIST_DEFAULT_SPEEDS.ivy;
-  return RUBY_VOICE_SPEEDS[voiceRange] || STYLIST_DEFAULT_SPEEDS.ruby;
+function normalizeLanguage(language) {
+  if (!language) return 'en';
+  const l = language.toLowerCase().trim();
+  if (l.length === 2 || l.length === 3) return l.substring(0, 2);
+  return LANGUAGE_NAME_TO_CODE[l] || 'en';
 }
 
-const VOICE_DESCRIPTIONS = {
-  alloy: 'Neutral and balanced',
-  echo: 'Warm and conversational',
-  fable: 'British and expressive',
-  onyx: 'Deep and authoritative',
-  nova: 'Warm and friendly',
-  shimmer: 'Clear and optimistic',
-};
+function isEnglish(langCode) {
+  return langCode === 'en' || langCode === 'en-gb' || langCode === 'en-us' || langCode === 'en-au';
+}
 
-// Intro phrases for all 4 stylists across 16 languages
+// ============ VOICE ID SELECTION ============
+
+function getVoiceId(stylistId, language, voiceRange) {
+  const lang = normalizeLanguage(language);
+  const english = isEnglish(lang);
+
+  switch ((stylistId || 'ruby').toLowerCase()) {
+    case 'ruby':
+      return RUBY_VOICES[lang] || RUBY_VOICES.default;
+
+    case 'max':
+      if (english) {
+        const range = (voiceRange || 'baritone').toLowerCase();
+        return MAX_ENGLISH_VOICES[range] || MAX_ENGLISH_VOICES.default;
+      }
+      return MAX_NON_ENGLISH_VOICE;
+
+    case 'ace':
+      return english ? ACE_VOICES.en : ACE_VOICES.default;
+
+    case 'ivy':
+      if (english) return IVY_VOICES.en;
+      return IVY_VOICES[lang] || IVY_VOICES.default;
+
+    default:
+      return RUBY_VOICES[lang] || RUBY_VOICES.default;
+  }
+}
+
+function getVoiceCharacterName(stylistId, language, voiceRange) {
+  const lang = normalizeLanguage(language);
+  const english = isEnglish(lang);
+
+  switch ((stylistId || 'ruby').toLowerCase()) {
+    case 'ruby':
+      if (english) return 'Tiffany';
+      const rubyNames = { it: 'Rachel', es: 'Glinda', fr: 'Grace', de: 'Emily', pt: 'Alice' };
+      return rubyNames[lang] || 'Jessica';
+    case 'max':
+      if (english) {
+        const range = (voiceRange || 'baritone').toLowerCase();
+        const maxNames = { tenor: 'Josh', baritone: 'Adam', bass: 'Arnold' };
+        return maxNames[range] || 'Adam';
+      }
+      return 'Daniel';
+    case 'ace':
+      return english ? 'Callum' : 'Arnold';
+    case 'ivy':
+      if (english) return 'Charlotte';
+      return lang === 'it' ? 'Manuela' : 'Charlotte';
+    default:
+      return 'Tiffany';
+  }
+}
+
+// ============ ECHO-FREE VOICE SETTINGS (new settings to keep) ============
+
+function isDeepVoiceRange(voiceRange) {
+  return voiceRange === 'bass' || voiceRange === 'contralto';
+}
+
+function getVoiceSettings(voiceRange) {
+  if (isDeepVoiceRange(voiceRange)) {
+    return {
+      stability: 0.60,
+      similarity_boost: 0.65,
+      style: 0.0,
+      use_speaker_boost: false,
+    };
+  }
+  return {
+    stability: 0.50,
+    similarity_boost: 0.60,
+    style: 0.0,
+    use_speaker_boost: false,
+  };
+}
+
+// ============ ELEVENLABS TTS API CALL ============
+
+function callElevenLabsTTS(text, voiceId, voiceSettings) {
+  return new Promise((resolve, reject) => {
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    if (!apiKey) {
+      return reject(new Error('ELEVENLABS_API_KEY not configured'));
+    }
+
+    const body = JSON.stringify({
+      text,
+      model_id: ELEVENLABS_MODEL,
+      voice_settings: voiceSettings,
+    });
+
+    const options = {
+      hostname: 'api.elevenlabs.io',
+      path: `/v1/text-to-speech/${voiceId}`,
+      method: 'POST',
+      headers: {
+        'Accept': 'audio/mpeg',
+        'Content-Type': 'application/json',
+        'xi-api-key': apiKey,
+        'Content-Length': Buffer.byteLength(body),
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => {
+        if (res.statusCode !== 200) {
+          const errBody = Buffer.concat(chunks).toString();
+          reject(new Error(`ElevenLabs TTS failed (${res.statusCode}): ${errBody.substring(0, 300)}`));
+        } else {
+          resolve(Buffer.concat(chunks));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+// ============ TEXT CLEANING ============
+
+function cleanTextForTTS(text) {
+  return text
+    .replace(/\*\*/g, '')
+    .replace(/\*/g, '')
+    .replace(/_/g, '')
+    .replace(/#{1,6}\s/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// ============ MAIN SYNTHESIS FUNCTION ============
+
+async function synthesizeSpeech(text, options = {}) {
+  const {
+    stylistId = 'ruby',
+    language = 'en',
+    voiceRange = null,
+    highQuality = true,
+  } = options;
+
+  const cleanText = cleanTextForTTS(text);
+  const voiceId = getVoiceId(stylistId, language, voiceRange);
+  const voiceSettings = getVoiceSettings(voiceRange);
+  const characterName = getVoiceCharacterName(stylistId, language, voiceRange);
+
+  console.log(`[VoiceService] ElevenLabs TTS → ${stylistId} | lang: ${normalizeLanguage(language)} | character: ${characterName} | voiceId: ${voiceId} | settings: stability=${voiceSettings.stability}, similarity=${voiceSettings.similarity_boost}`);
+
+  try {
+    const audioBuffer = await callElevenLabsTTS(cleanText, voiceId, voiceSettings);
+
+    return {
+      success: true,
+      audioBuffer,
+      voice: characterName,
+      voiceId,
+      modelUsed: ELEVENLABS_MODEL,
+      format: 'mp3',
+      textLength: cleanText.length,
+    };
+  } catch (error) {
+    console.error('[VoiceService] ElevenLabs synthesis error:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      audioBuffer: null,
+    };
+  }
+}
+
+// ============ TRANSCRIPTION (OpenAI Whisper — unchanged) ============
+
+async function transcribeAudio(audioBuffer, options = {}) {
+  const {
+    language = null,
+    mimeType = 'audio/webm',
+    prompt = 'Fashion, style, outfit, wardrobe, clothing, accessories',
+  } = options;
+
+  try {
+    const sttModel = await getBestModel('stt');
+    console.log(`[VoiceService] Transcribing with model: ${sttModel}`);
+
+    const filename = mimeType === 'audio/m4a' ? 'audio.m4a'
+      : mimeType === 'audio/mp4' ? 'audio.mp4'
+      : mimeType === 'audio/wav' ? 'audio.wav'
+      : mimeType === 'audio/mp3' ? 'audio.mp3'
+      : 'audio.webm';
+
+    const file = new File([audioBuffer], filename, { type: mimeType });
+
+    const transcriptionOptions = {
+      file,
+      model: sttModel,
+      prompt,
+      response_format: 'verbose_json',
+    };
+
+    if (language) {
+      transcriptionOptions.language = language;
+    }
+
+    const transcription = await openai.audio.transcriptions.create(transcriptionOptions);
+
+    return {
+      success: true,
+      text: transcription.text,
+      language: transcription.language,
+      duration: transcription.duration,
+      segments: transcription.segments,
+      modelUsed: sttModel,
+    };
+  } catch (error) {
+    console.error('[VoiceService] Transcription error:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      text: null,
+    };
+  }
+}
+
+// ============ VOICE PREVIEW (intro phrases per language) ============
+
 const VOICE_PREVIEW_PHRASES = {
   ruby: {
     English: "Hi there! I'm Ruby, your personal stylist. I'm warm, encouraging, and I love helping you discover your best style. Let me guide your fashion journey!",
@@ -138,145 +373,55 @@ const VOICE_PREVIEW_PHRASES = {
   },
 };
 
-async function transcribeAudio(audioBuffer, options = {}) {
-  const {
-    language = null,
-    mimeType = 'audio/webm',
-    prompt = 'Fashion, style, outfit, wardrobe, clothing, accessories',
-  } = options;
-
-  try {
-    const sttModel = await getBestModel('stt');
-    console.log(`[VoiceService] Transcribing with model: ${sttModel}`);
-
-    const filename = mimeType === 'audio/m4a' ? 'audio.m4a'
-      : mimeType === 'audio/mp4' ? 'audio.mp4'
-      : mimeType === 'audio/wav' ? 'audio.wav'
-      : mimeType === 'audio/mp3' ? 'audio.mp3'
-      : 'audio.webm';
-
-    const file = new File([audioBuffer], filename, { type: mimeType });
-
-    const transcriptionOptions = {
-      file,
-      model: sttModel,
-      prompt,
-      response_format: 'verbose_json',
+async function generateVoicePreview(stylistId, language = 'English', voiceRange = null, customText = null) {
+  const phrases = VOICE_PREVIEW_PHRASES[stylistId];
+  if (!phrases) {
+    return {
+      success: false,
+      error: `Unknown stylist: ${stylistId}. Valid options: ruby, max, ace, ivy`,
     };
+  }
 
-    if (language) {
-      transcriptionOptions.language = language;
+  const text = customText || phrases[language] || phrases['English'];
+  const langCode = normalizeLanguage(language);
+
+  console.log(`[VoiceService] Generating preview for ${stylistId} in ${language} (${langCode}), voiceRange: ${voiceRange}`);
+
+  return synthesizeSpeech(text, {
+    stylistId,
+    language: langCode,
+    voiceRange,
+    highQuality: true,
+  });
+}
+
+// ============ UTILITY FUNCTIONS ============
+
+function processVoiceMessage(audioBuffer, stylistId = 'ruby') {
+  return transcribeAudio(audioBuffer).then((transcription) => {
+    if (!transcription.success) {
+      return {
+        success: false,
+        error: transcription.error,
+        stage: 'transcription',
+      };
     }
-
-    const transcription = await openai.audio.transcriptions.create(transcriptionOptions);
-
     return {
       success: true,
-      text: transcription.text,
+      transcribedText: transcription.text,
       language: transcription.language,
       duration: transcription.duration,
-      segments: transcription.segments,
-      modelUsed: sttModel,
+      stylistId,
     };
-  } catch (error) {
-    console.error('[VoiceService] Transcription error:', error.message);
-    return {
-      success: false,
-      error: error.message,
-      text: null,
-    };
-  }
-}
-
-async function synthesizeSpeech(text, options = {}) {
-  const {
-    stylistId = 'ruby',
-    voice = null,
-    speed = null,
-    highQuality = true,
-    voiceRange = null,
-  } = options;
-
-  try {
-    const selectedVoice = voice || STYLIST_VOICES[stylistId] || 'nova';
-    const selectedSpeed = speed !== null ? speed : getSpeedForVoice(stylistId, voiceRange);
-    const ttsModel = highQuality ? 'tts-1-hd' : 'tts-1';
-
-    console.log(`[VoiceService] Synthesizing speech for ${stylistId} — model: ${ttsModel}, voice: ${selectedVoice}, speed: ${selectedSpeed}`);
-
-    const cleanText = text
-      .replace(/\*\*/g, '')
-      .replace(/\*/g, '')
-      .replace(/_/g, '')
-      .replace(/#{1,6}\s/g, '')
-      .replace(/\n{3,}/g, '\n\n');
-
-    const response = await openai.audio.speech.create({
-      model: ttsModel,
-      voice: selectedVoice,
-      input: cleanText,
-      speed: Math.max(0.25, Math.min(4.0, selectedSpeed)),
-      response_format: 'mp3',
-    });
-
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    return {
-      success: true,
-      audioBuffer: buffer,
-      voice: selectedVoice,
-      modelUsed: ttsModel,
-      format: 'mp3',
-      textLength: cleanText.length,
-    };
-  } catch (error) {
-    console.error('[VoiceService] Speech synthesis error:', error.message);
-    return {
-      success: false,
-      error: error.message,
-      audioBuffer: null,
-    };
-  }
-}
-
-function getVoiceForStylist(stylistId) {
-  return STYLIST_VOICES[stylistId] || 'nova';
-}
-
-function getAllVoices() {
-  return Object.entries(VOICE_DESCRIPTIONS).map(([id, description]) => ({
-    id,
-    description,
-    isStylistVoice: Object.values(STYLIST_VOICES).includes(id),
-  }));
-}
-
-async function processVoiceMessage(audioBuffer, stylistId = 'ruby') {
-  const transcription = await transcribeAudio(audioBuffer);
-  
-  if (!transcription.success) {
-    return {
-      success: false,
-      error: transcription.error,
-      stage: 'transcription',
-    };
-  }
-
-  return {
-    success: true,
-    transcribedText: transcription.text,
-    language: transcription.language,
-    duration: transcription.duration,
-    stylistId,
-  };
+  });
 }
 
 async function createVoiceResponse(responseText, stylistId = 'ruby', options = {}) {
   const synthesis = await synthesizeSpeech(responseText, {
     stylistId,
+    language: options.language || 'en',
+    voiceRange: options.voiceRange || null,
     highQuality: options.highQuality !== false,
-    speed: options.speed || null,
   });
 
   if (!synthesis.success) {
@@ -295,27 +440,28 @@ async function createVoiceResponse(responseText, stylistId = 'ruby', options = {
   };
 }
 
-async function generateVoicePreview(stylistId, language = 'English', voiceRange = null, customText = null) {
-  const phrases = VOICE_PREVIEW_PHRASES[stylistId];
-  if (!phrases) {
-    return {
-      success: false,
-      error: `Unknown stylist: ${stylistId}. Valid options: ruby, max, ace, ivy`,
-    };
-  }
+function getVoiceForStylist(stylistId) {
+  return getVoiceCharacterName(stylistId, 'en', null);
+}
 
-  const text = customText || phrases[language] || phrases['English'];
-  const voice = STYLIST_VOICES[stylistId] || 'shimmer';
-  const speed = getSpeedForVoice(stylistId, voiceRange);
-
-  console.log(`[VoiceService] Generating preview for ${stylistId} in ${language}, voice: ${voice}, speed: ${speed}`);
-
-  return synthesizeSpeech(text, {
-    stylistId,
-    voice,
-    speed,
-    highQuality: true,
-  });
+function getAllVoices() {
+  return [
+    { id: 'tiffany', description: 'Ruby — English (gritty, husky)', stylist: 'ruby', lang: 'en' },
+    { id: 'rachel', description: 'Ruby — Italian', stylist: 'ruby', lang: 'it' },
+    { id: 'glinda', description: 'Ruby — Spanish', stylist: 'ruby', lang: 'es' },
+    { id: 'grace', description: 'Ruby — French', stylist: 'ruby', lang: 'fr' },
+    { id: 'emily', description: 'Ruby — German', stylist: 'ruby', lang: 'de' },
+    { id: 'alice', description: 'Ruby — Portuguese', stylist: 'ruby', lang: 'pt' },
+    { id: 'jessica', description: 'Ruby — All other languages', stylist: 'ruby', lang: 'other' },
+    { id: 'josh', description: 'Max — English Tenor', stylist: 'max', lang: 'en', range: 'tenor' },
+    { id: 'adam', description: 'Max — English Baritone', stylist: 'max', lang: 'en', range: 'baritone' },
+    { id: 'arnold', description: 'Max — English Bass', stylist: 'max', lang: 'en', range: 'bass' },
+    { id: 'daniel', description: 'Max — All non-English', stylist: 'max', lang: 'other' },
+    { id: 'callum', description: 'Ace — English', stylist: 'ace', lang: 'en' },
+    { id: 'arnold', description: 'Ace — All non-English', stylist: 'ace', lang: 'other' },
+    { id: 'charlotte', description: 'Ivy — English & most languages', stylist: 'ivy', lang: 'en' },
+    { id: 'manuela', description: 'Ivy — Italian', stylist: 'ivy', lang: 'it' },
+  ];
 }
 
 function getSupportedLanguages() {
@@ -326,12 +472,13 @@ module.exports = {
   transcribeAudio,
   synthesizeSpeech,
   getVoiceForStylist,
+  getVoiceId,
+  getVoiceCharacterName,
+  getVoiceSettings,
   getAllVoices,
   processVoiceMessage,
   createVoiceResponse,
   generateVoicePreview,
   getSupportedLanguages,
-  STYLIST_VOICES,
-  VOICE_DESCRIPTIONS,
   VOICE_PREVIEW_PHRASES,
 };

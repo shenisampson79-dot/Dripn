@@ -5604,16 +5604,16 @@ app.post('/api/ai/transcribe', authMiddleware, async (req, res) => {
 
 app.post('/api/ai/speak', authMiddleware, async (req, res) => {
   try {
-    const { text, voice, stylistId, speed } = req.body;
+    const { text, stylistId, language, voiceRange } = req.body;
 
     if (!text || typeof text !== 'string') {
       return res.status(400).json({ error: 'text is required' });
     }
 
     const result = await synthesizeSpeech(text, {
-      voice,
       stylistId: stylistId || 'ruby',
-      speed: speed || null,
+      language: language || 'en',
+      voiceRange: voiceRange || null,
       highQuality: true,
     });
 
@@ -5743,9 +5743,11 @@ app.post('/api/ai/voice-chat', authMiddleware, async (req, res) => {
     }
     console.log(`[VoiceChat] ${persona.name} responded: "${aiText.substring(0, 80)}..."`);
 
-    // 4. Synthesize AI response → speech
+    // 4. Synthesize AI response → speech (use detected language for voice character selection)
+    const detectedLanguage = transcription.language || 'en';
     const synthesis = await synthesizeSpeech(aiText, {
       stylistId,
+      language: detectedLanguage,
       highQuality: true,
       voiceRange,
     });
@@ -5895,14 +5897,17 @@ app.post('/api/ai/voice-message', authMiddleware, async (req, res) => {
 
 app.post('/api/ai/voice-response', authMiddleware, async (req, res) => {
   try {
-    const { textResponse, stylist, stylistId, speed } = req.body;
+    const { textResponse, stylist, stylistId, language, voiceRange } = req.body;
     const resolvedStylistId = stylist || stylistId || 'ruby';
 
     if (!textResponse || typeof textResponse !== 'string') {
       return res.status(400).json({ error: 'textResponse is required' });
     }
 
-    const result = await createVoiceResponse(textResponse, resolvedStylistId, { speed: speed || null });
+    const result = await createVoiceResponse(textResponse, resolvedStylistId, {
+      language: language || 'en',
+      voiceRange: voiceRange || null,
+    });
 
     if (!result.success) {
       return res.status(500).json({ error: result.error || 'Voice synthesis failed' });
