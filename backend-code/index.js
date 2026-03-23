@@ -1421,6 +1421,40 @@ app.post('/api/dfy/generate-delivery', authMiddleware, async (req, res) => {
     const { tier = 'lite', stylistId = 'ruby' } = req.body;
     const outfitCount = tier === 'lite' ? 14 : 30;
 
+    // Fetch user profile for lifestyle context
+    const userResult = await pool.query(
+      'SELECT profile_data FROM users WHERE id = $1',
+      [req.userId]
+    );
+    const profileData = userResult.rows[0]?.profile_data || {};
+
+    // Extract lifestyle-relevant data from onboarding profile
+    const userGender = profileData.gender || '';
+    const userGoals = profileData.goals || profileData.styleGoals || [];
+    const userDressCode = profileData.dressCode || profileData.primaryDressCode || '';
+    const userLifestyle = profileData.lifestyle || profileData.occupation || profileData.dailyLife || '';
+    const userPreferences = profileData.extendedPreferences || profileData.stylePreferences || {};
+    const userLocation = profileData.location || profileData.country || '';
+
+    // Build lifestyle context string for the AI
+    const lifestyleLines = [];
+    if (userGender) lifestyleLines.push(`Gender: ${userGender}`);
+    if (userLifestyle) lifestyleLines.push(`Lifestyle/Occupation: ${userLifestyle}`);
+    if (userDressCode) lifestyleLines.push(`Primary dress code: ${userDressCode}`);
+    if (Array.isArray(userGoals) && userGoals.length > 0) lifestyleLines.push(`Style goals: ${userGoals.join(', ')}`);
+    if (userLocation) lifestyleLines.push(`Location/Region: ${userLocation}`);
+    if (userPreferences && Object.keys(userPreferences).length > 0) {
+      const prefSummary = Object.entries(userPreferences).slice(0, 5).map(([k, v]) => `${k}: ${v}`).join(', ');
+      lifestyleLines.push(`Style preferences: ${prefSummary}`);
+    }
+    const lifestyleContext = lifestyleLines.length > 0 ? lifestyleLines.join('\n') : null;
+
+    // Build lifestyle-aware occasion sequence based on user profile
+    const isStudent = userLifestyle && /student|university|college|campus/i.test(userLifestyle);
+    const isWFH = userLifestyle && /work.from.home|wfh|remote|freelance|home.office/i.test(userLifestyle);
+    const isOfficeWorker = userDressCode && /office|business|corporate|formal|smart/i.test(userDressCode);
+    const isMultiLifestyle = userGoals && userGoals.length > 2;
+
     const wardrobeResult = await pool.query(
       `SELECT id, name, category, color, brand, image_url FROM wardrobe_items WHERE user_id = $1 ORDER BY created_at DESC LIMIT 60`,
       [req.userId]
@@ -1470,7 +1504,74 @@ app.post('/api/dfy/generate-delivery', authMiddleware, async (req, res) => {
     const maxTopRepeats = Math.ceil(outfitCount / Math.max(topNumbers.length, 1)) + 1;
     const maxItemRepeats = Math.ceil(outfitCount / 3);
 
-    const occasionSequence = [
+    // Build lifestyle-appropriate occasion sequence
+    const studentOccasions = [
+      { occasion: 'casual_day',  label: 'a relaxed campus outfit for lectures and study groups' },
+      { occasion: 'casual_day',  label: 'a cool, put-together look for university events' },
+      { occasion: 'weekend',     label: 'a stylish weekend brunch look with friends' },
+      { occasion: 'casual_day',  label: 'a comfortable yet sharp outfit for a study day' },
+      { occasion: 'date_night',  label: 'a confident, social hangout look for the evening' },
+      { occasion: 'todays_look', label: 'a trend-forward, street-style campus outfit' },
+      { occasion: 'casual_day',  label: 'an easy, off-duty look for a casual campus day' },
+      { occasion: 'weekend',     label: 'a playful, colour-led weekend outfit' },
+      { occasion: 'casual_day',  label: 'a fresh, minimal look for a full day of lectures' },
+      { occasion: 'date_night',  label: 'a stylish evening look for a social event' },
+      { occasion: 'casual_day',  label: 'a comfortable, considered outfit for a study group' },
+      { occasion: 'todays_look', label: 'an editorial, magazine-worthy campus look' },
+      { occasion: 'weekend',     label: 'a relaxed, resort-influenced weekend outfit' },
+      { occasion: 'casual_day',  label: 'a clean, tonal dressing moment for university' },
+      { occasion: 'date_night',  label: 'a sleek, confident look for an evening event' },
+      { occasion: 'casual_day',  label: 'an effortless, creative campus outfit' },
+      { occasion: 'weekend',     label: 'a brunch-ready, effortlessly chic weekend look' },
+      { occasion: 'todays_look', label: 'a bold, street-culture-inspired outfit' },
+      { occasion: 'casual_day',  label: 'a polished, smart-casual look for a presentation' },
+      { occasion: 'weekend',     label: 'a relaxed, easy Friday outfit' },
+    ];
+    const wfhOccasions = [
+      { occasion: 'casual_day',  label: 'a comfortable yet presentable work-from-home outfit' },
+      { occasion: 'work_outfit', label: 'a polished look that transitions seamlessly to video calls' },
+      { occasion: 'casual_day',  label: 'a relaxed home look with an elevated casual feel' },
+      { occasion: 'weekend',     label: 'a stylish, easy weekend brunch outfit' },
+      { occasion: 'work_outfit', label: 'a smart-casual WFH outfit that still feels professional' },
+      { occasion: 'casual_day',  label: 'a comfortable, off-duty home look with style' },
+      { occasion: 'todays_look', label: 'a trend-forward, elevated casual look' },
+      { occasion: 'work_outfit', label: 'a clean, modern look for an important virtual meeting' },
+      { occasion: 'weekend',     label: 'a laid-back, colour-led weekend outfit' },
+      { occasion: 'casual_day',  label: 'a minimal, cosy WFH outfit with intention' },
+      { occasion: 'date_night',  label: 'a confident, put-together evening look' },
+      { occasion: 'work_outfit', label: 'a sharp WFH outfit with boardroom energy' },
+      { occasion: 'casual_day',  label: 'a relaxed tonal dressing moment for a quiet WFH day' },
+      { occasion: 'weekend',     label: 'a brunch-ready, effortlessly chic weekend look' },
+      { occasion: 'work_outfit', label: 'a versatile, smart-casual end-of-week look' },
+      { occasion: 'casual_day',  label: 'an easy, creative home-office outfit' },
+      { occasion: 'date_night',  label: 'a sleek, sophisticated evening look' },
+      { occasion: 'todays_look', label: 'an editorial, magazine-worthy casual outfit' },
+      { occasion: 'work_outfit', label: 'a polished, focused WFH outfit' },
+      { occasion: 'weekend',     label: 'a resort-influenced, relaxed weekend outfit' },
+    ];
+    const officeOccasions = [
+      { occasion: 'work_outfit', label: 'a sharp, boardroom-ready power outfit' },
+      { occasion: 'work_outfit', label: 'a polished, client-facing business look' },
+      { occasion: 'work_outfit', label: 'a clean, modern smart-casual office outfit' },
+      { occasion: 'weekend',     label: 'a stylish, easy weekend look' },
+      { occasion: 'work_outfit', label: 'a confident, tailored presentation outfit' },
+      { occasion: 'work_outfit', label: 'a refined, business-casual mid-week look' },
+      { occasion: 'date_night',  label: 'a sleek, sophisticated evening outfit' },
+      { occasion: 'work_outfit', label: 'a polished, statement office look' },
+      { occasion: 'work_outfit', label: 'a clean, structured Monday morning outfit' },
+      { occasion: 'weekend',     label: 'a relaxed, off-duty weekend look' },
+      { occasion: 'work_outfit', label: 'a smart-casual Friday office outfit' },
+      { occasion: 'work_outfit', label: 'an elevated, business-casual midweek look' },
+      { occasion: 'casual_day',  label: 'a relaxed, minimal weekend casual look' },
+      { occasion: 'work_outfit', label: 'a power-dressing Thursday boardroom outfit' },
+      { occasion: 'work_outfit', label: 'a versatile, smart office look' },
+      { occasion: 'date_night',  label: 'a confident, stylish evening look' },
+      { occasion: 'work_outfit', label: 'a refined, tailored end-of-week outfit' },
+      { occasion: 'weekend',     label: 'a brunch-ready, effortlessly chic weekend look' },
+      { occasion: 'work_outfit', label: 'a crisp, intentional Monday restart outfit' },
+      { occasion: 'work_outfit', label: 'a polished, meeting-ready professional look' },
+    ];
+    const defaultOccasions = [
       { occasion: 'casual_day',  label: 'a relaxed, effortless casual day look' },
       { occasion: 'work_outfit', label: 'a sharp, polished workday outfit' },
       { occasion: 'weekend',     label: 'a stylish, easy weekend look' },
@@ -1491,7 +1592,16 @@ app.post('/api/dfy/generate-delivery', authMiddleware, async (req, res) => {
       { occasion: 'todays_look', label: 'a high-fashion, magazine-ready look' },
       { occasion: 'work_outfit', label: 'a refined, tailored workday outfit' },
       { occasion: 'casual_day',  label: 'a fresh, everyday look with a creative edge' },
-    ].slice(0, outfitCount);
+    ];
+
+    // Select occasion pool based on lifestyle detection; repeat/cycle to fill outfitCount
+    const occasionPool = isStudent ? studentOccasions
+      : isWFH ? wfhOccasions
+      : isOfficeWorker ? officeOccasions
+      : defaultOccasions;
+
+    // Cycle through the pool to cover all outfitCount days
+    const occasionSequence = Array.from({ length: outfitCount }, (_, i) => occasionPool[i % occasionPool.length]);
 
     const topRotationInstruction = topNumbers.length > 0
       ? `TOPS ROTATION (CRITICAL): You have ${topNumbers.length} top${topNumbers.length > 1 ? 's' : ''} (item${topNumbers.length > 1 ? 's' : ''} ${topNumbers.join(', ')}). ALL of them MUST appear in the plan. No single top may appear more than ${maxTopRepeats} times. Spread them evenly — think of it like a fashion editor rotating hero pieces throughout an editorial shoot.`
@@ -1503,11 +1613,22 @@ app.post('/api/dfy/generate-delivery', authMiddleware, async (req, res) => {
       layerNumbers.length > 0 ? `Layers/outerwear to rotate: ${layerNumbers.join(', ')}` : '',
     ].filter(Boolean).join('\n');
 
+    // Lifestyle instruction paragraph for the prompt
+    const lifestyleInstruction = isStudent
+      ? `LIFESTYLE CONTEXT — This client is a STUDENT. Create outfits appropriate for campus life: lectures, study groups, university events, and social hangouts. Balance casual comfort with put-together looks. Avoid strictly formal office wear. Think relaxed-cool, campus-chic, and expressive.`
+      : isWFH
+      ? `LIFESTYLE CONTEXT — This client WORKS FROM HOME. Create comfortable yet presentable outfits that can transition to video calls. Mix relaxed home looks with elevated casual outfits. Avoid strictly formal office wear. Include some polished looks for virtual meetings or client calls.`
+      : isOfficeWorker
+      ? `LIFESTYLE CONTEXT — This client works in an OFFICE environment. Prioritise boardroom-ready, business casual, and client-facing looks. Include professional dress codes appropriate for presentations, meetings, and casual Fridays. Maintain a polished, intentional aesthetic throughout.`
+      : lifestyleContext
+      ? `CLIENT PROFILE — Use this to tailor the lookbook appropriately:\n${lifestyleContext}`
+      : '';
+
     const batchPrompt = `You are ${persona.name}, a world-class fashion stylist. Your voice: ${persona.voice}
 
 You are planning a complete ${outfitCount}-day curated lookbook for a client. Approach this like a senior fashion editor at Vogue or Net-a-Porter planning a seasonal editorial: every look must feel intentional, varied, and stylistically distinct.
 
-WARDROBE — use ITEM NUMBERS from this list:
+${lifestyleInstruction ? lifestyleInstruction + '\n' : ''}WARDROBE — use ITEM NUMBERS from this list:
 ${itemList}
 
 CATEGORY BREAKDOWN:
@@ -1522,7 +1643,7 @@ GLOBAL RULES (non-negotiable):
 4. Each look must feel visually different — vary: silhouette (fitted vs relaxed), colour mood (warm/cool/neutral/contrast), styling approach (layered, minimal, textured, tonal).
 5. Apply editorial styling intelligence: reference outfit formulas such as — oversized blazer + straight-leg jean + loafer, fitted ribbed knit + wide-leg trouser + mule, striped tee + midi skirt + ankle boot, leather jacket + slip dress + chunky sneaker. Adapt to what's in the wardrobe.
 6. Think about colour harmony per outfit: one hero colour, one neutral, one accent.
-7. Consider occasion appropriateness — a date night look should feel elevated; a casual day look should feel easy but considered.
+7. Consider occasion appropriateness — match each day's look to how the client actually lives their life.
 
 OCCASION PLAN (create exactly one look per day in this order):
 ${occasionSequence.map((o, i) => `Day ${i + 1}: ${o.label}`).join('\n')}
