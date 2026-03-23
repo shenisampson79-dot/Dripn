@@ -1443,79 +1443,266 @@ app.post('/api/dfy/generate-delivery', authMiddleware, async (req, res) => {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const chatModel = await getBestModel('chat');
 
+    // Build categorised item list and identify tops for rotation enforcement
+    const topCategories = ['top', 'tops', 'shirt', 'shirts', 'blouse', 'blouses', 't-shirt', 'tshirt', 'tee', 'tees', 'sweater', 'jumper', 'knitwear', 'knit', 'tank', 'vest', 'crop'];
+    const bottomCategories = ['trouser', 'trousers', 'jeans', 'skirt', 'shorts', 'bottom', 'bottoms', 'pants', 'leggings'];
+    const layerCategories = ['jacket', 'blazer', 'coat', 'cardigan', 'hoodie', 'outerwear', 'layer', 'layers'];
+
     const itemList = wardrobeItems
-      .map((i, idx) => `${idx + 1}. ${i.name} (${i.category}${i.color ? ', ' + i.color : ''})`)
+      .map((item, idx) => `${idx + 1}. [${item.category || 'Item'}] ${item.name}${item.color ? ' (' + item.color + ')' : ''}${item.brand ? ' – ' + item.brand : ''}`)
       .join('\n');
 
-    const occasionTypes = ['todays_look', 'work_outfit', 'casual_day', 'date_night', 'weekend'];
-    const occasionLabels = {
-      todays_look: 'a stylish everyday look for today',
-      work_outfit: 'a professional, polished work outfit',
-      date_night: 'a stylish, confident date night outfit',
-      casual_day: 'a comfortable, effortless casual day outfit',
-      weekend: 'a relaxed, stylish weekend look',
-    };
+    const topNumbers = wardrobeItems
+      .map((item, idx) => ({ num: idx + 1, cat: (item.category || '').toLowerCase() }))
+      .filter(({ cat }) => topCategories.some(t => cat.includes(t)))
+      .map(({ num }) => num);
 
-    const outfitPromises = Array.from({ length: outfitCount }, async (_, i) => {
-      const occasion = occasionTypes[i % occasionTypes.length];
-      const occasionLabel = occasionLabels[occasion] || 'a stylish outfit';
-      const dayNumber = i + 1;
+    const bottomNumbers = wardrobeItems
+      .map((item, idx) => ({ num: idx + 1, cat: (item.category || '').toLowerCase() }))
+      .filter(({ cat }) => bottomCategories.some(t => cat.includes(t)))
+      .map(({ num }) => num);
 
-      try {
-        const aiResponse = await openai.chat.completions.create({
-          model: chatModel,
-          messages: [{ role: 'user', content: `You are ${persona.name}, a fashion stylist. Your voice is ${persona.voice}\n\nCreate ${occasionLabel} for Day ${dayNumber} of a curated ${outfitCount}-day style plan.\n\nWardrobe (use item numbers from this list):\n${itemList}\n\nSelect 2-5 items by their NUMBER (1, 2, 3, etc) that work together. Write a short stylistMessage in your voice (1-2 sentences, warm and personal).\n\nRespond ONLY with valid JSON:\n{"selectedItemNumbers": [1, 2], "vibeLabel": "1-3 word vibe", "stylistMessage": "Your personal message"}` }],
-          max_completion_tokens: 350,
-          temperature: 0.85,
-        });
+    const layerNumbers = wardrobeItems
+      .map((item, idx) => ({ num: idx + 1, cat: (item.category || '').toLowerCase() }))
+      .filter(({ cat }) => layerCategories.some(t => cat.includes(t)))
+      .map(({ num }) => num);
 
-        const raw = aiResponse.choices[0]?.message?.content?.trim() || '';
-        const jsonMatch = raw.match(/\{[\s\S]*\}/);
-        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+    const maxTopRepeats = Math.ceil(outfitCount / Math.max(topNumbers.length, 1)) + 1;
+    const maxItemRepeats = Math.ceil(outfitCount / 3);
 
-        // Convert item numbers (1-indexed) back to wardrobe items (0-indexed array)
-        const selectedNumbers = (parsed.selectedItemNumbers || []).filter(n => typeof n === 'number' && n > 0 && n <= wardrobeItems.length);
-        const selectedItems = selectedNumbers.map(num => {
-          const w = wardrobeItems[num - 1]; // Convert 1-indexed to 0-indexed
-          return { 
-            id: w.id, 
-            name: w.name, 
-            imageUri: w.image_url || null, 
-            category: w.category, 
-            color: w.color || '' 
+    const occasionSequence = [
+      { occasion: 'casual_day',  label: 'a relaxed, effortless casual day look' },
+      { occasion: 'work_outfit', label: 'a sharp, polished workday outfit' },
+      { occasion: 'weekend',     label: 'a stylish, easy weekend look' },
+      { occasion: 'date_night',  label: 'a confident, put-together date night outfit' },
+      { occasion: 'todays_look', label: 'a trend-forward, editorial-inspired look' },
+      { occasion: 'work_outfit', label: 'a clean, modern office outfit' },
+      { occasion: 'casual_day',  label: 'a comfortable, off-duty look with a style edge' },
+      { occasion: 'weekend',     label: 'a playful, colour-led weekend outfit' },
+      { occasion: 'work_outfit', label: 'a power-dressing boardroom look' },
+      { occasion: 'date_night',  label: 'an elegant, statement evening look' },
+      { occasion: 'casual_day',  label: 'a minimalist, clean-lined everyday outfit' },
+      { occasion: 'todays_look', label: 'a street-style inspired, bold look' },
+      { occasion: 'weekend',     label: 'a brunch-ready, effortlessly chic outfit' },
+      { occasion: 'work_outfit', label: 'a smart-casual, versatile end-of-week look' },
+      { occasion: 'casual_day',  label: 'a relaxed, tonal dressing moment' },
+      { occasion: 'date_night',  label: 'a sleek, sophisticated night-out look' },
+      { occasion: 'weekend',     label: 'an easy, resort-influenced weekend outfit' },
+      { occasion: 'todays_look', label: 'a high-fashion, magazine-ready look' },
+      { occasion: 'work_outfit', label: 'a refined, tailored workday outfit' },
+      { occasion: 'casual_day',  label: 'a fresh, everyday look with a creative edge' },
+    ].slice(0, outfitCount);
+
+    const topRotationInstruction = topNumbers.length > 0
+      ? `TOPS ROTATION (CRITICAL): You have ${topNumbers.length} top${topNumbers.length > 1 ? 's' : ''} (item${topNumbers.length > 1 ? 's' : ''} ${topNumbers.join(', ')}). ALL of them MUST appear in the plan. No single top may appear more than ${maxTopRepeats} times. Spread them evenly — think of it like a fashion editor rotating hero pieces throughout an editorial shoot.`
+      : '';
+
+    const rotationSummary = [
+      topNumbers.length > 0 ? `Tops to rotate: ${topNumbers.join(', ')}` : '',
+      bottomNumbers.length > 0 ? `Bottoms to rotate: ${bottomNumbers.join(', ')}` : '',
+      layerNumbers.length > 0 ? `Layers/outerwear to rotate: ${layerNumbers.join(', ')}` : '',
+    ].filter(Boolean).join('\n');
+
+    const batchPrompt = `You are ${persona.name}, a world-class fashion stylist. Your voice: ${persona.voice}
+
+You are planning a complete ${outfitCount}-day curated lookbook for a client. Approach this like a senior fashion editor at Vogue or Net-a-Porter planning a seasonal editorial: every look must feel intentional, varied, and stylistically distinct.
+
+WARDROBE — use ITEM NUMBERS from this list:
+${itemList}
+
+CATEGORY BREAKDOWN:
+${rotationSummary || 'Use all items evenly across the plan.'}
+
+${topRotationInstruction}
+
+GLOBAL RULES (non-negotiable):
+1. Every top/shirt in the wardrobe MUST be used at least once. Do NOT let any top go unused.
+2. No top may appear more than ${maxTopRepeats} times across all ${outfitCount} days.
+3. No individual item may appear more than ${maxItemRepeats} times total.
+4. Each look must feel visually different — vary: silhouette (fitted vs relaxed), colour mood (warm/cool/neutral/contrast), styling approach (layered, minimal, textured, tonal).
+5. Apply editorial styling intelligence: reference outfit formulas such as — oversized blazer + straight-leg jean + loafer, fitted ribbed knit + wide-leg trouser + mule, striped tee + midi skirt + ankle boot, leather jacket + slip dress + chunky sneaker. Adapt to what's in the wardrobe.
+6. Think about colour harmony per outfit: one hero colour, one neutral, one accent.
+7. Consider occasion appropriateness — a date night look should feel elevated; a casual day look should feel easy but considered.
+
+OCCASION PLAN (create exactly one look per day in this order):
+${occasionSequence.map((o, i) => `Day ${i + 1}: ${o.label}`).join('\n')}
+
+Respond ONLY with a valid JSON array of exactly ${outfitCount} objects. No markdown, no explanation:
+[
+  {
+    "day": 1,
+    "selectedItemNumbers": [3, 7, 12],
+    "vibeLabel": "1-3 word vibe e.g. Sharp & Minimal",
+    "stylistMessage": "Short stylist note in your voice (1-2 sentences, personal and specific to the outfit)"
+  }
+]`;
+
+    let outfits = [];
+    let batchSucceeded = false;
+
+    // ── Attempt 1: batch generation (all days in one call) ──
+    try {
+      const aiResponse = await openai.chat.completions.create({
+        model: chatModel,
+        messages: [{ role: 'user', content: batchPrompt }],
+        max_completion_tokens: outfitCount <= 14 ? 3500 : 7000,
+        temperature: 0.82,
+      });
+
+      const raw = aiResponse.choices[0]?.message?.content?.trim() || '';
+      const jsonMatch = raw.match(/\[[\s\S]*\]/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+
+      if (Array.isArray(parsed) && parsed.length >= outfitCount * 0.8) {
+        outfits = parsed.slice(0, outfitCount).map((outfit, i) => {
+          const seq = occasionSequence[i] || occasionSequence[0];
+          const selectedNumbers = (outfit.selectedItemNumbers || [])
+            .filter(n => typeof n === 'number' && n > 0 && n <= wardrobeItems.length);
+          const selectedItems = selectedNumbers.map(num => {
+            const w = wardrobeItems[num - 1];
+            return { id: w.id, name: w.name, imageUri: w.image_url || null, category: w.category, color: w.color || '' };
+          });
+          return {
+            id: `outfit-${i + 1}`,
+            dayNumber: i + 1,
+            title: i === 0 ? "Today's Look" : `Day ${i + 1} Look`,
+            description: `${persona.name}'s pick for ${seq.label}`,
+            items: selectedItems,
+            occasion: seq.occasion,
+            stylistNote: outfit.stylistMessage || '',
+            vibeLabel: outfit.vibeLabel || '',
+            stylistId,
+            userReaction: null,
+            saved: false,
           };
         });
 
-        return {
-          id: `outfit-${i + 1}`,
-          dayNumber,
-          title: dayNumber === 1 ? "Today's Look" : `Day ${dayNumber} Look`,
-          description: `${persona.name}'s pick for ${occasionLabel}`,
-          items: selectedItems,
-          occasion,
-          stylistNote: parsed.stylistMessage || '',
-          stylistId,
-          userReaction: null,
-          saved: false,
-        };
-      } catch (err) {
-        console.warn(`[DFY] Failed to generate outfit ${i + 1}:`, err.message);
-        return {
-          id: `outfit-${i + 1}`,
-          dayNumber,
-          title: dayNumber === 1 ? "Today's Look" : `Day ${dayNumber} Look`,
-          description: 'A curated outfit for your style plan',
-          items: [],
-          occasion,
-          stylistNote: '',
-          stylistId,
-          userReaction: null,
-          saved: false,
-        };
-      }
-    });
+        // ── Post-process: ensure every top appears at least once ──
+        if (topNumbers.length > 0) {
+          const usedTopCounts = {};
+          topNumbers.forEach(n => { usedTopCounts[n] = 0; });
 
-    const outfits = await Promise.all(outfitPromises);
+          outfits.forEach(outfit => {
+            outfit.items.forEach(item => {
+              const itemNum = wardrobeItems.findIndex(w => w.id === item.id) + 1;
+              if (usedTopCounts[itemNum] !== undefined) usedTopCounts[itemNum]++;
+            });
+          });
+
+          const unusedTops = topNumbers.filter(n => usedTopCounts[n] === 0);
+          if (unusedTops.length > 0) {
+            console.log(`[DFY] Post-process: ${unusedTops.length} unused top(s) detected, inserting into plan`);
+            unusedTops.forEach((topNum, idx) => {
+              const targetDayIdx = Math.floor(idx * outfitCount / unusedTops.length);
+              const outfit = outfits[targetDayIdx];
+              if (outfit) {
+                // Replace the most-used top in that outfit with the unused one
+                const topItem = wardrobeItems[topNum - 1];
+                const existingTopIdx = outfit.items.findIndex(item => {
+                  const itemNum = wardrobeItems.findIndex(w => w.id === item.id) + 1;
+                  return topNumbers.includes(itemNum) && usedTopCounts[itemNum] > 1;
+                });
+                const newItem = { id: topItem.id, name: topItem.name, imageUri: topItem.image_url || null, category: topItem.category, color: topItem.color || '' };
+                if (existingTopIdx >= 0) {
+                  outfit.items[existingTopIdx] = newItem;
+                } else {
+                  outfit.items.push(newItem);
+                }
+              }
+            });
+          }
+        }
+
+        batchSucceeded = true;
+        console.log(`[DFY] Batch generation succeeded: ${outfits.length} outfits`);
+      }
+    } catch (batchError) {
+      console.warn('[DFY] Batch generation failed, falling back to individual calls:', batchError.message);
+    }
+
+    // ── Attempt 2: fallback — individual calls with usage tracking ──
+    if (!batchSucceeded) {
+      const topUsageCount = {};
+      const itemUsageCount = {};
+
+      const fallbackPromises = occasionSequence.map(async (seq, i) => {
+        const dayNumber = i + 1;
+
+        // Build a usage-aware hint for this call
+        const overusedItems = Object.entries(itemUsageCount)
+          .filter(([, count]) => count >= maxItemRepeats)
+          .map(([num]) => num);
+        const unusedTops = topNumbers.filter(n => !topUsageCount[n]);
+        const avoidHint = overusedItems.length > 0
+          ? `\nAvoid item numbers: ${overusedItems.join(', ')} (already used enough).`
+          : '';
+        const prioritiseHint = unusedTops.length > 0
+          ? `\nPrioritise including one of these unused tops: ${unusedTops.join(', ')}.`
+          : '';
+
+        try {
+          const aiResponse = await openai.chat.completions.create({
+            model: chatModel,
+            messages: [{ role: 'user', content: `You are ${persona.name}, a fashion stylist. Voice: ${persona.voice}\n\nCreate ${seq.label} for Day ${dayNumber} of a ${outfitCount}-day lookbook.\n\nWardrobe:\n${itemList}\n${avoidHint}${prioritiseHint}\n\nSelect 2-5 items by NUMBER. Apply fashion intelligence — think editorial styling, colour harmony, and silhouette balance.\n\nRespond ONLY with valid JSON:\n{"selectedItemNumbers": [1, 2], "vibeLabel": "1-3 word vibe", "stylistMessage": "personal note in your voice"}` }],
+            max_completion_tokens: 400,
+            temperature: 0.85,
+          });
+
+          const raw = aiResponse.choices[0]?.message?.content?.trim() || '';
+          const jsonMatch = raw.match(/\{[\s\S]*\}/);
+          const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+
+          const selectedNumbers = (parsed.selectedItemNumbers || [])
+            .filter(n => typeof n === 'number' && n > 0 && n <= wardrobeItems.length);
+
+          // Update usage tracking
+          selectedNumbers.forEach(num => {
+            itemUsageCount[num] = (itemUsageCount[num] || 0) + 1;
+            if (topNumbers.includes(num)) topUsageCount[num] = (topUsageCount[num] || 0) + 1;
+          });
+
+          const selectedItems = selectedNumbers.map(num => {
+            const w = wardrobeItems[num - 1];
+            return { id: w.id, name: w.name, imageUri: w.image_url || null, category: w.category, color: w.color || '' };
+          });
+
+          return {
+            id: `outfit-${dayNumber}`,
+            dayNumber,
+            title: dayNumber === 1 ? "Today's Look" : `Day ${dayNumber} Look`,
+            description: `${persona.name}'s pick for ${seq.label}`,
+            items: selectedItems,
+            occasion: seq.occasion,
+            stylistNote: parsed.stylistMessage || '',
+            vibeLabel: parsed.vibeLabel || '',
+            stylistId,
+            userReaction: null,
+            saved: false,
+          };
+        } catch (err) {
+          console.warn(`[DFY] Fallback outfit ${dayNumber} failed:`, err.message);
+          return {
+            id: `outfit-${dayNumber}`,
+            dayNumber,
+            title: dayNumber === 1 ? "Today's Look" : `Day ${dayNumber} Look`,
+            description: 'A curated outfit for your style plan',
+            items: [],
+            occasion: seq.occasion,
+            stylistNote: '',
+            vibeLabel: '',
+            stylistId,
+            userReaction: null,
+            saved: false,
+          };
+        }
+      });
+
+      // Run sequentially so usage tracking feeds each subsequent call
+      outfits = [];
+      for (const promise of fallbackPromises) {
+        outfits.push(await promise);
+      }
+    }
     const startDate = new Date().toISOString();
     const days = tier === 'lite' ? 14 : 30;
     const expiryDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
