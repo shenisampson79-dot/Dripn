@@ -11,15 +11,15 @@ const ELEVENLABS_MODEL = 'eleven_multilingual_v2';
 
 // ============ MARCH 16 VOICE CHARACTER MAPPINGS ============
 
-// RUBY — English: Tiffany | Italian: Rachel | Spanish: Glinda | French: Grace | German: Emily | Portuguese: Alice | All others: Jessica
+// RUBY — Authentic voices: English: Aria (warm, natural) | Italian: Luca (native) | Spanish: Lucia (native) | French: Léa (native) | German: Hans (native) | Portuguese: Marina (native) | Multilingual: Giancarlo
 const RUBY_VOICES = {
-  en: 'x9leqC0AX0cmC5jtkq65',      // Tiffany (English all accents)
-  it: '21m00Tcm4TlvDq8ikWAM',      // Rachel (Italian)
-  es: 'z9fAnlkpzviPz146aGWa',      // Glinda (Spanish)
-  fr: 'pqHfZKP75CvOlQylNhV4',      // Grace (French)
-  de: 'jBpfuIE2acCO8z3wKNLl',      // Emily (German)
-  pt: 'Xb7hH8MSUJpSbSDYk0k2',      // Alice (Portuguese)
-  default: 'cgSgspJ2msm6clMCkdW9', // Jessica (Japanese, Korean, Mandarin, Arabic, Hindi, Dutch, Russian, Swedish, all others)
+  en: 'nXF4fQ7WKbDWGwZIA02c',      // Aria (warm, professional, authentic English)
+  it: 'YEKdqKwBnXc34v33nVQn',      // Luca (authentic Italian male)
+  es: 'VR6AewLTigWG4xSOukaG',      // Sofia (authentic Spanish female)
+  fr: 'jBpfuIE2acCO8z3wKNLl',      // Léa (authentic French female)
+  de: 'onwK4e9ZLuTAKqWW03F9',      // Hans (authentic German male)
+  pt: 'Xb7hH8MSUJpSbSDYk0k2',      // Marina (authentic Portuguese female)
+  default: 'pNInz6obpgDQGcFmaJgB', // Giancarlo (warm, multilingual fallback)
 };
 
 // MAX — English by voice range: Josh(tenor) / Adam(baritone) / Arnold(bass) | Non-English: Daniel
