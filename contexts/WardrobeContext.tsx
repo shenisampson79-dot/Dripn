@@ -457,7 +457,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     const now = new Date().toISOString();
 
     try {
-      const { imageUri, enhancedImageUri, originalImageUri, imageProcessed, ...rest } = itemData;
+      const { imageUri, enhancedImageUri, originalImageUri, imageProcessed, imageBase64, ...rest } = itemData as any;
       const metadata = { ...rest, imageUri, enhancedImageUri, originalImageUri, imageProcessed };
 
       const response = await apiService.addWardrobeItem({
@@ -471,6 +471,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
         origin: itemData.origin,
         isFavorite: itemData.isFavorite,
         metadata,
+        imageBase64,
       });
 
       if (response?.success && response.item) {

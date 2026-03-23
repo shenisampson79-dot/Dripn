@@ -630,10 +630,14 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     setIsSubmitting(true);
 
     try {
+      // Convert image to base64 for backend processing
+      const { base64: imageBase64 } = await toJpegBase64(imageUri);
+      
       const newItemId = await addItem({
         imageUri,
         originalImageUri: originalImageUri || imageUri,
         imageProcessed,
+        imageBase64,
         name: name.trim(),
         category,
         color,
