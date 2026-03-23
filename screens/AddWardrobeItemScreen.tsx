@@ -106,17 +106,19 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   const [scansRemaining, setScansRemaining] = useState<number | null>(null);
   const [isGuest, setIsGuest] = useState(false);
 
-  const toJpegBase64 = async (uri: string): Promise<string> => {
-    if (uri.startsWith('data:')) return uri.split(',')[1];
+  const toJpegBase64 = async (uri: string): Promise<{ base64: string; correctedUri: string }> => {
+    if (uri.startsWith('data:')) return { base64: uri.split(',')[1], correctedUri: uri };
     if (Platform.OS !== 'web') {
       try {
         const r = await ImageManipulator.manipulateAsync(
           uri, [{ resize: { width: 1200 } }], { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
         );
-        uri = r.uri;
+        const base64 = await FileSystem.readAsStringAsync(r.uri, { encoding: 'base64' });
+        return { base64, correctedUri: r.uri };
       } catch (_) {}
     }
-    return FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+    const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+    return { base64, correctedUri: uri };
   };
 
   const processImageWithAI = async (uri: string) => {
@@ -124,7 +126,11 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
     try {
-      const imageBase64 = await toJpegBase64(uri);
+      // Auto-correct EXIF orientation via ImageManipulator, show corrected image immediately
+      const { base64: imageBase64, correctedUri } = await toJpegBase64(uri);
+      if (correctedUri !== uri) {
+        setImageUri(correctedUri);
+      }
       
       const result = await apiService.extractClothing({ imageBase64 });
       
@@ -198,7 +204,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
     
     try {
-      const imageBase64 = await toJpegBase64(imageUri);
+      const { base64: imageBase64 } = await toJpegBase64(imageUri);
       
       const result = await apiService.analyzeGarmentPhoto(imageBase64) as any;
       

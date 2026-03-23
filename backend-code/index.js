@@ -7310,6 +7310,87 @@ app.post('/api/wardrobe/process-image/resilient', authMiddleware, async (req, re
   }
 });
 
+// ===== EXTRACT CLOTHING: Background Removal + AI Analysis =====
+app.post('/api/wardrobe/extract-clothing/resilient', async (req, res) => {
+  try {
+    const { imageBase64 } = req.body;
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'imageBase64 is required' });
+    }
+
+    let processedImageBase64 = imageBase64;
+    let backgroundRemoved = false;
+
+    // Step 1: Background removal via Replicate rembg
+    const replicateToken = process.env.REPLICATE_API_TOKEN;
+    if (replicateToken) {
+      try {
+        const Replicate = require('replicate');
+        const replicate = new Replicate({ auth: replicateToken });
+        console.log('[ExtractClothing] Running rembg background removal...');
+
+        const output = await replicate.run(
+          'cjwbw/rembg:fb9a3f51b5c65c937641993201eba02c1dfb2282053430bb0f3766b1447f596a',
+          { image: `data:image/jpeg;base64,${imageBase64}` }
+        );
+
+        if (output) {
+          const outputStr = typeof output === 'string' ? output : String(output);
+          if (outputStr.startsWith('http')) {
+            // Fetch the URL and convert to base64
+            const imgResponse = await fetch(outputStr);
+            if (imgResponse.ok) {
+              const imgBuffer = await imgResponse.arrayBuffer();
+              processedImageBase64 = Buffer.from(imgBuffer).toString('base64');
+              backgroundRemoved = true;
+              console.log('[ExtractClothing] Background removed, fetched from URL');
+            }
+          } else {
+            processedImageBase64 = outputStr;
+            backgroundRemoved = true;
+          }
+        }
+      } catch (bgErr) {
+        console.warn('[ExtractClothing] Background removal failed:', bgErr.message);
+      }
+    } else {
+      console.warn('[ExtractClothing] No Replicate token — skipping background removal');
+    }
+
+    // Step 2: AI clothing analysis on the original image (better quality for AI)
+    let clothingAnalysis = null;
+    try {
+      const result = await analyzeGarmentItem(imageBase64);
+      if (result.success && result.item) {
+        const raw = result.item;
+        const rawColor = raw.color;
+        clothingAnalysis = {
+          type: raw.category || raw.type || 'clothing',
+          color: rawColor && typeof rawColor === 'object' ? rawColor.primary : rawColor,
+          style: raw.style || null,
+          material: raw.material || null,
+          brand: raw.brand || null,
+          occasions: Array.isArray(raw.occasions) ? raw.occasions : [],
+          seasons: Array.isArray(raw.seasons) ? raw.seasons : [],
+          description: raw.name || raw.description || null,
+        };
+      }
+    } catch (analysisErr) {
+      console.warn('[ExtractClothing] AI analysis failed:', analysisErr.message);
+    }
+
+    res.json({
+      success: true,
+      processedImageBase64,
+      clothingAnalysis,
+      backgroundRemoved,
+    });
+  } catch (error) {
+    console.error('[ExtractClothing] Error:', error);
+    res.status(500).json({ error: 'Clothing extraction failed' });
+  }
+});
+
 app.get('/api/wardrobe/digital-twin', authMiddleware, async (req, res) => {
   try {
     const wardrobeResult = await pool.query(
