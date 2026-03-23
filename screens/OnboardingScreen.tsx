@@ -1318,6 +1318,15 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       bodyShape,
       budgetRange,
       skinUndertone,
+      colorScanData: colorScanResult ? {
+        colorSeasonType: colorScanResult.colorSeasonType,
+        seasonSubtype: colorScanResult.seasonSubtype,
+        skinUndertone: colorScanResult.skinUndertone,
+        powerColors: colorScanResult.colorPalette?.powerColors || [],
+        avoidColors: colorScanResult.colorPalette?.avoidColors || [],
+        bestMetals: colorScanResult.seasonAnalysis?.bestMetals || '',
+        analyzedAt: colorScanResult.analyzedAt || new Date().toISOString(),
+      } : null,
       bodyMeasurements: {
         height: bodyHeight,
         heightUnit: bodyHeightUnit,

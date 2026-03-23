@@ -106,6 +106,36 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     }
   }, [user?.id]);
 
+  // Sync onboarding colour scan data into BodyProfileContext if no full selfie analysis yet
+  useEffect(() => {
+    if (!hasColorAnalysis && user?.colorScanData) {
+      const d = user.colorScanData;
+      const seasonRaw = (d.colorSeasonType || '').toLowerCase();
+      const validSeasons = ['spring', 'summer', 'autumn', 'winter'];
+      const season = validSeasons.includes(seasonRaw) ? seasonRaw as any : null;
+      if (!season) return;
+      const subtypeRaw = (d.seasonSubtype || '').toLowerCase();
+      const validSubtypes = ['light', 'true', 'deep', 'warm', 'cool', 'soft', 'clear', 'bright'];
+      const subtype = validSubtypes.includes(subtypeRaw) ? subtypeRaw as any : undefined;
+      const metals = (d.bestMetals || '').toLowerCase();
+      const metallic: any = metals.includes('gold') && metals.includes('silver') ? 'mixed'
+        : metals.includes('rose') ? 'rose-gold'
+        : metals.includes('silver') ? 'silver'
+        : 'gold';
+      saveBodyProfile({
+        colorSeason: {
+          season,
+          subtype,
+          bestColors: d.powerColors || [],
+          avoidColors: d.avoidColors || [],
+          metallic,
+          confidence: 80,
+          analyzedAt: d.analyzedAt || new Date().toISOString(),
+        },
+      }).catch(() => {});
+    }
+  }, [user?.id, user?.colorScanData, hasColorAnalysis]);
+
   // Dynamic colors from palette
   const LUXURY_COLORS = {
     gold: palette.gold,
@@ -332,6 +362,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.teal }]}>
                   {bodyProfile.colorSeason.season.charAt(0).toUpperCase() + bodyProfile.colorSeason.season.slice(1)}{bodyProfile.colorSeason.subtype ? ` · ${bodyProfile.colorSeason.subtype}` : ''}
                 </ThemedText>
+              ) : user?.skinUndertone ? (
+                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.teal }]}>
+                  {user.skinUndertone.charAt(0).toUpperCase() + user.skinUndertone.slice(1)} undertone
+                </ThemedText>
               ) : (
                 <ThemedText type="small" style={[styles.styleProfileCardValue, { color: theme.tabIconDefault }]}>
                   Take a selfie to discover your season
@@ -378,9 +412,11 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 ? 'Add clothes to your wardrobe — the AI will analyse your style automatically.'
                 : !hasColorAnalysis && (!hasBodyProfile && !user?.bodyShape)
                   ? 'Complete a colour selfie and body scan to unlock your full style profile.'
-                  : !hasColorAnalysis
-                    ? 'Take a selfie in the Colour Analysis screen to discover your colour season.'
-                    : 'Add your body measurements in Body Profile to get perfectly tailored recommendations.'}
+                  : !hasColorAnalysis && user?.skinUndertone
+                    ? `You have a ${user.skinUndertone} undertone — take a colour selfie to discover your full season.`
+                    : !hasColorAnalysis
+                      ? 'Take a selfie in the Colour Analysis screen to discover your colour season.'
+                      : 'Add your body measurements in Body Profile to get perfectly tailored recommendations.'}
             </ThemedText>
           </View>
         ) : null}

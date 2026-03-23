@@ -135,6 +135,15 @@ export interface UserProfile {
   bodyMeasurements: BodyMeasurements;
   extendedPreferences: ExtendedPreferences;
   stylistPreferences: StylistPreferences;
+  colorScanData?: {
+    colorSeasonType: string;
+    seasonSubtype: string;
+    skinUndertone: string;
+    powerColors: string[];
+    avoidColors: string[];
+    bestMetals: string;
+    analyzedAt: string;
+  } | null;
 }
 
 type LocationPermissionStatus = 'unknown' | 'granted' | 'denied' | 'denied_forever';
