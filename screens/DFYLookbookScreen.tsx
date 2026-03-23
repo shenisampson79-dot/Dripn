@@ -563,8 +563,10 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
                           {wardrobeItem.imageUri ? (
                             <Image source={{ uri: wardrobeItem.imageUri }} style={styles.modalItemImage} contentFit="cover" />
                           ) : (
-                            <View style={[styles.modalItemImage, { backgroundColor: isDark ? '#2A2A3E' : '#F0EDE8', alignItems: 'center', justifyContent: 'center' }]}>
-                              <Feather name="package" size={20} color={colors.accent} />
+                            <View style={[styles.modalItemImage, { backgroundColor: wardrobeItem.color || (isDark ? '#2A2A3E' : '#F0EDE8'), alignItems: 'center', justifyContent: 'center' }]}>
+                              {!wardrobeItem.color && (
+                                <Feather name="package" size={20} color={colors.accent} />
+                              )}
                             </View>
                           )}
                           <ThemedText type="caption" numberOfLines={1} style={{ marginTop: 4, textAlign: 'center', maxWidth: 80 }}>

@@ -1896,23 +1896,34 @@ async function generateDFYOutfitVisualHandler(req, res) {
       }
     }
 
-    // Build fashion-editorial prompt
+    // Build fashion-editorial prompt with accurate color emphasis
     const itemDescriptions = items
-      .map(i => [i.color, i.name].filter(Boolean).join(' '))
+      .map(i => {
+        const parts = [];
+        if (i.color) parts.push(`${i.color}`);
+        if (i.name) parts.push(i.name);
+        return parts.join(' ');
+      })
       .filter(Boolean)
       .join(', ');
 
+    const colorEmphasis = items.filter(i => i.color).length > 0
+      ? `IMPORTANT: Reproduce these EXACT colors accurately: ${items.map(i => i.color).filter(Boolean).join(', ')}. Ensure color fidelity in the final image.`
+      : '';
+
     const prompt = [
       'A Vogue-style fashion editorial flat-lay photograph shot from directly above.',
-      `The outfit: ${itemDescriptions}.`,
+      `The outfit pieces: ${itemDescriptions}.`,
+      colorEmphasis,
       occasion ? `Occasion: ${occasion.replace(/_/g, ' ')}.` : '',
       vibeLabel ? `Vibe: ${vibeLabel}.` : '',
       stylistNote ? `Styling direction: ${stylistNote}.` : '',
       outfitName ? `Look name: ${outfitName}.` : '',
       'White marble surface background. Garments arranged artfully with natural fabric texture, overlapping elegantly.',
       'Studio lighting, ultra-photorealistic, luxury magazine quality.',
+      'CRITICAL: Maintain exact color accuracy for all garments as specified.',
       'No model, no mannequin, no people, no text, no labels, no watermarks.',
-    ].filter(Boolean).join(' ').slice(0, 1000);
+    ].filter(Boolean).join(' ').slice(0, 1500);
 
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
