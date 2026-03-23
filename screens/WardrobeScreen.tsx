@@ -809,45 +809,52 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         columnWrapperStyle={styles.gridRow}
         contentContainerStyle={[
           styles.gridContent,
-          { paddingBottom: insets.bottom + 100 },
+          { paddingBottom: insets.bottom + Spacing.xl },
         ]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderListEmptyComponent}
+        ListFooterComponent={
+          filteredItems.length > 0 ? (
+            <View style={[styles.actionBar, { backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.8)' }]}>
+              <Pressable
+                onPress={handleAICreateOutfit}
+                style={[styles.actionBarButton, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
+              >
+                <Feather name="zap" size={20} color={LUXURY_COLORS.coral} />
+                <ThemedText type="caption" style={styles.actionBarLabel}>AI Outfit</ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  navigation.navigate('OutfitBuilder');
+                }}
+                style={[styles.actionBarButton, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
+              >
+                <Feather name="shuffle" size={20} color={LUXURY_COLORS.teal} />
+                <ThemedText type="caption" style={styles.actionBarLabel}>Outfit Mix</ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={handleQuickAdd}
+                style={[styles.actionBarButton, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
+              >
+                <Feather name="layers" size={20} color={LUXURY_COLORS.violet} />
+                <ThemedText type="caption" style={styles.actionBarLabel}>Quick Add</ThemedText>
+              </Pressable>
+              <LinearGradient
+                colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+                style={styles.actionBarButton}
+              >
+                <Pressable onPress={handleAddItem} style={styles.fabInner}>
+                  <Feather name="plus" size={20} color={LUXURY_COLORS.midnight} />
+                  <ThemedText type="caption" style={[styles.actionBarLabel, { color: LUXURY_COLORS.midnight }]}>Add Item</ThemedText>
+                </Pressable>
+              </LinearGradient>
+            </View>
+          ) : null
+        }
       />
 
       {renderItemModal()}
-
-      <View style={[styles.fabContainer, { bottom: insets.bottom + 100 }]}>
-        <Pressable
-          onPress={handleAICreateOutfit}
-          style={[styles.fabSecondary, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
-        >
-          <Feather name="zap" size={20} color={LUXURY_COLORS.coral} />
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            navigation.navigate('OutfitBuilder');
-          }}
-          style={[styles.fabSecondary, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
-        >
-          <Feather name="shuffle" size={20} color={LUXURY_COLORS.teal} />
-        </Pressable>
-        <Pressable
-          onPress={handleQuickAdd}
-          style={[styles.fabSecondary, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
-        >
-          <Feather name="layers" size={20} color={LUXURY_COLORS.violet} />
-        </Pressable>
-        <LinearGradient
-          colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-          style={styles.fab}
-        >
-          <Pressable onPress={handleAddItem} style={styles.fabInner}>
-            <Feather name="plus" size={28} color={LUXURY_COLORS.midnight} />
-          </Pressable>
-        </LinearGradient>
-      </View>
 
       <Modal
         visible={showAIOutfitModal}
@@ -1266,6 +1273,36 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.full,
     borderWidth: 2,
+  },
+  actionBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.lg,
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+  },
+  actionBarButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.xs,
+    minWidth: 70,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  actionBarLabel: {
+    marginTop: 4,
+    textAlign: 'center',
+    opacity: 0.8,
   },
   fabContainer: {
     position: "absolute",
