@@ -10,13 +10,11 @@ import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useStyleTheme } from "@/hooks/useStyleTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useReferral } from "@/contexts/ReferralContext";
 import { useSmartNotifications } from "@/contexts/SmartNotificationsContext";
 import { useVoiceSettings, SUPPORTED_LANGUAGES, SPEED_OPTIONS } from "@/contexts/VoiceSettingsContext";
 import { apiService } from "@/services/ApiService";
-import colorTrendService from "@/services/ColorTrendService";
 import dfyService, { DFYAccessStatus, DFYTier } from "@/services/DFYService";
 import { useColorScheme, ColorSchemeMode } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
@@ -113,17 +111,9 @@ const STYLE_NAMES: Record<StyleTheme, string> = {
   edgy: "Trendsetter",
 };
 
-interface PantoneColor {
-  year: number;
-  name: string;
-  hex: string;
-  description?: string;
-}
-
 
 export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScreenProps) {
   const { theme, isDark } = useTheme();
-  const { hasTrendColors, trendInfo, isLoading: trendLoading, refreshTrends } = useStyleTheme();
   const { user, logout, updateProfile } = useAuth();
   const { referralCode, totalReferrals, bonusAIRequests, shareReferral } = useReferral();
   const { preferences: notificationPrefs, updatePreferences } = useSmartNotifications();
@@ -149,8 +139,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const [isNewsletterSubscribed, setIsNewsletterSubscribed] = useState(false);
   const [pickerModal, setPickerModal] = useState<{ type: 'language' | 'speed' | 'colorScheme' | null; visible: boolean }>({ type: null, visible: false });
   const [isNewsletterLoading, setIsNewsletterLoading] = useState(false);
-  const [pantoneColor, setPantoneColor] = useState<PantoneColor | null>(null);
-  const [pantoneLoading, setPantoneLoading] = useState(true);
   const [dfyAccess, setDfyAccess] = useState<DFYAccessStatus | null>(null);
   const [dfyLoading, setDfyLoading] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
@@ -218,22 +206,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       }
     };
     loadNewsletterStatus();
-  }, []);
-
-  useEffect(() => {
-    const loadPantoneColor = async () => {
-      try {
-        const data = await colorTrendService.getPantoneColorOfTheYear();
-        if (data) {
-          setPantoneColor(data);
-        }
-      } catch (error) {
-        console.error("Error loading Pantone color:", error);
-      } finally {
-        setPantoneLoading(false);
-      }
-    };
-    loadPantoneColor();
   }, []);
 
   const handleShareReferral = async () => {
@@ -526,113 +498,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.rose, LUXURY_COLORS.violet]}
           />
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <LinearGradient
-            colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-            style={styles.sectionIcon}
-          >
-            <Feather name="droplet" size={12} color={LUXURY_COLORS.midnight} />
-          </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.trendingColors')}</ThemedText>
-          {trendLoading || pantoneLoading ? (
-            <ActivityIndicator size="small" color={LUXURY_COLORS.gold} style={{ marginLeft: Spacing.sm }} />
-          ) : null}
-        </View>
-        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
-          <View style={styles.trendingColorsContainer}>
-            {pantoneColor ? (
-              <View style={styles.pantoneSection}>
-                <ThemedText type="small" style={styles.trendLabel}>
-                  Pantone Color of the Year {pantoneColor.year}
-                </ThemedText>
-                <View style={styles.colorRow}>
-                  <LinearGradient
-                    colors={[pantoneColor.hex, pantoneColor.hex]}
-                    style={styles.colorSwatchGradient}
-                  />
-                  <View style={styles.colorInfo}>
-                    <ThemedText type="body" style={styles.colorName}>
-                      {pantoneColor.name}
-                    </ThemedText>
-                    <ThemedText type="small" style={styles.colorHex}>
-                      {pantoneColor.hex}
-                    </ThemedText>
-                  </View>
-                </View>
-              </View>
-            ) : !pantoneLoading ? (
-              <ThemedText type="small" style={styles.noTrendText}>
-                {t('settings.pantoneNotAvailable')}
-              </ThemedText>
-            ) : null}
-
-            {hasTrendColors && trendInfo.colors ? (
-              <View style={styles.styleTrendsSection}>
-                <ThemedText type="small" style={styles.trendLabel}>
-                  Your Style Theme Colors ({STYLE_NAMES[user?.stylePreference || "luxury"]})
-                </ThemedText>
-                <View style={styles.trendColorsRow}>
-                  {trendInfo.colors.secondary ? (
-                    <View style={styles.trendColorItem}>
-                      <LinearGradient
-                        colors={[trendInfo.colors.secondary.hex, trendInfo.colors.secondary.hex]}
-                        style={styles.colorSwatchSmall}
-                      />
-                      <ThemedText type="caption" style={styles.colorLabel}>
-                        Secondary
-                      </ThemedText>
-                      <ThemedText type="caption" style={styles.colorHexSmall}>
-                        {trendInfo.colors.secondary.hex}
-                      </ThemedText>
-                    </View>
-                  ) : null}
-                  {trendInfo.colors.accent ? (
-                    <View style={styles.trendColorItem}>
-                      <LinearGradient
-                        colors={[trendInfo.colors.accent.hex, trendInfo.colors.accent.hex]}
-                        style={styles.colorSwatchSmall}
-                      />
-                      <ThemedText type="caption" style={styles.colorLabel}>
-                        Accent
-                      </ThemedText>
-                      <ThemedText type="caption" style={styles.colorHexSmall}>
-                        {trendInfo.colors.accent.hex}
-                      </ThemedText>
-                    </View>
-                  ) : null}
-                </View>
-                {trendInfo.year && trendInfo.region ? (
-                  <ThemedText type="caption" style={styles.trendMeta}>
-                    {trendInfo.year} trends for {trendInfo.region}
-                  </ThemedText>
-                ) : null}
-              </View>
-            ) : !trendLoading ? (
-              <View style={styles.noTrendsContainer}>
-                <ThemedText type="small" style={styles.noTrendText}>
-                  {t('settings.usingBaseColors')}
-                </ThemedText>
-                <LinearGradient
-                  colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
-                  style={styles.refreshButtonGradient}
-                >
-                  <Pressable
-                    onPress={refreshTrends}
-                    style={styles.refreshButtonInner}
-                  >
-                    <Feather name="refresh-cw" size={14} color="#FFFFFF" />
-                    <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                      {t('settings.checkForTrends')}
-                    </ThemedText>
-                  </Pressable>
-                </LinearGradient>
-              </View>
-            ) : null}
-          </View>
         </View>
       </View>
 
@@ -1354,83 +1219,6 @@ const styles = StyleSheet.create({
   },
   versionText: {
     opacity: 0.5,
-  },
-  trendingColorsContainer: {
-    padding: Spacing.lg,
-    gap: Spacing.lg,
-  },
-  pantoneSection: {
-    gap: Spacing.sm,
-  },
-  trendLabel: {
-    opacity: 0.7,
-    marginBottom: Spacing.xs,
-  },
-  colorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-  },
-  colorSwatchGradient: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.md,
-  },
-  colorInfo: {
-    flex: 1,
-  },
-  colorName: {
-    fontWeight: "600",
-  },
-  colorHex: {
-    opacity: 0.6,
-  },
-  styleTrendsSection: {
-    gap: Spacing.sm,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(128, 128, 128, 0.15)",
-  },
-  trendColorsRow: {
-    flexDirection: "row",
-    gap: Spacing.lg,
-  },
-  trendColorItem: {
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
-  colorSwatchSmall: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.sm,
-  },
-  colorLabel: {
-    opacity: 0.7,
-  },
-  colorHexSmall: {
-    opacity: 0.5,
-  },
-  trendMeta: {
-    opacity: 0.5,
-    marginTop: Spacing.sm,
-  },
-  noTrendsContainer: {
-    alignItems: "center",
-    gap: Spacing.md,
-  },
-  noTrendText: {
-    opacity: 0.6,
-    textAlign: "center",
-  },
-  refreshButtonGradient: {
-    borderRadius: BorderRadius.full,
-  },
-  refreshButtonInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
   },
   modalOverlay: {
     flex: 1,
