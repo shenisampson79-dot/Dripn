@@ -5779,6 +5779,87 @@ app.post('/api/ai/voice-chat', authMiddleware, async (req, res) => {
   }
 });
 
+// ============ JULIA SUPPORT ASSISTANT ============
+app.post('/api/help/ask-ai', authMiddleware, async (req, res) => {
+  try {
+    const { message, stylist = 'julia' } = req.body;
+
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ success: false, error: 'message is required' });
+    }
+
+    const stylistId = stylist.toLowerCase();
+
+    // Julia is the support assistant; other stylists can also provide help
+    const supportPersonalities = {
+      julia: {
+        name: 'Julia',
+        systemPrompt: `You are Julia, Dripn's warm, patient, and knowledgeable support assistant. Your role is to help users with questions about the app, their style journey, wardrobe management, fashion advice, language settings, app features, or anything else they need.
+
+You are NOT limited to predefined responses. You can discuss:
+- How to use Dripn features (wardrobe, stylists, outfit planning, DFY lookbooks, colour insights, etc.)
+- Fashion advice and styling principles
+- Body positivity and confidence
+- Language preferences and accessibility
+- Technical questions about the app
+- Personal style development
+- Any other topic a user might need support with
+
+Your tone is warm, supportive, and genuine. You listen to the user's needs and provide thoughtful, personalized responses. You make users feel heard and valued. Always be helpful and encouraging.`,
+      },
+      ruby: {
+        name: 'Ruby',
+        systemPrompt: `You are Ruby, providing support to Dripn users. You're warm, enthusiastic, and encouraging. You help with questions about fashion, the app, outfit building, wardrobe management, or anything else users need. Your tone is personal and supportive. You can discuss any topic users bring up — not just fashion features.`,
+      },
+      max: {
+        name: 'Max',
+        systemPrompt: `You are Max, helping Dripn users with support questions. You're direct and efficient. You provide clear, actionable answers about app features, fashion advice, wardrobe management, or any other topic. You focus on solving problems quickly and effectively.`,
+      },
+      ace: {
+        name: 'Ace',
+        systemPrompt: `You are Ace, supporting Dripn users. You're cool, approachable, and practical. You help with questions about the app, fashion, personal style, or anything users need. You keep it real and make users feel comfortable asking anything.`,
+      },
+      ivy: {
+        name: 'Ivy',
+        systemPrompt: `You are Ivy, supporting Dripn users with expert guidance. You help with fashion questions, app features, wardrobe management, or any other topic. You're sophisticated and thoughtful in your approach. You provide detailed, nuanced support tailored to each user's needs.`,
+      },
+    };
+
+    const persona = supportPersonalities[stylistId] || supportPersonalities.julia;
+
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const chatModel = await getBestModel('chat');
+
+    const chatResponse = await openai.chat.completions.create({
+      model: chatModel,
+      messages: [
+        { role: 'system', content: persona.systemPrompt },
+        { role: 'user', content: message },
+      ],
+      max_completion_tokens: 1000,
+      temperature: 0.85,
+    });
+
+    const aiResponse = chatResponse.choices[0]?.message?.content?.trim();
+    if (!aiResponse) {
+      return res.status(500).json({ success: false, error: 'Support assistant failed to generate a response. Please try again.' });
+    }
+
+    console.log(`[Support] ${persona.name} responded to: "${message.substring(0, 60)}..."`);
+
+    res.json({
+      success: true,
+      userMessage: message,
+      aiResponse,
+      stylist: stylistId,
+    });
+  } catch (error) {
+    console.error('[Support] Error:', error.message);
+    res.status(500).json({ success: false, error: 'Support request failed. Please try again.' });
+  }
+});
+
 app.get('/api/ai/voice-languages', async (req, res) => {
   try {
     const languages = getSupportedLanguages();
