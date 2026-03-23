@@ -9172,6 +9172,8 @@ app.post('/api/decision/check/resilient', async (req, res) => {
     }
 
     const stylistId = stylist || 'ruby';
+    const userProfile = req.body.userProfile || {};
+    const userGender = userProfile.gender || context.gender || null;
 
     // Build a concise user message from the context object
     let userMessage;
@@ -9196,7 +9198,7 @@ app.post('/api/decision/check/resilient', async (req, res) => {
       messages: [],
       userMessage,
       wardrobeItems: context.wardrobe || [],
-      userGender: context.gender || null,
+      userGender,
       subscriptionTier: context.tier || 'free',
       languageCode: context.languageCode || 'en',
       languageName: context.languageName || 'English',
@@ -9209,8 +9211,14 @@ app.post('/api/decision/check/resilient', async (req, res) => {
     let outfitImageUrl = null;
     try {
       // Extract outfit details from the stylist's response to create a DALL-E prompt
-      const dallePrompt = `Fashion illustration of a stylish casual outfit. ${responseContent.substring(0, 300)}. 
-      Style: Modern, chic fashion illustration. Show a full-body view of someone wearing this outfit. 
+      const genderContext = userGender 
+        ? (userGender.toLowerCase() === 'female' || userGender.toLowerCase() === 'woman' 
+            ? 'woman' 
+            : 'man')
+        : 'person';
+      
+      const dallePrompt = `Fashion illustration of a stylish outfit for a ${genderContext}. ${responseContent.substring(0, 300)}. 
+      Style: Modern, chic fashion illustration. Show a full-body view of a ${genderContext} wearing this outfit. 
       Artistic, wearable, inspirational fashion sketch. Professional fashion designer illustration.
       No text, no logos. Minimalist elegant background.`;
 

@@ -375,6 +375,11 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         images: base64Images,
         context,
         stylist: stylistId,
+        userProfile: {
+          gender: user?.profileData?.gender,
+          skinUndertone: user?.profileData?.skinUndertone,
+          bodyMeasurements: user?.profileData?.bodyMeasurements,
+        },
       });
 
       const result: DecisionResponse = {
@@ -384,6 +389,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         reasoning: apiResult.reasoning || '',
         stylistId,
         timestamp: new Date().toISOString(),
+        outfitImageUrl: apiResult.outfitImageUrl,
       };
 
       if (user?.id) {

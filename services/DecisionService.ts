@@ -30,6 +30,7 @@ export interface DecisionResponse {
   confidenceNote?: string;
   stylistId: StylistId;
   timestamp: string;
+  outfitImageUrl?: string;
 }
 
 export interface SecondOpinionResponse {
