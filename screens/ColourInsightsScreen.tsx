@@ -164,86 +164,88 @@ export default function ColourInsightsScreen() {
       ? "You have the most versatile palette — almost any colour works. Anchor looks with navy, camel, or white, then experiment freely with bolder accent shades."
     : "Complete your profile to unlock a personalised colour palette based on your unique undertone.";
 
+  const s = makeStyles(theme);
+
   return (
-    <ScreenScrollView style={styles.container}>
+    <ScreenScrollView style={s.container}>
       {/* Header */}
-      <View style={styles.headerRow}>
-        <View style={styles.headerIcon}>
+      <View style={s.headerRow}>
+        <View style={s.headerIcon}>
           <Feather name="droplet" size={22} color={LUXURY_COLORS.gold} />
         </View>
         <View>
-          <ThemedText type="h2" style={styles.headerTitle}>Colour Insights</ThemedText>
-          <ThemedText type="small" style={styles.headerSubtitle}>Your personal colour guide</ThemedText>
+          <ThemedText type="h2" style={s.headerTitle}>Colour Insights</ThemedText>
+          <ThemedText type="small" style={s.headerSubtitle}>Your personal colour guide</ThemedText>
         </View>
       </View>
 
       {/* Personal Colour Profile */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
+      <View style={s.card}>
+        <View style={s.cardHeader}>
           <LinearGradient
             colors={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
-            style={styles.cardIconBadge}
+            style={s.cardIconBadge}
           >
             <Feather name="user" size={12} color="#FFFFFF" />
           </LinearGradient>
-          <ThemedText type="small" style={styles.cardBadgeText}>YOUR COLOUR PROFILE</ThemedText>
+          <ThemedText type="small" style={s.cardBadgeText}>YOUR COLOUR PROFILE</ThemedText>
         </View>
 
         {profileTitle ? (
-          <View style={styles.cardBody}>
-            <ThemedText type="body" style={styles.cardTitle}>{profileTitle}</ThemedText>
-            <ThemedText type="small" style={styles.cardDesc}>{profileDesc}</ThemedText>
-            <View style={styles.swatchRow}>
+          <View style={s.cardBody}>
+            <ThemedText type="body" style={s.cardTitle}>{profileTitle}</ThemedText>
+            <ThemedText type="small" style={s.cardDesc}>{profileDesc}</ThemedText>
+            <View style={s.swatchRow}>
               {profileSwatches.map((c, i) => (
-                <View key={i} style={styles.swatchChip}>
+                <View key={i} style={s.swatchChip}>
                   <View style={[
-                    styles.swatchCircle,
+                    s.swatchCircle,
                     { backgroundColor: c.hex },
-                    c.hex === '#FFFFFF' ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' } : null,
+                    c.hex === '#FFFFFF' ? { borderWidth: 1, borderColor: theme.backgroundSecondary } : null,
                   ]} />
-                  <ThemedText type="caption" style={styles.swatchLabel}>{c.name}</ThemedText>
+                  <ThemedText type="caption" style={s.swatchLabel}>{c.name}</ThemedText>
                 </View>
               ))}
             </View>
           </View>
         ) : (
-          <View style={styles.cardBody}>
-            <ThemedText type="small" style={styles.cardDesc}>{profileDesc}</ThemedText>
+          <View style={s.cardBody}>
+            <ThemedText type="small" style={s.cardDesc}>{profileDesc}</ThemedText>
           </View>
         )}
       </View>
 
       {/* Colour of the Year */}
       {colorOfTheYear ? (
-        <View style={[styles.yearCard, { borderLeftColor: colorOfTheYear.hexCode }]}>
-          <View style={[styles.yearBadge, { backgroundColor: colorOfTheYear.hexCode }]}>
+        <View style={[s.yearCard, { borderLeftColor: colorOfTheYear.hexCode }]}>
+          <View style={[s.yearBadge, { backgroundColor: colorOfTheYear.hexCode }]}>
             <Feather name="award" size={12} color="#FFFFFF" />
-            <ThemedText type="small" style={styles.yearBadgeText}>
+            <ThemedText type="small" style={s.yearBadgeText}>
               COLOUR OF THE YEAR {colorOfTheYear.year}
             </ThemedText>
           </View>
-          <View style={styles.yearContent}>
-            <View style={[styles.yearSwatch, { backgroundColor: colorOfTheYear.hexCode }]} />
-            <View style={styles.yearInfo}>
-              <ThemedText type="body" style={styles.yearName}>{colorOfTheYear.name}</ThemedText>
-              <ThemedText type="small" style={styles.yearHex}>{colorOfTheYear.hexCode}</ThemedText>
+          <View style={s.yearContent}>
+            <View style={[s.yearSwatch, { backgroundColor: colorOfTheYear.hexCode }]} />
+            <View style={s.yearInfo}>
+              <ThemedText type="body" style={s.yearName}>{colorOfTheYear.name}</ThemedText>
+              <ThemedText type="small" style={s.yearHex}>{colorOfTheYear.hexCode}</ThemedText>
               {colorOfTheYear.pantoneCode ? (
-                <ThemedText type="small" style={styles.yearPantone}>{colorOfTheYear.pantoneCode}</ThemedText>
+                <ThemedText type="small" style={s.yearPantone}>{colorOfTheYear.pantoneCode}</ThemedText>
               ) : null}
             </View>
           </View>
-          <ThemedText type="small" style={styles.yearDesc}>{colorOfTheYear.description}</ThemedText>
-          <View style={styles.pairingRow}>
-            <ThemedText type="small" style={styles.pairingLabel}>Pairs with:</ThemedText>
-            <View style={styles.pairingSwatches}>
+          <ThemedText type="small" style={s.yearDesc}>{colorOfTheYear.description}</ThemedText>
+          <View style={s.pairingRow}>
+            <ThemedText type="small" style={s.pairingLabel}>Pairs with:</ThemedText>
+            <View style={s.pairingSwatches}>
               {colorOfTheYear.pairingColors.map((color, idx) => (
-                <View key={idx} style={[styles.pairingSwatch, { backgroundColor: color }]} />
+                <View key={idx} style={[s.pairingSwatch, { backgroundColor: color }]} />
               ))}
             </View>
           </View>
-          <View style={styles.bestForRow}>
-            <ThemedText type="small" style={styles.bestForLabel}>Best for:</ThemedText>
-            <ThemedText type="small" style={styles.bestForValue}>
+          <View style={s.bestForRow}>
+            <ThemedText type="small" style={s.bestForLabel}>Best for:</ThemedText>
+            <ThemedText type="small" style={s.bestForValue}>
               {colorOfTheYear.bestFor.join(' & ')}
             </ThemedText>
           </View>
@@ -251,18 +253,18 @@ export default function ColourInsightsScreen() {
       ) : null}
 
       {/* Colour Harmony Guide */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
+      <View style={s.card}>
+        <View style={s.cardHeader}>
           <LinearGradient
             colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-            style={styles.cardIconBadge}
+            style={s.cardIconBadge}
           >
             <Feather name="grid" size={12} color="#FFFFFF" />
           </LinearGradient>
-          <ThemedText type="small" style={styles.cardBadgeText}>COLOUR HARMONY GUIDE</ThemedText>
+          <ThemedText type="small" style={s.cardBadgeText}>COLOUR HARMONY GUIDE</ThemedText>
         </View>
 
-        <View style={styles.harmonyRules}>
+        <View style={s.harmonyRules}>
           {[
             {
               name: 'Monochrome',
@@ -284,19 +286,19 @@ export default function ColourInsightsScreen() {
             },
           ].map((rule, rIdx) => (
             <View key={rIdx}>
-              {rIdx > 0 ? <View style={styles.harmonyDivider} /> : null}
-              <View style={styles.harmonyRule}>
-                <View style={styles.harmonySwatches}>
+              {rIdx > 0 ? <View style={s.harmonyDivider} /> : null}
+              <View style={s.harmonyRule}>
+                <View style={s.harmonySwatches}>
                   {rule.swatches.map((c, i) => (
                     <View
                       key={i}
-                      style={[styles.harmonySwatch, { backgroundColor: c, width: rule.widths[i] }]}
+                      style={[s.harmonySwatch, { backgroundColor: c, width: rule.widths[i] }]}
                     />
                   ))}
                 </View>
-                <View style={styles.harmonyText}>
-                  <ThemedText type="body" style={styles.harmonyName}>{rule.name}</ThemedText>
-                  <ThemedText type="small" style={styles.harmonyDesc}>{rule.desc}</ThemedText>
+                <View style={s.harmonyText}>
+                  <ThemedText type="body" style={s.harmonyName}>{rule.name}</ThemedText>
+                  <ThemedText type="small" style={s.harmonyDesc}>{rule.desc}</ThemedText>
                 </View>
               </View>
             </View>
@@ -307,9 +309,9 @@ export default function ColourInsightsScreen() {
       {/* Seasonal Palette */}
       <Pressable
         onPress={() => setShowSeasonalPalette(!showSeasonalPalette)}
-        style={({ pressed }) => [styles.expandBtn, { opacity: pressed ? 0.8 : 1 }]}
+        style={({ pressed }) => [s.expandBtn, { opacity: pressed ? 0.8 : 1 }]}
       >
-        <ThemedText type="body" style={styles.expandBtnText}>
+        <ThemedText type="body" style={s.expandBtnText}>
           {showSeasonalPalette
             ? 'Hide Seasonal Palette'
             : `This Season's Palette (${seasonalPalette.length})`}
@@ -322,22 +324,22 @@ export default function ColourInsightsScreen() {
       </Pressable>
 
       {showSeasonalPalette ? (
-        <View style={styles.seasonalGrid}>
+        <View style={s.seasonalGrid}>
           {seasonalPalette.map((color) => (
-            <View key={color.id ?? color.name} style={styles.seasonalCard}>
-              <View style={[styles.seasonalSwatch, { backgroundColor: color.hexCode }]} />
-              <View style={styles.seasonalInfo}>
-                <ThemedText type="body" style={styles.seasonalName}>{color.name}</ThemedText>
-                <ThemedText type="small" style={styles.seasonalHex}>{color.hexCode}</ThemedText>
+            <View key={color.id ?? color.name} style={s.seasonalCard}>
+              <View style={[s.seasonalSwatch, { backgroundColor: color.hexCode }]} />
+              <View style={s.seasonalInfo}>
+                <ThemedText type="body" style={s.seasonalName}>{color.name}</ThemedText>
+                <ThemedText type="small" style={s.seasonalHex}>{color.hexCode}</ThemedText>
                 {color.pantoneCode ? (
-                  <ThemedText type="small" style={styles.seasonalPantone}>{color.pantoneCode}</ThemedText>
+                  <ThemedText type="small" style={s.seasonalPantone}>{color.pantoneCode}</ThemedText>
                 ) : null}
-                <View style={styles.miniSwatches}>
+                <View style={s.miniSwatches}>
                   {color.pairingColors.slice(0, 3).map((pc, idx) => (
-                    <View key={idx} style={[styles.miniSwatch, { backgroundColor: pc }]} />
+                    <View key={idx} style={[s.miniSwatch, { backgroundColor: pc }]} />
                   ))}
                 </View>
-                <ThemedText type="small" style={styles.seasonalBestFor}>
+                <ThemedText type="small" style={s.seasonalBestFor}>
                   {color.bestFor.join(' & ')}
                 </ThemedText>
               </View>
@@ -349,289 +351,296 @@ export default function ColourInsightsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing["2xl"],
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  headerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(201,168,124,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontWeight: '700',
-  },
-  headerSubtitle: {
-    opacity: 0.6,
-    marginTop: 2,
-  },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    gap: Spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    marginBottom: Spacing.md,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  cardIconBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardBadgeText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    fontSize: 11,
-  },
-  cardBody: {
-    gap: Spacing.sm,
-  },
-  cardTitle: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  cardDesc: {
-    color: 'rgba(255,255,255,0.7)',
-    lineHeight: 20,
-  },
-  swatchRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginTop: Spacing.xs,
-  },
-  swatchChip: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  swatchCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  swatchLabel: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 9,
-    textAlign: 'center',
-  },
-  yearCard: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    borderLeftWidth: 4,
-  },
-  yearBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: 4,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    alignSelf: 'flex-start',
-    marginBottom: Spacing.md,
-  },
-  yearBadgeText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 10,
-    letterSpacing: 1,
-  },
-  yearContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  yearSwatch: {
-    width: 64,
-    height: 64,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  yearInfo: {
-    flex: 1,
-  },
-  yearName: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 18,
-    marginBottom: 2,
-  },
-  yearHex: {
-    color: 'rgba(255,255,255,0.7)',
-    fontFamily: 'monospace',
-    marginBottom: 2,
-  },
-  yearPantone: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 11,
-  },
-  yearDesc: {
-    color: 'rgba(255,255,255,0.8)',
-    lineHeight: 18,
-    marginBottom: Spacing.md,
-  },
-  pairingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  pairingLabel: {
-    color: 'rgba(255,255,255,0.6)',
-  },
-  pairingSwatches: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  pairingSwatch: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  bestForRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  bestForLabel: {
-    color: 'rgba(255,255,255,0.6)',
-  },
-  bestForValue: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  harmonyRules: {
-    gap: 0,
-  },
-  harmonyDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    marginVertical: 2,
-  },
-  harmonyRule: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  harmonySwatches: {
-    flexDirection: 'row',
-    gap: 4,
-    alignItems: 'center',
-    paddingTop: 2,
-  },
-  harmonySwatch: {
-    height: 36,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  harmonyText: {
-    flex: 1,
-    gap: 2,
-  },
-  harmonyName: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  harmonyDesc: {
-    color: 'rgba(255,255,255,0.6)',
-    lineHeight: 18,
-    fontSize: 12,
-  },
-  expandBtn: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    marginBottom: Spacing.md,
-  },
-  expandBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  seasonalGrid: {
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  seasonalCard: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  seasonalSwatch: {
-    width: 56,
-    height: 56,
-    borderRadius: BorderRadius.md,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  seasonalInfo: {
-    flex: 1,
-  },
-  seasonalName: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  seasonalHex: {
-    color: 'rgba(255,255,255,0.6)',
-    fontFamily: 'monospace',
-    fontSize: 11,
-  },
-  seasonalPantone: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-    marginBottom: 4,
-  },
-  miniSwatches: {
-    flexDirection: 'row',
-    gap: 4,
-    marginVertical: 4,
-  },
-  miniSwatch: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  seasonalBestFor: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-  },
-});
+function makeStyles(theme: Record<string, string>) {
+  return StyleSheet.create({
+    container: {
+      paddingHorizontal: Spacing.lg,
+      paddingTop: Spacing.lg,
+      paddingBottom: Spacing["2xl"],
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      marginBottom: Spacing.xl,
+    },
+    headerIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: 'rgba(201,168,124,0.15)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerTitle: {
+      fontWeight: '700',
+      color: theme.text,
+    },
+    headerSubtitle: {
+      color: theme.tabIconDefault,
+      marginTop: 2,
+    },
+    card: {
+      backgroundColor: theme.backgroundDefault,
+      borderRadius: BorderRadius.lg,
+      padding: Spacing.lg,
+      gap: Spacing.md,
+      borderWidth: 1,
+      borderColor: theme.backgroundSecondary,
+      marginBottom: Spacing.md,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+    },
+    cardIconBadge: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cardBadgeText: {
+      color: theme.tabIconDefault,
+      fontWeight: '700',
+      letterSpacing: 0.8,
+      fontSize: 11,
+    },
+    cardBody: {
+      gap: Spacing.sm,
+    },
+    cardTitle: {
+      color: theme.text,
+      fontWeight: '700',
+    },
+    cardDesc: {
+      color: theme.tabIconDefault,
+      lineHeight: 20,
+    },
+    swatchRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.sm,
+      marginTop: Spacing.xs,
+    },
+    swatchChip: {
+      alignItems: 'center',
+      gap: 4,
+    },
+    swatchCircle: {
+      width: 38,
+      height: 38,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.backgroundSecondary,
+    },
+    swatchLabel: {
+      color: theme.tabIconDefault,
+      fontSize: 9,
+      textAlign: 'center',
+    },
+    yearCard: {
+      backgroundColor: theme.backgroundDefault,
+      borderRadius: BorderRadius.xl,
+      padding: Spacing.lg,
+      marginBottom: Spacing.md,
+      borderLeftWidth: 4,
+      borderWidth: 1,
+      borderColor: theme.backgroundSecondary,
+    },
+    yearBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.xs,
+      paddingVertical: 4,
+      paddingHorizontal: Spacing.sm,
+      borderRadius: BorderRadius.full,
+      alignSelf: 'flex-start',
+      marginBottom: Spacing.md,
+    },
+    yearBadgeText: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+      fontSize: 10,
+      letterSpacing: 1,
+    },
+    yearContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      marginBottom: Spacing.md,
+    },
+    yearSwatch: {
+      width: 64,
+      height: 64,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 2,
+      borderColor: theme.backgroundSecondary,
+    },
+    yearInfo: {
+      flex: 1,
+    },
+    yearName: {
+      color: theme.text,
+      fontWeight: '700',
+      fontSize: 18,
+      marginBottom: 2,
+    },
+    yearHex: {
+      color: theme.tabIconDefault,
+      fontFamily: 'monospace',
+      marginBottom: 2,
+    },
+    yearPantone: {
+      color: theme.tabIconDefault,
+      fontSize: 11,
+    },
+    yearDesc: {
+      color: theme.tabIconDefault,
+      lineHeight: 18,
+      marginBottom: Spacing.md,
+    },
+    pairingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      marginBottom: Spacing.sm,
+    },
+    pairingLabel: {
+      color: theme.tabIconDefault,
+    },
+    pairingSwatches: {
+      flexDirection: 'row',
+      gap: 6,
+    },
+    pairingSwatch: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.backgroundSecondary,
+    },
+    bestForRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+    },
+    bestForLabel: {
+      color: theme.tabIconDefault,
+    },
+    bestForValue: {
+      color: theme.text,
+      fontWeight: '600',
+    },
+    harmonyRules: {
+      gap: 0,
+    },
+    harmonyDivider: {
+      height: 1,
+      backgroundColor: theme.backgroundSecondary,
+      marginVertical: 2,
+    },
+    harmonyRule: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: Spacing.md,
+      paddingVertical: Spacing.sm,
+    },
+    harmonySwatches: {
+      flexDirection: 'row',
+      gap: 4,
+      alignItems: 'center',
+      paddingTop: 2,
+    },
+    harmonySwatch: {
+      height: 36,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: theme.backgroundSecondary,
+    },
+    harmonyText: {
+      flex: 1,
+      gap: 2,
+    },
+    harmonyName: {
+      color: theme.text,
+      fontWeight: '600',
+      fontSize: 14,
+    },
+    harmonyDesc: {
+      color: theme.tabIconDefault,
+      lineHeight: 18,
+      fontSize: 12,
+    },
+    expandBtn: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: theme.backgroundDefault,
+      borderRadius: BorderRadius.lg,
+      padding: Spacing.md,
+      borderWidth: 1,
+      borderColor: theme.backgroundSecondary,
+      marginBottom: Spacing.md,
+    },
+    expandBtnText: {
+      color: theme.text,
+      fontWeight: '500',
+    },
+    seasonalGrid: {
+      gap: Spacing.md,
+      marginBottom: Spacing.md,
+    },
+    seasonalCard: {
+      flexDirection: 'row',
+      backgroundColor: theme.backgroundDefault,
+      borderRadius: BorderRadius.lg,
+      padding: Spacing.md,
+      gap: Spacing.md,
+      borderWidth: 1,
+      borderColor: theme.backgroundSecondary,
+    },
+    seasonalSwatch: {
+      width: 56,
+      height: 56,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.backgroundSecondary,
+    },
+    seasonalInfo: {
+      flex: 1,
+    },
+    seasonalName: {
+      color: theme.text,
+      fontWeight: '600',
+      marginBottom: 2,
+    },
+    seasonalHex: {
+      color: theme.tabIconDefault,
+      fontFamily: 'monospace',
+      fontSize: 11,
+    },
+    seasonalPantone: {
+      color: theme.tabIconDefault,
+      fontSize: 10,
+      marginBottom: 4,
+    },
+    miniSwatches: {
+      flexDirection: 'row',
+      gap: 4,
+      marginVertical: 4,
+    },
+    miniSwatch: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      borderWidth: 1,
+      borderColor: theme.backgroundSecondary,
+    },
+    seasonalBestFor: {
+      color: theme.tabIconDefault,
+      fontSize: 10,
+    },
+  });
+}
