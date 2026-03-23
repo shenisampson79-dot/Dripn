@@ -1299,11 +1299,7 @@ class ApiService {
     images: string[];
     context: string;
     stylist: string;
-    userProfile?: {
-      gender?: string;
-      skinUndertone?: string;
-      bodyMeasurements?: any;
-    };
+    userProfile?: any;
   }) {
     console.log('[Ask Stylist] Submitting to /api/decision/check/resilient with decisionType:', data.decisionType);
     console.log('[Ask Stylist] Number of images:', data.images.length);

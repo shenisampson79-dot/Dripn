@@ -9191,14 +9191,45 @@ app.post('/api/decision/check/resilient', async (req, res) => {
         : `Give me an outfit recommendation for: ${decisionType}`;
     }
 
+    // Include profile summary in the context if available (will be built below)
+    let fullUserMessage = userMessage;
+
     const imageArray = Array.isArray(images) ? images : [];
+
+    // Build comprehensive profile context from onboarding data
+    const profileContext = {
+      gender: userProfile.gender || null,
+      skinUndertone: userProfile.skinUndertone || null,
+      bodyType: userProfile.bodyType || null,
+      bodyMeasurements: userProfile.bodyMeasurements || null,
+      colorData: userProfile.colorScanData || userProfile.colorData || null,
+      lifestyle: userProfile.extendedPreferences?.lifestyle || null,
+      style: userProfile.extendedPreferences?.style || null,
+      retailers: userProfile.retailers || null,
+      goals: userProfile.extendedPreferences?.goals || null,
+      dressCodes: userProfile.extendedPreferences?.dressCodes || null,
+    };
+
+    // Build a profile summary string for GPT context
+    const profileSummary = [
+      userProfile.gender ? `Gender: ${userProfile.gender}` : '',
+      userProfile.skinUndertone ? `Skin undertone: ${userProfile.skinUndertone}` : '',
+      userProfile.bodyType ? `Body type: ${userProfile.bodyType}` : '',
+      userProfile.extendedPreferences?.lifestyle ? `Lifestyle: ${userProfile.extendedPreferences.lifestyle}` : '',
+      userProfile.extendedPreferences?.style ? `Style preference: ${userProfile.extendedPreferences.style}` : '',
+    ].filter(s => s).join('. ');
+
+    // Include profile context in the user message so the stylist AI has this info
+    if (profileSummary) {
+      fullUserMessage = `User profile: ${profileSummary}. ${userMessage}`;
+    }
 
     const stylistResponse = await generateStylistResponse({
       stylistId,
       messages: [],
-      userMessage,
+      userMessage: fullUserMessage,
       wardrobeItems: context.wardrobe || [],
-      userGender,
+      userGender: userProfile.gender || null,
       subscriptionTier: context.tier || 'free',
       languageCode: context.languageCode || 'en',
       languageName: context.languageName || 'English',
@@ -9217,8 +9248,11 @@ app.post('/api/decision/check/resilient', async (req, res) => {
             : 'man')
         : 'person';
       
-      const dallePrompt = `Fashion illustration of a stylish outfit for a ${genderContext}. ${responseContent.substring(0, 300)}. 
-      Style: Modern, chic fashion illustration. Show a full-body view of a ${genderContext} wearing this outfit. 
+      // Build enhanced DALLE prompt with profile context
+      const skinToneContext = userProfile.skinUndertone ? `with ${userProfile.skinUndertone} skin undertone` : '';
+      const styleContext = userProfile.extendedPreferences?.style ? `${userProfile.extendedPreferences.style} style` : '';
+      const dallePrompt = `Fashion illustration of a stylish outfit for a ${genderContext} ${skinToneContext}. ${responseContent.substring(0, 250)}. 
+      ${styleContext ? `Style preference: ${styleContext}.` : ''} Modern, chic fashion illustration. Show a full-body view of a ${genderContext} wearing this outfit. 
       Artistic, wearable, inspirational fashion sketch. Professional fashion designer illustration.
       No text, no logos. Minimalist elegant background.`;
 
