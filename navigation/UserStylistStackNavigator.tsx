@@ -20,6 +20,7 @@ import BodyScannerScreen from "@/screens/BodyScannerScreen";
 import FashionBlogScreen from "@/screens/FashionBlogScreen";
 import StyleRulesScreen from "@/screens/StyleRulesScreen";
 import WishlistScreen from "@/screens/WishlistScreen";
+import ColourInsightsScreen from "@/screens/ColourInsightsScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
@@ -42,6 +43,7 @@ export type UserStylistStackParamList = {
   BodyScanner: undefined;
   FashionBlog: undefined;
   StyleRules: undefined;
+  ColourInsights: undefined;
 };
 
 const Stack = createNativeStackNavigator<UserStylistStackParamList>();
@@ -143,6 +145,11 @@ export default function UserStylistStackNavigator() {
         name="StyleRules"
         component={StyleRulesScreen}
         options={{ headerTitle: "Style Rules", headerShown: false }}
+      />
+      <Stack.Screen
+        name="ColourInsights"
+        component={ColourInsightsScreen}
+        options={{ headerTitle: "Colour Insights" }}
       />
     </Stack.Navigator>
   );

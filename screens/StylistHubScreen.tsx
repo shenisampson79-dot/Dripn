@@ -32,7 +32,7 @@ type StylistHubScreenProps = {
 
 const GRID_GAP = Spacing.md;
 
-type GradientKey = 'primary' | 'secondary' | 'accent' | 'warm' | 'cool';
+type GradientKey = 'primary' | 'secondary' | 'accent' | 'warm' | 'cool' | 'jewel';
 
 interface StylistFeature {
   id: string;
@@ -100,6 +100,15 @@ const getFeatures = (t: any): StylistFeature[] => [
     gradientKey: "primary",
     category: "tools",
   },
+  {
+    id: "colour-insights",
+    title: "Colour Insights",
+    description: "Discover your palette",
+    icon: "droplet",
+    screen: "ColourInsights",
+    gradientKey: "jewel",
+    category: "tools",
+  },
 ];
 
 const TILES_ORDER_KEY = "@stylist_tiles_order";
@@ -111,6 +120,7 @@ const getGradientColors = (key: GradientKey, palette: any): readonly [string, st
     accent: palette.gradientAccent,
     warm: palette.gradientWarm,
     cool: palette.gradientCool,
+    jewel: ['#9B7EBD', '#6B4E8D'],
   };
   return gradientMap[key];
 };
