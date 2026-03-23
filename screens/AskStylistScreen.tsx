@@ -99,7 +99,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   const { translations } = useTranslations();
   const insets = useSafeAreaInsets();
 
-  const [step, setStep] = useState<'type' | 'upload' | 'event-questions' | 'context' | 'response'>('type');
+  const [step, setStep] = useState<'type' | 'upload' | 'event-questions' | 'context' | 'response' | 'colour-insights'>('type');
   const [selectedType, setSelectedType] = useState<DecisionType | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [contextNotes, setContextNotes] = useState("");
@@ -541,6 +541,42 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
             )}
           </Pressable>
         ))}
+
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setStep('colour-insights');
+          }}
+          style={({ pressed }) => [
+            styles.typeCard,
+            pressed && styles.typeCardPressed,
+          ]}
+        >
+          {({ pressed }) => (
+            <LinearGradient
+              colors={pressed
+                ? ['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.15)']
+                : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+              style={[
+                styles.typeCardGradient,
+                pressed && styles.typeCardGradientPressed,
+              ]}
+            >
+              <View style={[
+                styles.typeIconContainer,
+                pressed && { backgroundColor: 'rgba(255,255,255,0.25)' }
+              ]}>
+                <Feather name="droplet" size={24} color="#FFFFFF" />
+              </View>
+              <ThemedText type="body" style={styles.typeLabel}>
+                Colour Insights
+              </ThemedText>
+              <ThemedText type="small" style={styles.typeDescription}>
+                Your palette, trends & harmony
+              </ThemedText>
+            </LinearGradient>
+          )}
+        </Pressable>
       </View>
 
       {accessStatus ? (
@@ -706,280 +742,290 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         </View>
       ) : null}
 
+    </View>
+  );
+
+  const renderColourInsights = () => (
+    <View style={styles.stepContent}>
+      <Pressable onPress={() => setStep('type')} style={styles.backLink}>
+        <Feather name="arrow-left" size={16} color="rgba(255,255,255,0.7)" />
+        <ThemedText style={styles.backLinkText}>Back</ThemedText>
+      </Pressable>
+
       <View style={styles.colorTrendsSection}>
-        <View style={styles.blogHeader}>
-          <Feather name="droplet" size={20} color={LUXURY_COLORS.gold} />
-          <ThemedText type="h3" style={styles.blogTitle}>
-            Colour Insights
-          </ThemedText>
-        </View>
-
-        {/* Personal Colour Profile */}
-        <View style={styles.colourProfileCard}>
-          <View style={styles.colourProfileHeader}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
-              style={styles.colourProfileIconBadge}
-            >
-              <Feather name="user" size={12} color="#FFFFFF" />
-            </LinearGradient>
-            <ThemedText type="small" style={styles.colourProfileBadgeText}>
-              YOUR COLOUR PROFILE
+          <View style={styles.blogHeader}>
+            <Feather name="droplet" size={20} color={LUXURY_COLORS.gold} />
+            <ThemedText type="h3" style={styles.blogTitle}>
+              Colour Insights
             </ThemedText>
           </View>
-
-          {user?.skinUndertone === 'warm' ? (
-            <View style={styles.colourProfileBody}>
-              <ThemedText type="body" style={styles.colourProfileTitle}>
-                Warm Undertone
-              </ThemedText>
-              <ThemedText type="small" style={styles.colourProfileDesc}>
-                Earth tones and rich, warm hues make you radiate. Lean into camel, terracotta, olive, rust, and gold — they work with your natural warmth rather than against it.
-              </ThemedText>
-              <View style={styles.colourPaletteRow}>
-                {[
-                  { hex: '#C19A6B', name: 'Camel' },
-                  { hex: '#E27D60', name: 'Terracotta' },
-                  { hex: '#6B7A3A', name: 'Olive' },
-                  { hex: '#B7410E', name: 'Rust' },
-                  { hex: '#C9A87C', name: 'Gold' },
-                  { hex: '#FFFDD0', name: 'Cream' },
-                ].map((c, i) => (
-                  <View key={i} style={styles.colourChip}>
-                    <View style={[styles.colourChipSwatch, { backgroundColor: c.hex }]} />
-                    <ThemedText type="caption" style={styles.colourChipName}>{c.name}</ThemedText>
-                  </View>
-                ))}
-              </View>
-            </View>
-          ) : user?.skinUndertone === 'cool' ? (
-            <View style={styles.colourProfileBody}>
-              <ThemedText type="body" style={styles.colourProfileTitle}>
-                Cool Undertone
-              </ThemedText>
-              <ThemedText type="small" style={styles.colourProfileDesc}>
-                Cool, jewel-toned shades bring out the best in you. Navy, burgundy, lavender, cobalt, and rose all complement your undertone beautifully.
-              </ThemedText>
-              <View style={styles.colourPaletteRow}>
-                {[
-                  { hex: '#001F5B', name: 'Navy' },
-                  { hex: '#800020', name: 'Burgundy' },
-                  { hex: '#9B7EBD', name: 'Lavender' },
-                  { hex: '#0047AB', name: 'Cobalt' },
-                  { hex: '#E8B4B8', name: 'Rose' },
-                  { hex: '#8F9CC0', name: 'Slate' },
-                ].map((c, i) => (
-                  <View key={i} style={styles.colourChip}>
-                    <View style={[styles.colourChipSwatch, { backgroundColor: c.hex }]} />
-                    <ThemedText type="caption" style={styles.colourChipName}>{c.name}</ThemedText>
-                  </View>
-                ))}
-              </View>
-            </View>
-          ) : user?.skinUndertone === 'neutral' ? (
-            <View style={styles.colourProfileBody}>
-              <ThemedText type="body" style={styles.colourProfileTitle}>
-                Neutral Undertone
-              </ThemedText>
-              <ThemedText type="small" style={styles.colourProfileDesc}>
-                You have the most versatile palette — almost any colour works. Anchor looks with navy, camel, or white, then experiment freely with bolder accent shades.
-              </ThemedText>
-              <View style={styles.colourPaletteRow}>
-                {[
-                  { hex: '#001F5B', name: 'Navy' },
-                  { hex: '#FFFFFF', name: 'White' },
-                  { hex: '#1A1A1A', name: 'Black' },
-                  { hex: '#C19A6B', name: 'Camel' },
-                  { hex: '#E8B4B8', name: 'Blush' },
-                  { hex: '#8B8589', name: 'Taupe' },
-                ].map((c, i) => (
-                  <View key={i} style={styles.colourChip}>
-                    <View style={[styles.colourChipSwatch, { backgroundColor: c.hex, borderWidth: c.hex === '#FFFFFF' ? 1 : 0, borderColor: 'rgba(255,255,255,0.2)' }]} />
-                    <ThemedText type="caption" style={styles.colourChipName}>{c.name}</ThemedText>
-                  </View>
-                ))}
-              </View>
-            </View>
-          ) : (
-            <View style={styles.colourProfileBody}>
-              <ThemedText type="small" style={styles.colourProfileDesc}>
-                Complete your profile to unlock a personalised colour palette based on your unique undertone.
-              </ThemedText>
-              <Pressable
-                onPress={() => navigation.navigate('Profile')}
-                style={styles.colourProfileCta}
+  
+          {/* Personal Colour Profile */}
+          <View style={styles.colourProfileCard}>
+            <View style={styles.colourProfileHeader}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
+                style={styles.colourProfileIconBadge}
               >
-                <ThemedText type="small" style={styles.colourProfileCtaText}>
-                  Complete Profile
-                </ThemedText>
-                <Feather name="arrow-right" size={14} color={LUXURY_COLORS.gold} />
-              </Pressable>
-            </View>
-          )}
-        </View>
-
-        {/* Colour of the Year */}
-        {colorOfTheYear ? (
-          <View style={styles.colorOfYearCard}>
-            <View style={styles.colorOfYearBadge}>
-              <Feather name="award" size={12} color="#FFFFFF" />
-              <ThemedText type="small" style={styles.colorOfYearBadgeText}>
-                COLOUR OF THE YEAR {colorOfTheYear.year}
+                <Feather name="user" size={12} color="#FFFFFF" />
+              </LinearGradient>
+              <ThemedText type="small" style={styles.colourProfileBadgeText}>
+                YOUR COLOUR PROFILE
               </ThemedText>
             </View>
-            <View style={styles.colorOfYearContent}>
-              <View style={[styles.colorOfYearSwatch, { backgroundColor: colorOfTheYear.hexCode }]} />
-              <View style={styles.colorOfYearInfo}>
-                <ThemedText type="body" style={styles.colorOfYearName}>
-                  {colorOfTheYear.name}
+  
+            {user?.skinUndertone === 'warm' ? (
+              <View style={styles.colourProfileBody}>
+                <ThemedText type="body" style={styles.colourProfileTitle}>
+                  Warm Undertone
                 </ThemedText>
-                <ThemedText type="small" style={styles.colorOfYearHex}>
-                  {colorOfTheYear.hexCode}
+                <ThemedText type="small" style={styles.colourProfileDesc}>
+                  Earth tones and rich, warm hues make you radiate. Lean into camel, terracotta, olive, rust, and gold — they work with your natural warmth rather than against it.
                 </ThemedText>
-                {colorOfTheYear.pantoneCode ? (
-                  <ThemedText type="small" style={styles.colorOfYearPantone}>
-                    {colorOfTheYear.pantoneCode}
+                <View style={styles.colourPaletteRow}>
+                  {[
+                    { hex: '#C19A6B', name: 'Camel' },
+                    { hex: '#E27D60', name: 'Terracotta' },
+                    { hex: '#6B7A3A', name: 'Olive' },
+                    { hex: '#B7410E', name: 'Rust' },
+                    { hex: '#C9A87C', name: 'Gold' },
+                    { hex: '#FFFDD0', name: 'Cream' },
+                  ].map((c, i) => (
+                    <View key={i} style={styles.colourChip}>
+                      <View style={[styles.colourChipSwatch, { backgroundColor: c.hex }]} />
+                      <ThemedText type="caption" style={styles.colourChipName}>{c.name}</ThemedText>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : user?.skinUndertone === 'cool' ? (
+              <View style={styles.colourProfileBody}>
+                <ThemedText type="body" style={styles.colourProfileTitle}>
+                  Cool Undertone
+                </ThemedText>
+                <ThemedText type="small" style={styles.colourProfileDesc}>
+                  Cool, jewel-toned shades bring out the best in you. Navy, burgundy, lavender, cobalt, and rose all complement your undertone beautifully.
+                </ThemedText>
+                <View style={styles.colourPaletteRow}>
+                  {[
+                    { hex: '#001F5B', name: 'Navy' },
+                    { hex: '#800020', name: 'Burgundy' },
+                    { hex: '#9B7EBD', name: 'Lavender' },
+                    { hex: '#0047AB', name: 'Cobalt' },
+                    { hex: '#E8B4B8', name: 'Rose' },
+                    { hex: '#8F9CC0', name: 'Slate' },
+                  ].map((c, i) => (
+                    <View key={i} style={styles.colourChip}>
+                      <View style={[styles.colourChipSwatch, { backgroundColor: c.hex }]} />
+                      <ThemedText type="caption" style={styles.colourChipName}>{c.name}</ThemedText>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : user?.skinUndertone === 'neutral' ? (
+              <View style={styles.colourProfileBody}>
+                <ThemedText type="body" style={styles.colourProfileTitle}>
+                  Neutral Undertone
+                </ThemedText>
+                <ThemedText type="small" style={styles.colourProfileDesc}>
+                  You have the most versatile palette — almost any colour works. Anchor looks with navy, camel, or white, then experiment freely with bolder accent shades.
+                </ThemedText>
+                <View style={styles.colourPaletteRow}>
+                  {[
+                    { hex: '#001F5B', name: 'Navy' },
+                    { hex: '#FFFFFF', name: 'White' },
+                    { hex: '#1A1A1A', name: 'Black' },
+                    { hex: '#C19A6B', name: 'Camel' },
+                    { hex: '#E8B4B8', name: 'Blush' },
+                    { hex: '#8B8589', name: 'Taupe' },
+                  ].map((c, i) => (
+                    <View key={i} style={styles.colourChip}>
+                      <View style={[styles.colourChipSwatch, { backgroundColor: c.hex, borderWidth: c.hex === '#FFFFFF' ? 1 : 0, borderColor: 'rgba(255,255,255,0.2)' }]} />
+                      <ThemedText type="caption" style={styles.colourChipName}>{c.name}</ThemedText>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : (
+              <View style={styles.colourProfileBody}>
+                <ThemedText type="small" style={styles.colourProfileDesc}>
+                  Complete your profile to unlock a personalised colour palette based on your unique undertone.
+                </ThemedText>
+                <Pressable
+                  onPress={() => navigation.navigate('Profile')}
+                  style={styles.colourProfileCta}
+                >
+                  <ThemedText type="small" style={styles.colourProfileCtaText}>
+                    Complete Profile
                   </ThemedText>
-                ) : null}
+                  <Feather name="arrow-right" size={14} color={LUXURY_COLORS.gold} />
+                </Pressable>
               </View>
-            </View>
-            <ThemedText type="small" style={styles.colorOfYearDescription}>
-              {colorOfTheYear.description}
-            </ThemedText>
-            <View style={styles.pairingSection}>
-              <ThemedText type="small" style={styles.pairingLabel}>
-                Pairs with:
-              </ThemedText>
-              <View style={styles.pairingSwatches}>
-                {colorOfTheYear.pairingColors.map((color, idx) => (
-                  <View
-                    key={idx}
-                    style={[styles.pairingSwatch, { backgroundColor: color }]}
-                  />
-                ))}
-              </View>
-            </View>
-            <View style={styles.bestForSection}>
-              <ThemedText type="small" style={styles.bestForLabel}>
-                Best for:
-              </ThemedText>
-              <ThemedText type="small" style={styles.bestForValue}>
-                {colorOfTheYear.bestFor.join(' & ')}
-              </ThemedText>
-            </View>
+            )}
           </View>
-        ) : null}
-
-        {/* Colour Harmony Guide */}
-        <View style={styles.harmonyCard}>
-          <View style={styles.harmonyCardHeader}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-              style={styles.harmonyCardIconBadge}
-            >
-              <Feather name="grid" size={12} color="#FFFFFF" />
-            </LinearGradient>
-            <ThemedText type="small" style={styles.harmonyCardBadgeText}>
-              COLOUR HARMONY GUIDE
-            </ThemedText>
-          </View>
-          <View style={styles.harmonyRules}>
-            <View style={styles.harmonyRule}>
-              <View style={styles.harmonySwatches}>
-                {['#2E3B8F', '#5B6FC4', '#A8B3E8'].map((c, i) => (
-                  <View key={i} style={[styles.harmonySwatch, { backgroundColor: c }]} />
-                ))}
-              </View>
-              <View style={styles.harmonyRuleText}>
-                <ThemedText type="body" style={styles.harmonyRuleName}>Monochrome</ThemedText>
-                <ThemedText type="small" style={styles.harmonyRuleDesc}>
-                  One hue in light, mid, and dark shades — effortlessly polished.
+  
+          {/* Colour of the Year */}
+          {colorOfTheYear ? (
+            <View style={styles.colorOfYearCard}>
+              <View style={styles.colorOfYearBadge}>
+                <Feather name="award" size={12} color="#FFFFFF" />
+                <ThemedText type="small" style={styles.colorOfYearBadgeText}>
+                  COLOUR OF THE YEAR {colorOfTheYear.year}
                 </ThemedText>
               </View>
-            </View>
-            <View style={styles.harmonyDivider} />
-            <View style={styles.harmonyRule}>
-              <View style={styles.harmonySwatches}>
-                {['#1A5276', '#E67E22', '#1A5276'].map((c, i) => (
-                  <View key={i} style={[styles.harmonySwatch, { backgroundColor: c }]} />
-                ))}
-              </View>
-              <View style={styles.harmonyRuleText}>
-                <ThemedText type="body" style={styles.harmonyRuleName}>Complementary</ThemedText>
-                <ThemedText type="small" style={styles.harmonyRuleDesc}>
-                  Opposite colours on the wheel (e.g. blue + orange) create bold contrast.
-                </ThemedText>
-              </View>
-            </View>
-            <View style={styles.harmonyDivider} />
-            <View style={styles.harmonyRule}>
-              <View style={styles.harmonySwatches}>
-                {['#1A3A5C', '#6B7A3A', '#C9A87C'].map((c, i) => (
-                  <View key={i} style={[styles.harmonySwatch, { backgroundColor: c, width: i === 0 ? 28 : i === 1 ? 18 : 10 }]} />
-                ))}
-              </View>
-              <View style={styles.harmonyRuleText}>
-                <ThemedText type="body" style={styles.harmonyRuleName}>60-30-10 Rule</ThemedText>
-                <ThemedText type="small" style={styles.harmonyRuleDesc}>
-                  60% dominant, 30% secondary, 10% accent — the formula for a balanced outfit.
-                </ThemedText>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Seasonal Palette */}
-        <Pressable
-          onPress={() => setShowColorTrends(!showColorTrends)}
-          style={({ pressed }) => [
-            styles.exploreCategoriesButton,
-            { opacity: pressed ? 0.8 : 1 },
-          ]}
-        >
-          <ThemedText type="body" style={styles.exploreCategoriesText}>
-            {showColorTrends ? 'Hide Seasonal Palette' : `This Season's Palette (${seasonalPalette.length})`}
-          </ThemedText>
-          <Feather
-            name={showColorTrends ? "chevron-up" : "chevron-down"}
-            size={18}
-            color={LUXURY_COLORS.gold}
-          />
-        </Pressable>
-
-        {showColorTrends ? (
-          <View style={styles.seasonalPaletteGrid}>
-            {seasonalPalette.map((color) => (
-              <View key={color.id} style={styles.seasonalColorCard}>
-                <View style={[styles.seasonalColorSwatch, { backgroundColor: color.hexCode }]} />
-                <View style={styles.seasonalColorInfo}>
-                  <ThemedText type="body" style={styles.seasonalColorName}>
-                    {color.name}
+              <View style={styles.colorOfYearContent}>
+                <View style={[styles.colorOfYearSwatch, { backgroundColor: colorOfTheYear.hexCode }]} />
+                <View style={styles.colorOfYearInfo}>
+                  <ThemedText type="body" style={styles.colorOfYearName}>
+                    {colorOfTheYear.name}
                   </ThemedText>
-                  <ThemedText type="small" style={styles.seasonalColorHex}>
-                    {color.hexCode}
+                  <ThemedText type="small" style={styles.colorOfYearHex}>
+                    {colorOfTheYear.hexCode}
                   </ThemedText>
-                  {color.pantoneCode ? (
-                    <ThemedText type="small" style={styles.seasonalColorPantone}>
-                      {color.pantoneCode}
+                  {colorOfTheYear.pantoneCode ? (
+                    <ThemedText type="small" style={styles.colorOfYearPantone}>
+                      {colorOfTheYear.pantoneCode}
                     </ThemedText>
                   ) : null}
-                  <View style={styles.seasonalPairingSwatches}>
-                    {color.pairingColors.slice(0, 3).map((pc, idx) => (
-                      <View
-                        key={idx}
-                        style={[styles.miniPairingSwatch, { backgroundColor: pc }]}
-                      />
-                    ))}
-                  </View>
-                  <ThemedText type="small" style={styles.seasonalBestFor}>
-                    {color.bestFor.join(' & ')}
+                </View>
+              </View>
+              <ThemedText type="small" style={styles.colorOfYearDescription}>
+                {colorOfTheYear.description}
+              </ThemedText>
+              <View style={styles.pairingSection}>
+                <ThemedText type="small" style={styles.pairingLabel}>
+                  Pairs with:
+                </ThemedText>
+                <View style={styles.pairingSwatches}>
+                  {colorOfTheYear.pairingColors.map((color, idx) => (
+                    <View
+                      key={idx}
+                      style={[styles.pairingSwatch, { backgroundColor: color }]}
+                    />
+                  ))}
+                </View>
+              </View>
+              <View style={styles.bestForSection}>
+                <ThemedText type="small" style={styles.bestForLabel}>
+                  Best for:
+                </ThemedText>
+                <ThemedText type="small" style={styles.bestForValue}>
+                  {colorOfTheYear.bestFor.join(' & ')}
+                </ThemedText>
+              </View>
+            </View>
+          ) : null}
+  
+          {/* Colour Harmony Guide */}
+          <View style={styles.harmonyCard}>
+            <View style={styles.harmonyCardHeader}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+                style={styles.harmonyCardIconBadge}
+              >
+                <Feather name="grid" size={12} color="#FFFFFF" />
+              </LinearGradient>
+              <ThemedText type="small" style={styles.harmonyCardBadgeText}>
+                COLOUR HARMONY GUIDE
+              </ThemedText>
+            </View>
+            <View style={styles.harmonyRules}>
+              <View style={styles.harmonyRule}>
+                <View style={styles.harmonySwatches}>
+                  {['#2E3B8F', '#5B6FC4', '#A8B3E8'].map((c, i) => (
+                    <View key={i} style={[styles.harmonySwatch, { backgroundColor: c }]} />
+                  ))}
+                </View>
+                <View style={styles.harmonyRuleText}>
+                  <ThemedText type="body" style={styles.harmonyRuleName}>Monochrome</ThemedText>
+                  <ThemedText type="small" style={styles.harmonyRuleDesc}>
+                    One hue in light, mid, and dark shades — effortlessly polished.
                   </ThemedText>
                 </View>
               </View>
-            ))}
+              <View style={styles.harmonyDivider} />
+              <View style={styles.harmonyRule}>
+                <View style={styles.harmonySwatches}>
+                  {['#1A5276', '#E67E22', '#1A5276'].map((c, i) => (
+                    <View key={i} style={[styles.harmonySwatch, { backgroundColor: c }]} />
+                  ))}
+                </View>
+                <View style={styles.harmonyRuleText}>
+                  <ThemedText type="body" style={styles.harmonyRuleName}>Complementary</ThemedText>
+                  <ThemedText type="small" style={styles.harmonyRuleDesc}>
+                    Opposite colours on the wheel (e.g. blue + orange) create bold contrast.
+                  </ThemedText>
+                </View>
+              </View>
+              <View style={styles.harmonyDivider} />
+              <View style={styles.harmonyRule}>
+                <View style={styles.harmonySwatches}>
+                  {['#1A3A5C', '#6B7A3A', '#C9A87C'].map((c, i) => (
+                    <View key={i} style={[styles.harmonySwatch, { backgroundColor: c, width: i === 0 ? 28 : i === 1 ? 18 : 10 }]} />
+                  ))}
+                </View>
+                <View style={styles.harmonyRuleText}>
+                  <ThemedText type="body" style={styles.harmonyRuleName}>60-30-10 Rule</ThemedText>
+                  <ThemedText type="small" style={styles.harmonyRuleDesc}>
+                    60% dominant, 30% secondary, 10% accent — the formula for a balanced outfit.
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
           </View>
-        ) : null}
-      </View>
+  
+          {/* Seasonal Palette */}
+          <Pressable
+            onPress={() => setShowColorTrends(!showColorTrends)}
+            style={({ pressed }) => [
+              styles.exploreCategoriesButton,
+              { opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <ThemedText type="body" style={styles.exploreCategoriesText}>
+              {showColorTrends ? 'Hide Seasonal Palette' : `This Season's Palette (${seasonalPalette.length})`}
+            </ThemedText>
+            <Feather
+              name={showColorTrends ? "chevron-up" : "chevron-down"}
+              size={18}
+              color={LUXURY_COLORS.gold}
+            />
+          </Pressable>
+  
+          {showColorTrends ? (
+            <View style={styles.seasonalPaletteGrid}>
+              {seasonalPalette.map((color) => (
+                <View key={color.id} style={styles.seasonalColorCard}>
+                  <View style={[styles.seasonalColorSwatch, { backgroundColor: color.hexCode }]} />
+                  <View style={styles.seasonalColorInfo}>
+                    <ThemedText type="body" style={styles.seasonalColorName}>
+                      {color.name}
+                    </ThemedText>
+                    <ThemedText type="small" style={styles.seasonalColorHex}>
+                      {color.hexCode}
+                    </ThemedText>
+                    {color.pantoneCode ? (
+                      <ThemedText type="small" style={styles.seasonalColorPantone}>
+                        {color.pantoneCode}
+                      </ThemedText>
+                    ) : null}
+                    <View style={styles.seasonalPairingSwatches}>
+                      {color.pairingColors.slice(0, 3).map((pc, idx) => (
+                        <View
+                          key={idx}
+                          style={[styles.miniPairingSwatch, { backgroundColor: pc }]}
+                        />
+                      ))}
+                    </View>
+                    <ThemedText type="small" style={styles.seasonalBestFor}>
+                      {color.bestFor.join(' & ')}
+                    </ThemedText>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
+        </View>
     </View>
   );
 
@@ -1433,6 +1479,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
 
         <View style={styles.content}>
           {step === 'type' && renderTypeSelection()}
+          {step === 'colour-insights' && renderColourInsights()}
           {step === 'upload' && renderUpload()}
           {step === 'event-questions' && renderEventQuestions()}
           {step === 'context' && renderContext()}
