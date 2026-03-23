@@ -1848,6 +1848,52 @@ Respond ONLY with a valid JSON array of exactly ${outfitCount} objects. No markd
   }
 });
 
+// POST /api/dfy/generate-outfit-visual — DALL-E 3 editorial outfit image for a lookbook day
+app.post('/api/dfy/generate-outfit-visual', authMiddleware, async (req, res) => {
+  try {
+    const { items = [], stylistNote = '', occasion = '', vibeLabel = '' } = req.body;
+    if (!items || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'No items provided' });
+    }
+
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    // Build a rich, fashion-forward prompt from the outfit items
+    const itemDescriptions = items
+      .map(i => [i.color, i.name].filter(Boolean).join(' '))
+      .join(', ');
+
+    const occasionContext = occasion ? `styled for ${occasion.replace(/_/g, ' ')}` : '';
+    const vibeContext = vibeLabel ? `The vibe is: ${vibeLabel}.` : '';
+    const noteContext = stylistNote ? `Styling concept: ${stylistNote}` : '';
+
+    const prompt = [
+      `A high-end fashion editorial flat-lay photograph on a clean light background.`,
+      `The outfit consists of: ${itemDescriptions}.`,
+      occasionContext ? `The look is ${occasionContext}.` : '',
+      vibeContext,
+      noteContext,
+      `Arrange the garments artfully as if laid flat by a fashion editor — overlapping slightly, with natural fabric texture visible.`,
+      `Studio lighting, photorealistic, luxury fashion magazine quality. No mannequin, no people, no text, no labels.`,
+    ].filter(Boolean).join(' ');
+
+    const imageResponse = await openai.images.generate({
+      model: 'dall-e-3',
+      prompt: prompt.slice(0, 1000),
+      n: 1,
+      size: '1024x1024',
+      quality: 'standard',
+    });
+
+    const imageUrl = imageResponse.data[0]?.url || null;
+    res.json({ success: true, imageUrl });
+  } catch (error) {
+    console.error('[DFY/GenerateOutfitVisual] Error:', error.message);
+    res.json({ success: false, imageUrl: null });
+  }
+});
+
 // ============ POSTS ROUTES ============
 
 // Get all posts

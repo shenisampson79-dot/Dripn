@@ -2850,6 +2850,18 @@ class ApiService {
     });
   }
 
+  async generateDFYOutfitVisual(data: {
+    items: Array<{ name: string; category: string; color: string }>;
+    stylistNote?: string;
+    occasion?: string;
+    vibeLabel?: string;
+  }) {
+    return this.request<{ success: boolean; imageUrl: string | null }>(
+      '/api/dfy/generate-outfit-visual',
+      { method: 'POST', body: JSON.stringify(data) }
+    );
+  }
+
   async generateOutfit(data: {
     occasionType: 'todays_look' | 'work_outfit' | 'date_night' | 'casual_day' | 'weekend' | 'smart_casual' | 'gym' | 'evening_out' | 'travel' | 'custom';
     stylistId?: string;

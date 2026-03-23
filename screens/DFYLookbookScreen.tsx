@@ -62,6 +62,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   const [showOutfitModal, setShowOutfitModal] = useState(false);
   const [currentDay, setCurrentDay] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingVisuals, setGeneratingVisuals] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadDelivery();
@@ -100,6 +101,9 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       const allEmpty = normalised.outfits.every(o => !o.items || o.items.length === 0);
       if (allEmpty) {
         generateRealOutfits(normalised);
+      } else {
+        // Auto-generate AI visuals for outfits that don't have photos or a cached imageUri
+        scheduleVisualGeneration(normalised);
       }
     }
   };
@@ -111,19 +115,91 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       const stylistId = user.stylistPreferences?.selectedStylistId || 'ruby';
       const result = await apiService.generateDFYDelivery({ tier: 'lite', stylistId });
       if (result.success && result.delivery) {
-        // Merge the generated outfits with the existing delivery structure (preserve startDate/expiryDate)
         const updatedDelivery: DFYLiteDelivery = {
           ...existingDelivery,
           outfits: result.delivery.outfits as any,
         };
         await dfyService.saveDFYDelivery(updatedDelivery);
         setDelivery(updatedDelivery);
+        scheduleVisualGeneration(updatedDelivery);
       }
     } catch (err) {
       console.log('[DFYLookbook] Auto-generation failed:', err);
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Generate AI outfit visuals (DALL-E 3) for outfits that have items but no imageUri and no item photos
+  const scheduleVisualGeneration = async (currentDelivery: DFYLiteDelivery) => {
+    const outfitsNeedingVisuals = currentDelivery.outfits.filter(o => {
+      if (!o.items || o.items.length === 0) return false;
+      if (o.imageUri) return false; // already has a visual
+      const hasPhotos = o.items.some(i => i.imageUri);
+      return !hasPhotos; // only generate if no real photos
+    });
+    if (outfitsNeedingVisuals.length === 0) return;
+
+    let updatedOutfits = [...currentDelivery.outfits];
+
+    // Generate visuals 2 at a time to avoid rate limits
+    for (let i = 0; i < outfitsNeedingVisuals.length; i += 2) {
+      const batch = outfitsNeedingVisuals.slice(i, i + 2);
+      setGeneratingVisuals(prev => {
+        const next = new Set(prev);
+        batch.forEach(o => next.add(o.id));
+        return next;
+      });
+
+      await Promise.all(batch.map(async (outfit) => {
+        try {
+          const result = await apiService.generateDFYOutfitVisual({
+            items: outfit.items.map(it => ({ name: it.name, category: it.category, color: it.color })),
+            stylistNote: outfit.stylistNote || '',
+            occasion: outfit.occasion || '',
+            vibeLabel: (outfit as any).vibeLabel || '',
+          });
+          if (result.success && result.imageUrl) {
+            updatedOutfits = updatedOutfits.map(o =>
+              o.id === outfit.id ? { ...o, imageUri: result.imageUrl! } : o
+            );
+            const saved: DFYLiteDelivery = { ...currentDelivery, outfits: updatedOutfits };
+            await dfyService.saveDFYDelivery(saved);
+            setDelivery({ ...currentDelivery, outfits: [...updatedOutfits] });
+          }
+        } catch (_) {}
+        setGeneratingVisuals(prev => {
+          const next = new Set(prev);
+          next.delete(outfit.id);
+          return next;
+        });
+      }));
+    }
+  };
+
+  const generateSingleVisual = async (outfit: DFYOutfit) => {
+    if (!delivery || generatingVisuals.has(outfit.id) || outfit.imageUri) return;
+    setGeneratingVisuals(prev => new Set(prev).add(outfit.id));
+    try {
+      const result = await apiService.generateDFYOutfitVisual({
+        items: outfit.items.map(it => ({ name: it.name, category: it.category, color: it.color })),
+        stylistNote: outfit.stylistNote || '',
+        occasion: outfit.occasion || '',
+        vibeLabel: (outfit as any).vibeLabel || '',
+      });
+      if (result.success && result.imageUrl) {
+        const updatedOutfits = delivery.outfits.map(o =>
+          o.id === outfit.id ? { ...o, imageUri: result.imageUrl! } : o
+        );
+        const updatedDelivery = { ...delivery, outfits: updatedOutfits };
+        await dfyService.saveDFYDelivery(updatedDelivery);
+        setDelivery(updatedDelivery);
+        if (selectedOutfit?.id === outfit.id) {
+          setSelectedOutfit({ ...selectedOutfit, imageUri: result.imageUrl! });
+        }
+      }
+    } catch (_) {}
+    setGeneratingVisuals(prev => { const next = new Set(prev); next.delete(outfit.id); return next; });
   };
 
   const handleOutfitPress = (outfit: DFYOutfit) => {
@@ -172,11 +248,95 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     ? STYLIST_COLORS[delivery.outfits[0].stylistId]
     : STYLIST_COLORS.ruby;
 
+  const renderOutfitVisual = (outfit: DFYOutfit, height: number = 220) => {
+    const colors = outfit.stylistId ? STYLIST_COLORS[outfit.stylistId] : STYLIST_COLORS.ruby;
+    const itemsWithImages = (outfit.items || []).filter(i => i.imageUri);
+    const isLoadingVisual = generatingVisuals.has(outfit.id);
+
+    // Priority 1: outfit-level DALL-E generated image
+    if (outfit.imageUri) {
+      return (
+        <Image
+          source={{ uri: outfit.imageUri }}
+          style={{ width: '100%', height }}
+          contentFit="cover"
+        />
+      );
+    }
+
+    // Priority 2: real wardrobe item photos in a 2×2 grid
+    if (itemsWithImages.length >= 2) {
+      const photos = itemsWithImages.slice(0, 4);
+      const halfH = height / 2;
+      const halfW = (CARD_WIDTH) / 2;
+      return (
+        <View style={{ width: '100%', height, flexDirection: 'row', flexWrap: 'wrap' }}>
+          {photos.map((it, k) => (
+            <Image
+              key={it.id}
+              source={{ uri: it.imageUri! }}
+              style={{ width: halfW, height: photos.length <= 2 ? height : halfH }}
+              contentFit="cover"
+            />
+          ))}
+        </View>
+      );
+    }
+
+    // Priority 3: single item photo (fill the whole visual)
+    if (itemsWithImages.length === 1) {
+      return (
+        <Image
+          source={{ uri: itemsWithImages[0].imageUri! }}
+          style={{ width: '100%', height }}
+          contentFit="cover"
+        />
+      );
+    }
+
+    // Priority 4: AI visual generating — shimmer placeholder
+    if (isLoadingVisual) {
+      return (
+        <LinearGradient
+          colors={[colors.gradient[0] + '50', colors.gradient[1] + '30', colors.gradient[0] + '50']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <ActivityIndicator color={colors.accent} size="small" />
+          <ThemedText type="caption" style={{ color: colors.accent, marginTop: Spacing.sm, opacity: 0.9 }}>
+            Styling your look...
+          </ThemedText>
+        </LinearGradient>
+      );
+    }
+
+    // Fallback: styled gradient placeholder with tap-to-generate
+    return (
+      <Pressable
+        onPress={() => generateSingleVisual(outfit)}
+        style={{ flex: 1 }}
+      >
+        <LinearGradient
+          colors={[colors.gradient[0] + '40', colors.gradient[1] + '20']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm }}
+        >
+          <Feather name="camera-off" size={28} color={colors.accent} style={{ opacity: 0.7 }} />
+          <ThemedText type="caption" style={{ color: colors.accent, opacity: 0.85, textAlign: 'center' }}>
+            Tap to generate outfit visual
+          </ThemedText>
+        </LinearGradient>
+      </Pressable>
+    );
+  };
+
   const renderOutfitCard = useCallback(({ item, index }: { item: DFYOutfit; index: number }) => {
     const isCurrentDay = item.dayNumber === currentDay;
     const colors = item.stylistId ? STYLIST_COLORS[item.stylistId] : STYLIST_COLORS.ruby;
     const hasItems = item.items && item.items.length > 0;
-    const itemsWithImages = hasItems ? item.items.filter(i => i.imageUri) : [];
+    const vibeLabel = (item as any).vibeLabel as string | undefined;
 
     return (
       <Pressable
@@ -186,130 +346,96 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
           { opacity: pressed ? 0.95 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
         ]}
       >
-        <LinearGradient
-          colors={isDark ? ['#2A2A3E', '#1E1E2E'] : ['#FFFFFF', '#F8F4F0']}
-          style={styles.outfitCardGradient}
-        >
-          {isCurrentDay && (
-            <LinearGradient
-              colors={colors.gradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.currentDayBadge}
-            >
-              <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                Today
-              </ThemedText>
-            </LinearGradient>
-          )}
-
+        <View style={[styles.outfitCardGradient, { backgroundColor: isDark ? '#1E1E2E' : '#FFFFFF' }]}>
+          {/* Visual section — full-width image/collage */}
           <View style={styles.outfitImageContainer}>
-            {itemsWithImages.length > 0 ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.itemImagesRow}
-                contentContainerStyle={{ paddingHorizontal: Spacing.md, gap: Spacing.sm }}
-              >
-                {itemsWithImages.map((wardrobeItem) => (
-                  <View key={wardrobeItem.id} style={styles.itemImageWrapper}>
-                    <Image
-                      source={{ uri: wardrobeItem.imageUri! }}
-                      style={styles.itemImage}
-                      contentFit="cover"
-                    />
-                  </View>
-                ))}
-              </ScrollView>
-            ) : isGenerating ? (
-              <View style={[styles.outfitImagePlaceholder, { backgroundColor: colors.gradient[0] + '20' }]}>
-                <ActivityIndicator color={colors.accent} />
-                <ThemedText type="caption" style={{ color: colors.accent, marginTop: Spacing.sm }}>
-                  Curating your look...
-                </ThemedText>
-              </View>
-            ) : hasItems ? (
+            {renderOutfitVisual(item, 220)}
+
+            {/* Overlaid badges */}
+            {isCurrentDay && (
               <LinearGradient
-                colors={[colors.gradient[0] + '30', colors.gradient[1] + '15']}
-                style={styles.outfitItemsPlaceholder}
+                colors={colors.gradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.currentDayBadge}
               >
-                <View style={[styles.outfitIconRow, { borderColor: colors.accent + '40' }]}>
-                  <Feather name="layers" size={18} color={colors.accent} />
-                  <ThemedText type="small" style={{ color: colors.accent, fontWeight: '600', marginLeft: 6 }}>
-                    {item.items.length} piece{item.items.length !== 1 ? 's' : ''}
-                  </ThemedText>
-                </View>
-                {item.items.slice(0, 4).map((it, k) => (
-                  <View key={k} style={styles.outfitItemRow}>
-                    <View style={[styles.outfitItemDot, { backgroundColor: colors.accent }]} />
-                    <ThemedText type="small" numberOfLines={1} style={{ flex: 1, opacity: 0.85 }}>
-                      {it.name}
-                    </ThemedText>
-                  </View>
-                ))}
-                {item.items.length > 4 && (
-                  <ThemedText type="caption" style={{ color: colors.accent, opacity: 0.7, marginTop: 4 }}>
-                    +{item.items.length - 4} more
-                  </ThemedText>
-                )}
-              </LinearGradient>
-            ) : (
-              <LinearGradient
-                colors={[colors.gradient[0] + '40', colors.gradient[1] + '20']}
-                style={styles.outfitImagePlaceholder}
-              >
-                <Feather name="image" size={48} color={colors.accent} />
-                <ThemedText type="caption" style={{ color: colors.accent, marginTop: Spacing.sm }}>
-                  Outfit {index + 1}
+                <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                  Today
                 </ThemedText>
               </LinearGradient>
             )}
+            {item.saved && (
+              <View style={[styles.savedBadgeOverlay, { backgroundColor: LUXURY_COLORS.emerald }]}>
+                <Feather name="bookmark" size={12} color="#FFFFFF" />
+              </View>
+            )}
+            {item.userReaction && (
+              <View style={[styles.reactionOverlay, { backgroundColor: item.userReaction === 'love' ? LUXURY_COLORS.rose + 'EE' : LUXURY_COLORS.coral + 'EE' }]}>
+                <Feather name={item.userReaction === 'love' ? 'heart' : 'x'} size={12} color="#FFFFFF" />
+              </View>
+            )}
+
+            {/* Gradient fade into info section */}
+            <LinearGradient
+              colors={['transparent', isDark ? 'rgba(30,30,46,0.85)' : 'rgba(255,255,255,0.85)']}
+              style={styles.imageBottomFade}
+            />
           </View>
 
+          {/* Info section */}
           <View style={styles.outfitInfo}>
             <View style={styles.outfitTitleRow}>
-              <ThemedText type="h3" numberOfLines={1}>
-                {item.title}
-              </ThemedText>
-              {item.saved && (
-                <View style={[styles.savedBadge, { backgroundColor: LUXURY_COLORS.emerald }]}>
-                  <Feather name="bookmark" size={12} color="#FFFFFF" />
-                </View>
-              )}
+              <View style={{ flex: 1 }}>
+                <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: 2 }}>
+                  Day {item.dayNumber} of 14
+                </ThemedText>
+                <ThemedText type="h3" numberOfLines={1}>
+                  {item.title}
+                </ThemedText>
+                {vibeLabel ? (
+                  <View style={[styles.vibeBadge, { backgroundColor: colors.accent + '20' }]}>
+                    <ThemedText type="caption" style={{ color: colors.accent, fontWeight: '600' }}>
+                      {vibeLabel}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </View>
             </View>
 
-            <ThemedText type="small" style={{ opacity: 0.6, marginTop: 2 }}>
-              Day {item.dayNumber} of 14
-            </ThemedText>
-
-            {item.stylistNote && (
+            {item.stylistNote ? (
               <View style={[styles.stylistNotePreview, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
                 <View style={[styles.stylistAvatar, { backgroundColor: colors.accent }]}>
                   <Feather name="user" size={10} color="#FFFFFF" />
                 </View>
-                <ThemedText type="small" numberOfLines={2} style={{ flex: 1, opacity: 0.8 }}>
+                <ThemedText type="small" numberOfLines={2} style={{ flex: 1, opacity: 0.8, fontStyle: 'italic' }}>
                   "{item.stylistNote}"
                 </ThemedText>
               </View>
-            )}
+            ) : null}
 
-            {item.userReaction && (
-              <View style={styles.reactionIndicator}>
-                <Feather
-                  name={item.userReaction === 'love' ? 'heart' : 'x'}
-                  size={14}
-                  color={item.userReaction === 'love' ? LUXURY_COLORS.rose : LUXURY_COLORS.coral}
-                />
-                <ThemedText type="caption" style={{ marginLeft: 4, opacity: 0.7 }}>
-                  {item.userReaction === 'love' ? 'Loved' : 'Not for me'}
-                </ThemedText>
+            {hasItems ? (
+              <View style={styles.itemPillsRow}>
+                {item.items.slice(0, 3).map((it, k) => (
+                  <View key={k} style={[styles.itemPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+                    <ThemedText type="caption" numberOfLines={1} style={{ opacity: 0.75 }}>
+                      {it.name}
+                    </ThemedText>
+                  </View>
+                ))}
+                {item.items.length > 3 ? (
+                  <View style={[styles.itemPill, { backgroundColor: colors.accent + '25' }]}>
+                    <ThemedText type="caption" style={{ color: colors.accent }}>
+                      +{item.items.length - 3}
+                    </ThemedText>
+                  </View>
+                ) : null}
               </View>
-            )}
+            ) : null}
           </View>
-        </LinearGradient>
+        </View>
       </Pressable>
     );
-  }, [currentDay, isDark]);
+  }, [currentDay, isDark, generatingVisuals, delivery]);
 
   const renderOutfitModal = () => {
     if (!selectedOutfit) return null;
@@ -355,39 +481,38 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
             showsVerticalScrollIndicator={false}
             renderItem={() => (
               <>
-                <View style={[styles.outfitDetailImage, { backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
-                  {selectedOutfit.items && selectedOutfit.items.length > 0 ? (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ padding: Spacing.md, gap: Spacing.md }}>
+                {/* Main outfit visual */}
+                <View style={[styles.outfitDetailImage, { overflow: 'hidden', borderRadius: BorderRadius.lg, backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
+                  {renderOutfitVisual(selectedOutfit, 300)}
+                </View>
+
+                {/* Item breakdown — horizontal scroll of item photos/pills */}
+                {selectedOutfit.items && selectedOutfit.items.length > 0 ? (
+                  <View style={styles.modalItemsSection}>
+                    <ThemedText type="small" style={{ opacity: 0.5, marginBottom: Spacing.sm, marginLeft: Spacing.xs }}>
+                      The pieces ({selectedOutfit.items.length})
+                    </ThemedText>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm }}>
                       {selectedOutfit.items.map((wardrobeItem) => (
                         <View key={wardrobeItem.id} style={styles.modalItemCard}>
                           {wardrobeItem.imageUri ? (
                             <Image source={{ uri: wardrobeItem.imageUri }} style={styles.modalItemImage} contentFit="cover" />
                           ) : (
                             <View style={[styles.modalItemImage, { backgroundColor: isDark ? '#2A2A3E' : '#F0EDE8', alignItems: 'center', justifyContent: 'center' }]}>
-                              <Feather name="package" size={24} color={colors.accent} />
+                              <Feather name="package" size={20} color={colors.accent} />
                             </View>
                           )}
-                          <ThemedText type="caption" numberOfLines={1} style={{ marginTop: 4, textAlign: 'center' }}>
+                          <ThemedText type="caption" numberOfLines={1} style={{ marginTop: 4, textAlign: 'center', maxWidth: 80 }}>
                             {wardrobeItem.name}
                           </ThemedText>
-                          <ThemedText type="caption" style={{ opacity: 0.5, textAlign: 'center' }}>
+                          <ThemedText type="caption" style={{ opacity: 0.45, textAlign: 'center' }}>
                             {wardrobeItem.category}
                           </ThemedText>
                         </View>
                       ))}
                     </ScrollView>
-                  ) : (
-                    <LinearGradient
-                      colors={[colors.gradient[0] + '40', colors.gradient[1] + '20']}
-                      style={styles.detailImagePlaceholder}
-                    >
-                      <Feather name="image" size={80} color={colors.accent} />
-                      <ThemedText style={{ color: colors.accent, marginTop: Spacing.md }}>
-                        Complete Outfit Photo
-                      </ThemedText>
-                    </LinearGradient>
-                  )}
-                </View>
+                  </View>
+                ) : null}
 
                 {selectedOutfit.stylistNote && (
                   <View style={[styles.stylistNoteCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
@@ -628,6 +753,18 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
   },
+  outfitImageContainer: {
+    width: '100%',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  imageBottomFade: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+  },
   currentDayBadge: {
     position: 'absolute',
     top: 0,
@@ -638,72 +775,49 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: BorderRadius.sm,
     zIndex: 10,
   },
-  outfitImageContainer: {
-    aspectRatio: 16 / 9,
-  },
-  outfitImagePlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  itemImagesRow: {
-    flex: 1,
-  },
-  itemImageWrapper: {
-    width: 120,
-    height: '100%',
-    borderRadius: BorderRadius.sm,
-    overflow: 'hidden',
-  },
-  itemImage: {
-    width: '100%',
-    height: '100%',
-  },
-  outfitItemsPlaceholder: {
-    flex: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    justifyContent: 'center',
-    gap: 8,
-  },
-  outfitIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-  },
-  outfitItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  outfitItemDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-  },
-  outfitInfo: {
-    padding: Spacing.lg,
-  },
-  outfitTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  savedBadge: {
+  savedBadgeOverlay: {
+    position: 'absolute',
+    top: Spacing.sm,
+    left: Spacing.sm,
     width: 24,
     height: 24,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
+  },
+  reactionOverlay: {
+    position: 'absolute',
+    bottom: Spacing.sm,
+    left: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    zIndex: 10,
+  },
+  outfitInfo: {
+    padding: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  outfitTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  vibeBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+    marginTop: 4,
   },
   stylistNotePreview: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     padding: Spacing.sm,
     borderRadius: BorderRadius.md,
-    marginTop: Spacing.sm,
     gap: Spacing.sm,
   },
   stylistAvatar: {
@@ -712,11 +826,34 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 1,
+  },
+  itemPillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  itemPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    maxWidth: 140,
+  },
+  savedBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   reactionIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: Spacing.sm,
+  },
+  modalItemsSection: {
+    marginBottom: Spacing.lg,
   },
   generatingBanner: {
     flexDirection: 'row',
@@ -767,15 +904,10 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
   outfitDetailImage: {
-    aspectRatio: 3 / 4,
+    width: '100%',
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
     marginBottom: Spacing.lg,
-  },
-  detailImagePlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   modalItemCard: {
     width: 120,
