@@ -4040,6 +4040,135 @@ app.post('/api/admin/color-trends/validate', adminAuthMiddleware, async (req, re
   }
 });
 
+// ============ COLOUR OF THE YEAR — KNOWN DATA ============
+// Add each year's Pantone Colour of the Year here as it is announced (typically December).
+// For the current year, if no entry exists the AI auto-discovers it and caches it for 7 days.
+const PANTONE_KNOWN = {
+  2023: {
+    name: 'Viva Magenta',
+    hexCode: '#BB2649',
+    pantoneCode: 'PANTONE 18-1750',
+    description: 'An unconventional shade rooted in nature, Viva Magenta descends from the red family. Brave and fearless, it pulses with vim and vigour.',
+    pairingColors: ['#FFFFFF', '#1A1A1A', '#C9A87C', '#8B2F39'],
+    bestFor: ['Cool', 'Neutral'],
+    year: 2023,
+  },
+  2024: {
+    name: 'Peach Fuzz',
+    hexCode: '#FFBE98',
+    pantoneCode: 'PANTONE 13-1023',
+    description: 'A velvety peach tone that nurtures mind, body, and soul — evoking warmth and a desire for togetherness.',
+    pairingColors: ['#FFFFFF', '#A47864', '#C9A87C', '#6B5B4F'],
+    bestFor: ['Warm', 'Neutral'],
+    year: 2024,
+  },
+  2025: {
+    name: 'Mocha Mousse',
+    hexCode: '#A47864',
+    pantoneCode: 'PANTONE 17-1230',
+    description: 'A warming, brown-based hue that enriches the mind, body, and soul — evoking timeless elegance and comfort.',
+    pairingColors: ['#FFFFFF', '#1A1A1A', '#D4A574', '#8B7355'],
+    bestFor: ['Warm', 'Neutral'],
+    year: 2025,
+  },
+  // 2026 and beyond: auto-discovered by AI when first requested and cached for 7 days.
+  // To lock in a known colour, add an entry here once Pantone announces (typically December).
+};
+
+// Seasonal palettes keyed by year — updated annually
+const SEASONAL_PALETTES_BY_YEAR = {
+  2025: [
+    { id: 's25-1', name: 'Butter Cream', hexCode: '#F5E6C8', pantoneCode: 'PANTONE 13-0720', season: 'Spring', year: 2025, pairingColors: ['#A47864', '#6B5B4F', '#FFFFFF'], bestFor: ['Warm', 'Neutral'] },
+    { id: 's25-2', name: 'Sage Mist',    hexCode: '#B8C4A8', pantoneCode: 'PANTONE 15-6316', season: 'Spring', year: 2025, pairingColors: ['#FFFFFF', '#F5E6C8', '#6B7355'], bestFor: ['Cool', 'Neutral'] },
+    { id: 's25-3', name: 'Dusty Rose',   hexCode: '#D4A5A5', pantoneCode: 'PANTONE 15-1614', season: 'Spring', year: 2025, pairingColors: ['#FFFFFF', '#1A1A1A', '#C9A87C'], bestFor: ['Warm', 'Cool'] },
+    { id: 's25-4', name: 'Ocean Depth',  hexCode: '#2E5A6B', pantoneCode: 'PANTONE 19-4241', season: 'Spring', year: 2025, pairingColors: ['#FFFFFF', '#F5E6C8', '#C9A87C'], bestFor: ['Cool', 'Neutral'] },
+  ],
+  2026: [
+    { id: 's26-1', name: 'Powder Blue',   hexCode: '#B0C4DE', pantoneCode: 'PANTONE 14-4318', season: 'Spring', year: 2026, pairingColors: ['#FFFFFF', '#1A1A1A', '#C9A87C'], bestFor: ['Cool', 'Neutral'] },
+    { id: 's26-2', name: 'Warm Putty',    hexCode: '#C8BAA6', pantoneCode: 'PANTONE 14-1108', season: 'Spring', year: 2026, pairingColors: ['#1A1A1A', '#2E3B8F', '#FFFFFF'], bestFor: ['Warm', 'Neutral'] },
+    { id: 's26-3', name: 'Forest Shadow', hexCode: '#4A5E4A', pantoneCode: 'PANTONE 18-0125', season: 'Spring', year: 2026, pairingColors: ['#FFFFFF', '#C8BAA6', '#1A1A1A'], bestFor: ['Cool', 'Neutral'] },
+    { id: 's26-4', name: 'Terracotta Dusk', hexCode: '#C47A5A', pantoneCode: 'PANTONE 17-1436', season: 'Spring', year: 2026, pairingColors: ['#FFFFFF', '#1A1A1A', '#C8BAA6'], bestFor: ['Warm', 'Neutral'] },
+  ],
+};
+
+// In-memory cache for AI-discovered colours
+const colorOfYearCache = new Map();
+
+async function getColorOfTheYear(year) {
+  // 1. Known hardcoded data
+  if (PANTONE_KNOWN[year]) return { ...PANTONE_KNOWN[year], source: 'known' };
+
+  // 2. In-memory cache (7 days)
+  const cached = colorOfYearCache.get(year);
+  if (cached && Date.now() - cached.cachedAt < 7 * 24 * 60 * 60 * 1000) {
+    return cached.data;
+  }
+
+  // 3. DB cache
+  try {
+    const dbResult = await pool.query(
+      `SELECT pantone_data FROM color_trend_scans WHERE year = $1 AND pantone_data IS NOT NULL ORDER BY scanned_at DESC LIMIT 1`,
+      [year]
+    );
+    if (dbResult.rows.length > 0 && dbResult.rows[0].pantone_data) {
+      const pd = dbResult.rows[0].pantone_data;
+      const color = pd.colorOfTheYear
+        ? { name: pd.colorOfTheYear.name, hexCode: pd.colorOfTheYear.hex || pd.colorOfTheYear.hexCode, pantoneCode: pd.colorOfTheYear.pantoneCode, description: pd.colorOfTheYear.description, pairingColors: pd.colorOfTheYear.pairingColors || ['#FFFFFF', '#1A1A1A', '#C9A87C'], bestFor: pd.colorOfTheYear.bestFor || ['Warm', 'Neutral'], year, source: 'db' }
+        : null;
+      if (color) {
+        colorOfYearCache.set(year, { data: color, cachedAt: Date.now() });
+        return color;
+      }
+    }
+  } catch (_) {}
+
+  // 4. AI auto-discovery
+  try {
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const aiRes = await Promise.race([
+      openai.chat.completions.create({
+        model: 'gpt-4o',
+        max_tokens: 300,
+        messages: [{
+          role: 'user',
+          content: `What is the Pantone Colour of the Year for ${year}? Reply with ONLY a JSON object: { "name": string, "hexCode": string, "pantoneCode": string, "description": string (max 20 words), "pairingColors": [up to 4 hex strings], "bestFor": [1-2 strings from: "Warm","Cool","Neutral"] }. No extra text.`,
+        }],
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('AI timeout')), 12000)),
+    ]);
+    const raw = aiRes.choices[0]?.message?.content?.trim() || '';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      const color = { ...parsed, year, source: 'ai' };
+      colorOfYearCache.set(year, { data: color, cachedAt: Date.now() });
+      return color;
+    }
+  } catch (aiErr) {
+    console.warn(`[ColorOfYear] AI discovery failed for ${year}:`, aiErr.message);
+  }
+
+  // 5. Graceful fallback — use previous year
+  const prevYear = year - 1;
+  return PANTONE_KNOWN[prevYear]
+    ? { ...PANTONE_KNOWN[prevYear], year, source: 'fallback' }
+    : { ...PANTONE_KNOWN[2025], year, source: 'fallback' };
+}
+
+// Public endpoint: current colour trends (auto-updates every year)
+app.get('/api/color-trends/current', async (req, res) => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const colorOfTheYear = await getColorOfTheYear(currentYear);
+    const seasonalPalette = SEASONAL_PALETTES_BY_YEAR[currentYear] || SEASONAL_PALETTES_BY_YEAR[currentYear - 1] || [];
+    res.json({ colorOfTheYear, seasonalPalette });
+  } catch (error) {
+    console.error('[ColorTrends] Current endpoint error:', error);
+    res.status(500).json({ error: 'Failed to get current colour trends' });
+  }
+});
+
 const pantoneCache = new Map();
 app.get('/api/color-trends/pantone/:year', async (req, res) => {
   try {
