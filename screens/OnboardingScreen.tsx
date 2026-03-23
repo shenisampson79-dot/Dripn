@@ -48,16 +48,7 @@ const SIZE_COLORS: Record<string, { bg: string; border: string }> = {
   "3X+": { bg: "#78350F", border: "#F59E0B" },
 };
 
-const BODY_SHAPE_COLORS: Record<string, { bg: string; border: string }> = {
-  "Hourglass": { bg: "#4A1942", border: "#EC4899" },
-  "Pear": { bg: "#1A4D2E", border: "#22C55E" },
-  "Apple": { bg: "#78350F", border: "#F59E0B" },
-  "Rectangle": { bg: "#1E3A5F", border: "#3B82F6" },
-  "Athletic": { bg: "#7C2D12", border: "#F97316" },
-  "Trapezoid": { bg: "#4C1D95", border: "#A855F7" },
-  "Inverted Triangle": { bg: "#0E7490", border: "#06B6D4" },
-  "Oval": { bg: "#065F46", border: "#10B981" },
-};
+// Body shape colors removed — now uses theme colors consistently
 
 const STYLE_COLORS: Record<string, { bg: string; border: string }> = {
   "smart-casual": { bg: "#1E3A5F", border: "#3B82F6" },
@@ -72,15 +63,7 @@ const STYLE_COLORS: Record<string, { bg: string; border: string }> = {
   "preppy": { bg: "#0E7490", border: "#06B6D4" },
 };
 
-const SHOP_CATEGORY_COLORS: Record<string, { bg: string; border: string }> = {
-  "Luxury": { bg: "#4A1942", border: "#EC4899" },
-  "Contemporary": { bg: "#4C1D95", border: "#A855F7" },
-  "Fast Fashion": { bg: "#7C2D12", border: "#F97316" },
-  "Sportswear": { bg: "#1A4D2E", border: "#22C55E" },
-  "Department Store": { bg: "#1E3A5F", border: "#3B82F6" },
-  "Online Only": { bg: "#0E7490", border: "#06B6D4" },
-  "default": { bg: "#374151", border: "#6B7280" },
-};
+// Shop category colors removed — now uses theme colors consistently
 
 const WOMEN_BODY_SHAPES: { id: BodyShape; name: string; description: string }[] = [
   { id: "Hourglass", name: "Hourglass", description: "Balanced shoulders and hips, defined waist" },
@@ -2609,7 +2592,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 </ThemedText>
                 <View style={styles.bodyShapeOptions}>
                   {getBodyShapeOptions().map((shape) => {
-                    const shapeColor = BODY_SHAPE_COLORS[shape.id] || { bg: "#374151", border: "#6B7280" };
                     const isSelected = bodyShape === shape.id;
                     return (
                       <Pressable
@@ -2620,22 +2602,17 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                         style={({ pressed }) => [
                           styles.bodyShapeOption,
                           {
-                            backgroundColor: shapeColor.bg,
-                            borderColor: isSelected ? "#FFFFFF" : shapeColor.border,
-                            borderWidth: isSelected ? 3 : 2,
+                            backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
+                            borderColor: isSelected ? theme.link : theme.backgroundSecondary,
+                            borderWidth: isSelected ? 2 : 1,
                             opacity: pressed ? 0.85 : 1,
-                            shadowColor: shapeColor.border,
-                            shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.4,
-                            shadowRadius: 8,
-                            elevation: 6,
                           },
                         ]}
                       >
                         <ThemedText
                           type="body"
                           style={{
-                            color: "#FFFFFF",
+                            color: isSelected ? "#FFFFFF" : theme.text,
                             fontWeight: "600",
                           }}
                         >
@@ -2644,7 +2621,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                         <ThemedText
                           type="small"
                           style={{
-                            color: "rgba(255,255,255,0.7)",
+                            color: isSelected ? "rgba(255,255,255,0.75)" : theme.tabIconDefault,
                           }}
                         >
                           {shape.description}
@@ -2981,7 +2958,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 {filteredShops.map((shop) => {
                   const isDisabled = favoriteShops.length >= 10;
                   const category = getRetailerCategory(shop);
-                  const shopColor = SHOP_CATEGORY_COLORS[category || "default"] || SHOP_CATEGORY_COLORS["default"];
                   return (
                     <Pressable
                       key={shop}
@@ -2990,21 +2966,16 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       style={({ pressed }) => [
                         styles.shopChip,
                         {
-                          backgroundColor: shopColor.bg,
+                          backgroundColor: theme.backgroundDefault,
                           borderWidth: 1,
-                          borderColor: shopColor.border,
+                          borderColor: theme.backgroundSecondary,
                           opacity: isDisabled ? 0.4 : (pressed ? 0.85 : 1),
-                          shadowColor: shopColor.border,
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.25,
-                          shadowRadius: 4,
-                          elevation: 3,
                         },
                       ]}
                     >
-                      <ThemedText type="small" style={{ color: "#FFFFFF", opacity: isDisabled ? 0.5 : 1 }}>{shop}</ThemedText>
+                      <ThemedText type="small" style={{ color: theme.text, opacity: isDisabled ? 0.5 : 1 }}>{shop}</ThemedText>
                       {category ? (
-                        <ThemedText type="small" style={{ color: "rgba(255,255,255,0.6)", marginLeft: 4, fontSize: 10 }}>
+                        <ThemedText type="small" style={{ color: theme.tabIconDefault, marginLeft: 4, fontSize: 10 }}>
                           {category}
                         </ThemedText>
                       ) : null}
