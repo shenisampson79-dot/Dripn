@@ -181,7 +181,7 @@ function CategoryReel({ category, label, icon, items, selectedId, onSelect, isDa
         )}
       </View>
 
-      <View style={{ position: 'relative' }}>
+      <View style={{ position: 'relative', height: rowH }}>
         <FlatList
           ref={listRef}
           data={data}
@@ -196,7 +196,7 @@ function CategoryReel({ category, label, icon, items, selectedId, onSelect, isDa
           contentOffset={{ x: -(SIDE_INSET - SIDE_GAP / 2), y: 0 }}
           contentContainerStyle={styles.reelListContent}
           onMomentumScrollEnd={handleScrollEnd}
-          initialScrollIndex={initialIndex}
+          initialScrollIndex={Math.min(initialIndex, Math.max(0, data.length - 1))}
           getItemLayout={(_, index) => ({ length: SNAP_INTERVAL, offset: SNAP_INTERVAL * index, index })}
         />
         {/* Swipe hint arrows on edges */}
