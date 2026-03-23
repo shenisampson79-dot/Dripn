@@ -430,7 +430,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       // Background sync to backend so profile survives device changes / reinstalls
       if (userData.id) {
-        const { id, email, hasCompletedOnboarding: _hco, ...profileData } = userData as any;
+        const { id, email, ...profileData } = userData as any;
         apiService.syncProfile(profileData).catch(() => {});
       }
     } catch (error) {
