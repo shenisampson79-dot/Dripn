@@ -26,6 +26,14 @@ const getDefaultHexForDepth = (depth?: string): string => {
   return depthColors[depth || 'medium'] || '#B8A090';
 };
 
+const parseBestMetals = (metals: string): 'gold' | 'silver' | 'rose-gold' | 'mixed' => {
+  const metalStr = (metals || '').toLowerCase();
+  if (metalStr.includes('gold') && metalStr.includes('silver')) return 'mixed';
+  if (metalStr.includes('rose')) return 'rose-gold';
+  if (metalStr.includes('silver')) return 'silver';
+  return 'gold';
+};
+
 export type BodyShape = 
   | 'hourglass'
   | 'pear'
@@ -432,101 +440,19 @@ Respond in this exact JSON format:
     setIsAnalyzingColor(true);
     setError(null);
 
-    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
-    const bestModel = await getBestAvailableModel('vision', apiKey, 'gpt-5.2');
-    console.log(`Using vision model: ${bestModel} for color analysis`);
-
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:8082';
+      const token = await AsyncStorage.getItem('auth_token');
+
+      const response = await fetch(`${apiUrl}/api/onboarding/color-scan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          model: bestModel,
-          messages: [
-            {
-              role: 'system',
-              content: `You are an expert color analyst for an inclusive fashion app. Analyze selfie photos to determine the person's seasonal color palette AND their unique skin tone. You MUST celebrate diversity and provide culturally-sensitive, affirming skin tone names.
-
-INCLUSIVE SKIN TONE ANALYSIS:
-You must accurately identify skin tones across ALL ethnicities and races including but not limited to:
-- African/Black heritage (rich deep tones like Ebony, Mahogany, Espresso, Cocoa, Onyx, Umber, Sable)
-- South Asian/Indian heritage (warm golden tones like Bronze, Sandalwood, Cinnamon, Turmeric, Teak, Chai)
-- East Asian heritage (various tones like Porcelain, Honey, Almond, Ginger, Sesame, Bamboo)
-- Latino/Hispanic heritage (warm undertones like Caramel, Dulce de Leche, Terracotta, Amber, Canela)
-- Middle Eastern heritage (olive/warm tones like Olive, Saffron, Date, Fig, Hazelnut)
-- European/Caucasian heritage (fair to medium tones like Ivory, Peach, Cream, Rose, Bisque, Sand)
-- Indigenous/Native heritage (various earth tones like Clay, Sienna, Copper, Russet)
-- Mixed heritage (celebrate the unique blend)
-
-SKIN TONE DEPTH CATEGORIES:
-- very-fair: Porcelain, Ivory, Alabaster, Pearl, Snow
-- fair: Cream, Peach, Bisque, Light Beige, Rose
-- light-medium: Sand, Honey, Buff, Light Caramel, Golden Beige
-- medium: Golden, Olive, Warm Beige, Almond, Fawn
-- medium-deep: Bronze, Copper, Toffee, Cinnamon, Sienna
-- deep: Mahogany, Espresso, Chestnut, Umber, Cocoa
-- very-deep: Ebony, Onyx, Rich Chocolate, Obsidian, Jet
-
-UNDERTONES:
-- warm: Yellow, golden, peachy undertones
-- cool: Pink, red, blue undertones
-- neutral: Balance of warm and cool
-- olive: Green/yellow undertones (common in Mediterranean, South Asian, Latino skin)
-
-Create a UNIQUE, CELEBRATORY skin tone name that honors the person's heritage and beauty. Be poetic and affirming.
-
-SEASONAL COLOR ANALYSIS GUIDE:
-- SPRING: Warm undertone, clear/bright coloring. Light warm colors, coral, peach, warm greens.
-- SUMMER: Cool undertone, soft/muted coloring. Soft cool colors, lavender, dusty rose, sage.
-- AUTUMN: Warm undertone, deep/rich coloring. Earth tones, rust, olive, burnt orange.
-- WINTER: Cool undertone, high contrast/clear coloring. Bold cool colors, jewel tones, black, white.
-
-Each season has subtypes: light, true, deep, warm, cool, soft, clear, bright
-
-Respond in this exact JSON format:
-{
-  "season": "<spring|summer|autumn|winter>",
-  "subtype": "<light|true|deep|warm|cool|soft|clear|bright>",
-  "skinTone": {
-    "name": "<unique celebratory skin tone name like 'Golden Sandalwood' or 'Rich Mahogany'>",
-    "depth": "<very-fair|fair|light-medium|medium|medium-deep|deep|very-deep>",
-    "undertone": "<warm|cool|neutral|olive>",
-    "hexApproximation": "<hex color like #D4A574>",
-    "description": "<affirming 1-2 sentence description celebrating the skin tone>",
-    "complementaryColors": ["<color 1>", "<color 2>", "<color 3>", "<color 4>"]
-  },
-  "skinUndertone": "<warm|cool|neutral|olive>",
-  "eyeColor": "<descriptive eye color>",
-  "hairColor": "<descriptive hair color>",
-  "bestColors": ["<color 1>", "<color 2>", "<color 3>", "<color 4>", "<color 5>", "<color 6>"],
-  "avoidColors": ["<color 1>", "<color 2>", "<color 3>"],
-  "metallic": "<gold|silver|rose-gold|mixed>",
-  "confidence": <0-100>,
-  "recommendations": ["<styling tip 1>", "<styling tip 2>", "<styling tip 3>"]
-}`
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'Please analyze this selfie and determine my seasonal color palette and unique skin tone. Celebrate my natural beauty and provide personalized color recommendations that complement my skin.'
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:image/jpeg;base64,${selfieBase64}`,
-                    detail: 'high'
-                  }
-                }
-              ]
-            }
-          ],
-          max_tokens: 1500,
-          temperature: 0.4,
+          imageBase64: selfieBase64,
+          autoSave: true,
         }),
       });
 
@@ -535,41 +461,29 @@ Respond in this exact JSON format:
       }
 
       const data = await response.json();
-      const content = data.choices[0]?.message?.content;
-
-      if (!content) {
-        throw new Error('No response from AI');
-      }
-
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Invalid response format');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
       const now = new Date().toISOString();
       
       const colorSeasonData: ColorSeasonData = {
-        season: parsed.season,
-        subtype: parsed.subtype,
-        bestColors: parsed.bestColors,
-        avoidColors: parsed.avoidColors,
-        metallic: parsed.metallic,
-        confidence: parsed.confidence,
+        season: data.colorSeasonType?.toLowerCase() || 'autumn',
+        subtype: data.seasonSubtype?.toLowerCase(),
+        bestColors: data.colorPalette?.powerColors || [],
+        avoidColors: data.colorPalette?.avoidColors || [],
+        metallic: parseBestMetals(data.seasonAnalysis?.bestMetals || 'mixed'),
+        confidence: data.confidence || 80,
         analyzedAt: now,
       };
 
       const hexRegex = /^#(?:[0-9a-fA-F]{3}){1,2}$/i;
-      const rawHex = parsed.skinTone?.hexApproximation;
-      const validHex = rawHex && hexRegex.test(rawHex) ? rawHex : getDefaultHexForDepth(parsed.skinTone?.depth);
+      const rawHex = data.skinTone?.hexApproximation;
+      const validHex = rawHex && hexRegex.test(rawHex) ? rawHex : getDefaultHexForDepth(data.skinTone?.depth);
 
       const skinToneData: SkinToneData = {
-        name: parsed.skinTone?.name || 'Beautiful Natural',
-        depth: parsed.skinTone?.depth || 'medium',
-        undertone: parsed.skinTone?.undertone || parsed.skinUndertone || 'neutral',
+        name: data.skinTone?.name || 'Beautiful Natural',
+        depth: data.skinTone?.depth || 'medium',
+        undertone: data.skinTone?.undertone || data.skinUndertone || 'neutral',
         hexApproximation: validHex,
-        description: parsed.skinTone?.description || 'Your unique and beautiful skin tone.',
-        complementaryColors: parsed.skinTone?.complementaryColors || parsed.bestColors?.slice(0, 4) || [],
+        description: data.skinTone?.description || 'Your unique and beautiful skin tone.',
+        complementaryColors: data.skinTone?.complementaryColors || data.colorPalette?.powerColors?.slice(0, 4) || [],
         analyzedAt: now,
       };
 
@@ -579,10 +493,10 @@ Respond in this exact JSON format:
         success: true,
         colorSeason: colorSeasonData,
         skinTone: skinToneData,
-        skinUndertone: parsed.skinUndertone || parsed.skinTone?.undertone || 'neutral',
-        eyeColor: parsed.eyeColor,
-        hairColor: parsed.hairColor,
-        recommendations: parsed.recommendations,
+        skinUndertone: data.skinUndertone || data.skinTone?.undertone || 'neutral',
+        eyeColor: data.eyeColor,
+        hairColor: data.hairColor,
+        recommendations: data.personalizedTips || [],
       };
     } catch (err) {
       console.error('Color analysis failed:', err);
