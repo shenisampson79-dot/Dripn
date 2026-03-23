@@ -300,7 +300,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     const itemsWithImages = (outfit.items || []).filter(i => i.imageUri);
     const isLoadingVisual = generatingVisuals.has(outfit.id);
 
-    // Priority 1: outfit-level DALL-E generated image
+    // Priority 1: outfit-level AI-generated image (always show if available)
     if (outfit.imageUri) {
       return (
         <Image
@@ -311,7 +311,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       );
     }
 
-    // Priority 2: real wardrobe item photos in a 2×2 grid
+    // Priority 2: real wardrobe item photos in a 2×2 grid (only if we have AI visual as fallback)
     if (itemsWithImages.length >= 2) {
       const photos = itemsWithImages.slice(0, 4);
       const halfH = height / 2;
@@ -341,7 +341,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       );
     }
 
-    // Priority 4: AI visual generating — shimmer placeholder
+    // Priority 4: AI visual is being generated — show shimmer
     if (isLoadingVisual) {
       return (
         <LinearGradient
@@ -358,24 +358,38 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       );
     }
 
-    // Fallback: styled gradient placeholder with tap-to-generate
-    return (
-      <Pressable
-        onPress={() => generateSingleVisual(outfit)}
-        style={{ flex: 1 }}
-      >
+    // Priority 5: No AI visual yet — trigger generation and show placeholder
+    // This ensures we ALWAYS have a visual (either real photos or AI-generated)
+    if (!outfit.imageUri && !isLoadingVisual) {
+      // Auto-trigger generation if not already scheduled
+      if (!generatingVisuals.has(outfit.id)) {
+        setTimeout(() => generateSingleVisual(outfit), 100);
+      }
+      return (
         <LinearGradient
-          colors={[colors.gradient[0] + '40', colors.gradient[1] + '20']}
+          colors={[colors.gradient[0] + '50', colors.gradient[1] + '30', colors.gradient[0] + '50']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm }}
+          style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center' }}
         >
-          <Feather name="camera-off" size={28} color={colors.accent} style={{ opacity: 0.7 }} />
-          <ThemedText type="caption" style={{ color: colors.accent, opacity: 0.85, textAlign: 'center' }}>
-            Tap to generate outfit visual
+          <ActivityIndicator color={colors.accent} size="small" />
+          <ThemedText type="caption" style={{ color: colors.accent, marginTop: Spacing.sm, opacity: 0.9 }}>
+            Styling your look...
           </ThemedText>
         </LinearGradient>
-      </Pressable>
+      );
+    }
+
+    // Fallback (should rarely reach here)
+    return (
+      <LinearGradient
+        colors={[colors.gradient[0] + '40', colors.gradient[1] + '20']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm }}
+      >
+        <Feather name="camera-off" size={28} color={colors.accent} style={{ opacity: 0.7 }} />
+      </LinearGradient>
     );
   };
 
