@@ -10179,7 +10179,7 @@ app.post('/api/stylist/detect-mood', authMiddleware, async (req, res) => {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 80,
+      model: await getBestModel('chat'), max_completion_tokens: 80,
       messages: [{ role: 'user', content: `Detect the mood from this fashion context in 1-2 words. Context: "${message || context}". Reply with ONLY a JSON: {"mood":"word","energy":"high|medium|low","vibe":"word"}` }],
     });
     const raw = r.choices[0]?.message?.content || '{"mood":"confident","energy":"medium","vibe":"polished"}';
@@ -10212,7 +10212,7 @@ app.post('/api/style-profile/analyze', authMiddleware, async (req, res) => {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const prompt = `You are a senior fashion analyst. Analyse this wardrobe and style preferences to create a concise style profile. Wardrobe summary: ${wardrobeItems?.length || 0} items. Preferences: ${JSON.stringify(preferences || {})}. Return JSON: {"archetype":string,"dominantColors":string[],"styleWords":string[],"gaps":string[],"signature":string}`;
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 300,
+      model: await getBestModel('chat'), max_completion_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     });
     const raw = r.choices[0]?.message?.content || '';
@@ -10229,7 +10229,7 @@ app.get('/api/news/trending-styles', async (req, res) => {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 500,
+      model: await getBestModel('chat'), max_completion_tokens: 500,
       messages: [{ role: 'user', content: `You are a fashion editor. Generate 4 trending fashion stories for ${month} ${currentYear}. Return JSON array: [{"id":"1","title":string,"category":string,"summary":string(max 20 words),"trend":string,"imageColor":string(hex)}]` }],
     });
     const raw = r.choices[0]?.message?.content || '[]';
@@ -10250,7 +10250,7 @@ app.get('/api/trends/viral', async (req, res) => {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 400,
+      model: await getBestModel('chat'), max_completion_tokens: 400,
       messages: [{ role: 'user', content: `You are a fashion trends analyst for ${new Date().getFullYear()}. List 5 viral fashion trends right now. Return JSON: [{"id":"1","name":string,"description":string(15 words max),"heat":number(1-100),"category":string,"hashtag":string}]` }],
     });
     const raw = r.choices[0]?.message?.content || '[]';
@@ -10313,7 +10313,7 @@ app.get('/api/shopping/search', authMiddleware, async (req, res) => {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 500,
+      model: await getBestModel('chat'), max_completion_tokens: 500,
       messages: [{ role: 'user', content: `You are a fashion shopping assistant. Suggest 5 real products for: "${q}". Category: ${category || 'any'}. Max price: £${maxPrice || 200}. Return JSON: [{"id":"1","name":string,"brand":string,"price":number,"category":string,"description":string(10 words),"imageColor":string(hex)}]` }],
     });
     const raw = r.choices[0]?.message?.content || '[]';
@@ -10374,7 +10374,7 @@ app.post('/api/visual-search/identify', authMiddleware, async (req, res) => {
       ? { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
       : { type: 'image_url', image_url: { url: imageUrl } };
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o', max_completion_tokens: 400,
+      model: await getBestModel('vision'), max_completion_tokens: 400,
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Identify the fashion items in this image. Return JSON: {"items":[{"type":string,"color":string,"style":string,"material":string,"searchTerms":string[]}],"overallStyle":string,"occasion":string}' }, imageContent] }],
     });
     const raw = r.choices[0]?.message?.content || '{}';
@@ -10392,7 +10392,7 @@ app.post('/api/visual-search/search-by-photo', authMiddleware, async (req, res) 
       ? { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
       : { type: 'image_url', image_url: { url: imageUrl } };
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o', max_completion_tokens: 600,
+      model: await getBestModel('vision'), max_completion_tokens: 600,
       messages: [{ role: 'user', content: [{ type: 'text', text: 'You are a fashion search engine. Identify items in this photo and suggest where to buy similar pieces. Return JSON: {"identified":{"description":string,"style":string},"suggestions":[{"brand":string,"item":string,"estimatedPrice":number,"retailer":string,"searchUrl":string}]}' }, imageContent] }],
     });
     const raw = r.choices[0]?.message?.content || '{}';
@@ -10407,7 +10407,7 @@ app.post('/api/visual-search/marketplace', authMiddleware, async (req, res) => {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 400,
+      model: await getBestModel('chat'), max_completion_tokens: 400,
       messages: [{ role: 'user', content: `Fashion marketplace search for: "${searchTerm}". Category: ${category || 'all'}. Return 5 results as JSON: [{"id":"1","title":string,"brand":string,"price":number,"condition":"new"|"preloved","platform":string,"imageColor":string(hex)}]` }],
     });
     const raw = r.choices[0]?.message?.content || '[]';
@@ -10425,7 +10425,7 @@ app.post('/api/street-style-scan', authMiddleware, async (req, res) => {
       ? { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
       : { type: 'image_url', image_url: { url: imageUrl } };
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o', max_completion_tokens: 500,
+      model: await getBestModel('vision'), max_completion_tokens: 500,
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Analyse this street style photo as a fashion editor. Return JSON: {"aesthetic":string,"keyPieces":string[],"styleScore":number(1-10),"trendAlignment":string,"stylingTip":string,"vibe":string}' }, imageContent] }],
     });
     const raw = r.choices[0]?.message?.content || '{}';
@@ -10440,7 +10440,7 @@ app.post('/api/social/analyze-style', authMiddleware, async (req, res) => {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 300,
+      model: await getBestModel('chat'), max_completion_tokens: 300,
       messages: [{ role: 'user', content: `Analyse a fashion social profile from ${platform || 'Instagram'}. URL: ${profileUrl}. Provide a style analysis. Return JSON: {"archetype":string,"dominantAesthetic":string,"signatureColors":string[],"styleScore":number(1-10),"advice":string}` }],
     });
     const raw = r.choices[0]?.message?.content || '{}';
@@ -10457,7 +10457,7 @@ app.get('/api/wardrobe/clueless-view', authMiddleware, async (req, res) => {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 400,
+      model: await getBestModel('chat'), max_completion_tokens: 400,
       messages: [{ role: 'user', content: `You are Cher from Clueless. Analyse this wardrobe (${items.length} items) and give a fun, fashionable assessment. Return JSON: {"opening":string,"verdict":string,"bestPiece":string,"worstOffender":string,"advice":string,"score":number(1-10),"grade":string(A+ to F)}` }],
     });
     const raw = r.choices[0]?.message?.content || '{}';
@@ -10474,7 +10474,7 @@ app.get('/api/wardrobe/outfit-options', authMiddleware, async (req, res) => {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 500,
+      model: await getBestModel('chat'), max_completion_tokens: 500,
       messages: [{ role: 'user', content: `Fashion stylist: create 3 outfit options from these wardrobe items for occasion "${occasion || 'casual'}" and mood "${mood || 'confident'}". Items: ${JSON.stringify(items.slice(0, 15))}. Return JSON: [{"name":string,"pieces":string[],"styling":string,"vibe":string}]` }],
     });
     const raw = r.choices[0]?.message?.content || '[]';
@@ -10489,7 +10489,7 @@ app.post('/api/wardrobe/extract-from-screenshot/resilient', authMiddleware, asyn
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o', max_completion_tokens: 600,
+      model: await getBestModel('vision'), max_completion_tokens: 600,
       messages: [{ role: 'user', content: [
         { type: 'text', text: 'Extract all clothing items from this screenshot (e.g. from a shopping site or social media). Return JSON: {"items":[{"name":string,"category":string,"color":string,"brand":string,"estimatedPrice":number,"description":string}]}' },
         { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
@@ -10507,7 +10507,7 @@ app.post('/api/wardrobe/extract-from-url/resilient', authMiddleware, async (req,
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 400,
+      model: await getBestModel('chat'), max_completion_tokens: 400,
       messages: [{ role: 'user', content: `Extract product details from this shopping URL: ${url}. Return JSON: {"name":string,"brand":string,"category":string,"color":string,"price":number,"description":string,"material":string}` }],
     });
     const raw = r.choices[0]?.message?.content || '{}';
@@ -10532,7 +10532,7 @@ app.get('/api/marketplace/listings', async (req, res) => {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 600,
+      model: await getBestModel('chat'), max_completion_tokens: 600,
       messages: [{ role: 'user', content: `Generate 8 fashion marketplace listings. Category: ${category || 'all'}. Max price: £${maxPrice || 300}. Return JSON: [{"id":"1","title":string,"brand":string,"price":number,"condition":"new"|"like new"|"good","size":string,"category":string,"seller":string,"imageColor":string(hex),"liked":false}]` }],
     });
     const raw = r.choices[0]?.message?.content || '[]';
@@ -10582,7 +10582,7 @@ app.get('/api/games/daily-challenge', authMiddleware, async (req, res) => {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const today = new Date().toDateString();
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 300,
+      model: await getBestModel('chat'), max_completion_tokens: 300,
       messages: [{ role: 'user', content: `Generate a daily fashion styling challenge for ${today}. Return JSON: {"id":"daily-${Date.now()}","title":string,"description":string(20 words),"category":string,"difficulty":"easy"|"medium"|"hard","points":number,"timeLimit":number(minutes),"hint":string}` }],
     });
     const raw = r.choices[0]?.message?.content || '{}';
@@ -10608,7 +10608,7 @@ app.post('/api/games/dna/submit', authMiddleware, async (req, res) => {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 300,
+      model: await getBestModel('chat'), max_completion_tokens: 300,
       messages: [{ role: 'user', content: `Based on these fashion quiz answers: ${JSON.stringify(answers)}, determine their Style DNA. Return JSON: {"dna":string(2-3 words),"description":string(20 words),"archetype":string,"strengths":string[],"nextStep":string}` }],
     });
     const raw = r.choices[0]?.message?.content || '{}';
@@ -10638,7 +10638,7 @@ app.get('/api/games/pricecheck', authMiddleware, async (req, res) => {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 300,
+      model: await getBestModel('chat'), max_completion_tokens: 300,
       messages: [{ role: 'user', content: 'Generate a fashion price-guessing game with 5 items. Return JSON: [{"id":"1","brand":string,"item":string,"description":string(5 words),"actualPrice":number,"category":string}]' }],
     });
     const raw = r.choices[0]?.message?.content || '[]';
@@ -10724,7 +10724,7 @@ app.post('/api/guest/outfit-suggestion', async (req, res) => {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 400,
+      model: await getBestModel('chat'), max_completion_tokens: 400,
       messages: [{ role: 'user', content: `You are a fashion stylist. Suggest a complete outfit for: occasion="${occasion || 'casual'}", gender="${gender || 'any'}", style="${style || 'modern'}". Return JSON: {"outfit":{"top":string,"bottom":string,"shoes":string,"outerwear":string,"accessory":string},"stylingTip":string,"vibe":string,"estimatedBudget":{"low":number,"high":number}}` }],
     });
     const raw = r.choices[0]?.message?.content || '{}';
@@ -10749,7 +10749,7 @@ app.post('/api/help/ask-ruby', authMiddleware, async (req, res) => {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', max_completion_tokens: 400,
+      model: await getBestModel('chat'), max_completion_tokens: 400,
       messages: [
         { role: 'system', content: `You are ${persona.name}, a Dripn AI stylist. Voice: ${persona.voice}. Answer helpfully and in character.` },
         { role: 'user', content: question || 'How can I help?' },
