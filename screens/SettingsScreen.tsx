@@ -574,28 +574,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               thumbColor={notificationPrefs.communityVoting ? "#FFFFFF" : "#F4F4F4"}
             />
           </View>
-          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.emerald, '#059669']}
-              style={styles.settingIconGradient}
-            >
-              <Feather name="tag" size={16} color="#FFFFFF" />
-            </LinearGradient>
-            <View style={styles.settingContent}>
-              <ThemedText type="body" style={styles.settingTitle}>
-                {t('settings.priceAlerts')}
-              </ThemedText>
-              <ThemedText type="small" style={styles.settingSubtitle}>
-                {t('settings.priceAlertsDesc')}
-              </ThemedText>
-            </View>
-            <Switch
-              value={notificationPrefs.priceAlerts}
-              onValueChange={(value) => updatePreferences({ priceAlerts: value })}
-              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.violet }}
-              thumbColor={notificationPrefs.priceAlerts ? "#FFFFFF" : "#F4F4F4"}
-            />
-          </View>
         </View>
       </View>
 
@@ -610,15 +588,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.voiceAndLanguage')}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
-          <SettingItem
-            icon="globe"
-            title={t('settings.language')}
-            subtitle={SUPPORTED_LANGUAGES.find(l => l.code === voiceSettings.preferredLanguage)?.nativeName || "English"}
-            onPress={handleLanguageSelect}
-            theme={theme}
-            isDark={isDark}
-            iconGradient={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-          />
           <SettingItem
             icon="fast-forward"
             title={t('settings.voiceSpeed')}
