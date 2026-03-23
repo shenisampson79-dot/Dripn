@@ -44,7 +44,7 @@ type BulkWardrobeUploadScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "BulkWardrobeUpload">;
 };
 
-type InputMethod = 'camera' | 'gallery' | 'bulk' | 'url' | 'screenshot';
+type InputMethod = 'camera' | 'gallery' | 'bulk';
 
 interface PendingItem extends DetectedGarment {
   id: string;
@@ -590,34 +590,6 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           </Pressable>
         ) : null}
 
-        <Pressable
-          onPress={() => {
-            setInputMethod('screenshot');
-            handlePickScreenshot();
-          }}
-          style={[styles.methodCard, { backgroundColor: theme.backgroundDefault }]}
-        >
-          <View style={[styles.methodIconContainer, { backgroundColor: theme.link + '20' }]}>
-            <Feather name="smartphone" size={28} color={theme.link} />
-          </View>
-          <ThemedText type="body" style={styles.methodTitle}>From Screenshot</ThemedText>
-          <ThemedText type="caption" style={styles.methodDescription}>
-            Import from shopping apps
-          </ThemedText>
-        </Pressable>
-
-        <Pressable
-          onPress={() => setInputMethod('url')}
-          style={[styles.methodCard, { backgroundColor: theme.backgroundDefault }]}
-        >
-          <View style={[styles.methodIconContainer, { backgroundColor: theme.link + '20' }]}>
-            <Feather name="link" size={28} color={theme.link} />
-          </View>
-          <ThemedText type="body" style={styles.methodTitle}>Paste Link</ThemedText>
-          <ThemedText type="caption" style={styles.methodDescription}>
-            Add from product URL
-          </ThemedText>
-        </Pressable>
       </View>
 
       <Pressable
@@ -1029,14 +1001,6 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
 
       {pendingItems.length > 0 ? (
         renderPendingItems()
-      ) : inputMethod === 'url' ? (
-        <KeyboardAwareScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          {renderUrlInput()}
-        </KeyboardAwareScrollView>
       ) : (
         <FlatList
           data={[]}
