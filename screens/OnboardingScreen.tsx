@@ -556,7 +556,7 @@ let hasPromptedForPronunciationThisSession = false;
 
 export default function OnboardingScreen({ navigation, route }: OnboardingScreenProps) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { t, isRTL, translations } = useTranslations();
   const { completeOnboarding, user } = useAuth();
 
@@ -1691,8 +1691,9 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       value={bodyHeight?.toString() || ''}
                       onChangeText={(text) => setBodyHeight(text ? parseFloat(text) : null)}
                       keyboardType="numeric"
-                      placeholder={bodyHeightUnit === 'cm' ? "175" : "5.9"}
-                      placeholderTextColor={theme.tabIconDefault}
+                      placeholder={bodyHeightUnit === 'cm' ? "e.g. 175" : "e.g. 5'9"}
+                      placeholderTextColor={isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)'}
+                      autoFocus
                     />
                     <View style={styles.unitToggleRow}>
                       <Pressable
@@ -1747,8 +1748,8 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       value={bodyWeight?.toString() || ''}
                       onChangeText={(text) => setBodyWeight(text ? parseFloat(text) : null)}
                       keyboardType="numeric"
-                      placeholder={bodyWeightUnit === 'kg' ? "70" : "154"}
-                      placeholderTextColor={theme.tabIconDefault}
+                      placeholder={bodyWeightUnit === 'kg' ? "e.g. 70" : "e.g. 154"}
+                      placeholderTextColor={isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)'}
                     />
                     <View style={styles.unitToggleRow}>
                       <Pressable
