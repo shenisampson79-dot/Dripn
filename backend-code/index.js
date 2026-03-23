@@ -9226,6 +9226,7 @@ app.post('/api/decision/check/resilient', async (req, res) => {
 app.post('/api/wardrobe/generate-outfit/resilient', authMiddleware, async (req, res) => {
   try {
     const { occasionType = 'casual_day', stylistId = 'ruby', weather, saveToCalendar, calendarDate, localItems } = req.body;
+    console.log(`[GenerateOutfit] Attempting to generate for occasion: ${occasionType}, stylist: ${stylistId}`);
 
     let wardrobeItems = [];
     if (Array.isArray(localItems) && localItems.length > 0) {
@@ -9236,16 +9237,19 @@ app.post('/api/wardrobe/generate-outfit/resilient', authMiddleware, async (req, 
         color: i.color || '',
         image_url: i.imageUri || null,
       }));
+      console.log(`[GenerateOutfit] Using ${wardrobeItems.length} local items`);
     } else {
       const wardrobeResult = await pool.query(
         `SELECT id, name, category, color, brand, image_url FROM wardrobe_items WHERE user_id = $1 ORDER BY created_at DESC LIMIT 60`,
         [req.userId]
       );
       wardrobeItems = wardrobeResult.rows;
+      console.log(`[GenerateOutfit] Loaded ${wardrobeItems.length} items from database`);
     }
 
     if (wardrobeItems.length === 0) {
-      return res.status(400).json({ success: false, error: 'NO_ITEMS', message: 'No wardrobe items found. Add some items first.' });
+      console.warn(`[GenerateOutfit] No wardrobe items found for user ${req.userId}`);
+      return res.status(400).json({ success: false, error: 'NO_ITEMS', message: 'No wardrobe items found. Please add some items to your wardrobe first.' });
     }
 
     const occasionLabels = {
@@ -9278,7 +9282,15 @@ app.post('/api/wardrobe/generate-outfit/resilient', authMiddleware, async (req, 
       .map((i, idx) => `${idx + 1}. [${i.id}] ${i.name} (${i.category}${i.color ? ', ' + i.color : ''})`)
       .join('\n');
 
-    const chatModel = await getBestModel('chat');
+    let chatModel;
+    try {
+      chatModel = await getBestModel('chat');
+      console.log(`[GenerateOutfit] Using model: ${chatModel}`);
+    } catch (modelErr) {
+      console.error(`[GenerateOutfit] Failed to get best model:`, modelErr);
+      return res.status(500).json({ success: false, error: 'Could not initialize AI model. Please try again.' });
+    }
+
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -9286,7 +9298,7 @@ app.post('/api/wardrobe/generate-outfit/resilient', authMiddleware, async (req, 
 
 The client wants ${occasionLabel}. ${weatherNote}
 
-Their wardrobe:
+Their wardrobe (${wardrobeItems.length} items):
 ${itemList}
 
 Select 2-5 items that work as a cohesive outfit. Only use items from the list above by their exact [id]. Then write a short stylistMessage in your voice (1-2 sentences, no quotes).
@@ -9300,19 +9312,30 @@ Respond ONLY with valid JSON, no markdown:
   "stylistMessage": "Your personal message to the client in your voice"
 }`;
 
-    const aiResponse = await openai.chat.completions.create({
-      model: chatModel,
-      messages: [{ role: 'user', content: prompt }],
-      max_completion_tokens: 700,
-      temperature: 0.75,
-    });
+    let aiResponse;
+    try {
+      aiResponse = await openai.chat.completions.create({
+        model: chatModel,
+        messages: [{ role: 'user', content: prompt }],
+        max_completion_tokens: 700,
+        temperature: 0.75,
+      });
+      console.log(`[GenerateOutfit] AI responded successfully`);
+    } catch (aiErr) {
+      console.error(`[GenerateOutfit] OpenAI API error:`, aiErr.message);
+      return res.status(500).json({ success: false, error: `AI service error: ${aiErr.message || 'Please try again.'}` });
+    }
 
     const raw = aiResponse.choices[0]?.message?.content?.trim() || '';
+    console.log(`[GenerateOutfit] Raw AI response length: ${raw.length}`);
+    
     let parsed;
     try {
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
-    } catch {
+      console.log(`[GenerateOutfit] Successfully parsed AI response`);
+    } catch (parseErr) {
+      console.error(`[GenerateOutfit] Failed to parse AI response:`, parseErr.message, `\nRaw content: ${raw.substring(0, 500)}`);
       return res.status(500).json({ success: false, error: 'AI returned an invalid response. Please try again.' });
     }
 
