@@ -878,7 +878,8 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     setIsPlayingVoice(stylistId);
 
     try {
-      const voiceForStylist = stylistId === 'ruby' ? 'nova' : 'onyx';
+      const STYLIST_VOICE_MAP: Record<string, 'nova' | 'onyx' | 'echo' | 'fable'> = { ruby: 'nova', max: 'onyx', ace: 'echo', ivy: 'fable' };
+      const voiceForStylist = STYLIST_VOICE_MAP[stylistId] || 'nova';
       // Pass user's first name for personalized greetings (e.g., "Ciao Sarah!" instead of "Ciao bella!")
       // Only use name if user hasn't said pronunciation is wrong
       const nameToUse = useNameInGreetings ? userFirstName : undefined;
@@ -931,7 +932,8 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       await stopAudio();
       setIsPlayingVoice(selectedStylistId);
       try {
-        const voiceForStylist = selectedStylistId === 'ruby' ? 'nova' : 'onyx';
+        const STYLIST_VOICE_MAP2: Record<string, 'nova' | 'onyx' | 'echo' | 'fable'> = { ruby: 'nova', max: 'onyx', ace: 'echo', ivy: 'fable' };
+        const voiceForStylist = STYLIST_VOICE_MAP2[selectedStylistId] || 'nova';
         const nameToUse = useNameInGreetings ? userFirstName : undefined;
         const newAccent = accents.length > 0 ? accents[0] : stylistAccent;
         await playOpenAIVoice(selectedStylistId, lang, voicePitch, voiceForStylist, newAccent, nameToUse);
@@ -950,7 +952,8 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       await stopAudio();
       setIsPlayingVoice(selectedStylistId);
       try {
-        const voiceForStylist = selectedStylistId === 'ruby' ? 'nova' : 'onyx';
+        const STYLIST_VOICE_MAP3: Record<string, 'nova' | 'onyx' | 'echo' | 'fable'> = { ruby: 'nova', max: 'onyx', ace: 'echo', ivy: 'fable' };
+        const voiceForStylist = STYLIST_VOICE_MAP3[selectedStylistId] || 'nova';
         const nameToUse = useNameInGreetings ? userFirstName : undefined;
         await playOpenAIVoice(selectedStylistId, stylistLanguage, voicePitch, voiceForStylist, accent, nameToUse);
         setIsPlayingVoice(null);

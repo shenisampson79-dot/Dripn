@@ -483,7 +483,7 @@ const playWithFallbackSpeech = async (
 
   await Speech.stop();
 
-  const preferFemale = stylistId === 'ruby';
+  const preferFemale = stylistId === 'ruby' || stylistId === 'ivy';
   const voiceInfo = await findBestVoiceForLanguage(language, preferFemale, accent);
   
   let langCode = LANGUAGE_CODES[language] || 'en-US';

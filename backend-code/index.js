@@ -5461,7 +5461,8 @@ app.get('/api/ai/voices', async (req, res) => {
 
 app.post('/api/ai/voice-preview', async (req, res) => {
   try {
-    const { stylistId, language, voiceRange } = req.body;
+    const { stylistId: bodyStylestId, stylist, language, voiceRange } = req.body;
+    const stylistId = (bodyStylestId || stylist || '').toLowerCase();
 
     if (!stylistId || !['ruby', 'max', 'ace', 'ivy'].includes(stylistId)) {
       return res.status(400).json({ error: 'Valid stylistId (ruby, max, ace, or ivy) is required' });
