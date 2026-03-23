@@ -9191,7 +9191,7 @@ app.post('/api/decision/check/resilient', async (req, res) => {
 
     const imageArray = Array.isArray(images) ? images : [];
 
-    const response = await generateStylistResponse({
+    const stylistResponse = await generateStylistResponse({
       stylistId,
       messages: [],
       userMessage,
@@ -9202,10 +9202,13 @@ app.post('/api/decision/check/resilient', async (req, res) => {
       languageName: context.languageName || 'English',
     });
 
+    // Extract content from the response object (which has {content, mood, stylistId, modelUsed})
+    const responseContent = stylistResponse?.content || stylistResponse || 'Here is my recommendation based on your preferences.';
+
     res.json({
       success: true,
-      decision: response || 'Here is my recommendation based on your preferences.',
-      recommendation: response,
+      decision: responseContent,
+      recommendation: responseContent,
       reasoning: `Analysed your context: ${userMessage}`,
       decisionType,
       stylistId,
