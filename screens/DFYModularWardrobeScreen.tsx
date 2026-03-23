@@ -42,9 +42,9 @@ const LUXURY_COLORS = {
 };
 
 const CATEGORY_ROWS: { key: ClothingCategory; label: string; icon: string; gradient: readonly [string, string] }[] = [
+  { key: 'outerwear', label: 'Outerwear', icon: 'cloud', gradient: ['#64748B', '#475569'] as const },
   { key: 'tops', label: 'Tops', icon: 'sun', gradient: [LUXURY_COLORS.coral, '#C46A4F'] as const },
   { key: 'bottoms', label: 'Bottoms', icon: 'minimize-2', gradient: [LUXURY_COLORS.teal, LUXURY_COLORS.emerald] as const },
-  { key: 'outerwear', label: 'Outerwear', icon: 'cloud', gradient: ['#64748B', '#475569'] as const },
   { key: 'shoes', label: 'Shoes', icon: 'disc', gradient: [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const },
   { key: 'accessories', label: 'Accessories', icon: 'watch', gradient: ['#8B5CF6', '#7C3AED'] as const },
 ];
@@ -85,6 +85,13 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
   }, []);
 
   const getItemsByCategory = (category: ClothingCategory): WardrobeItem[] => {
+    // Include activewear in their respective main categories
+    if (category === 'tops') {
+      return items.filter(item => item.category === 'tops' || item.category === 'activewear_tops');
+    }
+    if (category === 'bottoms') {
+      return items.filter(item => item.category === 'bottoms' || item.category === 'activewear_bottoms');
+    }
     return items.filter(item => item.category === category);
   };
 
