@@ -5461,7 +5461,7 @@ app.get('/api/ai/voices', async (req, res) => {
 
 app.post('/api/ai/voice-preview', async (req, res) => {
   try {
-    const { stylistId: bodyStylestId, stylist, language, voiceRange } = req.body;
+    const { stylistId: bodyStylestId, stylist, language, voiceRange, text: bodyText } = req.body;
     const stylistId = (bodyStylestId || stylist || '').toLowerCase();
 
     if (!stylistId || !['ruby', 'max', 'ace', 'ivy'].includes(stylistId)) {
@@ -5471,7 +5471,8 @@ app.post('/api/ai/voice-preview', async (req, res) => {
     const result = await generateVoicePreview(
       stylistId,
       language || 'English',
-      voiceRange || null
+      voiceRange || null,
+      bodyText || null
     );
 
     if (!result.success) {

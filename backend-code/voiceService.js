@@ -295,7 +295,7 @@ async function createVoiceResponse(responseText, stylistId = 'ruby', options = {
   };
 }
 
-async function generateVoicePreview(stylistId, language = 'English', voiceRange = null) {
+async function generateVoicePreview(stylistId, language = 'English', voiceRange = null, customText = null) {
   const phrases = VOICE_PREVIEW_PHRASES[stylistId];
   if (!phrases) {
     return {
@@ -304,7 +304,7 @@ async function generateVoicePreview(stylistId, language = 'English', voiceRange 
     };
   }
 
-  const text = phrases[language] || phrases['English'];
+  const text = customText || phrases[language] || phrases['English'];
   const voice = STYLIST_VOICES[stylistId] || 'shimmer';
   const speed = getSpeedForVoice(stylistId, voiceRange);
 
