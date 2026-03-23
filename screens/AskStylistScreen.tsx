@@ -1109,52 +1109,50 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
             ) : null}
           </View>
         )}
+
+        {showSurpriseMeOption && images.length === 0 ? (
+          <View style={styles.surpriseMeSection}>
+            <View style={styles.orDivider}>
+              <View style={styles.dividerLine} />
+              <ThemedText style={styles.orText}>or</ThemedText>
+              <View style={styles.dividerLine} />
+            </View>
+            <Pressable onPress={handleSurpriseMe} style={styles.surpriseMeButton}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+                style={styles.surpriseMeButtonGradient}
+              >
+                <Feather name="shuffle" size={20} color={LUXURY_COLORS.midnight} />
+                <ThemedText type="body" style={styles.surpriseMeButtonText}>
+                  Surprise Me
+                </ThemedText>
+                <ThemedText type="small" style={styles.surpriseMeSubtext}>
+                  Pick from my wardrobe
+                </ThemedText>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {images.length > 0 ? (
+          <Pressable
+            onPress={() => setStep('context')}
+            style={styles.nextButton}
+          >
+            <LinearGradient
+              colors={getStylistGradient()}
+              style={styles.nextButtonGradient}
+            >
+              <ThemedText type="body" style={styles.nextButtonText}>
+                Continue
+              </ThemedText>
+              <Feather name="arrow-right" size={18} color="#FFFFFF" />
+            </LinearGradient>
+          </Pressable>
+        ) : null}
       </View>
     );
   };
-
-      {showSurpriseMeOption && images.length === 0 ? (
-        <View style={styles.surpriseMeSection}>
-          <View style={styles.orDivider}>
-            <View style={styles.dividerLine} />
-            <ThemedText style={styles.orText}>or</ThemedText>
-            <View style={styles.dividerLine} />
-          </View>
-          <Pressable onPress={handleSurpriseMe} style={styles.surpriseMeButton}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-              style={styles.surpriseMeButtonGradient}
-            >
-              <Feather name="shuffle" size={20} color={LUXURY_COLORS.midnight} />
-              <ThemedText type="body" style={styles.surpriseMeButtonText}>
-                Surprise Me
-              </ThemedText>
-              <ThemedText type="small" style={styles.surpriseMeSubtext}>
-                Pick from my wardrobe
-              </ThemedText>
-            </LinearGradient>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {images.length > 0 ? (
-        <Pressable
-          onPress={() => setStep('context')}
-          style={styles.nextButton}
-        >
-          <LinearGradient
-            colors={getStylistGradient()}
-            style={styles.nextButtonGradient}
-          >
-            <ThemedText type="body" style={styles.nextButtonText}>
-              Continue
-            </ThemedText>
-            <Feather name="arrow-right" size={18} color="#FFFFFF" />
-          </LinearGradient>
-        </Pressable>
-      ) : null}
-    </View>
-  );
 
   const eventTypes = [
     { id: 'wedding', label: 'Wedding' },
@@ -1394,6 +1392,15 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           {getStylistName()}
         </ThemedText>
       </View>
+
+      {response?.outfitImageUrl ? (
+        <View style={styles.outfitImageContainer}>
+          <Image
+            source={{ uri: response.outfitImageUrl }}
+            style={styles.outfitImage}
+          />
+        </View>
+      ) : null}
 
       <View style={styles.responseCard}>
         <ThemedText type="body" style={styles.responseText}>
@@ -2533,5 +2540,16 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
     textAlign: 'center',
     paddingVertical: Spacing.xl,
+  },
+  outfitImageContainer: {
+    marginVertical: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  outfitImage: {
+    width: '100%',
+    height: 350,
+    borderRadius: BorderRadius.lg,
   },
 });

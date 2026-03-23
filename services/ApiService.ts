@@ -1312,6 +1312,7 @@ class ApiService {
       stylistId?: string;
       decisionType?: string;
       error?: string;
+      outfitImageUrl?: string;
     }>('/api/decision/check/resilient', {
       method: 'POST',
       body: JSON.stringify(data),

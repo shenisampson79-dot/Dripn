@@ -9205,6 +9205,33 @@ app.post('/api/decision/check/resilient', async (req, res) => {
     // Extract content from the response object (which has {content, mood, stylistId, modelUsed})
     const responseContent = stylistResponse?.content || stylistResponse || 'Here is my recommendation based on your preferences.';
 
+    // Generate outfit visual using DALL-E 3
+    let outfitImageUrl = null;
+    try {
+      // Extract outfit details from the stylist's response to create a DALL-E prompt
+      const dallePrompt = `Fashion illustration of a stylish casual outfit. ${responseContent.substring(0, 300)}. 
+      Style: Modern, chic fashion illustration. Show a full-body view of someone wearing this outfit. 
+      Artistic, wearable, inspirational fashion sketch. Professional fashion designer illustration.
+      No text, no logos. Minimalist elegant background.`;
+
+      const OpenAI = require('openai');
+      const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      const imageResponse = await openaiClient.images.generate({
+        model: 'dall-e-3',
+        prompt: dallePrompt,
+        n: 1,
+        size: '1024x1024',
+        quality: 'standard',
+      });
+
+      outfitImageUrl = imageResponse.data[0]?.url || null;
+      console.log('[Decision Check] Generated outfit image:', outfitImageUrl ? 'success' : 'failed');
+    } catch (imageErr) {
+      console.warn('[Decision Check] Failed to generate outfit image:', imageErr.message);
+      // Continue without image - it's not critical
+    }
+
     res.json({
       success: true,
       decision: responseContent,
@@ -9213,6 +9240,7 @@ app.post('/api/decision/check/resilient', async (req, res) => {
       decisionType,
       stylistId,
       hasImages: imageArray.length > 0,
+      outfitImageUrl,
     });
   } catch (error) {
     console.error('[Decision Check Error]:', error);
