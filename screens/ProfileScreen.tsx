@@ -3,7 +3,7 @@
  * Proprietary and confidential.
  */
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { StyleSheet, View, Pressable, Image, Alert, ScrollView, ActivityIndicator, ImageSourcePropType } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -20,6 +20,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useOutfitFavorites, LikedOutfit } from "@/contexts/OutfitFavoritesContext";
 import { useBodyProfile } from "@/contexts/BodyProfileContext";
 import { useStyleProfile } from "@/contexts/StyleProfileContext";
+import { useWardrobe } from "@/contexts/WardrobeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
@@ -53,9 +54,57 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const { user } = useAuth();
   const { limits } = useSubscription();
   const { getLikedOutfits, toggleOutfitLike, isOutfitLiked, isLoading: outfitsLoading } = useOutfitFavorites();
-  const { bodyProfile, hasBodyProfile, hasColorAnalysis } = useBodyProfile();
+  const { bodyProfile, hasBodyProfile, hasColorAnalysis, saveBodyProfile } = useBodyProfile();
   const { styleProfile, hasStyleProfile } = useStyleProfile();
+  const { items: wardrobeItems } = useWardrobe();
   const [activeTab, setActiveTab] = useState<"outfits">("outfits");
+
+  // Derive Style DNA from wardrobe items — same logic as StyleDNAScreen
+  const ownedWardrobeItems = useMemo(() => wardrobeItems.filter(i => !i.origin || i.origin === 'owned'), [wardrobeItems]);
+
+  const wardrobeDominantStyle = useMemo(() => {
+    if (ownedWardrobeItems.length === 0) return null;
+    const COLOR_STYLE_MAP: Record<string, string[]> = {
+      black: ['edgy','business','luxury'], white: ['smart-casual','luxury','sporty'],
+      gray: ['business','smart-casual','edgy'], navy: ['business','smart-casual','luxury'],
+      brown: ['boho','luxury','smart-casual'], beige: ['boho','luxury','smart-casual'],
+      red: ['streetwear','edgy','luxury'], pink: ['boho','luxury','smart-casual'],
+      orange: ['boho','streetwear','sporty'], yellow: ['streetwear','sporty','boho'],
+      green: ['boho','sporty','smart-casual'], blue: ['sporty','smart-casual','business'],
+      purple: ['edgy','luxury','boho'], multicolor: ['boho','streetwear','sporty'],
+    };
+    const CATEGORY_STYLE_MAP: Record<string, string[]> = {
+      tops: ['smart-casual','streetwear','boho'], bottoms: ['smart-casual','business','streetwear'],
+      dresses: ['luxury','boho','business'], outerwear: ['luxury','edgy','smart-casual'],
+      shoes: ['luxury','sporty','streetwear'], bags: ['luxury','business','boho'],
+      accessories: ['luxury','edgy','boho'], activewear: ['sporty','streetwear','smart-casual'],
+      swimwear: ['boho','sporty','luxury'], sleepwear: ['smart-casual','boho','luxury'],
+      formal: ['luxury','business','smart-casual'],
+    };
+    const STYLE_LABELS: Record<string, string> = {
+      luxury: 'Minimalist', streetwear: 'Casual', boho: 'Creative',
+      sporty: 'Active', 'smart-casual': 'Smart Casual', business: 'Professional', edgy: 'Trendsetter',
+    };
+    const scores: Record<string, number> = { luxury:0, streetwear:0, boho:0, sporty:0, 'smart-casual':0, business:0, edgy:0 };
+    for (const item of ownedWardrobeItems) {
+      (COLOR_STYLE_MAP[item.color] || []).forEach((s, i) => { scores[s] += (3 - i) * 1.5; });
+      (CATEGORY_STYLE_MAP[item.category] || []).forEach((s, i) => { scores[s] += (3 - i) * 2; });
+    }
+    const top = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+    return top ? STYLE_LABELS[top[0]] || top[0] : null;
+  }, [ownedWardrobeItems]);
+
+  // Sync onboarding body data into BodyProfileContext if not yet stored
+  useEffect(() => {
+    if (!bodyProfile && user?.bodyShape && user.bodyShape !== 'unknown') {
+      const shape = (user.bodyShape as string).toLowerCase().replace(' ', '-') as any;
+      saveBodyProfile({
+        bodyShape: shape,
+        measurements: user.bodyMeasurements || {},
+        isManualEntry: true,
+      }).catch(() => {});
+    }
+  }, [user?.id]);
 
   // Dynamic colors from palette
   const LUXURY_COLORS = {
@@ -251,13 +300,13 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             </LinearGradient>
             <View style={styles.styleProfileCardContent}>
               <ThemedText type="body" style={styles.styleProfileCardTitle}>{translations.profile.styleDna}</ThemedText>
-              {hasStyleProfile && styleProfile ? (
-                <ThemedText type="small" style={styles.styleProfileCardValue}>
-                  {styleProfile.stylePersonality || styleProfile.dominantStyles?.[0] || 'Analyzed'}
+              {ownedWardrobeItems.length > 0 ? (
+                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.teal }]}>
+                  {wardrobeDominantStyle || 'AI Analysed'}
                 </ThemedText>
               ) : (
-                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.coral }]}>
-                  {t('profile.notCompleted')}
+                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: theme.tabIconDefault }]}>
+                  Add items to your wardrobe
                 </ThemedText>
               )}
             </View>
@@ -280,12 +329,12 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             <View style={styles.styleProfileCardContent}>
               <ThemedText type="body" style={styles.styleProfileCardTitle}>{translations.profile.colorAnalysis}</ThemedText>
               {hasColorAnalysis && bodyProfile?.colorSeason ? (
-                <ThemedText type="small" style={styles.styleProfileCardValue}>
-                  {bodyProfile.colorSeason.season.charAt(0).toUpperCase() + bodyProfile.colorSeason.season.slice(1)} {bodyProfile.colorSeason.subtype || ''}
+                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.teal }]}>
+                  {bodyProfile.colorSeason.season.charAt(0).toUpperCase() + bodyProfile.colorSeason.season.slice(1)}{bodyProfile.colorSeason.subtype ? ` · ${bodyProfile.colorSeason.subtype}` : ''}
                 </ThemedText>
               ) : (
-                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.coral }]}>
-                  {t('profile.notCompleted')}
+                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: theme.tabIconDefault }]}>
+                  Take a selfie to discover your season
                 </ThemedText>
               )}
             </View>
@@ -307,13 +356,13 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             </LinearGradient>
             <View style={styles.styleProfileCardContent}>
               <ThemedText type="body" style={styles.styleProfileCardTitle}>{translations.profile.bodyProfile}</ThemedText>
-              {hasBodyProfile && bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown' ? (
-                <ThemedText type="small" style={styles.styleProfileCardValue}>
-                  {bodyProfile.bodyShape.charAt(0).toUpperCase() + bodyProfile.bodyShape.slice(1)} shape
+              {(hasBodyProfile && bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown') || (user?.bodyShape && user.bodyShape !== 'unknown') ? (
+                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.teal }]}>
+                  {((bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown' ? bodyProfile.bodyShape : user?.bodyShape) as string || '').split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} shape
                 </ThemedText>
               ) : (
-                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.coral }]}>
-                  {t('profile.notCompleted')}
+                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: theme.tabIconDefault }]}>
+                  Scan or enter your measurements
                 </ThemedText>
               )}
             </View>
@@ -321,11 +370,17 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           </Pressable>
         </View>
 
-        {(!hasStyleProfile || !hasColorAnalysis || !hasBodyProfile) ? (
+        {(ownedWardrobeItems.length === 0 || !hasColorAnalysis || (!hasBodyProfile && !user?.bodyShape)) ? (
           <View style={[styles.styleProfileTip, { backgroundColor: LUXURY_COLORS.gold + '15' }]}>
             <Feather name="info" size={16} color={LUXURY_COLORS.gold} />
             <ThemedText type="small" style={styles.styleProfileTipText}>
-              {t('profile.completeStyleProfile')}
+              {ownedWardrobeItems.length === 0
+                ? 'Add clothes to your wardrobe — the AI will analyse your style automatically.'
+                : !hasColorAnalysis && (!hasBodyProfile && !user?.bodyShape)
+                  ? 'Complete a colour selfie and body scan to unlock your full style profile.'
+                  : !hasColorAnalysis
+                    ? 'Take a selfie in the Colour Analysis screen to discover your colour season.'
+                    : 'Add your body measurements in Body Profile to get perfectly tailored recommendations.'}
             </ThemedText>
           </View>
         ) : null}
