@@ -130,62 +130,64 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     }
   };
 
-  // Restore previously generated visuals from the DB cache, then fill any gaps
+  // Restore previously generated visuals from the DB cache, then fill any gaps with AI generation
   const restoreCachedVisuals = async (currentDelivery: DFYLiteDelivery) => {
     const outfitsWithoutVisual = currentDelivery.outfits.filter(o => {
       if (!o.items || o.items.length === 0) return false;
       if (o.imageUri) return false;
-      return !o.items.some(i => i.imageUri);
+      return true; // All outfits without AI visual
     });
     if (outfitsWithoutVisual.length === 0) return;
 
     let updatedOutfits = [...currentDelivery.outfits];
-    let didUpdate = false;
+    let cachedCount = 0;
 
-    // Try to restore from DB cache first (fast, no generation cost)
-    await Promise.all(outfitsWithoutVisual.map(async (outfit) => {
+    // FAST PATH: Try to restore from DB cache (no generation cost, instant display)
+    const cachedPromises = outfitsWithoutVisual.map(async (outfit) => {
       try {
         const cached = await apiService.getDFYOutfitVisual(outfit.dayNumber);
         if (cached.success && cached.imageUrl) {
           updatedOutfits = updatedOutfits.map(o =>
             o.id === outfit.id ? { ...o, imageUri: cached.imageUrl! } : o
           );
-          didUpdate = true;
+          cachedCount++;
         }
       } catch (_) {}
-    }));
+    });
 
-    if (didUpdate) {
+    await Promise.all(cachedPromises);
+
+    // Update state with cached visuals
+    if (cachedCount > 0) {
       const saved: DFYLiteDelivery = { ...currentDelivery, outfits: updatedOutfits };
       await dfyService.saveDFYDelivery(saved);
       setDelivery({ ...currentDelivery, outfits: [...updatedOutfits] });
     }
 
-    // Now generate visuals for any that still don't have one
-    const stillMissing = updatedOutfits.filter(o => {
-      if (!o.items || o.items.length === 0) return false;
-      if (o.imageUri) return false;
-      return !o.items.some(i => i.imageUri);
-    });
+    // IMMEDIATE: Generate AI visuals for missing ones — NO WAITING, NO DELAYS
+    const stillMissing = updatedOutfits.filter(o => !o.imageUri && o.items?.length > 0);
     if (stillMissing.length > 0) {
+      // Start generation immediately for all missing visuals
+      // Don't batch or queue — generate in parallel batches of 2-3
       scheduleVisualGeneration({ ...currentDelivery, outfits: updatedOutfits });
     }
   };
 
-  // Generate AI outfit visuals for outfits that have items but no imageUri and no item photos
+  // Generate AI outfit visuals for outfits that have items but no imageUri
   const scheduleVisualGeneration = async (currentDelivery: DFYLiteDelivery) => {
     const outfitsNeedingVisuals = currentDelivery.outfits.filter(o => {
       if (!o.items || o.items.length === 0) return false;
       if (o.imageUri) return false;
-      return !o.items.some(i => i.imageUri);
+      return true; // Generate for all without AI visuals
     });
     if (outfitsNeedingVisuals.length === 0) return;
 
     let updatedOutfits = [...currentDelivery.outfits];
 
-    // Generate 2 at a time to respect rate limits
-    for (let i = 0; i < outfitsNeedingVisuals.length; i += 2) {
-      const batch = outfitsNeedingVisuals.slice(i, i + 2);
+    // Generate 3-4 at a time for faster throughput (respects rate limits while being quick)
+    const batchSize = 3;
+    for (let i = 0; i < outfitsNeedingVisuals.length; i += batchSize) {
+      const batch = outfitsNeedingVisuals.slice(i, i + batchSize);
       setGeneratingVisuals(prev => {
         const next = new Set(prev);
         batch.forEach(o => next.add(o.id));
@@ -300,8 +302,10 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     const itemsWithImages = (outfit.items || []).filter(i => i.imageUri);
     const isLoadingVisual = generatingVisuals.has(outfit.id);
 
-    // Priority 1: outfit-level AI-generated image (always show if available)
+    // Priority 1: outfit-level AI-generated image (PRIMARY — always show if available)
     if (outfit.imageUri) {
+      // If we also have real photos, optionally show them as an overlay or replace
+      // For now, AI visual is the main show, real photos are bonus
       return (
         <Image
           source={{ uri: outfit.imageUri }}
@@ -311,7 +315,25 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       );
     }
 
-    // Priority 2: real wardrobe item photos in a 2×2 grid (only if we have AI visual as fallback)
+    // Priority 2: AI visual is being generated — show shimmer loader (FAST FEEDBACK)
+    if (isLoadingVisual) {
+      return (
+        <LinearGradient
+          colors={[colors.gradient[0] + '50', colors.gradient[1] + '30', colors.gradient[0] + '50']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <ActivityIndicator color={colors.accent} size="small" />
+          <ThemedText type="caption" style={{ color: colors.accent, marginTop: Spacing.sm, opacity: 0.9 }}>
+            Styling your look...
+          </ThemedText>
+        </LinearGradient>
+      );
+    }
+
+    // Priority 3: Real wardrobe photos as fallback (if no AI visual yet)
+    // These load in background while AI generates
     if (itemsWithImages.length >= 2) {
       const photos = itemsWithImages.slice(0, 4);
       const halfH = height / 2;
@@ -330,7 +352,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       );
     }
 
-    // Priority 3: single item photo (fill the whole visual)
+    // Priority 4: single item photo (fill the whole visual)
     if (itemsWithImages.length === 1) {
       return (
         <Image
@@ -341,30 +363,12 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       );
     }
 
-    // Priority 4: AI visual is being generated — show shimmer
-    if (isLoadingVisual) {
-      return (
-        <LinearGradient
-          colors={[colors.gradient[0] + '50', colors.gradient[1] + '30', colors.gradient[0] + '50']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <ActivityIndicator color={colors.accent} size="small" />
-          <ThemedText type="caption" style={{ color: colors.accent, marginTop: Spacing.sm, opacity: 0.9 }}>
-            Styling your look...
-          </ThemedText>
-        </LinearGradient>
-      );
-    }
-
-    // Priority 5: No AI visual yet — trigger generation and show placeholder
-    // This ensures we ALWAYS have a visual (either real photos or AI-generated)
+    // Priority 5: No visual available yet — trigger AI generation immediately
+    // Don't wait, don't timeout — just generate now
     if (!outfit.imageUri && !isLoadingVisual) {
-      // Auto-trigger generation if not already scheduled
-      if (!generatingVisuals.has(outfit.id)) {
-        setTimeout(() => generateSingleVisual(outfit), 100);
-      }
+      // Trigger generation synchronously (not delayed)
+      generateSingleVisual(outfit);
+      
       return (
         <LinearGradient
           colors={[colors.gradient[0] + '50', colors.gradient[1] + '30', colors.gradient[0] + '50']}
@@ -386,9 +390,9 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         colors={[colors.gradient[0] + '40', colors.gradient[1] + '20']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm }}
+        style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center' }}
       >
-        <Feather name="camera-off" size={28} color={colors.accent} style={{ opacity: 0.7 }} />
+        <ActivityIndicator color={colors.accent} size="small" />
       </LinearGradient>
     );
   };
