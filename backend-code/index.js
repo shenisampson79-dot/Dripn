@@ -626,6 +626,18 @@ async function initDB() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       CREATE INDEX IF NOT EXISTS idx_mix_and_match_user ON mix_and_match_outfits(user_id, created_at);
+
+      CREATE TABLE IF NOT EXISTS dfy_outfit_visuals (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        outfit_day INTEGER NOT NULL,
+        image_url TEXT NOT NULL,
+        engine VARCHAR(50) DEFAULT 'dall-e-3',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, outfit_day)
+      );
+      CREATE INDEX IF NOT EXISTS idx_dfy_outfit_visuals_user ON dfy_outfit_visuals(user_id, outfit_day);
     `);
     console.log('Database tables initialized');
   } catch (error) {
@@ -1848,48 +1860,178 @@ Respond ONLY with a valid JSON array of exactly ${outfitCount} objects. No markd
   }
 });
 
-// POST /api/dfy/generate-outfit-visual — DALL-E 3 editorial outfit image for a lookbook day
-app.post('/api/dfy/generate-outfit-visual', authMiddleware, async (req, res) => {
+// ─── DFY Lite outfit visual generation — shared handler ───────────────────────
+async function generateDFYOutfitVisualHandler(req, res) {
   try {
-    const { items = [], stylistNote = '', occasion = '', vibeLabel = '' } = req.body;
+    const {
+      outfitDay,
+      outfitName = '',
+      items = [],
+      occasion = '',
+      stylistNote = '',
+      stylist = '',
+      vibeLabel = '',
+    } = req.body;
+
     if (!items || items.length === 0) {
       return res.status(400).json({ success: false, error: 'No items provided' });
     }
 
+    // Check DB cache first — if we already generated this day's visual, return it
+    if (outfitDay) {
+      const cached = await pool.query(
+        'SELECT image_url, engine FROM dfy_outfit_visuals WHERE user_id = $1 AND outfit_day = $2',
+        [req.userId, outfitDay]
+      );
+      if (cached.rows.length > 0) {
+        const row = cached.rows[0];
+        return res.json({
+          success: true,
+          imageUrl: row.image_url,
+          imageUri: row.image_url,
+          outfitDay,
+          engine: row.engine,
+          cached: true,
+        });
+      }
+    }
+
+    // Build fashion-editorial prompt
+    const itemDescriptions = items
+      .map(i => [i.color, i.name].filter(Boolean).join(' '))
+      .filter(Boolean)
+      .join(', ');
+
+    const prompt = [
+      'A Vogue-style fashion editorial flat-lay photograph shot from directly above.',
+      `The outfit: ${itemDescriptions}.`,
+      occasion ? `Occasion: ${occasion.replace(/_/g, ' ')}.` : '',
+      vibeLabel ? `Vibe: ${vibeLabel}.` : '',
+      stylistNote ? `Styling direction: ${stylistNote}.` : '',
+      outfitName ? `Look name: ${outfitName}.` : '',
+      'White marble surface background. Garments arranged artfully with natural fabric texture, overlapping elegantly.',
+      'Studio lighting, ultra-photorealistic, luxury magazine quality.',
+      'No model, no mannequin, no people, no text, no labels, no watermarks.',
+    ].filter(Boolean).join(' ').slice(0, 1000);
+
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    // Build a rich, fashion-forward prompt from the outfit items
-    const itemDescriptions = items
-      .map(i => [i.color, i.name].filter(Boolean).join(' '))
-      .join(', ');
+    let imageUrl = null;
+    let engine = null;
 
-    const occasionContext = occasion ? `styled for ${occasion.replace(/_/g, ' ')}` : '';
-    const vibeContext = vibeLabel ? `The vibe is: ${vibeLabel}.` : '';
-    const noteContext = stylistNote ? `Styling concept: ${stylistNote}` : '';
+    // ── PRIMARY: gpt-image-1 ───────────────────────────────────────────────────
+    try {
+      const imgRes = await openai.images.generate({
+        model: 'gpt-image-1',
+        prompt,
+        n: 1,
+        size: '1024x1024',
+      });
+      // gpt-image-1 returns b64_json by default
+      const b64 = imgRes.data?.[0]?.b64_json;
+      const directUrl = imgRes.data?.[0]?.url;
+      if (directUrl) {
+        imageUrl = directUrl;
+        engine = 'gpt-image-1';
+      } else if (b64) {
+        imageUrl = `data:image/png;base64,${b64}`;
+        engine = 'gpt-image-1';
+      }
+    } catch (primaryErr) {
+      console.warn('[DFY/Visual] gpt-image-1 failed:', primaryErr.message);
+    }
 
-    const prompt = [
-      `A high-end fashion editorial flat-lay photograph on a clean light background.`,
-      `The outfit consists of: ${itemDescriptions}.`,
-      occasionContext ? `The look is ${occasionContext}.` : '',
-      vibeContext,
-      noteContext,
-      `Arrange the garments artfully as if laid flat by a fashion editor — overlapping slightly, with natural fabric texture visible.`,
-      `Studio lighting, photorealistic, luxury fashion magazine quality. No mannequin, no people, no text, no labels.`,
-    ].filter(Boolean).join(' ');
+    // ── FALLBACK 1: Replicate SDXL ─────────────────────────────────────────────
+    if (!imageUrl && process.env.REPLICATE_API_TOKEN) {
+      try {
+        const Replicate = require('replicate');
+        const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
+        const output = await replicate.run(
+          'stability-ai/sdxl:39ed52f2319f9c2856c0cd1fe0cd28f1add31aca5c7d2e4e93a2c16b2c1498',
+          {
+            input: {
+              prompt: prompt.slice(0, 500),
+              negative_prompt: 'people, mannequin, text, watermark, ugly, blurry',
+              width: 1024,
+              height: 1024,
+              num_outputs: 1,
+            },
+          }
+        );
+        const sdxlUrl = Array.isArray(output) ? output[0] : output;
+        if (sdxlUrl && typeof sdxlUrl === 'string') {
+          imageUrl = sdxlUrl;
+          engine = 'replicate-sdxl';
+        }
+      } catch (sdxlErr) {
+        console.warn('[DFY/Visual] Replicate SDXL failed:', sdxlErr.message);
+      }
+    }
 
-    const imageResponse = await openai.images.generate({
-      model: 'dall-e-3',
-      prompt: prompt.slice(0, 1000),
-      n: 1,
-      size: '1024x1024',
-      quality: 'standard',
-    });
+    // ── FALLBACK 2: DALL-E 3 ──────────────────────────────────────────────────
+    if (!imageUrl) {
+      try {
+        const imgRes = await openai.images.generate({
+          model: 'dall-e-3',
+          prompt,
+          n: 1,
+          size: '1024x1024',
+          quality: 'standard',
+        });
+        imageUrl = imgRes.data?.[0]?.url || null;
+        if (imageUrl) engine = 'dall-e-3';
+      } catch (dalleErr) {
+        console.warn('[DFY/Visual] DALL-E 3 fallback failed:', dalleErr.message);
+      }
+    }
 
-    const imageUrl = imageResponse.data[0]?.url || null;
-    res.json({ success: true, imageUrl });
+    if (!imageUrl) {
+      return res.json({ success: false, imageUrl: null, imageUri: null, outfitDay, engine: null });
+    }
+
+    // ── Persist to DB (skip data URIs — too large for DB) ─────────────────────
+    if (outfitDay && !imageUrl.startsWith('data:')) {
+      try {
+        await pool.query(
+          `INSERT INTO dfy_outfit_visuals (user_id, outfit_day, image_url, engine)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (user_id, outfit_day)
+           DO UPDATE SET image_url = EXCLUDED.image_url, engine = EXCLUDED.engine, updated_at = NOW()`,
+          [req.userId, outfitDay, imageUrl, engine]
+        );
+      } catch (dbErr) {
+        console.warn('[DFY/Visual] DB save failed:', dbErr.message);
+      }
+    }
+
+    console.log(`[DFY/Visual] Day ${outfitDay} generated via ${engine}`);
+    return res.json({ success: true, imageUrl, imageUri: imageUrl, outfitDay, engine });
   } catch (error) {
-    console.error('[DFY/GenerateOutfitVisual] Error:', error.message);
+    console.error('[DFY/Visual] Unexpected error:', error.message);
+    return res.json({ success: false, imageUrl: null, imageUri: null, outfitDay: req.body?.outfitDay, engine: null });
+  }
+}
+
+// POST /api/dfy/lite/outfit-visual/generate — Primary URL (as spec'd)
+app.post('/api/dfy/lite/outfit-visual/generate', authMiddleware, generateDFYOutfitVisualHandler);
+
+// POST /api/dfy/generate-outfit-visual — Legacy alias (backwards compat)
+app.post('/api/dfy/generate-outfit-visual', authMiddleware, generateDFYOutfitVisualHandler);
+
+// GET /api/dfy/lite/outfit-visual/:day — Retrieve cached visual for a specific day
+app.get('/api/dfy/lite/outfit-visual/:day', authMiddleware, async (req, res) => {
+  try {
+    const outfitDay = parseInt(req.params.day, 10);
+    if (isNaN(outfitDay)) return res.status(400).json({ success: false, error: 'Invalid day' });
+    const result = await pool.query(
+      'SELECT image_url, engine, updated_at FROM dfy_outfit_visuals WHERE user_id = $1 AND outfit_day = $2',
+      [req.userId, outfitDay]
+    );
+    if (result.rows.length === 0) return res.json({ success: false, imageUrl: null });
+    const row = result.rows[0];
+    return res.json({ success: true, imageUrl: row.image_url, imageUri: row.image_url, engine: row.engine, cachedAt: row.updated_at });
+  } catch (err) {
     res.json({ success: false, imageUrl: null });
   }
 });

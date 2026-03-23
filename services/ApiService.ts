@@ -2851,15 +2851,35 @@ class ApiService {
   }
 
   async generateDFYOutfitVisual(data: {
+    outfitDay?: number;
+    outfitName?: string;
     items: Array<{ name: string; category: string; color: string }>;
     stylistNote?: string;
     occasion?: string;
     vibeLabel?: string;
+    stylist?: string;
   }) {
-    return this.request<{ success: boolean; imageUrl: string | null }>(
-      '/api/dfy/generate-outfit-visual',
+    return this.request<{
+      success: boolean;
+      imageUrl: string | null;
+      imageUri: string | null;
+      outfitDay?: number;
+      engine?: string | null;
+      cached?: boolean;
+    }>(
+      '/api/dfy/lite/outfit-visual/generate',
       { method: 'POST', body: JSON.stringify(data) }
     );
+  }
+
+  async getDFYOutfitVisual(outfitDay: number) {
+    return this.request<{
+      success: boolean;
+      imageUrl: string | null;
+      imageUri: string | null;
+      engine?: string;
+      cachedAt?: string;
+    }>(`/api/dfy/lite/outfit-visual/${outfitDay}`);
   }
 
   async generateOutfit(data: {

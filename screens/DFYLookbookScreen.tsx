@@ -102,8 +102,8 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       if (allEmpty) {
         generateRealOutfits(normalised);
       } else {
-        // Auto-generate AI visuals for outfits that don't have photos or a cached imageUri
-        scheduleVisualGeneration(normalised);
+        // Restore DB-cached visuals, then generate any that are missing
+        restoreCachedVisuals(normalised);
       }
     }
   };
@@ -130,19 +130,60 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     }
   };
 
-  // Generate AI outfit visuals (DALL-E 3) for outfits that have items but no imageUri and no item photos
+  // Restore previously generated visuals from the DB cache, then fill any gaps
+  const restoreCachedVisuals = async (currentDelivery: DFYLiteDelivery) => {
+    const outfitsWithoutVisual = currentDelivery.outfits.filter(o => {
+      if (!o.items || o.items.length === 0) return false;
+      if (o.imageUri) return false;
+      return !o.items.some(i => i.imageUri);
+    });
+    if (outfitsWithoutVisual.length === 0) return;
+
+    let updatedOutfits = [...currentDelivery.outfits];
+    let didUpdate = false;
+
+    // Try to restore from DB cache first (fast, no generation cost)
+    await Promise.all(outfitsWithoutVisual.map(async (outfit) => {
+      try {
+        const cached = await apiService.getDFYOutfitVisual(outfit.dayNumber);
+        if (cached.success && cached.imageUrl) {
+          updatedOutfits = updatedOutfits.map(o =>
+            o.id === outfit.id ? { ...o, imageUri: cached.imageUrl! } : o
+          );
+          didUpdate = true;
+        }
+      } catch (_) {}
+    }));
+
+    if (didUpdate) {
+      const saved: DFYLiteDelivery = { ...currentDelivery, outfits: updatedOutfits };
+      await dfyService.saveDFYDelivery(saved);
+      setDelivery({ ...currentDelivery, outfits: [...updatedOutfits] });
+    }
+
+    // Now generate visuals for any that still don't have one
+    const stillMissing = updatedOutfits.filter(o => {
+      if (!o.items || o.items.length === 0) return false;
+      if (o.imageUri) return false;
+      return !o.items.some(i => i.imageUri);
+    });
+    if (stillMissing.length > 0) {
+      scheduleVisualGeneration({ ...currentDelivery, outfits: updatedOutfits });
+    }
+  };
+
+  // Generate AI outfit visuals for outfits that have items but no imageUri and no item photos
   const scheduleVisualGeneration = async (currentDelivery: DFYLiteDelivery) => {
     const outfitsNeedingVisuals = currentDelivery.outfits.filter(o => {
       if (!o.items || o.items.length === 0) return false;
-      if (o.imageUri) return false; // already has a visual
-      const hasPhotos = o.items.some(i => i.imageUri);
-      return !hasPhotos; // only generate if no real photos
+      if (o.imageUri) return false;
+      return !o.items.some(i => i.imageUri);
     });
     if (outfitsNeedingVisuals.length === 0) return;
 
     let updatedOutfits = [...currentDelivery.outfits];
 
-    // Generate visuals 2 at a time to avoid rate limits
+    // Generate 2 at a time to respect rate limits
     for (let i = 0; i < outfitsNeedingVisuals.length; i += 2) {
       const batch = outfitsNeedingVisuals.slice(i, i + 2);
       setGeneratingVisuals(prev => {
@@ -154,10 +195,13 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       await Promise.all(batch.map(async (outfit) => {
         try {
           const result = await apiService.generateDFYOutfitVisual({
+            outfitDay: outfit.dayNumber,
+            outfitName: outfit.title || '',
             items: outfit.items.map(it => ({ name: it.name, category: it.category, color: it.color })),
             stylistNote: outfit.stylistNote || '',
             occasion: outfit.occasion || '',
             vibeLabel: (outfit as any).vibeLabel || '',
+            stylist: outfit.stylistId || '',
           });
           if (result.success && result.imageUrl) {
             updatedOutfits = updatedOutfits.map(o =>
@@ -182,10 +226,13 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     setGeneratingVisuals(prev => new Set(prev).add(outfit.id));
     try {
       const result = await apiService.generateDFYOutfitVisual({
+        outfitDay: outfit.dayNumber,
+        outfitName: outfit.title || '',
         items: outfit.items.map(it => ({ name: it.name, category: it.category, color: it.color })),
         stylistNote: outfit.stylistNote || '',
         occasion: outfit.occasion || '',
         vibeLabel: (outfit as any).vibeLabel || '',
+        stylist: outfit.stylistId || '',
       });
       if (result.success && result.imageUrl) {
         const updatedOutfits = delivery.outfits.map(o =>
