@@ -450,31 +450,96 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
       </View>
 
       {viewMode === 'calendar' && (
-        <View style={[styles.calendarCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)' }]}>
-          <View style={styles.calendarHeader}>
-            <Pressable onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}>
-              <Feather name="chevron-left" size={24} color={theme.text} />
-            </Pressable>
-            <ThemedText type="h3">
-              {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
-            </ThemedText>
-            <Pressable onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}>
-              <Feather name="chevron-right" size={24} color={theme.text} />
-            </Pressable>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: Spacing.xl }}>
+          <View style={[styles.calendarCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)' }]}>
+            <View style={styles.calendarHeader}>
+              <Pressable onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}>
+                <Feather name="chevron-left" size={24} color={theme.text} />
+              </Pressable>
+              <ThemedText type="h3">
+                {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
+              </ThemedText>
+              <Pressable onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}>
+                <Feather name="chevron-right" size={24} color={theme.text} />
+              </Pressable>
+            </View>
+
+            <View style={styles.weekLabels}>
+              {DAYS_OF_WEEK.map((day, i) => (
+                <View key={i} style={styles.weekLabelCell}>
+                  <ThemedText type="caption" style={{ opacity: 0.5 }}>{day}</ThemedText>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.calendarGrid}>
+              {calendarDays.map((day, index) => renderCalendarDay(day, index))}
+            </View>
           </View>
 
-          <View style={styles.weekLabels}>
-            {DAYS_OF_WEEK.map((day, i) => (
-              <View key={i} style={styles.weekLabelCell}>
-                <ThemedText type="caption" style={{ opacity: 0.5 }}>{day}</ThemedText>
+          {selectedDate && selectedOutfit && (
+            <Pressable
+              onPress={() => handleOutfitPress(selectedOutfit)}
+              style={[styles.selectedOutfitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)' }]}
+            >
+              <View style={styles.selectedOutfitHeader}>
+                <View>
+                  <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 4 }}>
+                    {selectedDate.toLocaleDateString('en-US', { weekday: 'short' })}
+                  </ThemedText>
+                  <ThemedText type="h3">
+                    {selectedOutfit.title}
+                  </ThemedText>
+                  <ThemedText type="caption" style={{ opacity: 0.6, marginTop: 4 }}>
+                    {selectedOutfit.alternativesCount} alternatives available
+                  </ThemedText>
+                </View>
+                <View style={[styles.outfitStatus, { backgroundColor: selectedOutfit.wasWorn ? LUXURY_COLORS.emerald : tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold }]}>
+                  <Feather name={selectedOutfit.wasWorn ? 'check' : 'eye'} size={20} color="#FFFFFF" />
+                </View>
               </View>
-            ))}
-          </View>
 
-          <View style={styles.calendarGrid}>
-            {calendarDays.map((day, index) => renderCalendarDay(day, index))}
-          </View>
-        </View>
+              {selectedOutfit.stylistNote && (
+                <View style={{ marginTop: Spacing.md }}>
+                  <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 6 }}>
+                    Stylist Note
+                  </ThemedText>
+                  <ThemedText type="body" style={{ lineHeight: 20 }}>
+                    {selectedOutfit.stylistNote}
+                  </ThemedText>
+                </View>
+              )}
+
+              {selectedOutfit.weatherNote && (
+                <View style={{ marginTop: Spacing.md }}>
+                  <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 6 }}>
+                    Weather
+                  </ThemedText>
+                  <ThemedText type="body">{selectedOutfit.weatherNote}</ThemedText>
+                </View>
+              )}
+
+              <View style={styles.outfitActions}>
+                <Pressable
+                  onPress={handleMarkWorn}
+                  style={[styles.actionButton, { backgroundColor: tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold, opacity: selectedOutfit.wasWorn ? 0.5 : 1 }]}
+                  disabled={selectedOutfit.wasWorn}
+                >
+                  <Feather name="check" size={16} color="#FFFFFF" />
+                  <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: 6 }}>
+                    Mark Worn
+                  </ThemedText>
+                </Pressable>
+                <Pressable style={[styles.actionButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                  <Feather name="arrow-right" size={16} color="#FFFFFF" />
+                  <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: 6 }}>
+                    See Alternatives
+                  </ThemedText>
+                </Pressable>
+              </View>
+            </Pressable>
+          )}
+        </ScrollView>
       )}
 
       {viewMode === 'week' && renderWeekView()}
@@ -529,6 +594,38 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
+  },
+  selectedOutfitCard: {
+    marginHorizontal: Spacing.xl,
+    marginBottom: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+  },
+  selectedOutfitHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  outfitStatus: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  outfitActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
   },
   calendarHeader: {
     flexDirection: 'row',
