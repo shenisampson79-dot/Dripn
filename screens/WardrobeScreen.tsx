@@ -114,6 +114,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const [showItemModal, setShowItemModal] = useState(false);
   const [dfyAccess, setDfyAccess] = useState<DFYAccessStatus | null>(null);
   const [showAIOutfitModal, setShowAIOutfitModal] = useState(false);
+  const [showGeneratedOutfitModal, setShowGeneratedOutfitModal] = useState(false);
   const [isGeneratingOutfit, setIsGeneratingOutfit] = useState(false);
   const [generatingOccasion, setGeneratingOccasion] = useState<string | null>(null);
   const [generatedOutfit, setGeneratedOutfit] = useState<any>(null);
@@ -984,10 +985,8 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                         setGeneratedOutfit(result.outfit);
                         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                         setShowAIOutfitModal(false);
-                        navigation.navigate('OutfitCalendar' as any, { 
-                          generatedOutfit: result.outfit,
-                          occasion: option.id 
-                        });
+                        // Show the outfit directly instead of going to calendar
+                        setShowGeneratedOutfitModal(true);
                       }
                     } catch (error: any) {
                       Alert.alert(
@@ -1050,6 +1049,64 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             </View>
           </ScrollView>
         </View>
+      </Modal>
+
+      {/* Generated Outfit Display Modal */}
+      <Modal
+        visible={showGeneratedOutfitModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowGeneratedOutfitModal(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowGeneratedOutfitModal(false)}
+        >
+          <Pressable style={styles.outfitModalContent} onPress={e => e.stopPropagation()}>
+            <View style={styles.outfitModalHeader}>
+              <Pressable onPress={() => setShowGeneratedOutfitModal(false)}>
+                <Feather name="x" size={24} color={theme.text} />
+              </Pressable>
+              <ThemedText type="h2">Your Perfect Outfit</ThemedText>
+              <View style={{ width: 24 }} />
+            </View>
+
+            <ScrollView style={styles.outfitItemsScroll} contentContainerStyle={styles.outfitItemsContainer}>
+              {generatedOutfit?.items && generatedOutfit.items.map((item: WardrobeItem, idx: number) => (
+                <View key={idx} style={styles.generatedOutfitItem}>
+                  {item.imageUri ? (
+                    <Image source={{ uri: item.imageUri }} style={styles.generatedOutfitItemImage} />
+                  ) : (
+                    <View style={[styles.generatedOutfitItemImage, { backgroundColor: getColorHex(item.color) }]} />
+                  )}
+                  <View style={styles.generatedOutfitItemInfo}>
+                    <ThemedText type="body" numberOfLines={1}>{item.name}</ThemedText>
+                    <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
+                      {item.category}
+                    </ThemedText>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            {generatedOutfit?.stylistMessage && (
+              <View style={styles.outfitStylistMessage}>
+                <ThemedText style={{ fontSize: 14, fontStyle: 'italic', color: theme.tabIconDefault }}>
+                  "{generatedOutfit.stylistMessage}"
+                </ThemedText>
+              </View>
+            )}
+
+            <Pressable 
+              style={({ pressed }) => [styles.outfitModalButton, pressed && { opacity: 0.7 }]}
+              onPress={() => setShowGeneratedOutfitModal(false)}
+            >
+              <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
+                Got it!
+              </ThemedText>
+            </Pressable>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -1571,5 +1628,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
+  },
+  outfitModalContent: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    maxHeight: '85%',
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
+  outfitModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  outfitItemsScroll: {
+    maxHeight: 300,
+  },
+  outfitItemsContainer: {
+    paddingHorizontal: Spacing.lg,
+  },
+  generatedOutfitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  generatedOutfitItemImage: {
+    width: 60,
+    height: 60,
+    borderRadius: BorderRadius.md,
+    marginRight: Spacing.md,
+  },
+  generatedOutfitItemInfo: {
+    flex: 1,
+  },
+  outfitStylistMessage: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    marginVertical: Spacing.md,
+  },
+  outfitModalButton: {
+    marginHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: LUXURY_COLORS.violet,
+    alignItems: 'center',
   },
 });
