@@ -267,13 +267,21 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedType(type);
     setIsSurpriseMe(false);
-    setStep('upload');
+    // For "what-to-wear", show exploratory questions first before upload
+    if (type === 'what-to-wear') {
+      setStep('context');
+    } else {
+      setStep('upload');
+    }
   };
 
   const handleSurpriseMe = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsSurpriseMe(true);
-    if (selectedType === 'event-outfit') {
+    if (selectedType === 'what-to-wear') {
+      // For "what-to-wear", context is already done, so submit directly
+      handleSubmit();
+    } else if (selectedType === 'event-outfit') {
       setStep('event-questions');
     } else {
       setStep('context');
@@ -1102,7 +1110,8 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
 
         {images.length > 0 ? (
           <Pressable
-            onPress={() => setStep('context')}
+            onPress={() => selectedType === 'what-to-wear' ? handleSubmit() : setStep('context')}
+            disabled={isLoading}
             style={styles.nextButton}
           >
             <LinearGradient
@@ -1110,9 +1119,9 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
               style={styles.nextButtonGradient}
             >
               <ThemedText type="body" style={styles.nextButtonText}>
-                Continue
+                {isLoading ? 'Styling...' : 'Continue'}
               </ThemedText>
-              <Feather name="arrow-right" size={18} color="#FFFFFF" />
+              {!isLoading && <Feather name="arrow-right" size={18} color="#FFFFFF" />}
             </LinearGradient>
           </Pressable>
         ) : null}
@@ -1323,33 +1332,57 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         maxLength={200}
       />
 
-      <Pressable
-        onPress={handleSubmit}
-        disabled={isLoading}
-        style={styles.submitButton}
-      >
-        <LinearGradient
-          colors={getStylistGradient()}
-          style={styles.submitButtonGradient}
-        >
-          {isLoading ? (
-            <ThemedText type="body" style={styles.submitButtonText}>
-              Thinking...
-            </ThemedText>
-          ) : (
-            <>
+      {selectedType === 'what-to-wear' ? (
+        <>
+          <Pressable
+            onPress={() => setStep('upload')}
+            style={styles.submitButton}
+          >
+            <LinearGradient
+              colors={getStylistGradient()}
+              style={styles.submitButtonGradient}
+            >
               <ThemedText type="body" style={styles.submitButtonText}>
-                Ask my stylist
+                Next
               </ThemedText>
-              <Feather name="send" size={18} color="#FFFFFF" />
-            </>
-          )}
-        </LinearGradient>
-      </Pressable>
+              <Feather name="arrow-right" size={18} color="#FFFFFF" />
+            </LinearGradient>
+          </Pressable>
+          <Pressable onPress={() => setStep('type')} style={styles.backLink}>
+            <ThemedText style={styles.backLinkText}>Back</ThemedText>
+          </Pressable>
+        </>
+      ) : (
+        <>
+          <Pressable
+            onPress={handleSubmit}
+            disabled={isLoading}
+            style={styles.submitButton}
+          >
+            <LinearGradient
+              colors={getStylistGradient()}
+              style={styles.submitButtonGradient}
+            >
+              {isLoading ? (
+                <ThemedText type="body" style={styles.submitButtonText}>
+                  Thinking...
+                </ThemedText>
+              ) : (
+                <>
+                  <ThemedText type="body" style={styles.submitButtonText}>
+                    Ask my stylist
+                  </ThemedText>
+                  <Feather name="send" size={18} color="#FFFFFF" />
+                </>
+              )}
+            </LinearGradient>
+          </Pressable>
 
-      <Pressable onPress={() => setStep('upload')} style={styles.backLink}>
-        <ThemedText style={styles.backLinkText}>Back to images</ThemedText>
-      </Pressable>
+          <Pressable onPress={() => setStep('upload')} style={styles.backLink}>
+            <ThemedText style={styles.backLinkText}>Back to images</ThemedText>
+          </Pressable>
+        </>
+      )}
     </View>
   );
 
