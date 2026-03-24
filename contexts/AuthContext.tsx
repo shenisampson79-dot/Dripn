@@ -500,6 +500,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email,
             // Re-ensure hasCompletedOnboarding is set (double-check)
             hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? userProfile.hasCompletedOnboarding,
+            // Restore hasSeenTour from backend so tour only shows once
+            hasSeenTour: fullProfile.profileData.hasSeenTour ?? userProfile.hasSeenTour,
           };
         }
       } catch (err) {
@@ -646,6 +648,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: backendUser.email || userEmail || newUser.email,
             // Re-ensure hasCompletedOnboarding is set (double-check)
             hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? newUser.hasCompletedOnboarding,
+            // Restore hasSeenTour from backend so tour only shows once
+            hasSeenTour: fullProfile.profileData.hasSeenTour ?? newUser.hasSeenTour,
           };
         }
       } catch (err) {
@@ -700,6 +704,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: backendUser.id.toString(),
           email: backendUser.email || userEmail || newUser.email,
           hasCompletedOnboarding: backendUser.hasCompletedOnboarding ?? newUser.hasCompletedOnboarding,
+          // Restore hasSeenTour from backend so tour only shows once
+          hasSeenTour: backendUser.profileData.hasSeenTour ?? newUser.hasSeenTour,
         };
       }
 
