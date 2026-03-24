@@ -88,7 +88,24 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
         setLoadingAll(true);
         const endDate = new Date(startDate);
         endDate.setDate(endDate.getDate() + totalDays - 1);
-        const result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
+        let result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
+        
+        // If no outfits found and tier is core, generate them
+        if ((!result.success || !result.outfits || result.outfits.length === 0) && tier === 'core') {
+          console.log('[DFYCalendar] No outfits found for core tier. Generating...');
+          try {
+            await apiService.request('/api/dfy/generate-delivery', {
+              method: 'POST',
+              body: JSON.stringify({ tier: 'core', stylistId: 'ruby' }),
+            });
+            console.log('[DFYCalendar] Outfits generated. Re-fetching...');
+            // Re-fetch after generation
+            result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
+          } catch (genErr) {
+            console.warn('[DFYCalendar] Failed to generate outfits:', genErr);
+          }
+        }
+        
         if (result.success && result.outfits && result.outfits.length > 0) {
           const mapped: DFYCalendarOutfit[] = result.outfits.map(outfit => ({
             id: outfit.id,
@@ -114,7 +131,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
       }
     };
     loadAllOutfits();
-  }, [startDate, totalDays]);
+  }, [startDate, totalDays, tier]);
 
   // Fetch outfit for a specific date from backend
   const fetchOutfitForDate = async (date: Date) => {
