@@ -277,14 +277,107 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
 
   const handleSurpriseMe = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsSurpriseMe(true);
+    // For "what-to-wear", submit directly with isSurpriseMe = true
     if (selectedType === 'what-to-wear') {
-      // For "what-to-wear", context is already done, so submit directly
-      handleSubmit();
+      submitWithSurpriseMe();
     } else if (selectedType === 'event-outfit') {
+      setIsSurpriseMe(true);
       setStep('event-questions');
     } else {
+      setIsSurpriseMe(true);
       setStep('context');
+    }
+  };
+
+  const submitWithSurpriseMe = async () => {
+    setIsLoading(true);
+    setIsSurpriseMe(true);
+
+    try {
+      const stylistId = user?.stylistPreferences?.selectedStylistId || 'ruby';
+      const context = decisionService.formatContextForApi(selectedContexts, contextNotes.trim() || undefined);
+      
+      const decisionTypeMap: Record<string, 'sanity_check' | 'shopping' | 'what_to_wear' | 'event_outfit'> = {
+        'sanity-check': 'sanity_check',
+        'shopping': 'shopping',
+        'what-to-wear': 'what_to_wear',
+        'event-outfit': 'event_outfit',
+      };
+
+      // For Surprise Me, we don't need base64 images - send empty array
+      const mappedGender = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : user?.gender || null;
+
+      const fullUserProfile = {
+        ...(user?.profileData || {}),
+        gender: mappedGender,
+        name: user?.name,
+        country: user?.country,
+        skinUndertone: user?.skinUndertone,
+        bodyType: user?.bodyShape,
+        bodyMeasurements: user?.bodyMeasurements,
+        colorScanData: user?.colorScanData,
+        extendedPreferences: user?.extendedPreferences,
+        stylistPreferences: user?.stylistPreferences,
+        stylePreference: user?.stylePreference,
+        sizeRange: user?.sizeRange,
+        budgetRange: user?.budgetRange,
+        subscriptionTier: user?.subscriptionTier,
+        retailers: user?.extendedPreferences?.favoriteShops || [],
+      };
+
+      const apiResult = await apiService.submitDecisionCheck({
+        decisionType: decisionTypeMap[selectedType] || 'sanity_check',
+        images: [], // Surprise Me doesn't need images
+        context,
+        stylist: stylistId,
+        userProfile: fullUserProfile,
+      });
+
+      const result: DecisionResponse = {
+        id: `response-${Date.now()}`,
+        requestId: `request-${Date.now()}`,
+        recommendation: apiResult.decision || apiResult.recommendation || apiResult.response || '',
+        reasoning: apiResult.reasoning || '',
+        stylistId,
+        timestamp: new Date().toISOString(),
+        outfitImageUrl: apiResult.outfitImageUrl,
+      };
+
+      if (user?.id) {
+        await decisionService.incrementDecisionsToday(user.id);
+        await decisionService.incrementTotalDecisions(user.id);
+      }
+
+      setResponse(result);
+      setStep('response');
+    } catch (error: any) {
+      if (error.limitCopy || error.message?.includes("your decision for today")) {
+        Alert.alert(
+          'Unable to submit',
+          error.limitCopy?.message || error.message || "That's your decision for today. Your stylist is here whenever you're ready.",
+          [
+            {
+              text: 'Maybe later',
+              style: 'cancel',
+            },
+            {
+              text: error.limitCopy?.cta || 'Unlock unlimited decisions',
+              onPress: () => {
+                const redirectUrl = error.limitCopy?.redirectUrl || '/subscription';
+                if (redirectUrl === '/subscription' || redirectUrl.includes('subscription')) {
+                  navigation.navigate('Subscription' as never);
+                } else {
+                  navigation.navigate(redirectUrl.replace('/', '') as never);
+                }
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Unable to submit', error.message);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
