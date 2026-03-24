@@ -165,6 +165,25 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
     setShowOutfitPreview(true);
   };
 
+  const handleSaveOutfit = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const outfitItems = Object.entries(selectedItems)
+        .filter(([_, item]) => item !== null)
+        .map(([_, item]) => (item as WardrobeItem).id);
+
+      if (outfitItems.length === 0) {
+        Alert.alert('No items selected', 'Please select at least one item to save');
+        return;
+      }
+
+      setShowOutfitPreview(false);
+      Alert.alert('Outfit Saved', 'Your outfit has been saved successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save outfit');
+    }
+  };
+
   const getSelectedCount = (): number => {
     return Object.values(selectedItems).filter(Boolean).length;
   };
@@ -353,7 +372,8 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
 
             <ScreenScrollView style={[{ backgroundColor: 'transparent' }]}>
               <View style={styles.outfitPreviewGrid}>
-                {Object.entries(selectedItems).map(([category, item]) => {
+                {(['outerwear', 'tops', 'bottoms', 'shoes', 'accessories'] as const).map((category) => {
+                  const item = selectedItems[category];
                   if (!item) return null;
                   return (
                     <View key={category} style={styles.previewItem}>
@@ -406,7 +426,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
                 colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
                 style={styles.saveOutfitButton}
               >
-                <Pressable style={styles.saveOutfitButtonInner}>
+                <Pressable style={styles.saveOutfitButtonInner} onPress={handleSaveOutfit}>
                   <Feather name="bookmark" size={18} color={LUXURY_COLORS.midnight} />
                   <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700', marginLeft: Spacing.sm }}>
                     Save This Outfit
