@@ -267,8 +267,8 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedType(type);
     setIsSurpriseMe(false);
-    // For "what-to-wear", show exploratory questions first before upload
-    if (type === 'what-to-wear') {
+    // For "what-to-wear" and "sanity-check", show exploratory questions first before upload
+    if (type === 'what-to-wear' || type === 'sanity-check') {
       setStep('context');
     } else {
       setStep('upload');
@@ -1110,7 +1110,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
 
         {images.length > 0 ? (
           <Pressable
-            onPress={() => selectedType === 'what-to-wear' ? handleSubmit() : setStep('context')}
+            onPress={() => selectedType === 'what-to-wear' || selectedType === 'sanity-check' ? handleSubmit() : setStep('context')}
             disabled={isLoading}
             style={styles.nextButton}
           >
@@ -1119,7 +1119,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
               style={styles.nextButtonGradient}
             >
               <ThemedText type="body" style={styles.nextButtonText}>
-                {isLoading ? 'Styling...' : 'Continue'}
+                {isLoading ? 'Analyzing...' : 'Continue'}
               </ThemedText>
               {!isLoading && <Feather name="arrow-right" size={18} color="#FFFFFF" />}
             </LinearGradient>
@@ -1332,7 +1332,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         maxLength={200}
       />
 
-      {selectedType === 'what-to-wear' ? (
+      {selectedType === 'what-to-wear' || selectedType === 'sanity-check' ? (
         <>
           <Pressable
             onPress={() => setStep('upload')}
