@@ -355,7 +355,6 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
               <View style={styles.outfitPreviewGrid}>
                 {Object.entries(selectedItems).map(([category, item]) => {
                   if (!item) return null;
-                  const categoryInfo = CATEGORY_ROWS.find(r => r.key === category);
                   return (
                     <View key={category} style={styles.previewItem}>
                       <View style={[styles.previewImageContainer, { backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
@@ -368,10 +367,6 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
                         ) : (
                           <Feather name="image" size={48} color={theme.tabIconDefault} />
                         )}
-                      </View>
-                      <View style={styles.previewItemInfo}>
-                        <ThemedText type="small" numberOfLines={1}>{item.name}</ThemedText>
-                        <ThemedText type="caption" style={{ opacity: 0.6 }}>{categoryInfo?.label}</ThemedText>
                       </View>
                     </View>
                   );
