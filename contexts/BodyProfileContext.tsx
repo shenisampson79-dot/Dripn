@@ -297,83 +297,19 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
     setIsScanning(true);
     setError(null);
 
-    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
-    const bestModel = await getBestAvailableModel('vision', apiKey, 'gpt-5.2');
-    console.log(`Using vision model: ${bestModel} for body scan`);
-
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:8082';
+      const token = await AsyncStorage.getItem('@dripn_token');
+
+      const response = await fetch(`${apiUrl}/api/onboarding/body-scan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          model: bestModel,
-          messages: [
-            {
-              role: 'system',
-              content: `You are an advanced AI body measurement analyzer for a fashion app. Your role is to analyze full-body photos and extract body proportions and measurements with high precision.
-
-CRITICAL: You are analyzing body proportions for fashion fitting purposes, NOT for medical or health assessments.
-
-Analyze the image and provide:
-1. Estimated measurements in inches (be realistic based on visual proportions)
-2. Body shape classification (hourglass, pear, apple, rectangle, inverted-triangle, athletic)
-3. Height category (petite: <5'3", average: 5'3"-5'7", tall: 5'7"-5'11", very-tall: >5'11")
-4. Build category (slim, average, athletic, curvy, plus)
-5. Body proportions ratios
-6. Fit recommendations
-
-Be encouraging and body-positive. Focus on helping the user find clothes that fit and flatter.
-
-Respond in this exact JSON format:
-{
-  "measurements": {
-    "neck": <number or null>,
-    "shoulders": <number or null>,
-    "bust": <number or null>,
-    "chest": <number or null>,
-    "waist": <number or null>,
-    "hips": <number or null>,
-    "inseam": <number or null>,
-    "height": <number or null>,
-    "armLength": <number or null>,
-    "torsoLength": <number or null>
-  },
-  "bodyShape": "<hourglass|pear|apple|rectangle|inverted-triangle|athletic>",
-  "heightCategory": "<petite|average|tall|very-tall>",
-  "buildCategory": "<slim|average|athletic|curvy|plus>",
-  "proportions": {
-    "shoulderToHipRatio": <number>,
-    "waistToHipRatio": <number>,
-    "bustToWaistRatio": <number>,
-    "torsoToLegRatio": <number>
-  },
-  "confidence": <0-100>,
-  "recommendations": ["<styling recommendation 1>", "<styling recommendation 2>", "<styling recommendation 3>"],
-  "fitAdvice": ["<fit advice 1>", "<fit advice 2>"]
-}`
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'Please analyze this full-body photo and provide body measurements and proportions for fashion fitting purposes. Focus on accuracy for clothing recommendations.'
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:image/jpeg;base64,${imageBase64}`,
-                    detail: 'high'
-                  }
-                }
-              ]
-            }
-          ],
-          max_tokens: 1500,
-          temperature: 0.3,
+          imageBase64: imageBase64,
+          autoSave: true,
         }),
       });
 
@@ -382,19 +318,22 @@ Respond in this exact JSON format:
       }
 
       const data = await response.json();
-      const content = data.choices[0]?.message?.content;
-
-      if (!content) {
-        throw new Error('No response from AI');
-      }
-
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Invalid response format');
-      }
-
-      const result = JSON.parse(jsonMatch[0]) as BodyScanResult;
-      result.success = true;
+      const result: BodyScanResult = {
+        success: true,
+        measurements: data.measurements || {},
+        bodyShape: data.bodyShape || 'unknown',
+        heightCategory: data.heightCategory || 'average',
+        buildCategory: data.buildCategory || 'average',
+        proportions: data.proportions || {
+          shoulderToHipRatio: 1,
+          waistToHipRatio: 0.75,
+          bustToWaistRatio: 1.2,
+          torsoToLegRatio: 0.9,
+        },
+        confidence: data.confidence || 0,
+        recommendations: data.recommendations || [],
+        fitAdvice: data.fitAdvice || [],
+      };
 
       await saveBodyProfile({
         measurements: result.measurements,
@@ -407,7 +346,7 @@ Respond in this exact JSON format:
           imageUri: `scan_${Date.now()}`,
           scannedAt: new Date().toISOString(),
           confidence: result.confidence,
-          aiModel: bestModel,
+          aiModel: 'gpt-5.2',
         },
       });
 
