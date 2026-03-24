@@ -1237,31 +1237,6 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         <ThemedText type="body" style={styles.eventQuestionLabel}>
           Anything I should know?
         </ThemedText>
-        <View style={styles.contextChipsContainer}>
-          {contextChips.map((chip) => {
-            const isSelected = selectedContexts.includes(chip.id);
-            return (
-              <Pressable
-                key={chip.id}
-                onPress={() => handleContextToggle(chip.id)}
-                style={[
-                  styles.contextChip,
-                  isSelected && styles.contextChipSelected,
-                ]}
-              >
-                <ThemedText
-                  type="small"
-                  style={[
-                    styles.contextChipText,
-                    isSelected && styles.contextChipTextSelected,
-                  ]}
-                >
-                  {chip.label}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
 
         <TextInput
           ref={contextInputRef}
