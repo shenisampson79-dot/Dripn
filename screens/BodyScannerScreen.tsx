@@ -424,7 +424,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
         </LinearGradient>
         <ThemedText type="h1" style={styles.title}>AI Body Scanner</ThemedText>
         <ThemedText style={[styles.subtitle, { color: theme.tabIconDefault }]}>
-          Advanced GPT-4 Vision analysis for precise body measurements and proportions
+          Advanced GPT-5.2 Vision analysis for precise body measurements and proportions
         </ThemedText>
       </View>
 
@@ -551,10 +551,8 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
           <Card style={styles.introCard}>
             <View style={styles.featureList}>
               {[
-                { icon: "cpu" as const, text: "GPT-4 Vision powered analysis" },
+                { icon: "cpu" as const, text: "GPT-5.2 Vision powered analysis" },
                 { icon: "target" as const, text: "Precise body proportions" },
-                { icon: "users" as const, text: "Find users with similar bodies" },
-                { icon: "shield" as const, text: "Private and secure" },
               ].map((feature, index) => (
                 <View key={index} style={styles.featureItem}>
                   <View style={[styles.featureIcon, { backgroundColor: theme.link + "20" }]}>
@@ -590,14 +588,6 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
           >
             <Feather name="upload" size={20} color={theme.text} />
             <ThemedText style={{ fontWeight: "600" }}>Upload Photo Instead</ThemedText>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setManualMode(true)}
-            style={({ pressed }) => [styles.manualButton, { opacity: pressed ? 0.8 : 1 }]}
-          >
-            <Feather name="edit-3" size={16} color={theme.tabIconDefault} />
-            <ThemedText style={{ color: theme.tabIconDefault }}>Enter Measurements Manually</ThemedText>
           </Pressable>
 
           <Card style={styles.privacyCard}>
