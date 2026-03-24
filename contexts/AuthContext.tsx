@@ -463,15 +463,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userProfile.id = userId || userProfile.id;
       }
 
-      // If local profile has no onboarding data but backend does, restore it
-      if (!userProfile.hasCompletedOnboarding && backendUser.profileData) {
-        userProfile = {
-          ...userProfile,
-          ...backendUser.profileData,
-          id: userId || userProfile.id,
-          email,
-          hasCompletedOnboarding: true,
-        };
+      // Fetch full profile from backend (includes profileData with onboarding flag)
+      try {
+        const fullProfile = await apiService.getMe();
+        if (!userProfile.hasCompletedOnboarding && fullProfile.profileData) {
+          userProfile = {
+            ...userProfile,
+            ...fullProfile.profileData,
+            id: userId || userProfile.id,
+            email,
+            hasCompletedOnboarding: true,
+          };
+        }
+      } catch (err) {
+        // If getMe fails, that's okay — continue with what we have
+        console.log('[Auth] Could not fetch full profile, continuing with existing data');
       }
 
       await saveUser(userProfile);
@@ -597,15 +603,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       newUser.id = backendUser.id.toString();
 
-      // Restore profile from backend if logging in on a new device
-      if (!newUser.hasCompletedOnboarding && backendUser.profileData) {
-        newUser = {
-          ...newUser,
-          ...backendUser.profileData,
-          id: backendUser.id.toString(),
-          email: backendUser.email || userEmail || newUser.email,
-          hasCompletedOnboarding: true,
-        };
+      // Fetch full profile from backend (includes profileData with onboarding flag)
+      try {
+        const fullProfile = await apiService.getMe();
+        if (!newUser.hasCompletedOnboarding && fullProfile.profileData) {
+          newUser = {
+            ...newUser,
+            ...fullProfile.profileData,
+            id: backendUser.id.toString(),
+            email: backendUser.email || userEmail || newUser.email,
+            hasCompletedOnboarding: true,
+          };
+        }
+      } catch (err) {
+        // If getMe fails, continue with existing data
+        console.log('[Auth] Could not fetch full profile in social login, continuing');
       }
 
       await saveUser(newUser);
