@@ -1234,33 +1234,70 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           ))}
         </View>
 
-        <View style={styles.venueInputContainer}>
-          <ThemedText type="body" style={styles.eventQuestionLabel}>
-            Venue or location (optional)
-          </ThemedText>
-          <TextInput
-            value={eventDetails.venue}
-            onChangeText={(text) => setEventDetails(prev => ({ ...prev, venue: text }))}
-            placeholder="e.g. Rooftop bar, Art gallery..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
-            style={styles.venueInput}
-          />
+        <ThemedText type="body" style={styles.eventQuestionLabel}>
+          Anything I should know?
+        </ThemedText>
+        <View style={styles.contextChipsContainer}>
+          {contextChips.map((chip) => {
+            const isSelected = selectedContexts.includes(chip.id);
+            return (
+              <Pressable
+                key={chip.id}
+                onPress={() => handleContextToggle(chip.id)}
+                style={[
+                  styles.contextChip,
+                  isSelected && styles.contextChipSelected,
+                ]}
+              >
+                <ThemedText
+                  type="small"
+                  style={[
+                    styles.contextChipText,
+                    isSelected && styles.contextChipTextSelected,
+                  ]}
+                >
+                  {chip.label}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
         </View>
+
+        <TextInput
+          ref={contextInputRef}
+          style={styles.contextInput}
+          placeholder="Add any extra details (optional)"
+          placeholderTextColor="rgba(255,255,255,0.4)"
+          value={contextNotes}
+          onChangeText={setContextNotes}
+          multiline
+          numberOfLines={3}
+          maxLength={200}
+        />
       </View>
 
       {eventDetails.eventType && eventDetails.dressCode ? (
         <Pressable
-          onPress={() => setStep('context')}
+          onPress={handleSubmit}
+          disabled={isLoading}
           style={styles.nextButton}
         >
           <LinearGradient
             colors={getStylistGradient()}
             style={styles.nextButtonGradient}
           >
-            <ThemedText type="body" style={styles.nextButtonText}>
-              Style Me
-            </ThemedText>
-            <Feather name="arrow-right" size={18} color="#FFFFFF" />
+            {isLoading ? (
+              <ThemedText type="body" style={styles.nextButtonText}>
+                Thinking...
+              </ThemedText>
+            ) : (
+              <>
+                <ThemedText type="body" style={styles.nextButtonText}>
+                  Ask my stylist
+                </ThemedText>
+                <Feather name="send" size={18} color="#FFFFFF" />
+              </>
+            )}
           </LinearGradient>
         </Pressable>
       ) : null}
@@ -1449,7 +1486,6 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           {step === 'type' && renderTypeSelection()}
           {step === 'upload' && renderUpload()}
           {step === 'event-questions' && renderEventQuestions()}
-          {step === 'context' && renderContext()}
           {step === 'response' && renderResponse()}
         </View>
       </ScreenKeyboardAwareScrollView>
