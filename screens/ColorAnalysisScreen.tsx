@@ -474,7 +474,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
             </Card>
           ) : null}
 
-          {hasSkinToneAnalysis && foundationMatches.length > 0 && user?.gender === 'woman' ? (
+          {hasSkinToneAnalysis && foundationMatches.length > 0 && user?.gender !== 'man' ? (
             <Card elevation={2} style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Feather name="shopping-bag" size={20} color={theme.link} />
