@@ -9322,6 +9322,8 @@ app.post('/api/decision/check/resilient', async (req, res) => {
       subscriptionTier: context.tier || 'free',
       languageCode: context.languageCode || 'en',
       languageName: context.languageName || 'English',
+      userProfile,
+      decisionType,
     });
 
     // Extract content from the response object (which has {content, mood, stylistId, modelUsed})

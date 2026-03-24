@@ -884,8 +884,22 @@ async function generateStylistResponse({
   languageCode = 'en',
   languageName = 'English',
   userProfile = {},
+  decisionType = null,
 }) {
   const stylist = STYLIST_PERSONALITIES[stylistId] || STYLIST_PERSONALITIES.ruby;
+
+  // Build decision-focused system prompt when decisionType is provided
+  const getDecisionPrompt = (stylistName, personality) => {
+    const prompts = {
+      sanity_check: `You are ${stylistName}, a direct fashion expert. A user has shown you an outfit/item and provided context. Your job: evaluate if it works for their situation and give one clear verdict. Be concise (1-2 sentences). Example: "The jacket is perfect for 5 degrees - the quilting provides insulation without bulk."`,
+      what_to_wear: `You are ${stylistName}, a decisive stylist. The user needs an outfit for today/tomorrow. Give them ONE clear outfit recommendation based on their context and wardrobe. Be specific and actionable (2-3 sentences max). No waffling, no "here are 3 options" - just the best choice.`,
+      shopping: `You are ${stylistName}, a strategic fashion advisor. The user is shopping and needs advice. Tell them exactly what to buy and why (2-3 sentences). Be specific about style, color, and fit. No filler.`,
+      event_outfit: `You are ${stylistName}, an expert in occasion dressing. The user needs an outfit for a specific event. Give ONE clear recommendation that nails the dress code and occasion (2-3 sentences). Be decisive and specific about silhouette, colors, and formality level.`,
+    };
+    return prompts[personality] || prompts.what_to_wear;
+  };
+
+  const baseStylistPrompt = decisionType ? getDecisionPrompt(stylist.name, decisionType) : stylist.systemPrompt;
 
   const moodAnalysis = await detectMood(userMessage);
 
@@ -1017,21 +1031,20 @@ async function generateStylistResponse({
 - Respect their stated gender identity in all recommendations`;
   }
 
-  const systemMessage = `${stylist.systemPrompt}${languageInstruction}${genderConstraint}
+  const systemMessage = `${baseStylistPrompt}${languageInstruction}${genderConstraint}
 
 CURRENT USER CONTEXT:
 - Gender: ${userGender || 'not specified'}
 - Subscription: ${subscriptionTier || 'free'} tier ${tierContext}
 - ${wardrobeContext}
-${conversationContext}${profileContext}
-${contextualGuidance}
+${conversationContext}${profileContext}${decisionType ? '' : `\n\n${contextualGuidance}`}
 
 RESPONSE REQUIREMENTS:
-- Be concise and decisive. No optional extras like "If you want..." or "I can also..."
+${decisionType ? `- Answer the question directly and decisively. No preamble. No "Hello" or generic greetings.
+- Provide actionable advice specific to their situation.` : `- Be concise and decisive. No optional extras like "If you want..." or "I can also..."
 - Deliver the outfit decision/advice clearly without follow-up offers
 - Keep responses to the essentials, not back-and-forth
-
-Remember: You are ${stylist.name}. Stay completely in character. Make this person feel like the most important person in the world right now.`;
+- Remember: You are ${stylist.name}. Stay completely in character. Make this person feel like the most important person in the world right now.`}`;
 
   const conversationHistory = messages.slice(-15).map((msg) => ({
     role: msg.role,
