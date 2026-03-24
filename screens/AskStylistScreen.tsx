@@ -362,7 +362,19 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
 
     try {
       const stylistId = user?.stylistPreferences?.selectedStylistId || 'ruby';
-      const context = decisionService.formatContextForApi(selectedContexts, contextNotes.trim() || undefined);
+      
+      // For event-outfit, build context from event details instead of selectedContexts
+      let context: string;
+      if (selectedType === 'event-outfit') {
+        const eventParts: string[] = [];
+        if (eventDetails.eventType) eventParts.push(`Event type: ${eventDetails.eventType}`);
+        if (eventDetails.dressCode) eventParts.push(`Dress code: ${eventDetails.dressCode}`);
+        if (eventDetails.timeOfDay) eventParts.push(`Time of day: ${eventDetails.timeOfDay}`);
+        if (contextNotes.trim()) eventParts.push(`Additional details: ${contextNotes.trim()}`);
+        context = eventParts.join('\n');
+      } else {
+        context = decisionService.formatContextForApi(selectedContexts, contextNotes.trim() || undefined);
+      }
       
       const decisionTypeMap: Record<string, 'sanity_check' | 'shopping' | 'what_to_wear' | 'event_outfit'> = {
         'sanity-check': 'sanity_check',
