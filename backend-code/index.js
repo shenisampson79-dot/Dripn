@@ -9566,16 +9566,27 @@ app.get('/api/outfit-calendar/range', authMiddleware, async (req, res) => {
        ORDER BY date ASC`,
       [req.userId, startDate, endDate]
     );
-    const outfits = result.rows.map(row => ({
-      id: row.id,
-      date: row.date,
-      itemIds: row.item_ids || [],
-      eventName: row.event_name,
-      eventType: row.event_type,
-      notes: row.notes,
-      wasWorn: row.was_worn,
-    }));
+    const outfits = result.rows.map(row => {
+      // Ensure itemIds is an array (PostgreSQL TEXT[] might come as string or array)
+      let itemIds = row.item_ids || [];
+      if (typeof itemIds === 'string') {
+        // PostgreSQL array like '{id1,id2,id3}' or '{"id1","id2"}'
+        itemIds = itemIds.replace(/[{}]/g, '').split(',').map(id => id.trim().replace(/"/g, '')).filter(Boolean);
+      }
+      return {
+        id: row.id,
+        date: row.date,
+        itemIds,
+        eventName: row.event_name,
+        eventType: row.event_type,
+        notes: row.notes,
+        wasWorn: row.was_worn,
+      };
+    });
     console.log(`[OutfitCalendar] Found ${outfits.length} outfits in range`);
+    if (outfits.length > 0) {
+      console.log(`[OutfitCalendar] Sample outfit itemIds:`, outfits[0].itemIds);
+    }
     res.json({ success: true, outfits });
   } catch (error) {
     console.error('[OutfitCalendar] GET /range error:', error);
