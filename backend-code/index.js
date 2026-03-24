@@ -9,7 +9,7 @@ const { analyzeUserStyleProfile, generatePersonalizedStyleOfTheDay, generatePers
 const { scanEmergingFashionTrends, scanViralFashionMoments, predictNextBigTrend, getRegionalTrendInsights } = require('./trendScannerService');
 const { sendPushNotification, sendBatchPushNotifications, processEventReminders } = require('./pushNotificationService');
 const colorTrendService = require('./colorTrendService');
-const { generateStylistResponse, detectMood, performComplexAnalysis, getAvailableAnalysisTypes, getBestReasoningModel } = require('./aiStylistService');
+const { generateStylistResponse, detectMood, performComplexAnalysis, getAvailableAnalysisTypes, getBestReasoningModel, COMPREHENSIVE_FASHION_INTELLIGENCE } = require('./aiStylistService');
 const { getBestModel, getModelStatus, refreshAllModels, performHealthCheck, checkForNewModels } = require('./modelLifecycleService');
 const { analyzeOutfitPhoto, compareOutfits, extractColorsFromPhoto, analyzeGarmentItem } = require('./visionAnalysisService');
 const { transcribeAudio, synthesizeSpeech, processVoiceMessage, createVoiceResponse, getAllVoices, generateVoicePreview, getSupportedLanguages } = require('./voiceService');
@@ -1641,6 +1641,9 @@ app.post('/api/dfy/generate-delivery', authMiddleware, async (req, res) => {
 
     const batchPrompt = `You are ${persona.name}, a world-class fashion stylist. Your voice: ${persona.voice}
 
+COMPREHENSIVE FASHION INTELLIGENCE:
+${COMPREHENSIVE_FASHION_INTELLIGENCE}
+
 You are planning a complete ${outfitCount}-day curated lookbook for a client. Approach this like a senior fashion editor at Vogue or Net-a-Porter planning a seasonal editorial: every look must feel intentional, varied, and stylistically distinct.
 
 ${lifestyleInstruction ? lifestyleInstruction + '\n' : ''}WARDROBE — use ITEM NUMBERS from this list:
@@ -1779,7 +1782,7 @@ Respond ONLY with a valid JSON array of exactly ${outfitCount} objects. No markd
         try {
           const aiResponse = await openai.chat.completions.create({
             model: chatModel,
-            messages: [{ role: 'user', content: `You are ${persona.name}, a fashion stylist. Voice: ${persona.voice}\n\nCreate ${seq.label} for Day ${dayNumber} of a ${outfitCount}-day lookbook.\n\nWardrobe:\n${itemList}\n${avoidHint}${prioritiseHint}\n\nSelect 2-5 items by NUMBER. Apply fashion intelligence — think editorial styling, colour harmony, and silhouette balance.\n\nRespond ONLY with valid JSON:\n{"selectedItemNumbers": [1, 2], "vibeLabel": "1-3 word vibe", "stylistMessage": "personal note in your voice"}` }],
+            messages: [{ role: 'user', content: `You are ${persona.name}, a fashion stylist. Voice: ${persona.voice}\n\nCOMPREHENSIVE FASHION INTELLIGENCE:\n${COMPREHENSIVE_FASHION_INTELLIGENCE}\n\nCreate ${seq.label} for Day ${dayNumber} of a ${outfitCount}-day lookbook.\n\nWardrobe:\n${itemList}\n${avoidHint}${prioritiseHint}\n\nSelect 2-5 items by NUMBER. Apply fashion intelligence — think editorial styling, colour harmony, and silhouette balance.\n\nRespond ONLY with valid JSON:\n{"selectedItemNumbers": [1, 2], "vibeLabel": "1-3 word vibe", "stylistMessage": "personal note in your voice"}` }],
             max_completion_tokens: 400,
             temperature: 0.85,
           });
@@ -6186,19 +6189,31 @@ app.post('/api/ai/voice-chat', authMiddleware, async (req, res) => {
     const stylistPersonalities = {
       ruby: {
         name: 'Ruby',
-        systemPrompt: `You are Ruby, a warm, enthusiastic, and encouraging fashion stylist. You use "darling" occasionally. You're bold with colour suggestions and make clients feel beautiful and confident. Keep responses concise (2-4 sentences) and conversational — this is a voice chat.`,
+        systemPrompt: `You are Ruby, a warm, enthusiastic, and encouraging fashion stylist. You use "darling" occasionally. You're bold with colour suggestions and make clients feel beautiful and confident. Keep responses concise (2-4 sentences) and conversational — this is a voice chat.
+
+COMPREHENSIVE FASHION INTELLIGENCE:
+${COMPREHENSIVE_FASHION_INTELLIGENCE}`,
       },
       max: {
         name: 'Max',
-        systemPrompt: `You are Max, a direct, confident, and no-nonsense fashion stylist. You focus on clean lines and structure. No filler words. You give sharp, actionable advice. Keep responses concise (2-4 sentences) and conversational — this is a voice chat.`,
+        systemPrompt: `You are Max, a direct, confident, and no-nonsense fashion stylist. You focus on clean lines and structure. No filler words. You give sharp, actionable advice. Keep responses concise (2-4 sentences) and conversational — this is a voice chat.
+
+COMPREHENSIVE FASHION INTELLIGENCE:
+${COMPREHENSIVE_FASHION_INTELLIGENCE}`,
       },
       ace: {
         name: 'Ace',
-        systemPrompt: `You are Ace, a cool, laid-back streetwear-aware stylist. You keep it real and practical. You reference street culture and current trends without being pretentious. Keep responses concise (2-4 sentences) and conversational — this is a voice chat.`,
+        systemPrompt: `You are Ace, a cool, laid-back streetwear-aware stylist. You keep it real and practical. You reference street culture and current trends without being pretentious. Keep responses concise (2-4 sentences) and conversational — this is a voice chat.
+
+COMPREHENSIVE FASHION INTELLIGENCE:
+${COMPREHENSIVE_FASHION_INTELLIGENCE}`,
       },
       ivy: {
         name: 'Ivy',
-        systemPrompt: `You are Ivy, a sophisticated, editorial fashion stylist. You're precise and uncompromising. You reference silhouette, proportion, and intention. You have an eye for the details that elevate an outfit. Keep responses concise (2-4 sentences) and conversational — this is a voice chat.`,
+        systemPrompt: `You are Ivy, a sophisticated, editorial fashion stylist. You're precise and uncompromising. You reference silhouette, proportion, and intention. You have an eye for the details that elevate an outfit. Keep responses concise (2-4 sentences) and conversational — this is a voice chat.
+
+COMPREHENSIVE FASHION INTELLIGENCE:
+${COMPREHENSIVE_FASHION_INTELLIGENCE}`,
       },
     };
 

@@ -89,6 +89,43 @@ let cachedAvailableModels = null;
 let availableModelsCacheTimestamp = null;
 const MODELS_LIST_CACHE_DURATION_MS = 60 * 60 * 1000;
 
+// ─────────────────────────────────────────────────────────────
+// COMPREHENSIVE FASHION INTELLIGENCE FRAMEWORK
+// ─────────────────────────────────────────────────────────────
+// Core guiding principles for all styling interactions across DFY, voice chat, and AI stylist services.
+const COMPREHENSIVE_FASHION_INTELLIGENCE = `
+INCLUSIVE FASHION PRINCIPLES (Always Apply):
+1. Body Diversity & Proportions: Style for ALL body types—apple, pear, hourglass, rectangle, inverted triangle. Adapt proportions, not the person.
+2. Cultural Respect: Honor cultural dress codes, hijab styling, modest fashion, and regional aesthetics without appropriation.
+3. Gender Fluidity: Transcend binary styling. Use "they/them" when appropriate. Suggest pieces for all genders.
+4. Age Inclusivity: Fashion works for 18–80. Sophistication ≠ young. Comfort ≠ frumpy.
+5. Economic Awareness: Acknowledge thrift, secondhand, and budget-friendly sourcing. Luxury isn't required for style.
+6. Disability & Adaptive Fashion: Prioritize ease of dressing (zippers, magnets vs. buttons), sensory comfort, and mobility.
+7. Modest Fashion: Celebrate modest silhouettes, layering, and cultural dress without judgment.
+
+SUBCULTURE AUTHENTICITY (Respect Style Communities):
+• Goth: Precise silhouette, intentional darkness, layering sophistication
+• Punk: Attitude over perfection, DIY ethos, intentional disruption
+• Streetwear: Proportion-play, limited color palettes, functional luxury
+• Cottagecore: Romantic, earthy, narrative-driven, authentic textures
+• Dark Academia: Literary references, structured tailoring, intellectual aesthetics
+• Y2K: Nostalgia-driven but forward, playful proportions, irony-aware
+• Minimalist: Intentional reduction, timeless pieces, quiet confidence
+• Maximalist: Layers, patterns, abundance, joy-driven
+• Afrofuturism: Celebration of texture, color, cultural futures, bold innovation
+
+BODY TYPE & PROPORTIONS GUIDANCE:
+Adapt silhouettes to highlight strengths: balance proportions (top/bottom), use layers strategically, emphasize the wearer's natural lines. Never force one body into one aesthetic.
+
+OUTFIT FORMULAS & EDITORIAL STYLING:
+• Formula 1: Neutral base + Statement piece + Accessory focal point
+• Formula 2: Tonal dressing (monochrome depth via texture)
+• Formula 3: Colour harmony (complementary, analogous, or triadic palettes)
+• Formula 4: Texture balance (matte + sheen, soft + structured)
+• Formula 5: Proportion play (fitted + volume, or vice versa)
+Think like a magazine editor: intentionality in every choice, authenticity in execution.
+`;
+
 async function getAvailableModels() {
   const now = Date.now();
   
@@ -1156,4 +1193,5 @@ module.exports = {
   getBestAvailableModel,
   getBestReasoningModel,
   refreshModelCache,
+  COMPREHENSIVE_FASHION_INTELLIGENCE,
 };
