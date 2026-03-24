@@ -286,14 +286,14 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
         </Pressable>
       </View>
 
-      <ScreenScrollView style={{ backgroundColor: 'transparent' }}>
+      <ScreenScrollView style={{ backgroundColor: 'transparent', flex: 1 }}>
         <View style={styles.content}>
           {CATEGORY_ROWS.map(renderCategoryRow)}
         </View>
       </ScreenScrollView>
 
       {getSelectedCount() > 0 && (
-        <View style={[styles.floatingBar, { paddingBottom: insets.bottom + Spacing.md }]}>
+        <View style={[styles.floatingBar, { paddingBottom: insets.bottom + Spacing.md, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }]}>
           <LinearGradient
             colors={isDark ? ['#1A1A2E', '#0D0B09'] : ['#FFFFFF', '#F8F4F0']}
             style={styles.floatingBarGradient}
@@ -544,13 +544,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   floatingBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    width: '100%',
   },
   floatingBarGradient: {
-    marginHorizontal: Spacing.lg,
     borderRadius: BorderRadius.xl,
     padding: Spacing.md,
     shadowColor: '#000',
