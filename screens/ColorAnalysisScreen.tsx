@@ -32,6 +32,7 @@ import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useBodyProfile, ColorSeason, SkinToneData } from "@/contexts/BodyProfileContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
 import { getRecommendedShades, FoundationBrand, FoundationMatch } from "@/services/FoundationMatchingService";
 
@@ -68,6 +69,7 @@ const SEASON_INFO: Record<ColorSeason, { icon: keyof typeof Feather.glyphMap; co
 export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenProps) {
   const { theme, isDark } = useTheme();
   const { bodyProfile, analyzeColorSeason, isAnalyzingColor, hasColorAnalysis, hasSkinToneAnalysis } = useBodyProfile();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   
   const [permission, requestPermission] = useCameraPermissions();
@@ -472,7 +474,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
             </Card>
           ) : null}
 
-          {hasSkinToneAnalysis && foundationMatches.length > 0 ? (
+          {hasSkinToneAnalysis && foundationMatches.length > 0 && user?.gender === 'woman' ? (
             <Card elevation={2} style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Feather name="shopping-bag" size={20} color={theme.link} />
