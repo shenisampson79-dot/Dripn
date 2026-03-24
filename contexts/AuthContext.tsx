@@ -466,13 +466,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fetch full profile from backend (includes profileData with onboarding flag)
       try {
         const fullProfile = await apiService.getMe();
-        if (!userProfile.hasCompletedOnboarding && fullProfile.profileData) {
+        if (fullProfile.profileData) {
           userProfile = {
             ...userProfile,
             ...fullProfile.profileData,
             id: userId || userProfile.id,
             email,
-            hasCompletedOnboarding: true,
+            hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? false,
           };
         }
       } catch (err) {
@@ -606,13 +606,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fetch full profile from backend (includes profileData with onboarding flag)
       try {
         const fullProfile = await apiService.getMe();
-        if (!newUser.hasCompletedOnboarding && fullProfile.profileData) {
+        if (fullProfile.profileData) {
           newUser = {
             ...newUser,
             ...fullProfile.profileData,
             id: backendUser.id.toString(),
             email: backendUser.email || userEmail || newUser.email,
-            hasCompletedOnboarding: true,
+            hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? false,
           };
         }
       } catch (err) {
