@@ -447,10 +447,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
       setUser(userData);
-      // Background sync to backend so profile survives device changes / reinstalls
+      // Sync to backend so profile survives device changes / reinstalls
       if (userData.id) {
         const { id, email, ...profileData } = userData as any;
-        apiService.syncProfile(profileData).catch(() => {});
+        try {
+          await apiService.syncProfile(profileData);
+        } catch (syncErr) {
+          console.error('Failed to sync profile to backend (non-fatal):', syncErr);
+          // Continue even if sync fails — local AsyncStorage is source of truth
+        }
       }
     } catch (error) {
       console.error('Failed to save user:', error);
