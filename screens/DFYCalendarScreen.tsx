@@ -50,6 +50,8 @@ interface DFYCalendarOutfit {
   weatherNote?: string;
   wasWorn: boolean;
   alternativesCount: number;
+  itemIds?: string[];
+  items?: WardrobeItem[];
 }
 
 type ViewMode = 'calendar' | 'week' | 'list';
@@ -115,6 +117,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
             stylistId: 'ruby' as StylistId,
             wasWorn: outfit.wasWorn,
             alternativesCount: 0,
+            itemIds: outfit.itemIds || [],
           }));
           setCalendarOutfits(mapped);
           // Auto-select today's outfit if available
@@ -421,17 +424,36 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
 
         <ScreenScrollView style={{ backgroundColor: 'transparent' }}>
           <View style={styles.modalContent}>
-            <View style={[styles.outfitImagePlaceholder, { backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
-              <LinearGradient
-                colors={tier === 'lite' ? [LUXURY_COLORS.coral + '40', '#C46A4F20'] : [LUXURY_COLORS.gold + '40', LUXURY_COLORS.deepGold + '20']}
-                style={styles.imagePlaceholderGradient}
-              >
-                <Feather name="image" size={64} color={tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold} />
-                <ThemedText style={{ color: tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold, marginTop: Spacing.md }}>
-                  Complete Outfit
-                </ThemedText>
-              </LinearGradient>
-            </View>
+            {selectedOutfit?.itemIds && selectedOutfit.itemIds.length > 0 ? (
+              <View style={styles.outfitGrid}>
+                {selectedOutfit.itemIds.map((itemId) => {
+                  const item = items.find(i => i.id === itemId);
+                  return (
+                    <View key={itemId} style={styles.outfitGridItem}>
+                      <View style={[styles.outfitGridImage, { backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
+                        {item?.imageUri ? (
+                          <Image source={{ uri: item.imageUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+                        ) : (
+                          <Feather name="image" size={48} color={theme.tabIconDefault} />
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            ) : (
+              <View style={[styles.outfitImagePlaceholder, { backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
+                <LinearGradient
+                  colors={tier === 'lite' ? [LUXURY_COLORS.coral + '40', '#C46A4F20'] : [LUXURY_COLORS.gold + '40', LUXURY_COLORS.deepGold + '20']}
+                  style={styles.imagePlaceholderGradient}
+                >
+                  <Feather name="image" size={64} color={tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold} />
+                  <ThemedText style={{ color: tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold, marginTop: Spacing.md }}>
+                    Complete Outfit
+                  </ThemedText>
+                </LinearGradient>
+              </View>
+            )}
 
             {selectedOutfit?.stylistNote && (
               <View style={[styles.noteCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
@@ -874,6 +896,23 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     padding: Spacing.xl,
+  },
+  outfitGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  outfitGridItem: {
+    flex: 0.5,
+    aspectRatio: 3 / 4,
+  },
+  outfitGridImage: {
+    flex: 1,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   outfitImagePlaceholder: {
     aspectRatio: 3 / 4,
