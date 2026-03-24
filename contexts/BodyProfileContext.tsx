@@ -500,7 +500,15 @@ Respond in this exact JSON format:
       };
     } catch (err) {
       console.error('Color analysis failed:', err);
-      setError('Failed to analyze colors. Please try again with a clearer selfie.');
+      
+      // Check if this is their first time doing color analysis (skipped during onboarding)
+      const isFirstTime = !bodyProfile?.colorSeason;
+      
+      const errorMsg = isFirstTime 
+        ? 'Let\'s try that again! Make sure the lighting is clear and your face, hair, and natural skin tone are visible in the photo.'
+        : 'The image wasn\'t clear enough. Please try again with a well-lit selfie showing your face, natural hair, and skin.';
+      
+      setError(errorMsg);
       const now = new Date().toISOString();
       return {
         success: false,
@@ -517,7 +525,9 @@ Respond in this exact JSON format:
           depth: 'medium',
           undertone: 'neutral',
           hexApproximation: '#A0A0A0',
-          description: 'We could not analyze your skin tone. Please try again with a well-lit photo showing your natural skin.',
+          description: isFirstTime 
+            ? 'Ready to discover your perfect colors? A clear selfie helps us analyze your natural skin tone and find your seasonal color palette.'
+            : 'We could not analyze your skin tone. Please try again with a well-lit photo showing your natural skin.',
           complementaryColors: [],
           analyzedAt: now,
         },
