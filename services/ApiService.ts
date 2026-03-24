@@ -277,12 +277,15 @@ class ApiService {
 
   async syncProfile(profileData: Record<string, any>): Promise<void> {
     try {
-      await this.request<{ success: boolean }>('/api/auth/profile/sync', {
+      console.log('[ApiService] Syncing profile to backend:', { hasSeenTour: profileData.hasSeenTour, hasCompletedOnboarding: profileData.hasCompletedOnboarding });
+      const result = await this.request<{ success: boolean }>('/api/auth/profile/sync', {
         method: 'PUT',
         body: JSON.stringify({ profileData }),
       });
-    } catch {
-      // Silently swallow — device still has AsyncStorage as source of truth
+      console.log('[ApiService] Profile sync successful');
+    } catch (error) {
+      // Log but don't throw — device still has AsyncStorage as source of truth
+      console.error('[ApiService] Profile sync failed:', error);
     }
   }
 

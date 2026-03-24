@@ -92,7 +92,13 @@ export function AppTour({ visible, onComplete }: AppTourProps) {
   };
 
   const handleComplete = async () => {
-    await updateProfile({ hasSeenTour: true });
+    console.log('[AppTour] Marking tour as seen');
+    try {
+      await updateProfile({ hasSeenTour: true });
+      console.log('[AppTour] Tour marked as seen successfully');
+    } catch (err) {
+      console.error('[AppTour] Failed to mark tour as seen:', err);
+    }
     setCurrentStep(0);
     onComplete();
   };

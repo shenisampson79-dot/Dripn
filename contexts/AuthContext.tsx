@@ -497,6 +497,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fetch full profile from backend for additional profile data
       try {
         const fullProfile = await apiService.getMe();
+        console.log('[Auth] Retrieved profile from backend:', { hasSeenTour: fullProfile.profileData?.hasSeenTour, hasCompletedOnboarding: fullProfile.profileData?.hasCompletedOnboarding });
         if (fullProfile.profileData) {
           userProfile = {
             ...userProfile,
@@ -508,6 +509,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Restore hasSeenTour from backend so tour only shows once
             hasSeenTour: fullProfile.profileData.hasSeenTour ?? userProfile.hasSeenTour,
           };
+          console.log('[Auth] Final user profile after login:', { hasSeenTour: userProfile.hasSeenTour, hasCompletedOnboarding: userProfile.hasCompletedOnboarding });
         }
       } catch (err) {
         // If getMe fails, that's okay — we already have hasCompletedOnboarding from login
