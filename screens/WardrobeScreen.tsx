@@ -1679,7 +1679,7 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.lg,
-    backgroundColor: LUXURY_COLORS.violet,
+    backgroundColor: LuxuryColors.violet,
     alignItems: 'center',
   },
 });
