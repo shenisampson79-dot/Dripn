@@ -1517,14 +1517,32 @@ export default function AIStylistScreen() {
         content: msg.content,
       }));
       
+      const mappedGenderVoice = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : user?.gender || 'unspecified';
       const response = await apiService.sendStylistMessage({
         stylistId: stylist.id,
         messages: chatHistory,
         userMessage: messageToSend,
         wardrobeItems: wardrobeContext,
-        userGender: user?.gender || 'unspecified',
+        userGender: mappedGenderVoice,
         subscriptionTier: tier,
         language: voiceSettings.preferredLanguage,
+        userProfile: {
+          ...(user?.profileData || {}),
+          gender: mappedGenderVoice,
+          name: user?.name,
+          country: user?.country,
+          skinUndertone: user?.skinUndertone,
+          bodyType: user?.bodyShape,
+          bodyMeasurements: user?.bodyMeasurements,
+          colorScanData: user?.colorScanData,
+          extendedPreferences: user?.extendedPreferences,
+          stylistPreferences: user?.stylistPreferences,
+          stylePreference: user?.stylePreference,
+          sizeRange: user?.sizeRange,
+          budgetRange: user?.budgetRange,
+          subscriptionTier: user?.subscriptionTier,
+          retailers: user?.extendedPreferences?.favoriteShops || [],
+        },
       });
       
       if (response.mood) {
@@ -1707,14 +1725,32 @@ export default function AIStylistScreen() {
       console.log('User ID:', user?.id);
       console.log('Calling backend API with message:', text.trim());
       
+      const mappedGenderText = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : user?.gender || 'unspecified';
       const response = await apiService.sendStylistMessage({
         stylistId: stylist.id,
         messages: chatHistory,
         userMessage: text.trim(),
         wardrobeItems: wardrobeContext,
-        userGender: user?.gender || 'unspecified',
+        userGender: mappedGenderText,
         subscriptionTier: tier,
         language: currentLanguage,
+        userProfile: {
+          ...(user?.profileData || {}),
+          gender: mappedGenderText,
+          name: user?.name,
+          country: user?.country,
+          skinUndertone: user?.skinUndertone,
+          bodyType: user?.bodyShape,
+          bodyMeasurements: user?.bodyMeasurements,
+          colorScanData: user?.colorScanData,
+          extendedPreferences: user?.extendedPreferences,
+          stylistPreferences: user?.stylistPreferences,
+          stylePreference: user?.stylePreference,
+          sizeRange: user?.sizeRange,
+          budgetRange: user?.budgetRange,
+          subscriptionTier: user?.subscriptionTier,
+          retailers: user?.extendedPreferences?.favoriteShops || [],
+        },
       });
       
       console.log('Backend response received:', JSON.stringify(response));

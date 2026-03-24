@@ -378,12 +378,35 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         })
       );
 
+      // Map frontend gender values to backend-expected values
+      const mappedGender = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : user?.gender || null;
+
+      // Build comprehensive profile from all direct user state properties
+      // Merge backend blob first, then override with direct user state (direct takes precedence)
+      const fullUserProfile = {
+        ...(user?.profileData || {}),
+        gender: mappedGender,
+        name: user?.name,
+        country: user?.country,
+        skinUndertone: user?.skinUndertone,
+        bodyType: user?.bodyShape,
+        bodyMeasurements: user?.bodyMeasurements,
+        colorScanData: user?.colorScanData,
+        extendedPreferences: user?.extendedPreferences,
+        stylistPreferences: user?.stylistPreferences,
+        stylePreference: user?.stylePreference,
+        sizeRange: user?.sizeRange,
+        budgetRange: user?.budgetRange,
+        subscriptionTier: user?.subscriptionTier,
+        retailers: user?.extendedPreferences?.favoriteShops || [],
+      };
+
       const apiResult = await apiService.submitDecisionCheck({
         decisionType: decisionTypeMap[selectedType] || 'sanity_check',
         images: base64Images,
         context,
         stylist: stylistId,
-        userProfile: user?.profileData || {},
+        userProfile: fullUserProfile,
       });
 
       const result: DecisionResponse = {

@@ -1195,6 +1195,7 @@ class ApiService {
     userGender?: string;
     subscriptionTier?: string;
     language?: string;
+    userProfile?: any;
   }): Promise<{
     content: string;
     mood?: {

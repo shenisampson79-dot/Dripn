@@ -859,16 +859,73 @@ async function generateStylistResponse({
   let profileContext = '';
   if (userProfile && Object.keys(userProfile).length > 0) {
     const profileLines = [];
+
+    if (userProfile.name) profileLines.push(`- Name: ${userProfile.name}`);
+    if (userProfile.country) profileLines.push(`- Country/Region: ${userProfile.country}`);
     if (userProfile.bodyType) profileLines.push(`- Body type: ${userProfile.bodyType}`);
+    if (userProfile.sizeRange) profileLines.push(`- Size range: ${userProfile.sizeRange}`);
+    if (userProfile.budgetRange) profileLines.push(`- Budget range: ${userProfile.budgetRange}`);
+    if (userProfile.stylePreference) profileLines.push(`- Overall style preference: ${userProfile.stylePreference}`);
     if (userProfile.skinUndertone) profileLines.push(`- Skin undertone: ${userProfile.skinUndertone}`);
+
+    // Color scan / season analysis
+    if (userProfile.colorScanData) {
+      const csd = userProfile.colorScanData;
+      if (csd.colorSeasonType) profileLines.push(`- Color season: ${csd.colorSeasonType}${csd.seasonSubtype ? ` (${csd.seasonSubtype})` : ''}`);
+      if (csd.powerColors && csd.powerColors.length) profileLines.push(`- Power colors: ${csd.powerColors.join(', ')}`);
+      if (csd.avoidColors && csd.avoidColors.length) profileLines.push(`- Colors to avoid: ${csd.avoidColors.join(', ')}`);
+      if (csd.bestMetals) profileLines.push(`- Best metals: ${csd.bestMetals}`);
+    }
+
+    // Body measurements
+    if (userProfile.bodyMeasurements) {
+      const bm = userProfile.bodyMeasurements;
+      const measureParts = [];
+      if (bm.height) measureParts.push(`height ${bm.height}${bm.heightUnit || 'cm'}`);
+      if (bm.weight) measureParts.push(`weight ${bm.weight}${bm.weightUnit || 'kg'}`);
+      if (bm.chest) measureParts.push(`chest ${bm.chest}${bm.measurementUnit || 'cm'}`);
+      if (bm.waist) measureParts.push(`waist ${bm.waist}${bm.measurementUnit || 'cm'}`);
+      if (bm.hips) measureParts.push(`hips ${bm.hips}${bm.measurementUnit || 'cm'}`);
+      if (measureParts.length) profileLines.push(`- Measurements: ${measureParts.join(', ')}`);
+    }
+
+    // Extended preferences
     if (userProfile.extendedPreferences?.lifestyle) profileLines.push(`- Lifestyle: ${userProfile.extendedPreferences.lifestyle}`);
     if (userProfile.extendedPreferences?.style) profileLines.push(`- Style preference: ${userProfile.extendedPreferences.style}`);
     if (userProfile.extendedPreferences?.dressCodes && Array.isArray(userProfile.extendedPreferences.dressCodes)) {
       profileLines.push(`- Dress codes: ${userProfile.extendedPreferences.dressCodes.join(', ')}`);
     }
     if (userProfile.extendedPreferences?.goals) profileLines.push(`- Goals: ${userProfile.extendedPreferences.goals}`);
+    if (userProfile.extendedPreferences?.usageGoals && Array.isArray(userProfile.extendedPreferences.usageGoals)) {
+      profileLines.push(`- Usage goals: ${userProfile.extendedPreferences.usageGoals.join(', ')}`);
+    }
+    if (userProfile.extendedPreferences?.occasions && Array.isArray(userProfile.extendedPreferences.occasions)) {
+      profileLines.push(`- Occasions: ${userProfile.extendedPreferences.occasions.join(', ')}`);
+    }
+    if (userProfile.extendedPreferences?.colorChoices?.favoriteColors?.length) {
+      profileLines.push(`- Favourite colors: ${userProfile.extendedPreferences.colorChoices.favoriteColors.join(', ')}`);
+    }
+    if (userProfile.extendedPreferences?.colorChoices?.avoidColors?.length) {
+      profileLines.push(`- Colors to avoid: ${userProfile.extendedPreferences.colorChoices.avoidColors.join(', ')}`);
+    }
+    if (userProfile.extendedPreferences?.bodyFitPreferences?.fitPreference) {
+      profileLines.push(`- Fit preference: ${userProfile.extendedPreferences.bodyFitPreferences.fitPreference}`);
+    }
+    if (userProfile.extendedPreferences?.bodyFitPreferences?.confidentAreas?.length) {
+      profileLines.push(`- Confident areas: ${userProfile.extendedPreferences.bodyFitPreferences.confidentAreas.join(', ')}`);
+    }
+    if (userProfile.extendedPreferences?.favoriteBrands?.length) {
+      profileLines.push(`- Favourite brands: ${userProfile.extendedPreferences.favoriteBrands.join(', ')}`);
+    }
+    if (userProfile.retailers?.length) {
+      profileLines.push(`- Preferred retailers: ${Array.isArray(userProfile.retailers) ? userProfile.retailers.join(', ') : userProfile.retailers}`);
+    }
+    if (userProfile.extendedPreferences?.culturalStyle?.dressCodePreference) {
+      profileLines.push(`- Cultural dress code: ${userProfile.extendedPreferences.culturalStyle.dressCodePreference}`);
+    }
+
     if (profileLines.length > 0) {
-      profileContext = '\n\nCOMPREHENSIVE USER PROFILE:\n' + profileLines.join('\n');
+      profileContext = '\n\nCOMPREHENSIVE USER PROFILE (use this to personalise every recommendation):\n' + profileLines.join('\n');
     }
   }
 
