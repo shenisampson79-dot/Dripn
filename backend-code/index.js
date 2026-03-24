@@ -9288,6 +9288,26 @@ app.post('/api/decision/check/resilient', async (req, res) => {
       userProfile.extendedPreferences?.style ? `Style preference: ${userProfile.extendedPreferences.style}` : '',
     ].filter(s => s).join('. ');
 
+    // For sanity-check with images, analyze the outfit photo first
+    if (decisionType === 'sanity_check' && imageArray.length > 0) {
+      try {
+        console.log('[Decision Check] Analyzing sanity-check outfit image');
+        const outfitAnalysis = await analyzeOutfitPhoto({
+          imageBase64: imageArray[0],
+          userGender: userProfile.gender || 'not specified',
+          analysisType: 'full'
+        });
+        
+        // Include the outfit analysis in the user message
+        if (outfitAnalysis?.analysis) {
+          userMessage = `${userMessage}\n\nOutfit analysis: ${outfitAnalysis.analysis}`;
+        }
+      } catch (analysisErr) {
+        console.warn('[Decision Check] Failed to analyze outfit for sanity-check:', analysisErr.message);
+        // Continue without analysis - the stylist can still respond based on context
+      }
+    }
+
     // Include profile context in the user message so the stylist AI has this info
     if (profileSummary) {
       fullUserMessage = `User profile: ${profileSummary}. ${userMessage}`;
