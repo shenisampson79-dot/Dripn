@@ -21,6 +21,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWardrobe, WardrobeItem, ClothingCategory, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
+import { useScreenInsets } from "@/hooks/useScreenInsets";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const ITEM_SIZE = 100;
@@ -64,6 +65,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
   const { user } = useAuth();
   const { items } = useWardrobe();
   const insets = useSafeAreaInsets();
+  const { paddingBottom: tabAwarePaddingBottom } = useScreenInsets();
 
   const [selectedItems, setSelectedItems] = useState<SelectedItems>({
     tops: null,
@@ -293,7 +295,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
       </ScreenScrollView>
 
       {getSelectedCount() > 0 && (
-        <View style={[styles.floatingBar, { paddingBottom: insets.bottom + Spacing.md, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }]}>
+        <View style={[styles.floatingBar, { bottom: tabAwarePaddingBottom - Spacing.xl }]}>
           <LinearGradient
             colors={isDark ? ['#1A1A2E', '#0D0B09'] : ['#FFFFFF', '#F8F4F0']}
             style={styles.floatingBarGradient}
@@ -544,7 +546,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   floatingBar: {
-    width: '100%',
+    position: 'absolute',
+    left: Spacing.lg,
+    right: Spacing.lg,
   },
   floatingBarGradient: {
     borderRadius: BorderRadius.xl,
