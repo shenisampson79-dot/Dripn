@@ -72,6 +72,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
   const [selectedOutfit, setSelectedOutfit] = useState<DFYCalendarOutfit | null>(null);
   const [calendarOutfits, setCalendarOutfits] = useState<DFYCalendarOutfit[]>([]);
   const [loadingDate, setLoadingDate] = useState<string | null>(null);
+  const [loadingAll, setLoadingAll] = useState(true);
 
   const totalDays = tier === 'lite' ? 14 : 30;
   const startDate = useMemo(() => {
@@ -79,6 +80,41 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
+
+  // Bulk-load all outfits for the full plan range on mount
+  useEffect(() => {
+    const loadAllOutfits = async () => {
+      try {
+        setLoadingAll(true);
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + totalDays - 1);
+        const result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
+        if (result.success && result.outfits && result.outfits.length > 0) {
+          const mapped: DFYCalendarOutfit[] = result.outfits.map(outfit => ({
+            id: outfit.id,
+            date: outfit.date,
+            title: outfit.eventName || 'Curated Outfit',
+            stylistNote: outfit.notes || '',
+            stylistId: 'ruby' as StylistId,
+            wasWorn: outfit.wasWorn,
+            alternativesCount: 0,
+          }));
+          setCalendarOutfits(mapped);
+          // Auto-select today's outfit if available
+          const todayKey = formatDateKey(new Date());
+          const todayOutfit = mapped.find(o => formatDateKey(new Date(o.date)) === todayKey);
+          if (todayOutfit) {
+            setSelectedOutfit(todayOutfit);
+          }
+        }
+      } catch (err) {
+        console.log('[DFYCalendar] Error loading all outfits:', err);
+      } finally {
+        setLoadingAll(false);
+      }
+    };
+    loadAllOutfits();
+  }, [startDate, totalDays]);
 
   // Fetch outfit for a specific date from backend
   const fetchOutfitForDate = async (date: Date) => {
@@ -138,7 +174,8 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
   const getOutfitForDate = (date: Date): DFYCalendarOutfit | undefined => {
     const dateKey = formatDateKey(date);
     return calendarOutfits.find(o => {
-      const oDateKey = formatDateKey(new Date(o.date));
+      // Compare directly as YYYY-MM-DD strings to avoid timezone shifts
+      const oDateKey = typeof o.date === 'string' ? o.date.substring(0, 10) : formatDateKey(new Date(o.date));
       return oDateKey === dateKey;
     });
   };
@@ -476,7 +513,21 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
         ))}
       </View>
 
-      {viewMode === 'calendar' && (
+      {loadingAll && (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md }}>
+          <LinearGradient
+            colors={tier === 'lite' ? [LUXURY_COLORS.coral, '#C46A4F'] : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+            style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Feather name="loader" size={24} color="#FFFFFF" />
+          </LinearGradient>
+          <ThemedText type="body" style={{ color: 'rgba(255,255,255,0.8)', textAlign: 'center' }}>
+            Loading your curated outfits...
+          </ThemedText>
+        </View>
+      )}
+
+      {!loadingAll && viewMode === 'calendar' && (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: Spacing.xl }}>
           <View style={[styles.calendarCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)' }]}>
             <View style={styles.calendarHeader}>
@@ -569,8 +620,8 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
         </ScrollView>
       )}
 
-      {viewMode === 'week' && renderWeekView()}
-      {viewMode === 'list' && renderListView()}
+      {!loadingAll && viewMode === 'week' && renderWeekView()}
+      {!loadingAll && viewMode === 'list' && renderListView()}
 
       {renderOutfitDetail()}
     </View>

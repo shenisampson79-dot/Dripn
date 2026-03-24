@@ -3175,6 +3175,22 @@ class ApiService {
     });
   }
 
+  async getCalendarOutfitsForRange(startDate: Date, endDate: Date) {
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return this.request<{
+      success: boolean;
+      outfits: Array<{
+        id: string;
+        date: string;
+        itemIds: string[];
+        eventName: string;
+        eventType: string;
+        notes?: string;
+        wasWorn: boolean;
+      }>;
+    }>(`/api/outfit-calendar/range?startDate=${fmt(startDate)}&endDate=${fmt(endDate)}`);
+  }
+
   async getOutfitForDate(date: Date) {
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     return this.request<{

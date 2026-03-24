@@ -614,6 +614,21 @@ async function initDB() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       CREATE INDEX IF NOT EXISTS idx_outfit_calendar_user ON outfit_calendar(user_id, date);
+      -- Remove duplicate (user_id, date) rows before adding unique constraint
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'outfit_calendar_user_date_unique'
+        ) THEN
+          -- Delete duplicates, keeping only the most recent row per (user_id, date)
+          DELETE FROM outfit_calendar
+          WHERE id NOT IN (
+            SELECT DISTINCT ON (user_id, date) id
+            FROM outfit_calendar
+            ORDER BY user_id, date, created_at DESC
+          );
+          ALTER TABLE outfit_calendar ADD CONSTRAINT outfit_calendar_user_date_unique UNIQUE (user_id, date);
+        END IF;
+      END $$;
 
       -- Mix & Match Saved Outfits Table
       CREATE TABLE IF NOT EXISTS mix_and_match_outfits (
@@ -9514,6 +9529,37 @@ Respond ONLY with valid JSON, no markdown:
 });
 
 // ===== OUTFIT CALENDAR CRUD =====
+
+// Bulk fetch all outfits for a date range (used to populate DFY calendar on mount)
+app.get('/api/outfit-calendar/range', authMiddleware, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: 'startDate and endDate are required' });
+    }
+    console.log(`[OutfitCalendar] Fetching range ${startDate} to ${endDate} for user ${req.userId}`);
+    const result = await pool.query(
+      `SELECT * FROM outfit_calendar
+       WHERE user_id = $1 AND date >= $2::date AND date <= $3::date
+       ORDER BY date ASC`,
+      [req.userId, startDate, endDate]
+    );
+    const outfits = result.rows.map(row => ({
+      id: row.id,
+      date: row.date,
+      itemIds: row.item_ids || [],
+      eventName: row.event_name,
+      eventType: row.event_type,
+      notes: row.notes,
+      wasWorn: row.was_worn,
+    }));
+    console.log(`[OutfitCalendar] Found ${outfits.length} outfits in range`);
+    res.json({ success: true, outfits });
+  } catch (error) {
+    console.error('[OutfitCalendar] GET /range error:', error);
+    res.status(500).json({ error: 'Failed to fetch outfits for range' });
+  }
+});
 
 app.get('/api/outfit-calendar/:id', authMiddleware, async (req, res) => {
   try {
