@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.xl,
     gap: Spacing.xl,
-    paddingBottom: 120,
+    paddingBottom: 180,
   },
   categoryRow: {
     gap: Spacing.md,
