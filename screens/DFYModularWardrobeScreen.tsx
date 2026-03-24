@@ -283,7 +283,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
           </View>
         </LinearGradient>
 
-        <ScreenScrollView style={[{ backgroundColor: 'transparent', paddingBottom: 320 }]}>
+        <ScreenScrollView style={[{ backgroundColor: 'transparent' }]}>
           <View style={styles.outfitPreviewGrid}>
             {Object.entries(selectedItems).map(([category, item]) => {
               if (!item) return null;
@@ -358,6 +358,8 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
               Schedule in Calendar
             </ThemedText>
           </Pressable>
+          
+          <View style={{ height: 200 }} />
         </ScreenScrollView>
       </View>
     </Modal>
