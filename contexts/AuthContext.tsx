@@ -470,6 +470,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (existingData) {
         const existingUser = JSON.parse(existingData);
         if (existingUser.email === email) {
+          // Same account: preserve local data but update with fresh backend values
           userProfile = { ...existingUser, id: userId || existingUser.id };
         } else {
           // Different account on this device — start fresh, then try to restore from backend
@@ -482,7 +483,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userProfile.id = userId || userProfile.id;
       }
 
-      // Fetch full profile from backend (includes profileData with onboarding flag)
+      // CRITICAL: Use hasCompletedOnboarding from login response immediately
+      // This is the source of truth — don't wait for getMe() which may fail
+      if (backendUser.hasCompletedOnboarding !== undefined) {
+        userProfile.hasCompletedOnboarding = backendUser.hasCompletedOnboarding;
+      }
+
+      // Fetch full profile from backend for additional profile data
       try {
         const fullProfile = await apiService.getMe();
         if (fullProfile.profileData) {
@@ -491,12 +498,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ...fullProfile.profileData,
             id: userId || userProfile.id,
             email,
-            hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? false,
+            // Re-ensure hasCompletedOnboarding is set (double-check)
+            hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? userProfile.hasCompletedOnboarding,
           };
         }
       } catch (err) {
-        // If getMe fails, that's okay — continue with what we have
-        console.log('[Auth] Could not fetch full profile, continuing with existing data');
+        // If getMe fails, that's okay — we already have hasCompletedOnboarding from login
+        console.log('[Auth] Could not fetch full profile, continuing with login data');
       }
 
       await saveUser(userProfile);
@@ -622,7 +630,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       newUser.id = backendUser.id.toString();
 
-      // Fetch full profile from backend (includes profileData with onboarding flag)
+      // CRITICAL: Use hasCompletedOnboarding from social login response immediately
+      if (backendUser.hasCompletedOnboarding !== undefined) {
+        newUser.hasCompletedOnboarding = backendUser.hasCompletedOnboarding;
+      }
+
+      // Fetch full profile from backend for additional profile data
       try {
         const fullProfile = await apiService.getMe();
         if (fullProfile.profileData) {
@@ -631,11 +644,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ...fullProfile.profileData,
             id: backendUser.id.toString(),
             email: backendUser.email || userEmail || newUser.email,
-            hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? false,
+            // Re-ensure hasCompletedOnboarding is set (double-check)
+            hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? newUser.hasCompletedOnboarding,
           };
         }
       } catch (err) {
-        // If getMe fails, continue with existing data
+        // If getMe fails, that's okay — we already have hasCompletedOnboarding from login
         console.log('[Auth] Could not fetch full profile in social login, continuing');
       }
 
@@ -674,13 +688,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       newUser.id = backendUser.id.toString();
 
-      if (!newUser.hasCompletedOnboarding && backendUser.profileData) {
+      // CRITICAL: Use hasCompletedOnboarding from backend response
+      if (backendUser.hasCompletedOnboarding !== undefined) {
+        newUser.hasCompletedOnboarding = backendUser.hasCompletedOnboarding;
+      }
+
+      if (backendUser.profileData) {
         newUser = {
           ...newUser,
           ...backendUser.profileData,
           id: backendUser.id.toString(),
           email: backendUser.email || userEmail || newUser.email,
-          hasCompletedOnboarding: true,
+          hasCompletedOnboarding: backendUser.hasCompletedOnboarding ?? newUser.hasCompletedOnboarding,
         };
       }
 
