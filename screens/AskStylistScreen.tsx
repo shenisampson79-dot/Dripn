@@ -1460,6 +1460,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         <View style={styles.content}>
           {step === 'type' && renderTypeSelection()}
           {step === 'upload' && renderUpload()}
+          {step === 'context' && renderContext()}
           {step === 'event-questions' && renderEventQuestions()}
           {step === 'response' && renderResponse()}
         </View>
