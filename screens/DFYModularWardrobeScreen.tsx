@@ -259,111 +259,6 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
     );
   };
 
-  const renderOutfitPreview = () => (
-    <Modal
-      visible={showOutfitPreview}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={() => setShowOutfitPreview(false)}
-    >
-      <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
-        <LinearGradient
-          colors={[LUXURY_COLORS.gold + '30', 'transparent']}
-          style={styles.modalHeaderGradient}
-        >
-          <View style={[styles.modalHeader, { paddingTop: insets.top + Spacing.md }]}>
-            <Pressable
-              onPress={() => setShowOutfitPreview(false)}
-              style={styles.modalCloseButton}
-            >
-              <Feather name="x" size={20} color={theme.text} />
-            </Pressable>
-            <ThemedText type="h3">Your Outfit</ThemedText>
-            <View style={{ width: 40 }} />
-          </View>
-        </LinearGradient>
-
-        <ScreenScrollView style={[{ backgroundColor: 'transparent' }]}>
-          <View style={styles.outfitPreviewGrid}>
-            {Object.entries(selectedItems).map(([category, item]) => {
-              if (!item) return null;
-              const categoryInfo = CATEGORY_ROWS.find(r => r.key === category);
-              return (
-                <View key={category} style={styles.previewItem}>
-                  <View style={[styles.previewImageContainer, { backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
-                    {item.imageUri ? (
-                      <Image
-                        source={{ uri: item.imageUri }}
-                        style={styles.previewImage}
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <Feather name="image" size={48} color={theme.tabIconDefault} />
-                    )}
-                  </View>
-                  <View style={styles.previewItemInfo}>
-                    <ThemedText type="small" numberOfLines={1}>{item.name}</ThemedText>
-                    <ThemedText type="caption" style={{ opacity: 0.6 }}>{categoryInfo?.label}</ThemedText>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-
-          {compatibilityScore !== null && (
-            <View style={[styles.compatibilityCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-              <LinearGradient
-                colors={
-                  compatibilityScore >= 80
-                    ? [LUXURY_COLORS.emerald, LUXURY_COLORS.teal]
-                    : compatibilityScore >= 60
-                    ? [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
-                    : [LUXURY_COLORS.coral, '#C46A4F']
-                }
-                style={styles.compatibilityScoreContainer}
-              >
-                <ThemedText type="h1" style={{ color: '#FFFFFF' }}>{compatibilityScore}</ThemedText>
-              </LinearGradient>
-              <View style={styles.compatibilityInfo}>
-                <ThemedText type="h3">Compatibility Score</ThemedText>
-                <ThemedText type="small" style={{ opacity: 0.7, marginTop: 4 }}>
-                  {compatibilityScore >= 80
-                    ? "Great match! These pieces work beautifully together."
-                    : compatibilityScore >= 60
-                    ? "Good combination with some room for improvement."
-                    : "Consider swapping a piece for better harmony."}
-                </ThemedText>
-              </View>
-            </View>
-          )}
-
-          <LinearGradient
-            colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-            style={styles.saveOutfitButton}
-          >
-            <Pressable style={styles.saveOutfitButtonInner}>
-              <Feather name="bookmark" size={18} color={LUXURY_COLORS.midnight} />
-              <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700', marginLeft: Spacing.sm }}>
-                Save This Outfit
-              </ThemedText>
-            </Pressable>
-          </LinearGradient>
-
-          <Pressable
-            onPress={() => navigation.navigate('DFYCalendar', { tier: 'core' })}
-            style={[styles.scheduleButton, { borderColor: LUXURY_COLORS.gold }]}
-          >
-            <Feather name="calendar" size={18} color={LUXURY_COLORS.gold} />
-            <ThemedText type="body" style={{ color: LUXURY_COLORS.gold, marginLeft: Spacing.sm }}>
-              Schedule in Calendar
-            </ThemedText>
-          </Pressable>
-          
-          <View style={{ height: 200 }} />
-        </ScreenScrollView>
-      </View>
-    </Modal>
-  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
@@ -430,7 +325,111 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
         </View>
       )}
 
-      {renderOutfitPreview()}
+      {showOutfitPreview && (
+        <Modal
+          visible={showOutfitPreview}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowOutfitPreview(false)}
+        >
+          <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold + '30', 'transparent']}
+              style={styles.modalHeaderGradient}
+            >
+              <View style={[styles.modalHeader, { paddingTop: insets.top + Spacing.md }]}>
+                <Pressable
+                  onPress={() => setShowOutfitPreview(false)}
+                  style={styles.modalCloseButton}
+                >
+                  <Feather name="x" size={20} color={theme.text} />
+                </Pressable>
+                <ThemedText type="h3">Your Outfit</ThemedText>
+                <View style={{ width: 40 }} />
+              </View>
+            </LinearGradient>
+
+            <ScreenScrollView style={[{ backgroundColor: 'transparent' }]}>
+              <View style={styles.outfitPreviewGrid}>
+                {Object.entries(selectedItems).map(([category, item]) => {
+                  if (!item) return null;
+                  const categoryInfo = CATEGORY_ROWS.find(r => r.key === category);
+                  return (
+                    <View key={category} style={styles.previewItem}>
+                      <View style={[styles.previewImageContainer, { backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
+                        {item.imageUri ? (
+                          <Image
+                            source={{ uri: item.imageUri }}
+                            style={styles.previewImage}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <Feather name="image" size={48} color={theme.tabIconDefault} />
+                        )}
+                      </View>
+                      <View style={styles.previewItemInfo}>
+                        <ThemedText type="small" numberOfLines={1}>{item.name}</ThemedText>
+                        <ThemedText type="caption" style={{ opacity: 0.6 }}>{categoryInfo?.label}</ThemedText>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+
+              {compatibilityScore !== null && (
+                <View style={[styles.compatibilityCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+                  <LinearGradient
+                    colors={
+                      compatibilityScore >= 80
+                        ? [LUXURY_COLORS.emerald, LUXURY_COLORS.teal]
+                        : compatibilityScore >= 60
+                        ? [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
+                        : [LUXURY_COLORS.coral, '#C46A4F']
+                    }
+                    style={styles.compatibilityScoreContainer}
+                  >
+                    <ThemedText type="h1" style={{ color: '#FFFFFF' }}>{compatibilityScore}</ThemedText>
+                  </LinearGradient>
+                  <View style={styles.compatibilityInfo}>
+                    <ThemedText type="h3">Compatibility Score</ThemedText>
+                    <ThemedText type="small" style={{ opacity: 0.7, marginTop: 4 }}>
+                      {compatibilityScore >= 80
+                        ? "Great match! These pieces work beautifully together."
+                        : compatibilityScore >= 60
+                        ? "Good combination with some room for improvement."
+                        : "Consider swapping a piece for better harmony."}
+                    </ThemedText>
+                  </View>
+                </View>
+              )}
+            </ScreenScrollView>
+
+            <View style={[styles.modalFooter, { paddingBottom: insets.bottom + Spacing.md }]}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+                style={styles.saveOutfitButton}
+              >
+                <Pressable style={styles.saveOutfitButtonInner}>
+                  <Feather name="bookmark" size={18} color={LUXURY_COLORS.midnight} />
+                  <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700', marginLeft: Spacing.sm }}>
+                    Save This Outfit
+                  </ThemedText>
+                </Pressable>
+              </LinearGradient>
+
+              <Pressable
+                onPress={() => navigation.navigate('DFYCalendar', { tier: 'core' })}
+                style={[styles.scheduleButton, { borderColor: LUXURY_COLORS.gold }]}
+              >
+                <Feather name="calendar" size={18} color={LUXURY_COLORS.gold} />
+                <ThemedText type="body" style={{ color: LUXURY_COLORS.gold, marginLeft: Spacing.sm }}>
+                  Schedule in Calendar
+                </ThemedText>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -658,5 +657,12 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.full,
     borderWidth: 2,
+  },
+  modalFooter: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+    gap: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
   },
 });
