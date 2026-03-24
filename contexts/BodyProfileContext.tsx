@@ -442,7 +442,7 @@ Respond in this exact JSON format:
 
     try {
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:8082';
-      const token = await AsyncStorage.getItem('auth_token');
+      const token = await AsyncStorage.getItem('@dripn_token');
 
       const response = await fetch(`${apiUrl}/api/onboarding/color-scan`, {
         method: 'POST',
