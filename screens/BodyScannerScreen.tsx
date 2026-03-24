@@ -70,7 +70,7 @@ const MEASUREMENT_LABELS: Record<string, string> = {
 
 export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps) {
   const { theme, isDark } = useTheme();
-  const { bodyProfile, scanBody, isScanning, hasBodyProfile, saveBodyProfile } = useBodyProfile();
+  const { bodyProfile, scanBody, isScanning, hasBodyProfile, saveBodyProfile, error } = useBodyProfile();
   const { tier } = useSubscription();
   
   const isPremium = tier === "premium";
@@ -146,7 +146,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
       } else {
         Alert.alert(
           "Scan Issue",
-          "We couldn't fully analyze the image. Please try again with a clearer full-body photo, standing straight with arms slightly away from your body.",
+          error || "We couldn't fully analyze the image. Please try again with a clearer full-body photo, standing straight with arms slightly away from your body.",
           [
             { text: "Try Again", onPress: () => setCapturedImage(null) },
             { text: "Enter Manually", onPress: () => setManualMode(true) },

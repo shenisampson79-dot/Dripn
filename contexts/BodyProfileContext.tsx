@@ -414,7 +414,15 @@ Respond in this exact JSON format:
       return result;
     } catch (err) {
       console.error('Body scan failed:', err);
-      setError('Failed to analyze body. Please try again with a clearer photo.');
+      
+      // Check if this is their first time doing a body scan (skipped during onboarding)
+      const isFirstTime = bodyProfile?.bodyShape === 'unknown' || !bodyProfile?.bodyShape;
+      
+      const errorMsg = isFirstTime
+        ? 'Let\'s try that again! Make sure your full body is visible from head to toe, in good lighting, and wearing fitted clothes.'
+        : 'The photo wasn\'t clear enough. Please try again with a full-body photo in good lighting.';
+      
+      setError(errorMsg);
       return {
         success: false,
         measurements: {},
@@ -428,7 +436,9 @@ Respond in this exact JSON format:
           torsoToLegRatio: 0.9,
         },
         confidence: 0,
-        recommendations: [],
+        recommendations: isFirstTime 
+          ? ['Try a full-body photo with head to toe visible', 'Good natural lighting helps us analyze better', 'Fitted clothes show your body shape more clearly']
+          : [],
         fitAdvice: [],
       };
     } finally {
