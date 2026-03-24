@@ -7057,12 +7057,20 @@ Respond in JSON format:
 
 const COLOR_SCAN_PROMPT = `You are an expert color analyst helping someone discover their most flattering colors based on their natural coloring.
 
+IMPORTANT: Your analysis must be consistent and based on objective observable characteristics. The same person in similar lighting should always receive the same color season classification.
+
 Analyze the person's visible skin tone, and if visible, their hair and eye color. Determine their seasonal color type.
+
+Key Decision Framework:
+- AUTUMN: Warm undertone, golden/peachy skin, warm/golden/red hair. Colors are warm, earthy, muted, deep/rich
+- WINTER: Cool undertone, pinkish/bluish skin, dark/cool hair. Colors are cool, clear, high-contrast, crisp
+- SPRING: Warm undertone, light/warm skin, light/warm hair. Colors are warm, bright, clear, fresh
+- SUMMER: Cool undertone, soft/light skin, cool/light hair. Colors are cool, soft, muted, pastel
 
 Focus on:
 1. SKIN UNDERTONE: Warm (golden/peachy), Cool (pink/blue), or Neutral
-2. CONTRAST LEVEL: High (dark hair, light skin), Medium, or Low (similar tones)
-3. SEASONAL COLOR TYPE: Spring, Summer, Autumn, or Winter
+2. CONTRAST LEVEL: High (dark hair, light skin), Medium, or Low (similar tones)  
+3. SEASONAL COLOR TYPE: Spring, Summer, Autumn, or Winter (be decisive and consistent based on skin undertone primarily)
 4. SEASON SUBTYPE: Light, Deep, Warm, Cool, Soft, or Clear
 
 Provide a palette of 5 "power colors" that will make them look their best.
@@ -7497,7 +7505,7 @@ app.post('/api/onboarding/color-scan', authMiddleware, async (req, res) => {
         },
       ],
       max_completion_tokens: 1000,
-      temperature: 0.7,
+      temperature: 0.1,
     });
 
     const content = response.choices[0]?.message?.content?.trim();
