@@ -1839,17 +1839,44 @@ Respond ONLY with a valid JSON array of exactly ${outfitCount} objects. No markd
         outfits.push(await promise);
       }
     }
-    const startDate = new Date().toISOString();
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
     const days = tier === 'lite' ? 14 : 30;
-    const expiryDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    const expiryDate = new Date(startDate);
+    expiryDate.setDate(expiryDate.getDate() + days);
+
+    // Insert outfits into outfit_calendar table
+    try {
+      for (const outfit of outfits) {
+        const outfitDate = new Date(startDate);
+        outfitDate.setDate(outfitDate.getDate() + outfit.dayNumber - 1);
+        const dateStr = outfitDate.toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        const itemIds = outfit.items.map(item => item.id).filter(Boolean);
+        
+        await pool.query(
+          `INSERT INTO outfit_calendar (user_id, date, item_ids, event_name, event_type, notes)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (user_id, date) DO UPDATE SET
+             item_ids = EXCLUDED.item_ids,
+             event_name = EXCLUDED.event_name,
+             event_type = EXCLUDED.event_type,
+             notes = EXCLUDED.notes,
+             updated_at = CURRENT_TIMESTAMP`,
+          [req.userId, dateStr, itemIds, outfit.title || outfit.description, outfit.occasion, outfit.stylistNote]
+        );
+      }
+    } catch (dbErr) {
+      console.error('[DFY] Failed to insert outfits into calendar:', dbErr.message);
+    }
 
     res.json({
       success: true,
       delivery: {
         userId: req.userId,
         tier,
-        startDate,
-        expiryDate,
+        startDate: startDate.toISOString(),
+        expiryDate: expiryDate.toISOString(),
         totalDays: days,
         outfits,
         currentDay: 1,

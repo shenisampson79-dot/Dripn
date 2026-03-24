@@ -164,9 +164,11 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
               const sessionId = url.match(/session_id=([^&]+)/)?.[1];
               if (sessionId) {
                 await apiService.verifyDFYPayment(sessionId, checkoutEmail);
+                // Generate 30 outfits after successful payment verification
+                await apiService.generateDFYDelivery({ tier: selectedTier, stylistId: 'ruby' });
               }
             } catch (e) {
-              console.log('DFY verification will happen async');
+              console.log('DFY verification will happen async', e);
             }
             refreshSubscriptionFromBackend().catch(() => {});
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
