@@ -415,7 +415,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const userData = await AsyncStorage.getItem(STORAGE_KEY);
       if (userData) {
-        setUser(JSON.parse(userData));
+        const localUser = JSON.parse(userData);
+        setUser(localUser);
+        
+        // Try to refresh from backend to ensure onboarding status is accurate
+        try {
+          const backendProfile = await apiService.getMe();
+          if (backendProfile && backendProfile.hasCompletedOnboarding !== undefined) {
+            // Update the flag from backend (source of truth)
+            const updatedUser = {
+              ...localUser,
+              hasCompletedOnboarding: backendProfile.hasCompletedOnboarding,
+              profileData: backendProfile.profileData || localUser.profileData,
+            };
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+            setUser(updatedUser);
+          }
+        } catch (backendErr) {
+          // If backend fetch fails, continue with local user
+          console.log('[Auth] Could not refresh from backend on init');
+        }
       }
     } catch (error) {
       console.error('Failed to load user:', error);

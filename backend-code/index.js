@@ -807,14 +807,17 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
 // Sync full onboarding profile — persists all preferences to DB
 app.put('/api/auth/profile/sync', authMiddleware, async (req, res) => {
   try {
-    const { profileData, onboardingCompleted } = req.body;
+    const { profileData } = req.body;
     if (!profileData) return res.status(400).json({ error: 'profileData is required' });
 
     const now = new Date();
+    // If profileData contains hasCompletedOnboarding = true, set the timestamp
+    const shouldSetOnboardingTime = profileData.hasCompletedOnboarding === true;
+    
     await pool.query(
       `UPDATE users
        SET profile_data = $1,
-           onboarding_completed_at = COALESCE(onboarding_completed_at, $2),
+           onboarding_completed_at = ${shouldSetOnboardingTime ? '$2' : 'onboarding_completed_at'},
            updated_at = $2
        WHERE id = $3`,
       [JSON.stringify(profileData), now, req.userId]
