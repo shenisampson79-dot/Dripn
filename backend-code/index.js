@@ -5869,7 +5869,7 @@ app.post('/api/notifications/test', authMiddleware, async (req, res) => {
 // AI Stylist Chat - Main conversation endpoint
 app.post('/api/stylist/chat', async (req, res) => {
   try {
-    const { stylistId, messages, userMessage, wardrobeItems, userGender, subscriptionTier, language } = req.body;
+    const { stylistId, messages, userMessage, wardrobeItems, userGender, subscriptionTier, language, userProfile } = req.body;
 
     if (!userMessage || typeof userMessage !== 'string') {
       return res.status(400).json({ error: 'userMessage is required' });
@@ -5890,6 +5890,7 @@ app.post('/api/stylist/chat', async (req, res) => {
       subscriptionTier: subscriptionTier || 'free',
       languageCode: language || 'en',
       languageName: langInfo.name,
+      userProfile: userProfile || {},
     });
 
     res.json({

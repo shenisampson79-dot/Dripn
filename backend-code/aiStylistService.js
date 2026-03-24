@@ -846,6 +846,7 @@ async function generateStylistResponse({
   subscriptionTier,
   languageCode = 'en',
   languageName = 'English',
+  userProfile = {},
 }) {
   const stylist = STYLIST_PERSONALITIES[stylistId] || STYLIST_PERSONALITIES.ruby;
 
@@ -853,6 +854,23 @@ async function generateStylistResponse({
 
   const wardrobeContext = buildWardrobeContext(wardrobeItems);
   const conversationContext = buildConversationContext(messages);
+  
+  // Build comprehensive profile context from all onboarding data
+  let profileContext = '';
+  if (userProfile && Object.keys(userProfile).length > 0) {
+    const profileLines = [];
+    if (userProfile.bodyType) profileLines.push(`- Body type: ${userProfile.bodyType}`);
+    if (userProfile.skinUndertone) profileLines.push(`- Skin undertone: ${userProfile.skinUndertone}`);
+    if (userProfile.extendedPreferences?.lifestyle) profileLines.push(`- Lifestyle: ${userProfile.extendedPreferences.lifestyle}`);
+    if (userProfile.extendedPreferences?.style) profileLines.push(`- Style preference: ${userProfile.extendedPreferences.style}`);
+    if (userProfile.extendedPreferences?.dressCodes && Array.isArray(userProfile.extendedPreferences.dressCodes)) {
+      profileLines.push(`- Dress codes: ${userProfile.extendedPreferences.dressCodes.join(', ')}`);
+    }
+    if (userProfile.extendedPreferences?.goals) profileLines.push(`- Goals: ${userProfile.extendedPreferences.goals}`);
+    if (profileLines.length > 0) {
+      profileContext = '\n\nCOMPREHENSIVE USER PROFILE:\n' + profileLines.join('\n');
+    }
+  }
 
   let contextualGuidance = '';
   
@@ -883,20 +901,26 @@ async function generateStylistResponse({
   // CRITICAL: Add mandatory gender-specific constraints to force AI to respect user's gender
   let genderConstraint = '';
   if (userGender === 'male') {
-    genderConstraint = `\n\nMANDATORY GENDER CONSTRAINT: This user is MALE. 
-- DO NOT suggest female-oriented styles like "clean girl vibe", "soft girl aesthetic", "girlboss", "coquette", "e-girl", "that girl energy"
-- DO NOT reference female fashion influencers or female-specific trends
-- DO recommend masculine or unisex styles appropriate for men
-- You MUST respect this user's stated gender in every recommendation`;
+    genderConstraint = `\n\nMANDATORY GENDER CONSTRAINT: This user is MALE. You MUST recommend clothing for MEN ONLY.
+- FORBIDDEN GARMENTS: blouses, skirts, dresses, heels, crop tops, wrap tops, cardigans marketed for women, women's fit anything
+- FORBIDDEN STYLES: "clean girl vibe", "soft girl aesthetic", "girlboss", "coquette", "e-girl", "that girl energy", "old money feminine"
+- FORBIDDEN REFERENCES: female fashion influencers, female-specific trends, women's fashion magazines/content
+- REQUIRED: recommend only menswear, masculine cuts, and unisex basics designed for men
+- REQUIRED: base all recommendations on HIS actual wardrobe items (not theoretical female items)
+- CRITICAL: EVERY recommendation must be gender-appropriate for a man. NO EXCEPTIONS.`;
   } else if (userGender === 'female') {
     genderConstraint = `\n\nMANDATORY GENDER CONSTRAINT: This user is FEMALE.
-- You can reference female fashion influences and trends appropriate for women
-- Respect this user's stated gender in all recommendations`;
+- Recommend womenswear and feminine styles appropriate for women
+- You can reference female fashion influences and trends
+- Base recommendations on HER wardrobe items
+- Respect her stated gender in all recommendations`;
   } else if (userGender === 'non-binary') {
     genderConstraint = `\n\nMANDATORY GENDER CONSTRAINT: This user is NON-BINARY.
 - Recommend gender-neutral and androgynous styles
 - Avoid gendered fashion language
-- Respect this user's stated gender identity in all recommendations`;
+- Use they/them pronouns
+- Base recommendations on their actual wardrobe items
+- Respect their stated gender identity in all recommendations`;
   }
 
   const systemMessage = `${stylist.systemPrompt}${languageInstruction}${genderConstraint}
@@ -905,8 +929,13 @@ CURRENT USER CONTEXT:
 - Gender: ${userGender || 'not specified'}
 - Subscription: ${subscriptionTier || 'free'} tier ${tierContext}
 - ${wardrobeContext}
-${conversationContext}
+${conversationContext}${profileContext}
 ${contextualGuidance}
+
+RESPONSE REQUIREMENTS:
+- Be concise and decisive. No optional extras like "If you want..." or "I can also..."
+- Deliver the outfit decision/advice clearly without follow-up offers
+- Keep responses to the essentials, not back-and-forth
 
 Remember: You are ${stylist.name}. Stay completely in character. Make this person feel like the most important person in the world right now.`;
 
@@ -934,11 +963,28 @@ Remember: You are ${stylist.name}. Stay completely in character. Make this perso
       }),
     });
 
-    const assistantMessage = response.choices[0]?.message?.content?.trim();
+    let assistantMessage = response.choices[0]?.message?.content?.trim();
 
     if (!assistantMessage) {
       throw new Error('Empty response from OpenAI');
     }
+
+    // Remove back-and-forth prompts and optional extras
+    // Remove "If you want..." sections
+    assistantMessage = assistantMessage.replace(/\n*If you want[^.]*?\./gi, '');
+    assistantMessage = assistantMessage.replace(/\n*If you'd like[^.]*?\./gi, '');
+    
+    // Remove "Give me the occasion..." sections
+    assistantMessage = assistantMessage.replace(/\n*Give me[^.]*?\./gi, '');
+    
+    // Remove "I can also break down..." sections
+    assistantMessage = assistantMessage.replace(/\n*I can also break down[^.]*?\./gi, '');
+    
+    // Remove "I'll make it effortless..." sections
+    assistantMessage = assistantMessage.replace(/\n*I'?ll make it[^.]*?\./gi, '');
+    
+    // Clean up multiple consecutive newlines
+    assistantMessage = assistantMessage.replace(/\n{3,}/g, '\n\n').trim();
 
     return {
       content: assistantMessage,
