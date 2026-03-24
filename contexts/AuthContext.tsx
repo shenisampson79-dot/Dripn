@@ -499,6 +499,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const fullProfile = await apiService.getMe();
         console.log('[Auth] Retrieved profile from backend:', { hasSeenTour: fullProfile.profileData?.hasSeenTour, hasCompletedOnboarding: fullProfile.profileData?.hasCompletedOnboarding });
         if (fullProfile.profileData) {
+          // CRITICAL: Explicitly preserve hasSeenTour from backend — never default to false
+          const backendHasSeenTour = fullProfile.profileData.hasSeenTour;
           userProfile = {
             ...userProfile,
             ...fullProfile.profileData,
@@ -506,9 +508,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email,
             // Re-ensure hasCompletedOnboarding is set (double-check)
             hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? userProfile.hasCompletedOnboarding,
-            // Restore hasSeenTour from backend so tour only shows once
-            hasSeenTour: fullProfile.profileData.hasSeenTour ?? userProfile.hasSeenTour,
           };
+          // CRITICAL: Set hasSeenTour LAST to ensure it never gets overridden
+          if (backendHasSeenTour === true) {
+            userProfile.hasSeenTour = true;
+            console.log('[Auth] ✓ hasSeenTour restored as TRUE from backend');
+          } else if (backendHasSeenTour === false) {
+            userProfile.hasSeenTour = false;
+            console.log('[Auth] hasSeenTour is FALSE on backend');
+          } else {
+            console.log('[Auth] hasSeenTour undefined on backend, keeping local value:', userProfile.hasSeenTour);
+          }
           console.log('[Auth] Final user profile after login:', { hasSeenTour: userProfile.hasSeenTour, hasCompletedOnboarding: userProfile.hasCompletedOnboarding });
         }
       } catch (err) {
@@ -648,6 +658,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const fullProfile = await apiService.getMe();
         if (fullProfile.profileData) {
+          // CRITICAL: Explicitly preserve hasSeenTour from backend — never default to false
+          const backendHasSeenTour = fullProfile.profileData.hasSeenTour;
           newUser = {
             ...newUser,
             ...fullProfile.profileData,
@@ -655,9 +667,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: backendUser.email || userEmail || newUser.email,
             // Re-ensure hasCompletedOnboarding is set (double-check)
             hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? newUser.hasCompletedOnboarding,
-            // Restore hasSeenTour from backend so tour only shows once
-            hasSeenTour: fullProfile.profileData.hasSeenTour ?? newUser.hasSeenTour,
           };
+          // CRITICAL: Set hasSeenTour LAST to ensure it never gets overridden
+          if (backendHasSeenTour === true) {
+            newUser.hasSeenTour = true;
+            console.log('[Auth] ✓ hasSeenTour restored as TRUE from backend (social login)');
+          } else if (backendHasSeenTour === false) {
+            newUser.hasSeenTour = false;
+          }
         }
       } catch (err) {
         // If getMe fails, that's okay — we already have hasCompletedOnboarding from login
@@ -836,6 +853,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!user) return;
     const updatedUser = { ...user, ...updates };
+    // Ensure hasSeenTour is always persisted with the user
+    if (updates.hasSeenTour !== undefined) {
+      console.log('[Auth] Updating hasSeenTour to:', updates.hasSeenTour);
+    }
     await saveUser(updatedUser);
   };
 
