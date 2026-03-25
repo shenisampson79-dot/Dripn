@@ -1118,6 +1118,37 @@ function buildConversationContext(messages) {
   return '';
 }
 
+// Extract previously recommended items from conversation history to avoid repetition
+function extractPreviouslyRecommendedItems(messages) {
+  const recommendedItems = new Set();
+  const itemPattern = /(?:Wear|Recommend|Suggest|Try).*?[\-•]\s*([A-Za-z\s]+?)(?:\s+(?:if|in|with|for|worn|style)|$|\n)/gi;
+  const capitalizedPattern = /[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+(?:T-shirt|shirt|shoes|socks|jacket|coat|pants|jeans|dress|skirt|top|bottom|sweater|blazer|cardigan|hoodie|sweatshirt|belt|hat|scarf|gloves|boots|sneakers|loafers|heels|flats|shorts|leggings|socks|vest|suit|tie|pocket|collar))?/g;
+  
+  if (messages && Array.isArray(messages)) {
+    messages.forEach(msg => {
+      if (msg.role === 'assistant' && msg.content) {
+        const matches = msg.content.matchAll(itemPattern);
+        for (const match of matches) {
+          const item = match[1]?.trim().toLowerCase();
+          if (item && item.length > 2 && item.length < 100) {
+            recommendedItems.add(item);
+          }
+        }
+        // Also extract capitalized item names (e.g., "Cream crew neck T-shirt")
+        const capMatches = msg.content.match(capitalizedPattern) || [];
+        capMatches.forEach(item => {
+          const normalized = item.trim().toLowerCase();
+          if (normalized.length > 3 && normalized.length < 100) {
+            recommendedItems.add(normalized);
+          }
+        });
+      }
+    });
+  }
+  
+  return Array.from(recommendedItems).slice(0, 10); // Return top 10 to avoid overwhelming the prompt
+}
+
 async function generateStylistResponse({
   stylistId,
   messages,
@@ -1150,6 +1181,12 @@ async function generateStylistResponse({
 
   const wardrobeContext = buildWardrobeContext(wardrobeItems);
   const conversationContext = buildConversationContext(messages);
+  
+  // Extract previously recommended items to encourage variety
+  const previouslyRecommended = extractPreviouslyRecommendedItems(messages);
+  const varietyGuidance = previouslyRecommended.length > 0 
+    ? `\n\nVARIETY ENFORCEMENT: You have previously recommended the following items in this conversation:\n${previouslyRecommended.map(item => `• ${item}`).join('\n')}\n\nCRITICAL: AVOID repeating these items. Choose DIFFERENT pieces from the wardrobe for THIS recommendation. Variety makes outfits feel fresh and prevents boredom. Even if a previous item would technically work, pick something new unless the user explicitly asks for that specific piece again.`
+    : '';
   
   // Build comprehensive profile context from all onboarding data
   let profileContext = '';
@@ -1282,7 +1319,7 @@ CURRENT USER CONTEXT:
 - Gender: ${userGender || 'not specified'}
 - Subscription: ${subscriptionTier || 'free'} tier ${tierContext}
 - ${wardrobeContext}
-${conversationContext}${profileContext}${decisionType ? '' : `\n\n${contextualGuidance}`}
+${conversationContext}${profileContext}${varietyGuidance}${decisionType ? '' : `\n\n${contextualGuidance}`}
 
 RESPONSE REQUIREMENTS:
 ${decisionType ? `- Answer the question directly and decisively. No preamble. No "Hello" or generic greetings.
