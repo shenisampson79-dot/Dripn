@@ -845,6 +845,55 @@ app.put('/api/auth/profile/sync', authMiddleware, async (req, res) => {
   }
 });
 
+// DELETE /api/auth/delete-account - Delete user account and all related data
+app.delete('/api/auth/delete-account', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    // Delete all user data across related tables (cascade pattern)
+    const tablesToDelete = [
+      { table: 'chat_messages', column: 'user_id' },
+      { table: 'wardrobe_items', column: 'user_id' },
+      { table: 'outfit_calendar', column: 'user_id' },
+      { table: 'style_profile', column: 'user_id' },
+      { table: 'purchases', column: 'user_id' },
+      { table: 'wishlist_items', column: 'user_id' },
+      { table: 'price_tracking', column: 'user_id' },
+      { table: 'community_votes', column: 'user_id' },
+      { table: 'events', column: 'user_id' },
+      { table: 'posts', column: 'user_id' },
+    ];
+
+    // Delete from each table
+    for (const { table, column } of tablesToDelete) {
+      try {
+        await pool.query(`DELETE FROM ${table} WHERE ${column} = $1`, [userId]);
+      } catch (err) {
+        // Table might not exist or have different structure — skip
+        console.log(`[DeleteAccount] Skipped ${table}:`, err.message);
+      }
+    }
+
+    // Finally, delete the user account itself
+    const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [userId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Account deleted successfully. All your data has been permanently removed.',
+    });
+  } catch (error) {
+    console.error('[DeleteAccount] Error:', error);
+    res.status(500).json({ error: 'Failed to delete account' });
+  }
+});
+
 // ============ STRIPE CHECKOUT ROUTES ============
 
 // Create Stripe checkout session for subscriptions

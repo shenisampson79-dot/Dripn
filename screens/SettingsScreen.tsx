@@ -277,7 +277,17 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                   text: "Yes, Delete My Account",
                   style: "destructive",
                   onPress: async () => {
-                    await logout();
+                    try {
+                      // Call the delete account endpoint
+                      const result = await apiService.deleteAccount();
+                      if (result.success) {
+                        // Log out after successful deletion
+                        await logout();
+                      }
+                    } catch (error) {
+                      console.error('Failed to delete account:', error);
+                      Alert.alert('Error', 'Failed to delete your account. Please try again later.');
+                    }
                   },
                 },
               ]

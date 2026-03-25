@@ -251,6 +251,15 @@ class ApiService {
     await this.setToken(null);
   }
 
+  async deleteAccount() {
+    return this.request<{
+      success: boolean;
+      message: string;
+    }>('/api/auth/delete-account', {
+      method: 'DELETE',
+    });
+  }
+
   async socialLogin(provider: 'google' | 'facebook' | 'apple', accessToken: string, idToken?: string) {
     const token = idToken || accessToken;
     const result = await this.request<{ token: string; user: any }>('/api/auth/social', {
