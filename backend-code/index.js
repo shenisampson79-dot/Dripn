@@ -1587,18 +1587,34 @@ Respond ONLY with valid JSON:
     const violations = result.hardRuleViolations || [];
     
     // Define hard caps for each non-negotiable rule violation
-    const hardCaps = {
-      'Rule 1': 15,   // Neckline & collar logic
-      'Rule 2': 40,   // Formality coherence
-      'Rule 10': 25,  // Cultural/religious dress code
-      'Rule 14': 35,  // Footwear coherence
-    };
+    const hardCaps = [
+      { pattern: /rule\s*1/i, cap: 15, name: 'Rule 1' },     // Neckline & collar logic
+      { pattern: /rule\s*2/i, cap: 40, name: 'Rule 2' },     // Formality coherence
+      { pattern: /rule\s*10/i, cap: 25, name: 'Rule 10' },   // Cultural/religious dress code
+      { pattern: /rule\s*14/i, cap: 35, name: 'Rule 14' },   // Footwear coherence
+    ];
     
     // Apply strictest cap if any non-negotiable rules are violated
     let appliedCap = null;
+    let violatedRules = [];
+    const analysisText = (result.analysis || '') + ' ' + violations.join(' ');
+    
     for (const violation of violations) {
-      for (const [rule, cap] of Object.entries(hardCaps)) {
-        if (violation.includes(rule)) {
+      for (const { pattern, cap, name } of hardCaps) {
+        if (pattern.test(violation)) {
+          violatedRules.push(name);
+          if (appliedCap === null || cap < appliedCap) {
+            appliedCap = cap;
+          }
+        }
+      }
+    }
+    
+    // FALLBACK: Check analysis text for rule violations if hardRuleViolations array is empty
+    if (violations.length === 0 && analysisText.length > 0) {
+      for (const { pattern, cap, name } of hardCaps) {
+        if (pattern.test(analysisText)) {
+          violatedRules.push(name);
           if (appliedCap === null || cap < appliedCap) {
             appliedCap = cap;
           }
@@ -1609,7 +1625,7 @@ Respond ONLY with valid JSON:
     // Cap the score if violations found
     if (appliedCap !== null) {
       finalScore = Math.min(finalScore, appliedCap);
-      console.log(`[Compatibility] Hard cap applied: ${appliedCap} (due to violations: ${violations.join(', ')})`);
+      console.log(`[Compatibility] Hard cap ${appliedCap} applied (${violatedRules.join(', ')}) - original score: ${result.score}, final score: ${finalScore}`);
     }
 
     res.json({
