@@ -451,9 +451,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userData.id) {
         const { id, email, ...profileData } = userData as any;
         try {
+          console.log('[Auth] Attempting to sync profile to backend:', { hasSeenTour: profileData.hasSeenTour, hasCompletedOnboarding: profileData.hasCompletedOnboarding });
           await apiService.syncProfile(profileData);
+          console.log('[Auth] ✓ Profile synced successfully');
         } catch (syncErr) {
-          console.error('Failed to sync profile to backend (non-fatal):', syncErr);
+          console.error('[Auth] ✗ CRITICAL: Failed to sync profile to backend:', syncErr);
+          console.error('[Auth] ⚠️ Profile updates may not persist across logins. This needs to be fixed!');
           // Continue even if sync fails — local AsyncStorage is source of truth
         }
       }

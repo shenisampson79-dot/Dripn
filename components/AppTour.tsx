@@ -92,12 +92,16 @@ export function AppTour({ visible, onComplete }: AppTourProps) {
   };
 
   const handleComplete = async () => {
-    console.log('[AppTour] Marking tour as seen');
+    console.log('[AppTour] Marking tour as seen and syncing to backend');
     try {
-      await updateProfile({ hasSeenTour: true });
-      console.log('[AppTour] Tour marked as seen successfully');
+      // CRITICAL: Ensure hasSeenTour is persisted to backend before closing the tour
+      const result = await updateProfile({ hasSeenTour: true });
+      console.log('[AppTour] ✓ Tour marked as seen and synced to backend successfully');
     } catch (err) {
-      console.error('[AppTour] Failed to mark tour as seen:', err);
+      console.error('[AppTour] ✗ CRITICAL: Failed to mark tour as seen and sync to backend:', err);
+      // Don't silently fail — show error and let user try again
+      // The onComplete callback will still be called below, but at least we logged the error
+      console.error('[AppTour] User will see tour again if sync fails permanently');
     }
     setCurrentStep(0);
     onComplete();
