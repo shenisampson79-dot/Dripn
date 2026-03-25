@@ -1582,12 +1582,42 @@ Respond ONLY with valid JSON:
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     const result = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
 
+    // ENFORCE HARD CAPS based on non-negotiable rule violations
+    let finalScore = Math.max(0, Math.min(100, Math.round(result.score || 0)));
+    const violations = result.hardRuleViolations || [];
+    
+    // Define hard caps for each non-negotiable rule violation
+    const hardCaps = {
+      'Rule 1': 15,   // Neckline & collar logic
+      'Rule 2': 40,   // Formality coherence
+      'Rule 10': 25,  // Cultural/religious dress code
+      'Rule 14': 35,  // Footwear coherence
+    };
+    
+    // Apply strictest cap if any non-negotiable rules are violated
+    let appliedCap = null;
+    for (const violation of violations) {
+      for (const [rule, cap] of Object.entries(hardCaps)) {
+        if (violation.includes(rule)) {
+          if (appliedCap === null || cap < appliedCap) {
+            appliedCap = cap;
+          }
+        }
+      }
+    }
+    
+    // Cap the score if violations found
+    if (appliedCap !== null) {
+      finalScore = Math.min(finalScore, appliedCap);
+      console.log(`[Compatibility] Hard cap applied: ${appliedCap} (due to violations: ${violations.join(', ')})`);
+    }
+
     res.json({
       success: true,
-      score: Math.max(0, Math.min(100, Math.round(result.score || 0))),
+      score: finalScore,
       verdict: result.verdict || 'Analysis unavailable',
       analysis: result.analysis || '',
-      hardRuleViolations: result.hardRuleViolations || [],
+      hardRuleViolations: violations,
       improvements: result.improvements || [],
       occasionRulesApplied: result.occasionRulesApplied || null,
     });
