@@ -82,6 +82,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
   const [compatibilityViolations, setCompatibilityViolations] = useState<string[]>([]);
   const [compatibilityImprovements, setCompatibilityImprovements] = useState<string[]>([]);
   const [isCheckingCompatibility, setIsCheckingCompatibility] = useState(false);
+  const [occasionRulesApplied, setOccasionRulesApplied] = useState<string | null>(null);
 
   const scrollRefs = useRef<Record<string, FlatList<WardrobeItem> | null>>({});
   const rotationAnimations = useRef<Record<string, Animated.Value>>({});
@@ -151,6 +152,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
       setCompatibilityAnalysis(null);
       setCompatibilityViolations([]);
       setCompatibilityImprovements([]);
+      setOccasionRulesApplied(null);
       return;
     }
 
@@ -170,12 +172,14 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
         setCompatibilityAnalysis(result.analysis || null);
         setCompatibilityViolations(result.hardRuleViolations || []);
         setCompatibilityImprovements(result.improvements || []);
+        setOccasionRulesApplied(result.occasionRulesApplied || null);
       } else {
         setCompatibilityScore(null);
         setCompatibilityVerdict(null);
         setCompatibilityAnalysis(null);
         setCompatibilityViolations([]);
         setCompatibilityImprovements([]);
+        setOccasionRulesApplied(null);
       }
     } catch (error) {
       console.error('Failed to calculate compatibility:', error);
@@ -449,6 +453,12 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
                     <ThemedText type="h3">{compatibilityVerdict || 'Compatibility Score'}</ThemedText>
                     {compatibilityAnalysis ? (
                       <ThemedText type="small" style={{ opacity: 0.7, marginTop: 4 }}>{compatibilityAnalysis}</ThemedText>
+                    ) : null}
+                    {occasionRulesApplied ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: Spacing.sm }}>
+                        <Feather name="calendar" size={11} color={LUXURY_COLORS.gold} style={{ marginRight: 4 }} />
+                        <ThemedText type="caption" style={{ color: LUXURY_COLORS.gold, opacity: 0.85, fontSize: 11 }}>{occasionRulesApplied}</ThemedText>
+                      </View>
                     ) : null}
                   </View>
                 </View>

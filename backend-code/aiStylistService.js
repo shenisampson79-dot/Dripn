@@ -93,6 +93,91 @@ const MODELS_LIST_CACHE_DURATION_MS = 60 * 60 * 1000;
 // COMPREHENSIVE FASHION INTELLIGENCE FRAMEWORK
 // ─────────────────────────────────────────────────────────────
 // Core guiding principles for all styling interactions across DFY, voice chat, and AI stylist services.
+
+// ─── OCCASION-SPECIFIC DEEP RULES ─────────────────────────────────────────────
+// 5+ sub-rules per occasion, each with its own formality weight multiplier.
+// These supplement the 20-Rule Framework — apply when occasion context is known.
+const OCCASION_SPECIFIC_RULES = `
+OCCASION-SPECIFIC DEEP RULES (supplement the 20-rule framework when occasion is known):
+
+Each occasion has a FORMALITY WEIGHT that multiplies how hard Rules 1-4 are applied:
+  • job_interview / board_meeting: Formality Weight ×2.0 (strict — violations penalised double)
+  • wedding_guest / black_tie / gala: Formality Weight ×1.8
+  • first_date / dinner_party: Formality Weight ×1.5
+  • smart_casual / work / business_casual: Formality Weight ×1.2
+  • casual_day / weekend / brunch: Formality Weight ×1.0 (baseline)
+  • casual_friday / social_event / night_out: Formality Weight ×0.8
+  • gym / sport / activewear: Formality Weight ×0.0 (formality rules do not apply; performance rules apply instead)
+
+────────────────────────────────────────────────
+OCCASION: JOB INTERVIEW / BOARD MEETING
+────────────────────────────────────────────────
+Formality Weight ×2.0. Violations in this context carry double penalties.
+
+Sub-Rule I1 — Conservative Colour Required: Stick to navy, charcoal, black, white, grey, or muted tones. Neon, bright red, or flashy prints = deduct 20. Pastels acceptable in creative industries only.
+Sub-Rule I2 — Clean & Pressed Standard: Distressed denim, oversized hoodies, graphic tees, or wrinkled items = deduct 15 each. Outfit must convey effort and intentionality.
+Sub-Rule I3 — Minimal Accessories: One statement piece maximum (watch, subtle lapel pin, simple necklace). Multiple loud accessories = deduct 10 per item over limit.
+Sub-Rule I4 — Closed-Toe Polished Shoes Required: Open-toe shoes, trainers, or worn-down soles = deduct 20 for formal roles. Acceptable in creative/tech startups = deduct 5 only.
+Sub-Rule I5 — Industry Context Modifier: Finance, law, medicine, government = strict formal. Tech, design, media = business-casual acceptable. Retail, hospitality = smart-casual acceptable. Grade accordingly.
+Sub-Rule I6 — No Activewear or Loungewear of Any Kind: Leggings, gym shorts, hoodies, joggers = cap score at 15 regardless of other factors.
+
+────────────────────────────────────────────────
+OCCASION: FIRST DATE
+────────────────────────────────────────────────
+Formality Weight ×1.5. Balance personal style with approachability.
+
+Sub-Rule D1 — Show Your Style: The outfit must reflect genuine personal expression. A generic, safe, or "invisible" look deducts 5. A confident style choice adds +5.
+Sub-Rule D2 — Not Too Casual, Not Too Formal: Full activewear = deduct 20. Black tie on a casual first date = deduct 15. Smart-casual (Tier 2-3) is the sweet spot = +5 bonus.
+Sub-Rule D3 — Comfort is Confidence: Stiff, visibly uncomfortable, or restrictive outfits (too-tight trousers, towering platform shoes) deduct 10. Wearable for 3+ hours = +5.
+Sub-Rule D4 — Flattering Silhouette Bonus: Outfit that suits the user's body type and colour season = +5 bonus.
+Sub-Rule D5 — Signature Detail Rule: One memorable, conversation-worthy piece (interesting texture, a bold colour, unique accessory) = +5. Nothing distinguishing = -3.
+Sub-Rule D6 — Grooming Coherence: Outfit must not visually clash with standard grooming expectations. Messy/casual outfit doesn't work with formal accessories and vice versa.
+
+────────────────────────────────────────────────
+OCCASION: WEDDING GUEST
+────────────────────────────────────────────────
+Formality Weight ×1.8. Guest etiquette overrides personal preference.
+
+Sub-Rule W1 — White/Ivory/Cream Ban: ANY outfit primarily white, ivory, or cream = hard cap at 0-20. No exceptions. Always flag this explicitly.
+Sub-Rule W2 — Dress Code Hierarchy: Invitation dress code (black tie, cocktail, garden party, casual) overrides all other rules. Mismatching the dress code = deduct 25.
+Sub-Rule W3 — Cultural Dress Code: Some cultures forbid black (mourning colour) or require specific colours. If user's cultural profile is known, flag potential conflicts.
+Sub-Rule W4 — No Casualwear or Activewear: Jeans (even dark), trainers, athletic wear, distressed items = cap at 25.
+Sub-Rule W5 — Festive Colour Encouraged: Jewel tones, florals, metallics, pastels = +5. Dull, understated, office-grey = -3 (unless black tie context).
+Sub-Rule W6 — Accessory Elevation: Wedding contexts reward elevated accessories. Bare minimum accessories = -5. Well-chosen hat, clutch, or statement jewellery = +5.
+
+────────────────────────────────────────────────
+OCCASION: CASUAL FRIDAY / RELAXED WORK
+────────────────────────────────────────────────
+Formality Weight ×0.8. Smart-casual range only — not a licence for full casual.
+
+Sub-Rule CF1 — Smart-Casual Zone: Range must stay between Tier 1.5-2.5 on formality scale. Full suit = overdressed (deduct 10). Full loungewear = underdressed (deduct 20).
+Sub-Rule CF2 — Denim Permission: Denim acceptable ONLY if dark-wash, undistressed, and paired with a smart top and clean footwear. Distressed or light-wash denim = deduct 10.
+Sub-Rule CF3 — Sneaker Rule: Clean, minimalist sneakers acceptable. Athletic performance trainers or muddy/worn sneakers = deduct 10.
+Sub-Rule CF4 — Graphic Tee Moderation: One graphic item maximum. Graphic tee under a blazer = acceptable. Head-to-toe branded casual = deduct 10.
+Sub-Rule CF5 — Polished Finish Required: Even in casual context, outfit must appear intentional and tidy. Wrinkled, mismatched, or visibly worn items = deduct 10.
+
+────────────────────────────────────────────────
+OCCASION: GYM / SPORT / ACTIVEWEAR
+────────────────────────────────────────────────
+Formality Weight ×0.0. Formality rules are suspended. Performance rules replace them.
+
+Sub-Rule G1 — Performance Fabric Required: For high-intensity activity, cotton-only outfits = deduct 15 (moisture-trapping, uncomfortable). Moisture-wicking synthetic or blended fabric = +5.
+Sub-Rule G2 — Range of Motion Test: Outfit must support full movement for intended activity. Restrictive waistbands, tight thighs in running shorts, non-stretch tops = deduct 10.
+Sub-Rule G3 — No Formal Pieces Whatsoever: Dress shirts, chinos, blazers, dress shoes = immediate cap at 10. Gym is not a place for fashion crossover unless intentional athleisure.
+Sub-Rule G4 — Colour Coordination Still Applies: Rules 5 and 14 still apply (colour harmony and pattern mixing). Random colour chaos = deduct 10.
+Sub-Rule G5 — Layering for Warm-Up/Cool-Down: A zip-through or hoodie worn over gym kit = +5 (practical, intentional). Mismatched layers with no logic = neutral.
+Sub-Rule G6 — Footwear Match to Activity: Running shoes for running, cross-trainers for HIIT, court shoes for racquet sports. Mismatched sport footwear = deduct 10. Fashion trainers not suited for activity = deduct 5.
+
+────────────────────────────────────────────────
+APPLYING OCCASION RULES IN SCORING:
+────────────────────────────────────────────────
+1. Identify the occasion from context.
+2. Apply the relevant formality weight to Rules 1-4 (multiply deductions by the weight).
+3. Check all occasion sub-rules and apply their specific bonuses/deductions.
+4. Combine with the base 20-rule score.
+5. In the verdict, explicitly call out which occasion rules were applied and any sub-rule violations.
+`;
+
 // ─── 20-RULE OUTFIT COMPATIBILITY FRAMEWORK ─────────────────────────────────
 // Applied across ALL features: DFY Lite, DFY Core, Modular Wardrobe, Ask the Stylist
 const TWENTY_RULE_OUTFIT_FRAMEWORK = `
@@ -115,7 +200,7 @@ Rule 11 — Lifestyle Match: Outfit must suit the user's actual daily life (comm
 
 TECHNICAL FASHION RULES:
 Rule 12 — Fabric & Texture Mixing: Intentional texture contrast (matte + sheen, structured + soft) = +5 bonus. Accidental clash (jersey + formal wool + casual denim) = deduct 10.
-Rule 13 — Occasion Appropriateness: Outfit must work for the occasion. Versatility for 3+ occasions = +8 bonus.
+Rule 13 — Occasion Appropriateness: Outfit must work for the stated occasion. Apply the OCCASION-SPECIFIC DEEP RULES (sub-rules I1-I6 for interviews, D1-D6 for dates, W1-W6 for weddings, CF1-CF5 for casual Friday, G1-G6 for gym) and their formality weight multipliers. Versatility for 3+ occasions = +8 bonus.
 Rule 14 — Pattern & Print Mixing: Scale matters. Mixing patterns requires a colour anchor. Busy + busy = subtract 15. Busy + neutral = fine. Two patterns with shared colour = +5.
 Rule 15 — Seasonal & Climate Logic: Wool + shorts in summer = deduct 15. Heavy coat + sandals = deduct 10. Season-appropriate layering = +5.
 Rule 16 — Accessory Logic: Formal accessories (tie bars, cufflinks, structured bags) clash with casual wear = deduct 10. Accessories must harmonise with outfit formality.
@@ -1255,4 +1340,5 @@ module.exports = {
   refreshModelCache,
   COMPREHENSIVE_FASHION_INTELLIGENCE,
   TWENTY_RULE_OUTFIT_FRAMEWORK,
+  OCCASION_SPECIFIC_RULES,
 };

@@ -3151,6 +3151,7 @@ class ApiService {
       analysis: string;
       hardRuleViolations: string[];
       improvements: string[];
+      occasionRulesApplied: string | null;
     }>('/api/dfy/core/wardrobe/compatibility', {
       method: 'POST',
       body: JSON.stringify(data),

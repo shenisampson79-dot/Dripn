@@ -9,7 +9,7 @@ const { analyzeUserStyleProfile, generatePersonalizedStyleOfTheDay, generatePers
 const { scanEmergingFashionTrends, scanViralFashionMoments, predictNextBigTrend, getRegionalTrendInsights } = require('./trendScannerService');
 const { sendPushNotification, sendBatchPushNotifications, processEventReminders } = require('./pushNotificationService');
 const colorTrendService = require('./colorTrendService');
-const { generateStylistResponse, detectMood, performComplexAnalysis, getAvailableAnalysisTypes, getBestReasoningModel, COMPREHENSIVE_FASHION_INTELLIGENCE, TWENTY_RULE_OUTFIT_FRAMEWORK } = require('./aiStylistService');
+const { generateStylistResponse, detectMood, performComplexAnalysis, getAvailableAnalysisTypes, getBestReasoningModel, COMPREHENSIVE_FASHION_INTELLIGENCE, TWENTY_RULE_OUTFIT_FRAMEWORK, OCCASION_SPECIFIC_RULES } = require('./aiStylistService');
 const { getBestModel, getModelStatus, refreshAllModels, performHealthCheck, checkForNewModels } = require('./modelLifecycleService');
 const { analyzeOutfitPhoto, compareOutfits, extractColorsFromPhoto, analyzeGarmentItem } = require('./visionAnalysisService');
 const { transcribeAudio, synthesizeSpeech, processVoiceMessage, createVoiceResponse, getAllVoices, generateVoicePreview, getSupportedLanguages } = require('./voiceService');
@@ -1484,9 +1484,11 @@ app.post('/api/dfy/core/wardrobe/compatibility', authMiddleware, async (req, res
       model: chatModel,
       messages: [{
         role: 'user',
-        content: `You are a world-class fashion stylist applying the strict 20-rule outfit framework. Analyse this outfit combination honestly. Do NOT give high scores to poor combinations.
+        content: `You are a world-class fashion stylist applying the strict 20-rule outfit framework WITH occasion-specific deep rules. Analyse this outfit honestly. Do NOT give high scores to poor combinations.
 
 ${TWENTY_RULE_OUTFIT_FRAMEWORK}
+
+${OCCASION_SPECIFIC_RULES}
 
 USER PROFILE:
 - Gender: ${gender}
@@ -1498,18 +1500,24 @@ USER PROFILE:
 OUTFIT ITEMS:
 ${itemDescriptions}
 
-Apply all 20 rules strictly. Check for hard rule violations first (Rules 1-4). A football jersey + tie must score 0-19. Be honest — this is how users build trust with the app.
+INSTRUCTIONS:
+1. Identify the occasion (${occasion}) and find its formality weight from the occasion table.
+2. Apply that formality weight multiplier to Rules 1-4 deductions.
+3. Check ALL applicable occasion sub-rules (e.g. if occasion is job_interview, apply I1-I6; if wedding_guest, apply W1-W6, etc.).
+4. Apply all 20 base rules on top.
+5. A football jersey + tie ALWAYS scores 0-19. Honesty builds trust.
 
 Respond ONLY with valid JSON:
 {
   "score": 0-100,
   "verdict": "one of: Editorial perfection / Excellent / Good / Acceptable / Needs work / Poor pairing / Do not wear together",
-  "analysis": "2-3 sentence honest analysis explaining the score",
-  "hardRuleViolations": ["list any Rule 1-4 violations, or empty array if none"],
-  "improvements": ["1-3 specific actionable improvements, or empty array if outfit is strong"]
+  "analysis": "2-3 sentence honest analysis referencing both the base rules and occasion-specific rules applied",
+  "hardRuleViolations": ["list any Rule 1-4 or occasion sub-rule violations, or empty array if none"],
+  "improvements": ["1-3 specific actionable improvements for this occasion, or empty array if outfit is strong"],
+  "occasionRulesApplied": "brief note on which occasion category was matched and the formality weight used"
 }`
       }],
-      max_completion_tokens: 600,
+      max_completion_tokens: 700,
       temperature: 0.3,
     });
 
@@ -1524,6 +1532,7 @@ Respond ONLY with valid JSON:
       analysis: result.analysis || '',
       hardRuleViolations: result.hardRuleViolations || [],
       improvements: result.improvements || [],
+      occasionRulesApplied: result.occasionRulesApplied || null,
     });
   } catch (error) {
     console.error('[Compatibility] Error:', error);
