@@ -7,6 +7,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import {
   StyleSheet,
   View,
+  Text,
   TextInput,
   Pressable,
   Dimensions,
@@ -1889,6 +1890,22 @@ export default function AIStylistScreen() {
     await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
   };
   
+  // Helper function to parse markdown and render bold text
+  const renderMarkdownText = (text: string) => {
+    const parts = text.split(/(\*\*[^*]+\*\*)/);
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        // Bold text
+        return (
+          <Text key={index} style={{ fontWeight: '700' }}>
+            {part.slice(2, -2)}
+          </Text>
+        );
+      }
+      return part;
+    });
+  };
+
   const renderMessage = ({ item, index }: { item: ChatMessage; index: number }) => {
     const isUser = item.role === 'user';
     
@@ -1923,7 +1940,7 @@ export default function AIStylistScreen() {
               isUser ? { color: '#FFFFFF' } : null,
             ]}
           >
-            {item.content}
+            {renderMarkdownText(item.content)}
           </ThemedText>
           
           {item.outfitSuggestion && item.outfitSuggestion.items.length > 0 ? (
