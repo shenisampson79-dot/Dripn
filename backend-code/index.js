@@ -1582,6 +1582,9 @@ Respond ONLY with valid JSON:
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     const result = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
 
+    // DEBUG: Log the full AI response
+    console.log('[Compatibility] AI Response:', JSON.stringify(result, null, 2));
+
     // ENFORCE HARD CAPS based on non-negotiable rule violations
     let finalScore = Math.max(0, Math.min(100, Math.round(result.score || 0)));
     const violations = result.hardRuleViolations || [];
