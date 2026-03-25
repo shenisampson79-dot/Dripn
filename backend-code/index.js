@@ -1480,6 +1480,8 @@ app.post('/api/dfy/core/wardrobe/compatibility', authMiddleware, async (req, res
     }).join('\n');
 
     const chatModel = await getBestModel('chat');
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const aiResponse = await openai.chat.completions.create({
       model: chatModel,
       messages: [{
