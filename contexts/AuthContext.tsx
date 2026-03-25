@@ -499,25 +499,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const fullProfile = await apiService.getMe();
         console.log('[Auth] Retrieved profile from backend:', { hasSeenTour: fullProfile.profileData?.hasSeenTour, hasCompletedOnboarding: fullProfile.profileData?.hasCompletedOnboarding });
         if (fullProfile.profileData) {
-          // CRITICAL: Explicitly preserve hasSeenTour from backend — never default to false
+          // CRITICAL: Preserve local hasSeenTour before spreading backend data
+          const localHasSeenTour = userProfile.hasSeenTour;
           const backendHasSeenTour = fullProfile.profileData.hasSeenTour;
+          
+          // Destructure to exclude hasSeenTour from the spread
+          const { hasSeenTour: _, ...profileDataWithoutTour } = fullProfile.profileData;
+          
           userProfile = {
             ...userProfile,
-            ...fullProfile.profileData,
+            ...profileDataWithoutTour,
             id: userId || userProfile.id,
             email,
             // Re-ensure hasCompletedOnboarding is set (double-check)
             hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? userProfile.hasCompletedOnboarding,
           };
-          // CRITICAL: Set hasSeenTour LAST to ensure it never gets overridden
+          
+          // CRITICAL: Set hasSeenTour LAST with clear priority: backend > local > false
           if (backendHasSeenTour === true) {
             userProfile.hasSeenTour = true;
-            console.log('[Auth] ✓ hasSeenTour restored as TRUE from backend');
+            console.log('[Auth] ✓ hasSeenTour = TRUE from backend');
           } else if (backendHasSeenTour === false) {
             userProfile.hasSeenTour = false;
-            console.log('[Auth] hasSeenTour is FALSE on backend');
+            console.log('[Auth] hasSeenTour = FALSE from backend (user never marked tour as seen)');
+          } else if (localHasSeenTour === true) {
+            // Backend doesn't have it (undefined) but local has it — preserve local
+            userProfile.hasSeenTour = true;
+            console.log('[Auth] ✓ hasSeenTour = TRUE from local AsyncStorage (backend sync may have failed)');
           } else {
-            console.log('[Auth] hasSeenTour undefined on backend, keeping local value:', userProfile.hasSeenTour);
+            userProfile.hasSeenTour = false;
+            console.log('[Auth] hasSeenTour = FALSE (default)');
           }
           console.log('[Auth] Final user profile after login:', { hasSeenTour: userProfile.hasSeenTour, hasCompletedOnboarding: userProfile.hasCompletedOnboarding });
         }
