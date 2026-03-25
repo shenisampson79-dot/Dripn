@@ -121,6 +121,12 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const { setLanguage: setAppLanguage, t, translations } = useTranslations();
   const { colorScheme, setColorScheme, palette } = useColorScheme();
   
+  // Admin check — only for development sections
+  const isAdmin = user?.email?.endsWith('@dripn.io') || 
+                  user?.email?.endsWith('@dripn.dev') ||
+                  user?.email === 'sheni_sampson@yahoo.co.uk' ||
+                  user?.role === 'admin';
+  
   // Dynamic colors from palette
   const LUXURY_COLORS = {
     gold: palette.gold,
@@ -775,16 +781,17 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         </View>
       ) : null}
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <LinearGradient
-            colors={['#64748B', '#475569']}
-            style={styles.sectionIcon}
-          >
-            <Feather name="code" size={12} color="#FFFFFF" />
-          </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>Development</ThemedText>
-        </View>
+      {isAdmin && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <LinearGradient
+              colors={['#64748B', '#475569']}
+              style={styles.sectionIcon}
+            >
+              <Feather name="code" size={12} color="#FFFFFF" />
+            </LinearGradient>
+            <ThemedText type="h4" style={styles.sectionTitle}>Development</ThemedText>
+          </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
             icon="image"
@@ -882,6 +889,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
         </View>
       </View>
+      )}
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
