@@ -1208,6 +1208,9 @@ class ApiService {
     subscriptionTier?: string;
     language?: string;
     userProfile?: any;
+    lat?: number;
+    lon?: number;
+    location?: string;
   }): Promise<{
     content: string;
     mood?: {

@@ -27,6 +27,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
+import * as Location from 'expo-location';
 import Animated, {
   FadeIn,
   FadeInUp,
@@ -1727,6 +1728,23 @@ export default function AIStylistScreen() {
       console.log('Calling backend API with message:', text.trim());
       
       const mappedGenderText = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : user?.gender || 'unspecified';
+      
+      // Try to get location for weather-aware recommendations
+      let locationData: { lat?: number; lon?: number; location?: string } = {};
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+          locationData = {
+            lat: loc.coords.latitude,
+            lon: loc.coords.longitude,
+          };
+        }
+      } catch (error) {
+        // Location not available, continue without it
+        console.log('Location not available:', error);
+      }
+      
       const response = await apiService.sendStylistMessage({
         stylistId: stylist.id,
         messages: chatHistory,
@@ -1735,6 +1753,7 @@ export default function AIStylistScreen() {
         userGender: mappedGenderText,
         subscriptionTier: tier,
         language: currentLanguage,
+        ...locationData,
         userProfile: {
           ...(user?.profileData || {}),
           gender: mappedGenderText,
