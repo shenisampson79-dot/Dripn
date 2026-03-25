@@ -206,10 +206,18 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
         return;
       }
 
+      const outfitName = `Outfit ${new Date().toLocaleDateString()}`;
+      const response = await apiService.post('/api/outfits/mix-and-match/save', {
+        name: outfitName,
+        occasion: 'casual',
+        wardrobeItemIds: outfitItems,
+      });
+
       setShowOutfitPreview(false);
       Alert.alert('Outfit Saved', 'Your outfit has been saved successfully!');
     } catch (error) {
       Alert.alert('Error', 'Failed to save outfit');
+      console.error('[DFYModularWardrobe] Save outfit error:', error);
     }
   };
 

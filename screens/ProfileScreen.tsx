@@ -24,6 +24,7 @@ import { useWardrobe } from "@/contexts/WardrobeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
+import apiService from "@/services/ApiService";
 
 // Using palette from ColorSchemeContext for dynamic theming
 
@@ -58,6 +59,8 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const { styleProfile, hasStyleProfile } = useStyleProfile();
   const { items: wardrobeItems } = useWardrobe();
   const [activeTab, setActiveTab] = useState<"outfits">("outfits");
+  const [savedMixAndMatchOutfits, setSavedMixAndMatchOutfits] = useState<any[]>([]);
+  const [loadingSavedOutfits, setLoadingSavedOutfits] = useState(false);
 
   // Derive Style DNA from wardrobe items — same logic as StyleDNAScreen
   const ownedWardrobeItems = useMemo(() => wardrobeItems.filter(i => !i.origin || i.origin === 'owned'), [wardrobeItems]);
@@ -135,6 +138,29 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
       }).catch(() => {});
     }
   }, [user?.id, user?.colorScanData, hasColorAnalysis]);
+
+  // Fetch saved mix-and-match outfits from backend
+  useEffect(() => {
+    const fetchSavedOutfits = async () => {
+      if (!user?.id) {
+        setSavedMixAndMatchOutfits([]);
+        return;
+      }
+
+      try {
+        setLoadingSavedOutfits(true);
+        const response = await apiService.get('/api/outfits/mix-and-match');
+        setSavedMixAndMatchOutfits(response.outfits || []);
+      } catch (error) {
+        console.error('[ProfileScreen] Failed to fetch saved outfits:', error);
+        setSavedMixAndMatchOutfits([]);
+      } finally {
+        setLoadingSavedOutfits(false);
+      }
+    };
+
+    fetchSavedOutfits();
+  }, [user?.id]);
 
   // Dynamic colors from palette
   const LUXURY_COLORS = {
@@ -455,7 +481,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
       <View style={styles.contentSection}>
         {activeTab === "outfits" ? (
-          outfitsLoading ? (
+          outfitsLoading || loadingSavedOutfits ? (
             <View style={styles.emptyState}>
               <LinearGradient
                 colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
@@ -467,7 +493,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 {t('profile.loadingOutfits')}
               </ThemedText>
             </View>
-          ) : likedOutfits.length > 0 ? (
+          ) : likedOutfits.length > 0 || savedMixAndMatchOutfits.length > 0 ? (
             <View style={styles.outfitsContainer}>
               {likedOutfits.map((outfit) => (
                 <View key={outfit.id} style={[styles.likedOutfitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
@@ -588,6 +614,50 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                         {(outfit as any).description}
                       </ThemedText>
                     </>
+                  )}
+                </View>
+              ))}
+              {savedMixAndMatchOutfits.map((outfit) => (
+                <View key={outfit.id} style={[styles.likedOutfitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
+                  <View style={styles.likedOutfitHeader}>
+                    <LinearGradient
+                      colors={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.likedOutfitBadge}
+                    >
+                      <Feather name="layers" size={10} color="#FFFFFF" />
+                      <ThemedText type="caption" style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 10 }}>
+                        My Outfit
+                      </ThemedText>
+                    </LinearGradient>
+                    <Pressable
+                      onPress={() => {
+                        try {
+                          apiService.delete(`/api/outfits/mix-and-match/${outfit.id}`);
+                          setSavedMixAndMatchOutfits(prev => prev.filter(o => o.id !== outfit.id));
+                        } catch (error) {
+                          console.error('[ProfileScreen] Failed to delete outfit:', error);
+                        }
+                      }}
+                      style={({ pressed }) => [
+                        styles.unlikeButton,
+                        { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
+                      ]}
+                    >
+                      <Feather name="trash-2" size={14} color={LUXURY_COLORS.rose} />
+                    </Pressable>
+                  </View>
+                  <ThemedText type="h3" style={styles.likedOutfitTitle}>
+                    {outfit.name}
+                  </ThemedText>
+                  <ThemedText type="small" style={styles.likedOutfitDesc} numberOfLines={1}>
+                    {outfit.occasion}
+                  </ThemedText>
+                  {outfit.wardrobe_item_ids && outfit.wardrobe_item_ids.length > 0 && (
+                    <ThemedText type="small" style={styles.likedOutfitDesc} numberOfLines={1}>
+                      {outfit.wardrobe_item_ids.length} items
+                    </ThemedText>
                   )}
                 </View>
               ))}
