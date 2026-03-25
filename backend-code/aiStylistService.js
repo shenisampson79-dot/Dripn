@@ -1130,6 +1130,7 @@ async function generateStylistResponse({
   userProfile = {},
   decisionType = null,
 }) {
+  console.log(`[generateStylistResponse] Called with stylistId=${stylistId}, userMessage="${userMessage?.substring(0, 30)}"`);
   const stylist = STYLIST_PERSONALITIES[stylistId] || STYLIST_PERSONALITIES.ruby;
 
   // Build decision-focused system prompt when decisionType is provided
@@ -1344,7 +1345,14 @@ ${decisionType ? `- Answer the question directly and decisively. No preamble. No
       modelUsed: bestModel,
     };
   } catch (error) {
-    console.error('OpenAI chat error:', error.message);
+    console.error('OpenAI chat error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      status: error.status,
+      code: error.code,
+      type: error.type,
+      userMessage: userMessage ? userMessage.substring(0, 50) : 'none',
+    });
 
     const fallbackResponses = {
       ruby: {
@@ -1362,9 +1370,15 @@ ${decisionType ? `- Answer the question directly and decisively. No preamble. No
     };
 
     const responses = fallbackResponses[stylistId] || fallbackResponses.ruby;
-    let fallbackContent;
 
-    if (moodAnalysis.needsSupport) {
+    // Use intelligent fallback that acknowledges the user's message
+    const messageLower = userMessage.toLowerCase();
+    const isFashionQuery = /wear|outfit|style|clothes|dress|fashion|what.*on|get.*dressed/.test(messageLower);
+    
+    let fallbackContent;
+    if (isFashionQuery) {
+      fallbackContent = responses.fashion;
+    } else if (moodAnalysis.needsSupport) {
       fallbackContent = responses.emotional;
     } else if (moodAnalysis.needsCelebration) {
       fallbackContent = responses.celebrating;
