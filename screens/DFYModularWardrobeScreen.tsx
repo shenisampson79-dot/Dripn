@@ -90,8 +90,18 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
   const rotationAnimations = useRef<Record<string, Animated.Value>>({});
 
   useEffect(() => {
+    // Initialize rotation animations
     CATEGORY_ROWS.forEach(row => {
       rotationAnimations.current[row.key] = new Animated.Value(0);
+    });
+    
+    // CRITICAL: Reset all selected items on mount to prevent carrying over previous selections
+    setSelectedItems({
+      tops: null,
+      bottoms: null,
+      outerwear: null,
+      shoes: null,
+      accessories: null,
     });
   }, []);
 
