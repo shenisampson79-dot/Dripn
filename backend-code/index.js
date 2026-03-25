@@ -1544,6 +1544,25 @@ Respond ONLY with valid JSON:
     });
   } catch (error) {
     console.error('[Compatibility] Error:', error);
+    
+    // Check for specific OpenAI errors
+    if (error.status === 429 || error.code === 'insufficient_quota') {
+      return res.status(402).json({
+        error: 'OpenAI API quota exceeded. Please check your OpenAI plan and billing details.',
+        success: false,
+        code: 'insufficient_quota',
+      });
+    }
+    
+    if (error.status === 401 || error.code === 'invalid_api_key') {
+      return res.status(401).json({
+        error: 'OpenAI API authentication failed. Check your API key configuration.',
+        success: false,
+        code: 'invalid_api_key',
+      });
+    }
+    
+    // Default fallback
     res.status(500).json({ error: 'Failed to check compatibility', success: false });
   }
 });

@@ -7,6 +7,7 @@ import {
   Dimensions,
   Animated,
   Modal,
+  Alert,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -83,6 +84,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
   const [compatibilityImprovements, setCompatibilityImprovements] = useState<string[]>([]);
   const [isCheckingCompatibility, setIsCheckingCompatibility] = useState(false);
   const [occasionRulesApplied, setOccasionRulesApplied] = useState<string | null>(null);
+  const [compatibilityError, setCompatibilityError] = useState<string | null>(null);
 
   const scrollRefs = useRef<Record<string, FlatList<WardrobeItem> | null>>({});
   const rotationAnimations = useRef<Record<string, Animated.Value>>({});
@@ -158,6 +160,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
 
     try {
       setIsCheckingCompatibility(true);
+      setCompatibilityError(null);
       const itemIds = selected.map(item => item.id);
       
       const result = await apiService.checkOutfitCompatibility({
@@ -180,10 +183,24 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
         setCompatibilityViolations([]);
         setCompatibilityImprovements([]);
         setOccasionRulesApplied(null);
+        setCompatibilityError(result.error || 'Failed to check compatibility');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to calculate compatibility:', error);
+      
+      // Extract error message from various error formats
+      let errorMsg = 'Failed to check compatibility';
+      if (error?.response?.data?.error) {
+        errorMsg = error.response.data.error;
+      } else if (error?.message) {
+        errorMsg = error.message;
+      }
+      
+      setCompatibilityError(errorMsg);
       setCompatibilityScore(null);
+      
+      // Show error alert to user
+      Alert.alert('Compatibility Check Failed', errorMsg);
     } finally {
       setIsCheckingCompatibility(false);
     }
