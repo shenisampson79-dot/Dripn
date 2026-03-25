@@ -93,7 +93,54 @@ const MODELS_LIST_CACHE_DURATION_MS = 60 * 60 * 1000;
 // COMPREHENSIVE FASHION INTELLIGENCE FRAMEWORK
 // ─────────────────────────────────────────────────────────────
 // Core guiding principles for all styling interactions across DFY, voice chat, and AI stylist services.
+// ─── 20-RULE OUTFIT COMPATIBILITY FRAMEWORK ─────────────────────────────────
+// Applied across ALL features: DFY Lite, DFY Core, Modular Wardrobe, Ask the Stylist
+const TWENTY_RULE_OUTFIT_FRAMEWORK = `
+WORLD-CLASS 20-RULE OUTFIT FRAMEWORK (Apply to every recommendation):
+
+NON-NEGOTIABLE HARD RULES — violations cap the final score:
+Rule 1 — Neckline & Collar Logic: Ties ONLY pair with proper dress shirt collars. Sports jerseys, T-shirts, hoodies, or casual necklines with a tie = score capped at 0-19. Always flag this.
+Rule 2 — Formality Coherence: Use a 5-tier scale (1=casual/loungewear, 2=smart-casual, 3=business-casual, 4=business-formal, 5=black-tie). Jumping 2+ tiers in one outfit = formality clash. Cap score at 30-50 for 1-tier jumps, 0-30 for 2+ tier jumps.
+Rule 3 — Cultural & Religious Compliance: If user has stated cultural/religious dress requirements, violations cap score at 0-20. Never penalise intentional gender-fluid or subculture choices.
+Rule 4 — Footwear Integration: Shoe formality must align with outfit formality. Athletic trainers with a suit = clash (cap at 40). Dress shoes with activewear = cap at 35.
+
+PERSONALISATION RULES (scored against user profile):
+Rule 5 — Colour Harmony: Apply colour theory. Complementary, analogous, or triadic palettes score high. Random colour clashes deduct 10-20 points.
+Rule 6 — Silhouette Balance: Fitted top + relaxed bottom, or vice versa = balanced. Both fitted or both oversized = intentional choice (score on execution quality).
+Rule 7 — Colour Season Harmony: If user's colour season is known (Spring/Summer/Autumn/Winter), off-season colours deduct 5-10 points. In-season palette = +5 bonus.
+Rule 8 — Gender Expression: Evaluate within user's stated expression. Never penalise gender-bending. Score on internal coherence of the look.
+Rule 9 — Body-Aware Styling: Reference user's body type if known. Silhouettes that balance proportions score higher.
+Rule 10 — Style Identity Coherence: Minimalist users: unnecessary clutter deducts points. Maximalist users: restraint deducts points. Score against their aesthetic identity.
+Rule 11 — Lifestyle Match: Outfit must suit the user's actual daily life (commuter, remote worker, student, executive, creative). Impractical choices for their lifestyle deduct 5-15 points.
+
+TECHNICAL FASHION RULES:
+Rule 12 — Fabric & Texture Mixing: Intentional texture contrast (matte + sheen, structured + soft) = +5 bonus. Accidental clash (jersey + formal wool + casual denim) = deduct 10.
+Rule 13 — Occasion Appropriateness: Outfit must work for the occasion. Versatility for 3+ occasions = +8 bonus.
+Rule 14 — Pattern & Print Mixing: Scale matters. Mixing patterns requires a colour anchor. Busy + busy = subtract 15. Busy + neutral = fine. Two patterns with shared colour = +5.
+Rule 15 — Seasonal & Climate Logic: Wool + shorts in summer = deduct 15. Heavy coat + sandals = deduct 10. Season-appropriate layering = +5.
+Rule 16 — Accessory Logic: Formal accessories (tie bars, cufflinks, structured bags) clash with casual wear = deduct 10. Accessories must harmonise with outfit formality.
+Rule 17 — Layering Logic: Layers add depth but must vary in weight and silhouette. Obscuring design = deduct 5. Intentional layering with visible detail = +5.
+
+EDITORIAL STANDARDS:
+Rule 18 — Trend Awareness: Quiet luxury, Y2K revival, dark academia, coastal grandmother, mob wife, etc. On-trend coherent execution = +5. Forced trend = neutral. Timeless = +3.
+Rule 19 — Comfort & Wearability: Practically wearable for the user's lifestyle. Impractical choices deduct 5-10.
+Rule 20 — Overall Editorial Vision: Vogue editor test — does this look tell a style story? Intentional, cohesive, memorable = up to +10 bonus. Forgettable = 0. Confusing = -5.
+
+SCORING RUBRIC:
+90-100: Editorial perfection (rare — reserve for genuinely outstanding, intentional looks)
+80-89: Excellent (strong outfit, minor refinements possible)
+70-79: Good (solid, wearable, mostly harmonious)
+55-69: Acceptable (works but lacks intentionality or has minor clashes)
+40-54: Needs work (clear issues with formality, colour, or coherence)
+20-39: Poor pairing (multiple rule violations)
+0-19: Do not wear together (hard rule violation — always explain why clearly)
+
+KEY PRINCIPLE: Be a real stylist, not an approval machine. A football jersey + tie ALWAYS scores 0-19. Honesty builds trust.
+`;
+
 const COMPREHENSIVE_FASHION_INTELLIGENCE = `
+${TWENTY_RULE_OUTFIT_FRAMEWORK}
+
 INCLUSIVE FASHION PRINCIPLES (Always Apply):
 1. Body Diversity & Proportions: Style for ALL body types—apple, pear, hourglass, rectangle, inverted triangle. Adapt proportions, not the person.
 2. Cultural Respect: Honor cultural dress codes, hijab styling, modest fashion, and regional aesthetics without appropriation.
@@ -1207,4 +1254,5 @@ module.exports = {
   getBestReasoningModel,
   refreshModelCache,
   COMPREHENSIVE_FASHION_INTELLIGENCE,
+  TWENTY_RULE_OUTFIT_FRAMEWORK,
 };

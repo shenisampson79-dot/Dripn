@@ -3138,7 +3138,7 @@ class ApiService {
     });
   }
 
-  // Check outfit compatibility with occasion-specific rules
+  // Check outfit compatibility with 20-rule system
   async checkOutfitCompatibility(data: {
     items: string[];
     stylistId: string;
@@ -3149,8 +3149,8 @@ class ApiService {
       score: number;
       verdict: string;
       analysis: string;
-      flags: string[];
-      bonuses: string[];
+      hardRuleViolations: string[];
+      improvements: string[];
     }>('/api/dfy/core/wardrobe/compatibility', {
       method: 'POST',
       body: JSON.stringify(data),

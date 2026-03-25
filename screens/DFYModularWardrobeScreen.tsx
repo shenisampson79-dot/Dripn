@@ -77,6 +77,11 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
   });
   const [showOutfitPreview, setShowOutfitPreview] = useState(false);
   const [compatibilityScore, setCompatibilityScore] = useState<number | null>(null);
+  const [compatibilityVerdict, setCompatibilityVerdict] = useState<string | null>(null);
+  const [compatibilityAnalysis, setCompatibilityAnalysis] = useState<string | null>(null);
+  const [compatibilityViolations, setCompatibilityViolations] = useState<string[]>([]);
+  const [compatibilityImprovements, setCompatibilityImprovements] = useState<string[]>([]);
+  const [isCheckingCompatibility, setIsCheckingCompatibility] = useState(false);
 
   const scrollRefs = useRef<Record<string, FlatList<WardrobeItem> | null>>({});
   const rotationAnimations = useRef<Record<string, Animated.Value>>({});
@@ -142,28 +147,41 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
     const selected = Object.values(selectedItems).filter(Boolean) as WardrobeItem[];
     if (selected.length < 2) {
       setCompatibilityScore(null);
+      setCompatibilityVerdict(null);
+      setCompatibilityAnalysis(null);
+      setCompatibilityViolations([]);
+      setCompatibilityImprovements([]);
       return;
     }
 
     try {
-      // Get item IDs for the selected items
+      setIsCheckingCompatibility(true);
       const itemIds = selected.map(item => item.id);
       
-      // Call backend to check compatibility using 20-rule system
       const result = await apiService.checkOutfitCompatibility({
         items: itemIds,
         stylistId: 'ruby',
-        occasion: 'casual_day', // Default occasion for modular wardrobe
+        occasion: 'casual_day',
       });
 
       if (result.success && result.score !== undefined) {
         setCompatibilityScore(Math.round(result.score));
+        setCompatibilityVerdict(result.verdict || null);
+        setCompatibilityAnalysis(result.analysis || null);
+        setCompatibilityViolations(result.hardRuleViolations || []);
+        setCompatibilityImprovements(result.improvements || []);
       } else {
         setCompatibilityScore(null);
+        setCompatibilityVerdict(null);
+        setCompatibilityAnalysis(null);
+        setCompatibilityViolations([]);
+        setCompatibilityImprovements([]);
       }
     } catch (error) {
       console.error('Failed to calculate compatibility:', error);
       setCompatibilityScore(null);
+    } finally {
+      setIsCheckingCompatibility(false);
     }
   };
 
@@ -331,11 +349,17 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
                 <ThemedText type="body" style={{ fontWeight: '600' }}>
                   {getSelectedCount()} items selected
                 </ThemedText>
-                {compatibilityScore !== null && (
-                  <ThemedText type="caption" style={{ opacity: 0.7 }}>
-                    Compatibility: {compatibilityScore}%
+                {isCheckingCompatibility ? (
+                  <ThemedText type="caption" style={{ opacity: 0.7 }}>Analysing outfit...</ThemedText>
+                ) : compatibilityScore !== null ? (
+                  <ThemedText type="caption" style={{
+                    opacity: 0.9,
+                    color: compatibilityScore >= 70 ? LUXURY_COLORS.emerald : compatibilityScore >= 40 ? LUXURY_COLORS.gold : LUXURY_COLORS.coral,
+                    fontWeight: '600',
+                  }}>
+                    {compatibilityScore}/100 · {compatibilityVerdict || 'Scored'}
                   </ThemedText>
-                )}
+                ) : null}
               </View>
               <LinearGradient
                 colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
@@ -400,29 +424,54 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
                 })}
               </View>
 
-              {compatibilityScore !== null && (
+              {isCheckingCompatibility && (
+                <View style={[styles.compatibilityCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', justifyContent: 'center', alignItems: 'center', paddingVertical: Spacing.xl }]}>
+                  <Feather name="loader" size={24} color={LUXURY_COLORS.gold} />
+                  <ThemedText type="caption" style={{ opacity: 0.7, marginTop: Spacing.sm }}>Analysing outfit with 20-rule system...</ThemedText>
+                </View>
+              )}
+              {!isCheckingCompatibility && compatibilityScore !== null && (
                 <View style={[styles.compatibilityCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
                   <LinearGradient
                     colors={
                       compatibilityScore >= 80
                         ? [LUXURY_COLORS.emerald, LUXURY_COLORS.teal]
-                        : compatibilityScore >= 60
+                        : compatibilityScore >= 55
                         ? [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
                         : [LUXURY_COLORS.coral, '#C46A4F']
                     }
                     style={styles.compatibilityScoreContainer}
                   >
                     <ThemedText type="h1" style={{ color: '#FFFFFF' }}>{compatibilityScore}</ThemedText>
+                    <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>/100</ThemedText>
                   </LinearGradient>
                   <View style={styles.compatibilityInfo}>
-                    <ThemedText type="h3">Compatibility Score</ThemedText>
-                    <ThemedText type="small" style={{ opacity: 0.7, marginTop: 4 }}>
-                      {compatibilityScore >= 80
-                        ? "Great match! These pieces work beautifully together."
-                        : compatibilityScore >= 60
-                        ? "Good combination with some room for improvement."
-                        : "Consider swapping a piece for better harmony."}
-                    </ThemedText>
+                    <ThemedText type="h3">{compatibilityVerdict || 'Compatibility Score'}</ThemedText>
+                    {compatibilityAnalysis ? (
+                      <ThemedText type="small" style={{ opacity: 0.7, marginTop: 4 }}>{compatibilityAnalysis}</ThemedText>
+                    ) : null}
+                  </View>
+                </View>
+              )}
+              {!isCheckingCompatibility && compatibilityViolations.length > 0 && (
+                <View style={[styles.compatibilityCard, { backgroundColor: isDark ? 'rgba(224,122,95,0.1)' : 'rgba(224,122,95,0.08)', marginTop: Spacing.sm }]}>
+                  <Feather name="alert-circle" size={18} color={LUXURY_COLORS.coral} style={{ marginRight: Spacing.sm, marginTop: 2 }} />
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="small" style={{ color: LUXURY_COLORS.coral, fontWeight: '700', marginBottom: 4 }}>Rule Violations</ThemedText>
+                    {compatibilityViolations.map((v, i) => (
+                      <ThemedText key={i} type="caption" style={{ opacity: 0.8, marginBottom: 2 }}>• {v}</ThemedText>
+                    ))}
+                  </View>
+                </View>
+              )}
+              {!isCheckingCompatibility && compatibilityImprovements.length > 0 && (
+                <View style={[styles.compatibilityCard, { backgroundColor: isDark ? 'rgba(5,150,105,0.1)' : 'rgba(5,150,105,0.08)', marginTop: Spacing.sm }]}>
+                  <Feather name="trending-up" size={18} color={LUXURY_COLORS.emerald} style={{ marginRight: Spacing.sm, marginTop: 2 }} />
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="small" style={{ color: LUXURY_COLORS.emerald, fontWeight: '700', marginBottom: 4 }}>Improvements</ThemedText>
+                    {compatibilityImprovements.map((imp, i) => (
+                      <ThemedText key={i} type="caption" style={{ opacity: 0.8, marginBottom: 2 }}>• {imp}</ThemedText>
+                    ))}
                   </View>
                 </View>
               )}

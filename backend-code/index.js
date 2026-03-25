@@ -9,7 +9,7 @@ const { analyzeUserStyleProfile, generatePersonalizedStyleOfTheDay, generatePers
 const { scanEmergingFashionTrends, scanViralFashionMoments, predictNextBigTrend, getRegionalTrendInsights } = require('./trendScannerService');
 const { sendPushNotification, sendBatchPushNotifications, processEventReminders } = require('./pushNotificationService');
 const colorTrendService = require('./colorTrendService');
-const { generateStylistResponse, detectMood, performComplexAnalysis, getAvailableAnalysisTypes, getBestReasoningModel, COMPREHENSIVE_FASHION_INTELLIGENCE } = require('./aiStylistService');
+const { generateStylistResponse, detectMood, performComplexAnalysis, getAvailableAnalysisTypes, getBestReasoningModel, COMPREHENSIVE_FASHION_INTELLIGENCE, TWENTY_RULE_OUTFIT_FRAMEWORK } = require('./aiStylistService');
 const { getBestModel, getModelStatus, refreshAllModels, performHealthCheck, checkForNewModels } = require('./modelLifecycleService');
 const { analyzeOutfitPhoto, compareOutfits, extractColorsFromPhoto, analyzeGarmentItem } = require('./visionAnalysisService');
 const { transcribeAudio, synthesizeSpeech, processVoiceMessage, createVoiceResponse, getAllVoices, generateVoicePreview, getSupportedLanguages } = require('./voiceService');
@@ -1442,6 +1442,92 @@ app.get('/api/dfy/access-status', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('DFY access status error:', error);
     res.status(500).json({ error: 'Failed to get DFY access status' });
+  }
+});
+
+// POST /api/dfy/core/wardrobe/compatibility — 20-rule outfit scoring
+app.post('/api/dfy/core/wardrobe/compatibility', authMiddleware, async (req, res) => {
+  try {
+    const { items = [], stylistId = 'ruby', occasion = 'casual_day' } = req.body;
+    if (!items || items.length < 2) {
+      return res.status(400).json({ error: 'At least 2 items required for compatibility check' });
+    }
+
+    // Fetch wardrobe item details for the provided IDs
+    const placeholders = items.map((_, i) => `$${i + 2}`).join(', ');
+    const wardrobeResult = await pool.query(
+      `SELECT id, name, category, color, brand, metadata FROM wardrobe_items WHERE user_id = $1 AND id IN (${placeholders})`,
+      [req.userId, ...items]
+    );
+    const wardrobeItems = wardrobeResult.rows;
+
+    if (wardrobeItems.length === 0) {
+      return res.status(404).json({ error: 'No wardrobe items found for the provided IDs' });
+    }
+
+    // Fetch user profile for personalisation rules
+    const userResult = await pool.query('SELECT profile_data FROM users WHERE id = $1', [req.userId]);
+    const profileData = userResult.rows[0]?.profile_data || {};
+    const gender = profileData.gender || 'not specified';
+    const colorSeason = profileData.colorScanData?.season || 'not specified';
+    const bodyType = profileData.bodyMeasurements?.bodyType || 'not specified';
+    const styleIdentity = profileData.extendedPreferences?.stylePersonality || 'not specified';
+
+    // Build item descriptions for the AI
+    const itemDescriptions = wardrobeItems.map(item => {
+      const meta = item.metadata || {};
+      return `- ${item.name} (category: ${item.category}, color: ${item.color || 'unknown'}${item.brand ? `, brand: ${item.brand}` : ''}${meta.formality ? `, formality: ${meta.formality}` : ''}${meta.fabric ? `, fabric: ${meta.fabric}` : ''})`;
+    }).join('\n');
+
+    const chatModel = await getBestModel('chat');
+    const aiResponse = await openai.chat.completions.create({
+      model: chatModel,
+      messages: [{
+        role: 'user',
+        content: `You are a world-class fashion stylist applying the strict 20-rule outfit framework. Analyse this outfit combination honestly. Do NOT give high scores to poor combinations.
+
+${TWENTY_RULE_OUTFIT_FRAMEWORK}
+
+USER PROFILE:
+- Gender: ${gender}
+- Colour season: ${colorSeason}
+- Body type: ${bodyType}
+- Style identity: ${styleIdentity}
+- Occasion context: ${occasion}
+
+OUTFIT ITEMS:
+${itemDescriptions}
+
+Apply all 20 rules strictly. Check for hard rule violations first (Rules 1-4). A football jersey + tie must score 0-19. Be honest — this is how users build trust with the app.
+
+Respond ONLY with valid JSON:
+{
+  "score": 0-100,
+  "verdict": "one of: Editorial perfection / Excellent / Good / Acceptable / Needs work / Poor pairing / Do not wear together",
+  "analysis": "2-3 sentence honest analysis explaining the score",
+  "hardRuleViolations": ["list any Rule 1-4 violations, or empty array if none"],
+  "improvements": ["1-3 specific actionable improvements, or empty array if outfit is strong"]
+}`
+      }],
+      max_completion_tokens: 600,
+      temperature: 0.3,
+    });
+
+    const raw = aiResponse.choices[0]?.message?.content?.trim() || '';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const result = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+
+    res.json({
+      success: true,
+      score: Math.max(0, Math.min(100, Math.round(result.score || 0))),
+      verdict: result.verdict || 'Analysis unavailable',
+      analysis: result.analysis || '',
+      hardRuleViolations: result.hardRuleViolations || [],
+      improvements: result.improvements || [],
+    });
+  } catch (error) {
+    console.error('[Compatibility] Error:', error);
+    res.status(500).json({ error: 'Failed to check compatibility', success: false });
   }
 });
 
