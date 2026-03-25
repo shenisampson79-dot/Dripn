@@ -162,6 +162,8 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
       setIsCheckingCompatibility(true);
       setCompatibilityError(null);
       const itemIds = selected.map(item => item.id);
+      console.log('[DFYModularWardrobe] Selected items for compatibility:', selected.map(item => `${item.name} (${item.category})`));
+      console.log('[DFYModularWardrobe] Item IDs being sent:', itemIds);
       
       const result = await apiService.checkOutfitCompatibility({
         items: itemIds,

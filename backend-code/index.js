@@ -1498,6 +1498,8 @@ app.get('/api/dfy/access-status', authMiddleware, async (req, res) => {
 app.post('/api/dfy/core/wardrobe/compatibility', authMiddleware, async (req, res) => {
   try {
     const { items = [], stylistId = 'ruby', occasion = 'casual_day' } = req.body;
+    console.log('[Compatibility] Request received with items:', items, 'occasion:', occasion);
+    
     if (!items || items.length < 2) {
       return res.status(400).json({ error: 'At least 2 items required for compatibility check' });
     }
@@ -1509,6 +1511,7 @@ app.post('/api/dfy/core/wardrobe/compatibility', authMiddleware, async (req, res
       [req.userId, ...items]
     );
     const wardrobeItems = wardrobeResult.rows;
+    console.log('[Compatibility] Fetched wardrobe items:', wardrobeItems.map(item => `${item.name} (${item.category})`));
 
     if (wardrobeItems.length === 0) {
       return res.status(404).json({ error: 'No wardrobe items found for the provided IDs' });
