@@ -1715,12 +1715,18 @@ Respond ONLY with a valid JSON array of exactly ${outfitCount} objects. No markd
       if (Array.isArray(parsed) && parsed.length >= outfitCount * 0.8) {
         outfits = parsed.slice(0, outfitCount).map((outfit, i) => {
           const seq = occasionSequence[i] || occasionSequence[0];
-          const selectedNumbers = (outfit.selectedItemNumbers || [])
+          const rawNumbers = outfit.selectedItemNumbers || [];
+          console.log(`[DFY] Day ${i + 1}: rawNumbers=${JSON.stringify(rawNumbers)}, type=${typeof rawNumbers}`);
+          
+          const selectedNumbers = rawNumbers
             .filter(n => typeof n === 'number' && n > 0 && n <= wardrobeItems.length);
+          console.log(`[DFY] Day ${i + 1}: filtered selectedNumbers=${JSON.stringify(selectedNumbers)}, wardrobeItems.length=${wardrobeItems.length}`);
+          
           const selectedItems = selectedNumbers.map(num => {
             const w = wardrobeItems[num - 1];
             return { id: w.id, name: w.name, imageUri: w.image_url || null, category: w.category, color: w.color || '' };
           });
+          console.log(`[DFY] Day ${i + 1}: selectedItems=${JSON.stringify(selectedItems.map(it => it.id))}`);
           return {
             id: `outfit-${i + 1}`,
             dayNumber: i + 1,
@@ -1876,6 +1882,11 @@ Respond ONLY with a valid JSON array of exactly ${outfitCount} objects. No markd
         const dateStr = outfitDate.toISOString().split('T')[0]; // YYYY-MM-DD
         
         const itemIds = outfit.items.map(item => item.id).filter(Boolean);
+        console.log(`[DFY] Outfit ${outfit.dayNumber}: items count=${outfit.items.length}, itemIds=${JSON.stringify(itemIds)}`);
+        
+        if (outfit.items.length > 0 && itemIds.length === 0) {
+          console.warn(`[DFY] WARNING: Outfit ${outfit.dayNumber} has items but no IDs! First item:`, outfit.items[0]);
+        }
         
         await pool.query(
           `INSERT INTO outfit_calendar (user_id, date, item_ids, event_name, event_type, notes)
