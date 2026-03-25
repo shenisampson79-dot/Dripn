@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { StyleSheet, View, Pressable, Animated, ActivityIndicator, Platform, ScrollView } from "react-native";
+import { StyleSheet, View, Text, Pressable, Animated, ActivityIndicator, Platform, ScrollView } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -373,6 +373,25 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
     }
   };
 
+  // Helper to parse markdown bold text
+  const renderMarkdownText = (text: string, textColor: string) => {
+    const parts = text.split(/(\*\*[^*]+\*\*)/);
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <Text key={index} style={{ fontWeight: '700', color: textColor }}>
+            {part.slice(2, -2)}
+          </Text>
+        );
+      }
+      return (
+        <Text key={index} style={{ color: textColor }}>
+          {part}
+        </Text>
+      );
+    });
+  };
+
   const renderMessage = (message: VoiceMessage) => {
     const isUser = message.role === "user";
     
@@ -409,7 +428,7 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
               { color: isUser ? "#FFFFFF" : theme.text },
             ]}
           >
-            {message.text}
+            {renderMarkdownText(message.text, isUser ? "#FFFFFF" : theme.text)}
           </ThemedText>
         </View>
         

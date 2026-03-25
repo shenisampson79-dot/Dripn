@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   View,
+  Text,
   Pressable,
   TextInput,
   Image,
@@ -1514,6 +1515,25 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     </View>
   );
 
+  // Helper to parse markdown bold text
+  const renderMarkdownText = (text: string) => {
+    const parts = text.split(/(\*\*[^*]+\*\*)/);
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <Text key={index} style={{ fontWeight: '700' }}>
+            {part.slice(2, -2)}
+          </Text>
+        );
+      }
+      return (
+        <Text key={index}>
+          {part}
+        </Text>
+      );
+    });
+  };
+
   const renderResponse = () => (
     <View style={styles.stepContent}>
       <View style={styles.stylistAvatarContainer}>
@@ -1543,11 +1563,11 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
 
       <View style={styles.responseCard}>
         <ThemedText type="body" style={styles.responseText}>
-          {response?.recommendation}
+          {response?.recommendation && renderMarkdownText(response.recommendation)}
         </ThemedText>
         {response?.reasoning ? (
           <ThemedText style={styles.reasoningText}>
-            {response.reasoning}
+            {renderMarkdownText(response.reasoning)}
           </ThemedText>
         ) : null}
       </View>

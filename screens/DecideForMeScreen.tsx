@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { StyleSheet, View, Pressable, ActivityIndicator, TextInput, Alert, Platform, Image, ScrollView, Keyboard } from "react-native";
+import { StyleSheet, View, Text, Pressable, ActivityIndicator, TextInput, Alert, Platform, Image, ScrollView, Keyboard } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -1016,6 +1016,25 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     </Animated.View>
   );
 
+  // Helper to parse markdown bold text
+  const renderMarkdownText = (text: string) => {
+    const parts = text.split(/(\*\*[^*]+\*\*)/);
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <Text key={index} style={{ fontWeight: '700' }}>
+            {part.slice(2, -2)}
+          </Text>
+        );
+      }
+      return (
+        <Text key={index}>
+          {part}
+        </Text>
+      );
+    });
+  };
+
   const renderResultStep = () => (
     <Animated.View entering={FadeIn} style={styles.resultContainer} pointerEvents="box-none">
       <Animated.View entering={FadeInDown.delay(100)} style={styles.outfitRecommendationCard}>
@@ -1039,7 +1058,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           
           <View style={styles.recommendationCardBody}>
             <ThemedText type="body" style={[styles.recommendationCardText, { color: LuxuryColors.obsidian }]}>
-              {recommendation?.outfit}
+              {recommendation?.outfit && renderMarkdownText(recommendation.outfit)}
             </ThemedText>
           </View>
           
@@ -1047,7 +1066,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             <View style={[styles.recommendationReasoningSection, { backgroundColor: 'rgba(74, 52, 40, 0.1)' }]}>
               <Feather name="info" size={14} color="rgba(74, 52, 40, 0.7)" />
               <ThemedText type="small" style={[styles.recommendationReasoningText, { color: 'rgba(74, 52, 40, 0.85)' }]}>
-                {recommendation.reasoning}
+                {renderMarkdownText(recommendation.reasoning)}
               </ThemedText>
             </View>
           ) : null}

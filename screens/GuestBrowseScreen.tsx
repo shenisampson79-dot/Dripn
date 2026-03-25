@@ -339,6 +339,25 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     );
   };
 
+  // Helper to parse markdown bold text
+  const renderMarkdownText = (text: string, textColor: string) => {
+    const parts = text.split(/(\*\*[^*]+\*\*)/);
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <Text key={index} style={{ fontWeight: '700', color: textColor }}>
+            {part.slice(2, -2)}
+          </Text>
+        );
+      }
+      return (
+        <Text key={index} style={{ color: textColor }}>
+          {part}
+        </Text>
+      );
+    });
+  };
+
   const renderFormattedContent = (text: string, textColor: string) => {
     const lines = text.split('\n');
     return (
@@ -356,7 +375,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
           }
           return (
             <Text key={i} style={{ fontSize: 15, color: textColor, lineHeight: 22 }}>
-              {line}
+              {renderMarkdownText(line, textColor)}
             </Text>
           );
         })}
