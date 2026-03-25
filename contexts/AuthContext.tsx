@@ -451,9 +451,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userData.id) {
         const { id, email, ...profileData } = userData as any;
         try {
-          console.log('[Auth] Syncing profile with hasSeenTour:', profileData.hasSeenTour);
           await apiService.syncProfile(profileData);
-          console.log('[Auth] Profile synced successfully with hasSeenTour:', profileData.hasSeenTour);
         } catch (syncErr) {
           console.error('Failed to sync profile to backend (non-fatal):', syncErr);
           // Continue even if sync fails — local AsyncStorage is source of truth

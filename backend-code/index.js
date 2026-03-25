@@ -825,10 +825,6 @@ app.put('/api/auth/profile/sync', authMiddleware, async (req, res) => {
     const { profileData } = req.body;
     if (!profileData) return res.status(400).json({ error: 'profileData is required' });
 
-    console.log('[Auth] Profile sync received for user', req.userId);
-    console.log('[Auth] hasSeenTour in sync:', profileData.hasSeenTour);
-    console.log('[Auth] hasCompletedOnboarding in sync:', profileData.hasCompletedOnboarding);
-
     const now = new Date();
     // If profileData contains hasCompletedOnboarding = true, set the timestamp
     const shouldSetOnboardingTime = profileData.hasCompletedOnboarding === true;
@@ -842,7 +838,6 @@ app.put('/api/auth/profile/sync', authMiddleware, async (req, res) => {
       [JSON.stringify(profileData), now, req.userId]
     );
 
-    console.log('[Auth] Profile sync completed. hasSeenTour stored:', profileData.hasSeenTour);
     res.json({ success: true });
   } catch (error) {
     console.error('[Auth] Profile sync error:', error);
@@ -1715,18 +1710,13 @@ Respond ONLY with a valid JSON array of exactly ${outfitCount} objects. No markd
       if (Array.isArray(parsed) && parsed.length >= outfitCount * 0.8) {
         outfits = parsed.slice(0, outfitCount).map((outfit, i) => {
           const seq = occasionSequence[i] || occasionSequence[0];
-          const rawNumbers = outfit.selectedItemNumbers || [];
-          console.log(`[DFY] Day ${i + 1}: rawNumbers=${JSON.stringify(rawNumbers)}, type=${typeof rawNumbers}`);
-          
-          const selectedNumbers = rawNumbers
+          const selectedNumbers = (outfit.selectedItemNumbers || [])
             .filter(n => typeof n === 'number' && n > 0 && n <= wardrobeItems.length);
-          console.log(`[DFY] Day ${i + 1}: filtered selectedNumbers=${JSON.stringify(selectedNumbers)}, wardrobeItems.length=${wardrobeItems.length}`);
           
           const selectedItems = selectedNumbers.map(num => {
             const w = wardrobeItems[num - 1];
             return { id: w.id, name: w.name, imageUri: w.image_url || null, category: w.category, color: w.color || '' };
           });
-          console.log(`[DFY] Day ${i + 1}: selectedItems=${JSON.stringify(selectedItems.map(it => it.id))}`);
           return {
             id: `outfit-${i + 1}`,
             dayNumber: i + 1,
@@ -1882,11 +1872,6 @@ Respond ONLY with a valid JSON array of exactly ${outfitCount} objects. No markd
         const dateStr = outfitDate.toISOString().split('T')[0]; // YYYY-MM-DD
         
         const itemIds = outfit.items.map(item => item.id).filter(Boolean);
-        console.log(`[DFY] Outfit ${outfit.dayNumber}: items count=${outfit.items.length}, itemIds=${JSON.stringify(itemIds)}`);
-        
-        if (outfit.items.length > 0 && itemIds.length === 0) {
-          console.warn(`[DFY] WARNING: Outfit ${outfit.dayNumber} has items but no IDs! First item:`, outfit.items[0]);
-        }
         
         await pool.query(
           `INSERT INTO outfit_calendar (user_id, date, item_ids, event_name, event_type, notes)
@@ -9599,10 +9584,6 @@ app.get('/api/outfit-calendar/range', authMiddleware, async (req, res) => {
         wasWorn: row.was_worn,
       };
     });
-    console.log(`[OutfitCalendar] Found ${outfits.length} outfits in range`);
-    if (outfits.length > 0) {
-      console.log(`[OutfitCalendar] Sample outfit itemIds:`, outfits[0].itemIds);
-    }
     res.json({ success: true, outfits });
   } catch (error) {
     console.error('[OutfitCalendar] GET /range error:', error);
