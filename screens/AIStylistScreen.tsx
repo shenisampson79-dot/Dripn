@@ -28,6 +28,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import Animated, {
   FadeIn,
   FadeInUp,
@@ -111,6 +112,7 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  imageUri?: string;
   voiceMessage?: VoiceMessage;
   outfitSuggestion?: {
     items: WardrobeItem[];
@@ -1117,6 +1119,7 @@ export default function AIStylistScreen() {
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [messagesToday, setMessagesToday] = useState(0);
   const [limitsLoaded, setLimitsLoaded] = useState(false);
@@ -1662,6 +1665,29 @@ export default function AIStylistScreen() {
     }
   };
   
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow access to your photos to send images to Ruby');
+        return;
+      }
+      
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 5],
+        quality: 0.7,
+      });
+      
+      if (!result.cancelled && result.assets && result.assets[0]) {
+        setSelectedImageUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log('Image picker error:', error);
+    }
+  };
+
   const incrementDailyMessages = async () => {
     try {
       const today = new Date().toDateString();
@@ -1695,11 +1721,13 @@ export default function AIStylistScreen() {
       role: 'user',
       content: text.trim(),
       timestamp: new Date().toISOString(),
+      imageUri: selectedImageUri || undefined,
     };
     
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInputText('');
+    setSelectedImageUri(null);
     setShowQuickPrompts(false);
     setIsTyping(true);
     
@@ -1961,6 +1989,14 @@ export default function AIStylistScreen() {
           >
             {renderMarkdownText(item.content)}
           </ThemedText>
+          
+          {item.imageUri && (
+            <Image
+              source={{ uri: item.imageUri }}
+              style={[styles.messageImage, { marginTop: Spacing.md }]}
+              resizeMode="cover"
+            />
+          )}
           
           {item.outfitSuggestion && item.outfitSuggestion.items.length > 0 ? (
             <View style={styles.outfitSuggestionContainer}>
@@ -2416,6 +2452,21 @@ export default function AIStylistScreen() {
             </Pressable>
           </View>
         ) : null}
+        {selectedImageUri ? (
+          <View style={[styles.selectedImagePreview, { backgroundColor: theme.backgroundSecondary }]}>
+            <Image
+              source={{ uri: selectedImageUri }}
+              style={styles.selectedImage}
+              resizeMode="cover"
+            />
+            <Pressable
+              onPress={() => setSelectedImageUri(null)}
+              style={styles.removeImageButton}
+            >
+              <Feather name="x" size={16} color="#FFFFFF" />
+            </Pressable>
+          </View>
+        ) : null}
         <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundSecondary }]}>
           <Pressable
             onPress={startRecording}
@@ -2432,6 +2483,25 @@ export default function AIStylistScreen() {
           >
             <Feather
               name="mic"
+              size={18}
+              color={!limitReached && !isTyping ? '#FFFFFF' : theme.tabIconDefault}
+            />
+          </Pressable>
+          <Pressable
+            onPress={pickImage}
+            disabled={limitReached || isTyping}
+            style={({ pressed }) => [
+              styles.photoButton,
+              {
+                backgroundColor: !limitReached && !isTyping
+                  ? stylist.color
+                  : theme.backgroundTertiary,
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <Feather
+              name="image"
               size={18}
               color={!limitReached && !isTyping ? '#FFFFFF' : theme.tabIconDefault}
             />
@@ -2748,6 +2818,11 @@ const styles = StyleSheet.create({
     ...Typography.body,
     lineHeight: 22,
   },
+  messageImage: {
+    width: 200,
+    height: 250,
+    borderRadius: BorderRadius.md,
+  },
   outfitSuggestionContainer: {
     marginTop: Spacing.md,
   },
@@ -2895,6 +2970,38 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  photoButton: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  selectedImagePreview: {
+    position: 'relative',
+    width: 100,
+    height: 100,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  selectedImage: {
+    width: '100%',
+    height: '100%',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   recordingContainer: {
     flexDirection: 'row',

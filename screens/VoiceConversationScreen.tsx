@@ -4,12 +4,13 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { StyleSheet, View, Text, Pressable, Animated, ActivityIndicator, Platform, ScrollView } from "react-native";
+import { StyleSheet, View, Text, Pressable, Animated, ActivityIndicator, Platform, ScrollView, Image, Alert } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
+import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -35,6 +36,7 @@ interface VoiceMessage {
   role: "user" | "stylist";
   text: string;
   timestamp: Date;
+  imageUri?: string;
 }
 
 const RUBY_RESPONSES = [
@@ -85,6 +87,7 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
 
   const [conversationState, setConversationState] = useState<ConversationState>("idle");
   const [messages, setMessages] = useState<VoiceMessage[]>([]);
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [currentTranscript, setCurrentTranscript] = useState("");
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -133,6 +136,29 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
       waveAnim.setValue(0);
     }
   }, [conversationState, pulseAnim, waveAnim]);
+
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow access to your photos');
+        return;
+      }
+      
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 5],
+        quality: 0.7,
+      });
+      
+      if (!result.cancelled && result.assets && result.assets[0]) {
+        setSelectedImageUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log('Image picker error:', error);
+    }
+  };
 
   const checkPermissions = async () => {
     try {
@@ -430,6 +456,14 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
           >
             {renderMarkdownText(message.text, isUser ? "#FFFFFF" : theme.text)}
           </ThemedText>
+          
+          {message.imageUri && (
+            <Image
+              source={{ uri: message.imageUri }}
+              style={[styles.messageImage, { marginTop: Spacing.md }]}
+              resizeMode="cover"
+            />
+          )}
         </View>
         
         {isUser ? (
@@ -629,7 +663,26 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
             {conversationState === "speaking" && `${stylistName} is speaking...`}
           </ThemedText>
           
-          {renderVoiceButton()}
+          <View style={{ flexDirection: 'row', gap: Spacing.md, justifyContent: 'center', alignItems: 'center' }}>
+            {renderVoiceButton()}
+            <Pressable
+              onPress={pickImage}
+              disabled={conversationState !== 'idle'}
+              style={({ pressed }) => [
+                styles.photoButton,
+                {
+                  backgroundColor: conversationState === 'idle' ? gradientColors[0] : theme.backgroundTertiary,
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
+            >
+              <Feather
+                name="image"
+                size={20}
+                color={conversationState === 'idle' ? '#FFFFFF' : theme.tabIconDefault}
+              />
+            </Pressable>
+          </View>
 
           <View style={styles.tipsRow}>
             <Feather name="info" size={14} color={theme.tabIconDefault} />
@@ -837,6 +890,18 @@ const styles = StyleSheet.create({
   },
   messageText: {
     lineHeight: 22,
+  },
+  messageImage: {
+    width: 200,
+    height: 250,
+    borderRadius: BorderRadius.md,
+  },
+  photoButton: {
+    width: 50,
+    height: 50,
+    borderRadius: BorderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   transcriptContainer: {
     paddingHorizontal: Spacing.md,
