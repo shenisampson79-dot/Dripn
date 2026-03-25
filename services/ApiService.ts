@@ -3138,6 +3138,25 @@ class ApiService {
     });
   }
 
+  // Check outfit compatibility with occasion-specific rules
+  async checkOutfitCompatibility(data: {
+    items: string[];
+    stylistId: string;
+    occasion: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      score: number;
+      verdict: string;
+      analysis: string;
+      flags: string[];
+      bonuses: string[];
+    }>('/api/dfy/core/wardrobe/compatibility', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Outfit Calendar CRUD
   async getOutfitCalendarEntry(id: string) {
     return this.request<{
