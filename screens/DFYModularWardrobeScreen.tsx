@@ -22,6 +22,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWardrobe, WardrobeItem, ClothingCategory, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
 import { useScreenInsets } from "@/hooks/useScreenInsets";
+import apiService from "@/services/ApiService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const ITEM_SIZE = 100;
@@ -137,27 +138,33 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
     calculateCompatibility();
   };
 
-  const calculateCompatibility = () => {
+  const calculateCompatibility = async () => {
     const selected = Object.values(selectedItems).filter(Boolean) as WardrobeItem[];
     if (selected.length < 2) {
       setCompatibilityScore(null);
       return;
     }
 
-    const colors = selected.map(item => item.color);
-    const uniqueColors = new Set(colors);
-    const colorHarmony = uniqueColors.size <= 3 ? 1 : 0.7;
+    try {
+      // Get item IDs for the selected items
+      const itemIds = selected.map(item => item.id);
+      
+      // Call backend to check compatibility using 20-rule system
+      const result = await apiService.checkOutfitCompatibility({
+        items: itemIds,
+        stylistId: 'ruby',
+        occasion: 'casual_day', // Default occasion for modular wardrobe
+      });
 
-    const occasions = selected.flatMap(item => item.occasions);
-    const commonOccasions = occasions.filter((o, i) => occasions.indexOf(o) !== i);
-    const occasionMatch = commonOccasions.length > 0 ? 1 : 0.5;
-
-    const seasons = selected.flatMap(item => item.seasons);
-    const commonSeasons = seasons.filter((s, i) => seasons.indexOf(s) !== i);
-    const seasonMatch = commonSeasons.length > 0 ? 1 : 0.6;
-
-    const score = Math.round(((colorHarmony + occasionMatch + seasonMatch) / 3) * 100);
-    setCompatibilityScore(score);
+      if (result.success && result.score !== undefined) {
+        setCompatibilityScore(Math.round(result.score));
+      } else {
+        setCompatibilityScore(null);
+      }
+    } catch (error) {
+      console.error('Failed to calculate compatibility:', error);
+      setCompatibilityScore(null);
+    }
   };
 
   const handleViewOutfit = () => {
