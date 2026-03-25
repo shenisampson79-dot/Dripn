@@ -180,14 +180,12 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
   const handleRegenerateCalendar = async () => {
     try {
       setLoadingAll(true);
-      // Force regeneration by calling the endpoint
-      await fetch(`${apiService.baseURL}/api/dfy/generate-delivery`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await apiService.getToken()}` },
-        body: JSON.stringify({ tier, stylistId: 'ruby' }),
-      });
+      // Generate new outfits via the API
+      await apiService.generateDFYDelivery({ tier: tier as 'lite' | 'core', stylistId: 'ruby' });
       // Re-fetch after generation
-      const result = await apiService.getCalendarOutfitsForRange(startDate, new Date(startDate.getTime() + totalDays * 24 * 60 * 60 * 1000));
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + totalDays);
+      const result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
       if (result.success && result.outfits && result.outfits.length > 0) {
         const mapped: DFYCalendarOutfit[] = result.outfits.map(outfit => ({
           id: outfit.id,
@@ -200,6 +198,8 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
           itemIds: outfit.itemIds || [],
         }));
         setCalendarOutfits(mapped);
+        // Reset selected outfit
+        setSelectedOutfit(null);
       }
     } catch (err) {
       console.error('Failed to regenerate calendar:', err);
