@@ -176,6 +176,38 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
 
+  // Regenerate calendar
+  const handleRegenerateCalendar = async () => {
+    try {
+      setLoadingAll(true);
+      // Force regeneration by calling the endpoint
+      await fetch(`${apiService.baseURL}/api/dfy/generate-delivery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await apiService.getToken()}` },
+        body: JSON.stringify({ tier, stylistId: 'ruby' }),
+      });
+      // Re-fetch after generation
+      const result = await apiService.getCalendarOutfitsForRange(startDate, new Date(startDate.getTime() + totalDays * 24 * 60 * 60 * 1000));
+      if (result.success && result.outfits && result.outfits.length > 0) {
+        const mapped: DFYCalendarOutfit[] = result.outfits.map(outfit => ({
+          id: outfit.id,
+          date: outfit.date,
+          title: outfit.eventName || 'Curated Outfit',
+          stylistNote: outfit.notes || '',
+          stylistId: 'ruby' as StylistId,
+          wasWorn: outfit.wasWorn,
+          alternativesCount: 0,
+          itemIds: outfit.itemIds || [],
+        }));
+        setCalendarOutfits(mapped);
+      }
+    } catch (err) {
+      console.error('Failed to regenerate calendar:', err);
+    } finally {
+      setLoadingAll(false);
+    }
+  };
+
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
@@ -527,7 +559,13 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
             {tier === 'lite' ? 'Outfit-Based Setup' : 'Core Wardrobe Setup'}
           </ThemedText>
         </View>
-        <View style={{ width: 40 }} />
+        <Pressable 
+          onPress={handleRegenerateCalendar} 
+          disabled={loadingAll}
+          style={[styles.backButton, { opacity: loadingAll ? 0.5 : 1 }]}
+        >
+          <Feather name="rotate-cw" size={20} color="#FFFFFF" />
+        </Pressable>
       </View>
 
       <View style={styles.viewToggle}>
