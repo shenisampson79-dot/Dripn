@@ -9,7 +9,7 @@ const { analyzeUserStyleProfile, generatePersonalizedStyleOfTheDay, generatePers
 const { scanEmergingFashionTrends, scanViralFashionMoments, predictNextBigTrend, getRegionalTrendInsights } = require('./trendScannerService');
 const { sendPushNotification, sendBatchPushNotifications, processEventReminders } = require('./pushNotificationService');
 const colorTrendService = require('./colorTrendService');
-const { generateStylistResponse, detectMood, performComplexAnalysis, getAvailableAnalysisTypes, getBestReasoningModel, COMPREHENSIVE_FASHION_INTELLIGENCE, TWENTY_RULE_OUTFIT_FRAMEWORK, OCCASION_SPECIFIC_RULES } = require('./aiStylistService');
+const { generateStylistResponse, detectMood, performComplexAnalysis, getAvailableAnalysisTypes, getBestReasoningModel, COMPREHENSIVE_FASHION_INTELLIGENCE, TWENTY_RULE_OUTFIT_FRAMEWORK, OCCASION_SPECIFIC_RULES, GENDER_AWARE_STYLING_RULES } = require('./aiStylistService');
 const { getBestModel, getModelStatus, refreshAllModels, performHealthCheck, checkForNewModels } = require('./modelLifecycleService');
 const { analyzeOutfitPhoto, compareOutfits, extractColorsFromPhoto, analyzeGarmentItem } = require('./visionAnalysisService');
 const { transcribeAudio, synthesizeSpeech, processVoiceMessage, createVoiceResponse, getAllVoices, generateVoicePreview, getSupportedLanguages } = require('./voiceService');
@@ -1484,11 +1484,16 @@ app.post('/api/dfy/core/wardrobe/compatibility', authMiddleware, async (req, res
       model: chatModel,
       messages: [{
         role: 'user',
-        content: `You are a world-class fashion stylist applying the strict 20-rule outfit framework WITH occasion-specific deep rules. Analyse this outfit honestly. Do NOT give high scores to poor combinations.
+        content: `You are a world-class fashion stylist. Analyse this outfit honestly using all three rule layers below — gender rules first, then occasion rules, then the 20-rule base framework. Do NOT give high scores to poor combinations. Honesty builds user trust.
 
-${TWENTY_RULE_OUTFIT_FRAMEWORK}
+LAYER 1 — GENDER-SPECIFIC RULES (apply first, sets the correct formality tier scale for this user):
+${GENDER_AWARE_STYLING_RULES}
 
+LAYER 2 — OCCASION-SPECIFIC RULES (apply second, determines formality weight and occasion sub-rules):
 ${OCCASION_SPECIFIC_RULES}
+
+LAYER 3 — 20-RULE BASE FRAMEWORK (apply last, on top of the gender-scaled tiers):
+${TWENTY_RULE_OUTFIT_FRAMEWORK}
 
 USER PROFILE:
 - Gender: ${gender}
@@ -1500,24 +1505,25 @@ USER PROFILE:
 OUTFIT ITEMS:
 ${itemDescriptions}
 
-INSTRUCTIONS:
-1. Identify the occasion (${occasion}) and find its formality weight from the occasion table.
-2. Apply that formality weight multiplier to Rules 1-4 deductions.
-3. Check ALL applicable occasion sub-rules (e.g. if occasion is job_interview, apply I1-I6; if wedding_guest, apply W1-W6, etc.).
-4. Apply all 20 base rules on top.
-5. A football jersey + tie ALWAYS scores 0-19. Honesty builds trust.
+SCORING INSTRUCTIONS:
+1. Use the GENDER-SPECIFIC formality tier scale for this user (e.g. women's Tier 3 = tailored trousers, pencil skirt, blouse — NOT a suit and tie).
+2. Identify the occasion (${occasion}), find its formality weight, apply gender-specific occasion sub-rules.
+3. Check any Rule 1-4 hard violations with the gender-appropriate formality weight multiplier.
+4. Apply remaining 20 base rules.
+5. A sports bra + leggings on a woman at the gym is NOT a formality violation. A football jersey + tie ALWAYS scores 0-19.
+6. Be honest — never inflate scores to avoid upsetting the user.
 
 Respond ONLY with valid JSON:
 {
   "score": 0-100,
   "verdict": "one of: Editorial perfection / Excellent / Good / Acceptable / Needs work / Poor pairing / Do not wear together",
-  "analysis": "2-3 sentence honest analysis referencing both the base rules and occasion-specific rules applied",
-  "hardRuleViolations": ["list any Rule 1-4 or occasion sub-rule violations, or empty array if none"],
-  "improvements": ["1-3 specific actionable improvements for this occasion, or empty array if outfit is strong"],
-  "occasionRulesApplied": "brief note on which occasion category was matched and the formality weight used"
+  "analysis": "2-3 sentence honest analysis using gender-appropriate language and referencing which rules were applied",
+  "hardRuleViolations": ["list any Rule 1-4 or occasion/gender sub-rule violations, or empty array if none"],
+  "improvements": ["1-3 specific actionable improvements for this occasion and gender, or empty array if outfit is strong"],
+  "occasionRulesApplied": "e.g. Women / Job Interview — Formality Weight ×2.0, sub-rules I1-I6 + WS1-WS7 applied"
 }`
       }],
-      max_completion_tokens: 700,
+      max_completion_tokens: 900,
       temperature: 0.3,
     });
 

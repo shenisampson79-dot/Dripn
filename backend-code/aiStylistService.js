@@ -97,6 +97,56 @@ const MODELS_LIST_CACHE_DURATION_MS = 60 * 60 * 1000;
 // ─── OCCASION-SPECIFIC DEEP RULES ─────────────────────────────────────────────
 // 5+ sub-rules per occasion, each with its own formality weight multiplier.
 // These supplement the 20-Rule Framework — apply when occasion context is known.
+const GENDER_AWARE_STYLING_RULES = `
+GENDER-SPECIFIC STYLING INTELLIGENCE (always active — apply based on user's stated gender):
+
+CRITICAL PRINCIPLE: Evaluate items against the wardrobe conventions of the user's gender. A sports bra + leggings on a woman is standard gym wear (not a formality violation). A sports bra + leggings on a man signals a different style context entirely. Always apply rules through the lens of gender-appropriate norms for the user's identity.
+
+──────────────────────────────
+FOR WOMEN (gender: woman / female):
+──────────────────────────────
+Garment Formality Tiers (women's scale — use INSTEAD of male-coded examples):
+  Tier 1 (Casual/Loungewear): Leggings, joggers, oversized hoodies, pyjama sets, casual jersey dresses
+  Tier 2 (Smart-Casual): Dark jeans, midi skirts, wrap dresses, casual blazers, fitted knits, smart trainers
+  Tier 3 (Business-Casual): Tailored trousers, pencil skirts, shirt dresses, structured blouses, pointed-toe flats or block heels
+  Tier 4 (Business-Formal): Trouser suits, tailored blazer + midi skirt, formal sheath dresses, kitten heels or court shoes
+  Tier 5 (Black-Tie/Formal): Floor-length gowns, cocktail dresses, evening jumpsuits, formal heels
+
+Women-Specific Rules:
+  WS1 — Heel Height is Context-Dependent: Stilettos at a casual brunch = -5. Block heels or kitten heels work across Tier 2-4. Flats are appropriate at all tiers if polished. Never penalise flat shoes as under-dressed.
+  WS2 — Dress & Skirt Formality: Midi length = versatile across Tier 2-4. Mini = Tier 1-2 (deduct if worn to Tier 4+ occasions). Maxi = Tier 2-5 depending on fabric and cut.
+  WS3 — Décolletage & Neckline: Deep V-necks or low-cut tops at formal work settings = deduct 10. Appropriate for evenings/dates = no deduction. Never apply a moral judgement — only a formality judgement.
+  WS4 — Leggings as Bottom: Leggings worn as casual bottoms (with an oversized knit or longline top) = Tier 1-2. Leggings as gym wear = standard (no penalty). Leggings as office trousers without coverage = deduct 15.
+  WS5 — Sports Bra in Gym Context: Sports bra + leggings = entirely appropriate for gym. Never flag this as a formality violation in gym/activewear context.
+  WS6 — Co-ord Sets: Matching co-ord sets (top + skirt, blazer + trousers) = +5 bonus for intentional, pulled-together look.
+  WS7 — Jumpsuit/Playsuit: Jumpsuits are a valid alternative to dresses across all formality tiers. Judge by fabric and cut, not garment type.
+
+──────────────────────────────
+FOR MEN (gender: man / male):
+──────────────────────────────
+Garment Formality Tiers (men's scale):
+  Tier 1 (Casual/Loungewear): Joggers, hoodies, oversized tees, casual shorts, gym kit
+  Tier 2 (Smart-Casual): Dark jeans, chinos, OCBD shirts, polo shirts, clean trainers, casual blazers
+  Tier 3 (Business-Casual): Tailored trousers, formal chinos, dress shirts (open collar), smart loafers or brogues
+  Tier 4 (Business-Formal): Full suit (jacket + matching trousers), dress shirt + tie, Oxford shoes or Derby shoes
+  Tier 5 (Black-Tie/Formal): Tuxedo, black bow tie, formal dress shirt, patent Oxford shoes
+
+Men-Specific Rules:
+  MS1 — Tie Logic (strict): Ties ONLY with formal dress shirt collars (spread, point, cutaway). Tie with polo, crew-neck tee, or T-shirt = Rule 1 violation (cap 0-19).
+  MS2 — Suit Splitting: Wearing a suit jacket with non-matching trousers = intentional and acceptable IF both are well-fitted and similar formality. Cheap-looking mix = deduct 10.
+  MS3 — Sock Visibility: Socks visible with shorts or cropped trousers = Tier-dependent. Quirky socks as intentional style at Tier 1-2 = neutral. Odd socks at black-tie = deduct 10.
+  MS4 — Trainers with Suits: White leather or minimalist clean trainers with a suit = trend-forward (score as intentional). Athletic trainers with a suit = Rule 4 violation.
+  MS5 — Shorts in Formal Contexts: Tailored shorts at smart-casual events = Tier 2. Shorts at business-formal or above = deduct 20.
+  MS6 — Layering Shirt Under Knitwear: Shirt collar visible above a crew-neck sweater = classic, +3. Casual tee under a blazer = smart-casual and acceptable at Tier 2.
+
+──────────────────────────────
+FOR NON-BINARY / GENDER-FLUID (gender: non-binary / other / prefer not to say):
+──────────────────────────────
+  NB1 — Apply formality tiers based on garment construction, not gender. A structured blazer is formal regardless of whose wardrobe it comes from.
+  NB2 — Never penalise gender-crossing garments. Score purely on formality coherence, colour harmony, and occasion fit.
+  NB3 — Give a +5 intentionality bonus when a gender-fluid look appears intentional and cohesive.
+`;
+
 const OCCASION_SPECIFIC_RULES = `
 OCCASION-SPECIFIC DEEP RULES (supplement the 20-rule framework when occasion is known):
 
@@ -112,70 +162,132 @@ Each occasion has a FORMALITY WEIGHT that multiplies how hard Rules 1-4 are appl
 ────────────────────────────────────────────────
 OCCASION: JOB INTERVIEW / BOARD MEETING
 ────────────────────────────────────────────────
-Formality Weight ×2.0. Violations in this context carry double penalties.
+Formality Weight ×2.0. Violations carry double penalties.
 
-Sub-Rule I1 — Conservative Colour Required: Stick to navy, charcoal, black, white, grey, or muted tones. Neon, bright red, or flashy prints = deduct 20. Pastels acceptable in creative industries only.
-Sub-Rule I2 — Clean & Pressed Standard: Distressed denim, oversized hoodies, graphic tees, or wrinkled items = deduct 15 each. Outfit must convey effort and intentionality.
-Sub-Rule I3 — Minimal Accessories: One statement piece maximum (watch, subtle lapel pin, simple necklace). Multiple loud accessories = deduct 10 per item over limit.
-Sub-Rule I4 — Closed-Toe Polished Shoes Required: Open-toe shoes, trainers, or worn-down soles = deduct 20 for formal roles. Acceptable in creative/tech startups = deduct 5 only.
-Sub-Rule I5 — Industry Context Modifier: Finance, law, medicine, government = strict formal. Tech, design, media = business-casual acceptable. Retail, hospitality = smart-casual acceptable. Grade accordingly.
-Sub-Rule I6 — No Activewear or Loungewear of Any Kind: Leggings, gym shorts, hoodies, joggers = cap score at 15 regardless of other factors.
+Sub-Rule I1 — Conservative Colour Required: Stick to navy, charcoal, black, white, grey, or muted tones. Neon, bright red, flashy prints = deduct 20. Pastels in creative industries only.
+Sub-Rule I2 — Clean & Pressed Standard: Distressed denim, graphic tees, wrinkled items = deduct 15 each. Outfit must convey effort.
+Sub-Rule I3 — Minimal Accessories: One statement piece max. Multiple loud accessories = deduct 10 per item over limit.
+Sub-Rule I4 — Polished Closed-Toe Shoes: Open-toe sandals, trainers = deduct 20 for formal roles; deduct 5 for creative/tech.
+Sub-Rule I5 — Industry Context Modifier: Finance/law/medicine = strict Tier 4. Tech/design/media = Tier 3 acceptable. Hospitality/retail = Tier 2-3.
+Sub-Rule I6 — No Activewear or Loungewear: Gym kit, hoodies, joggers = cap at 15.
+
+  FOR WOMEN specifically:
+    • Power suit, tailored trouser suit, blazer + midi skirt, or formal sheath dress = ideal (Tier 3-4).
+    • Blouse must be structured — silk, chiffon, or tailored cotton. Sheer without lining = deduct 10 for Tier 4+.
+    • Block heels, court shoes, or pointed-toe flats = appropriate. Stilettos acceptable; flip-flops/trainers = deduct 20.
+    • Statement necklace or small earrings acceptable — maximalist jewellery = deduct 10.
+    • Skirt length: at or below the knee for Tier 4 interviews. Mini skirts = deduct 15.
+
+  FOR MEN specifically:
+    • Tier 4: Full suit (jacket + matching trousers), plain or subtle-pattern dress shirt, tie for finance/law.
+    • Tier 3: Tailored chinos + blazer + dress shirt (open collar acceptable in tech/creative).
+    • Oxford or Derby shoes — no trainers. Brown or black leather only for Tier 4.
+    • Avoid novelty ties or loud pocket squares for conservative industries.
 
 ────────────────────────────────────────────────
 OCCASION: FIRST DATE
 ────────────────────────────────────────────────
-Formality Weight ×1.5. Balance personal style with approachability.
+Formality Weight ×1.5. Personal style + approachability.
 
-Sub-Rule D1 — Show Your Style: The outfit must reflect genuine personal expression. A generic, safe, or "invisible" look deducts 5. A confident style choice adds +5.
-Sub-Rule D2 — Not Too Casual, Not Too Formal: Full activewear = deduct 20. Black tie on a casual first date = deduct 15. Smart-casual (Tier 2-3) is the sweet spot = +5 bonus.
-Sub-Rule D3 — Comfort is Confidence: Stiff, visibly uncomfortable, or restrictive outfits (too-tight trousers, towering platform shoes) deduct 10. Wearable for 3+ hours = +5.
-Sub-Rule D4 — Flattering Silhouette Bonus: Outfit that suits the user's body type and colour season = +5 bonus.
-Sub-Rule D5 — Signature Detail Rule: One memorable, conversation-worthy piece (interesting texture, a bold colour, unique accessory) = +5. Nothing distinguishing = -3.
-Sub-Rule D6 — Grooming Coherence: Outfit must not visually clash with standard grooming expectations. Messy/casual outfit doesn't work with formal accessories and vice versa.
+Sub-Rule D1 — Show Your Style: Generic or "invisible" look = deduct 5. Confident style choice = +5.
+Sub-Rule D2 — Not Too Casual, Not Too Formal: Full activewear = deduct 20. Black-tie on casual date = deduct 15. Tier 2-3 = sweet spot (+5 bonus).
+Sub-Rule D3 — Comfort is Confidence: Stiff or restricting outfits = deduct 10. Wearable 3+ hours = +5.
+Sub-Rule D4 — Flattering Silhouette Bonus: Suits user's body type and colour season = +5.
+Sub-Rule D5 — Signature Detail: One memorable, conversation-worthy piece = +5. Nothing distinguishing = -3.
+Sub-Rule D6 — Grooming Coherence: Outfit formality must match the implied effort level of the rest of the look.
+
+  FOR WOMEN specifically:
+    • Wrap dress, midi dress, smart jeans + fitted blouse, or a well-tailored jumpsuit = ideal.
+    • Heels optional — block heels or clean trainers score equally if outfit is intentional.
+    • A subtle, feminine accessory (delicate necklace, structured handbag, silk scarf) = +3.
+    • Avoid overly revealing outfits for a casual setting — context-appropriateness scores higher.
+
+  FOR MEN specifically:
+    • Dark jeans or chinos + fitted shirt or smart polo + clean loafers or smart trainers = ideal.
+    • A casual blazer over a T-shirt is a strong smart-casual choice (+5 if well-fitted).
+    • Avoid hoodies, gym shorts, or scruffy trainers.
+    • Watch or minimal jewellery = signature detail bonus.
 
 ────────────────────────────────────────────────
 OCCASION: WEDDING GUEST
 ────────────────────────────────────────────────
 Formality Weight ×1.8. Guest etiquette overrides personal preference.
 
-Sub-Rule W1 — White/Ivory/Cream Ban: ANY outfit primarily white, ivory, or cream = hard cap at 0-20. No exceptions. Always flag this explicitly.
-Sub-Rule W2 — Dress Code Hierarchy: Invitation dress code (black tie, cocktail, garden party, casual) overrides all other rules. Mismatching the dress code = deduct 25.
-Sub-Rule W3 — Cultural Dress Code: Some cultures forbid black (mourning colour) or require specific colours. If user's cultural profile is known, flag potential conflicts.
-Sub-Rule W4 — No Casualwear or Activewear: Jeans (even dark), trainers, athletic wear, distressed items = cap at 25.
-Sub-Rule W5 — Festive Colour Encouraged: Jewel tones, florals, metallics, pastels = +5. Dull, understated, office-grey = -3 (unless black tie context).
-Sub-Rule W6 — Accessory Elevation: Wedding contexts reward elevated accessories. Bare minimum accessories = -5. Well-chosen hat, clutch, or statement jewellery = +5.
+Sub-Rule W1 — White/Ivory/Cream Ban (women): ANY outfit primarily white, ivory, or cream on a woman = hard cap 0-20. No exceptions. Always flag explicitly.
+Sub-Rule W2 — Dress Code Hierarchy: Invitation dress code overrides all other rules. Mismatch = deduct 25.
+Sub-Rule W3 — Cultural Dress Code: Some cultures forbid black. Flag conflicts if cultural profile is known.
+Sub-Rule W4 — No Casualwear or Activewear: Dark jeans, trainers, athletic wear = cap at 25.
+Sub-Rule W5 — Festive Colour Encouraged: Jewel tones, florals, metallics, pastels = +5. Office grey = -3.
+Sub-Rule W6 — Accessory Elevation: Bare minimum accessories = -5. Elevated accessories = +5.
+
+  FOR WOMEN specifically:
+    • Cocktail dress, midi dress, maxi dress, formal pantsuit, or evening jumpsuit = ideal depending on dress code.
+    • Hat or fascinator at traditional UK weddings (morning dress or garden party dress code) = +5.
+    • Stilettos, block heels, or dressy flats all acceptable — bare feet or trainers = deduct 20.
+    • Avoid mini skirts unless the dress code is explicitly casual.
+    • W1 (white ban) applies strictly — even white accessories (bag, shoes) as dominant colour = flag.
+
+  FOR MEN specifically:
+    • Morning dress (top hat, tails, waistcoat) for black-tie or morning formal weddings.
+    • Lounge suit for smart or cocktail dress codes — navy, grey, or mid-blue preferred over black (which reads as funeral in UK/European context).
+    • Pocket square in complementary colour = +3. No pocket square at cocktail+ = -3.
+    • No jeans (even dark), no trainers, no open collars at Tier 4+ weddings.
 
 ────────────────────────────────────────────────
 OCCASION: CASUAL FRIDAY / RELAXED WORK
 ────────────────────────────────────────────────
-Formality Weight ×0.8. Smart-casual range only — not a licence for full casual.
+Formality Weight ×0.8. Smart-casual only — not a licence for full casual.
 
-Sub-Rule CF1 — Smart-Casual Zone: Range must stay between Tier 1.5-2.5 on formality scale. Full suit = overdressed (deduct 10). Full loungewear = underdressed (deduct 20).
-Sub-Rule CF2 — Denim Permission: Denim acceptable ONLY if dark-wash, undistressed, and paired with a smart top and clean footwear. Distressed or light-wash denim = deduct 10.
-Sub-Rule CF3 — Sneaker Rule: Clean, minimalist sneakers acceptable. Athletic performance trainers or muddy/worn sneakers = deduct 10.
-Sub-Rule CF4 — Graphic Tee Moderation: One graphic item maximum. Graphic tee under a blazer = acceptable. Head-to-toe branded casual = deduct 10.
-Sub-Rule CF5 — Polished Finish Required: Even in casual context, outfit must appear intentional and tidy. Wrinkled, mismatched, or visibly worn items = deduct 10.
+Sub-Rule CF1 — Smart-Casual Zone: Must stay Tier 1.5-2.5. Full suit = overdressed (-10). Full loungewear = underdressed (-20).
+Sub-Rule CF2 — Denim Permission: Dark-wash, undistressed only. Distressed or light-wash = deduct 10.
+Sub-Rule CF3 — Sneaker Rule: Clean, minimalist sneakers acceptable. Athletic trainers = deduct 10.
+Sub-Rule CF4 — Graphic Tee Moderation: One graphic item max. Under a blazer = fine. Head-to-toe branded casual = deduct 10.
+Sub-Rule CF5 — Polished Finish: Wrinkled, mismatched, or visibly worn = deduct 10.
+
+  FOR WOMEN specifically:
+    • Dark jeans + smart blouse or structured knit = perfect. Add clean loafers, block heels, or white leather trainers.
+    • Tailored trousers or a midi skirt with a fitted top = equally strong.
+    • A blazer instantly elevates to the right zone for casual Friday = +5.
+    • Avoid leggings-as-trousers without a longline top providing coverage.
+
+  FOR MEN specifically:
+    • Dark jeans or chinos + OCBD shirt or polo. Smart trainers (Nike Air Max, Common Projects aesthetic) or loafers.
+    • A clean, casual blazer or quarter-zip over a shirt = smart casual correctly executed.
+    • Avoid sports shorts, flip-flops, or full gym kit.
 
 ────────────────────────────────────────────────
 OCCASION: GYM / SPORT / ACTIVEWEAR
 ────────────────────────────────────────────────
-Formality Weight ×0.0. Formality rules are suspended. Performance rules replace them.
+Formality Weight ×0.0. Formality rules suspended. Performance rules replace them.
 
-Sub-Rule G1 — Performance Fabric Required: For high-intensity activity, cotton-only outfits = deduct 15 (moisture-trapping, uncomfortable). Moisture-wicking synthetic or blended fabric = +5.
-Sub-Rule G2 — Range of Motion Test: Outfit must support full movement for intended activity. Restrictive waistbands, tight thighs in running shorts, non-stretch tops = deduct 10.
-Sub-Rule G3 — No Formal Pieces Whatsoever: Dress shirts, chinos, blazers, dress shoes = immediate cap at 10. Gym is not a place for fashion crossover unless intentional athleisure.
-Sub-Rule G4 — Colour Coordination Still Applies: Rules 5 and 14 still apply (colour harmony and pattern mixing). Random colour chaos = deduct 10.
-Sub-Rule G5 — Layering for Warm-Up/Cool-Down: A zip-through or hoodie worn over gym kit = +5 (practical, intentional). Mismatched layers with no logic = neutral.
-Sub-Rule G6 — Footwear Match to Activity: Running shoes for running, cross-trainers for HIIT, court shoes for racquet sports. Mismatched sport footwear = deduct 10. Fashion trainers not suited for activity = deduct 5.
+Sub-Rule G1 — Performance Fabric Required: Cotton-only for high-intensity = deduct 15. Moisture-wicking synthetic or blend = +5.
+Sub-Rule G2 — Range of Motion Test: Outfit must support full movement for the activity. Restrictive items = deduct 10.
+Sub-Rule G3 — No Formal Pieces: Dress shirts, chinos, blazers, dress shoes at gym = cap at 10.
+Sub-Rule G4 — Colour Coordination Applies: Rules 5 and 14 still apply. Random colour chaos = deduct 10.
+Sub-Rule G5 — Warm-Up Layering: Zip-through or hoodie over gym kit = +5. Mismatched layers with no logic = neutral.
+Sub-Rule G6 — Footwear Match to Activity: Correct sport shoe for activity. Wrong shoe = deduct 10. Fashion trainers unsuited = deduct 5.
+
+  FOR WOMEN specifically:
+    • Sports bra + leggings = STANDARD gym wear. Never flag as formality violation. Score purely on colour coordination, fabric, and activity appropriateness.
+    • High-waist leggings + crop top = standard and acceptable. Score on execution quality.
+    • Gym dress or athletic shorts + sports top = valid alternatives.
+    • Matching gym set (top + leggings in same print/colour) = intentional (+3 bonus).
+    • Leggings must be squat-proof for gym use — if fabric appears thin, flag as a practical consideration only.
+
+  FOR MEN specifically:
+    • Athletic shorts or joggers + fitted gym tee or tank = standard. Score on fabric and fit.
+    • Compression tights under shorts = functional choice (+3 for performance awareness).
+    • Avoid jeans, chinos, or dress shirts at the gym.
+    • Gym trainers must match activity — running shoes for running, cross-trainers for HIIT.
 
 ────────────────────────────────────────────────
 APPLYING OCCASION RULES IN SCORING:
 ────────────────────────────────────────────────
-1. Identify the occasion from context.
-2. Apply the relevant formality weight to Rules 1-4 (multiply deductions by the weight).
-3. Check all occasion sub-rules and apply their specific bonuses/deductions.
-4. Combine with the base 20-rule score.
-5. In the verdict, explicitly call out which occasion rules were applied and any sub-rule violations.
+1. Check user's gender. Apply the relevant gender formality tier scale.
+2. Identify the occasion. Apply the formality weight multiplier.
+3. Apply gender-specific sub-rules for that occasion.
+4. Apply all 20 base rules using the gender-appropriate tier scale.
+5. In the verdict, call out which gender + occasion rules were applied and any sub-rule violations.
 `;
 
 // ─── 20-RULE OUTFIT COMPATIBILITY FRAMEWORK ─────────────────────────────────
@@ -1341,4 +1453,5 @@ module.exports = {
   COMPREHENSIVE_FASHION_INTELLIGENCE,
   TWENTY_RULE_OUTFIT_FRAMEWORK,
   OCCASION_SPECIFIC_RULES,
+  GENDER_AWARE_STYLING_RULES,
 };
