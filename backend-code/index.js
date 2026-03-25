@@ -825,6 +825,10 @@ app.put('/api/auth/profile/sync', authMiddleware, async (req, res) => {
     const { profileData } = req.body;
     if (!profileData) return res.status(400).json({ error: 'profileData is required' });
 
+    console.log('[Auth] Profile sync received for user', req.userId);
+    console.log('[Auth] hasSeenTour in sync:', profileData.hasSeenTour);
+    console.log('[Auth] hasCompletedOnboarding in sync:', profileData.hasCompletedOnboarding);
+
     const now = new Date();
     // If profileData contains hasCompletedOnboarding = true, set the timestamp
     const shouldSetOnboardingTime = profileData.hasCompletedOnboarding === true;
@@ -838,6 +842,7 @@ app.put('/api/auth/profile/sync', authMiddleware, async (req, res) => {
       [JSON.stringify(profileData), now, req.userId]
     );
 
+    console.log('[Auth] Profile sync completed. hasSeenTour stored:', profileData.hasSeenTour);
     res.json({ success: true });
   } catch (error) {
     console.error('[Auth] Profile sync error:', error);
