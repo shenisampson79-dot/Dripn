@@ -765,7 +765,7 @@ app.post('/api/auth/register', async (req, res) => {
     );
     const user = result.rows[0];
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
-    res.json({ token, user: { id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url } });
+    res.json({ token, user: { id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url, hasCompletedOnboarding: false, hasSeenTour: false, profileData: null } });
   } catch (error) {
     console.error('[Auth] Register error:', error);
     res.status(500).json({ error: 'Registration failed. Please try again.' });
@@ -783,7 +783,8 @@ app.post('/api/auth/login', async (req, res) => {
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
-    res.json({ token, user: { id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url, hasCompletedOnboarding: !!user.onboarding_completed_at, profileData: user.profile_data || null } });
+    const hasSeenTour = user.profile_data?.hasSeenTour ?? false;
+    res.json({ token, user: { id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url, hasCompletedOnboarding: !!user.onboarding_completed_at, hasSeenTour, profileData: user.profile_data || null } });
   } catch (error) {
     console.error('[Auth] Login error:', error);
     res.status(500).json({ error: 'Login failed. Please try again.' });
@@ -796,7 +797,8 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
     const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.userId]);
     const user = result.rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url, bio: user.bio, profileData: user.profile_data || null, hasCompletedOnboarding: !!user.onboarding_completed_at, onboardingCompletedAt: user.onboarding_completed_at || null });
+    const hasSeenTour = user.profile_data?.hasSeenTour ?? false;
+    res.json({ id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url, bio: user.bio, profileData: user.profile_data || null, hasCompletedOnboarding: !!user.onboarding_completed_at, hasSeenTour, onboardingCompletedAt: user.onboarding_completed_at || null });
   } catch (error) {
     console.error('[Auth] Me error:', error);
     res.status(500).json({ error: 'Failed to fetch user' });
