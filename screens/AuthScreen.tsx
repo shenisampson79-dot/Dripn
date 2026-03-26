@@ -8,6 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Google from 'expo-auth-session/providers/google';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import Constants from 'expo-constants';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -95,10 +96,22 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
     }
   }, [googleResponse]);
 
+  // Detect if running inside Expo Go (where Google OAuth redirect won't work)
+  const isExpoGo = Constants.appOwnership === 'expo';
+
   const handleSocialAuth = async (provider: 'google' | 'facebook' | 'apple') => {
     setSocialLoading(provider);
     setErrorMessage(null);
     if (provider === 'google') {
+      if (isExpoGo && Platform.OS !== 'web') {
+        setSocialLoading(null);
+        Alert.alert(
+          'Google Sign-In',
+          'Google Sign-In is available in the full Dripn app. For now, please use your email and password to sign in.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
       await googlePromptAsync();
       return;
     }
