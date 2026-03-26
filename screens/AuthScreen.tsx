@@ -43,10 +43,12 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const isSignup = mode === "signup";
 
   // Google OAuth hook — uses authorization code + PKCE (correct modern flow)
+  const redirectUrl = AuthSession.makeRedirectUri();
   const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
+    redirectUrl,
     scopes: ['openid', 'profile', 'email'],
   });
 
@@ -66,7 +68,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
             // Authorization code flow — exchange the code for tokens
             const tokenResult = await googleRequest.exchangeCodeAsync({
               clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
-              redirectUri: AuthSession.makeRedirectUri({ scheme: 'dripn' }),
+              redirectUri: redirectUrl,
             }, {
               authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
               tokenEndpoint: 'https://oauth2.googleapis.com/token',
