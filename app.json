@@ -23,7 +23,7 @@
       "config": {
         "usesNonExemptEncryption": false,
         "googleSignIn": {
-          "reservedClientId": "com.googleusercontent.apps.YOUR_GOOGLE_CLIENT_ID"
+          "reservedClientId": "842205988192-lb4o30o25ajhfd1va2qbqpakpshou69m.apps.googleusercontent.com"
         }
       }
     },
