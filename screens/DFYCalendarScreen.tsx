@@ -23,6 +23,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DFYTier, StylistId } from '@/services/DFYService';
 import apiService from '@/services/ApiService';
 
+interface WardrobeItem {
+  id: string;
+  name: string;
+  imageUri?: string;
+  category?: string;
+  color?: string;
+}
+
 const LUXURY_COLORS = {
   gold: '#C9A87C',
   deepGold: '#A88B5C',
@@ -75,6 +83,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
   const [calendarOutfits, setCalendarOutfits] = useState<DFYCalendarOutfit[]>([]);
   const [loadingDate, setLoadingDate] = useState<string | null>(null);
   const [loadingAll, setLoadingAll] = useState(true);
+  const [items, setItems] = useState<WardrobeItem[]>([]);
 
   const totalDays = tier === 'lite' ? 14 : 30;
   const startDate = useMemo(() => {
@@ -82,6 +91,28 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
+
+  // Load wardrobe items and outfits on mount
+  useEffect(() => {
+    loadWardrobe();
+  }, []);
+
+  const loadWardrobe = async () => {
+    try {
+      const result = await apiService.getWardrobe();
+      if (result.success && result.items) {
+        setItems(result.items.map((i: any) => ({
+          id: i.id,
+          name: i.name,
+          imageUri: i.imageUri || i.image_url,
+          category: i.category,
+          color: i.color,
+        })));
+      }
+    } catch (err) {
+      console.log('Error loading wardrobe:', err);
+    }
+  };
 
   // Bulk-load all outfits for the full plan range on mount
   useEffect(() => {
@@ -151,6 +182,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
           stylistId: 'ruby' as StylistId,
           wasWorn: outfit.wasWorn,
           alternativesCount: 0,
+          itemIds: outfit.itemIds || [],
         };
         setCalendarOutfits(prev => {
           const idx = prev.findIndex(o => o.id === dfiOutfit.id);
