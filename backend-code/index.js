@@ -756,6 +756,7 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const { email, password, displayName } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+    if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
     if (existing.rows.length > 0) return res.status(409).json({ error: 'An account with this email already exists' });
     const passwordHash = await bcrypt.hash(password, 10);
@@ -765,9 +766,10 @@ app.post('/api/auth/register', async (req, res) => {
     );
     const user = result.rows[0];
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
+    console.log(`[Auth] User registered: ${user.email}`);
     res.json({ token, user: { id: user.id, email: user.email, displayName: user.display_name, subscriptionTier: user.subscription_tier || 'free', avatarUrl: user.avatar_url, hasCompletedOnboarding: false, hasSeenTour: false, profileData: null } });
   } catch (error) {
-    console.error('[Auth] Register error:', error);
+    console.error('[Auth] Register error:', error.message, error.detail || '');
     res.status(500).json({ error: 'Registration failed. Please try again.' });
   }
 });
