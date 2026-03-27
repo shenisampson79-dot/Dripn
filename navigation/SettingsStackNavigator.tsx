@@ -16,6 +16,8 @@ import CancelSubscriptionScreen from "@/screens/CancelSubscriptionScreen";
 import BodyMeasurementsScreen from "@/screens/BodyMeasurementsScreen";
 import FeedbackScreen from "@/screens/FeedbackScreen";
 import CommunityVotingScreen from "@/screens/CommunityVotingScreen";
+import DFYComparisonScreen from "@/screens/DFYComparisonScreen";
+import DFYStylePlanScreen from "@/screens/DFYStylePlanScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
@@ -37,6 +39,8 @@ export type SettingsStackParamList = {
   BodyMeasurements: undefined;
   Feedback: undefined;
   CommunityVoting: { session: any };
+  DFYComparison: { selectedTier?: string; autoCheckout?: boolean };
+  DFYStylePlan: { tier?: string };
 };
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
@@ -173,6 +177,24 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         component={CommunityVotingScreen}
         options={{
           title: "Community Vote",
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="DFYComparison"
+        component={DFYComparisonScreen}
+        options={{
+          title: "Done-For-You Style",
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="DFYStylePlan"
+        component={DFYStylePlanScreen}
+        options={{
+          title: "Your Style Plan",
           headerShown: false,
           presentation: "modal",
         }}
