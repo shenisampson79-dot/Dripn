@@ -8309,7 +8309,7 @@ app.post('/api/wardrobe/process-image/resilient', authMiddleware, async (req, re
         
         // Use rembg v0 model for background removal
         const output = await replicate.run('cjwbw/rembg:fb9a3f51b5c65c937641993201eba02c1dfb2282053430bb0f3766b1447f596a', {
-          image: `data:image/png;base64,${imageBase64}`,
+          input: `data:image/jpeg;base64,${imageBase64}`,
         });
 
         if (output) {
