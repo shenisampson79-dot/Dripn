@@ -16,7 +16,7 @@ import { Spacing, BorderRadius, StyleTheme, LuxuryColors, ScreenGradients } from
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SizeRange, BodyShape, BudgetRange, Gender, StylistId, VoicePitch, StylistPreferences, DripnGoal, DressCodePreference, SubcultureStyle, DressCodeStrictness, CulturalStylePreferences, FitPreference, BodyArea, BodyMeasurements, HeightUnit, WeightUnit, SkinUndertone } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
-import { STYLISTS, STYLIST_LANGUAGES, STYLIST_ACCENTS, getAllStylists, getDefaultVoiceForStylist, getAccentsForLanguage } from "@/services/PersonalStylistService";
+import { STYLISTS, STYLIST_LANGUAGES, getAllStylists, getDefaultVoiceForStylist } from "@/services/PersonalStylistService";
 import { playVoicePreview as playOpenAIVoice, stopAudio } from "@/services/OpenAITTSService";
 import { NamePronunciationPrompt } from "@/components/NamePronunciationPrompt";
 import { RetailerService, Retailer } from "@/services/RetailerService";
@@ -659,7 +659,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const [avoidColors, setAvoidColors] = useState<string[]>([]);
   const [selectedStylistId, setSelectedStylistId] = useState<StylistId>(null);
   const [stylistLanguage, setStylistLanguage] = useState<string>("English");
-  const [stylistAccent, setStylistAccent] = useState<string>("American");
   const [voicePitch, setVoicePitch] = useState<VoicePitch>("mezzo-soprano");
   const [isPlayingVoice, setIsPlayingVoice] = useState<string | null>(null);
   const [favoriteShops, setFavoriteShops] = useState<string[]>([]);
@@ -866,7 +865,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       // Pass user's first name for personalized greetings (e.g., "Ciao Sarah!" instead of "Ciao bella!")
       // Only use name if user hasn't said pronunciation is wrong
       const nameToUse = useNameInGreetings ? userFirstName : undefined;
-      await playOpenAIVoice(stylistId, stylistLanguage, voicePitch, voiceForStylist, stylistAccent, nameToUse);
+      await playOpenAIVoice(stylistId, stylistLanguage, voicePitch, voiceForStylist, nameToUse);
       setIsPlayingVoice(null);
       
       // Show pronunciation prompt after first voice preview if user has a name and hasn't confirmed yet
@@ -879,7 +878,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       console.log('Voice preview error:', error);
       setIsPlayingVoice(null);
     }
-  }, [stylistLanguage, voicePitch, isPlayingVoice, stylistAccent, userFirstName, useNameInGreetings, namePronunciationConfirmed]);
+  }, [stylistLanguage, voicePitch, isPlayingVoice, userFirstName, useNameInGreetings, namePronunciationConfirmed]);
 
   const handleStylistSelect = useCallback((stylistId: StylistId) => {
     setSelectedStylistId(stylistId);
@@ -902,14 +901,9 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     setShowPronunciationPrompt(false);
   }, []);
 
-  // Auto-play voice when language or accent changes (if stylist is selected)
+  // Auto-play voice when language changes (if stylist is selected)
   const handleLanguageChange = useCallback(async (lang: string) => {
     setStylistLanguage(lang);
-    // Reset accent to first available for new language
-    const accents = getAccentsForLanguage(lang);
-    if (accents.length > 0) {
-      setStylistAccent(accents[0]);
-    }
     // Auto-play voice preview with selected stylist
     if (selectedStylistId) {
       await stopAudio();
@@ -918,34 +912,14 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         const STYLIST_VOICE_MAP2: Record<string, 'nova' | 'onyx' | 'echo' | 'fable'> = { ruby: 'nova', max: 'onyx', ace: 'echo', ivy: 'fable' };
         const voiceForStylist = STYLIST_VOICE_MAP2[selectedStylistId] || 'nova';
         const nameToUse = useNameInGreetings ? userFirstName : undefined;
-        const newAccent = accents.length > 0 ? accents[0] : stylistAccent;
-        await playOpenAIVoice(selectedStylistId, lang, voicePitch, voiceForStylist, newAccent, nameToUse);
+        await playOpenAIVoice(selectedStylistId, lang, voicePitch, voiceForStylist, nameToUse);
         setIsPlayingVoice(null);
       } catch (error) {
         console.log('Voice preview error:', error);
         setIsPlayingVoice(null);
       }
     }
-  }, [selectedStylistId, voicePitch, userFirstName, useNameInGreetings, stylistAccent]);
-
-  const handleAccentChange = useCallback(async (accent: string) => {
-    setStylistAccent(accent);
-    // Auto-play voice preview with selected stylist
-    if (selectedStylistId) {
-      await stopAudio();
-      setIsPlayingVoice(selectedStylistId);
-      try {
-        const STYLIST_VOICE_MAP3: Record<string, 'nova' | 'onyx' | 'echo' | 'fable'> = { ruby: 'nova', max: 'onyx', ace: 'echo', ivy: 'fable' };
-        const voiceForStylist = STYLIST_VOICE_MAP3[selectedStylistId] || 'nova';
-        const nameToUse = useNameInGreetings ? userFirstName : undefined;
-        await playOpenAIVoice(selectedStylistId, stylistLanguage, voicePitch, voiceForStylist, accent, nameToUse);
-        setIsPlayingVoice(null);
-      } catch (error) {
-        console.log('Voice preview error:', error);
-        setIsPlayingVoice(null);
-      }
-    }
-  }, [selectedStylistId, stylistLanguage, voicePitch, userFirstName, useNameInGreetings]);
+  }, [selectedStylistId, voicePitch, userFirstName, useNameInGreetings]);
 
   const handleBodyScan = useCallback(async () => {
     try {
@@ -1305,7 +1279,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     const stylistPreferences: StylistPreferences = {
       selectedStylistId,
       language: stylistLanguage,
-      accent: stylistAccent,
       voicePitch,
       useNameInGreetings,
       namePronunciationConfirmed,
@@ -1937,35 +1910,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                 </ScrollView>
               </View>
 
-              <View style={styles.voiceSettingsSection}>
-                <ThemedText type="h3" style={styles.sectionLabel}>
-                  {t('onboarding.stylist.accent') || 'Accent'}
-                </ThemedText>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                  <View style={styles.horizontalOptionsRow}>
-                    {getAccentsForLanguage(stylistLanguage).map((accent) => (
-                      <Pressable
-                        key={accent}
-                        onPress={() => handleAccentChange(accent)}
-                        style={({ pressed }) => [
-                          styles.optionChip,
-                          {
-                            backgroundColor: stylistAccent === accent ? theme.link : theme.backgroundDefault,
-                            opacity: pressed ? 0.8 : 1,
-                          },
-                        ]}
-                      >
-                        <ThemedText
-                          type="body"
-                          style={{ color: stylistAccent === accent ? "#FFFFFF" : theme.text }}
-                        >
-                          {accent}
-                        </ThemedText>
-                      </Pressable>
-                    ))}
-                  </View>
-                </ScrollView>
-              </View>
 
             </ScrollView>
           </View>
