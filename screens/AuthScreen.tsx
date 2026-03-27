@@ -139,6 +139,11 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
       return;
     }
 
+    if (isSignup && password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters');
+      return;
+    }
+
     try {
       if (isSignup) {
         await signup(email, password, name);

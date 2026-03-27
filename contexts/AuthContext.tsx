@@ -563,6 +563,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (dfyError) {
         console.log('No pending DFY payment to link');
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
+      throw new Error(errorMessage);
     } finally {
       setIsAuthenticating(false);
     }
