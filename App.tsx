@@ -78,7 +78,16 @@ function AppContent() {
   const [showAskStylist, setShowAskStylist] = useState(false);
   const [portalMode, setPortalMode] = useState<PortalMode>(null);
   const tourDecisionMade = useRef(false);
+  const lastUserIdRef = useRef<string | undefined>();
   const navigation = useNavigation<any>();
+
+  // Reset tour decision when user changes (login/logout)
+  useEffect(() => {
+    if (user?.id !== lastUserIdRef.current) {
+      tourDecisionMade.current = false;
+      lastUserIdRef.current = user?.id;
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     // Only decide to show the tour once per app session, and only
@@ -90,29 +99,30 @@ function AppContent() {
       tourDecisionMade.current = true;
       try {
         const localSeen = await AsyncStorage.getItem(TOUR_SEEN_KEY);
+        // If device flag is set, NEVER show tour
         if (localSeen === 'true') {
-          // Device already marked tour as seen — never show again on this device
           if (!user.hasSeenTour) {
-            // Keep the user profile in sync silently
             updateProfile({ hasSeenTour: true }).catch(() => {});
           }
           return;
         }
-        // Also respect the backend/user-profile value
-        if (user.hasSeenTour) {
+        // If user profile says tour was seen, mark device and don't show
+        if (user.hasSeenTour === true) {
           await AsyncStorage.setItem(TOUR_SEEN_KEY, 'true');
           return;
         }
         // Tour has never been seen — show it
+        console.log('[AppTour] Showing tour to user:', user.id);
         setShowTour(true);
-      } catch {
+      } catch (error) {
+        console.error('[AppTour] Error checking tour status:', error);
         // If AsyncStorage fails, fall back to the user profile value
-        if (!user.hasSeenTour) {
+        if (user.hasSeenTour !== true) {
           setShowTour(true);
         }
       }
     })();
-  }, [user?.hasCompletedOnboarding, user?.id, isLoading]);
+  }, [user?.hasCompletedOnboarding, user?.id, user?.hasSeenTour, isLoading, updateProfile]);
 
   if (isLoading) {
     return <LoadingScreen />;
