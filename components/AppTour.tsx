@@ -7,6 +7,7 @@ import {
   Dimensions,
   Image,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -92,16 +93,18 @@ export function AppTour({ visible, onComplete }: AppTourProps) {
   };
 
   const handleComplete = async () => {
-    console.log('[AppTour] Marking tour as seen and syncing to backend');
+    // Write device-level flag FIRST — this is the most reliable way to prevent
+    // the tour from ever showing again on this device, even if backend sync fails.
     try {
-      // CRITICAL: Ensure hasSeenTour is persisted to backend before closing the tour
-      const result = await updateProfile({ hasSeenTour: true });
-      console.log('[AppTour] ✓ Tour marked as seen and synced to backend successfully');
+      await AsyncStorage.setItem('@dripn_tour_seen', 'true');
+    } catch (storageErr) {
+      console.warn('[AppTour] Could not write local tour flag:', storageErr);
+    }
+    // Also persist to user profile + backend for cross-device sync
+    try {
+      await updateProfile({ hasSeenTour: true });
     } catch (err) {
-      console.error('[AppTour] ✗ CRITICAL: Failed to mark tour as seen and sync to backend:', err);
-      // Don't silently fail — show error and let user try again
-      // The onComplete callback will still be called below, but at least we logged the error
-      console.error('[AppTour] User will see tour again if sync fails permanently');
+      console.warn('[AppTour] Could not sync hasSeenTour to backend — local flag still set:', err);
     }
     setCurrentStep(0);
     onComplete();

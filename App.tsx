@@ -15,6 +15,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { StyleSheet, Modal } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NavigationContainer, NavigationContainerRef, useNavigation } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -68,19 +69,50 @@ function NavigationContainerWithRef() {
   );
 }
 
+const TOUR_SEEN_KEY = '@dripn_tour_seen';
+
 function AppContent() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, updateProfile } = useAuth();
   const [showTour, setShowTour] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showAskStylist, setShowAskStylist] = useState(false);
   const [portalMode, setPortalMode] = useState<PortalMode>(null);
+  const tourDecisionMade = useRef(false);
   const navigation = useNavigation<any>();
 
   useEffect(() => {
-    if (user && user.hasCompletedOnboarding && !user.hasSeenTour) {
-      setShowTour(true);
-    }
-  }, [user?.hasCompletedOnboarding, user?.hasSeenTour]);
+    // Only decide to show the tour once per app session, and only
+    // when the user is fully authenticated + onboarded.
+    if (!user || !user.hasCompletedOnboarding || isLoading) return;
+    if (tourDecisionMade.current) return;
+
+    (async () => {
+      tourDecisionMade.current = true;
+      try {
+        const localSeen = await AsyncStorage.getItem(TOUR_SEEN_KEY);
+        if (localSeen === 'true') {
+          // Device already marked tour as seen — never show again on this device
+          if (!user.hasSeenTour) {
+            // Keep the user profile in sync silently
+            updateProfile({ hasSeenTour: true }).catch(() => {});
+          }
+          return;
+        }
+        // Also respect the backend/user-profile value
+        if (user.hasSeenTour) {
+          await AsyncStorage.setItem(TOUR_SEEN_KEY, 'true');
+          return;
+        }
+        // Tour has never been seen — show it
+        setShowTour(true);
+      } catch {
+        // If AsyncStorage fails, fall back to the user profile value
+        if (!user.hasSeenTour) {
+          setShowTour(true);
+        }
+      }
+    })();
+  }, [user?.hasCompletedOnboarding, user?.id, isLoading]);
 
   if (isLoading) {
     return <LoadingScreen />;
