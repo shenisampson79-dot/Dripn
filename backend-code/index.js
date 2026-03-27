@@ -8069,7 +8069,7 @@ app.post('/api/wardrobe/batch', authMiddleware, async (req, res) => {
 // ===== WARDROBE SINGLE ITEM UPLOAD =====
 app.post('/api/wardrobe', authMiddleware, async (req, res) => {
   try {
-    const { name, category, subcategory, imageUrl, color, brand, season, seasons, occasions, itemType, origin, isFavorite, metadata } = req.body;
+    const { name, category, subcategory, imageUrl, imageBase64, color, brand, season, seasons, occasions, itemType, origin, isFavorite, metadata } = req.body;
     
     if (!category) {
       return res.status(400).json({ error: 'Category is required' });
@@ -8081,13 +8081,18 @@ app.post('/api/wardrobe', authMiddleware, async (req, res) => {
     const itemOccasions = occasions || metadata?.occasions || [];
     const itemType2 = itemType || origin || metadata?.origin || 'owned';
     const fullMetadata = metadata ? JSON.stringify(metadata) : null;
+    
+    let finalImageUrl = imageUrl;
+    if (imageBase64 && !imageUrl) {
+      finalImageUrl = `data:image/jpeg;base64,${imageBase64}`;
+    }
 
     const result = await pool.query(
       `INSERT INTO wardrobe_items 
        (user_id, name, category, subcategory, image_url, color, brand, season, occasions, item_type, is_favorite, metadata, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
        RETURNING *`,
-      [req.userId, itemName, category, subcategory || null, imageUrl || null, itemColor, brand || null, itemSeasons, itemOccasions, itemType2, isFavorite || false, fullMetadata]
+      [req.userId, itemName, category, subcategory || null, finalImageUrl || null, itemColor, brand || null, itemSeasons, itemOccasions, itemType2, isFavorite || false, fullMetadata]
     );
     
     console.log(`[Wardrobe] Added item: ${itemName} for user ${req.userId}`);
@@ -8348,7 +8353,7 @@ app.post('/api/wardrobe/extract-clothing/resilient', async (req, res) => {
 
         const output = await replicate.run(
           'cjwbw/rembg:fb9a3f51b5c65c937641993201eba02c1dfb2282053430bb0f3766b1447f596a',
-          { image: `data:image/jpeg;base64,${imageBase64}` }
+          { input: `data:image/jpeg;base64,${imageBase64}` }
         );
 
         if (output) {
