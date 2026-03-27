@@ -807,13 +807,6 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   }, [confettiAnims]);
 
   useEffect(() => {
-    const accents = getAccentsForLanguage(stylistLanguage);
-    if (!accents.includes(stylistAccent)) {
-      setStylistAccent(accents[0]);
-    }
-  }, [stylistLanguage]);
-
-  useEffect(() => {
     const fetchRetailers = async () => {
       if (!country) return;
       setLoadingRetailers(true);
