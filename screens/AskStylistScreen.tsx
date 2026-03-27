@@ -358,7 +358,8 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         userProfile: fullUserProfile,
       });
 
-      const result: DecisionResponse = {
+      const recommendedIndex = apiResult.recommendedIndex ?? 0;
+      const result: any = {
         id: `response-${Date.now()}`,
         requestId: `request-${Date.now()}`,
         recommendation: apiResult.decision || apiResult.recommendation || apiResult.response || '',
@@ -366,6 +367,9 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         stylistId,
         timestamp: new Date().toISOString(),
         outfitImageUrl: apiResult.outfitImageUrl,
+        uploadedImages: images,
+        recommendedIndex,
+        recommendedOptionId: `option-${recommendedIndex}`,
       };
 
       if (user?.id) {
@@ -539,7 +543,8 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         userProfile: fullUserProfile,
       });
 
-      const result: DecisionResponse = {
+      const recommendedIndex = apiResult.recommendedIndex ?? 0;
+      const result: any = {
         id: `response-${Date.now()}`,
         requestId: `request-${Date.now()}`,
         recommendation: apiResult.decision || apiResult.recommendation || apiResult.response || '',
@@ -547,6 +552,9 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         stylistId,
         timestamp: new Date().toISOString(),
         outfitImageUrl: apiResult.outfitImageUrl,
+        uploadedImages: images,
+        recommendedIndex,
+        recommendedOptionId: `option-${recommendedIndex}`,
       };
 
       if (user?.id) {
@@ -1598,7 +1606,14 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         </ThemedText>
       </View>
 
-      {response?.outfitImageUrl ? (
+      {response?.uploadedImages && response.uploadedImages.length > 0 && response.recommendedIndex !== undefined ? (
+        <View style={styles.outfitImageContainer}>
+          <Image
+            source={{ uri: response.uploadedImages[response.recommendedIndex] }}
+            style={styles.outfitImage}
+          />
+        </View>
+      ) : response?.outfitImageUrl ? (
         <View style={styles.outfitImageContainer}>
           <Image
             source={{ uri: response.outfitImageUrl }}
