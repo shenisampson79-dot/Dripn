@@ -33,6 +33,11 @@ import {
 } from "@/services/DecisionService";
 import { apiService } from "@/services/ApiService";
 import { convertImageToBase64 } from "@/services/VisionAnalysisService";
+import {
+  CommunityVotingService,
+  VotingSession,
+  VotingResult,
+} from "@/services/CommunityVotingService";
 import { ScrollView, ActivityIndicator } from "react-native";
 
 interface FashionRule {
@@ -117,6 +122,10 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<DecisionResponse | null>(null);
   const [secondOpinion, setSecondOpinion] = useState<SecondOpinionResponse | null>(null);
+  const [votingSession, setVotingSession] = useState<VotingSession | null>(null);
+  const [votingResult, setVotingResult] = useState<VotingResult | null>(null);
+  const [showVotingResults, setShowVotingResults] = useState(false);
+  const [votingRefreshInterval, setVotingRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
@@ -138,6 +147,21 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     checkAccess();
     loadFashionBlog();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (votingRefreshInterval) {
+        clearInterval(votingRefreshInterval);
+      }
+    };
+  }, [votingRefreshInterval]);
+
+  useEffect(() => {
+    if (!showVotingResults && votingRefreshInterval) {
+      clearInterval(votingRefreshInterval);
+      setVotingRefreshInterval(null);
+    }
+  }, [showVotingResults]);
 
   const loadFashionBlog = async () => {
     try {
@@ -580,14 +604,36 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     setIsLoading(true);
 
     try {
-      const result = await decisionService.requestSecondOpinion(
-        response.requestId,
-        response,
-        user.subscriptionTier || 'free'
+      const session = await CommunityVotingService.createVotingSession(
+        user.id,
+        response.outfitOptions || [],
+        response.recommendedOptionId || '0',
+        {
+          occasion: decisionContext.occasion || '',
+          description: decisionContext.context,
+        }
       );
-      setSecondOpinion(result);
+
+      setVotingSession(session);
+      setShowVotingResults(true);
+
+      const results = await CommunityVotingService.getVotingResults(
+        session.id,
+        user.stylistPreferences?.selectedStylistId
+      );
+      setVotingResult(results);
+
+      const interval = setInterval(async () => {
+        const updatedResults = await CommunityVotingService.getVotingResults(
+          session.id,
+          user.stylistPreferences?.selectedStylistId
+        );
+        setVotingResult(updatedResults);
+      }, 3000);
+
+      setVotingRefreshInterval(interval);
     } catch (error: any) {
-      Alert.alert('Unable to get second opinion', error.message);
+      Alert.alert('Unable to request second opinion', error.message);
     } finally {
       setIsLoading(false);
     }
@@ -1743,6 +1789,119 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           </Pressable>
         </Pressable>
       </Modal>
+
+      <Modal
+        visible={showVotingResults}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          setShowVotingResults(false);
+          if (votingRefreshInterval) {
+            clearInterval(votingRefreshInterval);
+            setVotingRefreshInterval(null);
+          }
+        }}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => {
+            setShowVotingResults(false);
+            if (votingRefreshInterval) {
+              clearInterval(votingRefreshInterval);
+              setVotingRefreshInterval(null);
+            }
+          }}
+        >
+          <Pressable style={styles.votingResultsModal} onPress={e => e.stopPropagation()}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.votingResultsHeader}>
+                <ThemedText type="h3">Community votes</ThemedText>
+                <ThemedText
+                  type="small"
+                  style={{ color: theme.textSecondary, marginTop: Spacing.xs }}
+                >
+                  {votingResult ? `${votingResult.totalVotes} ${votingResult.totalVotes === 1 ? 'vote' : 'votes'}` : 'Waiting...'}
+                </ThemedText>
+              </View>
+
+              {votingResult && votingSession ? (
+                <>
+                  {votingResult.totalVotes >= 3 ? (
+                    <View style={styles.votingResultsList}>
+                      {votingSession.outfitOptions.map((option, idx) => {
+                        const optRes = votingResult.optionResults.find(r => r.optionId === option.id);
+                        const pct = optRes?.percentage ?? 0;
+                        return (
+                          <View key={option.id} style={styles.votingResultItem}>
+                            <View style={styles.votingResultLabel}>
+                              <ThemedText type="small" style={{ fontWeight: '600' }}>
+                                Option {String.fromCharCode(65 + idx)}
+                              </ThemedText>
+                              <ThemedText type="h4">{pct}%</ThemedText>
+                            </View>
+                            <View style={[styles.votingResultBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
+                              <View
+                                style={[
+                                  styles.votingResultFill,
+                                  {
+                                    width: `${pct}%`,
+                                    backgroundColor: theme.link,
+                                  },
+                                ]}
+                              />
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  ) : (
+                    <View style={styles.votingWaitingCard}>
+                      <Feather name="clock" size={24} color={theme.textSecondary} />
+                      <ThemedText
+                        type="body"
+                        style={{
+                          textAlign: 'center',
+                          color: theme.textSecondary,
+                          marginTop: Spacing.lg,
+                        }}
+                      >
+                        Waiting for community votes...{'\n'}Results appear when {3 - (votingResult.totalVotes || 0)} more {votingResult.totalVotes === 2 ? 'person votes' : 'people vote'}.
+                      </ThemedText>
+                    </View>
+                  )}
+
+                  <View style={[styles.stylistRecommendCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+                    <Feather name="zap" size={14} color={theme.link} />
+                    <ThemedText type="small" style={{ color: theme.link, fontWeight: '700', marginLeft: Spacing.xs }}>
+                      Stylist's read
+                    </ThemedText>
+                  </View>
+                  <ThemedText type="body" style={styles.votingResultsInterpretation}>
+                    {votingResult.aiInterpretation}
+                  </ThemedText>
+                </>
+              ) : (
+                <ActivityIndicator size="large" color={theme.link} />
+              )}
+
+              <Pressable
+                style={styles.votingResultsCloseButton}
+                onPress={() => {
+                  setShowVotingResults(false);
+                  if (votingRefreshInterval) {
+                    clearInterval(votingRefreshInterval);
+                    setVotingRefreshInterval(null);
+                  }
+                }}
+              >
+                <ThemedText style={{ color: '#FFFFFF', fontWeight: '600' }}>
+                  Got it
+                </ThemedText>
+              </Pressable>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -2709,5 +2868,71 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 350,
     borderRadius: BorderRadius.lg,
+  },
+  votingResultsModal: {
+    backgroundColor: 'white',
+    marginTop: 'auto',
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    paddingBottom: Spacing.xl,
+    maxHeight: '85%',
+  },
+  votingResultsHeader: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  votingResultsList: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    gap: Spacing.lg,
+  },
+  votingResultItem: {
+    gap: Spacing.sm,
+  },
+  votingResultLabel: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  votingResultBar: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  votingResultFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  votingWaitingCard: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.xl,
+    marginTop: Spacing.lg,
+    alignItems: 'center',
+  },
+  stylistRecommendCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.xl,
+    marginTop: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+  },
+  votingResultsInterpretation: {
+    marginHorizontal: Spacing.xl,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xl,
+    lineHeight: 22,
+  },
+  votingResultsCloseButton: {
+    marginHorizontal: Spacing.xl,
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.lg,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
   },
 });
