@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
 
 export type VoteReason = "more-appropriate" | "more-flattering" | "feels-safer";
 
@@ -68,7 +69,7 @@ const VOTING_REASONS: { id: VoteReason; label: string }[] = [
 ];
 
 const VOTE_LIMIT_PER_DAY = 10;
-const VOTING_WINDOW_MINUTES = 45;
+const VOTING_WINDOW_MINUTES = 10;
 const EXPRESS_VOTING_MINUTES = 5;
 const EXPRESS_RESULTS_PRICE = 1.99;
 
@@ -121,6 +122,8 @@ class CommunityVotingServiceClass {
     const userSessions = await this.getUserSessions(userId);
     userSessions.push(session.id);
     await AsyncStorage.setItem(`user_voting_sessions_${userId}`, JSON.stringify(userSessions));
+
+    await this.notifyCommunityVoters(session);
 
     return session;
   }
@@ -298,58 +301,88 @@ class CommunityVotingServiceClass {
     stylistId?: string
   ): string {
     const winningOption = session.outfitOptions.find((o) => o.id === winningId);
-    const recommendedOption = session.outfitOptions.find((o) => o.id === session.aiRecommendedOptionId);
     const winningResult = results.find((r) => r.optionId === winningId);
+    const aiResult = results.find((r) => r.optionId === session.aiRecommendedOptionId);
 
     if (totalVotes === 0) {
-      return this.formatForStylist(
-        "No votes yet, but my recommendation stands. Trust your stylist!",
-        stylistId
-      );
+      const zeroVoteMessages: Record<string, string> = {
+        ruby: "Nobody voted, but honestly? My pick was already perfect for you. We're going with it.",
+        max: "Crickets from the community. That's fine — my call still stands. You'll look great.",
+        ace: "Zero votes. My recommendation doesn't need backup. Wear the one I chose.",
+        ivy: "No community votes came in. That's okay — I know your style better than anyone. Trust my original pick.",
+      };
+      if (stylistId && zeroVoteMessages[stylistId]) {
+        return zeroVoteMessages[stylistId];
+      }
+      return "No votes came in, but my recommendation still stands. Go with my original pick — I know your style.";
     }
 
     if (totalVotes < 3) {
       return this.formatForStylist(
-        `Only ${totalVotes} ${totalVotes === 1 ? "person has" : "people have"} voted so far. I'd still go with my original pick.`,
+        `Only ${totalVotes} ${totalVotes === 1 ? "person" : "people"} voted — not enough for a clear signal. I'd still go with my original pick.`,
         stylistId
       );
     }
 
+    const winPct = winningResult?.percentage ?? 0;
+    const aiPct = aiResult?.percentage ?? 0;
+
     if (alignsWithAI) {
-      if (winningResult && winningResult.percentage >= 70) {
+      if (winPct >= 70) {
         return this.formatForStylist(
-          `${winningResult.percentage}% of people with similar style agree with me. Go with it confidently.`,
+          `${winPct}% of the community agree with me — that's a strong signal. Go with it confidently.`,
+          stylistId
+        );
+      }
+      if (winPct >= 55) {
+        return this.formatForStylist(
+          `${winPct}% voted for my pick. The community's with me on this one.`,
           stylistId
         );
       }
       return this.formatForStylist(
-        "Most people preferred what I recommended — that aligns with my pick. Go with it.",
+        `The vote was close — ${winPct}% vs ${aiPct > 0 ? 100 - winPct : "the rest"} — but my original recommendation still holds.`,
         stylistId
       );
     }
 
-    const aiResult = results.find((r) => r.optionId === session.aiRecommendedOptionId);
-    const margin = winningResult && aiResult ? winningResult.percentage - aiResult.percentage : 0;
+    const margin = winPct - aiPct;
 
     if (margin < 10) {
       return this.formatForStylist(
-        "Votes were split, but the backup option is slightly safer for your context — that's my pick.",
+        `Votes were almost split — ${winPct}% vs ${100 - winPct}%. A narrow margin, but the community slightly prefers the other option. I'd still trust my original instinct for your context.`,
+        stylistId
+      );
+    }
+
+    if (margin >= 25) {
+      return this.formatForStylist(
+        `${winPct}% of the community went for the ${winningOption?.label?.toLowerCase() || "other option"} — a clear lean. Worth taking seriously. I'm adjusting my recommendation.`,
         stylistId
       );
     }
 
     return this.formatForStylist(
-      `People with similar style leaned toward the ${winningOption?.label?.toLowerCase() || "other option"}. For your setting, I'd go with that.`,
+      `The community leaned ${winPct}% toward the ${winningOption?.label?.toLowerCase() || "other option"}. I've factored that in — go with the community's choice here.`,
       stylistId
     );
   }
 
   private formatForStylist(message: string, stylistId?: string): string {
     const stylistPersonalities: Record<string, (msg: string) => string> = {
-      ruby: (msg) => msg.replace("Go with it", "You've got this!").replace("my pick", "what I'd choose for you"),
-      max: (msg) => msg.replace("Go with it", "Looking good!").replace("Trust", "You can trust"),
-      jade: (msg) => msg.replace("I'd go with", "Just wear").replace("slightly safer", "the move"),
-      marcus: (msg) => msg.replace("my pick", "the call").replace("I'd go with", "Wear"),
+      ruby: (msg) => msg
+        .replace("Go with it", "You've got this!")
+        .replace("my original pick", "what I'd choose for you")
+        .replace("my pick", "what I'd pick for you"),
+      max: (msg) => msg
+        .replace("Go with it", "Looking good!")
+        .replace("Trust my", "You can trust my"),
+      ace: (msg) => msg
+        .replace("I'd still go with", "Wear")
+        .replace("I'm adjusting my recommendation", "I'm updating my call"),
+      ivy: (msg) => msg
+        .replace("Go with it", "Lean into it")
+        .replace("my original pick", "my original recommendation"),
     };
 
     if (stylistId && stylistPersonalities[stylistId]) {
@@ -357,6 +390,26 @@ class CommunityVotingServiceClass {
     }
 
     return message;
+  }
+
+  private async notifyCommunityVoters(session: VotingSession): Promise<void> {
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== "granted") return;
+
+      const occasionText = session.occasion ? ` for ${session.occasion}` : "";
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Style vote needed",
+          body: `Someone needs a quick second opinion${occasionText}. You have 10 minutes to weigh in.`,
+          sound: "default",
+          data: { type: "community_vote", sessionId: session.id },
+        },
+        trigger: null,
+      });
+    } catch (error) {
+      console.log("Community vote notification skipped:", error);
+    }
   }
 
   getTimeRemaining(session: VotingSession): { minutes: number; seconds: number; expired: boolean } {
