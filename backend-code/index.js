@@ -8359,76 +8359,71 @@ app.post('/api/wardrobe/extract-clothing/resilient', async (req, res) => {
       return res.status(400).json({ error: 'imageBase64 is required' });
     }
 
-    let processedImageBase64 = imageBase64;
-    let backgroundRemoved = false;
-
-    // Step 1: Background removal via Replicate rembg
+    console.log('[ExtractClothing] Starting parallel background removal + AI analysis...');
     const replicateToken = process.env.REPLICATE_API_TOKEN;
-    if (replicateToken) {
-      try {
+    const imageDataUri = imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
+
+    // Run background removal and AI analysis IN PARALLEL for maximum speed
+    const [bgResult, analysisResult] = await Promise.allSettled([
+      // Task 1: Background removal via Replicate rembg
+      replicateToken ? (async () => {
         const Replicate = require('replicate');
         const replicate = new Replicate({ auth: replicateToken });
-        console.log('[ExtractClothing] Running rembg background removal...');
-
-        // Use rembg model - requires data URI format for the image field
-        const imageDataUri = imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
         const output = await replicate.run(
           'cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003',
-          {
-            input: {
-              image: imageDataUri,
-            }
-          }
+          { input: { image: imageDataUri } }
         );
+        return output ? (typeof output === 'string' ? output : String(output)) : null;
+      })() : Promise.resolve(null),
 
-        if (output) {
-          const outputStr = typeof output === 'string' ? output : String(output);
-          if (outputStr.startsWith('http')) {
-            // Fetch the URL and convert to base64
-            const imgResponse = await fetch(outputStr);
-            if (imgResponse.ok) {
-              const imgBuffer = await imgResponse.arrayBuffer();
-              processedImageBase64 = Buffer.from(imgBuffer).toString('base64');
-              backgroundRemoved = true;
-              console.log('[ExtractClothing] Background removed, fetched from URL');
-            }
-          } else {
-            processedImageBase64 = outputStr;
-            backgroundRemoved = true;
-          }
-        }
-      } catch (bgErr) {
-        console.warn('[ExtractClothing] Background removal failed:', bgErr.message);
+      // Task 2: AI clothing analysis (runs on original image simultaneously)
+      analyzeGarmentItem(imageBase64),
+    ]);
+
+    // Process background removal result
+    let processedImageBase64 = imageBase64;
+    let processedImageUrl = null;
+    let backgroundRemoved = false;
+
+    if (bgResult.status === 'fulfilled' && bgResult.value) {
+      const outputStr = bgResult.value;
+      if (outputStr.startsWith('http')) {
+        // Return the URL directly — no server-side re-fetch needed
+        processedImageUrl = outputStr;
+        backgroundRemoved = true;
+        console.log('[ExtractClothing] Background removed, returning URL directly');
+      } else if (outputStr.length > 100) {
+        processedImageBase64 = outputStr;
+        backgroundRemoved = true;
+        console.log('[ExtractClothing] Background removed (base64)');
       }
-    } else {
-      console.warn('[ExtractClothing] No Replicate token — skipping background removal');
+    } else if (bgResult.status === 'rejected') {
+      console.warn('[ExtractClothing] Background removal failed:', bgResult.reason?.message);
     }
 
-    // Step 2: AI clothing analysis on the original image (better quality for AI)
+    // Process AI analysis result
     let clothingAnalysis = null;
-    try {
-      const result = await analyzeGarmentItem(imageBase64);
-      if (result.success && result.item) {
-        const raw = result.item;
-        const rawColor = raw.color;
-        clothingAnalysis = {
-          type: raw.category || raw.type || 'clothing',
-          color: rawColor && typeof rawColor === 'object' ? rawColor.primary : rawColor,
-          style: raw.style || null,
-          material: raw.material || null,
-          brand: raw.brand || null,
-          occasions: Array.isArray(raw.occasions) ? raw.occasions : [],
-          seasons: Array.isArray(raw.seasons) ? raw.seasons : [],
-          description: raw.name || raw.description || null,
-        };
-      }
-    } catch (analysisErr) {
-      console.warn('[ExtractClothing] AI analysis failed:', analysisErr.message);
+    if (analysisResult.status === 'fulfilled' && analysisResult.value?.success && analysisResult.value?.item) {
+      const raw = analysisResult.value.item;
+      const rawColor = raw.color;
+      clothingAnalysis = {
+        type: raw.category || raw.type || 'clothing',
+        color: rawColor && typeof rawColor === 'object' ? rawColor.primary : rawColor,
+        style: raw.style || null,
+        material: raw.material || null,
+        brand: raw.brand || null,
+        occasions: Array.isArray(raw.occasions) ? raw.occasions : [],
+        seasons: Array.isArray(raw.seasons) ? raw.seasons : [],
+        description: raw.name || raw.description || null,
+      };
+    } else if (analysisResult.status === 'rejected') {
+      console.warn('[ExtractClothing] AI analysis failed:', analysisResult.reason?.message);
     }
 
     res.json({
       success: true,
-      processedImageBase64,
+      processedImageBase64: backgroundRemoved && !processedImageUrl ? processedImageBase64 : imageBase64,
+      processedImageUrl,
       clothingAnalysis,
       backgroundRemoved,
     });

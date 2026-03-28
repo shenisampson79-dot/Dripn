@@ -668,6 +668,7 @@ class ApiService {
     return this.request<{
       success: boolean;
       processedImageBase64?: string;
+      processedImageUrl?: string;
       clothingAnalysis?: {
         type: string;
         color: string;
