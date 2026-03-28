@@ -497,15 +497,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userProfile.hasCompletedOnboarding = backendUser.hasCompletedOnboarding;
       }
 
+      // CRITICAL: Check device flag BEFORE fetching backend profile
+      // Device flag is the ultimate source of truth for tour
+      let deviceTourSeen = false;
+      try {
+        const deviceFlag = await AsyncStorage.getItem('@dripn_tour_seen');
+        deviceTourSeen = deviceFlag === 'true';
+      } catch {
+        // Ignore storage errors
+      }
+
       // Fetch full profile from backend for additional profile data
       try {
         const fullProfile = await apiService.getMe();
         console.log('[Auth] Retrieved profile from backend:', { hasSeenTour: fullProfile.profileData?.hasSeenTour, hasCompletedOnboarding: fullProfile.profileData?.hasCompletedOnboarding });
         if (fullProfile.profileData) {
-          // CRITICAL: Preserve local hasSeenTour before spreading backend data
-          const localHasSeenTour = userProfile.hasSeenTour;
-          const backendHasSeenTour = fullProfile.profileData.hasSeenTour;
-          
           // Destructure to exclude hasSeenTour from the spread
           const { hasSeenTour: _, ...profileDataWithoutTour } = fullProfile.profileData;
           
@@ -518,26 +524,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? userProfile.hasCompletedOnboarding,
           };
           
-          // CRITICAL: Set hasSeenTour LAST with clear priority: backend > local > false
-          if (backendHasSeenTour === true) {
+          // CRITICAL: Device flag is ALWAYS the source of truth for tour
+          // Priority: device flag > backend value
+          if (deviceTourSeen) {
+            userProfile.hasSeenTour = true;
+            console.log('[Auth] ✓ hasSeenTour = TRUE from device flag (@dripn_tour_seen)');
+          } else if (fullProfile.profileData.hasSeenTour === true) {
             userProfile.hasSeenTour = true;
             console.log('[Auth] ✓ hasSeenTour = TRUE from backend');
-          } else if (backendHasSeenTour === false) {
-            userProfile.hasSeenTour = false;
-            console.log('[Auth] hasSeenTour = FALSE from backend (user never marked tour as seen)');
-          } else if (localHasSeenTour === true) {
-            // Backend doesn't have it (undefined) but local has it — preserve local
-            userProfile.hasSeenTour = true;
-            console.log('[Auth] ✓ hasSeenTour = TRUE from local AsyncStorage (backend sync may have failed)');
           } else {
             userProfile.hasSeenTour = false;
-            console.log('[Auth] hasSeenTour = FALSE (default)');
+            console.log('[Auth] hasSeenTour = FALSE (device flag not set, backend has no record)');
           }
           console.log('[Auth] Final user profile after login:', { hasSeenTour: userProfile.hasSeenTour, hasCompletedOnboarding: userProfile.hasCompletedOnboarding });
         }
       } catch (err) {
-        // If getMe fails, that's okay — we already have hasCompletedOnboarding from login
-        console.log('[Auth] Could not fetch full profile, continuing with login data');
+        // If getMe fails, use device flag as fallback
+        console.log('[Auth] Could not fetch full profile, using device flag fallback');
+        if (deviceTourSeen) {
+          userProfile.hasSeenTour = true;
+        }
       }
 
       await saveUser(userProfile);
