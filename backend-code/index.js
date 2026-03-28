@@ -7993,6 +7993,7 @@ app.post('/api/wardrobe/batch', authMiddleware, async (req, res) => {
 
     console.log(`[Wardrobe Batch] Uploading ${items.length} items for user ${req.userId}`);
     
+    const replicateToken = process.env.REPLICATE_API_TOKEN;
     const savedItems = [];
     const errors = [];
     
@@ -8001,11 +8002,38 @@ app.post('/api/wardrobe/batch', authMiddleware, async (req, res) => {
       try {
         let imageUrl = item.imageUrl;
         
-        // If base64 image provided, upload to storage
+        // If base64 image provided, process background removal
         if (item.imageBase64) {
-          // For now, store as data URI or use external storage
-          imageUrl = `data:image/jpeg;base64,${item.imageBase64.substring(0, 100)}...`;
-          // TODO: Integrate with cloud storage for production
+          // Try background removal if Replicate token is available
+          if (replicateToken) {
+            try {
+              const Replicate = require('replicate');
+              const replicate = new Replicate({ auth: replicateToken });
+              const imageDataUri = item.imageBase64.startsWith('data:') ? item.imageBase64 : `data:image/jpeg;base64,${item.imageBase64}`;
+              
+              const output = await replicate.run(
+                'cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003',
+                { input: { image: imageDataUri } }
+              );
+              
+              if (output) {
+                const outputStr = typeof output === 'string' ? output : String(output);
+                if (outputStr.startsWith('http')) {
+                  imageUrl = outputStr;
+                  console.log(`[Wardrobe Batch] Item ${i + 1}: Background removed, using URL`);
+                } else if (outputStr.length > 100) {
+                  imageUrl = `data:image/png;base64,${outputStr}`;
+                  console.log(`[Wardrobe Batch] Item ${i + 1}: Background removed, using base64`);
+                }
+              }
+            } catch (bgErr) {
+              console.warn(`[Wardrobe Batch] Item ${i + 1} background removal failed, using original:`, bgErr.message);
+              imageUrl = `data:image/jpeg;base64,${item.imageBase64.substring(0, 100)}...`;
+            }
+          } else {
+            // No Replicate token, use original
+            imageUrl = `data:image/jpeg;base64,${item.imageBase64.substring(0, 100)}...`;
+          }
         }
         
         const itemSeasons = item.seasons || item.season || [];
