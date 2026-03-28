@@ -8307,10 +8307,11 @@ app.post('/api/wardrobe/process-image/resilient', authMiddleware, async (req, re
         
         console.log('[ImageProcess] Running rembg on Replicate...');
         
-        // Use rembg v0 model for background removal
-        const output = await replicate.run('cjwbw/rembg:fb9a3f51b5c65c937641993201eba02c1dfb2282053430bb0f3766b1447f596a', {
+        // Use rembg model - requires data URI format for the image field
+        const imageDataUri = imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
+        const output = await replicate.run('cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003', {
           input: {
-            image: imageBase64,
+            image: imageDataUri,
           }
         });
 
@@ -8369,11 +8370,13 @@ app.post('/api/wardrobe/extract-clothing/resilient', async (req, res) => {
         const replicate = new Replicate({ auth: replicateToken });
         console.log('[ExtractClothing] Running rembg background removal...');
 
+        // Use rembg model - requires data URI format for the image field
+        const imageDataUri = imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
         const output = await replicate.run(
-          'cjwbw/rembg:fb9a3f51b5c65c937641993201eba02c1dfb2282053430bb0f3766b1447f596a',
+          'cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003',
           {
             input: {
-              image: imageBase64,
+              image: imageDataUri,
             }
           }
         );
