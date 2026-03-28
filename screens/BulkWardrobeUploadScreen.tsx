@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
+import * as FileSystem from "expo-file-system";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
@@ -504,6 +505,25 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     await saveItems(selectedItems);
   };
 
+  const convertImageUriToBase64 = async (imageUri: string): Promise<string | null> => {
+    try {
+      // If it's already a data URI, return as-is
+      if (imageUri.startsWith('data:')) {
+        return imageUri;
+      }
+      // If it's a file URI, read and convert to base64
+      if (imageUri.startsWith('file://')) {
+        const base64 = await FileSystem.readAsStringAsync(imageUri, { encoding: 'base64' });
+        return `data:image/jpeg;base64,${base64}`;
+      }
+      // For other URIs (HTTP, placeholders), return null to skip processing
+      return null;
+    } catch (err) {
+      console.warn(`Failed to convert image URI ${imageUri}:`, err);
+      return null;
+    }
+  };
+
   const saveItems = async (itemsToSave: PendingItem[]) => {
     if (itemsToSave.length === 0) {
       Alert.alert("No Items to Add", "All selected items are already in your wardrobe.");
@@ -514,26 +534,34 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     let savedCount = 0;
 
     try {
+      // Convert image URIs to base64 for background removal
+      const itemsWithBase64 = await Promise.all(
+        itemsToSave.map(async (item) => {
+          const imageUri = item.imageUri || 'https://via.placeholder.com/300';
+          const imageBase64 = await convertImageUriToBase64(imageUri);
+          return {
+            imageUri,
+            imageBase64: imageBase64 || undefined,
+            name: item.suggestedName,
+            category: item.category,
+            color: item.color,
+            seasons: item.seasons.length > 0 ? item.seasons : ['all-season'],
+            occasions: item.occasions.length > 0 ? item.occasions : ['everyday'],
+            brand: item.brand,
+            notes: item.description,
+            origin: 'owned' as const,
+            sourceUrl: item.sourceUrl,
+            purchasePrice: item.price,
+            aiAnalyzed: true,
+            isFavorite: false,
+          };
+        })
+      );
+
       // Build the full array first then write once — avoids a race condition
       // where sequential addItem() calls each read a stale itemsRef.current
       // and overwrite each other, leaving only the last item.
-      const savedItems = await addItemsBatch(
-        itemsToSave.map(item => ({
-          imageUri: item.imageUri || 'https://via.placeholder.com/300',
-          name: item.suggestedName,
-          category: item.category,
-          color: item.color,
-          seasons: item.seasons.length > 0 ? item.seasons : ['all-season'],
-          occasions: item.occasions.length > 0 ? item.occasions : ['everyday'],
-          brand: item.brand,
-          notes: item.description,
-          origin: 'owned' as const,
-          sourceUrl: item.sourceUrl,
-          purchasePrice: item.price,
-          aiAnalyzed: true,
-          isFavorite: false,
-        }))
-      );
+      const savedItems = await addItemsBatch(itemsWithBase64);
       savedCount = savedItems.length;
     } catch (error) {
       console.error('Failed to save items:', error);
