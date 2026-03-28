@@ -450,14 +450,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Sync to backend so profile survives device changes / reinstalls
       if (userData.id) {
         const { id, email, ...profileData } = userData as any;
+        // CRITICAL: Never sync hasSeenTour: false to the backend.
+        // false just means "not yet confirmed on this device" — it is NOT authoritative.
+        // Only sync it when it's definitively true. This prevents overwriting a good
+        // backend value with a stale false during login when getMe() fails.
+        if (profileData.hasSeenTour !== true) {
+          delete profileData.hasSeenTour;
+        }
         try {
-          console.log('[Auth] Attempting to sync profile to backend:', { hasSeenTour: profileData.hasSeenTour, hasCompletedOnboarding: profileData.hasCompletedOnboarding });
           await apiService.syncProfile(profileData);
-          console.log('[Auth] ✓ Profile synced successfully');
         } catch (syncErr) {
-          console.error('[Auth] ✗ CRITICAL: Failed to sync profile to backend:', syncErr);
-          console.error('[Auth] ⚠️ Profile updates may not persist across logins. This needs to be fixed!');
-          // Continue even if sync fails — local AsyncStorage is source of truth
+          // Sync failure is non-fatal — device storage is still updated
         }
       }
     } catch (error) {

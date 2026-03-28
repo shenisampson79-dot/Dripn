@@ -7,7 +7,6 @@ import {
   Dimensions,
   Image,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,7 +15,6 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useAuth } from "@/contexts/AuthContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -67,7 +65,6 @@ interface AppTourProps {
 
 export function AppTour({ visible, onComplete }: AppTourProps) {
   const { theme } = useTheme();
-  const { updateProfile } = useAuth();
   const insets = useSafeAreaInsets();
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -92,20 +89,7 @@ export function AppTour({ visible, onComplete }: AppTourProps) {
     handleComplete();
   };
 
-  const handleComplete = async () => {
-    // Write device-level flag FIRST — this is the most reliable way to prevent
-    // the tour from ever showing again on this device, even if backend sync fails.
-    try {
-      await AsyncStorage.setItem('@dripn_tour_seen', 'true');
-    } catch (storageErr) {
-      console.warn('[AppTour] Could not write local tour flag:', storageErr);
-    }
-    // Also persist to user profile + backend for cross-device sync
-    try {
-      await updateProfile({ hasSeenTour: true });
-    } catch (err) {
-      console.warn('[AppTour] Could not sync hasSeenTour to backend — local flag still set:', err);
-    }
+  const handleComplete = () => {
     setCurrentStep(0);
     onComplete();
   };

@@ -73,56 +73,39 @@ const TOUR_SEEN_KEY = '@dripn_tour_seen';
 
 function AppContent() {
   const { isAuthenticated, isLoading, user, updateProfile } = useAuth();
+  // tourSeen: null = not yet loaded, false = not seen, true = seen
+  const [tourSeen, setTourSeen] = useState<boolean | null>(null);
   const [showTour, setShowTour] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showAskStylist, setShowAskStylist] = useState(false);
   const [portalMode, setPortalMode] = useState<PortalMode>(null);
-  const tourDecisionMade = useRef(false);
-  const lastUserIdRef = useRef<string | undefined>();
   const navigation = useNavigation<any>();
 
-  // Reset tour decision when user changes (login/logout)
+  // Load the device tour flag once on mount — this is the single source of truth
   useEffect(() => {
-    if (user?.id !== lastUserIdRef.current) {
-      tourDecisionMade.current = false;
-      lastUserIdRef.current = user?.id;
-    }
-  }, [user?.id]);
+    AsyncStorage.getItem(TOUR_SEEN_KEY)
+      .then(val => setTourSeen(val === 'true'))
+      .catch(() => setTourSeen(false));
+  }, []);
 
+  // Show tour only when: device flag not set + user is fully authenticated + onboarded
   useEffect(() => {
-    // Only decide to show the tour once per app session, and only
-    // when the user is fully authenticated + onboarded.
-    if (!user || !user.hasCompletedOnboarding || isLoading) return;
-    if (tourDecisionMade.current) return;
+    if (tourSeen === null || isLoading) return; // Still loading device flag or auth
+    if (tourSeen === true) return;              // Already seen on this device — never show
+    if (!user || !user.hasCompletedOnboarding) return; // Not ready yet
+    setShowTour(true);
+  }, [tourSeen, user?.id, user?.hasCompletedOnboarding, isLoading]);
 
-    (async () => {
-      tourDecisionMade.current = true;
-      try {
-        const localSeen = await AsyncStorage.getItem(TOUR_SEEN_KEY);
-        // If device flag is set, NEVER show tour
-        if (localSeen === 'true') {
-          if (!user.hasSeenTour) {
-            updateProfile({ hasSeenTour: true }).catch(() => {});
-          }
-          return;
-        }
-        // If user profile says tour was seen, mark device and don't show
-        if (user.hasSeenTour === true) {
-          await AsyncStorage.setItem(TOUR_SEEN_KEY, 'true');
-          return;
-        }
-        // Tour has never been seen — show it
-        console.log('[AppTour] Showing tour to user:', user.id);
-        setShowTour(true);
-      } catch (error) {
-        console.error('[AppTour] Error checking tour status:', error);
-        // If AsyncStorage fails, fall back to the user profile value
-        if (user.hasSeenTour !== true) {
-          setShowTour(true);
-        }
-      }
-    })();
-  }, [user?.hasCompletedOnboarding, user?.id, user?.hasSeenTour, isLoading, updateProfile]);
+  const handleTourComplete = async () => {
+    // Write device flag immediately — this is what prevents future tour displays
+    try {
+      await AsyncStorage.setItem(TOUR_SEEN_KEY, 'true');
+    } catch { /* ignore */ }
+    setTourSeen(true);
+    setShowTour(false);
+    // Sync to user profile + backend (best effort, failure does NOT affect tour logic)
+    updateProfile({ hasSeenTour: true }).catch(() => {});
+  };
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -179,7 +162,7 @@ function AppContent() {
       </Modal>
       <AppTour 
         visible={showTour} 
-        onComplete={() => setShowTour(false)} 
+        onComplete={handleTourComplete} 
       />
     </>
   );
