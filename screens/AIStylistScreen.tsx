@@ -1116,7 +1116,25 @@ export default function AIStylistScreen() {
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
   
   const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
-  
+
+  // Map onboarding language names (e.g. "Spanish") to BCP-47 codes (e.g. "es").
+  // This bridges the gap between the onboarding choice and the voice-settings code.
+  const LANGUAGE_NAME_TO_CODE: Record<string, string> = {
+    'English': 'en', 'Spanish': 'es', 'French': 'fr', 'German': 'de',
+    'Italian': 'it', 'Portuguese': 'pt', 'Japanese': 'ja', 'Korean': 'ko',
+    'Chinese': 'zh', 'Arabic': 'ar', 'Hindi': 'hi', 'Dutch': 'nl',
+    'Russian': 'ru', 'Swedish': 'sv',
+  };
+
+  // Single source of truth for which language the stylist should speak.
+  // Priority: explicit Settings preference > onboarding stylist language > 'en'.
+  const onboardingLangCode =
+    LANGUAGE_NAME_TO_CODE[user?.stylistPreferences?.language || 'English'] || 'en';
+  const effectiveLanguage =
+    voiceSettings.preferredLanguage && voiceSettings.preferredLanguage !== 'en'
+      ? voiceSettings.preferredLanguage
+      : onboardingLangCode;
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
@@ -1284,7 +1302,7 @@ export default function AIStylistScreen() {
         stylistId: stylist.id,
         speed: voiceSettings.voiceSpeed,
         voice: voiceId,
-        language: voiceSettings.preferredLanguage,
+        language: effectiveLanguage,
       });
 
       if (response.success && response.audio?.audioBuffer) {
@@ -1474,7 +1492,7 @@ export default function AIStylistScreen() {
       if (audioBase64) {
         const transcribeResponse = await apiService.transcribeAudio(
           audioBase64,
-          voiceSettings.preferredLanguage
+          effectiveLanguage
         );
         
         if (transcribeResponse.success && transcribeResponse.text) {
@@ -1530,7 +1548,7 @@ export default function AIStylistScreen() {
         wardrobeItems: wardrobeContext,
         userGender: mappedGenderVoice,
         subscriptionTier: tier,
-        language: voiceSettings.preferredLanguage,
+        language: effectiveLanguage,
         userProfile: {
           ...(user?.profileData || {}),
           gender: mappedGenderVoice,
@@ -1780,7 +1798,7 @@ export default function AIStylistScreen() {
         wardrobeItems: wardrobeContext,
         userGender: mappedGenderText,
         subscriptionTier: tier,
-        language: currentLanguage,
+        language: effectiveLanguage,
         ...locationData,
         userProfile: {
           ...(user?.profileData || {}),
