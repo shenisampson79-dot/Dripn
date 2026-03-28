@@ -290,7 +290,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           },
         ]}
       >
-        <View style={[styles.itemImageWrapper, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}>
+        <View style={[styles.itemImageWrapper, { backgroundColor: '#FFFFFF' }]}>
           <Image
             source={{ uri: item.imageUri }}
             style={styles.itemImage}
@@ -464,7 +464,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             showsVerticalScrollIndicator={false}
             renderItem={() => (
               <>
-                <View style={[styles.modalImageWrapper, { backgroundColor: isDark ? '#1A1A2E' : '#FFFFFF' }]}>
+                <View style={[styles.modalImageWrapper, { backgroundColor: '#FFFFFF' }]}>
                   <Image
                     source={{ uri: selectedItem.imageUri }}
                     style={styles.modalImage}
