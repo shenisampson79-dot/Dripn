@@ -8313,8 +8313,22 @@ app.post('/api/wardrobe/process-image/resilient', authMiddleware, async (req, re
         });
 
         if (output) {
-          processedImage = output;
-          console.log('[ImageProcess] Background removed successfully');
+          const outputStr = typeof output === 'string' ? output : String(output);
+          if (outputStr.startsWith('http')) {
+            // Fetch the URL from Replicate and convert to base64
+            const imgResponse = await fetch(outputStr);
+            if (imgResponse.ok) {
+              const imgBuffer = await imgResponse.arrayBuffer();
+              processedImage = Buffer.from(imgBuffer).toString('base64');
+              console.log('[ImageProcess] Background removed successfully, converted to base64');
+            } else {
+              console.warn('[ImageProcess] Failed to fetch image from Replicate URL');
+              processedImage = imageBase64;
+            }
+          } else {
+            processedImage = outputStr;
+            console.log('[ImageProcess] Background removed successfully');
+          }
         }
       } catch (bgErr) {
         console.warn('[ImageProcess] Background removal failed, continuing with original:', bgErr.message);
