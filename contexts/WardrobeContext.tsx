@@ -520,7 +520,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
 
     try {
       const batchPayload = itemsData.map(itemData => {
-        const { imageUri, enhancedImageUri, originalImageUri, imageProcessed, ...rest } = itemData;
+        const { imageUri, imageBase64, enhancedImageUri, originalImageUri, imageProcessed, ...rest } = itemData;
         return {
           name: itemData.name,
           category: itemData.category,
@@ -531,6 +531,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           occasions: itemData.occasions,
           origin: itemData.origin,
           isFavorite: itemData.isFavorite || false,
+          imageBase64: imageBase64 || undefined,
           metadata: { ...rest, imageUri, enhancedImageUri, originalImageUri, imageProcessed },
         };
       });
