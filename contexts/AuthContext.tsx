@@ -889,11 +889,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshSubscriptionFromBackend = useCallback(async () => {
     if (!user) return;
     try {
-      const freshData = await apiService.getCurrentUser();
-      if (freshData?.subscriptionTier && freshData.subscriptionTier !== user.subscriptionTier) {
-        const updatedUser = { ...user, subscriptionTier: freshData.subscriptionTier as SubscriptionTier };
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
-        setUser(updatedUser);
+      const subStatus = await apiService.getSubscriptionStatus();
+      if (subStatus?.plan && subStatus.plan !== 'free') {
+        const tierMap: Record<string, SubscriptionTier> = {
+          'subscription': 'style_chat',
+          'premium': 'personal_stylist',
+          'pro': 'stylist_unlimited',
+          'vip': 'vip',
+        };
+        const mappedTier = tierMap[subStatus.plan] || subStatus.plan;
+        if (mappedTier !== user.subscriptionTier) {
+          const updatedUser = { ...user, subscriptionTier: mappedTier as SubscriptionTier };
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+          setUser(updatedUser);
+        }
       }
     } catch {
       // Silently fail — stale data is preferable to a crash
