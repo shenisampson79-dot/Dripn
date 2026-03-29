@@ -1014,7 +1014,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         >
           <Feather name="x" size={20} color={theme.text} />
         </Pressable>
-        <ThemedText type="h3">Quick Add Items</ThemedText>
+        <ThemedText type="h3">Bulk Add Items</ThemedText>
         <View style={{ width: 44 }} />
       </View>
 

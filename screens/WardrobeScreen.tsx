@@ -394,7 +394,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         <Pressable onPress={handleQuickAdd} style={styles.emptyButtonInner}>
           <Feather name="layers" size={18} color={LUXURY_COLORS.midnight} />
           <ThemedText type="body" style={styles.emptyButtonText}>
-            {translations.wardrobe.quickAddMultiple || 'Quick Add Multiple Items'}
+            {translations.wardrobe.quickAddMultiple || 'Bulk Add Items'}
           </ThemedText>
         </Pressable>
       </LinearGradient>
@@ -839,7 +839,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                 style={[styles.actionBarButton, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
               >
                 <Feather name="layers" size={20} color={LUXURY_COLORS.violet} />
-                <ThemedText type="caption" style={styles.actionBarLabel}>Quick Add</ThemedText>
+                <ThemedText type="caption" style={styles.actionBarLabel}>Bulk Add</ThemedText>
               </Pressable>
               <LinearGradient
                 colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
