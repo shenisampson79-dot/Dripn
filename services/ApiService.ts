@@ -1872,6 +1872,7 @@ class ApiService {
     isFavorite?: boolean;
     metadata?: Record<string, any>;
     imageBase64?: string;
+    imageUrl?: string;
   }): Promise<{ success: boolean; item: any }> {
     return this.request<{ success: boolean; item: any }>('/api/wardrobe', {
       method: 'POST',

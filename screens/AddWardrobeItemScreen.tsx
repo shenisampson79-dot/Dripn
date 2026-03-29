@@ -108,6 +108,8 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
 
   const toJpegBase64 = async (uri: string): Promise<{ base64: string; correctedUri: string }> => {
     if (uri.startsWith('data:')) return { base64: uri.split(',')[1], correctedUri: uri };
+    // Remote URLs (e.g. Replicate CDN after background removal) — cannot read as local file
+    if (uri.startsWith('http')) return { base64: '', correctedUri: uri };
     if (Platform.OS !== 'web') {
       try {
         const r = await ImageManipulator.manipulateAsync(

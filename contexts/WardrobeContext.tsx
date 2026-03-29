@@ -460,6 +460,9 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       const { imageUri, enhancedImageUri, originalImageUri, imageProcessed, imageBase64, ...rest } = itemData as any;
       const metadata = { ...rest, imageUri, enhancedImageUri, originalImageUri, imageProcessed };
 
+      // If imageUri is a remote URL (e.g. Replicate CDN after background removal), pass it directly
+      const remoteImageUrl = (imageUri && typeof imageUri === 'string' && imageUri.startsWith('http')) ? imageUri : undefined;
+
       const response = await apiService.addWardrobeItem({
         name: itemData.name,
         category: itemData.category,
@@ -471,7 +474,8 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
         origin: itemData.origin,
         isFavorite: itemData.isFavorite,
         metadata,
-        imageBase64,
+        imageBase64: imageBase64 || undefined,
+        imageUrl: remoteImageUrl,
       });
 
       if (response?.success && response.item) {
