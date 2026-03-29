@@ -8007,13 +8007,31 @@ app.post('/api/wardrobe/batch', authMiddleware, async (req, res) => {
           try {
             const Replicate = require('replicate');
             const replicate = new Replicate({ auth: replicateToken });
+            // imageBase64 is raw base64 (no data: prefix) from frontend ImageManipulator
             const imageDataUri = item.imageBase64.startsWith('data:') ? item.imageBase64 : `data:image/jpeg;base64,${item.imageBase64}`;
             
             console.log(`[Wardrobe Batch] Item ${i + 1}: Running background removal...`);
-            const output = await replicate.run(
-              'cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003',
-              { input: { image: imageDataUri } }
-            );
+
+            // Retry up to 3 times on 429 rate limiting
+            let output = null;
+            for (let attempt = 0; attempt < 3; attempt++) {
+              try {
+                output = await replicate.run(
+                  'cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003',
+                  { input: { image: imageDataUri } }
+                );
+                break; // success
+              } catch (retryErr) {
+                const is429 = retryErr.message && retryErr.message.includes('429');
+                if (is429 && attempt < 2) {
+                  const waitSec = 12; // wait 12s between retries (rate limit is 6/min)
+                  console.log(`[Wardrobe Batch] Item ${i + 1}: Rate limited, waiting ${waitSec}s (attempt ${attempt + 1}/3)...`);
+                  await new Promise(r => setTimeout(r, waitSec * 1000));
+                } else {
+                  throw retryErr;
+                }
+              }
+            }
             
             if (output) {
               const outputStr = typeof output === 'string' ? output : String(output);

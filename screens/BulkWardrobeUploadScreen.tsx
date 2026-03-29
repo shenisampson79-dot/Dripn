@@ -18,6 +18,7 @@ import { Feather } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import * as FileSystem from "expo-file-system/legacy";
@@ -507,10 +508,23 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
 
   const convertImageUriToBase64 = async (imageUri: string): Promise<string | null> => {
     try {
-      if (imageUri.startsWith('data:')) return imageUri;
+      if (imageUri.startsWith('data:')) {
+        // Already a data URI — extract raw base64
+        return imageUri.split(',')[1] || null;
+      }
+      if (Platform.OS !== 'web') {
+        // Convert to JPEG first (handles HEIC, ph://, and format issues)
+        const manipulated = await ImageManipulator.manipulateAsync(
+          imageUri,
+          [{ resize: { width: 1200 } }],
+          { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        const base64 = await FileSystem.readAsStringAsync(manipulated.uri, { encoding: 'base64' });
+        return base64;
+      }
       if (imageUri.startsWith('file://')) {
         const base64 = await FileSystem.readAsStringAsync(imageUri, { encoding: 'base64' });
-        return `data:image/jpeg;base64,${base64}`;
+        return base64;
       }
       return null;
     } catch (err) {
