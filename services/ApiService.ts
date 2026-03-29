@@ -1911,6 +1911,20 @@ class ApiService {
     });
   }
 
+  async reprocessItemBackground(id: string): Promise<{ success: boolean; imageUrl?: string; alreadyProcessed?: boolean }> {
+    return this.request<{ success: boolean; imageUrl?: string; alreadyProcessed?: boolean }>(`/api/wardrobe/${id}/reprocess-background`, {
+      method: 'POST',
+      timeout: 60000,
+    });
+  }
+
+  async reprocessAllBackgrounds(): Promise<{ success: boolean; processed: number; failed: number; total: number; message?: string }> {
+    return this.request<{ success: boolean; processed: number; failed: number; total: number; message?: string }>('/api/wardrobe/reprocess-all-backgrounds', {
+      method: 'POST',
+      timeout: 600000,
+    });
+  }
+
   // ===== VISUAL SEARCH =====
   async visualSearchMarketplace(data: {
     imageUrl?: string;

@@ -118,6 +118,8 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const [isGeneratingOutfit, setIsGeneratingOutfit] = useState(false);
   const [generatingOccasion, setGeneratingOccasion] = useState<string | null>(null);
   const [generatedOutfit, setGeneratedOutfit] = useState<any>(null);
+  const [isReprocessingBg, setIsReprocessingBg] = useState(false);
+  const [isReprocessingAll, setIsReprocessingAll] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -231,6 +233,59 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     } catch (error) {
       Alert.alert(translations.common.error, translations.common.error);
     }
+  };
+
+  const handleReprocessBackground = async (item: WardrobeItem) => {
+    setIsReprocessingBg(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const result = await apiService.reprocessItemBackground(item.id);
+      if (result.success) {
+        if (result.alreadyProcessed) {
+          Alert.alert('Already Clean', 'This item already has a transparent background.');
+        } else if (result.imageUrl) {
+          setSelectedItem({ ...item, imageUri: result.imageUrl });
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          Alert.alert('Done', 'Background removed successfully.');
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to remove background. Please try again.');
+    } finally {
+      setIsReprocessingBg(false);
+    }
+  };
+
+  const handleReprocessAllBackgrounds = () => {
+    Alert.alert(
+      'Fix All Backgrounds',
+      `This will remove backgrounds from all wardrobe items that still have them. Items with backgrounds take 15-30s each due to rate limits. Continue?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Fix All',
+          onPress: async () => {
+            setIsReprocessingAll(true);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            try {
+              const result = await apiService.reprocessAllBackgrounds();
+              if (result.success) {
+                if (result.message) {
+                  Alert.alert('Done', result.message);
+                } else {
+                  Alert.alert('Done', `Fixed ${result.processed} item${result.processed !== 1 ? 's' : ''}${result.failed > 0 ? `, ${result.failed} failed` : ''}. Reload your wardrobe to see updates.`);
+                }
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to process backgrounds. Please try again.');
+            } finally {
+              setIsReprocessingAll(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderCategoryTab = useCallback(({ item }: { item: typeof CATEGORY_OPTIONS[0] }) => {
@@ -610,6 +665,23 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     </Pressable>
                   </LinearGradient>
 
+                  {!selectedItem.imageUri?.startsWith('https://replicate.delivery/') ? (
+                    <Pressable
+                      onPress={() => handleReprocessBackground(selectedItem)}
+                      disabled={isReprocessingBg}
+                      style={[styles.actionButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderRadius: BorderRadius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs }]}
+                    >
+                      {isReprocessingBg ? (
+                        <ActivityIndicator size="small" color={theme.textSecondary} />
+                      ) : (
+                        <Feather name="scissors" size={18} color={theme.textSecondary} />
+                      )}
+                      <ThemedText type="body" style={{ color: theme.textSecondary, fontWeight: '600' }}>
+                        {isReprocessingBg ? 'Fixing...' : 'Fix Background'}
+                      </ThemedText>
+                    </Pressable>
+                  ) : null}
+
                   <Pressable
                     onPress={() => handleDeleteItem(selectedItem)}
                     style={[styles.actionButton, styles.deleteButton]}
@@ -671,7 +743,17 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               </ThemedText>
             </View>
           </View>
-          <View style={{ width: 40 }} />
+          <Pressable
+            onPress={handleReprocessAllBackgrounds}
+            disabled={isReprocessingAll}
+            style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
+          >
+            {isReprocessingAll ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Feather name="scissors" size={20} color="#FFFFFF" />
+            )}
+          </Pressable>
         </View>
 
         <FlatList

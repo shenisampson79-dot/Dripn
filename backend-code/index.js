@@ -8223,6 +8223,181 @@ app.delete('/api/wardrobe/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// ===== BACKGROUND REMOVAL REPROCESS ENDPOINTS =====
+
+// Helper to run Replicate with retry on 429
+async function runReplicateWithRetry(replicate, imageDataUri, maxAttempts = 4) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const output = await replicate.run(
+        'cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003',
+        { input: { image: imageDataUri } }
+      );
+      return output;
+    } catch (err) {
+      const is429 = err.message && err.message.includes('429');
+      if (is429 && attempt < maxAttempts - 1) {
+        const waitSec = 12;
+        console.log(`[BgReprocess] Rate limited, waiting ${waitSec}s (attempt ${attempt + 1}/${maxAttempts})...`);
+        await new Promise(r => setTimeout(r, waitSec * 1000));
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
+// Reprocess background removal for a single item
+app.post('/api/wardrobe/:id/reprocess-background', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const item = await pool.query(
+      `SELECT id, name, image_url FROM wardrobe_items WHERE id = $1 AND user_id = $2`,
+      [id, req.userId]
+    );
+    if (item.rows.length === 0) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    const { image_url: imageUrl, name } = item.rows[0];
+
+    if (!imageUrl) {
+      return res.status(400).json({ error: 'Item has no image' });
+    }
+    if (imageUrl.startsWith('https://replicate.delivery/')) {
+      return res.json({ success: true, imageUrl, alreadyProcessed: true });
+    }
+
+    const replicateToken = process.env.REPLICATE_API_TOKEN;
+    if (!replicateToken) {
+      return res.status(503).json({ error: 'Background removal service unavailable' });
+    }
+
+    console.log(`[BgReprocess] Processing item ${id}: ${name}`);
+    const Replicate = require('replicate');
+    const replicate = new Replicate({ auth: replicateToken });
+
+    let imageDataUri;
+    if (imageUrl.startsWith('data:')) {
+      imageDataUri = imageUrl;
+    } else if (imageUrl.startsWith('http')) {
+      // Download remote image and convert to base64
+      const https = require('https');
+      const http = require('http');
+      const imageBuffer = await new Promise((resolve, reject) => {
+        const client = imageUrl.startsWith('https') ? https : http;
+        client.get(imageUrl, (response) => {
+          const chunks = [];
+          response.on('data', chunk => chunks.push(chunk));
+          response.on('end', () => resolve(Buffer.concat(chunks)));
+          response.on('error', reject);
+        }).on('error', reject);
+      });
+      imageDataUri = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+    } else {
+      return res.status(400).json({ error: 'Unsupported image format' });
+    }
+
+    const output = await runReplicateWithRetry(replicate, imageDataUri);
+    if (!output) {
+      return res.status(500).json({ error: 'Background removal failed' });
+    }
+    const outputStr = typeof output === 'string' ? output : String(output);
+    if (!outputStr.startsWith('http')) {
+      return res.status(500).json({ error: 'Invalid output from background removal' });
+    }
+
+    await pool.query(
+      `UPDATE wardrobe_items SET image_url = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3`,
+      [outputStr, id, req.userId]
+    );
+    console.log(`[BgReprocess] Done item ${id}: ${outputStr}`);
+    res.json({ success: true, imageUrl: outputStr });
+  } catch (error) {
+    console.error('[BgReprocess] Error:', error.message);
+    res.status(500).json({ error: 'Failed to reprocess background' });
+  }
+});
+
+// Reprocess background removal for ALL items that don't already have a Replicate URL
+app.post('/api/wardrobe/reprocess-all-backgrounds', authMiddleware, async (req, res) => {
+  try {
+    const items = await pool.query(
+      `SELECT id, name, image_url FROM wardrobe_items WHERE user_id = $1 AND (image_url IS NOT NULL AND image_url NOT LIKE 'https://replicate.delivery/%') ORDER BY created_at ASC`,
+      [req.userId]
+    );
+
+    if (items.rows.length === 0) {
+      return res.json({ success: true, processed: 0, failed: 0, message: 'All items already have backgrounds removed' });
+    }
+
+    const replicateToken = process.env.REPLICATE_API_TOKEN;
+    if (!replicateToken) {
+      return res.status(503).json({ error: 'Background removal service unavailable' });
+    }
+
+    const Replicate = require('replicate');
+    const replicate = new Replicate({ auth: replicateToken });
+    const https = require('https');
+    const http = require('http');
+
+    console.log(`[BgReprocess] Starting batch reprocess for ${items.rows.length} items for user ${req.userId}`);
+    let processed = 0;
+    let failed = 0;
+
+    for (const item of items.rows) {
+      try {
+        let imageDataUri;
+        const imageUrl = item.image_url;
+
+        if (imageUrl.startsWith('data:')) {
+          imageDataUri = imageUrl;
+        } else if (imageUrl.startsWith('http')) {
+          const imageBuffer = await new Promise((resolve, reject) => {
+            const client = imageUrl.startsWith('https') ? https : http;
+            client.get(imageUrl, (response) => {
+              const chunks = [];
+              response.on('data', chunk => chunks.push(chunk));
+              response.on('end', () => resolve(Buffer.concat(chunks)));
+              response.on('error', reject);
+            }).on('error', reject);
+          });
+          imageDataUri = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+        } else {
+          failed++;
+          continue;
+        }
+
+        console.log(`[BgReprocess] Processing item ${item.id}: ${item.name}`);
+        const output = await runReplicateWithRetry(replicate, imageDataUri);
+        if (output) {
+          const outputStr = typeof output === 'string' ? output : String(output);
+          if (outputStr.startsWith('http')) {
+            await pool.query(
+              `UPDATE wardrobe_items SET image_url = $1, updated_at = NOW() WHERE id = $2`,
+              [outputStr, item.id]
+            );
+            console.log(`[BgReprocess] Done item ${item.id}: ${outputStr}`);
+            processed++;
+          } else {
+            failed++;
+          }
+        } else {
+          failed++;
+        }
+      } catch (itemErr) {
+        console.warn(`[BgReprocess] Failed item ${item.id}:`, itemErr.message);
+        failed++;
+      }
+    }
+
+    console.log(`[BgReprocess] Batch complete: ${processed} processed, ${failed} failed`);
+    res.json({ success: true, processed, failed, total: items.rows.length });
+  } catch (error) {
+    console.error('[BgReprocess] Batch error:', error.message);
+    res.status(500).json({ error: 'Failed to reprocess backgrounds' });
+  }
+});
+
 // ===== IMAGE ROTATION ENDPOINTS =====
 app.post('/api/wardrobe/fix-all-rotation', authMiddleware, async (req, res) => {
   try {
