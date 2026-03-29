@@ -8003,7 +8003,7 @@ app.post('/api/wardrobe/batch', authMiddleware, async (req, res) => {
         let imageUrl = item.imageUrl || item.imageUri;
         
         // Process background removal if imageBase64 is provided
-        if (item.imageBase64 && replicateToken) {
+        if (item.imageBase64 && replicateToken && !imageUrl) {
           try {
             const Replicate = require('replicate');
             const replicate = new Replicate({ auth: replicateToken });
@@ -8016,15 +8016,24 @@ app.post('/api/wardrobe/batch', authMiddleware, async (req, res) => {
             );
             
             if (output) {
-              const bgResult = typeof output === 'string' ? { url: output } : output;
-              if (bgResult.url && bgResult.url.startsWith('http')) {
-                imageUrl = bgResult.url;
-                console.log(`[Wardrobe Batch] Item ${i + 1}: Background removed, using URL directly`);
+              const outputStr = typeof output === 'string' ? output : String(output);
+              if (outputStr && outputStr.startsWith('http')) {
+                imageUrl = outputStr;
+                console.log(`[Wardrobe Batch] Item ${i + 1}: Background removed, URL: ${imageUrl}`);
               }
             }
           } catch (bgErr) {
             console.warn(`[Wardrobe Batch] Item ${i + 1} background removal failed:`, bgErr.message);
+            // Fall back to base64 if removal fails
+            if (!imageUrl && item.imageBase64) {
+              imageUrl = `data:image/jpeg;base64,${item.imageBase64}`;
+            }
           }
+        }
+        
+        // Fall back to base64 if no URL yet
+        if (!imageUrl && item.imageBase64) {
+          imageUrl = `data:image/jpeg;base64,${item.imageBase64}`;
         } else if (!imageUrl && item.metadata && item.metadata.imageUri) {
           imageUrl = item.metadata.imageUri;
         }
