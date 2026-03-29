@@ -7993,7 +7993,6 @@ app.post('/api/wardrobe/batch', authMiddleware, async (req, res) => {
 
     console.log(`[Wardrobe Batch] Uploading ${items.length} items for user ${req.userId}`);
     
-    const replicateToken = process.env.REPLICATE_API_TOKEN;
     const savedItems = [];
     const errors = [];
     
@@ -8002,31 +8001,8 @@ app.post('/api/wardrobe/batch', authMiddleware, async (req, res) => {
       try {
         let imageUrl = item.imageUrl || item.imageUri;
         
-        // Process background removal if imageBase64 is provided
-        if (item.imageBase64 && replicateToken) {
-          try {
-            const Replicate = require('replicate');
-            const replicate = new Replicate({ auth: replicateToken });
-            const imageDataUri = item.imageBase64.startsWith('data:') ? item.imageBase64 : `data:image/jpeg;base64,${item.imageBase64}`;
-            
-            console.log(`[Wardrobe Batch] Item ${i + 1}: Running background removal...`);
-            const output = await replicate.run(
-              'cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003',
-              { input: { image: imageDataUri } }
-            );
-            
-            if (output) {
-              const outputStr = typeof output === 'string' ? output : String(output);
-              if (outputStr.startsWith('http')) {
-                imageUrl = outputStr;
-                console.log(`[Wardrobe Batch] Item ${i + 1}: Background removed, using URL`);
-              }
-            }
-          } catch (bgErr) {
-            console.warn(`[Wardrobe Batch] Item ${i + 1} background removal failed:`, bgErr.message);
-            // Continue with original imageUrl on error
-          }
-        } else if (!imageUrl && item.metadata && item.metadata.imageUri) {
+        // If metadata contains imageUri, use it
+        if (!imageUrl && item.metadata && item.metadata.imageUri) {
           imageUrl = item.metadata.imageUri;
         }
         
