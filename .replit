@@ -62,8 +62,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "EXPO_PUBLIC_API_URL=https://$REPLIT_DEV_DOMAIN:3000 EXPO_PUBLIC_ADMIN_API_URL=https://$REPLIT_DEV_DOMAIN:3000 EXPO_PACKAGER_PROXY_URL=https://$REPLIT_DEV_DOMAIN REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN npx expo start"
-waitForPort = 8081
+args = "EXPO_PUBLIC_API_URL=https://$REPLIT_DEV_DOMAIN:3000 EXPO_PUBLIC_ADMIN_API_URL=https://$REPLIT_DEV_DOMAIN:3000 EXPO_PACKAGER_PROXY_URL=https://$REPLIT_DEV_DOMAIN REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN npx expo start --clear"
 
 [[workflows.workflow]]
 name = "Backend API"
@@ -104,12 +103,8 @@ EXPO_PUBLIC_API_URL = "https://dripn-server--shenisampson79.replit.app"
 
 [[ports]]
 localPort = 8081
-externalPort = 80
+externalPort = 8081
 
 [[ports]]
 localPort = 8082
-externalPort = 3000
-
-[[ports]]
-localPort = 8083
-externalPort = 3001
+externalPort = 80
