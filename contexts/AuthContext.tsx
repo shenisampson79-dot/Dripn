@@ -889,7 +889,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshSubscriptionFromBackend = useCallback(async () => {
     if (!user) return;
     try {
-      const subStatus = await apiService.getSubscriptionStatus();
+      // First try direct verification (checks Stripe directly, bypasses webhook delays)
+      let subStatus = await apiService.verifySubscription().catch(async () => {
+        // Fall back to status if verification fails
+        return apiService.getSubscriptionStatus();
+      });
+      
       if (subStatus?.plan && subStatus.plan !== 'free') {
         const tierMap: Record<string, SubscriptionTier> = {
           'subscription': 'style_chat',

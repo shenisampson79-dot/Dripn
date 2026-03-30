@@ -1154,6 +1154,78 @@ app.get('/api/subscription/status', authMiddleware, async (req, res) => {
   }
 });
 
+app.post('/api/subscription/verify', authMiddleware, async (req, res) => {
+  try {
+    const userResult = await pool.query(
+      'SELECT id, email, subscription_tier FROM users WHERE id = $1',
+      [req.userId]
+    );
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const user = userResult.rows[0];
+
+    const credentials = await getStripeCredentials();
+    if (!credentials?.secret) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+
+    const Stripe = require('stripe');
+    const stripe = new Stripe(credentials.secret, { apiVersion: '2024-11-20.acacia' });
+
+    // Search for active subscriptions matching this email
+    const subscriptions = await stripe.subscriptions.list({
+      customer_email: user.email,
+      status: 'active',
+      limit: 10
+    });
+
+    let updatedTier = user.subscription_tier || 'free';
+    let updatedSubId = null;
+    let updatedCustomerId = null;
+
+    if (subscriptions.data.length > 0) {
+      const sub = subscriptions.data[0];
+      const priceIds = (sub.items?.data || []).map(i => i.price?.id).filter(Boolean);
+      
+      function getTierFromPriceIds(priceIds) {
+        for (const pid of priceIds) {
+          if (STRIPE_PRICE_TO_TIER[pid]) return STRIPE_PRICE_TO_TIER[pid];
+          if (isVIPPriceId(pid)) return 'vip';
+        }
+        return null;
+      }
+
+      const tier = getTierFromPriceIds(priceIds);
+      if (tier) {
+        updatedTier = tier;
+        updatedSubId = sub.id;
+        updatedCustomerId = sub.customer;
+
+        // Update database with verified subscription details
+        await pool.query(
+          'UPDATE users SET subscription_tier = $1, stripe_subscription_id = $2, stripe_customer_id = $3, updated_at = NOW() WHERE id = $4',
+          [tier, sub.id, sub.customer, user.id]
+        );
+        console.log(`[Verify] Updated user ${user.id} (${user.email}) to tier=${tier} (verified from Stripe)`);
+      }
+    }
+
+    const isActive = updatedTier && updatedTier !== 'free';
+    res.json({
+      active: isActive,
+      plan: updatedTier,
+      status: isActive ? 'active' : 'inactive',
+      stripeSubscriptionId: updatedSubId || null,
+      stripeCustomerId: updatedCustomerId || null,
+      verified: true
+    });
+  } catch (error) {
+    console.error('Subscription verification error:', error);
+    res.status(500).json({ error: 'Failed to verify subscription' });
+  }
+});
+
 app.post('/api/subscription/create-checkout', authMiddleware, async (req, res) => {
   try {
     const { planId, billingCycle } = req.body;

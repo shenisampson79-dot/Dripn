@@ -1538,6 +1538,17 @@ class ApiService {
     }>('/api/subscription/status');
   }
 
+  async verifySubscription() {
+    return this.request<{
+      active: boolean;
+      plan: string | null;
+      status: string;
+      stripeSubscriptionId: string | null;
+      stripeCustomerId: string | null;
+      verified: boolean;
+    }>('/api/subscription/verify', { method: 'POST' });
+  }
+
   async createSubscriptionCheckout(planId: string, billingCycle: 'monthly' | 'yearly') {
     return this.request<{ checkoutUrl: string; sessionId: string }>('/api/subscription/create-checkout', {
       method: 'POST',
