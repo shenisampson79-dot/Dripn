@@ -1157,7 +1157,7 @@ app.get('/api/subscription/status', authMiddleware, async (req, res) => {
 app.post('/api/subscription/verify', authMiddleware, async (req, res) => {
   try {
     const userResult = await pool.query(
-      'SELECT id, email, subscription_tier FROM users WHERE id = $1',
+      'SELECT id, email, stripe_customer_id, subscription_tier FROM users WHERE id = $1',
       [req.userId]
     );
     if (userResult.rows.length === 0) {
@@ -1173,42 +1173,91 @@ app.post('/api/subscription/verify', authMiddleware, async (req, res) => {
     const Stripe = require('stripe');
     const stripe = new Stripe(credentials.secret, { apiVersion: '2024-11-20.acacia' });
 
-    // Search for active subscriptions matching this email
-    const subscriptions = await stripe.subscriptions.list({
-      customer_email: user.email,
-      status: 'active',
-      limit: 10
-    });
-
     let updatedTier = user.subscription_tier || 'free';
     let updatedSubId = null;
     let updatedCustomerId = null;
 
-    if (subscriptions.data.length > 0) {
-      const sub = subscriptions.data[0];
-      const priceIds = (sub.items?.data || []).map(i => i.price?.id).filter(Boolean);
-      
-      function getTierFromPriceIds(priceIds) {
-        for (const pid of priceIds) {
-          if (STRIPE_PRICE_TO_TIER[pid]) return STRIPE_PRICE_TO_TIER[pid];
-          if (isVIPPriceId(pid)) return 'vip';
+    // If we have a stripe_customer_id, use it to fetch subscriptions directly
+    if (user.stripe_customer_id) {
+      try {
+        const subscriptions = await stripe.subscriptions.list({
+          customer: user.stripe_customer_id,
+          status: 'active',
+          limit: 10
+        });
+
+        if (subscriptions.data.length > 0) {
+          const sub = subscriptions.data[0];
+          const priceIds = (sub.items?.data || []).map(i => i.price?.id).filter(Boolean);
+          
+          function getTierFromPriceIds(priceIds) {
+            for (const pid of priceIds) {
+              if (STRIPE_PRICE_TO_TIER[pid]) return STRIPE_PRICE_TO_TIER[pid];
+              if (isVIPPriceId(pid)) return 'vip';
+            }
+            return null;
+          }
+
+          const tier = getTierFromPriceIds(priceIds);
+          if (tier) {
+            updatedTier = tier;
+            updatedSubId = sub.id;
+            updatedCustomerId = sub.customer;
+          }
         }
-        return null;
+      } catch (err) {
+        console.log('[Verify] Could not fetch by customer_id:', err.message);
       }
+    }
 
-      const tier = getTierFromPriceIds(priceIds);
-      if (tier) {
-        updatedTier = tier;
-        updatedSubId = sub.id;
-        updatedCustomerId = sub.customer;
+    // Fallback: search all customers by email to find subscriptions
+    if (updatedTier === 'free' || updatedTier === user.subscription_tier) {
+      try {
+        const customers = await stripe.customers.list({
+          email: user.email,
+          limit: 10
+        });
 
-        // Update database with verified subscription details
-        await pool.query(
-          'UPDATE users SET subscription_tier = $1, stripe_subscription_id = $2, stripe_customer_id = $3, updated_at = NOW() WHERE id = $4',
-          [tier, sub.id, sub.customer, user.id]
-        );
-        console.log(`[Verify] Updated user ${user.id} (${user.email}) to tier=${tier} (verified from Stripe)`);
+        for (const customer of customers.data) {
+          const subscriptions = await stripe.subscriptions.list({
+            customer: customer.id,
+            status: 'active',
+            limit: 10
+          });
+
+          if (subscriptions.data.length > 0) {
+            const sub = subscriptions.data[0];
+            const priceIds = (sub.items?.data || []).map(i => i.price?.id).filter(Boolean);
+            
+            function getTierFromPriceIds(priceIds) {
+              for (const pid of priceIds) {
+                if (STRIPE_PRICE_TO_TIER[pid]) return STRIPE_PRICE_TO_TIER[pid];
+                if (isVIPPriceId(pid)) return 'vip';
+              }
+              return null;
+            }
+
+            const tier = getTierFromPriceIds(priceIds);
+            if (tier && tier !== 'free') {
+              updatedTier = tier;
+              updatedSubId = sub.id;
+              updatedCustomerId = sub.customer;
+              break;
+            }
+          }
+        }
+      } catch (err) {
+        console.log('[Verify] Could not search by email:', err.message);
       }
+    }
+
+    // Update database with verified subscription details
+    if (updatedTier !== user.subscription_tier || updatedSubId || updatedCustomerId) {
+      await pool.query(
+        'UPDATE users SET subscription_tier = $1, stripe_subscription_id = COALESCE($2, stripe_subscription_id), stripe_customer_id = COALESCE($3, stripe_customer_id), updated_at = NOW() WHERE id = $4',
+        [updatedTier, updatedSubId || null, updatedCustomerId || null, user.id]
+      );
+      console.log(`[Verify] Updated user ${user.id} (${user.email}) to tier=${updatedTier} (verified from Stripe)`);
     }
 
     const isActive = updatedTier && updatedTier !== 'free';
