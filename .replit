@@ -102,6 +102,10 @@ value = "0"
 EXPO_PUBLIC_API_URL = "https://dripn-server--shenisampson79.replit.app"
 
 [[ports]]
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
 localPort = 8081
 externalPort = 8081
 

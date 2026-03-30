@@ -1,4 +1,5 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -88,6 +89,62 @@ function isVIPPriceId(priceId) {
          priceId.toLowerCase().includes('vip') ||
          priceId.toLowerCase().includes('price_vip');
 }
+
+// ─── Metro/Expo Go Proxy ────────────────────────────────────────────────────
+// Replit maps the dev-domain's default port (80) to this backend (8082).
+// Expo Go expects to reach the Metro bundler on the default port, so we detect
+// Expo requests here and proxy them transparently to Metro at localhost:8081.
+
+function proxyToMetro(req, res) {
+  const options = {
+    hostname: 'localhost',
+    port: 8081,
+    path: req.url,
+    method: req.method,
+    headers: { ...req.headers, host: 'localhost:8081' },
+  };
+
+  const proxyReq = http.request(options, (proxyRes) => {
+    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    proxyRes.pipe(res, { end: true });
+  });
+
+  proxyReq.on('error', (err) => {
+    console.error('[Metro Proxy] Error:', err.message);
+    if (!res.headersSent) {
+      res.status(502).json({ error: 'Metro bundler unavailable. Start the "Start application" workflow.' });
+    }
+  });
+
+  req.pipe(proxyReq, { end: true });
+}
+
+// Must be before body-parsing middleware so piping works correctly
+app.use((req, res, next) => {
+  const accept = req.headers['accept'] || '';
+  const isExpoRequest =
+    !!req.headers['expo-platform'] ||
+    !!req.headers['expo-sdk-version'] ||
+    accept.includes('application/expo+json') ||
+    accept.includes('multipart/mixed');
+
+  const isMetroPath =
+    req.path === '/manifest' ||
+    req.path.startsWith('/index.bundle') ||
+    req.path.startsWith('/assets/') ||
+    req.path.startsWith('/__hmr') ||
+    req.path.startsWith('/symbolicate') ||
+    req.path.startsWith('/node_modules/') ||
+    req.path.startsWith('/@');
+
+  if (isMetroPath || (isExpoRequest && !req.path.startsWith('/api/'))) {
+    console.log('[Metro Proxy] →', req.method, req.path);
+    return proxyToMetro(req, res);
+  }
+
+  next();
+});
+// ────────────────────────────────────────────────────────────────────────────
 
 // Stripe webhook endpoint - MUST be before express.json() middleware
 // This handles VIP purchase notifications
@@ -11777,6 +11834,16 @@ try {
 initDB().then(() => {
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Dripn API running on port ${PORT}`);
+
+    // Also listen on port 3000 so EXPO_PUBLIC_API_URL=https://domain:3000 works
+    if (PORT !== 3000) {
+      try { execSync('fuser -k 3000/tcp 2>/dev/null || true', { stdio: 'ignore' }); } catch (_) {}
+      app.listen(3000, '0.0.0.0', () => {
+        console.log('[Backend] Also listening on port 3000 (API compatibility)');
+      }).on('error', (e) => {
+        console.warn('[Backend] Could not bind port 3000:', e.message);
+      });
+    }
   });
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
