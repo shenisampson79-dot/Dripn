@@ -543,13 +543,27 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     let savedCount = 0;
 
     try {
-      const itemsWithBase64 = await Promise.all(
+      const itemsWithImages = await Promise.all(
         itemsToSave.map(async (item) => {
           const imageUri = item.imageUri || 'https://via.placeholder.com/300';
           const imageBase64 = await convertImageUriToBase64(imageUri);
+          
+          // Attempt background removal via Replicate CDN URL
+          let imageUrl: string | undefined;
+          if (imageBase64) {
+            try {
+              const { removeBackgroundFromBase64 } = await import('@/services/BackgroundRemovalService');
+              const processedUrl = await removeBackgroundFromBase64(imageBase64);
+              imageUrl = processedUrl || undefined;
+            } catch (err) {
+              console.log('[BulkUpload] Background removal skipped:', (err as Error).message);
+            }
+          }
+
           return {
             imageUri,
             imageBase64: imageBase64 || undefined,
+            imageUrl,
             name: item.suggestedName,
             category: item.category,
             color: item.color,
@@ -566,7 +580,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         })
       );
 
-      const savedItems = await addItemsBatch(itemsWithBase64);
+      const savedItems = await addItemsBatch(itemsWithImages);
       savedCount = savedItems.length;
     } catch (error) {
       console.error('Failed to save items:', error);

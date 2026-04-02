@@ -8425,6 +8425,43 @@ async function runReplicateWithRetry(replicate, imageDataUri, maxAttempts = 4) {
   }
 }
 
+// Remove background from base64 image and return Replicate CDN URL
+app.post('/api/wardrobe/remove-background', authMiddleware, async (req, res) => {
+  try {
+    const { imageBase64 } = req.body;
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'imageBase64 is required' });
+    }
+
+    const replicateToken = process.env.REPLICATE_API_TOKEN;
+    if (!replicateToken) {
+      console.log('[RemoveBg] Replicate token not configured, returning original');
+      return res.json({ imageUrl: null });
+    }
+
+    const Replicate = require('replicate');
+    const replicate = new Replicate({ auth: replicateToken });
+
+    const imageDataUri = imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
+    
+    console.log('[RemoveBg] Processing image with rembg...');
+    const output = await replicate.run('cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003', {
+      input: { image: imageDataUri }
+    });
+
+    if (output && typeof output === 'string' && output.startsWith('http')) {
+      console.log('[RemoveBg] Success, CDN URL:', output.substring(0, 50) + '...');
+      return res.json({ imageUrl: output });
+    }
+
+    console.log('[RemoveBg] Unexpected output format, returning null');
+    res.json({ imageUrl: null });
+  } catch (error) {
+    console.warn('[RemoveBg] Error:', error.message);
+    res.status(500).json({ error: 'Background removal failed', imageUrl: null });
+  }
+});
+
 // Reprocess background removal for a single item
 app.post('/api/wardrobe/:id/reprocess-background', authMiddleware, async (req, res) => {
   try {

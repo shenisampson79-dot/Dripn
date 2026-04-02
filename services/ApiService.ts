@@ -1549,6 +1549,13 @@ class ApiService {
     }>('/api/subscription/verify', { method: 'POST' });
   }
 
+  async removeBackground(imageBase64: string) {
+    return this.request<{ imageUrl: string | null }>('/api/wardrobe/remove-background', {
+      method: 'POST',
+      body: JSON.stringify({ imageBase64 }),
+    });
+  }
+
   async createSubscriptionCheckout(planId: string, billingCycle: 'monthly' | 'yearly') {
     return this.request<{ checkoutUrl: string; sessionId: string }>('/api/subscription/create-checkout', {
       method: 'POST',
