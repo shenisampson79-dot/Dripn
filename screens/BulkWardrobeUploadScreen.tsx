@@ -569,6 +569,23 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
 
       const savedItems = await addItemsBatch(itemsWithBase64);
       savedCount = savedItems.length;
+
+      Promise.allSettled(
+        savedItems.map(async (savedItem, index) => {
+          const sourceItem = itemsWithBase64[index];
+          const base64 = sourceItem?.imageBase64;
+          if (!base64) return;
+          try {
+            const { removeBackgroundFromBase64 } = await import('@/services/BackgroundRemovalService');
+            const processedUrl = await removeBackgroundFromBase64(base64);
+            if (processedUrl) {
+              await updateWardrobeItem(savedItem.id, { imageUrl: processedUrl });
+            }
+          } catch (error) {
+            console.log('[BulkUpload] Post-save background removal failed:', (error as Error).message);
+          }
+        })
+      );
     } catch (error) {
       console.error('Failed to save items:', error);
     }
