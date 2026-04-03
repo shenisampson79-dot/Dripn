@@ -570,19 +570,21 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       const savedItems = await addItemsBatch(itemsWithBase64);
       savedCount = savedItems.length;
 
-      for (let i = 0; i < savedItems.length; i++) {
-        const base64 = itemsWithBase64[i]?.imageBase64;
-        if (!base64) continue;
-        try {
-          const { removeBackgroundFromBase64 } = await import('@/services/BackgroundRemovalService');
-          const processedUrl = await removeBackgroundFromBase64(base64);
-          if (processedUrl) {
-            await updateWardrobeItem(savedItems[i].id, { imageUrl: processedUrl });
+      savedItems.forEach((savedItem, index) => {
+        const base64 = itemsWithBase64[index]?.imageBase64;
+        if (!base64) return;
+        void (async () => {
+          try {
+            const { removeBackgroundFromBase64 } = await import('@/services/BackgroundRemovalService');
+            const processedUrl = await removeBackgroundFromBase64(base64);
+            if (processedUrl) {
+              await updateWardrobeItem(savedItem.id, { imageUrl: processedUrl });
+            }
+          } catch (error) {
+            console.log('[BulkUpload] Background removal skipped:', (error as Error).message);
           }
-        } catch (error) {
-          console.log('[BulkUpload] Background removal skipped:', (error as Error).message);
-        }
-      }
+        })();
+      });
     } catch (error) {
       console.error('Failed to save items:', error);
     }
