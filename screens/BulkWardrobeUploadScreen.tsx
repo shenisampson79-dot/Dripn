@@ -547,20 +547,10 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         itemsToSave.map(async (item) => {
           const imageUri = item.imageUri || 'https://via.placeholder.com/300';
           const imageBase64 = await convertImageUriToBase64(imageUri);
-          let imageUrl: string | undefined;
-          if (imageBase64) {
-            try {
-              const { removeBackgroundFromBase64 } = await import('@/services/BackgroundRemovalService');
-              imageUrl = await removeBackgroundFromBase64(imageBase64) || undefined;
-            } catch (error) {
-              console.log('[BulkUpload] Background removal skipped:', (error as Error).message);
-            }
-          }
 
           return {
             imageUri,
             imageBase64: imageBase64 || undefined,
-            imageUrl,
             name: item.suggestedName,
             category: item.category,
             color: item.color,
