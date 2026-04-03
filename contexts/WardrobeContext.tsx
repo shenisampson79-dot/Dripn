@@ -535,8 +535,8 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           occasions: itemData.occasions,
           origin: itemData.origin,
           isFavorite: itemData.isFavorite || false,
-          imageUrl: imageUrl || undefined,
-          imageBase64: imageBase64 || undefined,
+          imageUrl: imageUrl || imageUri || undefined,
+          imageBase64: undefined,
           metadata: { ...rest, imageUri, enhancedImageUri, originalImageUri, imageProcessed },
         };
       });
