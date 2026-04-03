@@ -548,13 +548,11 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           const imageUri = item.imageUri || 'https://via.placeholder.com/300';
           const imageBase64 = await convertImageUriToBase64(imageUri);
           
-          // Attempt background removal via Replicate CDN URL
           let imageUrl: string | undefined;
           if (imageBase64) {
             try {
-              const { removeBackgroundFromBase64 } = await import('@/services/BackgroundRemovalService');
-              const processedUrl = await removeBackgroundFromBase64(imageBase64);
-              imageUrl = processedUrl || undefined;
+              const result = await apiService.removeBackground(imageBase64);
+              imageUrl = result?.imageUrl || undefined;
             } catch (err) {
               console.log('[BulkUpload] Background removal skipped:', (err as Error).message);
             }
