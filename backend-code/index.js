@@ -319,6 +319,31 @@ const pool = new Pool({
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
+// ===== WARDROBE SAFETY HELPER =====
+// Strips legacy base64 image_url from DB rows before sending to mobile.
+// A single legacy item with 5MB base64 in image_url causes OOM in the JS
+// parser on the phone — this is the root cause of all bulk-upload crashes.
+function safeWardrobeItem(row) {
+  if (!row) return row;
+  const item = { ...row };
+  if (item.image_url && typeof item.image_url === 'string' && item.image_url.startsWith('data:')) {
+    item.image_url = null;
+  }
+  return item;
+}
+
+// One-time background cleanup: null out any legacy base64 image_url values
+// already in the DB so GET /api/wardrobe never returns them again.
+pool.query(
+  `UPDATE wardrobe_items SET image_url = NULL WHERE image_url LIKE 'data:%'`
+).then(r => {
+  if (r.rowCount > 0) {
+    console.log(`[DB Cleanup] Nulled ${r.rowCount} legacy base64 image_url row(s)`);
+  }
+}).catch(err => {
+  console.warn('[DB Cleanup] Could not clean legacy base64 rows:', err.message);
+});
+
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'dripn-secret-key-change-in-production';
 const DEPLOYED_BACKEND_URL = 'https://dripn-server--shenisampson79.replit.app';
@@ -8306,21 +8331,21 @@ app.post('/api/wardrobe', authMiddleware, async (req, res) => {
     const itemType2 = itemType || origin || metadata?.origin || 'owned';
     const fullMetadata = metadata ? JSON.stringify(metadata) : null;
     
-    let finalImageUrl = imageUrl;
-    if (imageBase64 && !imageUrl) {
-      finalImageUrl = `data:image/jpeg;base64,${imageBase64}`;
-    }
+    // Never store raw base64 as image_url — it causes OOM when the wardrobe
+    // is loaded later. If no CDN URL is available, store null and let the
+    // background repair task give it a proper URL later.
+    const finalImageUrl = imageUrl || null;
 
     const result = await pool.query(
       `INSERT INTO wardrobe_items 
        (user_id, name, category, subcategory, image_url, color, brand, season, occasions, item_type, is_favorite, metadata, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
        RETURNING *`,
-      [req.userId, itemName, category, subcategory || null, finalImageUrl || null, itemColor, brand || null, itemSeasons, itemOccasions, itemType2, isFavorite || false, fullMetadata]
+      [req.userId, itemName, category, subcategory || null, finalImageUrl, itemColor, brand || null, itemSeasons, itemOccasions, itemType2, isFavorite || false, fullMetadata]
     );
     
     console.log(`[Wardrobe] Added item: ${itemName} for user ${req.userId}`);
-    res.json({ success: true, item: result.rows[0] });
+    res.json({ success: true, item: safeWardrobeItem(result.rows[0]) });
   } catch (error) {
     console.error('[Wardrobe] Error adding item:', error);
     res.status(500).json({ error: 'Failed to add wardrobe item' });
@@ -8334,7 +8359,10 @@ app.get('/api/wardrobe', authMiddleware, async (req, res) => {
       `SELECT * FROM wardrobe_items WHERE user_id = $1 ORDER BY created_at DESC`,
       [req.userId]
     );
-    res.json({ success: true, items: result.rows });
+    // Strip any legacy base64 image_url before sending — a single 5MB base64
+    // field causes OOM in the mobile JS parser and crashes the app.
+    const items = result.rows.map(safeWardrobeItem);
+    res.json({ success: true, items });
   } catch (error) {
     console.error('[Wardrobe] Error fetching items:', error);
     res.status(500).json({ error: 'Failed to fetch wardrobe items' });
@@ -8371,7 +8399,7 @@ app.put('/api/wardrobe/:id', authMiddleware, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Item not found' });
     }
-    res.json({ success: true, item: result.rows[0] });
+    res.json({ success: true, item: safeWardrobeItem(result.rows[0]) });
   } catch (error) {
     console.error('[Wardrobe] Error updating item:', error);
     res.status(500).json({ error: 'Failed to update wardrobe item' });
