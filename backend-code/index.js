@@ -10946,6 +10946,56 @@ app.post('/api/feedback', async (req, res) => {
   }
 });
 
+app.post('/api/support/ticket', authMiddleware, async (req, res) => {
+  try {
+    const { category, description, userName, userEmail } = req.body;
+
+    if (!category || !description) {
+      return res.status(400).json({ success: false, error: 'Category and description are required' });
+    }
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS support_tickets (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        category VARCHAR(50) NOT NULL,
+        description TEXT NOT NULL,
+        user_name TEXT,
+        user_email TEXT,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    const result = await pool.query(
+      `INSERT INTO support_tickets
+       (user_id, category, description, user_name, user_email)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
+      [req.userId, category, description, userName || null, userEmail || null]
+    );
+
+    const subject = `New Dripn support ticket: ${category}`;
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1>New Support Ticket</h1>
+        <p><strong>Category:</strong> ${category}</p>
+        <p><strong>User:</strong> ${userName || 'Unknown'}</p>
+        <p><strong>Email:</strong> ${userEmail || 'Unknown'}</p>
+        <p><strong>Description:</strong></p>
+        <p>${description.replace(/\n/g, '<br />')}</p>
+      </div>
+    `;
+    const textContent = `New Support Ticket\nCategory: ${category}\nUser: ${userName || 'Unknown'}\nEmail: ${userEmail || 'Unknown'}\n\n${description}`;
+    await sendEmailNotification(subject, htmlContent, textContent);
+
+    res.json({ success: true, ticketId: result.rows[0].id });
+  } catch (error) {
+    console.error('Support ticket error:', error);
+    res.status(500).json({ success: false, error: 'Failed to create support ticket' });
+  }
+});
+
 // ============ RESILIENT CHAT ENDPOINTS ============
 // Works with or without authentication — auto-falls back to guest mode
 app.post('/api/chat/resilient', async (req, res) => {
