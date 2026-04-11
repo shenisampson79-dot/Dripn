@@ -88,13 +88,15 @@ function AppContent() {
       .catch(() => setTourSeen(false));
   }, []);
 
-  // Show tour only when: device flag not set + user is fully authenticated + onboarded
+  // Show tour only for first-time users who have completed onboarding and have not seen it before
   useEffect(() => {
     if (tourSeen === null || isLoading) return; // Still loading device flag or auth
     if (tourSeen === true) return;              // Already seen on this device — never show
-    if (!user || !user.hasCompletedOnboarding) return; // Not ready yet
+    if (!user) return;
+    if (user.hasSeenTour === true) return;       // Backend already knows they saw it
+    if (!user.hasCompletedOnboarding) return;   // Don't show until onboarding is done
     setShowTour(true);
-  }, [tourSeen, user?.id, user?.hasCompletedOnboarding, isLoading]);
+  }, [tourSeen, user?.id, user?.hasCompletedOnboarding, user?.hasSeenTour, isLoading]);
 
   const handleTourComplete = async () => {
     // Write device flag immediately — this is what prevents future tour displays
