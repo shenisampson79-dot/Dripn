@@ -6,7 +6,9 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.dripn.app",
-      "sha256_cert_fingerprints": []
+      "sha256_cert_fingerprints": [
+        "3A:89:D5:41:23:1E:C7:F9:BB:33:75:13:8A:D9:7B:C7:E3:2F:6C:B0:8D:B6:A7:AE:0D:7A:77:5C:8A:0F:B5:F5"
+      ]
     }
   }
 ]
