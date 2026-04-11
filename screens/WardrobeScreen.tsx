@@ -1614,6 +1614,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: Spacing.md,
     marginTop: Spacing["2xl"],
+    paddingBottom: Spacing.md,
   },
   actionButtonGradient: {
     flex: 1,
@@ -1632,7 +1633,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: Spacing.sm,
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.md,
+    minHeight: 52,
     borderRadius: BorderRadius.md,
   },
   actionButtonText: {
