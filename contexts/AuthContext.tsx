@@ -418,18 +418,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const localUser = JSON.parse(userData);
         setUser(localUser);
         
-        // Try to refresh from backend to ensure onboarding status is accurate
+        // Try to refresh from backend to ensure onboarding + tour status is accurate
         try {
           const backendProfile = await apiService.getMe();
           if (backendProfile && backendProfile.hasCompletedOnboarding !== undefined) {
-            // Update the flag from backend (source of truth)
+            // Determine hasSeenTour: device flag wins, then backend, then local
+            const deviceFlag = await AsyncStorage.getItem('@dripn_tour_seen').catch(() => null);
+            const deviceTourSeen = deviceFlag === 'true';
+            const backendTourSeen = backendProfile.hasSeenTour === true
+              || backendProfile.profileData?.hasSeenTour === true;
+            const hasSeenTour = deviceTourSeen || backendTourSeen || localUser.hasSeenTour === true;
+
+            // If backend/local says seen but device flag is missing, write it now
+            // so future cold-starts don't need to hit the backend at all
+            if (hasSeenTour && !deviceTourSeen) {
+              AsyncStorage.setItem('@dripn_tour_seen', 'true').catch(() => {});
+            }
+
             const updatedUser = {
               ...localUser,
               hasCompletedOnboarding: backendProfile.hasCompletedOnboarding,
+              hasSeenTour,
               profileData: backendProfile.profileData || localUser.profileData,
             };
             await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
             setUser(updatedUser);
+            console.log('[Auth] loadUser refresh:', { hasSeenTour, hasCompletedOnboarding: updatedUser.hasCompletedOnboarding });
           }
         } catch (backendErr) {
           // If backend fetch fails, continue with local user
