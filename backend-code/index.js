@@ -10591,14 +10591,30 @@ function extractUserProfile(messages) {
 }
 
 // Garment analysis endpoint — works without auth (used by DFY upload flow)
+const analyzeQueue = { active: 0, max: 2 };
+async function withAnalyzeLimit(fn) {
+  while (analyzeQueue.active >= analyzeQueue.max) {
+    await new Promise(r => setTimeout(r, 250));
+  }
+  analyzeQueue.active++;
+  try {
+    return await fn();
+  } finally {
+    analyzeQueue.active--;
+  }
+}
+
 app.post('/api/wardrobe/analyze/resilient', async (req, res) => {
+  if (analyzeQueue.active >= analyzeQueue.max) {
+    return res.status(429).json({ error: 'Server busy, retry in a moment', retryAfter: 2 });
+  }
   try {
     const { imageBase64 } = req.body;
     if (!imageBase64) {
       return res.status(400).json({ error: 'imageBase64 is required' });
     }
 
-    const result = await analyzeGarmentItem(imageBase64);
+    const result = await withAnalyzeLimit(() => analyzeGarmentItem(imageBase64));
 
     if (!result.success) {
       return res.status(500).json({ error: result.error || 'Analysis failed' });
