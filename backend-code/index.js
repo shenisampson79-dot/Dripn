@@ -8220,17 +8220,13 @@ app.post('/api/wardrobe/batch', authMiddleware, async (req, res) => {
             }
           } catch (bgErr) {
             console.warn(`[Wardrobe Batch] Item ${i + 1} background removal failed:`, bgErr.message);
-            // Fall back to base64 if removal fails
-            if (!imageUrl && item.imageBase64) {
-              imageUrl = `data:image/jpeg;base64,${item.imageBase64}`;
-            }
+            // Never fall back to base64 — keep imageUrl as-is (local path or null)
           }
         }
         
-        // Fall back to base64 if no URL yet
-        if (!imageUrl && item.imageBase64) {
-          imageUrl = `data:image/jpeg;base64,${item.imageBase64}`;
-        } else if (!imageUrl && item.metadata && item.metadata.imageUri) {
+        // Final URL fallback — use metadata imageUri (local path) if nothing else available
+        // Never store raw base64 as image_url (causes OOM on subsequent reads)
+        if (!imageUrl && item.metadata && item.metadata.imageUri) {
           imageUrl = item.metadata.imageUri;
         }
         
@@ -8726,18 +8722,18 @@ app.post('/api/wardrobe/process-image/resilient', authMiddleware, async (req, re
     // Check if Replicate token is available
     const replicateToken = process.env.REPLICATE_API_TOKEN;
     if (!replicateToken) {
-      console.warn('[ImageProcess] Replicate token not available, returning raw image');
+      console.warn('[ImageProcess] Replicate token not available');
       return res.json({ 
         success: true, 
-        processedImageBase64: imageBase64,
+        processedImageUrl: null,
         maskQuality: 0,
         straightened: false
       });
     }
 
-    let processedImage = imageBase64;
+    let processedImageUrl = null;
 
-    // Background removal via Replicate rembg model
+    // Background removal via Replicate rembg model — return CDN URL, never base64
     if (shouldRemoveBg) {
       try {
         const Replicate = require('replicate');
@@ -8745,42 +8741,28 @@ app.post('/api/wardrobe/process-image/resilient', authMiddleware, async (req, re
         
         console.log('[ImageProcess] Running rembg on Replicate...');
         
-        // Use rembg model - requires data URI format for the image field
         const imageDataUri = imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
         const output = await replicate.run('cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003', {
-          input: {
-            image: imageDataUri,
-          }
+          input: { image: imageDataUri }
         });
 
         if (output) {
           const outputStr = typeof output === 'string' ? output : String(output);
           if (outputStr.startsWith('http')) {
-            // Fetch the URL from Replicate and convert to base64
-            const imgResponse = await fetch(outputStr);
-            if (imgResponse.ok) {
-              const imgBuffer = await imgResponse.arrayBuffer();
-              processedImage = Buffer.from(imgBuffer).toString('base64');
-              console.log('[ImageProcess] Background removed successfully, converted to base64');
-            } else {
-              console.warn('[ImageProcess] Failed to fetch image from Replicate URL');
-              processedImage = imageBase64;
-            }
-          } else {
-            processedImage = outputStr;
-            console.log('[ImageProcess] Background removed successfully');
+            processedImageUrl = outputStr;
+            console.log('[ImageProcess] Background removed, returning CDN URL');
           }
         }
       } catch (bgErr) {
-        console.warn('[ImageProcess] Background removal failed, continuing with original:', bgErr.message);
-        // Continue with original image on error
+        console.warn('[ImageProcess] Background removal failed:', bgErr.message);
       }
     }
 
+    // Never return base64 — only return the CDN URL if available
     res.json({ 
       success: true, 
-      processedImageBase64: processedImage,
-      maskQuality: shouldRemoveBg ? 85 : 0,
+      processedImageUrl,
+      maskQuality: processedImageUrl ? 85 : 0,
       straightened: straighten === true ? true : false
     });
   } catch (error) {
@@ -8790,56 +8772,69 @@ app.post('/api/wardrobe/process-image/resilient', authMiddleware, async (req, re
 });
 
 // ===== EXTRACT CLOTHING: Background Removal + AI Analysis =====
+// Concurrency limit: max 3 simultaneous extract-clothing requests to prevent OOM
+const extractClothingQueue = { active: 0, max: 3 };
+async function withExtractClothingLimit(fn) {
+  while (extractClothingQueue.active >= extractClothingQueue.max) {
+    await new Promise(r => setTimeout(r, 500));
+  }
+  extractClothingQueue.active++;
+  try {
+    return await fn();
+  } finally {
+    extractClothingQueue.active--;
+  }
+}
+
 app.post('/api/wardrobe/extract-clothing/resilient', async (req, res) => {
+  if (extractClothingQueue.active >= extractClothingQueue.max) {
+    return res.status(429).json({ error: 'Server busy, retry in 5 seconds', retryAfter: 5 });
+  }
+
   try {
     const { imageBase64 } = req.body;
     if (!imageBase64) {
       return res.status(400).json({ error: 'imageBase64 is required' });
     }
 
-    console.log('[ExtractClothing] Starting parallel background removal + AI analysis...');
+    console.log(`[ExtractClothing] Starting (queue: ${extractClothingQueue.active + 1}/${extractClothingQueue.max})...`);
     const replicateToken = process.env.REPLICATE_API_TOKEN;
     const imageDataUri = imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
 
-    // Run background removal and AI analysis IN PARALLEL for maximum speed
-    const [bgResult, analysisResult] = await Promise.allSettled([
-      // Task 1: Background removal via Replicate rembg
-      replicateToken ? (async () => {
-        const Replicate = require('replicate');
-        const replicate = new Replicate({ auth: replicateToken });
-        const output = await replicate.run(
-          'cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003',
-          { input: { image: imageDataUri } }
-        );
-        return output ? (typeof output === 'string' ? output : String(output)) : null;
-      })() : Promise.resolve(null),
+    const [bgResult, analysisResult] = await withExtractClothingLimit(() =>
+      Promise.allSettled([
+        // Task 1: Background removal — always returns CDN URL, never base64
+        replicateToken ? (async () => {
+          const Replicate = require('replicate');
+          const replicate = new Replicate({ auth: replicateToken });
+          const output = await replicate.run(
+            'cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003',
+            { input: { image: imageDataUri } }
+          );
+          return output ? (typeof output === 'string' ? output : String(output)) : null;
+        })() : Promise.resolve(null),
 
-      // Task 2: AI clothing analysis (runs on original image simultaneously)
-      analyzeGarmentItem(imageBase64),
-    ]);
+        // Task 2: AI clothing analysis
+        analyzeGarmentItem(imageBase64),
+      ])
+    );
 
-    // Process background removal result
-    let processedImageBase64 = imageBase64;
+    // Only use the CDN URL — never return base64 back to client
     let processedImageUrl = null;
     let backgroundRemoved = false;
 
     if (bgResult.status === 'fulfilled' && bgResult.value) {
       const outputStr = bgResult.value;
       if (outputStr.startsWith('http')) {
-        // Return the URL directly — no server-side re-fetch needed
         processedImageUrl = outputStr;
         backgroundRemoved = true;
-        console.log('[ExtractClothing] Background removed, returning URL directly');
-      } else if (outputStr.length > 100) {
-        processedImageBase64 = outputStr;
-        backgroundRemoved = true;
-        console.log('[ExtractClothing] Background removed (base64)');
+        console.log('[ExtractClothing] Background removed, CDN URL returned');
       }
+      // If output is base64 (rare fallback from Replicate), discard it — do not return to client
     } else if (bgResult.status === 'rejected') {
       console.warn('[ExtractClothing] Background removal failed:', bgResult.reason?.message);
     }
 
-    // Process AI analysis result
     let clothingAnalysis = null;
     if (analysisResult.status === 'fulfilled' && analysisResult.value?.success && analysisResult.value?.item) {
       const raw = analysisResult.value.item;
@@ -8858,9 +8853,9 @@ app.post('/api/wardrobe/extract-clothing/resilient', async (req, res) => {
       console.warn('[ExtractClothing] AI analysis failed:', analysisResult.reason?.message);
     }
 
+    // Never send processedImageBase64 — only URL or null
     res.json({
       success: true,
-      processedImageBase64: backgroundRemoved && !processedImageUrl ? processedImageBase64 : imageBase64,
       processedImageUrl,
       clothingAnalysis,
       backgroundRemoved,

@@ -648,7 +648,6 @@ class ApiService {
     return this.request<{
       success: boolean;
       processedImageUrl?: string;
-      processedImageBase64?: string;
       maskQuality?: number;
       straightened?: boolean;
       error?: string;
@@ -667,7 +666,6 @@ class ApiService {
     // Always use real backend - no mock mode
     return this.request<{
       success: boolean;
-      processedImageBase64?: string;
       processedImageUrl?: string;
       clothingAnalysis?: {
         type: string;

@@ -136,11 +136,8 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       
       const result = await apiService.extractClothing({ imageBase64 });
       
-      const processedUri = result.processedImageUrl
-        ? result.processedImageUrl
-        : result.processedImageBase64
-          ? `data:image/png;base64,${result.processedImageBase64}`
-          : null;
+      // Backend returns CDN URL only — never base64 anymore
+      const processedUri = result.processedImageUrl ?? null;
 
       if (result.success && processedUri) {
         setImageUri(processedUri);

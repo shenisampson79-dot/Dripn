@@ -908,7 +908,11 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           </Animated.View>
         ) : null}
 
-        <View style={styles.promptInputContainer}>
+        <Pressable
+          style={styles.promptInputContainer}
+          onPress={() => expressionInputRef.current?.focus()}
+          accessible={false}
+        >
           <Feather name="edit-3" size={16} color="rgba(74, 52, 40, 0.5)" style={{ marginTop: 4 }} />
           <TextInput
             ref={expressionInputRef}
@@ -922,9 +926,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             returnKeyType="done"
             blurOnSubmit={true}
             onSubmitEditing={Keyboard.dismiss}
-            onFocus={handleExpressionInputFocus}
           />
-        </View>
+        </Pressable>
 
         <View style={styles.optionsGrid}>
           {options.map((option, index) => {
