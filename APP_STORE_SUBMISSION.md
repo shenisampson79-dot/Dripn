@@ -30,27 +30,25 @@ Upload your outfit photos and receive instant, personalized styling recommendati
 Share your looks and get honest, constructive feedback from fellow fashion lovers. Vote on comparison polls and help others make style decisions.
 
 **Voice Comments**
-Record voice notes to give detailed styling advice - sometimes words aren't enough to describe the perfect accessory swap!
+Record voice notes to give detailed styling advice.
 
 **Trending Challenges**
 Join weekly style challenges, discover the outfit of the day, and see what's trending in the fashion community.
 
 **Daily & Weekly Offers**
-Never miss a deal! Browse exclusive daily and weekly special offers from your favorite fashion brands and retailers, all curated to match your style preferences.
+Browse exclusive daily and weekly special offers from your favorite fashion brands and retailers, all curated to match your style preferences.
 
 **Events Near You**
-Discover local events - from gallery openings to fitness classes - and get personalized outfit suggestions for every occasion. Look your best wherever you go!
+Discover local events and get personalized outfit suggestions for every occasion.
 
 **Size-Inclusive**
-Fashion advice for every body type. Our recommendations consider your unique proportions to help you dress with confidence.
+Fashion advice for every body type.
 
 **Subscription Tiers:**
-- Free: Get started with basic features
-- Style Starter ($9.99/month): More posts, AI advice, and voice comments
-- Fashion Forward ($24.99/month): Priority support, exclusive content, affiliate access
-- VIP Influencer ($49.99/month): Unlimited everything plus direct stylist chat
-
-Download Dripn today and transform your wardrobe with confidence!
+- Free
+- Style Chat (£9.99/month)
+- Personal Stylist (£14.99/month)
+- Stylist Unlimited (£19.99/month)
 
 ---
 
@@ -61,14 +59,16 @@ fashion,style,outfit,clothing,wardrobe,advice,AI,styling,look,dress,tips,communi
 ---
 
 ## Privacy Policy URL
-(Required - you need to create one)
-https://yourwebsite.com/privacy
+https://dripnapp.com/privacy
+
+## Terms URL
+https://dripnapp.com/terms
 
 ## Support URL
-https://yourwebsite.com/support
+https://dripnapp.com
 
 ## Marketing URL (optional)
-https://yourwebsite.com
+https://dripnapp.com
 
 ---
 
@@ -98,7 +98,7 @@ Tablet: 1200x1920 minimum (if supporting)
 
 ### Demo Account (if app requires login)
 Email: demo@dripn.com
-Password: (create a test account)
+Password: create a test account
 
 ### Notes for Reviewers
 Dripn is a fashion advice app that allows users to share outfit photos and receive styling suggestions from both AI and community members. The app includes in-app purchases for premium subscription tiers.
@@ -108,21 +108,21 @@ Dripn is a fashion advice app that allows users to share outfit photos and recei
 ## Pre-Submission Checklist
 
 ### Developer Accounts
-- [ ] Apple Developer Account ($99/year) - https://developer.apple.com
-- [ ] Google Play Developer Account ($25 one-time) - https://play.google.com/console
+- [x] Apple Developer Account
+- [x] Google Play Developer Account
 
 ### Required Items
-- [ ] Privacy Policy URL (hosted on your website)
-- [ ] App icon (1024x1024 for iOS, already configured in app.json)
+- [x] Privacy Policy URL (hosted on your website)
+- [x] App icon (configured in app.json)
 - [ ] Screenshots for all required sizes
 - [ ] Age rating questionnaire completed
-- [ ] Content rights declaration
+- [x] Content rights declaration
 
 ### Before Building
 - [ ] Test all features work correctly
 - [ ] Remove any test/debug code
-- [ ] Verify all links work (privacy policy, support, etc.)
-- [ ] Check subscription pricing matches App Store Connect / Play Console
+- [x] Verify all links work (privacy policy, support, etc.)
+- [x] Check subscription pricing matches App Store Connect / Play Console
 
 ---
 
@@ -132,11 +132,6 @@ Dripn is a fashion advice app that allows users to share outfit photos and recei
 ```bash
 npm install -g eas-cli
 eas login
-```
-
-### Configure Project
-```bash
-eas build:configure
 ```
 
 ### Build for iOS
@@ -151,7 +146,7 @@ eas build --platform android --profile production
 
 ### Submit to App Stores
 ```bash
-# iOS (uploads to TestFlight)
+# iOS
 eas submit -p ios
 
 # Android
@@ -163,18 +158,16 @@ eas submit -p android
 ## Post-Submission
 
 ### iOS App Store
-1. Build uploads to TestFlight automatically
-2. Log into App Store Connect
-3. Complete app information (description, screenshots, pricing)
-4. Submit for review
-5. Wait 1-3 days for review
+1. Upload build
+2. Complete app information
+3. Submit for review
+4. Wait for review
 
 ### Google Play Store
-1. First upload must be done manually in Play Console
-2. Complete store listing (description, screenshots)
+1. Upload build
+2. Complete store listing
 3. Set up pricing and distribution
 4. Submit for review
-5. Usually approved within hours to 2 days
 
 ---
 
@@ -182,6 +175,6 @@ eas submit -p android
 
 - Apple requires all apps with subscriptions to clearly display pricing
 - Both stores require a privacy policy
-- Age rating: Dripn should be rated 12+ (social features, user-generated content)
+- Age rating: Dripn should likely be rated 12+
 - In-app purchases must be configured in App Store Connect and Play Console
 - Stripe payments work through the web; in-app subscriptions require platform billing
