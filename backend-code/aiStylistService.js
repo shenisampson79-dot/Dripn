@@ -1285,8 +1285,16 @@ async function generateStylistResponse({
     : '';
 
   const resolvedLanguageCode = languageCode || 'en';
+  // Built-in fallback lookup so language name is always correct regardless of what caller passes
+  const LANGUAGE_CODE_TO_NAME = {
+    es: 'Spanish', fr: 'French', de: 'German', it: 'Italian', pt: 'Portuguese',
+    nl: 'Dutch', pl: 'Polish', ru: 'Russian', sv: 'Swedish', da: 'Danish',
+    no: 'Norwegian', fi: 'Finnish', tr: 'Turkish', zh: 'Chinese', ja: 'Japanese',
+    ko: 'Korean', ar: 'Arabic', hi: 'Hindi', uk: 'Ukrainian', cs: 'Czech',
+  };
+  const resolvedLanguageName = LANGUAGE_CODE_TO_NAME[resolvedLanguageCode] || languageName || 'English';
   const languageInstruction = resolvedLanguageCode !== 'en'
-    ? `\n\nLANGUAGE: You MUST respond entirely in ${languageName}. The user's preferred language is ${languageName}. Every word of your response must be in ${languageName}, including affectionate terms, fashion advice, and sign-offs. Do not switch to English under any circumstances.`
+    ? `\n\nCRITICAL LANGUAGE REQUIREMENT: You MUST respond ENTIRELY in ${resolvedLanguageName}. Every single word — greetings, fashion advice, affectionate terms, sign-offs — must be in ${resolvedLanguageName}. Do NOT use English. Do NOT mix languages. The user has explicitly chosen ${resolvedLanguageName} and expects a native-fluent response. Switching to English is a critical failure.`
     : '';
 
   // CRITICAL: Add mandatory gender-specific constraints to force AI to respect user's gender

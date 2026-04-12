@@ -11,9 +11,9 @@ const ELEVENLABS_MODEL = 'eleven_multilingual_v2';
 
 // ============ MARCH 16 VOICE CHARACTER MAPPINGS ============
 
-// RUBY — Authentic voices: English: Aria (warm, natural) | Italian: Luca (native) | Spanish: Lucia (native) | French: Léa (native) | German: Hans (native) | Portuguese: Marina (native) | Multilingual: Giancarlo
+// RUBY — Authentic voices: English: Rachel (warm, natural) | Italian: Luca (native) | Spanish: Lucia (native) | French: Léa (native) | German: Hans (native) | Portuguese: Marina (native) | Multilingual: Giancarlo
 const RUBY_VOICES = {
-  en: 'nXF4fQ7WKbDWGwZIA02c',      // Aria (warm, professional, authentic English)
+  en: '21m00Tcm4TlvDq8ikWAM',      // Rachel (warm, professional, authentic English)
   it: 'YEKdqKwBnXc34v33nVQn',      // Luca (authentic Italian male)
   es: 'VR6AewLTigWG4xSOukaG',      // Sofia (authentic Spanish female)
   fr: 'jBpfuIE2acCO8z3wKNLl',      // Léa (authentic French female)
@@ -31,10 +31,10 @@ const MAX_ENGLISH_VOICES = {
 };
 const MAX_NON_ENGLISH_VOICE = 'onwK4e9ZLuTAKqWW03F9'; // Daniel
 
-// ACE — English: Callum | Non-English (all): different fallback
+// ACE — English: Callum | Non-English (all): Daniel (multilingual)
 const ACE_VOICES = {
   en: 'N2lVS1w4EtoT3dr4eOWO',      // Callum (English all accents)
-  default: 'y3dX3o6a1V9c4Qm2B8kN', // distinct non-English fallback
+  default: 'onwK4e9ZLuTAKqWW03F9', // Daniel (multilingual non-English fallback)
 };
 
 // IVY — English: Charlotte | Italian: Manuela | All other non-English: Charlotte

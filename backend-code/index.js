@@ -3064,12 +3064,19 @@ const SUPPORTED_LANGUAGES = [
   { code: 'de', name: 'German', nativeName: 'Deutsch', direction: 'ltr' },
   { code: 'it', name: 'Italian', nativeName: 'Italiano', direction: 'ltr' },
   { code: 'pt', name: 'Portuguese', nativeName: 'Português', direction: 'ltr' },
+  { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', direction: 'ltr' },
+  { code: 'pl', name: 'Polish', nativeName: 'Polski', direction: 'ltr' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский', direction: 'ltr' },
+  { code: 'sv', name: 'Swedish', nativeName: 'Svenska', direction: 'ltr' },
+  { code: 'da', name: 'Danish', nativeName: 'Dansk', direction: 'ltr' },
+  { code: 'no', name: 'Norwegian', nativeName: 'Norsk', direction: 'ltr' },
+  { code: 'fi', name: 'Finnish', nativeName: 'Suomi', direction: 'ltr' },
+  { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', direction: 'ltr' },
   { code: 'zh', name: 'Chinese', nativeName: '中文', direction: 'ltr' },
   { code: 'ja', name: 'Japanese', nativeName: '日本語', direction: 'ltr' },
   { code: 'ko', name: 'Korean', nativeName: '한국어', direction: 'ltr' },
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', direction: 'rtl' },
   { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', direction: 'ltr' },
-  { code: 'ru', name: 'Russian', nativeName: 'Русский', direction: 'ltr' },
 ];
 
 const TRANSLATIONS = {
