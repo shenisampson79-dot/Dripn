@@ -1127,18 +1127,13 @@ export default function AIStylistScreen() {
   };
 
   // Single source of truth for which language the stylist should speak.
-  // Priority: explicit Settings preference > detected user message language > onboarding stylist language > 'en'.
+  // Priority: explicit Settings preference > onboarding stylist language > 'en'.
   const onboardingLangCode =
     LANGUAGE_NAME_TO_CODE[user?.stylistPreferences?.language || 'English'] || 'en';
-  const detectedMessageLanguage = detectLanguage(inputText || messages[messages.length - 1]?.content || '');
   const effectiveLanguage =
     voiceSettings.preferredLanguage && voiceSettings.preferredLanguage !== 'en'
       ? voiceSettings.preferredLanguage
-      : detectedMessageLanguage && detectedMessageLanguage !== 'en'
-        ? detectedMessageLanguage
-      : onboardingLangCode === 'en'
-        ? 'en'
-        : 'en';
+      : onboardingLangCode;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
