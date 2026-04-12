@@ -19,29 +19,14 @@ Get personalized fashion advice from AI and a supportive style community.
 
 **Full Description:**
 
-Dripn is your personal fashion advisor in your pocket. Whether you're getting ready for a big event, updating your wardrobe, or just want a second opinion on an outfit, Dripn connects you with AI-powered styling advice and a supportive community of fashion enthusiasts.
+Dripn is your personal fashion advisor in your pocket. Whether you're getting ready for a big event, updating your wardrobe, or just want a second opinion on an outfit, Dripn connects you with AI-powered styling advice.
 
 **Key Features:**
 
-**AI Fashion Advice**
+**AI Fashion Advice**  
 Upload your outfit photos and receive instant, personalized styling recommendations. Our AI analyzes colors, patterns, and proportions to help you look your best for any occasion.
 
-**Community Feedback**
-Share your looks and get honest, constructive feedback from fellow fashion lovers. Vote on comparison polls and help others make style decisions.
-
-**Voice Comments**
-Record voice notes to give detailed styling advice.
-
-**Trending Challenges**
-Join weekly style challenges, discover the outfit of the day, and see what's trending in the fashion community.
-
-**Daily & Weekly Offers**
-Browse exclusive daily and weekly special offers from your favorite fashion brands and retailers, all curated to match your style preferences.
-
-**Events Near You**
-Discover local events and get personalized outfit suggestions for every occasion.
-
-**Size-Inclusive**
+**Size-Inclusive**  
 Fashion advice for every body type.
 
 **Subscription Tiers:**
@@ -101,7 +86,7 @@ Email: demo@dripn.com
 Password: create a test account
 
 ### Notes for Reviewers
-Dripn is a fashion advice app that allows users to share outfit photos and receive styling suggestions from both AI and community members. The app includes in-app purchases for premium subscription tiers.
+Dripn is a fashion advice app that allows users to share outfit photos and receive styling suggestions from AI. The app includes in-app purchases for premium subscription tiers.
 
 ---
 
