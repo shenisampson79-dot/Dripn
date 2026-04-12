@@ -23,7 +23,7 @@
     "production": {
       "ios": {
         "appleId": "shenisampson79@gmail.com",
-        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID"
+        "ascAppId": "6762082932"
       },
       "android": {
         "track": "production",
