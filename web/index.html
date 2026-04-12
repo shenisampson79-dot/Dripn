@@ -21,6 +21,16 @@
         flex: 1;
       }
     </style>
+    <script>
+      (function() {
+        var path = window.location.pathname.replace(/\/$/, '');
+        if (path === '/privacy') {
+          window.location.replace('/privacy.html');
+        } else if (path === '/terms') {
+          window.location.replace('/terms.html');
+        }
+      })();
+    </script>
   </head>
   <body>
     <noscript>
