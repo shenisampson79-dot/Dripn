@@ -323,7 +323,7 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
   const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
 
   try {
-    const { apiService } = await import('./ApiService');
+    // apiService is statically imported at top of file — no dynamic import needed
 
     // Fetch color config from backend if not cached
     if (!colorConfigCache) {
@@ -568,7 +568,6 @@ export async function extractProductFromText(text: string): Promise<ProductLinkR
   const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
 
   try {
-    const { apiService } = await import('./ApiService');
     const result = await apiService.extractFromUrl(text);
     
     if (result.success && result.item) {
@@ -670,7 +669,6 @@ export async function extractProductFromImage(imageUri: string): Promise<Product
   const base64Image = await convertImageToBase64(imageUri);
 
   try {
-    const { apiService } = await import('./ApiService');
     const result = await apiService.extractFromScreenshot(base64Image);
     
     if (result.success && result.item) {
