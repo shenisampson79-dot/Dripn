@@ -541,6 +541,37 @@ class ApiService {
     });
   }
 
+  async analyzeGarmentByUri(imageUri: string): Promise<any> {
+    const token = await this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (this.sessionBackup) headers['X-Session-Backup'] = this.sessionBackup;
+    if (this.guestToken) headers['X-Guest-Token'] = this.guestToken;
+
+    const formData = new FormData();
+    formData.append('image', { uri: imageUri, type: 'image/jpeg', name: 'photo.jpg' } as any);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    try {
+      const response = await fetch(`${API_URL}/api/wardrobe/analyze/upload`, {
+        method: 'POST',
+        headers,
+        body: formData,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw new Error(`Upload analyze failed ${response.status}: ${errText}`);
+      }
+      return response.json();
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw err;
+    }
+  }
+
   async analyzeGarmentPhoto(imageBase64: string, options?: { detailed?: boolean }) {
     // Build headers with session backup for resilient auth
     const headers: Record<string, string> = {};

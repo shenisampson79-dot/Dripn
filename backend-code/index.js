@@ -1,6 +1,8 @@
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
+const multer = require('multer');
+const multerMemory = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
@@ -10748,6 +10750,116 @@ app.post('/api/wardrobe/analyze/resilient', async (req, res) => {
     });
   } catch (error) {
     console.error('[Wardrobe/Analyze] Error:', error.message);
+    res.status(500).json({ error: 'Failed to analyze garment' });
+  }
+});
+
+// Multipart file upload endpoint — avoids client-side ImageManipulator OOM crash
+app.post('/api/wardrobe/analyze/upload', multerMemory.single('image'), async (req, res) => {
+  if (analyzeQueue.active >= analyzeQueue.max) {
+    return res.status(429).json({ error: 'Server busy, retry in a moment', retryAfter: 2 });
+  }
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ error: 'image file is required' });
+    }
+
+    const imageBase64 = req.file.buffer.toString('base64');
+    const result = await withAnalyzeLimit(() => analyzeGarmentItem(imageBase64));
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error || 'Analysis failed' });
+    }
+
+    const raw = result.item || {};
+
+    let color = raw.color;
+    let secondaryColor = raw.secondaryColor || null;
+    if (color && typeof color === 'object') {
+      secondaryColor = color.secondary || null;
+      color = color.primary || null;
+    }
+    if (color) color = String(color).toLowerCase().split(/[\s,]+/)[0];
+
+    const categoryMap = {
+      footwear: 'shoes', sneakers: 'shoes', boots: 'shoes', heels: 'shoes', sandals: 'shoes',
+      underwear: 'accessories', lingerie: 'accessories',
+      jacket: 'outerwear', coat: 'outerwear', blazer: 'outerwear', cardigan: 'outerwear',
+      shirt: 'tops', blouse: 'tops', sweater: 'tops', hoodie: 'tops', tshirt: 'tops', knitwear: 'tops',
+      trousers: 'bottoms', jeans: 'bottoms', shorts: 'bottoms', skirt: 'bottoms', pants: 'bottoms',
+      jumpsuit: 'dresses', romper: 'dresses', gown: 'dresses',
+      bag: 'bags', purse: 'bags', backpack: 'bags', handbag: 'bags',
+      belt: 'accessories', hat: 'accessories', scarf: 'accessories', watch: 'accessories',
+      jewellery: 'accessories', jewelry: 'accessories',
+      suit: 'formal', tuxedo: 'formal',
+      jersey: 'activewear_tops', gym: 'activewear_tops', athletic: 'activewear_tops', sportswear: 'activewear_tops',
+      trackpants: 'activewear_bottoms', joggers: 'activewear_bottoms', leggings: 'activewear_bottoms',
+      sweatpants: 'activewear_bottoms',
+      loungewear: 'sleepwear', pyjamas: 'sleepwear', pajamas: 'sleepwear',
+      swimsuit: 'swimwear', bikini: 'swimwear',
+    };
+    const validCategories = ['tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'bags', 'accessories', 'activewear_tops', 'activewear_bottoms', 'swimwear', 'sleepwear', 'formal'];
+    let category = (raw.category || '').toLowerCase();
+    if (category === 'activewear') {
+      const nameHint = (raw.name || raw.suggestedName || raw.itemName || '').toLowerCase();
+      const bottomKw = ['pants', 'shorts', 'joggers', 'leggings', 'sweatpants', 'tights', 'track', 'capri', 'drawstring', 'running'];
+      category = bottomKw.some(k => nameHint.includes(k)) ? 'activewear_bottoms' : 'activewear_tops';
+    }
+    if (!validCategories.includes(category)) {
+      category = categoryMap[category] || category;
+    }
+
+    const occasionMap = {
+      'smart-casual': 'casual', 'smart casual': 'casual', outdoor: 'casual', outdoors: 'casual',
+      lounging: 'casual', lounge: 'casual', brunch: 'casual', daily: 'everyday', day: 'everyday',
+      daytime: 'everyday', travel: 'vacation', beach: 'vacation', office: 'work', professional: 'work',
+      business: 'work', evening: 'date-night', night: 'date-night', 'night out': 'date-night',
+      sport: 'workout', sports: 'workout', sportswear: 'workout', gym: 'workout', exercise: 'workout',
+      athletic: 'workout', 'special occasion': 'formal', wedding: 'formal', gala: 'formal',
+      cocktail: 'party', festival: 'party', club: 'party',
+    };
+    const validOccasions = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
+    const rawOccasions = Array.isArray(raw.occasions) ? raw.occasions : [];
+    const occasions = rawOccasions.map(o => {
+      const lower = String(o).toLowerCase();
+      if (validOccasions.includes(lower)) return lower;
+      return occasionMap[lower] || null;
+    }).filter(Boolean);
+
+    const validSeasons = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
+    const seasonMap = { fall: 'autumn', 'all-year': 'all-season', 'year-round': 'all-season', 'all year': 'all-season' };
+    const rawSeasons = Array.isArray(raw.seasons) ? raw.seasons : [];
+    const seasons = rawSeasons.map(s => {
+      const lower = String(s).toLowerCase();
+      if (validSeasons.includes(lower)) return lower;
+      return seasonMap[lower] || null;
+    }).filter(Boolean);
+
+    const normalized = {
+      name: raw.name || raw.suggestedName || raw.itemName || null,
+      category: validCategories.includes(category) ? category : null,
+      color: color || null,
+      secondaryColor,
+      pattern: raw.pattern || null,
+      material: raw.material || null,
+      brand: raw.brand || null,
+      seasons: seasons.length > 0 ? seasons : ['all-season'],
+      occasions: occasions.length > 0 ? occasions : ['everyday'],
+      style: raw.style || null,
+      description: raw.description || null,
+    };
+
+    console.log('[Wardrobe/Upload] Normalized result:', JSON.stringify(normalized));
+
+    res.json({
+      success: true,
+      item: normalized,
+      analysis: normalized,
+      modelUsed: result.modelUsed,
+      authMode: 'guest',
+    });
+  } catch (error) {
+    console.error('[Wardrobe/Upload] Error:', error.message);
     res.status(500).json({ error: 'Failed to analyze garment' });
   }
 });

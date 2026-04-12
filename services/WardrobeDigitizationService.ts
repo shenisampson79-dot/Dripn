@@ -323,10 +323,8 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
   const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
 
   try {
-    const base64Image = await convertImageToBase64(imageUri);
-    
     const { apiService } = await import('./ApiService');
-    
+
     // Fetch color config from backend if not cached
     if (!colorConfigCache) {
       try {
@@ -336,11 +334,12 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
         console.log('[BulkScan] Could not load color config, using fallbacks');
       }
     }
-    
+
     let result: any;
     let apiErrorMessage = '';
     try {
-      result = await apiService.analyzeGarmentPhoto(base64Image, { detailed: true });
+      // Use multipart file upload — avoids decoding full image into JS/native memory (no OOM crash)
+      result = await apiService.analyzeGarmentByUri(imageUri);
       console.log('[BulkScan] API response:', JSON.stringify(result).substring(0, 200));
     } catch (apiError: any) {
       apiErrorMessage = apiError.message || '';
