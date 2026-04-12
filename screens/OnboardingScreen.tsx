@@ -1271,7 +1271,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const handleComplete = async () => {
     const stylistPreferences: StylistPreferences = {
       selectedStylistId,
-      language: stylistLanguage,
+      language: stylistLanguageCode,
       voicePitch,
       useNameInGreetings,
       namePronunciationConfirmed,

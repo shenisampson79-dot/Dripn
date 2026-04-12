@@ -1284,7 +1284,8 @@ async function generateStylistResponse({
     ? 'This is a Premium member - provide excellent, detailed service.'
     : '';
 
-  const languageInstruction = languageCode !== 'en'
+  const resolvedLanguageCode = languageCode || 'en';
+  const languageInstruction = resolvedLanguageCode !== 'en'
     ? `\n\nLANGUAGE: You MUST respond entirely in ${languageName}. The user's preferred language is ${languageName}. Every word of your response must be in ${languageName}, including affectionate terms, fashion advice, and sign-offs. Do not switch to English under any circumstances.`
     : '';
 
