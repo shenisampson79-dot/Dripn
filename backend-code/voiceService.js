@@ -31,10 +31,10 @@ const MAX_ENGLISH_VOICES = {
 };
 const MAX_NON_ENGLISH_VOICE = 'onwK4e9ZLuTAKqWW03F9'; // Daniel
 
-// ACE — English: Callum | Non-English (all): Arnold
+// ACE — English: Callum | Non-English (all): different fallback
 const ACE_VOICES = {
   en: 'N2lVS1w4EtoT3dr4eOWO',      // Callum (English all accents)
-  default: 'VR6AewLTigWG4xSOukaG', // Arnold (non-English all)
+  default: 'y3dX3o6a1V9c4Qm2B8kN', // distinct non-English fallback
 };
 
 // IVY — English: Charlotte | Italian: Manuela | All other non-English: Charlotte
