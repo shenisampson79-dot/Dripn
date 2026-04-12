@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, Modal } from "react-native";
+import { StyleSheet, Modal, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NavigationContainer, NavigationContainerRef, useNavigation } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -22,6 +22,8 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
+import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
+import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
 import MainTabNavigator from "@/navigation/MainTabNavigator";
 import AuthStackNavigator from "@/navigation/AuthStackNavigator";
 import StylistStackNavigator from "@/navigation/StylistStackNavigator";
@@ -58,7 +60,17 @@ export type PortalMode = 'stylist' | 'admin' | null;
 
 function NavigationContainerWithRef() {
   const navigationRef = useRef<NavigationContainerRef<any>>(null);
-  
+
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const path = window.location.pathname.replace(/\/$/, '');
+    if (path === '/privacy') {
+      return <PrivacyPolicyScreen />;
+    }
+    if (path === '/terms') {
+      return <TermsOfServiceScreen />;
+    }
+  }
+
   return (
     <NavigationContainer 
       ref={navigationRef}
