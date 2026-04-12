@@ -73,8 +73,8 @@ export async function convertImageToBase64(imageUri: string): Promise<string> {
       try {
         const manipResult = await ImageManipulator.manipulateAsync(
           imageUri,
-          [{ resize: { width: 1200 } }],
-          { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
+          [{ resize: { width: 800 } }],
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
         );
         finalUri = manipResult.uri;
       } catch (manipError) {
