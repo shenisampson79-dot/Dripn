@@ -417,9 +417,10 @@ function processVoiceMessage(audioBuffer, stylistId = 'ruby') {
 }
 
 async function createVoiceResponse(responseText, stylistId = 'ruby', options = {}) {
+  const resolvedLanguage = options.language || options.transcriptionLanguage || 'en';
   const synthesis = await synthesizeSpeech(responseText, {
     stylistId,
-    language: options.language || 'en',
+    language: resolvedLanguage,
     voiceRange: options.voiceRange || null,
     highQuality: options.highQuality !== false,
   });

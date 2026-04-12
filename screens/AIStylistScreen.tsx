@@ -1136,7 +1136,9 @@ export default function AIStylistScreen() {
       ? voiceSettings.preferredLanguage
       : detectedMessageLanguage && detectedMessageLanguage !== 'en'
         ? detectedMessageLanguage
-      : onboardingLangCode;
+      : onboardingLangCode === 'en'
+        ? 'en'
+        : 'en';
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');

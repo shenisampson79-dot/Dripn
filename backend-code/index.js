@@ -6846,7 +6846,7 @@ app.post('/api/ai/voice-response', authMiddleware, async (req, res) => {
     }
 
     const result = await createVoiceResponse(textResponse, resolvedStylistId, {
-      language: language || 'en',
+      language: language || null,
       voiceRange: voiceRange || null,
     });
 
