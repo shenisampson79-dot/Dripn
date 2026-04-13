@@ -13,12 +13,12 @@ name = "EAS Init"
 mode = "sequential"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "console"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "EXPO_TOKEN=$EXPO_TOKEN npx eas init --non-interactive --force"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[workflows.workflow]]
 name = "EAS Update"
@@ -73,12 +73,12 @@ args = "EAS Init"
 name = "Start application"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "console"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "EXPO_PUBLIC_API_URL=https://$REPLIT_DEV_DOMAIN:3000 EXPO_PUBLIC_ADMIN_API_URL=https://$REPLIT_DEV_DOMAIN:3000 EXPO_PACKAGER_PROXY_URL=https://$REPLIT_DEV_DOMAIN REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN npx expo start --clear"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[workflows.workflow]]
 name = "Backend API"
