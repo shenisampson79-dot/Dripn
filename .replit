@@ -11,10 +11,14 @@ runButton = "Project"
 [[workflows.workflow]]
 name = "EAS Init"
 mode = "sequential"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npx eas init"
+args = "EXPO_TOKEN=$EXPO_TOKEN npx eas init --non-interactive --force"
 
 [[workflows.workflow]]
 name = "EAS Update"
@@ -60,6 +64,10 @@ args = "Backend API"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "EAS Publish Preview iOS"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "EAS Init"
 
 [[workflows.workflow]]
 name = "Start application"
