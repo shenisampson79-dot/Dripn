@@ -35,7 +35,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "EXPO_TOKEN=$EXPO_TOKEN npx eas build --platform ios --profile production --non-interactive"
+args = "EXPO_TOKEN=$EXPO_TOKEN npx eas build --platform ios --profile producti-non-interactive"
 
 [workflows.workflow.metadata]
 outputType = "console"
