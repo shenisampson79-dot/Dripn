@@ -4,28 +4,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
-
-// Local backend is on internal port 8082, mapped to external port 3000
-// The deployed backend (dripn-server--shenisampson79.replit.app) is broken — skip it
-const BROKEN_DEPLOYED_BACKEND = 'https://dripn-server--shenisampson79.replit.app';
-const LOCAL_BACKEND_WEB = 'http://localhost:8082';
-const LOCAL_BACKEND_MOBILE = 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:3000';
-
-const getDefaultAPIUrl = (): string => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL;
-  // Use the env var only if it's not the known-broken deployed backend
-  if (envUrl && envUrl !== BROKEN_DEPLOYED_BACKEND) {
-    return envUrl;
-  }
-  if (Platform.OS === 'web') {
-    return LOCAL_BACKEND_WEB;
-  }
-  return LOCAL_BACKEND_MOBILE;
-};
-
-const API_URL = getDefaultAPIUrl();
-const ADMIN_API_URL = process.env.EXPO_PUBLIC_ADMIN_API_URL || API_URL;
+import { API_URL, ADMIN_API_URL } from '@/config/api';
 
 const TOKEN_KEY = '@dripn_token';
 const ADMIN_TOKEN_KEY = '@dripn_admin_token';

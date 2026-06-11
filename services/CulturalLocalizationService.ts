@@ -1,6 +1,5 @@
 import { STYLISTS, PersonalStylist } from './PersonalStylistService';
-
-const BACKEND_URL = 'https://dripn-server--shenisampson79.replit.app';
+import { API_URL } from '@/config/api';
 
 export interface LocalizedGreeting {
   greeting: string;
@@ -701,7 +700,7 @@ export async function generateLocalizedGreetingWithAI(
   context?: string
 ): Promise<string | null> {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/localize-greeting`, {
+    const response = await fetch(`${API_URL}/api/localize-greeting`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

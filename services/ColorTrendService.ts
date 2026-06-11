@@ -1,8 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StyleTheme, StyleThemes } from '@/constants/theme';
 import { apiService } from './ApiService';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://dripn-server--shenisampson79.replit.app';
+import { API_URL } from '@/config/api';
 
 const COLOR_TRENDS_CACHE_KEY = '@dripn_color_trends';
 const CACHE_EXPIRY_KEY = '@dripn_color_trends_expiry';

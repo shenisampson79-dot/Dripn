@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL as API_BASE_URL, ADMIN_API_URL } from '@/config/api';
 
 export interface AdminProfile {
   id: string;
@@ -44,9 +45,6 @@ const AdminAuthContext = createContext<AdminAuthContextType | null>(null);
 
 const ADMIN_STORAGE_KEY = '@dripn_admin';
 const ADMIN_TOKEN_KEY = '@dripn_admin_token';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://dripn-server--shenisampson79.replit.app';
-const ADMIN_API_URL = process.env.EXPO_PUBLIC_ADMIN_API_URL || API_BASE_URL;
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminProfile | null>(null);

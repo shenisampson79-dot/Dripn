@@ -1,15 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
-
-const BROKEN_DEPLOYED_BACKEND = 'https://dripn-server--shenisampson79.replit.app';
-const LOCAL_BACKEND_MOBILE = 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:3000';
-const LOCAL_BACKEND_WEB = 'http://localhost:8082';
-
-const getApiUrl = (): string => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL;
-  if (envUrl && envUrl !== BROKEN_DEPLOYED_BACKEND) return envUrl;
-  return Platform.OS === 'web' ? LOCAL_BACKEND_WEB : LOCAL_BACKEND_MOBILE;
-};
+import { API_URL } from '@/config/api';
 
 export interface Retailer {
   name: string;
@@ -195,7 +185,7 @@ class RetailerServiceImpl {
     }
 
     try {
-      const apiUrl = getApiUrl();
+      const apiUrl = API_URL;
       const response = await fetch(
         `${apiUrl}/api/retailers/suggestions?country=${encodeURIComponent(country)}`,
         { method: 'GET', headers: { 'Content-Type': 'application/json' } }

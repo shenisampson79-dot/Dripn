@@ -13,6 +13,7 @@ import { Spacing, BorderRadius, SubscriptionColors, LuxuryColors, ScreenGradient
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
 import { useSubscription, SUBSCRIPTION_PLANS, YEARLY_PRICING } from "@/contexts/SubscriptionContext";
+import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -158,18 +159,7 @@ const getLocalizedPlans = (prices: LocalizedPrices, isYearly: boolean): Plan[] =
   ];
 };
 
-const normalizeTier = (tier?: string): SubscriptionTier => {
-  if (!tier) return 'free';
-  const map: Record<string, SubscriptionTier> = {
-    style_chat: 'subscription', style_chat_monthly: 'subscription', style_chat_yearly: 'subscription',
-    style_chat_plan: 'subscription', styleChatMonthly: 'subscription', styleChatYearly: 'subscription',
-    personal_stylist: 'premium', personal_stylist_monthly: 'premium', personal_stylist_yearly: 'premium',
-    personalStylistMonthly: 'premium', personalStylistYearly: 'premium',
-    stylist_unlimited: 'pro', stylist_unlimited_monthly: 'pro', stylist_unlimited_yearly: 'pro',
-    stylistUnlimitedMonthly: 'pro', stylistUnlimitedYearly: 'pro',
-  };
-  return map[tier] || (tier as SubscriptionTier);
-};
+const normalizeTier = normalizeSubscriptionTier;
 
 const getTierDisplayName = (tier?: SubscriptionTier): string => {
   switch (tier) {

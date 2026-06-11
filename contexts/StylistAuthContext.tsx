@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL as API_BASE_URL } from '@/config/api';
 
 export interface StylistProfile {
   id: string;
@@ -46,8 +47,6 @@ const StylistAuthContext = createContext<StylistAuthContextType | null>(null);
 
 const STYLIST_STORAGE_KEY = '@dripn_stylist';
 const STYLIST_TOKEN_KEY = '@dripn_stylist_token';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://dripn-server--shenisampson79.replit.app';
 
 export function StylistAuthProvider({ children }: { children: ReactNode }) {
   const [stylist, setStylist] = useState<StylistProfile | null>(null);

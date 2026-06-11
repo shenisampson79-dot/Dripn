@@ -10,6 +10,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBestAvailableModel, preloadModelAvailability } from '@/services/ModelSelectionService';
+import { API_URL } from '@/config/api';
 
 const BODY_PROFILE_STORAGE_KEY = '@dripn_body_profile';
 
@@ -298,7 +299,7 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
     setError(null);
 
     try {
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:8082';
+      const apiUrl = API_URL;
       const token = await AsyncStorage.getItem('@dripn_token');
 
       const response = await fetch(`${apiUrl}/api/onboarding/body-scan`, {
@@ -390,7 +391,7 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
     setError(null);
 
     try {
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://0ff35e7b-c52b-436f-bc3a-caa12ac9e07a-00-ladpqjdev6jc.spock.replit.dev:8082';
+      const apiUrl = API_URL;
       const token = await AsyncStorage.getItem('@dripn_token');
 
       const response = await fetch(`${apiUrl}/api/onboarding/color-scan`, {

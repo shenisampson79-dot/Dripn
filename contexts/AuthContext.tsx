@@ -12,6 +12,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Platform, AppState } from 'react-native';
 import { StyleTheme } from '@/constants/theme';
 import { apiService } from '@/services/ApiService';
+import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -416,6 +417,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData = await AsyncStorage.getItem(STORAGE_KEY);
       if (userData) {
         const localUser = JSON.parse(userData);
+        localUser.subscriptionTier = normalizeSubscriptionTier(localUser.subscriptionTier);
         setUser(localUser);
         
         // Try to refresh from backend to ensure onboarding + tour status is accurate
@@ -458,12 +460,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const saveUser = async (userData: UserProfile) => {
+    const normalizedUser: UserProfile = {
+      ...userData,
+      subscriptionTier: normalizeSubscriptionTier(userData.subscriptionTier),
+    };
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
-      setUser(userData);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedUser));
+      setUser(normalizedUser);
       // Sync to backend so profile survives device changes / reinstalls
-      if (userData.id) {
-        const { id, email, ...profileData } = userData as any;
+      if (normalizedUser.id) {
+        const { id, email, ...profileData } = normalizedUser as any;
         // CRITICAL: Never sync hasSeenTour: false to the backend.
         // false just means "not yet confirmed on this device" — it is NOT authoritative.
         // Only sync it when it's definitively true. This prevents overwriting a good
@@ -910,15 +916,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       
       if (subStatus?.plan && subStatus.plan !== 'free') {
-        const tierMap: Record<string, SubscriptionTier> = {
-          'subscription': 'style_chat',
-          'premium': 'personal_stylist',
-          'pro': 'stylist_unlimited',
-          'vip': 'vip',
-        };
-        const mappedTier = tierMap[subStatus.plan] || subStatus.plan;
-        if (mappedTier !== user.subscriptionTier) {
-          const updatedUser = { ...user, subscriptionTier: mappedTier as SubscriptionTier };
+        const mappedTier = normalizeSubscriptionTier(subStatus.plan);
+        if (mappedTier !== normalizeSubscriptionTier(user.subscriptionTier)) {
+          const updatedUser = { ...user, subscriptionTier: mappedTier };
           await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
           setUser(updatedUser);
         }

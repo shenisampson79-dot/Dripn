@@ -7,6 +7,7 @@ import TrendInsightsService, {
   StyleMovement 
 } from './TrendInsightsService';
 import { supportService, TICKET_CATEGORIES } from './SupportService';
+import { API_URL } from '@/config/api';
 
 const FEATURE_SUGGESTIONS_KEY = '@dripn_feature_suggestions';
 const FEEDBACK_DATA_KEY = '@dripn_feedback_data';
@@ -309,7 +310,7 @@ class AIFeatureSuggestionsService {
     const prompt = this.buildAnalysisPrompt(context);
     
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/ai/feature-suggestions`, {
+      const response = await fetch(`${API_URL}/api/ai/feature-suggestions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

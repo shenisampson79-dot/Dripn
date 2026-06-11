@@ -2,7 +2,11 @@ const { getDefaultConfig } = require("expo/metro-config");
 
 const config = getDefaultConfig(__dirname);
 
-if (process.env.NODE_ENV === "production") {
+if (
+  process.env.NODE_ENV === "production" &&
+  !process.env.CI &&
+  !process.env.VERCEL
+) {
   const jsoMetroPlugin = require("obfuscator-io-metro-plugin")(
     {
       compact: true,

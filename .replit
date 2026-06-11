@@ -115,7 +115,7 @@ value = "0"
 [userenv]
 
 [userenv.shared]
-EXPO_PUBLIC_API_URL = "https://dripn-server--shenisampson79.replit.app"
+EXPO_PUBLIC_API_URL = "https://dripn-server.onrender.com"
 
 [[ports]]
 localPort = 3000

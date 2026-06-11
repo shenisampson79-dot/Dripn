@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
+import { API_URL } from "@/config/api";
 
 export type VoteReason = "more-appropriate" | "more-flattering" | "feels-safer";
 
@@ -77,7 +78,7 @@ class CommunityVotingServiceClass {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.EXPO_PUBLIC_API_URL || "https://dripn-server--shenisampson79.replit.app";
+    this.baseUrl = API_URL;
   }
 
   getVotingReasons(): typeof VOTING_REASONS {

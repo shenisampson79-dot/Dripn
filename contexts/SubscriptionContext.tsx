@@ -6,6 +6,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth, SubscriptionTier } from '@/contexts/AuthContext';
+import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 
 export interface SubscriptionPlan {
   id: string;
@@ -279,8 +280,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [referralCode, setReferralCode] = useState('');
   const [referralCount, setReferralCount] = useState(0);
 
-  const tier = user?.subscriptionTier || 'free';
-  const limits = TIER_LIMITS[tier];
+  const tier = normalizeSubscriptionTier(user?.subscriptionTier);
+  const limits = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
   const currentPlan = SUBSCRIPTION_PLANS.find(p => p.tier === tier);
 
   useEffect(() => {

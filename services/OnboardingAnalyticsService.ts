@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://dripn-server--shenisampson79.replit.app';
+import { API_URL } from '@/config/api';
 const SESSION_ID_KEY = '@dripn_onboarding_session_id';
 
 type VariationType = 'positioning' | 'trust' | 'control';

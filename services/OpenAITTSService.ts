@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getVoicePreviewScript } from './CulturalLocalizationService';
+import { API_URL } from '@/config/api';
 
 export type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
 export type TTSModel = 'tts-1' | 'tts-1-hd';
@@ -23,8 +24,6 @@ export interface TTSOptions {
   model?: TTSModel;
   speed?: number;
 }
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://dripn-server--shenisampson79.replit.app';
 
 const LANGUAGE_CODES: Record<string, string> = {
   English: 'en-US',
