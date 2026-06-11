@@ -10,7 +10,7 @@
     "android": "npx expo start --android",
     "ios": "npx expo start --ios",
     "web": "npx expo start --web",
-    "build:web": "npx expo export --platform web --output-dir web-build",
+    "build:web": "npx expo export --platform web --output-dir web-build && node scripts/fix-web-index.js",
     "lint": "npx expo lint",
     "check:format": "prettier --check \"**/*.{js,ts,tsx,css,json}\"",
     "format": "prettier --write \"**/*.{js,ts,tsx,css,json}\""
