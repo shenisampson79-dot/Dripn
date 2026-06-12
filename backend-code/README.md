@@ -29,9 +29,11 @@ Copy ALL files from this `backend-code` folder into your new Replit:
 | Secret Name | Required | Description |
 |-------------|----------|-------------|
 | OPENAI_API_KEY | Yes | Your OpenAI API key for AI features |
-| JWT_SECRET | Yes | Random string for JWT tokens (use any long random string) |
-| STRIPE_SECRET_KEY | Optional | For payment processing |
-| STRIPE_PUBLISHABLE_KEY | Optional | For Stripe frontend |
+| JWT_SECRET | Yes (production) | Random string for JWT tokens — server refuses to start in production without this |
+| STRIPE_SECRET_KEY | Optional | For payment processing (Render: set with STRIPE_WEBHOOK_SECRET and STRIPE_PUBLISHABLE_KEY) |
+| STRIPE_PUBLISHABLE_KEY | Optional | For Stripe frontend config endpoint |
+| STRIPE_WEBHOOK_SECRET | Optional | For Stripe webhook signature verification |
+| APP_URL | Optional | Public backend URL for checkout redirects and video rooms (e.g. https://dripn-server.onrender.com) |
 | SENDGRID_API_KEY | Optional | For email notifications |
 | REPLICATE_API_TOKEN | Optional | For virtual try-on feature |
 

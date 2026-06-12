@@ -47,6 +47,16 @@ async function getStripeCredentials() {
     return stripeCredentialsCache;
   }
 
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripeCredentialsCache = {
+      secret: process.env.STRIPE_SECRET_KEY,
+      webhook_secret: process.env.STRIPE_WEBHOOK_SECRET,
+      publishable: process.env.STRIPE_PUBLISHABLE_KEY,
+    };
+    stripeCredentialsCacheTime = now;
+    return stripeCredentialsCache;
+  }
+
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY 
     ? 'repl ' + process.env.REPL_IDENTITY 
@@ -90,6 +100,24 @@ function isVIPPriceId(priceId) {
   return VIP_PRICE_IDS.includes(priceId) || 
          priceId.toLowerCase().includes('vip') ||
          priceId.toLowerCase().includes('price_vip');
+}
+
+function isProOrVipTier(tier) {
+  return tier === 'pro' || tier === 'vip';
+}
+
+function normalizeStoredTier(tier) {
+  if (tier === 'vip') return 'pro';
+  if (tier === 'basic') return 'subscription';
+  return tier || 'free';
+}
+
+function getTierFromPriceIds(priceIds) {
+  for (const pid of priceIds) {
+    if (STRIPE_PRICE_TO_TIER[pid]) return STRIPE_PRICE_TO_TIER[pid];
+    if (isVIPPriceId(pid)) return 'pro';
+  }
+  return null;
 }
 
 // ─── Metro/Expo Go Proxy ────────────────────────────────────────────────────
@@ -209,13 +237,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
     }
 
     // Helper: get tier from price IDs in a subscription's line items
-    function getTierFromPriceIds(priceIds) {
-      for (const pid of priceIds) {
-        if (STRIPE_PRICE_TO_TIER[pid]) return STRIPE_PRICE_TO_TIER[pid];
-        if (isVIPPriceId(pid)) return 'vip';
-      }
-      return null;
-    }
+    // (uses module-level getTierFromPriceIds)
 
     // Handle checkout session completed
     if (event.type === 'checkout.session.completed') {
@@ -226,14 +248,14 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
       const stripeCustomerId = session.customer;
       const stripeSubscriptionId = session.subscription;
 
-      // Check metadata for VIP tier
-      const isVIP = session.metadata?.tier === 'vip' || session.metadata?.planTier === 'vip';
+      const metadataTier = session.metadata?.tier || session.metadata?.planTier;
+      const isProPurchase = isProOrVipTier(metadataTier);
 
-      if (isVIP) {
-        console.log('VIP purchase detected via metadata for:', customerEmail);
+      if (isProPurchase) {
+        console.log('Pro/VIP purchase detected via metadata for:', customerEmail);
         const result = await notifyVIPPurchase(customerEmail, customerName, new Date().toISOString());
         console.log('VIP notification result:', result);
-        await updateUserSubscriptionTier(clientReferenceId, customerEmail, 'vip', stripeSubscriptionId, stripeCustomerId);
+        await updateUserSubscriptionTier(clientReferenceId, customerEmail, normalizeStoredTier(metadataTier), stripeSubscriptionId, stripeCustomerId);
       } else if (stripeSubscriptionId) {
         // Determine tier from the subscription's price IDs
         try {
@@ -261,18 +283,18 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
       const priceIds = (subscription.items?.data || []).map(i => i.price?.id).filter(Boolean);
       const tier = getTierFromPriceIds(priceIds);
 
-      if (tier === 'vip') {
+      if (isProOrVipTier(tier)) {
         try {
           const Stripe = require('stripe');
           const creds = await getStripeCredentials();
           if (creds?.secret) {
             const stripeClient = new Stripe(creds.secret, { apiVersion: '2024-11-20.acacia' });
             const customer = await stripeClient.customers.retrieve(subscription.customer);
-            console.log('VIP subscription detected for:', customer.email);
+            console.log('Pro subscription detected for:', customer.email);
             await notifyVIPPurchase(customer.email, customer.name, new Date(subscription.created * 1000).toISOString());
           }
         } catch (err) {
-          console.error('Error retrieving customer for VIP notification:', err.message);
+          console.error('Error retrieving customer for pro notification:', err.message);
         }
       }
 
@@ -298,8 +320,8 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
       const lineItemPriceIds = (invoice.lines?.data || []).map(l => l.price?.id).filter(Boolean);
       const tier = getTierFromPriceIds(lineItemPriceIds);
 
-      if (tier === 'vip' && invoice.billing_reason === 'subscription_create') {
-        console.log('VIP invoice paid for:', invoice.customer_email);
+      if (isProOrVipTier(tier) && invoice.billing_reason === 'subscription_create') {
+        console.log('Pro invoice paid for:', invoice.customer_email);
         await notifyVIPPurchase(invoice.customer_email, invoice.customer_name, new Date(invoice.created * 1000).toISOString());
       }
     }
@@ -346,9 +368,19 @@ pool.query(
   console.warn('[DB Cleanup] Could not clean legacy base64 rows:', err.message);
 });
 
-// JWT Secret
-const JWT_SECRET = process.env.JWT_SECRET || 'dripn-secret-key-change-in-production';
-const DEPLOYED_BACKEND_URL = 'https://dripn-server--shenisampson79.replit.app';
+// JWT Secret — refuse to start in production with the default
+const DEFAULT_JWT_SECRET = 'dripn-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_JWT_SECRET;
+if (process.env.NODE_ENV === 'production' && JWT_SECRET === DEFAULT_JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable must be set in production. Refusing to start.');
+  process.exit(1);
+}
+
+const DEPLOYED_BACKEND_URL =
+  process.env.DEPLOYED_BACKEND_URL ||
+  process.env.APP_URL ||
+  process.env.EXPO_PUBLIC_API_URL ||
+  `http://127.0.0.1:${PORT}`;
 
 async function proxyToDeployed(req, res, path) {
   try {
@@ -1217,15 +1249,11 @@ app.post('/api/subscription/verify', authMiddleware, async (req, res) => {
           const sub = subscriptions.data[0];
           const priceIds = (sub.items?.data || []).map(i => i.price?.id).filter(Boolean);
           
-          function getTierFromPriceIds(priceIds) {
-            for (const pid of priceIds) {
-              if (STRIPE_PRICE_TO_TIER[pid]) return STRIPE_PRICE_TO_TIER[pid];
-              if (isVIPPriceId(pid)) return 'vip';
-            }
-            return null;
+          function getTierFromPriceIdsLocal(priceIds) {
+            return getTierFromPriceIds(priceIds);
           }
 
-          const tier = getTierFromPriceIds(priceIds);
+          const tier = getTierFromPriceIdsLocal(priceIds);
           if (tier) {
             updatedTier = tier;
             updatedSubId = sub.id;
@@ -1256,14 +1284,6 @@ app.post('/api/subscription/verify', authMiddleware, async (req, res) => {
             const sub = subscriptions.data[0];
             const priceIds = (sub.items?.data || []).map(i => i.price?.id).filter(Boolean);
             
-            function getTierFromPriceIds(priceIds) {
-              for (const pid of priceIds) {
-                if (STRIPE_PRICE_TO_TIER[pid]) return STRIPE_PRICE_TO_TIER[pid];
-                if (isVIPPriceId(pid)) return 'vip';
-              }
-              return null;
-            }
-
             const tier = getTierFromPriceIds(priceIds);
             if (tier && tier !== 'free') {
               updatedTier = tier;
@@ -1402,7 +1422,7 @@ app.post('/api/subscription/manage', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'No billing account found. Please subscribe first.' });
     }
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = process.env.APP_URL || process.env.EXPO_PUBLIC_API_URL || `${req.protocol}://${req.get('host')}`;
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${baseUrl}/api/checkout/cancel`,
@@ -1412,6 +1432,39 @@ app.post('/api/subscription/manage', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Billing portal error:', error);
     res.status(500).json({ error: error.message || 'Failed to open billing portal' });
+  }
+});
+
+app.post('/api/subscription/start-trial', authMiddleware, async (req, res) => {
+  try {
+    const userResult = await pool.query(
+      'SELECT subscription_tier, profile_data FROM users WHERE id = $1',
+      [req.userId]
+    );
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const user = userResult.rows[0];
+    const currentTier = normalizeStoredTier(user.subscription_tier);
+    if (currentTier !== 'free') {
+      return res.status(400).json({ error: 'Trial is only available on the free plan' });
+    }
+    const profile = user.profile_data || {};
+    if (profile.trialUsed) {
+      return res.status(400).json({ error: 'Trial already used' });
+    }
+    profile.trialUsed = true;
+    profile.trialStartedAt = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    profile.trialExpiresAt = expiresAt;
+    await pool.query(
+      `UPDATE users SET subscription_tier = 'premium', profile_data = $1, updated_at = NOW() WHERE id = $2`,
+      [JSON.stringify(profile), req.userId]
+    );
+    res.json({ success: true, tier: 'premium', trialDays: 7, expiresAt });
+  } catch (error) {
+    console.error('Start trial error:', error);
+    res.status(500).json({ error: 'Failed to start trial' });
   }
 });
 
@@ -2861,17 +2914,19 @@ app.post('/api/admin/setup', async (req, res) => {
 // Admin dashboard stats
 app.get('/api/admin/dashboard', adminAuthMiddleware, async (req, res) => {
   try {
-    // Try to fetch stats from deployed backend (which has the real user data)
-    const deployedResponse = await fetch(`${DEPLOYED_BACKEND_URL}/api/admin/stats`, {
-      headers: { 'Authorization': req.headers.authorization || '' }
-    }).catch(() => null);
+    // Optional proxy to a separate deployed backend (only when explicitly configured)
+    if (process.env.DEPLOYED_BACKEND_URL) {
+      const deployedResponse = await fetch(`${process.env.DEPLOYED_BACKEND_URL}/api/admin/stats`, {
+        headers: { 'Authorization': req.headers.authorization || '' }
+      }).catch(() => null);
 
-    if (deployedResponse && deployedResponse.ok) {
-      const data = await deployedResponse.json();
-      return res.json(data);
+      if (deployedResponse && deployedResponse.ok) {
+        const data = await deployedResponse.json();
+        return res.json(data);
+      }
     }
 
-    // Fall back to local database stats
+    // Local database stats
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -3993,8 +4048,8 @@ app.post('/api/sessions/book', authMiddleware, async (req, res) => {
 
     // Check if user is VIP
     const userResult = await pool.query('SELECT subscription_tier FROM users WHERE id = $1', [req.userId]);
-    if (userResult.rows.length === 0 || userResult.rows[0].subscription_tier !== 'vip') {
-      return res.status(403).json({ error: 'VIP subscription required to book stylist sessions' });
+    if (userResult.rows.length === 0 || !isProOrVipTier(userResult.rows[0].subscription_tier)) {
+      return res.status(403).json({ error: 'Pro subscription required to book stylist sessions' });
     }
 
     // Check stylist availability (no overlapping sessions)
@@ -4110,7 +4165,7 @@ app.post('/api/sessions/:id/cancel', authMiddleware, async (req, res) => {
 
 // ============ VIP VIDEO CALLING ROUTES ============
 
-// VIP auth middleware - verifies user is VIP tier
+// Pro-tier auth middleware — verifies user has pro (or legacy vip) subscription
 async function vipAuthMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -4123,8 +4178,8 @@ async function vipAuthMiddleware(req, res, next) {
     req.userId = decoded.userId;
     
     const userResult = await pool.query('SELECT subscription_tier FROM users WHERE id = $1', [req.userId]);
-    if (userResult.rows.length === 0 || userResult.rows[0].subscription_tier !== 'vip') {
-      return res.status(403).json({ error: 'VIP subscription required for video calls' });
+    if (userResult.rows.length === 0 || !isProOrVipTier(userResult.rows[0].subscription_tier)) {
+      return res.status(403).json({ error: 'Pro subscription required for video calls' });
     }
     next();
   } catch (error) {
@@ -4135,8 +4190,8 @@ async function vipAuthMiddleware(req, res, next) {
 // Generate a unique room URL for video calls
 function generateRoomUrl() {
   const roomId = uuidv4().substring(0, 8);
-  const baseUrl = process.env.REPLIT_DEV_DOMAIN || 'dripn.replit.app';
-  return `https://${baseUrl}/video-room/${roomId}`;
+  const baseUrl = (process.env.APP_URL || process.env.EXPO_PUBLIC_API_URL || 'https://dripn-server.onrender.com').replace(/\/$/, '');
+  return `${baseUrl}/video-room/${roomId}`;
 }
 
 // Get list of VIP members available for video calls
@@ -4145,7 +4200,7 @@ app.get('/api/video/vip-members', vipAuthMiddleware, async (req, res) => {
     const result = await pool.query(`
       SELECT id, display_name, avatar_url, bio 
       FROM users 
-      WHERE subscription_tier = 'vip' AND id != $1
+      WHERE subscription_tier IN ('pro', 'vip') AND id != $1
       ORDER BY display_name ASC
     `, [req.userId]);
 
@@ -4177,8 +4232,8 @@ app.post('/api/video/call', vipAuthMiddleware, async (req, res) => {
     if (calleeResult.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
-    if (calleeResult.rows[0].subscription_tier !== 'vip') {
-      return res.status(403).json({ error: 'Can only call VIP members' });
+    if (!isProOrVipTier(calleeResult.rows[0].subscription_tier)) {
+      return res.status(403).json({ error: 'Can only call Pro members' });
     }
 
     const roomUrl = generateRoomUrl();
@@ -4328,8 +4383,8 @@ app.post('/api/sessions/:id/start-video', authMiddleware, async (req, res) => {
   try {
     // Check if user is VIP
     const userResult = await pool.query('SELECT subscription_tier FROM users WHERE id = $1', [req.userId]);
-    if (userResult.rows.length === 0 || userResult.rows[0].subscription_tier !== 'vip') {
-      return res.status(403).json({ error: 'VIP subscription required for video sessions' });
+    if (userResult.rows.length === 0 || !isProOrVipTier(userResult.rows[0].subscription_tier)) {
+      return res.status(403).json({ error: 'Pro subscription required for video sessions' });
     }
 
     // Check session belongs to user and is scheduled
@@ -6403,8 +6458,8 @@ app.post('/api/stylist/detect-mood', async (req, res) => {
       return res.status(400).json({ error: 'message is required' });
     }
 
-    const mood = await detectMood(message);
-    res.json({ success: true, mood });
+    const moodResult = await detectMood(message);
+    res.json({ success: true, ...moodResult });
   } catch (error) {
     console.error('Mood detection error:', error);
     res.status(500).json({ 
@@ -7227,7 +7282,7 @@ app.post('/api/ai/complex-analysis', authMiddleware, async (req, res) => {
     const user = userResult.rows[0];
     
     // Check subscription tier - complex analysis is premium feature
-    const allowedTiers = ['premium', 'vip'];
+    const allowedTiers = ['premium', 'pro', 'vip'];
     if (!allowedTiers.includes(user.subscription_tier)) {
       return res.status(403).json({ 
         error: 'Complex analysis requires Premium or VIP subscription',
@@ -7359,8 +7414,11 @@ app.get('/api/ai/reasoning-model', async (req, res) => {
 // Virtual try-on limits by subscription tier
 const VIRTUAL_TRY_ON_LIMITS = {
   free: 0,
-  basic: 3,
+  subscription: 3,
   premium: 10,
+  pro: Infinity,
+  // legacy tier aliases
+  basic: 3,
   vip: Infinity,
 };
 
@@ -7385,8 +7443,8 @@ app.post('/api/virtual-try-on', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    const tier = userResult.rows[0].subscription_tier || 'free';
-    const limit = VIRTUAL_TRY_ON_LIMITS[tier] || 0;
+    const tier = normalizeStoredTier(userResult.rows[0].subscription_tier || 'free');
+    const limit = VIRTUAL_TRY_ON_LIMITS[tier] ?? 0;
     
     // Check current month usage
     const currentMonth = new Date().toISOString().slice(0, 7);
@@ -7459,8 +7517,8 @@ app.get('/api/virtual-try-on/usage', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    const tier = userResult.rows[0].subscription_tier || 'free';
-    const limit = VIRTUAL_TRY_ON_LIMITS[tier] || 0;
+    const tier = normalizeStoredTier(userResult.rows[0].subscription_tier || 'free');
+    const limit = VIRTUAL_TRY_ON_LIMITS[tier] ?? 0;
     
     // Check current month usage
     const currentMonth = new Date().toISOString().slice(0, 7);
@@ -11334,6 +11392,11 @@ app.get('/api/config/colors', async (req, res) => {
       'mustard', 'sage', 'rust', 'cobalt', 'blush', 'nude', 'chocolate'
     ],
     modifiers: ['light', 'dark', 'pale', 'deep', 'bright', 'muted', 'soft', 'vivid', 'pastel', 'neon'],
+    descriptiveColors: {
+      heather: 'gray', charcoal: 'charcoal', ivory: 'ivory', denim: 'denim',
+      blush: 'pink', nude: 'beige', camel: 'camel', sage: 'green', rust: 'orange',
+      cobalt: 'blue', burgundy: 'red', mustard: 'yellow', olive: 'green',
+    },
     patterns: ['solid', 'striped', 'plaid', 'floral', 'geometric', 'animal print', 'paisley', 'checked', 'polka dot', 'abstract', 'tie-dye'],
     undertones: ['warm', 'cool', 'neutral'],
     seasons: ['spring', 'summer', 'autumn', 'winter'],
@@ -11531,46 +11594,51 @@ Respond with JSON only: { "description": "2-sentence outfit description", "piece
 // ============================================================
 
 // ---- STYLISTS ----
+const AI_STYLISTS = {
+  ruby: { id: 'ruby', name: 'Ruby', personality: 'Bold & Directional', specialty: 'Editorial & Trend', tagline: 'Make a statement', icon: 'ruby', color: '#E8B4B8', emoji: 'ruby', speciality: 'Editorial & Trend' },
+  max:  { id: 'max',  name: 'Max',  personality: 'Minimal & Sharp',    specialty: 'Classic & Tailored', tagline: 'Less is more', icon: 'max',  color: '#2C3E50', emoji: 'max',  speciality: 'Classic & Tailored' },
+  ace:  { id: 'ace',  name: 'Ace',  personality: 'Street & Relaxed',   specialty: 'Streetwear & Casual', tagline: 'Stay cool', icon: 'ace',  color: '#27AE60', emoji: 'ace',  speciality: 'Streetwear & Casual' },
+  ivy:  { id: 'ivy',  name: 'Ivy',  personality: 'Feminine & Polished', specialty: 'Feminine & Elegant', tagline: 'Effortlessly chic', icon: 'ivy',  color: '#8E44AD', emoji: 'ivy',  speciality: 'Feminine & Elegant' },
+};
+
+app.get('/api/stylists', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT profile_data FROM users WHERE id = $1', [req.userId]);
+    const profile = result.rows[0]?.profile_data || {};
+    const currentId = profile.stylistPreferences?.selectedStylist || 'ruby';
+    const stylists = Object.values(AI_STYLISTS).map((s) => ({
+      id: s.id,
+      name: s.name,
+      personality: s.personality,
+      specialty: s.specialty,
+      tagline: s.tagline,
+      icon: s.icon,
+      color: s.color,
+      isCurrent: s.id === currentId,
+    }));
+    res.json({ stylists });
+  } catch (e) { res.status(500).json({ error: 'Failed to get stylists' }); }
+});
+
 app.get('/api/stylists/current', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query('SELECT profile_data FROM users WHERE id = $1', [req.userId]);
     const profile = result.rows[0]?.profile_data || {};
     const chosen = profile.stylistPreferences?.selectedStylist || 'ruby';
-    const STYLISTS = {
-      ruby: { id: 'ruby', name: 'Ruby', personality: 'Bold & Directional', color: '#E8B4B8', emoji: 'ruby', speciality: 'Editorial & Trend' },
-      max:  { id: 'max',  name: 'Max',  personality: 'Minimal & Sharp',    color: '#2C3E50', emoji: 'max',  speciality: 'Classic & Tailored' },
-      ace:  { id: 'ace',  name: 'Ace',  personality: 'Street & Relaxed',   color: '#27AE60', emoji: 'ace',  speciality: 'Streetwear & Casual' },
-      ivy:  { id: 'ivy',  name: 'Ivy',  personality: 'Feminine & Polished',color: '#8E44AD', emoji: 'ivy',  speciality: 'Feminine & Elegant' },
-    };
-    res.json({ stylist: STYLISTS[chosen] || STYLISTS.ruby });
+    res.json({ stylist: AI_STYLISTS[chosen] || AI_STYLISTS.ruby, messageCount: profile.stylistMessageCount || 0 });
   } catch (e) { res.status(500).json({ error: 'Failed to get stylist' }); }
 });
 
 app.post('/api/stylists/switch', authMiddleware, async (req, res) => {
   try {
-    const { stylistId } = req.body;
-    if (!['ruby','max','ace','ivy'].includes(stylistId)) return res.status(400).json({ error: 'Invalid stylist' });
+    const stylistId = req.body.stylistId || req.body.stylist;
+    if (!stylistId || !AI_STYLISTS[stylistId]) return res.status(400).json({ error: 'Invalid stylist' });
     const result = await pool.query('SELECT profile_data FROM users WHERE id = $1', [req.userId]);
     const profile = result.rows[0]?.profile_data || {};
     profile.stylistPreferences = { ...(profile.stylistPreferences || {}), selectedStylist: stylistId };
     await pool.query('UPDATE users SET profile_data = $1 WHERE id = $2', [JSON.stringify(profile), req.userId]);
-    res.json({ success: true, stylistId });
+    res.json({ success: true, stylistId, stylist: AI_STYLISTS[stylistId], message: `Switched to ${AI_STYLISTS[stylistId].name}` });
   } catch (e) { res.status(500).json({ error: 'Failed to switch stylist' }); }
-});
-
-app.post('/api/stylist/detect-mood', authMiddleware, async (req, res) => {
-  try {
-    const { message, context } = req.body;
-    const OpenAI = require('openai');
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const r = await openai.chat.completions.create({
-      model: await getBestModel('chat'), max_completion_tokens: 80,
-      messages: [{ role: 'user', content: `Detect the mood from this fashion context in 1-2 words. Context: "${message || context}". Reply with ONLY a JSON: {"mood":"word","energy":"high|medium|low","vibe":"word"}` }],
-    });
-    const raw = r.choices[0]?.message?.content || '{"mood":"confident","energy":"medium","vibe":"polished"}';
-    const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || raw);
-    res.json(parsed);
-  } catch (e) { res.json({ mood: 'confident', energy: 'medium', vibe: 'polished' }); }
 });
 
 // ---- STYLE PROFILE ----
@@ -12059,8 +12127,19 @@ app.get('/api/tour/status', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query('SELECT profile_data FROM users WHERE id = $1', [req.userId]);
     const profile = result.rows[0]?.profile_data || {};
-    res.json({ completed: profile.tourCompleted || false, skipped: profile.tourSkipped || false, step: profile.tourStep || 0 });
-  } catch (e) { res.json({ completed: false, skipped: false, step: 0 }); }
+    const tourCompleted = profile.tourCompleted || profile.hasSeenTour === true || false;
+    const tourSkipped = profile.tourSkipped || false;
+    const currentStep = profile.tourStep || 0;
+    res.json({
+      success: true,
+      tourCompleted,
+      tourSkipped,
+      currentStep,
+      completed: tourCompleted,
+      skipped: tourSkipped,
+      step: currentStep,
+    });
+  } catch (e) { res.json({ success: true, tourCompleted: false, tourSkipped: false, currentStep: 0, completed: false, skipped: false, step: 0 }); }
 });
 
 app.post('/api/tour/complete', authMiddleware, async (req, res) => {
@@ -12069,6 +12148,7 @@ app.post('/api/tour/complete', authMiddleware, async (req, res) => {
     const profile = result.rows[0]?.profile_data || {};
     profile.tourCompleted = true;
     profile.tourCompletedAt = new Date().toISOString();
+    profile.hasSeenTour = true;
     await pool.query('UPDATE users SET profile_data = $1 WHERE id = $2', [JSON.stringify(profile), req.userId]);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Failed' }); }
@@ -12189,6 +12269,141 @@ app.post('/api/voice-credits/purchase', authMiddleware, async (req, res) => {
     const { packageId } = req.body;
     res.json({ success: true, message: 'Voice credit purchase via Stripe coming soon.', packageId });
   } catch (e) { res.status(500).json({ error: 'Failed to initiate purchase' }); }
+});
+
+// ---- SUPPORT CHAT ----
+app.post('/api/support/chat', authMiddleware, async (req, res) => {
+  try {
+    const { message, chatHistory = [], stylistName = 'Ruby', stylistPersonality = 'helpful and warm' } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+    if (!process.env.OPENAI_API_KEY) {
+      return res.json({
+        response: "Thanks for reaching out! Our support team will get back to you shortly. In the meantime, try browsing the Help section.",
+        fallback: true,
+      });
+    }
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const historyMessages = (chatHistory || []).slice(-6).map((m) => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content,
+    }));
+    const completion = await openai.chat.completions.create({
+      model: await getBestModel('chat'),
+      max_completion_tokens: 300,
+      messages: [
+        { role: 'system', content: `You are ${stylistName}, a Dripn support stylist. Personality: ${stylistPersonality}. Help with app questions, subscriptions, and styling features. Be concise and friendly.` },
+        ...historyMessages,
+        { role: 'user', content: message },
+      ],
+    });
+    res.json({ response: completion.choices[0]?.message?.content || 'How can I help you today?' });
+  } catch (e) {
+    console.error('[Support/Chat] Error:', e.message);
+    res.json({
+      response: "I'm having trouble connecting right now. Please try again or email support@dripn.app.",
+      fallback: true,
+    });
+  }
+});
+
+// ---- ONBOARDING ANALYTICS & CONTEXT (silent-accept stubs) ----
+app.post('/api/onboarding/analytics', optionalAuth, (req, res) => {
+  res.json({ success: true });
+});
+
+app.post('/api/onboarding/context', optionalAuth, (req, res) => {
+  res.json({ success: true });
+});
+
+app.post('/api/localize-greeting', (req, res) => {
+  const { name, language = 'en' } = req.body || {};
+  const greetings = {
+    en: name ? `Hi ${name}, ready to elevate your style?` : 'Hi there, ready to elevate your style?',
+    es: name ? `Hola ${name}, ¿lista para elevar tu estilo?` : 'Hola, ¿lista para elevar tu estilo?',
+    fr: name ? `Bonjour ${name}, prête à sublimer votre style ?` : 'Bonjour, prête à sublimer votre style ?',
+  };
+  res.json({ greeting: greetings[language] || greetings.en });
+});
+
+app.post('/api/ai/feature-suggestions', optionalAuth, (req, res) => {
+  res.json({
+    success: true,
+    suggestions: [
+      { id: 'wardrobe', title: 'Build your wardrobe', description: 'Upload items for personalised outfit advice' },
+      { id: 'stylist', title: 'Meet your AI stylist', description: 'Chat with Ruby, Max, Ace, or Ivy' },
+      { id: 'calendar', title: 'Plan your outfits', description: 'Use the outfit calendar for the week ahead' },
+    ],
+  });
+});
+
+app.get('/api/onboarding/stylist-upgrade-copy', (req, res) => {
+  const { stylistId = 'ruby', signalType = 'SAVE' } = req.query;
+  res.json({
+    copy: {
+      message: 'Create an account to save your style progress.',
+      followUp: 'Your preferences will sync across devices.',
+      cta: ['Create account', 'Maybe later'],
+      unlocks: signalType === 'RELIANCE' || signalType === 'RETURN' ? 'subscription' : 'account_creation',
+      stylistId,
+      signalType,
+    },
+  });
+});
+
+app.get('/api/onboarding/post-recommendation-ui', (req, res) => {
+  res.json({
+    buttons: {
+      save: { label: 'Save outfit', icon: 'bookmark' },
+      another: { label: 'Another option', icon: 'refresh-cw' },
+      secondOpinion: { label: 'Second opinion', icon: 'users' },
+    },
+    tweakPlaceholder: 'Want to tweak this?',
+    saveBehaviour: { maxCached: 3, promptAfter: 1, cacheKey: 'dripn_cached_outfits' },
+  });
+});
+
+app.get('/api/onboarding/tier-capabilities', (req, res) => {
+  res.json({
+    tiers: [
+      { id: 'outfit', name: 'Outfit-Based Setup', capabilities: ['Occasion styling', 'Quick recommendations'], limitations: ['No item-level wardrobe'] },
+      { id: 'core', name: 'Core Wardrobe Setup', capabilities: ['Full wardrobe', 'Outfit combinations', 'Seasonal planning'], limitations: [] },
+    ],
+  });
+});
+
+app.get('/api/onboarding/stylist-language', (req, res) => {
+  const stylistId = (req.query.stylistId || 'ruby').toString().toLowerCase();
+  const languages = {
+    ruby: { stylistId: 'ruby', tone: 'warm and bold', vocabulary: ['darling', 'lovely'], avoidWords: ['ugly'], signaturePhrase: "You're going to look wonderful!" },
+    max: { stylistId: 'max', tone: 'clean and precise', vocabulary: ['solid', 'sharp'], avoidWords: ['sloppy'], signaturePhrase: "Less is more." },
+    ace: { stylistId: 'ace', tone: 'relaxed and cool', vocabulary: ['fresh', 'clean'], avoidWords: ['stiff'], signaturePhrase: 'Keep it effortless.' },
+    ivy: { stylistId: 'ivy', tone: 'polished and feminine', vocabulary: ['elegant', 'refined'], avoidWords: ['cheap'], signaturePhrase: 'Effortlessly chic.' },
+  };
+  res.json(languages[stylistId] || languages.ruby);
+});
+
+app.get('/api/onboarding/signal-types', (req, res) => {
+  res.json({
+    signals: [
+      { type: 'DEPTH', triggers: ['plan my week', 'capsule wardrobe'], description: 'User wants deeper planning' },
+      { type: 'RELIANCE', triggers: ['love it', 'you\'re right'], description: 'User trusts recommendations' },
+      { type: 'FRUSTRATION', triggers: ['missing clothes', 'wrong suggestion'], description: 'User frustrated by limited info' },
+      { type: 'AMBITION', triggers: ['magazine-level', 'celebrity style'], description: 'User wants elevated styling' },
+    ],
+  });
+});
+
+app.post('/api/onboarding/record-signal', (req, res) => {
+  const { signalType = 'SAVE' } = req.body || {};
+  const unlocks = { SAVE: 'account_creation', DEPTH: 'dfy_options', RELIANCE: 'subscription', FRUSTRATION: 'dfy_options', AMBITION: 'premium_tiers', RETURN: 'subscription' };
+  res.json({ success: true, unlocks: unlocks[signalType] || 'account_creation' });
+});
+
+app.get('/api/onboarding/dfy-job-info', (req, res) => {
+  res.json({ status: 'pending', type: 'outfit', turnaround: '24h' });
 });
 
 // Start server — kill any stale process on the port first to prevent EADDRINUSE loops
