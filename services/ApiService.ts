@@ -1443,10 +1443,10 @@ class ApiService {
     });
   }
 
-  async createCheckoutSession(productId: string) {
+  async createCheckoutSession(plan: string) {
     return this.request<{ checkoutUrl: string; sessionId: string }>('/api/checkout/create-session', {
       method: 'POST',
-      body: JSON.stringify({ productId }),
+      body: JSON.stringify({ plan }),
     });
   }
 
@@ -1464,6 +1464,7 @@ class ApiService {
   }
 
   async createDFYCheckoutSession(email: string, packageType: 'lite' | 'core') {
+    const plan = packageType === 'core' ? 'core_wardrobe' : 'outfit_setup';
     const headers: Record<string, string> = {};
     if (this.guestToken) {
       headers['X-Guest-Token'] = this.guestToken;
@@ -1471,7 +1472,7 @@ class ApiService {
     return this.request<{ checkoutUrl: string; sessionId: string }>('/api/checkout/dfy/create-session', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ email, packageType }),
+      body: JSON.stringify({ email, productId: plan }),
     });
   }
 
@@ -1564,10 +1565,17 @@ class ApiService {
     });
   }
 
-  async createSubscriptionCheckout(planId: string, billingCycle: 'monthly' | 'yearly') {
-    return this.request<{ checkoutUrl: string; sessionId: string }>('/api/subscription/create-checkout', {
+  async createSubscriptionCheckout(plan: string, billingCycle: 'monthly' | 'yearly' = 'monthly') {
+    return this.request<{ checkoutUrl: string; sessionId: string; plan?: string }>('/api/subscription/create-checkout', {
       method: 'POST',
-      body: JSON.stringify({ planId, billingCycle }),
+      body: JSON.stringify({ plan, billingCycle }),
+    });
+  }
+
+  async createBillingCheckout(plan: string) {
+    return this.request<{ checkoutUrl: string; sessionId: string; plan: string }>('/api/billing/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ plan }),
     });
   }
 

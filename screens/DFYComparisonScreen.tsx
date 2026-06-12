@@ -54,8 +54,8 @@ type DFYComparisonScreenProps = {
 };
 
 const DFY_PRODUCT_IDS: Record<DFYTier, string> = {
-  lite: 'done_for_you_lite',
-  core: 'done_for_you_core',
+  lite: 'outfit_setup',
+  core: 'core_wardrobe',
 };
 
 export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenProps) {

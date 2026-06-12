@@ -13,7 +13,7 @@ import { Spacing, BorderRadius, SubscriptionColors, LuxuryColors, ScreenGradient
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
 import { useSubscription, SUBSCRIPTION_PLANS, YEARLY_PRICING } from "@/contexts/SubscriptionContext";
-import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
+import { normalizeSubscriptionTier, tierToBillingPlan, getBillingPlanDisplayName } from "@/utils/subscriptionTier";
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -147,12 +147,7 @@ const getLocalizedPlans = (prices: LocalizedPrices, isYearly: boolean): Plan[] =
 const normalizeTier = normalizeSubscriptionTier;
 
 const getTierDisplayName = (tier?: SubscriptionTier): string => {
-  switch (tier) {
-    case 'pro': return 'Stylist Unlimited';
-    case 'premium': return 'Personal Stylist';
-    case 'subscription': return 'Style Chat';
-    default: return 'Free';
-  }
+  return getBillingPlanDisplayName(tier);
 };
 
 const getTierColor = (tier?: SubscriptionTier): string => {
@@ -246,8 +241,9 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       } else {
         const billingCycle = isYearly ? 'yearly' : 'monthly';
         const planName = PLANS.find(p => p.id === planId)?.name ?? planId;
+        const billingPlan = tierToBillingPlan(planId);
 
-        const checkout = await apiService.createSubscriptionCheckout(planId, billingCycle);
+        const checkout = await apiService.createSubscriptionCheckout(billingPlan, billingCycle);
         if (!checkout.checkoutUrl) {
           throw new Error('Unable to start checkout. Please try again.');
         }

@@ -209,7 +209,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     price: 9.99,
     interval: 'month',
     priceId: 'price_style_chat_monthly',
-    productId: 'style_chat_monthly',
+    productId: 'style_chat',
     features: [
       'Voice conversations (limited)',
       'Extended wardrobe',
@@ -224,7 +224,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     price: 14.99,
     interval: 'month',
     priceId: 'price_personal_stylist_monthly',
-    productId: 'personal_stylist_monthly',
+    productId: 'personal_stylist',
     popular: true,
     features: [
       'More voice conversations',
@@ -241,7 +241,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     price: 19.99,
     interval: 'month',
     priceId: 'price_stylist_unlimited_monthly',
-    productId: 'stylist_unlimited_monthly',
+    productId: 'stylist_unlimited',
     features: [
       'Unlimited voice conversations',
       'Unlimited everything',
