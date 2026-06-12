@@ -4,10 +4,7 @@ import { ClothingCategory, ClothingColor, ClothingSeason, ClothingOccasion } fro
 import { convertImageToBase64 } from './VisionAnalysisService';
 import { apiService, ColorConfig } from './ApiService';
 
-const getOpenAIKey = () => {
-  const extra = Constants.expoConfig?.extra;
-  return extra?.OPENAI_API_KEY || process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
-};
+const getOpenAIKey = () => '';
 const OPENAI_API_KEY = getOpenAIKey();
 
 // Cached color config from backend
@@ -220,7 +217,7 @@ async function analyzeGarmentLocally(
   validSeasons: ClothingSeason[],
   validOccasions: ClothingOccasion[]
 ): Promise<DetectedGarment | null> {
-  const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  const OPENAI_API_KEY = '';
   
   if (!OPENAI_API_KEY) {
     console.log('[LocalAnalysis] No OpenAI API key available');
@@ -606,7 +603,7 @@ async function extractProductFromUrlLocally(
   validCategories: ClothingCategory[],
   validColors: ClothingColor[]
 ): Promise<ProductLinkResult> {
-  const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  const OPENAI_API_KEY = '';
   if (!OPENAI_API_KEY) {
     throw new Error('OpenAI API key not available');
   }
@@ -706,7 +703,7 @@ async function extractProductFromImageLocally(
   validCategories: ClothingCategory[],
   validColors: ClothingColor[]
 ): Promise<ProductLinkResult> {
-  const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  const OPENAI_API_KEY = '';
   if (!OPENAI_API_KEY) {
     throw new Error('OpenAI API key not available');
   }

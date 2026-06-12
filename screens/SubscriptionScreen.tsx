@@ -20,21 +20,6 @@ import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-const STRIPE_PAYMENT_LINKS: Record<string, Record<string, string>> = {
-  subscription: {
-    monthly: "https://buy.stripe.com/test_6oUfZh6Gm5jI2cqdQ13gk02",
-    yearly: "https://buy.stripe.com/test_fZucN54ye13s4kyfY93gk03",
-  },
-  premium: {
-    monthly: "https://buy.stripe.com/test_9B628re8O13saIW7rD3gk04",
-    yearly: "https://buy.stripe.com/test_5kQ14n9Sy27w9ES4fr3gk05",
-  },
-  pro: {
-    monthly: "https://buy.stripe.com/test_00w9ATggW5jIdV85jv3gk06",
-    yearly: "https://buy.stripe.com/test_8x2fZh7Kq13sbN0h2d3gk07",
-  },
-};
-
 const LUXURY_COLORS = {
   gold: '#C9A87C',
   deepGold: '#A88B5C',
@@ -260,22 +245,14 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         }
       } else {
         const billingCycle = isYearly ? 'yearly' : 'monthly';
-        const planLinks = STRIPE_PAYMENT_LINKS[planId];
-        const paymentLinkBase = planLinks?.[billingCycle];
+        const planName = PLANS.find(p => p.id === planId)?.name ?? planId;
 
-        if (!paymentLinkBase) {
-          throw new Error("Payment not available for this plan.");
+        const checkout = await apiService.createSubscriptionCheckout(planId, billingCycle);
+        if (!checkout.checkoutUrl) {
+          throw new Error('Unable to start checkout. Please try again.');
         }
 
-        const queryParts: string[] = [];
-        if (user?.id) queryParts.push(`client_reference_id=${encodeURIComponent(String(user.id))}`);
-        if (user?.email) queryParts.push(`prefilled_email=${encodeURIComponent(user.email)}`);
-        const paymentUrl = queryParts.length > 0
-          ? `${paymentLinkBase}?${queryParts.join("&")}`
-          : paymentLinkBase;
-
-        const planName = PLANS.find(p => p.id === planId)?.name ?? planId;
-        const result = await WebBrowser.openBrowserAsync(paymentUrl);
+        const result = await WebBrowser.openBrowserAsync(checkout.checkoutUrl);
 
         if (result.type === "dismiss" || result.type === "cancel") {
           // Silently try to refresh subscription as webhook may have already fired

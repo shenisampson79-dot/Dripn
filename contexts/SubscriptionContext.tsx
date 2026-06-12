@@ -7,6 +7,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth, SubscriptionTier } from '@/contexts/AuthContext';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { apiService } from '@/services/ApiService';
 
 export interface SubscriptionPlan {
   id: string;
@@ -409,15 +410,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const startTrial = async () => {
     try {
+      const result = await apiService.startTrial();
       const now = new Date().toISOString();
       await AsyncStorage.setItem(TRIAL_STORAGE_KEY, JSON.stringify({ startDate: now }));
       setTrialStartDate(now);
       setIsTrialActive(true);
-      if (updateProfile) {
-        await updateProfile({ subscriptionTier: 'premium' });
+      if (updateProfile && result.tier) {
+        await updateProfile({ subscriptionTier: result.tier as SubscriptionTier });
       }
     } catch (error) {
       console.error('Failed to start trial:', error);
+      throw error;
     }
   };
 

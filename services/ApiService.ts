@@ -315,7 +315,7 @@ class ApiService {
       message: string;
     }>('/api/stylists/switch', {
       method: 'POST',
-      body: JSON.stringify({ stylist: stylistId }),
+      body: JSON.stringify({ stylistId }),
     });
   }
 
@@ -1875,11 +1875,18 @@ class ApiService {
         name: string;
         error: string;
       }>;
-    }>('/api/wardrobe/batch/resilient', {
+    }>('/api/wardrobe/batch', {
       method: 'POST',
       body: JSON.stringify({ items }),
       timeout: 120000, // 2 minute timeout for batch uploads
     });
+  }
+
+  async startTrial() {
+    return this.request<{ success: boolean; tier: string; trialDays: number; expiresAt: string }>(
+      '/api/subscription/start-trial',
+      { method: 'POST' }
+    );
   }
 
   async fetchWardrobeItems(): Promise<{ success: boolean; items: any[] }> {

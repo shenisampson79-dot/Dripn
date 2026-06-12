@@ -87,7 +87,6 @@
       "reactCompiler": true
     },
     "extra": {
-      "OPENAI_API_KEY": "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",
       "eas": {
         "projectId": "6afc8cc7-86c1-4a8a-9b09-a0daff5bd93f"
       }

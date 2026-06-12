@@ -49,16 +49,7 @@ const MONTH_TO_COMBO_INDEX: Record<number, number> = {
   11: 2,  // December - 3rd winter combo
 };
 
-const getOpenAIApiKey = (): string => {
-  if (typeof process !== 'undefined' && process.env?.OPENAI_API_KEY) {
-    return process.env.OPENAI_API_KEY;
-  }
-  const extra = Constants.expoConfig?.extra;
-  if (extra?.OPENAI_API_KEY) {
-    return extra.OPENAI_API_KEY;
-  }
-  return '';
-};
+const getOpenAIApiKey = (): string => '';
 
 export async function fetchTrendingColorsFromAI(season: Season, year: number): Promise<ColorCombination[]> {
   const apiKey = getOpenAIApiKey();

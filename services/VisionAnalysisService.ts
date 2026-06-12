@@ -4,10 +4,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { ClothingCategory, ClothingColor, ClothingSeason, ClothingOccasion } from '@/contexts/WardrobeContext';
 
-const getOpenAIKey = () => {
-  const extra = Constants.expoConfig?.extra;
-  return extra?.OPENAI_API_KEY || process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
-};
+const getOpenAIKey = () => '';
 const OPENAI_API_KEY = getOpenAIKey();
 
 const Base64Encoding = 'base64' as const;

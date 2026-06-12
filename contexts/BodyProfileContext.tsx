@@ -223,7 +223,7 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
 
   useEffect(() => {
     loadBodyProfile();
-    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+    const apiKey = '';
     if (apiKey) {
       preloadModelAvailability(apiKey).catch(console.warn);
     }
@@ -514,7 +514,7 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
     setIsGeneratingStylingGuide(true);
     setError(null);
 
-    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+    const apiKey = '';
     const bestModel = await getBestAvailableModel('text', apiKey, 'gpt-5.2');
     console.log(`Using text model: ${bestModel} for styling guide`);
 
