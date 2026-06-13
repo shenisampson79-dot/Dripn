@@ -1460,7 +1460,11 @@ class ApiService {
   }
 
   async getStripeConfig() {
-    return this.request<{ publishableKey: string }>('/api/stripe/config');
+    try {
+      return await this.request<{ publishableKey: string; configured?: boolean }>('/api/checkout/config');
+    } catch {
+      return this.request<{ publishableKey: string; configured?: boolean }>('/api/stripe/config');
+    }
   }
 
   async createDFYCheckoutSession(email: string, packageType: 'lite' | 'core') {
@@ -1536,26 +1540,33 @@ class ApiService {
   }
 
   async getSubscriptionStatus() {
-    return this.request<{
-      active: boolean;
-      plan: string | null;
-      status: string;
-      currentPeriodEnd: string | null;
-      cancelAtPeriodEnd: boolean;
-      stripeCustomerId: string | null;
-      stripeSubscriptionId: string | null;
-    }>('/api/subscription/status');
+    const raw = await this.request<any>('/api/subscription/status');
+    const sub = raw.subscription ?? raw;
+    const plan = sub.tier ?? sub.plan ?? 'free';
+    const isActive = sub.active ?? sub.isActive ?? (plan !== 'free' && plan !== null);
+    return {
+      active: isActive,
+      plan,
+      status: isActive ? 'active' : 'inactive',
+      currentPeriodEnd: sub.currentPeriodEnd ?? null,
+      cancelAtPeriodEnd: sub.cancelAtPeriodEnd ?? false,
+      stripeCustomerId: sub.stripeCustomerId ?? raw.stripeCustomerId ?? null,
+      stripeSubscriptionId: sub.stripeSubscriptionId ?? raw.stripeSubscriptionId ?? null,
+    };
   }
 
   async verifySubscription() {
-    return this.request<{
-      active: boolean;
-      plan: string | null;
-      status: string;
-      stripeSubscriptionId: string | null;
-      stripeCustomerId: string | null;
-      verified: boolean;
-    }>('/api/subscription/verify', { method: 'POST' });
+    const raw = await this.request<any>('/api/subscription/verify', { method: 'POST' });
+    const plan = raw.tier ?? raw.plan ?? raw.subscription?.tier ?? null;
+    const isActive = Boolean(plan && plan !== 'free');
+    return {
+      active: isActive,
+      plan,
+      status: isActive ? 'active' : 'inactive',
+      stripeSubscriptionId: raw.stripeSubscriptionId ?? null,
+      stripeCustomerId: raw.stripeCustomerId ?? null,
+      verified: raw.verified ?? raw.success ?? false,
+    };
   }
 
   async removeBackground(imageBase64: string) {
@@ -1580,9 +1591,10 @@ class ApiService {
   }
 
   async openBillingPortal() {
-    return this.request<{ url: string }>('/api/subscription/manage', {
+    const raw = await this.request<{ url?: string; portalUrl?: string }>('/api/subscription/manage', {
       method: 'POST',
     });
+    return { url: raw.portalUrl ?? raw.url ?? '' };
   }
 
   async cancelSubscription() {

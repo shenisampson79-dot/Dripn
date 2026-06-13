@@ -520,6 +520,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userProfile.hasCompletedOnboarding = backendUser.hasCompletedOnboarding;
       }
 
+      if (backendUser.subscriptionTier) {
+        userProfile.subscriptionTier = normalizeSubscriptionTier(backendUser.subscriptionTier);
+      }
+
       // CRITICAL: Check device flag BEFORE fetching backend profile
       // Device flag is the ultimate source of truth for tour
       let deviceTourSeen = false;
