@@ -334,6 +334,26 @@ class ApiService {
     }>('/api/stylists/current');
   }
 
+  async getCancelVariant() {
+    return this.request<{
+      success: boolean;
+      variant: 'A' | 'B' | 'C';
+      offers: Record<string, {
+        title: string;
+        body: string;
+        primaryAction: string;
+        actionLabel: string;
+        acceptedOffer: string;
+        discountPercent?: number;
+        pauseMonths?: number;
+        highlightPlan?: string;
+        secondaryAction?: string;
+        secondaryLabel?: string;
+        secondaryAcceptedOffer?: string;
+      }>;
+    }>('/api/subscription/cancel/variant');
+  }
+
   async startSubscriptionCancellation() {
     return this.request<{
       stylist: string;
@@ -1600,7 +1620,12 @@ class ApiService {
     return { url: raw.portalUrl ?? raw.url ?? '' };
   }
 
-  async cancelSubscription(options?: { reason?: string; immediately?: boolean }) {
+  async cancelSubscription(options?: {
+    reason?: string;
+    immediately?: boolean;
+    variant?: string;
+    acceptedOffer?: string;
+  }) {
     return this.request<{
       success: boolean;
       message?: string;
@@ -1612,27 +1637,52 @@ class ApiService {
       body: JSON.stringify({
         reason: options?.reason,
         immediately: options?.immediately ?? false,
+        variant: options?.variant,
+        acceptedOffer: options?.acceptedOffer,
       }),
     });
   }
 
-  async pauseSubscription() {
+  async pauseSubscription(options?: {
+    months?: number;
+    reason?: string;
+    variant?: string;
+    acceptedOffer?: string;
+  }) {
     return this.request<{
       success: boolean;
       message?: string;
       pausedUntil?: string;
     }>('/api/subscription/pause', {
       method: 'POST',
+      body: JSON.stringify({
+        months: options?.months,
+        reason: options?.reason,
+        variant: options?.variant,
+        acceptedOffer: options?.acceptedOffer,
+      }),
     });
   }
 
-  async applySubscriptionDiscount() {
+  async applySubscriptionDiscount(options?: {
+    reason?: string;
+    variant?: string;
+    acceptedOffer?: string;
+    discountPercent?: number;
+  }) {
     return this.request<{
       success: boolean;
       message?: string;
       discountApplied?: boolean;
+      discountPercent?: number;
     }>('/api/subscription/apply-discount', {
       method: 'POST',
+      body: JSON.stringify({
+        reason: options?.reason,
+        variant: options?.variant,
+        acceptedOffer: options?.acceptedOffer,
+        discountPercent: options?.discountPercent,
+      }),
     });
   }
 

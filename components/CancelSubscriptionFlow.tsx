@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -27,6 +27,22 @@ export type CancelReason =
   | "not-seeing-value"
   | "just-testing"
   | "other";
+
+type CancelOfferConfig = {
+  title: string;
+  body: string;
+  primaryAction: string;
+  actionLabel: string;
+  acceptedOffer: string;
+  discountPercent?: number;
+  pauseMonths?: number;
+  highlightPlan?: string;
+  secondaryAction?: string;
+  secondaryLabel?: string;
+  secondaryAcceptedOffer?: string;
+};
+
+type CancelVariant = 'A' | 'B' | 'C';
 
 const CANCEL_REASONS: { value: CancelReason; label: string }[] = [
   { value: "too-expensive", label: "Too expensive" },
@@ -72,6 +88,17 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
   const [step, setStep] = useState(1);
   const [selectedReason, setSelectedReason] = useState<CancelReason | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [cancelVariant, setCancelVariant] = useState<CancelVariant>('A');
+  const [variantOffers, setVariantOffers] = useState<Record<string, CancelOfferConfig> | null>(null);
+
+  useEffect(() => {
+    apiService.getCancelVariant()
+      .then((data) => {
+        if (data.variant) setCancelVariant(data.variant);
+        if (data.offers) setVariantOffers(data.offers);
+      })
+      .catch(() => {});
+  }, []);
 
   const normalizedTier = normalizeSubscriptionTier(user?.subscriptionTier);
   const tierName = getBillingPlanDisplayName(user?.subscriptionTier);
@@ -97,21 +124,20 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
     handleKeepSubscription();
   };
 
-  const goToLowerPlans = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    navigation.navigate("Subscription", { highlightPlan: "subscription" });
-    handleKeepSubscription();
-  };
-
-  const handleAcceptDiscount = async () => {
+  const handleAcceptDiscount = async (discountPercent = 30, acceptedOffer = 'discount_30') => {
     setIsProcessing(true);
     try {
-      const result = await apiService.applySubscriptionDiscount();
+      const result = await apiService.applySubscriptionDiscount({
+        reason: selectedReason ?? undefined,
+        variant: cancelVariant,
+        acceptedOffer,
+        discountPercent,
+      });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refreshSubscriptionFromBackend().catch(() => {});
       Alert.alert(
         "Discount applied!",
-        result.message || "30% off has been applied to your next billing cycle.",
+        result.message || `${discountPercent}% off has been applied to your next billing cycle.`,
         [{ text: "Great!", onPress: handleKeepSubscription }]
       );
     } catch (error: any) {
@@ -130,10 +156,15 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
     }
   };
 
-  const handlePausePlan = async () => {
+  const handlePausePlan = async (months = 3, acceptedOffer = 'pause_3_months') => {
     setIsProcessing(true);
     try {
-      const result = await apiService.pauseSubscription();
+      const result = await apiService.pauseSubscription({
+        months,
+        reason: selectedReason ?? undefined,
+        variant: cancelVariant,
+        acceptedOffer,
+      });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refreshSubscriptionFromBackend().catch(() => {});
       Alert.alert(
@@ -157,8 +188,10 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         }).catch(() => {});
       }
       const result = await apiService.cancelSubscription({
-        reason: selectedReason,
+        reason: selectedReason ?? undefined,
         immediately: false,
+        variant: cancelVariant,
+        acceptedOffer: 'confirmed_cancel',
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       await refreshSubscriptionFromBackend().catch(() => {});
@@ -299,46 +332,85 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
     </View>
   );
 
+  const runOfferAction = (offer: CancelOfferConfig, action: 'primary' | 'secondary' = 'primary') => {
+    const isSecondary = action === 'secondary';
+    const actionType = isSecondary ? offer.secondaryAction : offer.primaryAction;
+    const acceptedOffer = isSecondary ? offer.secondaryAcceptedOffer : offer.acceptedOffer;
+
+    switch (actionType) {
+      case 'discount':
+        handleAcceptDiscount(
+          isSecondary ? (offer.discountPercent ?? 30) : (offer.discountPercent ?? 30),
+          acceptedOffer
+        );
+        break;
+      case 'pause':
+        handlePausePlan(
+          isSecondary ? (offer.pauseMonths ?? 1) : (offer.pauseMonths ?? 3),
+          acceptedOffer
+        );
+        break;
+      case 'ai_stylist':
+        goToAIStylist();
+        break;
+      case 'downgrade':
+        navigation.navigate("Subscription", {
+          highlightPlan: offer.highlightPlan || "subscription",
+        });
+        handleKeepSubscription();
+        break;
+      case 'keep':
+      default:
+        handleKeepSubscription();
+        break;
+    }
+  };
+
   const renderOfferStep = () => {
     if (!selectedReason) return null;
 
-    const offers: Record<
-      CancelReason,
-      { title: string; body: string; actionLabel: string; onAction: () => void }
-    > = {
+    const fallbackOffers: Record<CancelReason, CancelOfferConfig> = {
       "too-expensive": {
         title: "30% off your next billing cycle",
-        body: "Stay on your plan and save 30% on your next payment. No commitment beyond your current billing period.",
+        body: "Stay on your plan and save 30% on your next payment.",
+        primaryAction: "discount",
+        discountPercent: 30,
         actionLabel: "Accept Discount",
-        onAction: handleAcceptDiscount,
+        acceptedOffer: "discount_30",
       },
       "not-using": {
         title: "Pause your plan",
-        body: "Pause billing for up to 3 months while keeping your wardrobe and stylist history. Resume anytime.",
+        body: "Pause billing for up to 3 months while keeping your wardrobe and stylist history.",
+        primaryAction: "pause",
+        pauseMonths: 3,
         actionLabel: "Pause Plan",
-        onAction: handlePausePlan,
+        acceptedOffer: "pause_3_months",
       },
       "not-seeing-value": {
         title: "Try a personalised outfit first",
-        body: "Let your AI stylist build one outfit tailored to your wardrobe before you decide. It takes less than a minute.",
+        body: "Let your AI stylist build one outfit tailored to your wardrobe before you decide.",
+        primaryAction: "ai_stylist",
         actionLabel: "Try Personalised Outfit",
-        onAction: goToAIStylist,
+        acceptedOffer: "ai_stylist",
       },
       "just-testing": {
         title: "Your access continues",
-        body: "You keep full access until the end of your billing period — no rush. Explore outfit calendar, voice chat, and stylist features while you decide.",
+        body: "You keep full access until the end of your billing period — no rush.",
+        primaryAction: "keep",
         actionLabel: "Keep Exploring",
-        onAction: handleKeepSubscription,
+        acceptedOffer: "keep_exploring",
       },
       other: {
         title: "View lower plans",
-        body: "Style Chat starts at a lower price with voice access and extended wardrobe — you might not need to cancel.",
+        body: "Style Chat starts at a lower price — you might not need to cancel.",
+        primaryAction: "downgrade",
+        highlightPlan: "style_chat",
         actionLabel: "View Lower Plans",
-        onAction: goToLowerPlans,
+        acceptedOffer: "view_lower_plans",
       },
     };
 
-    const offer = offers[selectedReason];
+    const offer = variantOffers?.[selectedReason] ?? fallbackOffers[selectedReason];
 
     return (
       <View style={styles.stepContent}>
@@ -359,12 +431,22 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         </LinearGradient>
 
         <Button
-          onPress={offer.onAction}
+          onPress={() => runOfferAction(offer, 'primary')}
           disabled={isProcessing}
           style={[styles.primaryButton, { backgroundColor: LuxuryColors.gold }]}
         >
           {isProcessing ? "Processing..." : offer.actionLabel}
         </Button>
+
+        {offer.secondaryAction && offer.secondaryLabel ? (
+          <Button
+            onPress={() => runOfferAction(offer, 'secondary')}
+            disabled={isProcessing}
+            style={styles.primaryButton}
+          >
+            {offer.secondaryLabel}
+          </Button>
+        ) : null}
 
         <Pressable
           onPress={() => {
