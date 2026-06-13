@@ -17,7 +17,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, LuxuryColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { normalizeSubscriptionTier, getBillingPlanDisplayName } from "@/utils/subscriptionTier";
+import { normalizeSubscriptionTier, getBillingPlanDisplayName, type BillingPlanId } from "@/utils/subscriptionTier";
 import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
@@ -35,6 +35,8 @@ type CancelOfferConfig = {
   actionLabel: string;
   acceptedOffer: string;
   discountPercent?: number;
+  offerKey?: string;
+  secondaryOfferKey?: string;
   pauseMonths?: number;
   highlightPlan?: string;
   secondaryAction?: string;
@@ -124,20 +126,20 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
     handleKeepSubscription();
   };
 
-  const handleAcceptDiscount = async (discountPercent = 30, acceptedOffer = 'discount_30') => {
+  const handleAcceptDiscount = async (offerKey = 'retention_30', acceptedOffer = 'discount_30') => {
     setIsProcessing(true);
     try {
       const result = await apiService.applySubscriptionDiscount({
         reason: selectedReason ?? undefined,
         variant: cancelVariant,
         acceptedOffer,
-        discountPercent,
+        offer: offerKey,
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refreshSubscriptionFromBackend().catch(() => {});
       Alert.alert(
         "Discount applied!",
-        result.message || `${discountPercent}% off has been applied to your next billing cycle.`,
+        result.message || `${result.discountPercent ?? 30}% off has been applied to your next billing cycle.`,
         [{ text: "Great!", onPress: handleKeepSubscription }]
       );
     } catch (error: any) {
@@ -174,6 +176,46 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
       );
     } catch (error: any) {
       Alert.alert("Error", error?.message || "Could not pause subscription.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const resolveDowngradePlan = (highlightPlan?: string): BillingPlanId => {
+    const plan = highlightPlan || 'style_chat';
+    if (plan === 'subscription' || plan === 'style_chat') return 'style_chat';
+    if (plan === 'personal_stylist' || plan === 'premium') return 'personal_stylist';
+    if (plan === 'stylist_unlimited' || plan === 'pro') return 'stylist_unlimited';
+    return 'style_chat';
+  };
+
+  const handleDowngrade = async (highlightPlan?: string, acceptedOffer = 'downgrade_style_chat') => {
+    const plan = resolveDowngradePlan(highlightPlan);
+    setIsProcessing(true);
+    try {
+      const result = await apiService.downgradeSubscription({
+        plan,
+        reason: selectedReason ?? undefined,
+        variant: cancelVariant,
+        acceptedOffer,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await refreshSubscriptionFromBackend().catch(() => {});
+      Alert.alert(
+        "Plan updated",
+        result.message || `You're now on ${result.tierName || getBillingPlanDisplayName(plan)}.`,
+        [{ text: "OK", onPress: handleKeepSubscription }]
+      );
+    } catch (error: any) {
+      const msg = error?.message || "Could not change plan.";
+      if (msg.includes("NOT_A_DOWNGRADE") || msg.includes("lower than")) {
+        navigation.navigate("Subscription", {
+          highlightPlan: highlightPlan || "style_chat",
+        });
+        handleKeepSubscription();
+        return;
+      }
+      Alert.alert("Error", msg);
     } finally {
       setIsProcessing(false);
     }
@@ -340,7 +382,9 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
     switch (actionType) {
       case 'discount':
         handleAcceptDiscount(
-          isSecondary ? (offer.discountPercent ?? 30) : (offer.discountPercent ?? 30),
+          isSecondary
+            ? (offer.secondaryOfferKey ?? (offer.discountPercent === 50 ? 'retention_50' : 'retention_30'))
+            : (offer.offerKey ?? (offer.discountPercent === 50 ? 'retention_50' : 'retention_30')),
           acceptedOffer
         );
         break;
@@ -354,10 +398,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         goToAIStylist();
         break;
       case 'downgrade':
-        navigation.navigate("Subscription", {
-          highlightPlan: offer.highlightPlan || "subscription",
-        });
-        handleKeepSubscription();
+        handleDowngrade(offer.highlightPlan, acceptedOffer);
         break;
       case 'keep':
       default:
@@ -375,6 +416,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         body: "Stay on your plan and save 30% on your next payment.",
         primaryAction: "discount",
         discountPercent: 30,
+        offerKey: "retention_30",
         actionLabel: "Accept Discount",
         acceptedOffer: "discount_30",
       },

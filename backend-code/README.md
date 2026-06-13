@@ -65,6 +65,20 @@ Copy ALL files from this `backend-code` folder into your new Replit:
 ### AI Advice
 - `POST /api/ai/advice` - Get AI fashion advice (requires token)
 
+### Subscription retention (cancel flow)
+
+These endpoints are called by `CancelSubscriptionFlow` in the mobile app. Coupon IDs live on the server — the app sends **offer keys** only.
+
+| Endpoint | Body |
+|----------|------|
+| `POST /api/subscription/pause` | `{ months?, mode?: "pause_collection" \| "cancel_at_period_end" }` |
+| `POST /api/subscription/apply-discount` | `{ offer: "retention_30" \| "retention_50" }` |
+| `POST /api/subscription/downgrade` | `{ plan: "style_chat" \| "personal_stylist" \| "stylist_unlimited" }` |
+| `POST /api/subscription/cancel` | `{ reason?, immediately? }` |
+| `GET /api/subscription/cancel/variant` | A/B retention offers |
+
+Configure on Render (Dripn-Server): `STRIPE_CANCEL_COUPON_30`, `STRIPE_CANCEL_COUPON_50` — see Dripn-Server README.
+
 ## Connecting Your Dripn App
 
 After your backend is deployed, update your Dripn mobile app:

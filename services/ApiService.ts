@@ -1668,6 +1668,9 @@ class ApiService {
     reason?: string;
     variant?: string;
     acceptedOffer?: string;
+    /** Server-side retention offer key — never send raw Stripe coupon IDs */
+    offer?: 'retention_30' | 'retention_50' | string;
+    /** @deprecated Prefer `offer` (retention_30 / retention_50) */
     discountPercent?: number;
   }) {
     return this.request<{
@@ -1675,13 +1678,37 @@ class ApiService {
       message?: string;
       discountApplied?: boolean;
       discountPercent?: number;
+      offer?: string;
     }>('/api/subscription/apply-discount', {
       method: 'POST',
       body: JSON.stringify({
         reason: options?.reason,
         variant: options?.variant,
         acceptedOffer: options?.acceptedOffer,
+        offer: options?.offer,
         discountPercent: options?.discountPercent,
+      }),
+    });
+  }
+
+  async downgradeSubscription(options: {
+    plan: 'style_chat' | 'personal_stylist' | 'stylist_unlimited';
+    reason?: string;
+    variant?: string;
+    acceptedOffer?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      message?: string;
+      plan?: string;
+      tierName?: string;
+    }>('/api/subscription/downgrade', {
+      method: 'POST',
+      body: JSON.stringify({
+        plan: options.plan,
+        reason: options.reason,
+        variant: options.variant,
+        acceptedOffer: options.acceptedOffer,
       }),
     });
   }
