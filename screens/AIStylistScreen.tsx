@@ -44,6 +44,7 @@ import Animated, {
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
+import { LimitHitUpgradePrompt } from '@/components/LimitHitUpgradePrompt';
 import { Spacing, BorderRadius, Typography, LuxuryColors as ThemeLuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -2455,20 +2456,12 @@ export default function AIStylistScreen() {
           </View>
         ) : null}
         {limitReached ? (
-          <View 
-            style={[
-              styles.limitReachedBanner, 
-              { backgroundColor: theme.warning + '20' }
-            ]}
-          >
-            <Feather name="alert-circle" size={16} color={theme.warning} />
-            <ThemedText style={[styles.limitReachedText, { color: theme.warning }]}>
-              Daily message limit reached
-            </ThemedText>
-            <Pressable onPress={navigateToSubscription}>
-              <ThemedText style={[styles.upgradeLink, { color: theme.link }]}>Upgrade</ThemedText>
-            </Pressable>
-          </View>
+          <LimitHitUpgradePrompt
+            title="Daily message limit reached"
+            message="Upgrade to Personal Stylist for unlimited AI styling conversations."
+            ctaLabel="Upgrade"
+            onUpgrade={navigateToSubscription}
+          />
         ) : null}
         {selectedImageUri ? (
           <View style={[styles.selectedImagePreview, { backgroundColor: theme.backgroundSecondary }]}>

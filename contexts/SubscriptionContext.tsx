@@ -252,11 +252,11 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   },
 ];
 
-// Yearly pricing (20% savings)
+// Yearly pricing (product IDs unchanged; display prices per conversion psychology)
 export const YEARLY_PRICING: Record<string, { productId: string; price: number }> = {
   subscription: { productId: 'style_chat_yearly', price: 95.99 },
-  premium: { productId: 'personal_stylist_yearly', price: 143.99 },
-  pro: { productId: 'stylist_unlimited_yearly', price: 191.99 },
+  premium: { productId: 'personal_stylist_yearly', price: 139.99 },
+  pro: { productId: 'stylist_unlimited_yearly', price: 179.99 },
 };
 
 const createDefaultUsage = (): UsageStats => ({

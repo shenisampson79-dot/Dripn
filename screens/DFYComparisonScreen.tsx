@@ -172,17 +172,29 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
             }
             refreshSubscriptionFromBackend().catch(() => {});
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert(
-              'Payment Successful!',
-              `Your ${selectedTier === 'lite' ? 'Outfit-Based' : 'Core Wardrobe'} setup is confirmed. Let's get started!`,
-              [{ text: 'Continue', onPress: () => {
-                if (selectedTier === 'lite') {
-                  navigation.navigate('DFYStylePlan');
-                } else {
-                  navigation.navigate('DFYCoreUpload' as any);
-                }
-              }}]
-            );
+            if (selectedTier === 'lite') {
+              Alert.alert(
+                'Payment Successful!',
+                'Your Outfit-Based setup is confirmed. Want ongoing styling advice from your personal AI stylist?',
+                [
+                  {
+                    text: 'Get Personal Stylist',
+                    onPress: () => navigation.navigate('Subscription' as any, { highlightPlan: 'premium' }),
+                  },
+                  {
+                    text: 'Continue Setup',
+                    onPress: () => navigation.navigate('DFYStylePlan'),
+                    style: 'cancel',
+                  },
+                ]
+              );
+            } else {
+              Alert.alert(
+                'Payment Successful!',
+                `Your Core Wardrobe setup is confirmed. Let's get started!`,
+                [{ text: 'Continue', onPress: () => navigation.navigate('DFYCoreUpload' as any) }]
+              );
+            }
           } else if (url.includes('cancel') || url.includes('payment-cancelled')) {
             Alert.alert(
               'Checkout Cancelled',

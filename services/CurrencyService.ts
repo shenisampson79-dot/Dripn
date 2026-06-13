@@ -97,6 +97,15 @@ class CurrencyService {
       wardrobe_setup: `${symbol}39.99`,
     };
   }
+
+  getYearlyPrices(): { free: string; style_chat: string; personal_stylist: string; stylist_unlimited: string } {
+    return {
+      free: 'Free',
+      style_chat: this.formatPrice(95.99),
+      personal_stylist: this.formatPrice(139.99),
+      stylist_unlimited: this.formatPrice(179.99),
+    };
+  }
 }
 
 

@@ -9,7 +9,7 @@
       "destination": "https://dripn-server.onrender.com/api/checkout/:path*"
     },
     {
-      "source": "/((?!.*\\.).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
