@@ -31,17 +31,20 @@ import DFYStylePlanScreen from "@/screens/DFYStylePlanScreen";
 import DFYExpiryScreen from "@/screens/DFYExpiryScreen";
 import AskStylistScreen from "@/screens/AskStylistScreen";
 import CancelSubscriptionScreen from "@/screens/CancelSubscriptionScreen";
+import SubscriptionSuccessScreen from "@/screens/SubscriptionSuccessScreen";
 import BodyMeasurementsScreen from "@/screens/BodyMeasurementsScreen";
 import AdminDashboardScreen from "@/screens/AdminDashboardScreen";
 import FeedbackScreen from "@/screens/FeedbackScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
+import type { SubscriptionTier } from "@/contexts/AuthContext";
 
 export type ProfileStackParamList = {
   Profile: undefined;
   Settings: undefined;
-  Subscription: undefined;
+  Subscription: { highlightPlan?: SubscriptionTier; scrollToDFY?: boolean } | undefined;
+  SubscriptionSuccess: { sessionId?: string } | undefined;
   EditProfile: undefined;
   VIPMembers: undefined;
   StyleExplorer: undefined;
@@ -110,6 +113,15 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         options={{
           title: "Subscription",
           presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="SubscriptionSuccess"
+        component={SubscriptionSuccessScreen}
+        options={{
+          title: "Welcome",
+          headerShown: false,
+          presentation: "fullScreenModal",
         }}
       />
       <Stack.Screen

@@ -1072,7 +1072,7 @@ app.post('/api/checkout/create-session', authMiddleware, async (req, res) => {
   }
 });
 
-// Checkout success - update user subscription
+// Checkout success - update user subscription, redirect to app success screen
 app.get('/api/checkout/success', async (req, res) => {
   try {
     const { session_id } = req.query;
@@ -1111,8 +1111,14 @@ app.get('/api/checkout/success', async (req, res) => {
       console.log(`Updated user ${session.metadata.userId} to ${planTier} tier (subscription: ${subscriptionId})`);
     }
 
-    // Redirect to app with success status
-    res.redirect('dripn://subscription?status=success');
+    const frontendUrl = (process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_DOMAIN || process.env.APP_URL || '').replace(/\/$/, '');
+    const sessionParam = encodeURIComponent(session_id);
+    if (frontendUrl) {
+      return res.redirect(`${frontendUrl}/subscription-success?session_id=${sessionParam}`);
+    }
+
+    // Fallback deep link for native app
+    res.redirect(`dripn://subscription-success?session_id=${sessionParam}`);
   } catch (error) {
     console.error('Checkout success error:', error);
     res.redirect('dripn://subscription?status=error');
@@ -1215,6 +1221,7 @@ app.get('/api/subscription/status', authMiddleware, async (req, res) => {
 
 app.post('/api/subscription/verify', authMiddleware, async (req, res) => {
   try {
+    const { sessionId } = req.body || {};
     const userResult = await pool.query(
       'SELECT id, email, stripe_customer_id, subscription_tier FROM users WHERE id = $1',
       [req.userId]
@@ -1235,6 +1242,23 @@ app.post('/api/subscription/verify', authMiddleware, async (req, res) => {
     let updatedTier = user.subscription_tier || 'free';
     let updatedSubId = null;
     let updatedCustomerId = null;
+
+    // Fast-path: verify from checkout session when returning from Stripe
+    if (sessionId) {
+      try {
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        if (session.payment_status === 'paid') {
+          const metaTier = session.metadata?.planTier || session.metadata?.tier;
+          if (metaTier) {
+            updatedTier = metaTier;
+          }
+          updatedSubId = session.subscription || null;
+          updatedCustomerId = session.customer || null;
+        }
+      } catch (err) {
+        console.log('[Verify] Could not retrieve checkout session:', err.message);
+      }
+    }
 
     // If we have a stripe_customer_id, use it to fetch subscriptions directly
     if (user.stripe_customer_id) {

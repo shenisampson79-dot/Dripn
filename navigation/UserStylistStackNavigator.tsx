@@ -26,7 +26,7 @@ import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
 export type UserStylistStackParamList = {
   StylistHub: undefined;
-  AIStylist: undefined;
+  AIStylist: { initialPrompt?: string } | undefined;
   StyleShuffle: undefined;
   VisualSearch: undefined;
   DreamOutfitGenerator: undefined;

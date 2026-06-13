@@ -51,11 +51,12 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useWardrobe, WardrobeItem, ClothingOccasion, ClothingSeason } from '@/contexts/WardrobeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation, CommonActions, useRoute, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { getStylistForUser, getStylistGreeting, PersonalStylist } from '@/services/PersonalStylistService';
 import type { SharedValue } from 'react-native-reanimated';
+import type { UserStylistStackParamList } from '@/navigation/UserStylistStackNavigator';
 
 interface WaveformBarProps {
   bar: SharedValue<number>;
@@ -1105,6 +1106,9 @@ export default function AIStylistScreen() {
   const { settings: voiceSettings, getVoiceForStylist } = useVoiceSettings();
   const insets = useSafeAreaInsets();
   const screenInsets = useScreenInsets();
+  const route = useRoute<RouteProp<UserStylistStackParamList, 'AIStylist'>>();
+  const pendingInitialPromptRef = useRef(route.params?.initialPrompt);
+  const initialPromptSentRef = useRef(false);
   const tabBarHeightContext = React.useContext(
     require('@react-navigation/bottom-tabs').BottomTabBarHeightContext
   );
@@ -1891,6 +1895,21 @@ export default function AIStylistScreen() {
     }
   };
   
+  useEffect(() => {
+    if (route.params?.initialPrompt) {
+      pendingInitialPromptRef.current = route.params.initialPrompt;
+      initialPromptSentRef.current = false;
+    }
+  }, [route.params?.initialPrompt]);
+
+  useEffect(() => {
+    const prompt = pendingInitialPromptRef.current;
+    if (!prompt || !limitsLoaded || initialPromptSentRef.current) return;
+    initialPromptSentRef.current = true;
+    pendingInitialPromptRef.current = undefined;
+    sendMessage(prompt);
+  }, [limitsLoaded, route.params?.initialPrompt]);
+
   const handleQuickPrompt = (prompt: string) => {
     sendMessage(prompt);
   };

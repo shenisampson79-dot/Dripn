@@ -169,7 +169,7 @@ interface AuthContextType {
   completeQuiz: (quizData: Partial<UserProfile>) => Promise<void>;
   switchBackToActualLocation: () => Promise<void>;
   detectActualLocation: () => Promise<void>;
-  refreshSubscriptionFromBackend: () => Promise<void>;
+  refreshSubscriptionFromBackend: (sessionId?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -910,11 +910,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await saveUser(updatedUser);
   };
 
-  const refreshSubscriptionFromBackend = useCallback(async () => {
+  const refreshSubscriptionFromBackend = useCallback(async (sessionId?: string) => {
     if (!user) return;
     try {
       // First try direct verification (checks Stripe directly, bypasses webhook delays)
-      let subStatus = await apiService.verifySubscription().catch(async () => {
+      let subStatus = await apiService.verifySubscription(sessionId).catch(async () => {
         // Fall back to status if verification fails
         return apiService.getSubscriptionStatus();
       });

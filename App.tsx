@@ -55,6 +55,7 @@ import { BodyProfileProvider } from "@/contexts/BodyProfileContext";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { ColorSchemeProvider } from "@/contexts/ColorSchemeContext";
 import { ToastProvider } from "@/contexts/ToastContext";
+import { SubscriptionSuccessRedirect } from "@/components/SubscriptionSuccessRedirect";
 
 export type PortalMode = 'stylist' | 'admin' | null;
 
@@ -139,6 +140,7 @@ function AppContent() {
 
   return (
     <>
+      <SubscriptionSuccessRedirect />
       <MainTabNavigator 
         onCreatePost={handleCreatePost} 
         onOpenPortal={setPortalMode}

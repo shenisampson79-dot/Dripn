@@ -1555,8 +1555,11 @@ class ApiService {
     };
   }
 
-  async verifySubscription() {
-    const raw = await this.request<any>('/api/subscription/verify', { method: 'POST' });
+  async verifySubscription(sessionId?: string) {
+    const raw = await this.request<any>('/api/subscription/verify', {
+      method: 'POST',
+      body: sessionId ? JSON.stringify({ sessionId }) : undefined,
+    });
     const plan = raw.tier ?? raw.plan ?? raw.subscription?.tier ?? null;
     const isActive = Boolean(plan && plan !== 'free');
     return {
