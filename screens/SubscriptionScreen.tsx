@@ -619,16 +619,29 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           ) : null}
         </View>
         {normalizedTier !== 'free' ? (
-          <Pressable 
-            onPress={handleManageSubscription}
-            disabled={isProcessing}
-            style={[styles.manageButton, { borderColor: getTierColor(normalizedTier) + '40' }]}
-          >
-            <Feather name="settings" size={16} color={getTierColor(normalizedTier)} />
-            <ThemedText type="body" style={{ color: getTierColor(normalizedTier), fontWeight: '600' }}>
-              Manage Billing
-            </ThemedText>
-          </Pressable>
+          <View style={styles.manageActions}>
+            <Pressable 
+              onPress={handleManageSubscription}
+              disabled={isProcessing}
+              style={[styles.manageButton, { borderColor: getTierColor(normalizedTier) + '40' }]}
+            >
+              <Feather name="settings" size={16} color={getTierColor(normalizedTier)} />
+              <ThemedText type="body" style={{ color: getTierColor(normalizedTier), fontWeight: '600' }}>
+                Manage Billing
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                navigation.navigate('CancelSubscription');
+              }}
+              style={styles.cancelLink}
+            >
+              <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+                Cancel subscription
+              </ThemedText>
+            </Pressable>
+          </View>
         ) : null}
       </View>
 
@@ -969,15 +982,22 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: BorderRadius.full,
   },
+  manageActions: {
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
+  },
   manageButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    marginTop: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
+  },
+  cancelLink: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
   },
   plansContainer: {
     marginBottom: Spacing.lg,

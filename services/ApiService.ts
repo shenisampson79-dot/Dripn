@@ -1600,12 +1600,38 @@ class ApiService {
     return { url: raw.portalUrl ?? raw.url ?? '' };
   }
 
-  async cancelSubscription() {
+  async cancelSubscription(options?: { reason?: string; immediately?: boolean }) {
     return this.request<{
       success: boolean;
-      cancelAtPeriodEnd: boolean;
-      currentPeriodEnd: string;
+      message?: string;
+      cancelAtPeriodEnd?: boolean;
+      cancelAt?: string;
+      currentPeriodEnd?: string;
     }>('/api/subscription/cancel', {
+      method: 'POST',
+      body: JSON.stringify({
+        reason: options?.reason,
+        immediately: options?.immediately ?? false,
+      }),
+    });
+  }
+
+  async pauseSubscription() {
+    return this.request<{
+      success: boolean;
+      message?: string;
+      pausedUntil?: string;
+    }>('/api/subscription/pause', {
+      method: 'POST',
+    });
+  }
+
+  async applySubscriptionDiscount() {
+    return this.request<{
+      success: boolean;
+      message?: string;
+      discountApplied?: boolean;
+    }>('/api/subscription/apply-discount', {
       method: 'POST',
     });
   }
