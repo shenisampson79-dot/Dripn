@@ -18,6 +18,7 @@ import { apiService } from "@/services/ApiService";
 import dfyService, { DFYAccessStatus, DFYTier } from "@/services/DFYService";
 import { useColorScheme, ColorSchemeMode } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { getBillingPlanDisplayName } from "@/utils/subscriptionTier";
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -448,7 +449,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <SettingItem
             icon="credit-card"
             title={t('settings.subscription')}
-            subtitle={user?.subscriptionTier === "free" ? "Free Plan" : `${user?.subscriptionTier} Plan`}
+            subtitle={`${getBillingPlanDisplayName(user?.subscriptionTier)} Plan`}
             onPress={() => navigation.navigate("Subscription")}
             theme={theme}
             isDark={isDark}

@@ -236,6 +236,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const { user, refreshSubscriptionFromBackend } = useAuth();
   const { referralCode } = useSubscription();
   const scrollViewRef = useRef<any>(null);
+  const checkoutInProgressRef = useRef(false);
 
   const normalizedTier = normalizeTier(user?.subscriptionTier);
   
@@ -283,8 +284,10 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const PLANS = getLocalizedPlans(localizedPrices, yearlyPrices, isYearly);
 
   const handleSelectPlan = async (planId: SubscriptionTier) => {
+    if (checkoutInProgressRef.current || isProcessing) return;
     if (planId === normalizeTier(user?.subscriptionTier)) return;
 
+    checkoutInProgressRef.current = true;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsProcessing(true);
     
@@ -338,6 +341,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       const errorMessage = error?.message || "Failed to open payment page. Please try again.";
       Alert.alert("Error", errorMessage);
     } finally {
+      checkoutInProgressRef.current = false;
       setIsProcessing(false);
     }
   };
