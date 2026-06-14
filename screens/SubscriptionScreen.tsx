@@ -237,6 +237,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const { user, refreshSubscriptionFromBackend } = useAuth();
   const { referralCode } = useSubscription();
   const scrollViewRef = useRef<any>(null);
+  const plansSectionY = useRef(0);
   const checkoutInProgressRef = useRef(false);
 
   const normalizedTier = normalizeTier(user?.subscriptionTier);
@@ -265,6 +266,8 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const [winbackOffer50, setWinbackOffer50] = useState(false);
   const [winbackPausePrompt, setWinbackPausePrompt] = useState(false);
   const [winbackBanner, setWinbackBanner] = useState<string | null>(null);
+  const [upgradeHint, setUpgradeHint] = useState<string | null>(null);
+  const [highlightPlans, setHighlightPlans] = useState(false);
 
   useEffect(() => {
     const params = route?.params ?? {};
@@ -393,30 +396,63 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     }
   };
 
+  const scrollToPlans = (message?: string) => {
+    if (message) {
+      setUpgradeHint(message);
+    }
+    setHighlightPlans(true);
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(0, plansSectionY.current - 24),
+        animated: true,
+      });
+    }, 100);
+    setTimeout(() => setHighlightPlans(false), 3000);
+  };
+
   const handleManageSubscription = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsProcessing(true);
     try {
-      // Sync Stripe customer/subscription IDs before opening portal (handles webhook lag)
       await apiService.verifySubscription().catch(() => {});
 
       const status = await apiService.getSubscriptionStatus().catch(() => null);
-      if (status?.isTrial && !status.hasStripeBilling) {
-        Alert.alert(
-          "Trial account",
-          "Your free trial does not have a Stripe billing account yet. Choose a paid plan below to subscribe and manage billing.",
-        );
-        return;
-      }
-
       const returnUrl =
         Platform.OS === 'web'
           ? 'https://dripnapp.com/subscription'
           : 'dripn://subscription';
       const response = await apiService.openBillingPortal(returnUrl);
-      await openExternalUrl(response.url);
-      // Refresh after billing portal closes — catches cancellations, plan changes, etc.
-      refreshSubscriptionFromBackend().catch(() => {});
+
+      if (response.mode === 'portal' && response.url) {
+        await openExternalUrl(response.url);
+        refreshSubscriptionFromBackend().catch(() => {});
+        return;
+      }
+
+      const needsInAppUpgrade =
+        response.mode === 'in_app' ||
+        response.action === 'subscription' ||
+        normalizedTier === 'free' ||
+        status?.isTrial ||
+        !status?.hasStripeBilling;
+
+      if (needsInAppUpgrade) {
+        scrollToPlans(
+          response.message ||
+            (status?.isTrial
+              ? 'Your free trial does not have a Stripe billing account yet. Choose a paid plan below to subscribe and manage billing.'
+              : 'Pick a plan below to upgrade and manage billing.'),
+        );
+        return;
+      }
+
+      if (response.url) {
+        await openExternalUrl(response.url);
+        refreshSubscriptionFromBackend().catch(() => {});
+        return;
+      }
+
+      scrollToPlans('Pick a plan below to upgrade and manage billing.');
     } catch (error: unknown) {
       console.error("Billing portal error:", error);
       Alert.alert(
@@ -753,25 +789,25 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               {getTierDisplayName(normalizedTier)}
             </ThemedText>
           </View>
-          {normalizedTier !== 'free' ? (
-            <View style={[styles.tierBadge, { backgroundColor: getTierColor(normalizedTier) + '20' }]}>
-              <Feather name="check" size={14} color={getTierColor(normalizedTier)} />
-              <ThemedText type="caption" style={{ color: getTierColor(normalizedTier), fontWeight: '600' }}>Active</ThemedText>
-            </View>
-          ) : null}
-        </View>
         {normalizedTier !== 'free' ? (
-          <View style={styles.manageActions}>
-            <Pressable 
-              onPress={handleManageSubscription}
-              disabled={isProcessing}
-              style={[styles.manageButton, { borderColor: getTierColor(normalizedTier) + '40' }]}
-            >
-              <Feather name="settings" size={16} color={getTierColor(normalizedTier)} />
-              <ThemedText type="body" style={{ color: getTierColor(normalizedTier), fontWeight: '600' }}>
-                Manage Billing
-              </ThemedText>
-            </Pressable>
+          <View style={[styles.tierBadge, { backgroundColor: getTierColor(normalizedTier) + '20' }]}>
+            <Feather name="check" size={14} color={getTierColor(normalizedTier)} />
+            <ThemedText type="caption" style={{ color: getTierColor(normalizedTier), fontWeight: '600' }}>Active</ThemedText>
+          </View>
+        ) : null}
+        </View>
+        <View style={styles.manageActions}>
+          <Pressable 
+            onPress={handleManageSubscription}
+            disabled={isProcessing}
+            style={[styles.manageButton, { borderColor: getTierColor(normalizedTier) + '40' }]}
+          >
+            <Feather name="settings" size={16} color={getTierColor(normalizedTier)} />
+            <ThemedText type="body" style={{ color: getTierColor(normalizedTier), fontWeight: '600' }}>
+              {normalizedTier === 'free' ? 'Upgrade / Manage Billing' : 'Manage Billing'}
+            </ThemedText>
+          </Pressable>
+          {normalizedTier !== 'free' ? (
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -783,9 +819,16 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 Cancel subscription
               </ThemedText>
             </Pressable>
-          </View>
-        ) : null}
+          ) : null}
+        </View>
       </View>
+
+      {upgradeHint ? (
+        <View style={[styles.upgradeHintBanner, { backgroundColor: isDark ? 'rgba(201,168,124,0.15)' : 'rgba(201,168,124,0.25)' }]}>
+          <Feather name="arrow-down" size={16} color={LUXURY_COLORS.gold} />
+          <ThemedText type="body" style={styles.upgradeHintText}>{upgradeHint}</ThemedText>
+        </View>
+      ) : null}
 
       <View style={styles.billingToggleContainer}>
         <Pressable
@@ -833,7 +876,19 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         </Pressable>
       </View>
 
-      <View style={styles.plansContainer}>
+      <View
+        style={[
+          styles.plansContainer,
+          highlightPlans && {
+            borderWidth: 2,
+            borderColor: LUXURY_COLORS.gold,
+            borderRadius: BorderRadius.lg,
+          },
+        ]}
+        onLayout={(event) => {
+          plansSectionY.current = event.nativeEvent.layout.y;
+        }}
+      >
         <ThemedText type="h2" style={styles.sectionTitle}>Choose Your Plan</ThemedText>
         <View style={styles.urgencyRow}>
           <Feather name="trending-up" size={14} color={LUXURY_COLORS.gold} />
@@ -1163,6 +1218,20 @@ const styles = StyleSheet.create({
   cancelLink: {
     alignItems: 'center',
     paddingVertical: Spacing.xs,
+  },
+  upgradeHintBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  upgradeHintText: {
+    flex: 1,
+    color: LUXURY_COLORS.deepGold,
+    fontWeight: '600',
   },
   plansContainer: {
     marginBottom: Spacing.lg,

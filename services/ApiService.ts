@@ -1680,7 +1680,14 @@ class ApiService {
   }
 
   async openBillingPortal(returnUrl = 'https://dripnapp.com/subscription') {
-    const raw = await this.request<{ url?: string; portalUrl?: string; success?: boolean }>(
+    const raw = await this.request<{
+      url?: string;
+      portalUrl?: string;
+      success?: boolean;
+      mode?: 'portal' | 'in_app';
+      action?: string;
+      message?: string;
+    }>(
       '/api/subscription/manage',
       {
         method: 'POST',
@@ -1688,10 +1695,14 @@ class ApiService {
       },
     );
     const url = raw.portalUrl ?? raw.url ?? '';
-    if (!url) {
-      throw new Error('Billing portal URL was not returned. Please try again.');
-    }
-    return { url };
+    const mode = raw.mode ?? (url ? 'portal' : 'in_app');
+    return {
+      success: raw.success ?? true,
+      mode,
+      action: raw.action,
+      message: raw.message,
+      url,
+    };
   }
 
   async cancelSubscription(options?: {

@@ -1443,7 +1443,12 @@ app.post('/api/subscription/manage', authMiddleware, async (req, res) => {
 
     const customerId = userResult.rows[0].stripe_customer_id;
     if (!customerId) {
-      return res.status(400).json({ error: 'No billing account found. Please subscribe first.' });
+      return res.json({
+        success: true,
+        mode: 'in_app',
+        action: 'subscription',
+        message: 'Pick a plan below to upgrade and manage billing.',
+      });
     }
 
     const baseUrl = process.env.APP_URL || process.env.EXPO_PUBLIC_API_URL || `${req.protocol}://${req.get('host')}`;
@@ -1452,7 +1457,12 @@ app.post('/api/subscription/manage', authMiddleware, async (req, res) => {
       return_url: `${baseUrl}/api/checkout/cancel`,
     });
 
-    res.json({ url: portalSession.url });
+    res.json({
+      success: true,
+      mode: 'portal',
+      url: portalSession.url,
+      portalUrl: portalSession.url,
+    });
   } catch (error) {
     console.error('Billing portal error:', error);
     res.status(500).json({ error: error.message || 'Failed to open billing portal' });
