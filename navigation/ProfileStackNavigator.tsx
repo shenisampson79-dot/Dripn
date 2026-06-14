@@ -34,6 +34,7 @@ import CancelSubscriptionScreen from "@/screens/CancelSubscriptionScreen";
 import SubscriptionSuccessScreen from "@/screens/SubscriptionSuccessScreen";
 import BodyMeasurementsScreen from "@/screens/BodyMeasurementsScreen";
 import AdminDashboardScreen from "@/screens/AdminDashboardScreen";
+import AnalyticsDashboard from "@/screens/AnalyticsDashboard";
 import FeedbackScreen from "@/screens/FeedbackScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
@@ -81,6 +82,7 @@ export type ProfileStackParamList = {
   CancelSubscription: undefined;
   BodyMeasurements: undefined;
   AdminDashboard: undefined;
+  AnalyticsDashboard: undefined;
   Feedback: undefined;
 };
 
@@ -372,6 +374,14 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={AdminDashboardScreen}
         options={{
           title: "Admin Dashboard",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="AnalyticsDashboard"
+        component={AnalyticsDashboard}
+        options={{
+          title: "Retention Analytics",
           headerShown: false,
         }}
       />

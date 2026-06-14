@@ -354,6 +354,48 @@ class ApiService {
     }>('/api/subscription/cancel/variant');
   }
 
+  async getCancelOffer() {
+    return this.request<{
+      success: boolean;
+      variant: 'A' | 'B' | 'C';
+      offer: {
+        type: 'discount' | 'pause' | 'downgrade' | 'resume_full';
+        offerKey: 'retention_50' | 'retention_30' | null;
+        cta: string;
+        segment: string;
+        usageSegment: string;
+        churnScore?: number;
+        message: string;
+        title: string;
+        body: string;
+        actionLabel: string;
+        acceptedOffer: string;
+        primaryAction: string;
+        discountPercent?: number;
+        pauseMonths?: number;
+        highlightPlan?: string;
+        variant?: string;
+      };
+      offers?: Record<string, unknown>;
+      offerEventId?: number;
+    }>('/api/subscription/cancel/offer');
+  }
+
+  async logAnalyticsEvent(data: {
+    event: string;
+    cta?: string;
+    source?: string;
+    campaign?: string;
+    variant?: string;
+    amount?: number;
+    metadata?: Record<string, unknown>;
+  }) {
+    return this.request<{ success: boolean }>('/api/analytics/event', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async startSubscriptionCancellation() {
     return this.request<{
       stylist: string;
@@ -1648,6 +1690,7 @@ class ApiService {
     reason?: string;
     variant?: string;
     acceptedOffer?: string;
+    offerType?: string;
   }) {
     return this.request<{
       success: boolean;
@@ -1660,6 +1703,7 @@ class ApiService {
         reason: options?.reason,
         variant: options?.variant,
         acceptedOffer: options?.acceptedOffer,
+        offerType: options?.offerType,
       }),
     });
   }
@@ -1668,6 +1712,7 @@ class ApiService {
     reason?: string;
     variant?: string;
     acceptedOffer?: string;
+    offerType?: string;
     /** Server-side retention offer key — never send raw Stripe coupon IDs */
     offer?: 'retention_30' | 'retention_50' | string;
     /** @deprecated Prefer `offer` (retention_30 / retention_50) */
@@ -1687,6 +1732,7 @@ class ApiService {
         acceptedOffer: options?.acceptedOffer,
         offer: options?.offer,
         discountPercent: options?.discountPercent,
+        offerType: options?.offerType,
       }),
     });
   }
@@ -1696,6 +1742,7 @@ class ApiService {
     reason?: string;
     variant?: string;
     acceptedOffer?: string;
+    offerType?: string;
   }) {
     return this.request<{
       success: boolean;
@@ -3805,6 +3852,53 @@ class ApiService {
         };
       };
     }>('/api/admin/subscriptions');
+  }
+
+  async getAnalyticsSummary() {
+    return this.adminRequest<{
+      success: boolean;
+      offers: { shown: number; accepted: number; acceptanceRate: number; revenue: number };
+      emailConversions: { total: number; amount: number };
+      events: { total: number };
+      revenue: { fromOffers: number; fromEmail: number; total: number };
+    }>('/api/analytics/summary');
+  }
+
+  async getAnalyticsRevenueByCta() {
+    return this.adminRequest<{
+      success: boolean;
+      rows: Array<{ cta: string; conversions: number; revenue: number }>;
+    }>('/api/analytics/revenue-by-cta');
+  }
+
+  async getAnalyticsCampaigns() {
+    return this.adminRequest<{
+      success: boolean;
+      campaigns: Array<{ campaign: string; variant: string; conversions: number; revenue: number }>;
+    }>('/api/analytics/campaigns');
+  }
+
+  async getAnalyticsOffers() {
+    return this.adminRequest<{
+      success: boolean;
+      offers: Array<{
+        offerType: string;
+        segment: string;
+        usageSegment: string;
+        shown: number;
+        accepted: number;
+        acceptanceRate: number;
+        revenue: number;
+      }>;
+    }>('/api/analytics/offers');
+  }
+
+  async getAnalyticsFunnel() {
+    return this.adminRequest<{
+      success: boolean;
+      offerStages: Array<{ stage: string; count: number; converted: number }>;
+      cancelFlow: Record<string, number>;
+    }>('/api/analytics/funnel');
   }
 
   async getAdminModels() {

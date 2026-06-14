@@ -795,6 +795,15 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
           <SettingItem
+            icon="bar-chart-2"
+            title="Retention Analytics"
+            subtitle="Smart offers & win-back revenue"
+            onPress={() => navigation.navigate("AnalyticsDashboard")}
+            theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+          />
+          <SettingItem
             icon="image"
             title="Logo Preview"
             subtitle="View Dripn logo variations"

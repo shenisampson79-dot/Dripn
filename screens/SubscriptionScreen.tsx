@@ -293,7 +293,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       }
 
       if (source === "winback_email") {
-        console.log("[Winback analytics]", { source, campaign, cta, variant });
+        apiService.logAnalyticsEvent({
+          event: "winback_landing",
+          source,
+          campaign: campaign ?? undefined,
+          cta: cta ?? undefined,
+          variant: variant ?? undefined,
+        }).catch(() => {});
       }
 
       if (search.toString()) {

@@ -24,6 +24,7 @@ import { StatusBar } from "expo-status-bar";
 
 import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
 import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
+import AnalyticsDashboard from "@/screens/AnalyticsDashboard";
 import MainTabNavigator from "@/navigation/MainTabNavigator";
 import AuthStackNavigator from "@/navigation/AuthStackNavigator";
 import StylistStackNavigator from "@/navigation/StylistStackNavigator";
@@ -69,6 +70,13 @@ function NavigationContainerWithRef() {
     }
     if (path === '/terms') {
       return <TermsOfServiceScreen />;
+    }
+    if (path === '/admin/analytics') {
+      return (
+        <NavigationContainer onReady={() => setNavigationRef(null)}>
+          <AnalyticsDashboard navigation={{ goBack: () => window.history.back() } as any} route={{} as any} />
+        </NavigationContainer>
+      );
     }
   }
 

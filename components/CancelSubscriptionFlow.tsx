@@ -28,6 +28,24 @@ export type CancelReason =
   | "just-testing"
   | "other";
 
+type SmartOffer = {
+  type: 'discount' | 'pause' | 'downgrade' | 'resume_full';
+  offerKey?: 'retention_50' | 'retention_30' | null;
+  cta?: string;
+  segment?: string;
+  usageSegment?: string;
+  message?: string;
+  title?: string;
+  body?: string;
+  actionLabel?: string;
+  acceptedOffer?: string;
+  primaryAction?: string;
+  discountPercent?: number;
+  pauseMonths?: number;
+  highlightPlan?: string;
+  variant?: string;
+};
+
 type CancelOfferConfig = {
   title: string;
   body: string;
@@ -92,14 +110,23 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
   const [isProcessing, setIsProcessing] = useState(false);
   const [cancelVariant, setCancelVariant] = useState<CancelVariant>('A');
   const [variantOffers, setVariantOffers] = useState<Record<string, CancelOfferConfig> | null>(null);
+  const [smartOffer, setSmartOffer] = useState<SmartOffer | null>(null);
 
   useEffect(() => {
-    apiService.getCancelVariant()
+    apiService.getCancelOffer()
       .then((data) => {
         if (data.variant) setCancelVariant(data.variant);
-        if (data.offers) setVariantOffers(data.offers);
+        if (data.offers) setVariantOffers(data.offers as Record<string, CancelOfferConfig>);
+        if (data.offer) setSmartOffer(data.offer);
       })
-      .catch(() => {});
+      .catch(() => {
+        apiService.getCancelVariant()
+          .then((data) => {
+            if (data.variant) setCancelVariant(data.variant);
+            if (data.offers) setVariantOffers(data.offers);
+          })
+          .catch(() => {});
+      });
   }, []);
 
   const normalizedTier = normalizeSubscriptionTier(user?.subscriptionTier);
@@ -134,6 +161,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         variant: cancelVariant,
         acceptedOffer,
         offer: offerKey,
+        offerType: smartOffer?.type ?? 'discount',
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refreshSubscriptionFromBackend().catch(() => {});
@@ -166,6 +194,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         reason: selectedReason ?? undefined,
         variant: cancelVariant,
         acceptedOffer,
+        offerType: smartOffer?.type ?? 'pause',
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refreshSubscriptionFromBackend().catch(() => {});
@@ -198,6 +227,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         reason: selectedReason ?? undefined,
         variant: cancelVariant,
         acceptedOffer,
+        offerType: smartOffer?.type ?? 'downgrade',
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refreshSubscriptionFromBackend().catch(() => {});
@@ -384,7 +414,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         handleAcceptDiscount(
           isSecondary
             ? (offer.secondaryOfferKey ?? (offer.discountPercent === 50 ? 'retention_50' : 'retention_30'))
-            : (offer.offerKey ?? (offer.discountPercent === 50 ? 'retention_50' : 'retention_30')),
+            : (smartOffer?.offerKey ?? offer.offerKey ?? (offer.discountPercent === 50 ? 'retention_50' : 'retention_30')),
           acceptedOffer
         );
         break;
@@ -406,6 +436,18 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         break;
     }
   };
+
+  const smartOfferToConfig = (offer: SmartOffer): CancelOfferConfig => ({
+    title: offer.title || 'Special offer for you',
+    body: offer.body || offer.message || '',
+    primaryAction: offer.primaryAction || 'keep',
+    actionLabel: offer.actionLabel || 'Continue',
+    acceptedOffer: offer.acceptedOffer || offer.cta || 'keep',
+    discountPercent: offer.discountPercent,
+    offerKey: offer.offerKey ?? undefined,
+    pauseMonths: offer.pauseMonths,
+    highlightPlan: offer.highlightPlan,
+  });
 
   const renderOfferStep = () => {
     if (!selectedReason) return null;
@@ -452,10 +494,18 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
       },
     };
 
-    const offer = variantOffers?.[selectedReason] ?? fallbackOffers[selectedReason];
+    const offer =
+      smartOffer
+        ? smartOfferToConfig(smartOffer)
+        : (variantOffers?.[selectedReason] ?? fallbackOffers[selectedReason]);
 
     return (
       <View style={styles.stepContent}>
+        {smartOffer?.segment ? (
+          <ThemedText type="small" style={[styles.segmentHint, { color: theme.tabIconDefault }]}>
+            Personalised for {smartOffer.usageSegment} usage · {smartOffer.segment} retention
+          </ThemedText>
+        ) : null}
         <LinearGradient
           colors={[LuxuryColors.gold, LuxuryColors.deepGold]}
           style={styles.offerCard}
@@ -473,7 +523,13 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         </LinearGradient>
 
         <Button
-          onPress={() => runOfferAction(offer, 'primary')}
+          onPress={() => {
+            if (smartOffer?.type === 'resume_full') {
+              handleKeepSubscription();
+              return;
+            }
+            runOfferAction(offer, 'primary');
+          }}
           disabled={isProcessing}
           style={[styles.primaryButton, { backgroundColor: LuxuryColors.gold }]}
         >
@@ -680,5 +736,9 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: Spacing.md,
+  },
+  segmentHint: {
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
   },
 });
