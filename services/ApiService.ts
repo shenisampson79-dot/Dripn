@@ -198,11 +198,9 @@ class ApiService {
       ...(options.headers || {}),
     };
 
-    // Admin endpoints require the admin JWT, not the regular user token
     const adminToken = await AsyncStorage.getItem(ADMIN_TOKEN_KEY).catch(() => null);
-    const token = adminToken || await this.getToken();
-    if (token) {
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    if (adminToken) {
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${adminToken}`;
     }
 
     const adminSecret = process.env.EXPO_PUBLIC_ADMIN_SECRET;
@@ -225,6 +223,11 @@ class ApiService {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Admin request failed' }));
+      if (response.status === 401) {
+        const authError = new Error(error.error || 'Admin authentication required');
+        (authError as Error & { code?: string }).code = 'ADMIN_AUTH_REQUIRED';
+        throw authError;
+      }
       throw new Error(error.error || error.message || 'Admin request failed');
     }
 
@@ -4001,9 +4004,75 @@ class ApiService {
   async getAnalyticsFunnel() {
     return this.adminRequest<{
       success: boolean;
-      offerStages: Array<{ stage: string; count: number; converted: number }>;
-      cancelFlow: Record<string, number>;
+      stages: Array<{
+        stage: string;
+        count: number;
+        conversionFromPrevious: number;
+        conversionFromVisit: number;
+      }>;
+      visitTotal: number;
     }>('/api/analytics/funnel');
+  }
+
+  async getAnalyticsInsights() {
+    return this.adminRequest<{
+      success: boolean;
+      insights: Array<{
+        id: string;
+        severity: string;
+        title: string;
+        message: string;
+        action: string;
+      }>;
+      generatedAt: string;
+      source: string;
+    }>('/api/analytics/insights');
+  }
+
+  async getAnalyticsInsightsAdvanced() {
+    return this.adminRequest<{
+      success: boolean;
+      insights: Array<{
+        id?: string;
+        severity?: string;
+        title: string;
+        message: string;
+        action: string;
+        priority?: string;
+      }>;
+      advanced?: Array<{
+        title: string;
+        message: string;
+        action: string;
+        priority?: string;
+      }>;
+      generatedAt?: string;
+      source?: string;
+      note?: string;
+    }>('/api/analytics/insights/advanced');
+  }
+
+  async getAnalyticsCohorts() {
+    return this.adminRequest<{
+      success: boolean;
+      cohorts: Array<{
+        cohortWeek: string;
+        cohortSize: number;
+        retained30d: number;
+        retentionRate: number;
+      }>;
+    }>('/api/analytics/cohorts');
+  }
+
+  async getAnalyticsChurnRisk() {
+    return this.adminRequest<{
+      success: boolean;
+      bins: Array<{
+        bin: string;
+        users: number;
+        avgScore: number;
+      }>;
+    }>('/api/analytics/churn-risk');
   }
 
   async getAdminModels() {

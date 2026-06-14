@@ -25,6 +25,7 @@ import { StatusBar } from "expo-status-bar";
 import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
 import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
 import AnalyticsDashboard from "@/screens/AnalyticsDashboard";
+import AdminLoginScreen from "@/screens/AdminLoginScreen";
 import MainTabNavigator from "@/navigation/MainTabNavigator";
 import AuthStackNavigator from "@/navigation/AuthStackNavigator";
 import StylistStackNavigator from "@/navigation/StylistStackNavigator";
@@ -71,11 +72,26 @@ function NavigationContainerWithRef() {
     if (path === '/terms') {
       return <TermsOfServiceScreen />;
     }
+    if (path === '/admin/login') {
+      return (
+        <AdminAuthProvider>
+          <NavigationContainer onReady={() => setNavigationRef(null)}>
+            <AdminLoginScreen
+              navigation={{ goBack: () => { window.location.href = '/'; } } as any}
+              onLoginSuccess={() => { window.location.href = '/admin/analytics'; }}
+              onExit={() => { window.location.href = '/'; }}
+            />
+          </NavigationContainer>
+        </AdminAuthProvider>
+      );
+    }
     if (path === '/admin/analytics') {
       return (
-        <NavigationContainer onReady={() => setNavigationRef(null)}>
-          <AnalyticsDashboard navigation={{ goBack: () => window.history.back() } as any} route={{} as any} />
-        </NavigationContainer>
+        <AdminAuthProvider>
+          <NavigationContainer onReady={() => setNavigationRef(null)}>
+            <AnalyticsDashboard navigation={{ goBack: () => window.history.back() } as any} route={{} as any} />
+          </NavigationContainer>
+        </AdminAuthProvider>
       );
     }
   }

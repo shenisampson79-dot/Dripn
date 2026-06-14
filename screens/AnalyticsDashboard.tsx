@@ -32,6 +32,7 @@ import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import apiService from "@/services/ApiService";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 type Props = NativeStackScreenProps<ProfileStackParamList, "AnalyticsDashboard">;
@@ -146,49 +147,113 @@ function DataTable({
   );
 }
 
+function InsightCard({
+  title,
+  message,
+  action,
+  severity,
+  theme,
+}: {
+  title: string;
+  message: string;
+  action: string;
+  severity: string;
+  theme: { backgroundSecondary: string; border: string; tabIconDefault: string };
+}) {
+  const accent =
+    severity === "critical" ? "#dc2626"
+      : severity === "warning" ? "#d97706"
+        : severity === "success" ? "#16a34a"
+          : LuxuryColors.gold;
+  return (
+    <View style={[styles.insightCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border, borderLeftColor: accent }]}>
+      <ThemedText type="small" style={{ fontWeight: "700" }}>{title}</ThemedText>
+      <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: 4 }}>{message}</ThemedText>
+      <ThemedText type="caption" style={{ marginTop: 6, fontStyle: "italic" }}>{action}</ThemedText>
+    </View>
+  );
+}
+
 export default function AnalyticsDashboard({ navigation }: Props) {
   const { theme, isDark } = useTheme();
   const { width } = useWindowDimensions();
+  const { isAuthenticated, isLoading: authLoading, logout } = useAdminAuth();
   const chartWidth = Math.min(width - Spacing.lg * 2, 900);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authRequired, setAuthRequired] = useState(false);
   const [summary, setSummary] = useState<Awaited<ReturnType<typeof apiService.getAnalyticsSummary>> | null>(null);
   const [revenue, setRevenue] = useState<Awaited<ReturnType<typeof apiService.getAnalyticsRevenue>> | null>(null);
   const [emailPerf, setEmailPerf] = useState<Awaited<ReturnType<typeof apiService.getAnalyticsEmailPerformance>> | null>(null);
   const [retention, setRetention] = useState<Awaited<ReturnType<typeof apiService.getAnalyticsRetention>> | null>(null);
   const [experiments, setExperiments] = useState<Awaited<ReturnType<typeof apiService.getAnalyticsExperiments>> | null>(null);
+  const [insights, setInsights] = useState<Awaited<ReturnType<typeof apiService.getAnalyticsInsightsAdvanced>> | null>(null);
+  const [cohorts, setCohorts] = useState<Awaited<ReturnType<typeof apiService.getAnalyticsCohorts>> | null>(null);
+  const [funnel, setFunnel] = useState<Awaited<ReturnType<typeof apiService.getAnalyticsFunnel>> | null>(null);
+  const [churnRisk, setChurnRisk] = useState<Awaited<ReturnType<typeof apiService.getAnalyticsChurnRisk>> | null>(null);
+
+  const redirectToLogin = useCallback(() => {
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.location.href = "/admin/login";
+    } else {
+      setAuthRequired(true);
+    }
+  }, []);
 
   const formatMoney = (n: number) => `£${(n ?? 0).toFixed(2)}`;
 
   const load = useCallback(async () => {
     try {
       setError(null);
-      const [summaryRes, revenueRes, emailRes, retentionRes, experimentsRes] = await Promise.all([
+      setAuthRequired(false);
+      const [
+        summaryRes, revenueRes, emailRes, retentionRes, experimentsRes,
+        insightsRes, cohortsRes, funnelRes, churnRes,
+      ] = await Promise.all([
         apiService.getAnalyticsSummary(),
         apiService.getAnalyticsRevenue(),
         apiService.getAnalyticsEmailPerformance(),
         apiService.getAnalyticsRetention(),
         apiService.getAnalyticsExperiments(),
+        apiService.getAnalyticsInsightsAdvanced(),
+        apiService.getAnalyticsCohorts(),
+        apiService.getAnalyticsFunnel(),
+        apiService.getAnalyticsChurnRisk(),
       ]);
       setSummary(summaryRes);
       setRevenue(revenueRes);
       setEmailPerf(emailRes);
       setRetention(retentionRes);
       setExperiments(experimentsRes);
+      setInsights(insightsRes);
+      setCohorts(cohortsRes);
+      setFunnel(funnelRes);
+      setChurnRisk(churnRes);
     } catch (e: unknown) {
+      const err = e as Error & { code?: string };
+      if (err.code === "ADMIN_AUTH_REQUIRED" || err.message?.includes("Authentication required")) {
+        await logout().catch(() => {});
+        redirectToLogin();
+        return;
+      }
       const msg = e instanceof Error ? e.message : "Failed to load analytics";
       setError(msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [logout, redirectToLogin]);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      redirectToLogin();
+      return;
+    }
     load();
-  }, [load]);
+  }, [authLoading, isAuthenticated, load, redirectToLogin]);
 
   const revenueTrend = useMemo(
     () =>
@@ -228,6 +293,31 @@ export default function AnalyticsDashboard({ navigation }: Props) {
     [experiments?.variants],
   );
 
+  const funnelChartData = useMemo(
+    () => (funnel?.stages ?? []).map((s) => ({ name: s.stage, count: s.count, rate: s.conversionFromVisit })),
+    [funnel?.stages],
+  );
+
+  const churnChartData = useMemo(
+    () => (churnRisk?.bins ?? []).map((b) => ({ name: b.bin, users: b.users, score: b.avgScore })),
+    [churnRisk?.bins],
+  );
+
+  if (authLoading || (!isAuthenticated && !authRequired)) {
+    return <ActivityIndicator style={styles.loader} color={LuxuryColors.gold} />;
+  }
+
+  if (authRequired) {
+    return (
+      <View style={[styles.root, { backgroundColor: theme.backgroundRoot, justifyContent: "center", alignItems: "center", padding: Spacing.lg }]}>
+        <ThemedText type="h3">Admin sign-in required</ThemedText>
+        <Pressable onPress={redirectToLogin} style={{ marginTop: Spacing.md }}>
+          <ThemedText type="link">Go to login</ThemedText>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.root, { backgroundColor: theme.backgroundRoot }]}>
       <LinearGradient colors={[...ScreenGradients.profile.primary]} style={styles.header}>
@@ -265,6 +355,92 @@ export default function AnalyticsDashboard({ navigation }: Props) {
               </Pressable>
             </View>
           ) : null}
+
+          <Section title="AI Insights">
+            {(insights?.insights ?? []).map((item) => (
+              <InsightCard
+                key={item.id || item.title}
+                title={item.title}
+                message={item.message}
+                action={item.action}
+                severity={item.severity || "info"}
+                theme={theme}
+              />
+            ))}
+            {(insights?.advanced ?? []).map((item, i) => (
+              <InsightCard
+                key={`adv-${i}`}
+                title={`[AI] ${item.title}`}
+                message={item.message}
+                action={item.action}
+                severity={item.priority === "high" ? "warning" : "info"}
+                theme={theme}
+              />
+            ))}
+            {insights?.note ? (
+              <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>{insights.note}</ThemedText>
+            ) : null}
+          </Section>
+
+          <Section title="Cohorts">
+            <DataTable
+              theme={theme}
+              headers={["Cohort week", "Size", "Retained 30d", "Rate"]}
+              rows={(cohorts?.cohorts ?? []).map((c) => [
+                String(c.cohortWeek).slice(0, 10),
+                String(c.cohortSize),
+                String(c.retained30d),
+                `${c.retentionRate}%`,
+              ])}
+            />
+          </Section>
+
+          <Section title="Funnel">
+            <ChartBox theme={theme}>
+              <ResponsiveContainer width={chartWidth} height={200}>
+                <BarChart data={funnelChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#333" : "#e5e5e5"} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#c9a961" name="Users" />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartBox>
+            <DataTable
+              theme={theme}
+              headers={["Stage", "Count", "From visit %", "From prev %"]}
+              rows={(funnel?.stages ?? []).map((s) => [
+                s.stage,
+                String(s.count),
+                `${s.conversionFromVisit}%`,
+                `${s.conversionFromPrevious}%`,
+              ])}
+            />
+          </Section>
+
+          <Section title="Churn Risk">
+            <ChartBox theme={theme}>
+              <ResponsiveContainer width={chartWidth} height={200}>
+                <BarChart data={churnChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#333" : "#e5e5e5"} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="users" fill="#1a1a2e" name="Users" />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartBox>
+            <DataTable
+              theme={theme}
+              headers={["Risk bin", "Users", "Avg score"]}
+              rows={(churnRisk?.bins ?? []).map((b) => [
+                b.bin,
+                String(b.users),
+                String(b.avgScore),
+              ])}
+            />
+          </Section>
 
           <Section title="Revenue">
             <View style={styles.metricsGrid}>
@@ -436,7 +612,7 @@ export default function AnalyticsDashboard({ navigation }: Props) {
 
           {Platform.OS === "web" ? (
             <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginTop: Spacing.lg }}>
-              Web route: /admin/analytics · API: {process.env.EXPO_PUBLIC_API_URL || "dripn-server.onrender.com"}
+              Web routes: /admin/login · /admin/analytics · API: {process.env.EXPO_PUBLIC_API_URL || "dripn-server.onrender.com"}
             </ThemedText>
           ) : null}
         </ScreenScrollView>
@@ -508,5 +684,12 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.lg,
     gap: Spacing.sm,
+  },
+  insightCard: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderLeftWidth: 4,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
   },
 });

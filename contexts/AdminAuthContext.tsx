@@ -84,7 +84,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   const validateToken = async (tokenData: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${ADMIN_API_URL}/api/admin/stylists`, {
+      const response = await fetch(`${ADMIN_API_URL}/api/analytics/summary`, {
         headers: { 'Authorization': `Bearer ${tokenData}` },
         signal: AbortSignal.timeout(5000),
       });
