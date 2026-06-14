@@ -126,12 +126,30 @@ class ApiService {
         }
         throw new Error('Request was cancelled.');
       }
+      const networkMessage = error?.message || '';
+      if (
+        networkMessage.includes('Network request failed') ||
+        networkMessage.includes('Failed to fetch') ||
+        networkMessage.includes('NetworkError')
+      ) {
+        throw new Error('Network error. Check your connection and try again.');
+      }
       throw error;
     }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Request failed' }));
       let errorMessage = error.error || error.message || '';
+
+      if (error.hint === 'stripe_portal_not_configured') {
+        errorMessage =
+          error.error ||
+          'Billing portal is not configured in Stripe. Enable Customer Portal under Stripe Dashboard → Settings → Billing → Customer portal.';
+      } else if (error.hint && errorMessage && !errorMessage.includes(String(error.hint))) {
+        errorMessage = `${errorMessage} (${error.hint})`;
+      } else if (!errorMessage && error.hint) {
+        errorMessage = String(error.hint);
+      }
       
       // Log API errors for debugging
       console.log('=== API ERROR ===');
@@ -1606,6 +1624,10 @@ class ApiService {
     const sub = raw.subscription ?? raw;
     const plan = sub.tier ?? sub.plan ?? 'free';
     const isActive = sub.active ?? sub.isActive ?? (plan !== 'free' && plan !== null);
+    const hasStripeBilling =
+      sub.hasStripeBilling ??
+      raw.hasStripeBilling ??
+      Boolean(sub.stripeCustomerId ?? raw.stripeCustomerId ?? sub.stripeSubscriptionId ?? raw.stripeSubscriptionId);
     return {
       active: isActive,
       plan,
@@ -1614,6 +1636,8 @@ class ApiService {
       cancelAtPeriodEnd: sub.cancelAtPeriodEnd ?? false,
       stripeCustomerId: sub.stripeCustomerId ?? raw.stripeCustomerId ?? null,
       stripeSubscriptionId: sub.stripeSubscriptionId ?? raw.stripeSubscriptionId ?? null,
+      hasStripeBilling,
+      isTrial: sub.isTrial ?? raw.isTrial ?? false,
     };
   }
 

@@ -16,6 +16,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { normalizeSubscriptionTier, tierToBillingPlan, getBillingPlanDisplayName } from "@/utils/subscriptionTier";
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
+import { getErrorMessage, openExternalUrl } from "@/utils/openExternalUrl";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -398,15 +399,29 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     try {
       // Sync Stripe customer/subscription IDs before opening portal (handles webhook lag)
       await apiService.verifySubscription().catch(() => {});
-      const response = await apiService.openBillingPortal();
-      await WebBrowser.openBrowserAsync(response.url);
+
+      const status = await apiService.getSubscriptionStatus().catch(() => null);
+      if (status?.isTrial && !status.hasStripeBilling) {
+        Alert.alert(
+          "Trial account",
+          "Your free trial does not have a Stripe billing account yet. Choose a paid plan below to subscribe and manage billing.",
+        );
+        return;
+      }
+
+      const returnUrl =
+        Platform.OS === 'web'
+          ? 'https://dripnapp.com/subscription'
+          : 'dripn://subscription';
+      const response = await apiService.openBillingPortal(returnUrl);
+      await openExternalUrl(response.url);
       // Refresh after billing portal closes — catches cancellations, plan changes, etc.
       refreshSubscriptionFromBackend().catch(() => {});
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Billing portal error:", error);
       Alert.alert(
         "Billing unavailable",
-        error?.message || "Unable to open billing management. Please try again.",
+        getErrorMessage(error, "Unable to open billing management. Please try again."),
       );
     } finally {
       setIsProcessing(false);
