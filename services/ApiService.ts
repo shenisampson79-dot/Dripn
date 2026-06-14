@@ -1655,11 +1655,19 @@ class ApiService {
     });
   }
 
-  async openBillingPortal() {
-    const raw = await this.request<{ url?: string; portalUrl?: string }>('/api/subscription/manage', {
-      method: 'POST',
-    });
-    return { url: raw.portalUrl ?? raw.url ?? '' };
+  async openBillingPortal(returnUrl = 'https://dripnapp.com/subscription') {
+    const raw = await this.request<{ url?: string; portalUrl?: string; success?: boolean }>(
+      '/api/subscription/manage',
+      {
+        method: 'POST',
+        body: JSON.stringify({ returnUrl }),
+      },
+    );
+    const url = raw.portalUrl ?? raw.url ?? '';
+    if (!url) {
+      throw new Error('Billing portal URL was not returned. Please try again.');
+    }
+    return { url };
   }
 
   async cancelSubscription(options?: {

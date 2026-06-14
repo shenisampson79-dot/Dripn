@@ -396,15 +396,18 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsProcessing(true);
     try {
+      // Sync Stripe customer/subscription IDs before opening portal (handles webhook lag)
+      await apiService.verifySubscription().catch(() => {});
       const response = await apiService.openBillingPortal();
-      if (response.url) {
-        await WebBrowser.openBrowserAsync(response.url);
-        // Refresh after billing portal closes — catches cancellations, plan changes, etc.
-        refreshSubscriptionFromBackend().catch(() => {});
-      }
+      await WebBrowser.openBrowserAsync(response.url);
+      // Refresh after billing portal closes — catches cancellations, plan changes, etc.
+      refreshSubscriptionFromBackend().catch(() => {});
     } catch (error: any) {
       console.error("Billing portal error:", error);
-      Alert.alert("Error", "Unable to open billing management. Please try again.");
+      Alert.alert(
+        "Billing unavailable",
+        error?.message || "Unable to open billing management. Please try again.",
+      );
     } finally {
       setIsProcessing(false);
     }
