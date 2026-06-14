@@ -137,7 +137,7 @@ export default function AnalyticsDashboard({ navigation }: Props) {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.backgroundRoot }]}>
-      <LinearGradient colors={ScreenGradients.profile as [string, string]} style={styles.header}>
+      <LinearGradient colors={[...ScreenGradients.profile.primary]} style={styles.header}>
         <Pressable onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={12}>
           <Feather name="arrow-left" size={22} color="#FFF" />
         </Pressable>
