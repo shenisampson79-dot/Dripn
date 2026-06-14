@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, View, Pressable, Alert, Dimensions } from "react-native";
+import { StyleSheet, View, Pressable, Alert, Dimensions, Platform } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -261,6 +261,46 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     outfit_setup: "£19.99",
     wardrobe_setup: "£39.99",
   });
+  const [winbackOffer50, setWinbackOffer50] = useState(false);
+  const [winbackPausePrompt, setWinbackPausePrompt] = useState(false);
+  const [winbackBanner, setWinbackBanner] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = route?.params ?? {};
+    if (params.offer50) setWinbackOffer50(true);
+    if (params.pause) setWinbackPausePrompt(true);
+    if (params.winbackBanner) setWinbackBanner(params.winbackBanner);
+
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      const search = new URLSearchParams(window.location.search);
+      const offer = search.get("offer");
+      const pause = search.get("pause");
+      const source = search.get("source");
+      const campaign = search.get("campaign");
+      const cta = search.get("cta");
+      const variant = search.get("variant");
+
+      if (offer === "50") {
+        setWinbackOffer50(true);
+        setWinbackBanner("Welcome back! Your exclusive 50% off your next month is ready.");
+      }
+      if (pause === "true") {
+        setWinbackPausePrompt(true);
+        setWinbackBanner((prev) => prev ?? "You can pause your plan instead of cancelling — no charges while paused.");
+      }
+      if (cta === "downgrade") {
+        setSelectedPlan("subscription");
+      }
+
+      if (source === "winback_email") {
+        console.log("[Winback analytics]", { source, campaign, cta, variant });
+      }
+
+      if (search.toString()) {
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+  }, [route?.params]);
 
   useEffect(() => {
     const initCurrency = async () => {
@@ -359,6 +399,54 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     } catch (error: any) {
       console.error("Billing portal error:", error);
       Alert.alert("Error", "Unable to open billing management. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleApplyWinbackDiscount = async () => {
+    if (normalizedTier === 'free') {
+      Alert.alert("Choose a plan", "Select a plan below to subscribe with your comeback offer.");
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const result = await apiService.applySubscriptionDiscount({
+        offer: 'retention_50',
+        acceptedOffer: 'discount_50',
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await refreshSubscriptionFromBackend().catch(() => {});
+      Alert.alert(
+        "50% off applied!",
+        result.message || "50% off has been applied to your next billing cycle.",
+        [{ text: "Great!" }]
+      );
+      setWinbackOffer50(false);
+    } catch (error: any) {
+      Alert.alert("Offer unavailable", error?.message || "Could not apply discount right now.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleWinbackPause = async () => {
+    if (normalizedTier === 'free') {
+      Alert.alert("Subscribe first", "Choose a plan below, then you can pause from billing settings.");
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const result = await apiService.pauseSubscription({
+        months: 1,
+        acceptedOffer: 'pause_1_month_free',
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await refreshSubscriptionFromBackend().catch(() => {});
+      Alert.alert("Plan paused", result.message || "Your subscription is paused.", [{ text: "OK" }]);
+      setWinbackPausePrompt(false);
+    } catch (error: any) {
+      Alert.alert("Error", error?.message || "Could not pause subscription.");
     } finally {
       setIsProcessing(false);
     }
@@ -595,6 +683,36 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           </ThemedText>
         </View>
       </LinearGradient>
+
+      {(winbackBanner || winbackOffer50 || winbackPausePrompt) ? (
+        <View style={[styles.winbackBanner, { backgroundColor: isDark ? 'rgba(201,168,124,0.15)' : 'rgba(201,168,124,0.25)' }]}>
+          {winbackBanner ? (
+            <ThemedText type="body" style={styles.winbackBannerText}>{winbackBanner}</ThemedText>
+          ) : null}
+          {winbackOffer50 ? (
+            <Pressable
+              onPress={handleApplyWinbackDiscount}
+              disabled={isProcessing}
+              style={[styles.winbackCta, { backgroundColor: LUXURY_COLORS.gold }]}
+            >
+              <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>
+                {isProcessing ? "Processing..." : "Apply 50% off now"}
+              </ThemedText>
+            </Pressable>
+          ) : null}
+          {winbackPausePrompt ? (
+            <Pressable
+              onPress={handleWinbackPause}
+              disabled={isProcessing}
+              style={[styles.winbackCtaOutline, { borderColor: LUXURY_COLORS.gold }]}
+            >
+              <ThemedText type="body" style={{ color: LUXURY_COLORS.gold, fontWeight: '600' }}>
+                Pause my plan instead
+              </ThemedText>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={[styles.currentTierSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
         <View style={styles.currentTierRow}>
@@ -908,6 +1026,29 @@ const styles = StyleSheet.create({
   heroSubtitle: {
     color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
+  },
+  winbackBanner: {
+    marginBottom: Spacing.lg,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+  },
+  winbackBannerText: {
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  winbackCta: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+  },
+  winbackCtaOutline: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    borderWidth: 1,
   },
   sectionTitle: {
     marginBottom: Spacing.sm,

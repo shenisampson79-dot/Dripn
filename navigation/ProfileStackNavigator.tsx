@@ -43,7 +43,13 @@ import type { SubscriptionTier } from "@/contexts/AuthContext";
 export type ProfileStackParamList = {
   Profile: undefined;
   Settings: undefined;
-  Subscription: { highlightPlan?: SubscriptionTier; scrollToDFY?: boolean } | undefined;
+  Subscription: {
+    highlightPlan?: SubscriptionTier;
+    scrollToDFY?: boolean;
+    offer50?: boolean;
+    pause?: boolean;
+    winbackBanner?: string;
+  } | undefined;
   SubscriptionSuccess: { sessionId?: string } | undefined;
   EditProfile: undefined;
   VIPMembers: undefined;

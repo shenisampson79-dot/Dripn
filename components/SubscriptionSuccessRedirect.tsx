@@ -55,6 +55,32 @@ export function SubscriptionSuccessRedirect() {
         navigateToSuccess(params.get("session_id") ?? undefined);
         return;
       }
+      if (path === "/subscription") {
+        handledRef.current = true;
+        const search = new URLSearchParams(window.location.search);
+        const offer = search.get("offer");
+        const pause = search.get("pause");
+        navigation.dispatch(
+          CommonActions.navigate({
+            name: "ProfileTab",
+            params: {
+              screen: "Subscription",
+              params: {
+                offer50: offer === "50",
+                pause: pause === "true",
+                winbackBanner:
+                  offer === "50"
+                    ? "Welcome back! Your exclusive 50% off your next month is ready."
+                    : pause === "true"
+                      ? "You can pause your plan instead of cancelling — no charges while paused."
+                      : undefined,
+              },
+            },
+          })
+        );
+        window.history.replaceState({}, "", "/");
+        return;
+      }
     }
 
     Linking.getInitialURL().then((url) => {
