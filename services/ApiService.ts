@@ -205,6 +205,11 @@ class ApiService {
       (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
     }
 
+    const adminSecret = process.env.EXPO_PUBLIC_ADMIN_SECRET;
+    if (adminSecret) {
+      (headers as Record<string, string>)['x-admin-secret'] = adminSecret;
+    }
+
     let response: Response;
     try {
       response = await this.fetchWithTimeout(`${ADMIN_API_URL}${endpoint}`, {
@@ -3903,8 +3908,65 @@ class ApiService {
       offers: { shown: number; accepted: number; acceptanceRate: number; revenue: number };
       emailConversions: { total: number; amount: number };
       events: { total: number };
-      revenue: { fromOffers: number; fromEmail: number; total: number };
+      revenue: { fromOffers: number; fromEmail: number; fromPayments?: number; total: number };
+      payments?: { total: number; payingUsers: number };
     }>('/api/analytics/summary');
+  }
+
+  async getAnalyticsRevenue() {
+    return this.adminRequest<{
+      success: boolean;
+      totalRevenue: number;
+      ltv: number;
+      revenuePerUser: number;
+      revenueToday: number;
+      revenue7d: number;
+      revenue30d: number;
+      winbackRevenue: number;
+      subscriptionRevenue: number;
+      payingUsers: number;
+      totalUsers: number;
+      trend: Array<{ day: string; revenue: number }>;
+    }>('/api/analytics/revenue');
+  }
+
+  async getAnalyticsEmailPerformance() {
+    return this.adminRequest<{
+      success: boolean;
+      topEmail: { emailType: string; sent: number; clicks: number; revenue: number } | null;
+      ctaPerformance: Array<{ cta: string; clicks: number; revenue: number }>;
+      revenueByEmail: Array<{ email: string; clicks: number; revenue: number; sent: number }>;
+      sendsByType: Record<string, number>;
+    }>('/api/analytics/email-performance');
+  }
+
+  async getAnalyticsRetention() {
+    return this.adminRequest<{
+      success: boolean;
+      recoveryRate: number;
+      revenueSaved: number;
+      retentionByOffer: Array<{
+        offerType: string;
+        shown: number;
+        accepted: number;
+        acceptanceRate: number;
+        revenueSaved: number;
+      }>;
+      cancelFlow: { totalEvents: number; cancellations: number; recovered: number };
+    }>('/api/analytics/retention');
+  }
+
+  async getAnalyticsExperiments() {
+    return this.adminRequest<{
+      success: boolean;
+      variants: Array<{
+        variant: string;
+        shown: number;
+        accepted: number;
+        acceptanceRate: number;
+        revenue: number;
+      }>;
+    }>('/api/analytics/experiments');
   }
 
   async getAnalyticsRevenueByCta() {
