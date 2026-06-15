@@ -20,13 +20,11 @@ type AdminLoginScreenProps = {
 export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }: AdminLoginScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
-  const { login, setupAdmin, isLoading } = useAdminAuth();
+  const { login, isLoading } = useAdminAuth();
 
   const [mode, setMode] = useState<'login' | 'setup'>('login');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [setupKey, setSetupKey] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
@@ -41,21 +39,6 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
       }
     } catch (error: any) {
       Alert.alert("Login Failed", error.message || "Please check your credentials and try again.");
-    }
-  };
-
-  const handleSetup = async () => {
-    if (!email || !password || !displayName || !setupKey) {
-      Alert.alert("Error", "Please fill in all fields");
-      return;
-    }
-    try {
-      await setupAdmin(email, password, displayName, setupKey);
-      if (onLoginSuccess) {
-        onLoginSuccess();
-      }
-    } catch (error: any) {
-      Alert.alert("Setup Failed", error.message || "Please check your setup key and try again.");
     }
   };
 
@@ -113,7 +96,7 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
             <ThemedText type="body" style={styles.subtitle}>
               {mode === 'login'
                 ? "Sign in to manage stylists and sessions"
-                : "Set up your admin account"}
+                : "How to create the first admin account"}
             </ThemedText>
           </View>
 
@@ -145,112 +128,118 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
               ]}
             >
               <ThemedText type="small" style={{ color: mode === 'setup' ? '#FFFFFF' : theme.text, fontWeight: '600' }}>
-                First Time Setup
+                First Admin?
               </ThemedText>
             </Pressable>
           </View>
 
-          <View style={styles.form}>
-            {mode === 'setup' ? (
-              <>
-                <View style={styles.fieldContainer}>
-                  <ThemedText type="small" style={styles.label}>
-                    Your Name
-                  </ThemedText>
-                  <TextInput
-                    style={inputStyle}
-                    value={displayName}
-                    onChangeText={setDisplayName}
-                    placeholder="Admin Name"
-                    placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
-                    editable={!isLoading}
-                    returnKeyType="next"
-                  />
-                </View>
-
-                <View style={styles.fieldContainer}>
-                  <ThemedText type="small" style={styles.label}>
-                    Setup Key
-                  </ThemedText>
-                  <TextInput
-                    style={inputStyle}
-                    value={setupKey}
-                    onChangeText={setSetupKey}
-                    placeholder="Enter setup key"
-                    placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
-                    secureTextEntry
-                    editable={!isLoading}
-                    returnKeyType="next"
-                  />
-                </View>
-              </>
-            ) : null}
-
-            <View style={styles.fieldContainer}>
-              <ThemedText type="small" style={styles.label}>
-                Email
+          {mode === 'setup' ? (
+            <View style={[styles.instructionsBox, { backgroundColor: theme.backgroundSecondary }]}>
+              <ThemedText type="body" style={styles.instructionsTitle}>
+                Admin accounts are created on the server
               </ThemedText>
-              <TextInput
-                style={inputStyle}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="admin@dripn.com"
-                placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                returnKeyType="next"
-                editable={!isLoading}
-              />
+              <ThemedText type="small" style={styles.instructionsText}>
+                The app cannot create the first admin. A server administrator must provision one first, then you sign in here.
+              </ThemedText>
+
+              <View style={styles.instructionStep}>
+                <ThemedText type="small" style={styles.stepLabel}>
+                  Option 1 — Dripn-Server script
+                </ThemedText>
+                <ThemedText type="small" style={[styles.codeText, { color: theme.text, backgroundColor: theme.backgroundDefault }]}>
+                  node scripts/create-admin.mjs
+                </ThemedText>
+              </View>
+
+              <View style={styles.instructionStep}>
+                <ThemedText type="small" style={styles.stepLabel}>
+                  Option 2 — Render environment variables
+                </ThemedText>
+                <ThemedText type="small" style={styles.instructionsText}>
+                  Set ADMIN_EMAIL and ADMIN_PASSWORD_HASH on the Dripn-Server Render service, then redeploy.
+                </ThemedText>
+              </View>
+
+              <Pressable
+                onPress={() => setMode('login')}
+                style={({ pressed }) => [
+                  styles.submitButton,
+                  { opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                <ThemedText type="body" style={styles.submitButtonText}>
+                  Go to Sign In
+                </ThemedText>
+              </Pressable>
             </View>
-
-            <View style={styles.fieldContainer}>
-              <ThemedText type="small" style={styles.label}>
-                Password
-              </ThemedText>
-              <View style={styles.passwordContainer}>
+          ) : (
+            <View style={styles.form}>
+              <View style={styles.fieldContainer}>
+                <ThemedText type="small" style={styles.label}>
+                  Email
+                </ThemedText>
                 <TextInput
-                  style={[inputStyle, styles.passwordInput]}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Enter your password"
+                  style={inputStyle}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="admin@dripn.com"
                   placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
-                  secureTextEntry={!showPassword}
-                  returnKeyType="done"
-                  onSubmitEditing={mode === 'login' ? handleLogin : handleSetup}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  returnKeyType="next"
                   editable={!isLoading}
                 />
-                <Pressable
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.passwordToggle}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Feather
-                    name={showPassword ? "eye-off" : "eye"}
-                    size={20}
-                    color={theme.tabIconDefault}
-                  />
-                </Pressable>
               </View>
-            </View>
 
-            <Pressable
-              onPress={isLoading ? undefined : (mode === 'login' ? handleLogin : handleSetup)}
-              disabled={isLoading}
-              style={({ pressed }) => [
-                styles.submitButton,
-                { opacity: isLoading ? 0.6 : pressed ? 0.85 : 1 },
-              ]}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <ThemedText type="body" style={styles.submitButtonText}>
-                  {mode === 'login' ? "Sign In" : "Create Admin Account"}
+              <View style={styles.fieldContainer}>
+                <ThemedText type="small" style={styles.label}>
+                  Password
                 </ThemedText>
-              )}
-            </Pressable>
-          </View>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={[inputStyle, styles.passwordInput]}
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Enter your password"
+                    placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
+                    secureTextEntry={!showPassword}
+                    returnKeyType="done"
+                    onSubmitEditing={handleLogin}
+                    editable={!isLoading}
+                  />
+                  <Pressable
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.passwordToggle}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Feather
+                      name={showPassword ? "eye-off" : "eye"}
+                      size={20}
+                      color={theme.tabIconDefault}
+                    />
+                  </Pressable>
+                </View>
+              </View>
+
+              <Pressable
+                onPress={isLoading ? undefined : handleLogin}
+                disabled={isLoading}
+                style={({ pressed }) => [
+                  styles.submitButton,
+                  { opacity: isLoading ? 0.6 : pressed ? 0.85 : 1 },
+                ]}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <ThemedText type="body" style={styles.submitButtonText}>
+                    Sign In
+                  </ThemedText>
+                )}
+              </Pressable>
+            </View>
+          )}
 
           <View style={styles.infoContainer}>
             <View style={[styles.infoBox, { backgroundColor: theme.backgroundSecondary }]}>
@@ -381,5 +370,29 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     opacity: 0.8,
+  },
+  instructionsBox: {
+    gap: Spacing.md,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+  },
+  instructionsTitle: {
+    fontWeight: '600',
+  },
+  instructionsText: {
+    opacity: 0.8,
+    lineHeight: 20,
+  },
+  instructionStep: {
+    gap: Spacing.xs,
+  },
+  stepLabel: {
+    fontWeight: '600',
+  },
+  codeText: {
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    overflow: 'hidden',
   },
 });

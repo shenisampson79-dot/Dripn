@@ -280,15 +280,16 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       const offer = search.get("offer");
       const pause = search.get("pause");
       const source = search.get("source");
-      const campaign = search.get("campaign");
-      const cta = search.get("cta");
+      const campaign = search.get("campaign") ?? search.get("campaign_id");
+      const cta = search.get("cta") ?? search.get("cta_id");
       const variant = search.get("variant");
+      const userIdParam = search.get("user_id");
 
-      if (offer === "50") {
+      if (offer === "50" || cta === "resume_50") {
         setWinbackOffer50(true);
         setWinbackBanner("Welcome back! Your exclusive 50% off your next month is ready.");
       }
-      if (pause === "true") {
+      if (pause === "true" || cta === "pause") {
         setWinbackPausePrompt(true);
         setWinbackBanner((prev) => prev ?? "You can pause your plan instead of cancelling — no charges while paused.");
       }
@@ -303,6 +304,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           campaign: campaign ?? undefined,
           cta: cta ?? undefined,
           variant: variant ?? undefined,
+          metadata: userIdParam ? { user_id: userIdParam, campaign_id: campaign, cta_id: cta } : undefined,
         }).catch(() => {});
       }
 

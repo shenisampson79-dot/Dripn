@@ -389,8 +389,10 @@ class ApiService {
         offerKey: 'retention_50' | 'retention_30' | null;
         cta: string;
         segment: string;
+        personaSegment?: string;
         usageSegment: string;
         churnScore?: number;
+        socialProof?: { savesCount: number; avgSavedGbp: number };
         message: string;
         title: string;
         body: string;
@@ -3913,6 +3915,7 @@ class ApiService {
       events: { total: number };
       revenue: { fromOffers: number; fromEmail: number; fromPayments?: number; total: number };
       payments?: { total: number; payingUsers: number };
+      liveToday?: { revenueToday: number; savesToday: number; churnToday: number };
     }>('/api/analytics/summary');
   }
 

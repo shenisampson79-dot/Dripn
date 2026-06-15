@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   View,
   Pressable,
   Alert,
   ActivityIndicator,
+  Animated,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -44,6 +45,9 @@ type SmartOffer = {
   pauseMonths?: number;
   highlightPlan?: string;
   variant?: string;
+  personaSegment?: string;
+  churnScore?: number;
+  socialProof?: { savesCount: number; avgSavedGbp: number };
 };
 
 type CancelOfferConfig = {
@@ -111,13 +115,25 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
   const [cancelVariant, setCancelVariant] = useState<CancelVariant>('A');
   const [variantOffers, setVariantOffers] = useState<Record<string, CancelOfferConfig> | null>(null);
   const [smartOffer, setSmartOffer] = useState<SmartOffer | null>(null);
+  const [offerLoading, setOfferLoading] = useState(true);
+  const offerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    setOfferLoading(true);
     apiService.getCancelOffer()
       .then((data) => {
         if (data.variant) setCancelVariant(data.variant);
         if (data.offers) setVariantOffers(data.offers as Record<string, CancelOfferConfig>);
-        if (data.offer) setSmartOffer(data.offer);
+        if (data.offer) {
+          setSmartOffer(data.offer);
+          offerAnim.setValue(0);
+          Animated.spring(offerAnim, {
+            toValue: 1,
+            friction: 8,
+            tension: 40,
+            useNativeDriver: true,
+          }).start();
+        }
       })
       .catch(() => {
         apiService.getCancelVariant()
@@ -126,8 +142,9 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
             if (data.offers) setVariantOffers(data.offers);
           })
           .catch(() => {});
-      });
-  }, []);
+      })
+      .finally(() => setOfferLoading(false));
+  }, [offerAnim]);
 
   const normalizedTier = normalizeSubscriptionTier(user?.subscriptionTier);
   const tierName = getBillingPlanDisplayName(user?.subscriptionTier);
@@ -452,6 +469,17 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
   const renderOfferStep = () => {
     if (!selectedReason) return null;
 
+    if (offerLoading) {
+      return (
+        <View style={[styles.stepContent, styles.offerLoadingBox]}>
+          <ActivityIndicator size="large" color={LuxuryColors.gold} />
+          <ThemedText type="body" style={{ color: theme.tabIconDefault, marginTop: Spacing.md }}>
+            Finding your best offer…
+          </ThemedText>
+        </View>
+      );
+    }
+
     const fallbackOffers: Record<CancelReason, CancelOfferConfig> = {
       "too-expensive": {
         title: "30% off your next billing cycle",
@@ -499,28 +527,41 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         ? smartOfferToConfig(smartOffer)
         : (variantOffers?.[selectedReason] ?? fallbackOffers[selectedReason]);
 
+    const offerScale = offerAnim.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] });
+    const offerOpacity = offerAnim;
+
     return (
       <View style={styles.stepContent}>
-        {smartOffer?.segment ? (
+        {smartOffer?.personaSegment || smartOffer?.segment ? (
           <ThemedText type="small" style={[styles.segmentHint, { color: theme.tabIconDefault }]}>
-            Personalised for {smartOffer.usageSegment} usage · {smartOffer.segment} retention
+            Personalised for {smartOffer.usageSegment} usage · {smartOffer.personaSegment ?? smartOffer.segment} retention
           </ThemedText>
         ) : null}
-        <LinearGradient
-          colors={[LuxuryColors.gold, LuxuryColors.deepGold]}
-          style={styles.offerCard}
-        >
-          <Feather name="gift" size={24} color={LuxuryColors.midnight} />
-          <ThemedText type="h3" style={{ color: LuxuryColors.midnight, marginTop: Spacing.sm }}>
-            {offer.title}
-          </ThemedText>
-          <ThemedText
-            type="body"
-            style={{ color: "rgba(26,26,46,0.85)", textAlign: "center", marginTop: Spacing.sm }}
+        <Animated.View style={{ transform: [{ scale: offerScale }], opacity: offerOpacity }}>
+          <LinearGradient
+            colors={[LuxuryColors.gold, LuxuryColors.deepGold]}
+            style={styles.offerCard}
           >
-            {offer.body}
-          </ThemedText>
-        </LinearGradient>
+            <Feather name="gift" size={24} color={LuxuryColors.midnight} />
+            <ThemedText type="h3" style={{ color: LuxuryColors.midnight, marginTop: Spacing.sm }}>
+              {offer.title}
+            </ThemedText>
+            <ThemedText
+              type="body"
+              style={{ color: "rgba(26,26,46,0.85)", textAlign: "center", marginTop: Spacing.sm }}
+            >
+              {offer.body}
+            </ThemedText>
+            {smartOffer?.socialProof && smartOffer.socialProof.savesCount >= 3 ? (
+              <ThemedText
+                type="small"
+                style={{ color: "rgba(26,26,46,0.75)", textAlign: "center", marginTop: Spacing.md, fontStyle: "italic" }}
+              >
+                People like you saved £{smartOffer.socialProof.avgSavedGbp.toFixed(0)} on average
+              </ThemedText>
+            ) : null}
+          </LinearGradient>
+        </Animated.View>
 
         <Button
           onPress={() => {
@@ -533,7 +574,12 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
           disabled={isProcessing}
           style={[styles.primaryButton, { backgroundColor: LuxuryColors.gold }]}
         >
-          {isProcessing ? "Processing..." : offer.actionLabel}
+          {isProcessing ? (
+            <View style={styles.buttonLoading}>
+              <ActivityIndicator size="small" color={LuxuryColors.midnight} />
+              <ThemedText style={{ color: LuxuryColors.midnight, marginLeft: 8 }}>Processing…</ThemedText>
+            </View>
+          ) : offer.actionLabel}
         </Button>
 
         {offer.secondaryAction && offer.secondaryLabel ? (
@@ -740,5 +786,15 @@ const styles = StyleSheet.create({
   segmentHint: {
     textAlign: 'center',
     marginBottom: Spacing.sm,
+  },
+  offerLoadingBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 200,
+  },
+  buttonLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

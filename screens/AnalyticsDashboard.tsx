@@ -193,6 +193,9 @@ export default function AnalyticsDashboard({ navigation }: Props) {
   const [cohorts, setCohorts] = useState<Awaited<ReturnType<typeof apiService.getAnalyticsCohorts>> | null>(null);
   const [funnel, setFunnel] = useState<Awaited<ReturnType<typeof apiService.getAnalyticsFunnel>> | null>(null);
   const [churnRisk, setChurnRisk] = useState<Awaited<ReturnType<typeof apiService.getAnalyticsChurnRisk>> | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+
+  const AUTO_REFRESH_MS = 20_000;
 
   const redirectToLogin = useCallback(() => {
     if (Platform.OS === "web" && typeof window !== "undefined") {
@@ -231,6 +234,7 @@ export default function AnalyticsDashboard({ navigation }: Props) {
       setCohorts(cohortsRes);
       setFunnel(funnelRes);
       setChurnRisk(churnRes);
+      setLastRefreshed(new Date());
     } catch (e: unknown) {
       const err = e as Error & { code?: string };
       if (err.code === "ADMIN_AUTH_REQUIRED" || err.message?.includes("Authentication required")) {
@@ -254,6 +258,14 @@ export default function AnalyticsDashboard({ navigation }: Props) {
     }
     load();
   }, [authLoading, isAuthenticated, load, redirectToLogin]);
+
+  useEffect(() => {
+    if (!isAuthenticated || authLoading) return;
+    const interval = setInterval(() => {
+      load();
+    }, AUTO_REFRESH_MS);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, authLoading, load]);
 
   const revenueTrend = useMemo(
     () =>
@@ -329,6 +341,7 @@ export default function AnalyticsDashboard({ navigation }: Props) {
         </ThemedText>
         <ThemedText type="small" style={styles.headerSub}>
           Retention · win-back · experiments
+          {lastRefreshed ? ` · updated ${lastRefreshed.toLocaleTimeString()}` : ""}
         </ThemedText>
       </LinearGradient>
 
@@ -355,6 +368,28 @@ export default function AnalyticsDashboard({ navigation }: Props) {
               </Pressable>
             </View>
           ) : null}
+
+          <Section title="Live today">
+            <View style={styles.metricsGrid}>
+              <MetricCard
+                label="Revenue today"
+                value={formatMoney(summary?.liveToday?.revenueToday ?? revenue?.revenueToday ?? 0)}
+                theme={theme}
+              />
+              <MetricCard
+                label="Saves today"
+                value={String(summary?.liveToday?.savesToday ?? 0)}
+                sub="offers accepted"
+                theme={theme}
+              />
+              <MetricCard
+                label="Churn today"
+                value={String(summary?.liveToday?.churnToday ?? 0)}
+                sub="cancellations"
+                theme={theme}
+              />
+            </View>
+          </Section>
 
           <Section title="AI Insights">
             {(insights?.insights ?? []).map((item) => (
