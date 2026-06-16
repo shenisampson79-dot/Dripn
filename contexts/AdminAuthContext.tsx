@@ -46,6 +46,26 @@ const AdminAuthContext = createContext<AdminAuthContextType | null>(null);
 const ADMIN_STORAGE_KEY = '@dripn_admin';
 const ADMIN_TOKEN_KEY = '@dripn_admin_token';
 
+async function parseApiResponse(response: Response): Promise<Record<string, unknown>> {
+  const text = await response.text();
+  const contentType = response.headers.get('content-type') || '';
+
+  if (!contentType.includes('application/json')) {
+    if (text.trimStart().startsWith('<')) {
+      throw new Error(
+        'Server returned a web page instead of JSON. On Vercel, set EXPO_PUBLIC_API_URL to https://dripn-server.onrender.com (include https://) and redeploy.',
+      );
+    }
+    throw new Error(text.slice(0, 160) || `Unexpected response (${response.status})`);
+  }
+
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    throw new Error('Invalid JSON from server');
+  }
+}
+
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -120,13 +140,13 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const data = await parseApiResponse(response);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+        throw new Error(String(data.error || 'Login failed'));
       }
 
-      await saveAdmin(data.admin, data.token);
+      await saveAdmin(data.admin as AdminProfile, String(data.token));
     } finally {
       setIsLoading(false);
     }
@@ -143,13 +163,13 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password, displayName, setupKey }),
       });
 
-      const data = await response.json();
+      const data = await parseApiResponse(response);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Setup failed');
+        throw new Error(String(data.error || 'Setup failed'));
       }
 
-      await saveAdmin(data.admin, data.token);
+      await saveAdmin(data.admin as AdminProfile, String(data.token));
     } finally {
       setIsLoading(false);
     }

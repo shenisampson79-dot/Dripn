@@ -5,8 +5,8 @@
   "framework": null,
   "rewrites": [
     {
-      "source": "/api/checkout/:path*",
-      "destination": "https://dripn-server.onrender.com/api/checkout/:path*"
+      "source": "/api/:path*",
+      "destination": "https://dripn-server.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
