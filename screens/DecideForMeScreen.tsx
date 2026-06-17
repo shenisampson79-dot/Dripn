@@ -18,6 +18,7 @@ import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
 import { stylistUpgradeService } from "@/services/StylistUpgradeService";
 import { styleDirectionService, StyleDirection } from "@/services/StyleDirectionService";
+import { onboardingProfileService, DressFor } from "@/services/OnboardingProfileService";
 import { getStyleRuleForOccasion, generateOutfitImage } from "@/services/OutfitImageService";
 
 type DecideForMeScreenProps = {
@@ -229,6 +230,14 @@ const getFilteredOutfits = (occasion: string | null, temperature: number | null)
   return filtered.length > 0 ? filtered : FALLBACK_OUTFITS;
 };
 
+const DRESS_FOR_TO_OCCASION: Record<DressFor, string> = {
+  work: 'work',
+  date: 'date',
+  friends: 'casual',
+  event: 'event',
+  myself: 'casual',
+};
+
 export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
@@ -269,6 +278,11 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     loadRecommendationCount();
     checkStyleDirectionStatus();
     loadFirstMessages();
+    onboardingProfileService.getProfile().then((profile) => {
+      if (profile.dressFor) {
+        setSelectedOccasion(DRESS_FOR_TO_OCCASION[profile.dressFor] || null);
+      }
+    });
   }, []);
 
   const loadFirstMessages = async () => {

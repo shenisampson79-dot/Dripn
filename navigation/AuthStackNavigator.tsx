@@ -2,6 +2,8 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import WelcomeScreen from "@/screens/WelcomeScreen";
 import TrustOnboardingScreen from "@/screens/TrustOnboardingScreen";
+import OnboardingProfileScreen from "@/screens/OnboardingProfileScreen";
+import PreSignupStyleQuizScreen from "@/screens/PreSignupStyleQuizScreen";
 import OnboardingEntryScreen from "@/screens/OnboardingEntryScreen";
 import DecideForMeScreen from "@/screens/DecideForMeScreen";
 import StyleMeProperlyScreen from "@/screens/StyleMeProperlyScreen";
@@ -23,6 +25,8 @@ import { getCommonScreenOptions } from "@/navigation/screenOptions";
 export type AuthStackParamList = {
   Welcome: undefined;
   TrustOnboarding: undefined;
+  OnboardingProfile: undefined;
+  PreSignupStyleQuiz: undefined;
   OnboardingEntry: undefined;
   DecideForMe: undefined;
   StyleMeProperly: undefined;
@@ -59,6 +63,8 @@ export default function AuthStackNavigator({ initialRouteName = "Welcome" }: Aut
     >
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="TrustOnboarding" component={TrustOnboardingScreen} />
+      <Stack.Screen name="OnboardingProfile" component={OnboardingProfileScreen} />
+      <Stack.Screen name="PreSignupStyleQuiz" component={PreSignupStyleQuizScreen} />
       <Stack.Screen name="OnboardingEntry" component={OnboardingEntryScreen} />
       <Stack.Screen name="DecideForMe" component={DecideForMeScreen} />
       <Stack.Screen name="StyleMeProperly" component={StyleMeProperlyScreen} />

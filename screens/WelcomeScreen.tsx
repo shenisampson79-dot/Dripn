@@ -89,7 +89,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
                 Dripn
               </ThemedText>
               <ThemedText type="small" style={styles.taglineBelow}>
-                style that flows
+                we decide — you look better
               </ThemedText>
             </View>
           </View>
@@ -100,32 +100,32 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
         <View style={styles.featuresContainer}>
           <FeatureItem
             icon="zap"
-            title="Instant Decisions"
-            description="Know what to wear in seconds, not hours"
+            title="Look sharp in seconds"
+            description="We decide what you wear — no more closet spirals"
             theme={theme}
             isDark={isDark}
             palette={palette}
           />
           <FeatureItem
             icon="message-circle"
-            title="4 AI Stylists"
-            description="Choose your vibe: supportive or straight-talking"
+            title="Your stylist decides"
+            description="Chat when you want — but the outfit answer comes first"
             theme={theme}
             isDark={isDark}
             palette={palette}
           />
           <FeatureItem
             icon="users"
-            title="Second Opinions"
-            description="Get quick feedback from people with similar style"
+            title="Better dressed than your friends"
+            description="Quiet confidence — look put-together without trying"
             theme={theme}
             isDark={isDark}
             palette={palette}
           />
           <FeatureItem
             icon="grid"
-            title="Your Digital Wardrobe"
-            description="Build once, get styled forever"
+            title="Can't dress? We got you"
+            description="Zero taste required — we teach you by deciding for you"
             theme={theme}
             isDark={isDark}
             palette={palette}

@@ -24,7 +24,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
-import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
+import { TodaysOutfitCard } from "@/components/TodaysOutfitCard";
 
 type StylistHubScreenProps = {
   navigation: NativeStackNavigationProp<UserStylistStackParamList, "StylistHub">;
@@ -49,7 +49,7 @@ const getFeatures = (t: any): StylistFeature[] => [
   {
     id: "ai-stylist",
     title: t?.stylistHub?.personalStylist || "Personal Stylist",
-    description: t?.stylistHub?.personalStylistDesc || "Chat with your AI stylist",
+    description: t?.stylistHub?.personalStylistDesc || "We decide — chat when you need more",
     icon: "message-circle",
     screen: "AIStylist",
     gradientKey: "primary",
@@ -357,6 +357,10 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
         </View>
 
         <View style={styles.contentSection}>
+          <TodaysOutfitCard
+            onOpenStylist={(prompt) => navigation.navigate("AIStylist", { initialPrompt: prompt })}
+          />
+
           <View style={styles.headerSection}>
             <View style={styles.headerRow}>
               <View>
@@ -364,7 +368,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
                   {translations.stylistHub?.styleToolsTitle || 'Style Tools'}
                 </ThemedText>
                 <ThemedText style={[styles.subtitle, { color: '#5A4D3A' }]}>
-                  {translations.stylistHub?.styleToolsSubtitle || 'Your personal fashion assistant'}
+                  {translations.stylistHub?.styleToolsSubtitle || 'Chat when you want — we already decided today'}
                 </ThemedText>
               </View>
             </View>

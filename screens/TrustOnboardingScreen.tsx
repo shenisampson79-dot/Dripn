@@ -54,6 +54,41 @@ const POSITIONING_OPTIONS: OnboardingContent[] = [
   },
 ];
 
+const ASPIRATION_OPTIONS: OnboardingContent[] = [
+  {
+    headline: "Walk in looking like you planned it. Even if you didn't.",
+    subtext: "We decide what you wear — so you look better than everyone else with zero effort.",
+  },
+  {
+    headline: "Be the best-dressed person in the room — without trying.",
+    subtext: "Your friends will ask where you shop. You don't have to know.",
+  },
+  {
+    headline: "Stop being the one who 'doesn't really do fashion.'",
+    subtext: "Nobody taught you? That's fine. We decide for you.",
+  },
+  {
+    headline: "Look like you have a stylist. Because you do.",
+    subtext: "One clear outfit. No scrolling. No second-guessing.",
+  },
+  {
+    headline: "Think less. Look better.",
+    subtext: "From 'I have nothing to wear' to 'just wear this' in seconds.",
+  },
+  {
+    headline: "Date tonight? Work tomorrow? Already handled.",
+    subtext: "Tell us the occasion — we make the call.",
+  },
+  {
+    headline: "You don't need taste. You need a decision.",
+    subtext: "Perfect if you've never learned how to dress — we won't judge.",
+  },
+  {
+    headline: "Quiet confidence beats loud insecurity.",
+    subtext: "Dress sharper than your friends without making it a personality.",
+  },
+];
+
 const TRUST_FRAMING_OPTIONS: OnboardingContent[] = [
   {
     headline: "One question. One outfit. Done.",
@@ -162,6 +197,7 @@ function getRandomContent<T>(options: T[]): T {
 
 const ALL_TRUST_MESSAGES: OnboardingContent[] = [
   ...POSITIONING_OPTIONS,
+  ...ASPIRATION_OPTIONS,
   ...TRUST_FRAMING_OPTIONS,
   ...CONTROL_REASSURANCE_OPTIONS,
 ];
@@ -182,7 +218,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
 
   const handleGetStyled = () => {
     onboardingAnalyticsService.trackVariation(messageVariationId, 'trust', 'complete', 'what-to-wear-today' as any);
-    navigation.navigate("OnboardingEntry");
+    navigation.navigate("OnboardingProfile");
   };
 
   return (

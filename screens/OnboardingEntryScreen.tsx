@@ -53,11 +53,11 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
       }
     } catch (error: unknown) {
       setEntryData({
-        title: "What should I wear?",
-        subtitle: "Your AI stylist will decide for you — no scrolling, no guessing.",
+        title: "We decide. You look better.",
+        subtitle: "Zero effort — your stylist picks the outfit so you outdress the room.",
         entryPoints: [
-          { id: "decide_for_me", label: "Decide for me", subtitle: "Fast, confident advice", cta: "Decide for me" },
-          { id: "style_me_properly", label: "Style me properly", subtitle: "Using my wardrobe & preferences", cta: "Style me properly" },
+          { id: "decide_for_me", label: "Decide for me", subtitle: "One answer. Out the door.", cta: "Decide for me" },
+          { id: "style_me_properly", label: "Style me properly", subtitle: "Using my wardrobe when ready", cta: "Style me properly" },
         ],
         trustBuilding: "See how it works before signing up",
       });
