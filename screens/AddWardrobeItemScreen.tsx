@@ -12,7 +12,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { Image } from "expo-image";
+import { WardrobeItemImage } from "@/components/WardrobeItemImage";
+import { wardrobeImageBackground } from "@/utils/wardrobeImage";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -80,7 +81,7 @@ const OCCASION_OPTIONS: ClothingOccasion[] = [
 ];
 
 export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScreenProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { addItem } = useWardrobe();
   const { user } = useAuth();
@@ -722,11 +723,16 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
           {imageUri ? (
             <View>
               <Pressable onPress={handlePickImage} disabled={isProcessingImage} style={styles.imageContainer}>
-                <View style={[styles.imageWrapper, { backgroundColor: '#FFFFFF' }]}>
-                  <Image
-                    source={{ uri: imageUri }}
-                    style={[styles.selectedImage, imageProcessed && { backgroundColor: '#FFFFFF' }]}
-                    contentFit={imageProcessed ? "contain" : "cover"}
+                <View style={[
+                  styles.imageWrapper,
+                  wardrobeImageBackground(isDark, { imageUri, imageProcessed, aiAnalyzed: false })
+                    ? { backgroundColor: wardrobeImageBackground(isDark, { imageUri, imageProcessed, aiAnalyzed: false }) }
+                    : null,
+                ]}>
+                  <WardrobeItemImage
+                    item={{ id: 'preview', imageUri, imageProcessed, enhancedImageUri: imageUri }}
+                    style={styles.selectedImage}
+                    processed={imageProcessed}
                   />
                 </View>
                 {isProcessingImage && (

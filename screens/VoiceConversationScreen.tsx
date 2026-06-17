@@ -63,6 +63,15 @@ const IVY_RESPONSES = [
   "Solid choice. Stop second-guessing and wear it with confidence.",
 ];
 
+function getMimeTypeFromUri(uri: string): 'audio/m4a' | 'audio/webm' | 'audio/wav' | 'audio/mp3' | 'audio/mp4' {
+  const lower = uri.toLowerCase();
+  if (lower.includes('.webm')) return 'audio/webm';
+  if (lower.includes('.wav')) return 'audio/wav';
+  if (lower.includes('.mp3')) return 'audio/mp3';
+  if (lower.includes('.mp4')) return 'audio/mp4';
+  return 'audio/m4a';
+}
+
 export default function VoiceConversationScreen({ navigation }: VoiceConversationScreenProps) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
@@ -206,6 +215,14 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
     setCurrentTranscript("Processing your voice...");
 
     try {
+      const token = await apiService.getToken();
+      if (!token) {
+        setError('Please log in to use voice chat.');
+        setConversationState("idle");
+        setCurrentTranscript("");
+        return;
+      }
+
       await recordingRef.current.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
@@ -222,64 +239,91 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
         encoding: 'base64',
       });
 
-      const mimeType = Platform.OS === 'ios' ? 'audio/m4a' : 'audio/webm';
-      
-      // Use the new combined voice-chat endpoint
+      const mimeType = getMimeTypeFromUri(uri);
+      const voiceRange = stylist.gender === 'female' ? 'mezzo-soprano' : 'baritone';
+
+      let userMessage = '';
+      let aiResponse = '';
+      let audioBase64Out: string | null = null;
+
+      // Primary: combined transcribe + chat + TTS endpoint
       try {
         const response = await apiService.voiceChat({
           audio: audioBase64,
-          mimeType: mimeType as 'audio/webm' | 'audio/wav' | 'audio/mp3' | 'audio/m4a' | 'audio/mp4',
-          stylist: stylistName.toLowerCase(),
-          accent: 'british',
-          voiceRange: 'mezzo-soprano',
+          mimeType,
+          stylist: stylist.id,
+          accent: 'american',
+          voiceRange,
         });
 
-        if (response.success) {
-          // Add user message
-          setCurrentTranscript(response.userMessage);
-          const userMessage: VoiceMessage = {
-            id: Date.now().toString(),
-            role: "user",
-            text: response.userMessage,
-            timestamp: new Date(),
-          };
-          setMessages(prev => [...prev, userMessage]);
-
-          // Add stylist response
-          const stylistMessage: VoiceMessage = {
-            id: (Date.now() + 1).toString(),
-            role: "stylist",
-            text: response.aiResponse,
-            timestamp: new Date(),
-          };
-          setMessages(prev => [...prev, stylistMessage]);
-          setConversationState("speaking");
-
-          // Play the audio response
-          if (response.audioBase64) {
-            await playVoiceAudio(response.audioBase64);
-          } else {
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            setConversationState("idle");
-          }
+        if (response.success !== false && response.aiResponse) {
+          userMessage = response.userMessage || 'Voice message';
+          aiResponse = response.aiResponse;
+          audioBase64Out = response.audioBase64;
         } else {
-          throw new Error('Voice chat failed');
+          throw new Error(response.message || 'Voice chat returned no response');
         }
       } catch (voiceChatErr) {
-        console.error('[VoiceConversation] Voice chat API error:', voiceChatErr);
-        // Fallback to placeholder response
-        const userMessage: VoiceMessage = {
+        console.warn('[VoiceConversation] Combined voice-chat failed, trying transcribe + chat:', voiceChatErr);
+
+        const transcript = await apiService.transcribeAudio(audioBase64, mimeType, 'en');
+        const transcribedText = transcript.text?.trim();
+        if (!transcribedText) {
+          throw new Error('Could not understand your voice. Please try speaking again.');
+        }
+
+        userMessage = transcribedText;
+        const chatResponse = await apiService.sendVoiceChatMessage({
+          stylistId: stylist.id,
+          message: transcribedText,
+          generateVoice: true,
+          accent: 'american',
+          voiceRange,
+        });
+
+        if (chatResponse.voiceCreditsExhausted) {
+          setError(chatResponse.voiceError?.message || 'Voice session limit reached. Text response shown below.');
+        }
+
+        if (chatResponse.voiceCredits) {
+          updateBalance(chatResponse.voiceCredits);
+        }
+
+        aiResponse = chatResponse.response;
+        audioBase64Out = chatResponse.voiceAudio || chatResponse.voice?.audio || null;
+
+        if (!aiResponse) {
+          throw new Error('Stylist did not respond. Please try again.');
+        }
+      }
+
+      setCurrentTranscript(userMessage);
+      setMessages(prev => [
+        ...prev,
+        {
           id: Date.now().toString(),
           role: "user",
-          text: "Voice message received",
+          text: userMessage,
           timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, userMessage]);
+        },
+        {
+          id: (Date.now() + 1).toString(),
+          role: "stylist",
+          text: aiResponse,
+          timestamp: new Date(),
+        },
+      ]);
+      setConversationState("speaking");
+
+      if (audioBase64Out) {
+        await playVoiceAudio(audioBase64Out);
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 1500));
         setConversationState("idle");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('[VoiceConversation] Error:', err);
-      setError('Something went wrong. Please try again.');
+      setError(err?.message || 'Something went wrong. Please try again.');
       setConversationState("idle");
       setCurrentTranscript("");
     }
@@ -662,6 +706,12 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
             {conversationState === "processing" && `${stylistName} is thinking...`}
             {conversationState === "speaking" && `${stylistName} is speaking...`}
           </ThemedText>
+
+          {error ? (
+            <ThemedText type="small" style={{ color: theme.error, textAlign: 'center', paddingHorizontal: Spacing.md }}>
+              {error}
+            </ThemedText>
+          ) : null}
           
           <View style={{ flexDirection: 'row', gap: Spacing.md, justifyContent: 'center', alignItems: 'center' }}>
             {renderVoiceButton()}

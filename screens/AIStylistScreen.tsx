@@ -3,7 +3,7 @@
  * Ruby and Max AI Stylist personas are proprietary to Dripn.
  */
 
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo, useContext } from 'react';
 import {
   StyleSheet,
   View,
@@ -31,7 +31,6 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import Animated, {
   FadeIn,
-  FadeInUp,
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
@@ -52,8 +51,12 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import { useWardrobe, WardrobeItem, ClothingOccasion, ClothingSeason } from '@/contexts/WardrobeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation, CommonActions, useRoute, RouteProp } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useScreenInsets } from '@/hooks/useScreenInsets';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
+import { HeaderHeightContext } from '@react-navigation/elements';
+import { apiService } from '@/services/ApiService';
+import { useVoiceSettings, VoiceId, StylistId } from '@/contexts/VoiceSettingsContext';
+import * as FileSystem from 'expo-file-system/legacy';
+import Constants from 'expo-constants';
 import { getStylistForUser, getStylistGreeting, PersonalStylist } from '@/services/PersonalStylistService';
 import type { SharedValue } from 'react-native-reanimated';
 import type { UserStylistStackParamList } from '@/navigation/UserStylistStackNavigator';
@@ -79,10 +82,6 @@ const WaveformBar = ({ bar, color, style }: WaveformBarProps) => {
     />
   );
 };
-import { apiService } from '@/services/ApiService';
-import { useVoiceSettings, VoiceId, StylistId } from '@/contexts/VoiceSettingsContext';
-import * as FileSystem from 'expo-file-system/legacy';
-import Constants from 'expo-constants';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const INPUT_CONTAINER_HEIGHT = 80;
@@ -121,6 +120,47 @@ interface ChatMessage {
     occasion: string;
     reason: string;
   };
+}
+
+function normalizeChatMessage(raw: unknown): ChatMessage | null {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const message = raw as Partial<ChatMessage>;
+  if (!message.id || (message.role !== 'user' && message.role !== 'assistant')) {
+    return null;
+  }
+
+  const content = typeof message.content === 'string' ? message.content : '';
+  const normalized: ChatMessage = {
+    id: message.id,
+    role: message.role,
+    content,
+    timestamp: typeof message.timestamp === 'string' ? message.timestamp : new Date().toISOString(),
+  };
+
+  if (typeof message.imageUri === 'string') {
+    normalized.imageUri = message.imageUri;
+  }
+
+  if (message.voiceMessage && typeof message.voiceMessage === 'object') {
+    normalized.voiceMessage = message.voiceMessage;
+  }
+
+  if (message.outfitSuggestion && typeof message.outfitSuggestion === 'object') {
+    const items = Array.isArray(message.outfitSuggestion.items)
+      ? message.outfitSuggestion.items.filter((item) => item && typeof item === 'object')
+      : [];
+
+    if (items.length > 0) {
+      normalized.outfitSuggestion = {
+        items,
+        occasion: typeof message.outfitSuggestion.occasion === 'string' ? message.outfitSuggestion.occasion : '',
+        reason: typeof message.outfitSuggestion.reason === 'string' ? message.outfitSuggestion.reason : '',
+      };
+    }
+  }
+
+  return normalized;
 }
 
 interface QuickPrompt {
@@ -1104,18 +1144,12 @@ export default function AIStylistScreen() {
   const { items: wardrobeItems } = useWardrobe();
   const { user } = useAuth();
   const { settings: voiceSettings, getVoiceForStylist } = useVoiceSettings();
-  const insets = useSafeAreaInsets();
-  const screenInsets = useScreenInsets();
   const route = useRoute<RouteProp<UserStylistStackParamList, 'AIStylist'>>();
   const pendingInitialPromptRef = useRef(route.params?.initialPrompt);
   const initialPromptSentRef = useRef(false);
-  const tabBarHeightContext = React.useContext(
-    require('@react-navigation/bottom-tabs').BottomTabBarHeightContext
-  );
+  const tabBarHeightContext = useContext(BottomTabBarHeightContext);
   const tabBarHeight: number = typeof tabBarHeightContext === 'number' ? tabBarHeightContext : 0;
-  const headerHeightContext = React.useContext(
-    require('@react-navigation/elements').HeaderHeightContext
-  );
+  const headerHeightContext = useContext(HeaderHeightContext);
   const headerHeight: number = typeof headerHeightContext === 'number' ? headerHeightContext : 0;
   const navigation = useNavigation();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
@@ -1495,8 +1529,10 @@ export default function AIStylistScreen() {
       const audioBase64 = await convertAudioToBase64(uri);
       
       if (audioBase64) {
+        const mimeType = uri.toLowerCase().includes('.webm') ? 'audio/webm' as const : 'audio/m4a';
         const transcribeResponse = await apiService.transcribeAudio(
           audioBase64,
+          mimeType,
           effectiveLanguage
         );
         
@@ -1646,10 +1682,18 @@ export default function AIStylistScreen() {
       const data = await AsyncStorage.getItem(CHAT_STORAGE_KEY);
       if (data) {
         const parsed = JSON.parse(data);
+        if (!Array.isArray(parsed)) {
+          await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
+          return;
+        }
+
         const today = new Date().toDateString();
-        const recentMessages = parsed.filter((msg: ChatMessage) => 
-          new Date(msg.timestamp).toDateString() === today
-        ).slice(-20);
+        const recentMessages = parsed
+          .map(normalizeChatMessage)
+          .filter((msg): msg is ChatMessage => msg !== null)
+          .filter((msg) => new Date(msg.timestamp).toDateString() === today)
+          .slice(-20);
+
         if (recentMessages.length > 0) {
           setMessages(recentMessages);
           setShowQuickPrompts(false);
@@ -1657,6 +1701,7 @@ export default function AIStylistScreen() {
       }
     } catch (error) {
       console.error('Failed to load chat history:', error);
+      await AsyncStorage.removeItem(CHAT_STORAGE_KEY).catch(() => {});
     }
   };
   
@@ -1780,19 +1825,23 @@ export default function AIStylistScreen() {
       
       const mappedGenderText = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : user?.gender || 'unspecified';
       
-      // Try to get location for weather-aware recommendations
+      // Try to get location for weather-aware recommendations (non-blocking, 3s max)
       let locationData: { lat?: number; lon?: number; location?: string } = {};
       try {
         const { status } = await Location.getForegroundPermissionsAsync();
         if (status === 'granted') {
-          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
-          locationData = {
-            lat: loc.coords.latitude,
-            lon: loc.coords.longitude,
-          };
+          const loc = await Promise.race([
+            Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+          ]);
+          if (loc && 'coords' in loc) {
+            locationData = {
+              lat: loc.coords.latitude,
+              lon: loc.coords.longitude,
+            };
+          }
         }
       } catch (error) {
-        // Location not available, continue without it
         console.log('Location not available:', error);
       }
       
@@ -1885,10 +1934,6 @@ export default function AIStylistScreen() {
       
       await saveChatHistory(finalMessages);
       
-      if (voiceSettings.autoPlayResponses && ttsEnabled) {
-        playTTSAudio(response.content);
-      }
-      
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -1977,7 +2022,8 @@ export default function AIStylistScreen() {
   
   // Helper function to parse markdown and render bold text
   const renderMarkdownText = (text: string) => {
-    const parts = text.split(/(\*\*[^*]+\*\*)/);
+    const safeText = typeof text === 'string' ? text : '';
+    const parts = safeText.split(/(\*\*[^*]+\*\*)/);
     return parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
         // Bold text
@@ -1993,10 +2039,10 @@ export default function AIStylistScreen() {
 
   const renderMessage = ({ item, index }: { item: ChatMessage; index: number }) => {
     const isUser = item.role === 'user';
+    const outfitItems = item.outfitSuggestion?.items;
     
     return (
-      <Animated.View
-        entering={FadeInUp.delay(index * 50).duration(300)}
+      <View
         style={[
           styles.messageContainer,
           isUser ? styles.userMessageContainer : styles.assistantMessageContainer,
@@ -2036,13 +2082,13 @@ export default function AIStylistScreen() {
             />
           )}
           
-          {item.outfitSuggestion && item.outfitSuggestion.items.length > 0 ? (
+          {Array.isArray(outfitItems) && outfitItems.length > 0 ? (
             <View style={styles.outfitSuggestionContainer}>
               <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
               <ThemedText style={styles.outfitTitle}>{t('aiStylist.suggestedOutfit')}</ThemedText>
               <View style={styles.outfitItemsRow}>
-                {item.outfitSuggestion.items.slice(0, 4).map((wardrobeItem) => (
-                  <View key={wardrobeItem.id} style={styles.outfitItemContainer}>
+                {outfitItems.slice(0, 4).map((wardrobeItem, itemIndex) => (
+                  <View key={wardrobeItem.id || `${item.id}-outfit-${itemIndex}`} style={styles.outfitItemContainer}>
                     {wardrobeItem.imageUri ? (
                       <Image
                         source={{ uri: wardrobeItem.imageUri }}
@@ -2103,7 +2149,7 @@ export default function AIStylistScreen() {
             )}
           </View>
         ) : null}
-      </Animated.View>
+      </View>
     );
   };
 

@@ -7,6 +7,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/ApiService';
+import { buildWardrobeImageProxyUrl, itemLikelyHasWardrobePhoto, isProxyWardrobeImageUri } from '@/utils/wardrobeImage';
 
 export type ClothingCategory = 
   | 'tops' 
@@ -179,6 +180,7 @@ interface WardrobeContextType {
   getInspirationItems: () => WardrobeItem[];
   shuffleOutfit: (occasion?: ClothingOccasion) => OutfitSuggestion | null;
   refreshStats: () => void;
+  reloadWardrobe: () => Promise<void>;
   searchItems: (query: string) => WardrobeItem[];
 }
 
@@ -249,12 +251,45 @@ export const OCCASION_LABELS: Record<ClothingOccasion, string> = {
   everyday: 'Everyday',
 };
 
+function isHttpImageUrl(url: unknown): url is string {
+  return typeof url === 'string' && /^https?:\/\//i.test(url);
+}
+
 function mapBackendItemToFrontend(row: any, imageCache: ImageCache): WardrobeItem {
   const meta: Partial<WardrobeItem> = row.metadata || {};
-  const imgs = imageCache[row.id] || {};
+  const cacheKey = String(row.id);
+  const imgs = imageCache[cacheKey] || imageCache[row.id] || {};
+  const processedUrl = row.processedImageUrl || row.processed_image_url || '';
+  const rawUrl = row.imageUrl || row.image_url || '';
+  const httpProcessed = isHttpImageUrl(processedUrl) ? processedUrl : '';
+  const httpRaw = isHttpImageUrl(rawUrl) ? rawUrl : '';
+  const cachedUri = imgs.imageUri || (meta as any).imageUri || '';
+  const cachedOriginal = imgs.originalImageUri || (meta as any).originalImageUri || '';
+  const backgroundRemoved =
+    row.backgroundRemoved ??
+    row.background_removed ??
+    !!(httpProcessed || imgs.imageProcessed || (meta as any).imageProcessed);
+  const hasPhotoHint =
+    itemLikelyHasWardrobePhoto(row) ||
+    !!cachedUri ||
+    backgroundRemoved ||
+    !!(meta as any).imageUri;
+
+  const displayUri =
+    httpProcessed ||
+    httpRaw ||
+    (isHttpImageUrl(cachedUri) ? cachedUri : '') ||
+    cachedUri ||
+    (row.id && hasPhotoHint ? buildWardrobeImageProxyUrl(row.id) : '');
+  const originalImageUri =
+    cachedOriginal ||
+    (meta as any).originalImageUri ||
+    (httpRaw && httpRaw !== httpProcessed ? httpRaw : httpRaw) ||
+    '';
+
   return {
     id: row.id,
-    userId: row.user_id,
+    userId: row.userId || row.user_id,
     name: row.name || (meta as any).name || 'Untitled Item',
     category: (() => {
       const rawCat = row.category || (meta as any).category || 'tops';
@@ -291,12 +326,16 @@ function mapBackendItemToFrontend(row: any, imageCache: ImageCache): WardrobeIte
     material: (meta as any).material,
     aiAnalyzed: (meta as any).aiAnalyzed,
     aiTags: (meta as any).aiTags,
-    imageUri: imgs.imageUri || (meta as any).imageUri || row.image_url || '',
-    enhancedImageUri: imgs.enhancedImageUri || (meta as any).enhancedImageUri,
-    originalImageUri: imgs.originalImageUri || (meta as any).originalImageUri || row.image_url,
-    imageProcessed: imgs.imageProcessed ?? (meta as any).imageProcessed,
-    createdAt: row.created_at || (meta as any).createdAt || new Date().toISOString(),
-    updatedAt: row.updated_at || (meta as any).updatedAt || new Date().toISOString(),
+    imageUri: displayUri,
+    enhancedImageUri:
+      httpProcessed ||
+      imgs.enhancedImageUri ||
+      (meta as any).enhancedImageUri ||
+      (isHttpImageUrl(processedUrl) ? processedUrl : undefined),
+    originalImageUri,
+    imageProcessed: backgroundRemoved || isProxyWardrobeImageUri(displayUri),
+    createdAt: row.createdAt || row.created_at || (meta as any).createdAt || new Date().toISOString(),
+    updatedAt: row.updatedAt || row.updated_at || (meta as any).updatedAt || new Date().toISOString(),
   };
 }
 
@@ -312,19 +351,6 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
 
   const itemsRef = React.useRef<WardrobeItem[]>([]);
   itemsRef.current = items;
-
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      loadWardrobe();
-    } else {
-      setItems([]);
-      setSavedOutfits([]);
-      setPlannedOutfits([]);
-      setSuggestions([]);
-      setStats(null);
-      setIsLoading(false);
-    }
-  }, [isAuthenticated, user?.id]);
 
   const getImageCache = async (): Promise<ImageCache> => {
     try {
@@ -384,8 +410,9 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loadWardrobe = async () => {
-    setIsLoading(true);
+  const loadWardrobe = useCallback(async (options?: { showLoader?: boolean }) => {
+    const showLoader = options?.showLoader !== false;
+    if (showLoader) setIsLoading(true);
     setError(null);
     try {
       // Silently migrate any legacy 'activewear' items to the correct subcategory
@@ -415,6 +442,19 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
         if (result?.success && result.items) {
           const backendItems = result.items.map((row: any) => mapBackendItemToFrontend(row, imageCache));
           setItems(backendItems);
+          // Sync remote image URLs into the device cache so tiles survive offline reloads.
+          const cacheUpdates: ImageCache = { ...imageCache };
+          for (const item of backendItems) {
+            if (!item.imageUri || !isHttpImageUrl(item.imageUri)) continue;
+            cacheUpdates[String(item.id)] = {
+              ...cacheUpdates[String(item.id)],
+              imageUri: item.imageUri,
+              enhancedImageUri: item.enhancedImageUri || item.imageUri,
+              originalImageUri: item.originalImageUri || cacheUpdates[String(item.id)]?.originalImageUri,
+              imageProcessed: item.imageProcessed,
+            };
+          }
+          await setImageCache(cacheUpdates);
           // Cache locally for offline fallback
           await saveFullLocalCache(backendItems);
           await loadLocalSecondary();
@@ -446,9 +486,27 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       console.error('[WardrobeContext] Failed to load wardrobe:', err);
       setError('Failed to load your wardrobe');
     } finally {
+      if (showLoader) setIsLoading(false);
+    }
+  }, [user?.id]);
+
+  const reloadWardrobe = useCallback(
+    () => loadWardrobe({ showLoader: false }),
+    [loadWardrobe],
+  );
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      loadWardrobe();
+    } else {
+      setItems([]);
+      setSavedOutfits([]);
+      setPlannedOutfits([]);
+      setSuggestions([]);
+      setStats(null);
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, user?.id, loadWardrobe]);
 
   const addItem = useCallback(async (
     itemData: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>
@@ -1016,6 +1074,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     getInspirationItems,
     shuffleOutfit,
     refreshStats,
+    reloadWardrobe,
     searchItems,
   };
 

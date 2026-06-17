@@ -36,6 +36,7 @@ import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from
 import { useTheme } from '@/hooks/useTheme';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiService } from '@/services/ApiService';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -739,9 +740,29 @@ export default function StyleShuffleScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
+    if (user) {
+      const engageItems = currentOutfit.items.map((item, idx) => ({
+        id: `shuffle_${currentOutfit.id}_${idx}`,
+        name: item.name,
+        category: item.category.toLowerCase(),
+        color: '',
+      }));
+      apiService.recordOutfitEngagement({
+        items: engageItems,
+        signal: direction === 'right' ? 'liked' : 'skipped',
+        outfitScore: currentOutfit.matchScore,
+        occasion: currentOutfit.occasion,
+        contextSnapshot: {
+          source: 'style_shuffle',
+          outfitId: currentOutfit.id,
+          style: currentOutfit.style,
+        },
+      }).catch(() => { /* non-blocking */ });
+    }
+
     incrementSwipeCount();
     setCurrentIndex((prev) => prev + 1);
-  }, [currentIndex, outfits, likedOutfits, triggerMatchOverlay]);
+  }, [currentIndex, outfits, likedOutfits, triggerMatchOverlay, user]);
 
   const handleSwipe = useCallback((direction: 'left' | 'right') => {
     if (isAnimating.value) return;

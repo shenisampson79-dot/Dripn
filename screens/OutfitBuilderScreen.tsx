@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -15,8 +15,10 @@ import {
   NativeScrollEvent,
   Platform,
 } from 'react-native';
-import { Image } from 'expo-image';
+import { WardrobeItemImage } from '@/components/WardrobeItemImage';
+import { wardrobeImageBackground } from '@/utils/wardrobeImage';
 import { Feather } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,48 +31,29 @@ import { Spacing, BorderRadius, LuxuryColors } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useWardrobe, WardrobeItem, ClothingCategory, PlannedEventType } from '@/contexts/WardrobeContext';
 import { apiService } from '@/services/ApiService';
+import { computeLocalOutfitScore } from '@/utils/outfitCompatibilityScore';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 
-const { width: SW } = Dimensions.get('window');
+const { width: SW, height: SH } = Dimensions.get('window');
 
 type OutfitBuilderScreenProps = {
   navigation: NativeStackNavigationProp<WardrobeStackParamList, 'OutfitBuilder'>;
 };
 
-// How wide the focused center item is
-const CENTER_W = SW * 0.66;
-const SIDE_GAP = 8;
-const SNAP_INTERVAL = CENTER_W + SIDE_GAP;
-const SIDE_INSET = (SW - CENTER_W) / 2;
-
-// Height of each category row in the stacked view
-const ROW_HEIGHTS: Partial<Record<ClothingCategory, number>> = {
-  outerwear: 210,
-  tops: 200,
-  bottoms: 240,
-  dresses: 260,
-  formal: 220,
-  activewear: 200,
-  shoes: 130,
-  bags: 130,
-  accessories: 110,
-  swimwear: 150,
-  sleepwear: 170,
-};
+// Compact Clueless-style reels — width/height computed per device in main screen
+const COMPACT_CENTER_RATIO = 0.46;
+const LABEL_ROW_H = 16;
 
 // Category display order (body top → bottom → feet → sides)
-// 'activewear' row is kept for legacy items; activewear_tops merge into tops, activewear_bottoms into bottoms
 const REEL_ORDER: Array<{ key: ClothingCategory; label: string; icon: keyof typeof Feather.glyphMap }> = [
-  { key: 'outerwear',   label: 'Outerwear',   icon: 'cloud' },
-  { key: 'tops',        label: 'Tops',         icon: 'sun' },
-  { key: 'dresses',     label: 'Dresses',      icon: 'heart' },
-  { key: 'formal',      label: 'Formal',       icon: 'star' },
-  { key: 'bottoms',          label: 'Bottoms',         icon: 'minus' },
-  { key: 'activewear_tops',  label: 'Active Tops',     icon: 'activity' },
-  { key: 'activewear_bottoms', label: 'Active Bottoms', icon: 'activity' },
-  { key: 'shoes',            label: 'Shoes',           icon: 'disc' },
-  { key: 'bags',        label: 'Bags',         icon: 'shopping-bag' },
-  { key: 'accessories', label: 'Accessories',  icon: 'watch' },
+  { key: 'outerwear',   label: 'Outer',       icon: 'cloud' },
+  { key: 'tops',        label: 'Top',         icon: 'sun' },
+  { key: 'dresses',     label: 'Dress',       icon: 'heart' },
+  { key: 'formal',      label: 'Formal',      icon: 'star' },
+  { key: 'bottoms',     label: 'Bottom',      icon: 'minus' },
+  { key: 'shoes',       label: 'Shoes',       icon: 'disc' },
+  { key: 'bags',        label: 'Bag',         icon: 'shopping-bag' },
+  { key: 'accessories', label: 'Acc.',        icon: 'watch' },
 ];
 
 const EVENT_TYPES: { value: PlannedEventType; label: string }[] = [
@@ -85,23 +68,62 @@ const EVENT_TYPES: { value: PlannedEventType; label: string }[] = [
   { value: 'wedding',    label: 'Wedding' },
 ];
 
+const OCCASION_SCORE_MAP: Record<PlannedEventType, string> = {
+  casual: 'casual-hangout',
+  work: 'casual-friday',
+  'date-night': 'first-date',
+  party: 'casual-hangout',
+  formal: 'wedding',
+  everyday: 'casual-hangout',
+  workout: 'gym-active',
+  travel: 'casual-hangout',
+  wedding: 'wedding',
+};
+
+const DIMENSION_LABELS: Record<string, string> = {
+  fit: 'Fit',
+  colorHarmony: 'Colour',
+  trendAlignment: 'Trend',
+  bodyTypeMatch: 'Body',
+  occasionRelevance: 'Occasion',
+  uniqueness: 'Edge',
+};
+
 // ─── Single category reel ────────────────────────────────────────────────────
 
 type CategoryReelProps = {
   category: ClothingCategory;
   label: string;
   icon: keyof typeof Feather.glyphMap;
-  items: WardrobeItem[];    // pre-filtered: real items only (no "none" sentinel here)
+  items: WardrobeItem[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   isDark: boolean;
   theme: any;
+  rowHeight: number;
+  centerWidth: number;
+  sideGap: number;
+  sideInset: number;
+  snapInterval: number;
 };
 
-function CategoryReel({ category, label, icon, items, selectedId, onSelect, isDark, theme }: CategoryReelProps) {
+function CategoryReel({
+  category,
+  label,
+  icon,
+  items,
+  selectedId,
+  onSelect,
+  isDark,
+  theme,
+  rowHeight,
+  centerWidth,
+  sideGap,
+  sideInset,
+  snapInterval,
+}: CategoryReelProps) {
   // data = [null (none), ...items]
   const data = useMemo<(WardrobeItem | null)[]>(() => [null, ...items], [items]);
-  const rowH = ROW_HEIGHTS[category] ?? 200;
   const listRef = useRef<FlatList>(null);
 
   // Scroll to the selected item on mount
@@ -113,75 +135,63 @@ function CategoryReel({ category, label, icon, items, selectedId, onSelect, isDa
 
   const handleScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
-    const index = Math.round(x / SNAP_INTERVAL);
+    const index = Math.round(x / snapInterval);
     const clamped = Math.max(0, Math.min(index, data.length - 1));
     const item = data[clamped];
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSelect(item ? item.id : null);
-  }, [data, onSelect]);
+  }, [data, onSelect, snapInterval]);
 
-  const renderItem = useCallback(({ item, index }: { item: WardrobeItem | null; index: number }) => {
+  const renderItem = useCallback(({ item }: { item: WardrobeItem | null; index: number }) => {
     const isSelected = item ? item.id === selectedId : selectedId === null;
     const isNone = item === null;
 
     return (
-      <View style={[styles.reelItemContainer, { width: CENTER_W, height: rowH }]}>
+      <View style={[styles.reelItemContainer, { width: centerWidth, height: rowHeight }]}>
         <View
           style={[
             styles.reelCard,
-            { height: rowH, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' },
-            !isSelected && { opacity: 0.45 },
+            { height: rowHeight, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' },
+            !isSelected && { opacity: 0.42 },
           ]}
         >
           {isNone ? (
             <View style={styles.reelNone}>
-              <Feather name="x-circle" size={28} color={isDark ? '#444' : '#ccc'} />
-              <ThemedText type="caption" style={{ color: isDark ? '#555' : '#bbb', marginTop: 6, fontSize: 11 }}>
-                Skip {label}
-              </ThemedText>
+              <Feather name="x" size={16} color={isDark ? '#555' : '#ccc'} />
             </View>
-          ) : item?.imageUri ? (
-            <Image
-              source={{ uri: item.imageUri }}
-              style={styles.reelImage}
-              contentFit="contain"
-            />
+          ) : item ? (
+            <View style={[
+              styles.reelImageWrap,
+              { backgroundColor: wardrobeImageBackground(isDark, item) || (isDark ? '#2C2C2E' : '#EBEBEF') },
+            ]}>
+              <WardrobeItemImage
+                item={item}
+                style={styles.reelImage}
+                processed={!!(item.imageProcessed || item.aiAnalyzed)}
+                contentFit="cover"
+                preferCover
+              />
+            </View>
           ) : (
             <View style={styles.reelNone}>
-              <Feather name="image" size={28} color={isDark ? '#444' : '#ccc'} />
+              <Feather name="image" size={16} color={isDark ? '#444' : '#ccc'} />
             </View>
           )}
         </View>
-
-        {/* Shuffle hint icon — only on selected non-none items */}
-        {isSelected && !isNone ? (
-          <View style={[styles.swapHint, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
-            <Feather name="shuffle" size={11} color={isDark ? '#fff' : '#000'} style={{ opacity: 0.6 }} />
-          </View>
-        ) : null}
       </View>
     );
-  }, [selectedId, isDark, rowH, label]);
+  }, [selectedId, isDark, rowHeight, centerWidth]);
 
   return (
-    <View style={[styles.reelRow, { height: rowH + 28 }]}>
-      {/* Category label */}
+    <View style={[styles.reelRow, { height: rowHeight + LABEL_ROW_H }]}>
       <View style={styles.reelLabelRow}>
-        <Feather name={icon} size={12} color={theme.link} />
+        <Feather name={icon} size={10} color={theme.link} />
         <ThemedText type="caption" style={[styles.reelLabel, { color: theme.link }]}>
           {label}
         </ThemedText>
-        <ThemedText type="caption" style={{ color: isDark ? '#555' : '#bbb', fontSize: 10 }}>
-          {items.length} {items.length === 1 ? 'item' : 'items'}
-        </ThemedText>
-        {selectedId ? null : (
-          <ThemedText type="caption" style={{ color: isDark ? '#444' : '#ccc', fontSize: 10, marginLeft: 4 }}>
-            · skipped
-          </ThemedText>
-        )}
       </View>
 
-      <View style={{ position: 'relative', height: rowH }}>
+      <View style={{ position: 'relative', height: rowHeight }}>
         <FlatList
           ref={listRef}
           data={data}
@@ -189,23 +199,16 @@ function CategoryReel({ category, label, icon, items, selectedId, onSelect, isDa
           keyExtractor={(item, i) => item ? item.id : `none-${i}`}
           horizontal
           showsHorizontalScrollIndicator={false}
-          snapToInterval={SNAP_INTERVAL}
+          snapToInterval={snapInterval}
           snapToAlignment="start"
           decelerationRate="fast"
-          contentInset={{ left: SIDE_INSET - SIDE_GAP / 2, right: SIDE_INSET - SIDE_GAP / 2 }}
-          contentOffset={{ x: -(SIDE_INSET - SIDE_GAP / 2), y: 0 }}
-          contentContainerStyle={styles.reelListContent}
+          contentInset={{ left: sideInset - sideGap / 2, right: sideInset - sideGap / 2 }}
+          contentOffset={{ x: -(sideInset - sideGap / 2), y: 0 }}
+          contentContainerStyle={[styles.reelListContent, { gap: sideGap, paddingHorizontal: sideInset - sideGap / 2 }]}
           onMomentumScrollEnd={handleScrollEnd}
           initialScrollIndex={Math.min(initialIndex, Math.max(0, data.length - 1))}
-          getItemLayout={(_, index) => ({ length: SNAP_INTERVAL, offset: SNAP_INTERVAL * index, index })}
+          getItemLayout={(_, index) => ({ length: snapInterval, offset: snapInterval * index, index })}
         />
-        {/* Swipe hint arrows on edges */}
-        <View pointerEvents="none" style={[styles.reelArrowLeft, { height: rowH }]}>
-          <Feather name="chevron-left" size={16} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'} />
-        </View>
-        <View pointerEvents="none" style={[styles.reelArrowRight, { height: rowH }]}>
-          <Feather name="chevron-right" size={16} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'} />
-        </View>
       </View>
     </View>
   );
@@ -216,7 +219,13 @@ function CategoryReel({ category, label, icon, items, selectedId, onSelect, isDa
 export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { items } = useWardrobe();
+  const { items, reloadWardrobe } = useWardrobe();
+
+  useFocusEffect(
+    useCallback(() => {
+      reloadWardrobe();
+    }, [reloadWardrobe]),
+  );
 
   // Pre-select the first item per category so the carousel opens on a real garment
   const [selection, setSelection] = useState<Partial<Record<ClothingCategory, string | null>>>(() => {
@@ -239,6 +248,22 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const [pinToCalendar, setPinToCalendar] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [styleScore, setStyleScore] = useState<number>(0);
+  const [styleHint, setStyleHint] = useState<string>('Swipe rows to build a look');
+  const [scoreDimensions, setScoreDimensions] = useState<Record<string, number> | null>(null);
+  const [scoreExplanations, setScoreExplanations] = useState<string[]>([]);
+  const [scoreHeadline, setScoreHeadline] = useState<string | null>(null);
+  const [isAiScoring, setIsAiScoring] = useState(false);
+  const [aiScoreApplied, setAiScoreApplied] = useState(false);
+  const scoreRequestRef = useRef(0);
+
+  const layoutMetrics = useMemo(() => {
+    const centerWidth = SW * COMPACT_CENTER_RATIO;
+    const sideGap = 6;
+    const snapInterval = centerWidth + sideGap;
+    const sideInset = (SW - centerWidth) / 2;
+    return { centerWidth, sideGap, snapInterval, sideInset };
+  }, []);
 
   const itemsByCategory = useMemo(() => {
     const map: Partial<Record<ClothingCategory, WardrobeItem[]>> = {};
@@ -261,6 +286,15 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     [itemsByCategory]
   );
 
+  const compactRowHeight = useMemo(() => {
+    const headerBlock = 52;
+    const scoreBlock = 58;
+    const footerBlock = 96;
+    const available = SH - insets.top - insets.bottom - headerBlock - scoreBlock - footerBlock;
+    const perRow = Math.floor(available / Math.max(activeReels.length, 1)) - LABEL_ROW_H - 2;
+    return Math.max(44, Math.min(68, perRow));
+  }, [activeReels.length, insets.top, insets.bottom]);
+
   const handleSelect = useCallback((cat: ClothingCategory, id: string | null) => {
     setSelection(prev => ({ ...prev, [cat]: id }));
   }, []);
@@ -269,6 +303,60 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     () => Object.values(selection).filter((id): id is string => !!id),
     [selection]
   );
+
+  const selectedWardrobeItems = useMemo(
+    () => selectedItemIds
+      .map((id) => items.find((item) => item.id === id))
+      .filter((item): item is WardrobeItem => !!item),
+    [selectedItemIds, items]
+  );
+
+  useEffect(() => {
+    const local = computeLocalOutfitScore(selectedWardrobeItems);
+    setStyleScore(local.score);
+    setStyleHint(local.hint);
+    setAiScoreApplied(false);
+    setScoreDimensions(null);
+    setScoreExplanations([]);
+    setScoreHeadline(null);
+
+    if (selectedWardrobeItems.length < 2) {
+      setIsAiScoring(false);
+      return;
+    }
+
+    const requestId = ++scoreRequestRef.current;
+    setIsAiScoring(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const result = await apiService.checkOutfitCompatibility({
+          items: selectedWardrobeItems.map((item) => item.id),
+          stylistId: 'ruby',
+          occasion: OCCASION_SCORE_MAP[eventType] || 'casual-hangout',
+        });
+
+        if (scoreRequestRef.current !== requestId) return;
+
+        if (result.success && typeof result.score === 'number') {
+          setStyleScore(Math.round(result.score));
+          setStyleHint(result.headline || result.verdict || result.analysis || local.hint);
+          setScoreDimensions(result.dimensions || null);
+          setScoreExplanations(result.explanations || []);
+          setScoreHeadline(result.headline || null);
+          setAiScoreApplied(true);
+        }
+      } catch {
+        // Keep instant local score when AI is unavailable.
+      } finally {
+        if (scoreRequestRef.current === requestId) {
+          setIsAiScoring(false);
+        }
+      }
+    }, 900);
+
+    return () => clearTimeout(timer);
+  }, [selectedWardrobeItems, eventType]);
 
   const handleClear = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -314,6 +402,13 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
         payload.calendarDate = calendarDate.toISOString().split('T')[0];
       }
       const result = await apiService.saveMixAndMatchOutfit(payload);
+      apiService.recordOutfitEngagement({
+        items: selectedItemIds,
+        signal: 'saved',
+        outfitScore: styleScore,
+        scoreBreakdown: scoreDimensions || undefined,
+        occasion: OCCASION_SCORE_MAP[eventType],
+      }).catch(() => {});
       setShowSaveModal(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const calMsg = result.calendarEntry
@@ -331,6 +426,11 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   };
 
   const secondaryText = isDark ? '#777' : '#aaa';
+  const scoreColor =
+    styleScore >= 75 ? LuxuryColors.emerald :
+    styleScore >= 55 ? LuxuryColors.gold :
+    styleScore >= 35 ? LuxuryColors.coral :
+    '#EF4444';
 
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
@@ -340,14 +440,56 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           <Feather name="arrow-left" size={22} color={theme.text} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <ThemedText type="h3" style={{ fontWeight: '700' }}>Outfit Builder</ThemedText>
+          <ThemedText type="h3" style={{ fontWeight: '700' }}>Outfit Mix</ThemedText>
           <ThemedText type="caption" style={{ color: secondaryText }}>
-            Swipe each row to change the item
+            Clueless-style wardrobe builder
           </ThemedText>
         </View>
         <Pressable onPress={handleClear} style={styles.clearBtn}>
-          <ThemedText type="caption" style={{ color: theme.link, fontWeight: '600' }}>Clear</ThemedText>
+          <ThemedText type="caption" style={{ color: theme.link, fontWeight: '600' }}>Reset</ThemedText>
         </Pressable>
+      </View>
+
+      {/* Live style score */}
+      <View style={[styles.scoreBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
+        <View style={[styles.scoreRing, { borderColor: scoreColor }]}>
+          {isAiScoring ? (
+            <ActivityIndicator size="small" color={scoreColor} />
+          ) : (
+            <ThemedText type="h3" style={{ color: scoreColor, fontWeight: '800' }}>
+              {styleScore}%
+            </ThemedText>
+          )}
+        </View>
+        <View style={styles.scoreTextBlock}>
+          <ThemedText type="body" style={{ fontWeight: '700' }}>
+            Style match
+          </ThemedText>
+          <ThemedText type="caption" style={{ color: secondaryText }} numberOfLines={2}>
+            {scoreHeadline || styleHint}
+            {aiScoreApplied ? ' · AI refined' : isAiScoring ? ' · AI refining…' : ''}
+          </ThemedText>
+          {scoreDimensions ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
+              {Object.entries(scoreDimensions).map(([key, val]) => (
+                <View key={key} style={[styles.dimPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+                  <ThemedText type="caption" style={{ fontSize: 10, color: secondaryText }}>
+                    {DIMENSION_LABELS[key] || key}
+                  </ThemedText>
+                  <ThemedText type="caption" style={{ fontWeight: '700' }}>{val}/10</ThemedText>
+                </View>
+              ))}
+            </ScrollView>
+          ) : null}
+          {scoreExplanations[0] ? (
+            <ThemedText type="caption" style={{ color: secondaryText, marginTop: 2, fontStyle: 'italic' }} numberOfLines={2}>
+              {scoreExplanations[0]}
+            </ThemedText>
+          ) : null}
+        </View>
+        <ThemedText type="caption" style={{ color: secondaryText }}>
+          {selectedItemIds.length} pcs
+        </ThemedText>
       </View>
 
       {activeReels.length === 0 ? (
@@ -367,14 +509,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           </Pressable>
         </View>
       ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: insets.bottom + 110 },
-          ]}
-        >
-          {/* Category reels — stacked vertically */}
+        <View style={[styles.builderBody, { paddingBottom: insets.bottom + 88 }]}>
           {activeReels.map(({ key, label, icon }) => (
             <CategoryReel
               key={key}
@@ -386,21 +521,14 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
               onSelect={id => handleSelect(key, id)}
               isDark={isDark}
               theme={theme}
+              rowHeight={compactRowHeight}
+              centerWidth={layoutMetrics.centerWidth}
+              sideGap={layoutMetrics.sideGap}
+              sideInset={layoutMetrics.sideInset}
+              snapInterval={layoutMetrics.snapInterval}
             />
           ))}
-
-          {/* Item count summary */}
-          {selectedItemIds.length > 0 ? (
-            <View style={styles.summaryRow}>
-              <View style={[styles.summaryBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
-                <Feather name="check" size={13} color={theme.link} />
-                <ThemedText type="caption" style={{ color: theme.link, fontWeight: '700', marginLeft: 5 }}>
-                  {selectedItemIds.length} item{selectedItemIds.length > 1 ? 's' : ''} selected
-                </ThemedText>
-              </View>
-            </View>
-          ) : null}
-        </ScrollView>
+        </View>
       )}
 
       {/* Save FAB */}
@@ -553,13 +681,22 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
                 return (
                   <View
                     key={id}
-                    style={[styles.selectedItemThumb, { backgroundColor: theme.backgroundSecondary }]}
+                    style={[
+                      styles.selectedItemThumb,
+                      {
+                        backgroundColor:
+                          wardrobeImageBackground(isDark, it) ||
+                          theme.backgroundSecondary,
+                      },
+                    ]}
                   >
-                    {it.imageUri ? (
-                      <Image source={{ uri: it.imageUri }} style={styles.selectedThumbImage} contentFit="contain" />
-                    ) : (
-                      <Feather name="image" size={18} color={secondaryText} />
-                    )}
+                    <WardrobeItemImage
+                      item={it}
+                      style={styles.selectedThumbImage}
+                      processed={!!(it.imageProcessed || it.aiAnalyzed)}
+                      contentFit="cover"
+                      preferCover
+                    />
                   </View>
                 );
               })}
@@ -580,20 +717,54 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(128,128,128,0.15)',
     gap: Spacing.sm,
+  },
+  scoreBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.md,
+  },
+  scoreRing: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  scoreTextBlock: {
+    flex: 1,
+    gap: 2,
+  },
+  dimPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+    marginRight: 6,
+  },
+  builderBody: {
+    flex: 1,
+    justifyContent: 'space-evenly',
+    paddingTop: 2,
   },
   backBtn: {
     padding: Spacing.sm,
   },
   clearBtn: {
     padding: Spacing.sm,
-  },
-  scrollContent: {
-    paddingTop: Spacing.sm,
-    gap: Spacing.xs,
   },
 
   // Reel
@@ -603,31 +774,31 @@ const styles = StyleSheet.create({
   reelLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: SIDE_INSET,
-    paddingBottom: 6,
-    paddingTop: 10,
+    gap: 4,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: 2,
+    height: LABEL_ROW_H,
   },
   reelLabel: {
     fontWeight: '700',
-    fontSize: 11,
-    letterSpacing: 0.5,
+    fontSize: 10,
+    letterSpacing: 0.4,
     textTransform: 'uppercase',
-    marginRight: 4,
   },
-  reelListContent: {
-    gap: SIDE_GAP,
-    paddingHorizontal: SIDE_INSET - SIDE_GAP / 2,
-  },
+  reelListContent: {},
   reelItemContainer: {
     position: 'relative',
   },
   reelCard: {
     flex: 1,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.md,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  reelImageWrap: {
+    width: '100%',
+    height: '100%',
   },
   reelImage: {
     width: '100%',
@@ -636,45 +807,6 @@ const styles = StyleSheet.create({
   reelNone: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  swapHint: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reelArrowLeft: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    width: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reelArrowRight: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    width: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Summary
-  summaryRow: {
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-  },
-  summaryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
   },
 
   // Save FAB

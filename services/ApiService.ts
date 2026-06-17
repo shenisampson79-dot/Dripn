@@ -1362,6 +1362,7 @@ class ApiService {
     }>('/api/chat/resilient', {
       method: 'POST',
       headers,
+      timeout: 90000,
       body: JSON.stringify({ ...rest, stylist: stylistId, message: data.userMessage, language: data.language }),
     });
     
@@ -1471,11 +1472,16 @@ class ApiService {
     stylistId: string;
     message: string;
     generateVoice?: boolean;
-    voiceSettings?: { accent?: string };
+    voiceSettings?: { accent?: string; voiceRange?: string };
+    accent?: string;
+    voiceRange?: string;
+    language?: string;
   }) {
-    const { stylistId, ...rest } = data;
-    return this.request<{
+    const { stylistId, voiceSettings, ...rest } = data;
+    const raw = await this.request<{
+      success?: boolean;
       response: string;
+      audioBase64?: string;
       voice?: { audio: string; audioDataUri: string };
       voiceAudio?: string;
       voiceCredits?: {
@@ -1490,8 +1496,28 @@ class ApiService {
       error?: string;
     }>('/api/chat/message/resilient', {
       method: 'POST',
-      body: JSON.stringify({ ...rest, stylist: stylistId }),
+      timeout: 90000,
+      body: JSON.stringify({
+        ...rest,
+        stylist: stylistId,
+        generateVoice: rest.generateVoice ?? true,
+        accent: rest.accent || voiceSettings?.accent,
+        voiceRange: rest.voiceRange || voiceSettings?.voiceRange,
+      }),
     });
+
+    const audioData = raw.voice?.audio || raw.voiceAudio || raw.audioBase64;
+    return {
+      ...raw,
+      response: raw.response,
+      voiceAudio: audioData,
+      voice: audioData
+        ? {
+            audio: audioData,
+            audioDataUri: raw.voice?.audioDataUri || `data:audio/mpeg;base64,${audioData}`,
+          }
+        : raw.voice,
+    };
   }
 
   async getVoiceCreditsBalance() {
@@ -1962,13 +1988,18 @@ class ApiService {
     });
   }
 
-  async transcribeAudio(audio: string, mimeType: 'audio/webm' | 'audio/wav' | 'audio/mp3' | 'audio/m4a' | 'audio/mp4', language: string = 'en') {
+  async transcribeAudio(
+    audio: string,
+    mimeType: 'audio/webm' | 'audio/wav' | 'audio/mp3' | 'audio/m4a' | 'audio/mp4' = 'audio/m4a',
+    language: string = 'en'
+  ) {
     return this.request<{
       success: boolean;
       text: string;
       language: string;
     }>('/api/ai/transcribe', {
       method: 'POST',
+      timeout: 60000,
       body: JSON.stringify({ audio, mimeType, language }),
     });
   }
@@ -1980,15 +2011,18 @@ class ApiService {
     stylist: string;
     accent?: string;
     voiceRange?: string;
+    language?: string;
   }) {
     return this.request<{
       success: boolean;
       userMessage: string;
       aiResponse: string;
-      audioBase64: string;
+      audioBase64: string | null;
       stylist: string;
+      message?: string;
     }>('/api/ai/voice-chat', {
       method: 'POST',
+      timeout: 90000,
       body: JSON.stringify(data),
     });
   }
@@ -2116,7 +2150,11 @@ class ApiService {
   }
 
   async fetchWardrobeItems(): Promise<{ success: boolean; items: any[] }> {
-    return this.request<{ success: boolean; items: any[] }>('/api/wardrobe');
+    const data = await this.request<any>('/api/wardrobe');
+    if (Array.isArray(data)) {
+      return { success: true, items: data };
+    }
+    return data;
   }
 
   async addWardrobeItem(item: {
@@ -2177,10 +2215,49 @@ class ApiService {
     });
   }
 
-  async reprocessAllBackgrounds(): Promise<{ success: boolean; processed: number; failed: number; total: number; message?: string }> {
-    return this.request<{ success: boolean; processed: number; failed: number; total: number; message?: string }>('/api/wardrobe/reprocess-all-backgrounds', {
+  async reprocessAllBackgrounds(): Promise<{
+    success: boolean;
+    started?: boolean;
+    inProgress?: boolean;
+    processed: number;
+    failed: number;
+    total: number;
+    concurrency?: number;
+    message?: string;
+  }> {
+    return this.request<{
+      success: boolean;
+      started?: boolean;
+      inProgress?: boolean;
+      processed: number;
+      failed: number;
+      total: number;
+      concurrency?: number;
+      message?: string;
+    }>('/api/wardrobe/reprocess-all-backgrounds', {
       method: 'POST',
-      timeout: 600000,
+      timeout: 30000,
+    });
+  }
+
+  async getBackgroundReprocessStatus(): Promise<{
+    success: boolean;
+    inProgress: boolean;
+    total: number;
+    processed: number;
+    failed: number;
+    error?: string | null;
+  }> {
+    return this.request<{
+      success: boolean;
+      inProgress: boolean;
+      total: number;
+      processed: number;
+      failed: number;
+      error?: string | null;
+    }>('/api/wardrobe/reprocess-all-backgrounds/status', {
+      method: 'GET',
+      timeout: 15000,
     });
   }
 
@@ -3425,11 +3502,14 @@ class ApiService {
     });
   }
 
-  // Check outfit compatibility with 20-rule system
+  // Check outfit compatibility with 20-rule system + multi-axis intelligence
   async checkOutfitCompatibility(data: {
     items: string[];
     stylistId: string;
     occasion: string;
+    lat?: number;
+    lon?: number;
+    location?: string;
   }) {
     return this.request<{
       success: boolean;
@@ -3439,10 +3519,74 @@ class ApiService {
       hardRuleViolations: string[];
       improvements: string[];
       occasionRulesApplied: string | null;
+      dimensions?: Record<string, number>;
+      dimensionWeights?: Record<string, number>;
+      explanations?: string[];
+      trendMatches?: Array<{ name: string; layer: string; weight: number }>;
+      contextUsed?: Record<string, unknown>;
+      headline?: string;
     }>('/api/dfy/core/wardrobe/compatibility', {
       method: 'POST',
+      timeout: 90000,
       body: JSON.stringify(data),
     });
+  }
+
+  async scoreOutfit(data: {
+    items: string[];
+    stylistId?: string;
+    occasion?: string;
+    lat?: number;
+    lon?: number;
+    location?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      totalScore: number;
+      verdict: string;
+      dimensions: Record<string, number>;
+      dimensionWeights: Record<string, number>;
+      explanations: string[];
+      summary: string;
+      headline?: string;
+      trendMatches?: Array<{ name: string; layer: string; weight: number }>;
+      contextUsed?: Record<string, unknown>;
+    }>('/api/outfits/score', {
+      method: 'POST',
+      timeout: 90000,
+      body: JSON.stringify(data),
+    });
+  }
+
+  async recordOutfitEngagement(data: {
+    items: Array<string | { id?: string; name: string; category?: string; color?: string }>;
+    signal: 'liked' | 'skipped' | 'wore' | 'saved';
+    outfitScore?: number;
+    scoreBreakdown?: Record<string, unknown>;
+    occasion?: string;
+    contextSnapshot?: Record<string, unknown>;
+  }) {
+    return this.request<{ success: boolean; styleUpdate?: { vector: Record<string, number>; styleDnaLabel: string } }>(
+      '/api/outfits/engage',
+      { method: 'POST', body: JSON.stringify(data) }
+    );
+  }
+
+  async getStyleVector() {
+    return this.request<{
+      success: boolean;
+      vector: Record<string, number>;
+      styleDna: Array<{ style: string; percentage: number }>;
+      headline: string;
+      engagementCount?: number;
+    }>('/api/users/me/style-vector');
+  }
+
+  async getTrendSignals(region?: string) {
+    const q = region ? `?region=${encodeURIComponent(region)}` : '';
+    return this.request<{ success: boolean; layers: Record<string, unknown[]>; signals: unknown[] }>(
+      `/api/trends/signals${q}`
+    );
   }
 
   // Outfit Calendar CRUD

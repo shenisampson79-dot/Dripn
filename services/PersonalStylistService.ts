@@ -208,7 +208,8 @@ export function getStylistForUser(userGender: Gender, stylistPreferences?: Styli
 }
 
 export function getStylistGreeting(stylist: PersonalStylist, userName?: string | null): string {
-  const greeting = stylist.greeting[Math.floor(Math.random() * stylist.greeting.length)];
+  const greetings = stylist.greeting?.length ? stylist.greeting : ['Hi {name}! How can I help with your style today?'];
+  const greeting = greetings[Math.floor(Math.random() * greetings.length)];
   const displayName = userName || 'there';
   return greeting.replace(/{name}/g, displayName);
 }

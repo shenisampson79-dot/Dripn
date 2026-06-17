@@ -34,7 +34,9 @@
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#FFF9F0",
@@ -75,7 +77,7 @@
             "enableMinifyInReleaseBuilds": true
           },
           "ios": {
-            "deploymentTarget": "15.1"
+            "deploymentTarget": "16.4"
           }
         }
       ],
@@ -91,6 +93,12 @@
         "projectId": "6afc8cc7-86c1-4a8a-9b09-a0daff5bd93f"
       }
     },
-    "owner": "ahmayatazah"
+    "owner": "ahmayatazah",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6afc8cc7-86c1-4a8a-9b09-a0daff5bd93f"
+    }
   }
 }

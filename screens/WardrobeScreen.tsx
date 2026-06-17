@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -10,8 +10,11 @@ import {
   FlatList,
   ActivityIndicator,
   ScrollView,
+  RefreshControl,
 } from "react-native";
 import { Image } from "expo-image";
+import { WardrobeItemImage } from "@/components/WardrobeItemImage";
+import { wardrobeImageBackground } from "@/utils/wardrobeImage";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
@@ -90,7 +93,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     () => CATEGORY_KEYS.map(({ key, icon, iconSet, translationKey }) => ({ key, icon, iconSet, label: t(translationKey) })),
     [t]
   );
-  const { items, isLoading, deleteItem, toggleItemFavorite, markItemWorn, updateItem } = useWardrobe();
+  const { items, isLoading, deleteItem, toggleItemFavorite, markItemWorn, updateItem, reloadWardrobe } = useWardrobe();
   
   const CATEGORY_COLORS = colorScheme === 'minimalist' 
     ? getMinimalistCategoryColors() 
@@ -120,6 +123,71 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const [generatedOutfit, setGeneratedOutfit] = useState<any>(null);
   const [isReprocessingBg, setIsReprocessingBg] = useState(false);
   const [isReprocessingAll, setIsReprocessingAll] = useState(false);
+  const [batchBgProgress, setBatchBgProgress] = useState<{ processed: number; total: number; failed: number } | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const bgPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await reloadWardrobe();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
+      Alert.alert('Refresh failed', 'Could not reload your wardrobe. Check your connection and try again.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [reloadWardrobe]);
+
+  const stopBgPolling = useCallback(() => {
+    if (bgPollRef.current) {
+      clearInterval(bgPollRef.current);
+      bgPollRef.current = null;
+    }
+  }, []);
+
+  const pollBackgroundReprocessStatus = useCallback(async (showCompletionAlert = true) => {
+    try {
+      const status = await apiService.getBackgroundReprocessStatus();
+      if (!status.inProgress) {
+        stopBgPolling();
+        setIsReprocessingAll(false);
+        if (status.total > 0) {
+          setBatchBgProgress({ processed: status.processed, total: status.total, failed: status.failed });
+          await reloadWardrobe();
+          if (showCompletionAlert) {
+            Alert.alert(
+              'Background fix complete',
+              `Fixed ${status.processed} item${status.processed !== 1 ? 's' : ''}${status.failed > 0 ? `, ${status.failed} failed` : ''}.`
+            );
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
+        } else {
+          setBatchBgProgress(null);
+        }
+        return;
+      }
+
+      setBatchBgProgress({
+        processed: status.processed + status.failed,
+        total: status.total,
+        failed: status.failed,
+      });
+      await reloadWardrobe();
+    } catch {
+      // Keep polling — transient network errors are expected during long jobs.
+    }
+  }, [reloadWardrobe, stopBgPolling]);
+
+  const startBgPolling = useCallback(() => {
+    stopBgPolling();
+    bgPollRef.current = setInterval(() => {
+      pollBackgroundReprocessStatus(true);
+    }, 5000);
+    pollBackgroundReprocessStatus(false);
+  }, [pollBackgroundReprocessStatus, stopBgPolling]);
+
+  useEffect(() => () => stopBgPolling(), [stopBgPolling]);
 
   useFocusEffect(
     useCallback(() => {
@@ -130,7 +198,24 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         }
       };
       loadDFYAccess();
-    }, [user?.id])
+      reloadWardrobe();
+
+      apiService.getBackgroundReprocessStatus()
+        .then((status) => {
+          if (status.inProgress) {
+            setIsReprocessingAll(true);
+            setBatchBgProgress({
+              processed: status.processed + status.failed,
+              total: status.total,
+              failed: status.failed,
+            });
+            startBgPolling();
+          }
+        })
+        .catch(() => {});
+
+      return () => stopBgPolling();
+    }, [user?.id, startBgPolling, stopBgPolling, reloadWardrobe])
   );
 
   const CATEGORY_OPTIONS = user?.gender === 'man' 
@@ -244,7 +329,12 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         if (result.alreadyProcessed) {
           Alert.alert('Already Clean', 'This item already has a transparent background.');
         } else if (result.imageUrl) {
-          setSelectedItem({ ...item, imageUri: result.imageUrl });
+          await reloadWardrobe();
+          setSelectedItem((prev) =>
+            prev?.id === item.id
+              ? { ...prev, imageUri: result.imageUrl!, enhancedImageUri: result.imageUrl!, imageProcessed: true }
+              : prev
+          );
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           Alert.alert('Done', 'Background removed successfully.');
         }
@@ -259,28 +349,42 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const handleReprocessAllBackgrounds = () => {
     Alert.alert(
       'Fix All Backgrounds',
-      `This will remove backgrounds from all wardrobe items that still have them. Items with backgrounds take 15-30s each due to rate limits. Continue?`,
+      'This removes backgrounds from all items that still need it. Processing runs in the background (several items at once) — you can keep using the app and pull to refresh to see updates.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Fix All',
           onPress: async () => {
             setIsReprocessingAll(true);
+            setBatchBgProgress(null);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
             try {
               const result = await apiService.reprocessAllBackgrounds();
               if (result.success) {
-                if (result.message) {
+                if (result.message && !result.started && !result.inProgress && result.total === 0) {
+                  setIsReprocessingAll(false);
                   Alert.alert('Done', result.message);
-                } else {
-                  Alert.alert('Done', `Fixed ${result.processed} item${result.processed !== 1 ? 's' : ''}${result.failed > 0 ? `, ${result.failed} failed` : ''}. Reload your wardrobe to see updates.`);
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  return;
                 }
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+                if (result.inProgress) {
+                  setBatchBgProgress({
+                    processed: result.processed + result.failed,
+                    total: result.total,
+                    failed: result.failed,
+                  });
+                  startBgPolling();
+                  Alert.alert(
+                    'Processing started',
+                    result.message || `Processing ${result.total} items in the background.`
+                  );
+                }
               }
             } catch (error) {
-              Alert.alert('Error', 'Failed to process backgrounds. Please try again.');
-            } finally {
               setIsReprocessingAll(false);
+              setBatchBgProgress(null);
+              Alert.alert('Error', 'Failed to process backgrounds. Please try again.');
             }
           },
         },
@@ -333,6 +437,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
     const hasProcessedImage = item.imageProcessed || item.aiAnalyzed;
     const categoryColors = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['all'];
+    const imageBackground = wardrobeImageBackground(isDark, item);
     
     return (
       <Pressable
@@ -345,11 +450,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           },
         ]}
       >
-        <View style={[styles.itemImageWrapper, { backgroundColor: '#FFFFFF' }]}>
-          <Image
-            source={{ uri: item.imageUri }}
+        <View style={[styles.itemImageWrapper, imageBackground ? { backgroundColor: imageBackground } : null]}>
+          <WardrobeItemImage
+            item={item}
             style={styles.itemImage}
-            contentFit={hasProcessedImage ? "contain" : "cover"}
+            processed={hasProcessedImage}
             transition={200}
           />
           <LinearGradient
@@ -519,11 +624,16 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             showsVerticalScrollIndicator={false}
             renderItem={() => (
               <>
-                <View style={[styles.modalImageWrapper, { backgroundColor: '#FFFFFF' }]}>
-                  <Image
-                    source={{ uri: selectedItem.imageUri }}
+                <View style={[
+                  styles.modalImageWrapper,
+                  wardrobeImageBackground(isDark, selectedItem)
+                    ? { backgroundColor: wardrobeImageBackground(isDark, selectedItem) }
+                    : null,
+                ]}>
+                  <WardrobeItemImage
+                    item={selectedItem}
                     style={styles.modalImage}
-                    contentFit={selectedItem.imageProcessed || selectedItem.aiAnalyzed ? "contain" : "cover"}
+                    processed={!!(selectedItem.imageProcessed || selectedItem.aiAnalyzed)}
                     transition={300}
                   />
                 </View>
@@ -665,7 +775,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     </Pressable>
                   </LinearGradient>
 
-                  {!selectedItem.imageUri?.startsWith('https://replicate.delivery/') ? (
+                  {!selectedItem.imageUri?.includes('/api/wardrobe/') && !selectedItem.imageUri?.startsWith('https://replicate.delivery/') ? (
                     <Pressable
                       onPress={() => handleReprocessBackground(selectedItem)}
                       disabled={isReprocessingBg}
@@ -743,18 +853,41 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               </ThemedText>
             </View>
           </View>
-          <Pressable
-            onPress={handleReprocessAllBackgrounds}
-            disabled={isReprocessingAll}
-            style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
-          >
-            {isReprocessingAll ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Feather name="scissors" size={20} color="#FFFFFF" />
-            )}
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={handleRefresh}
+              disabled={isRefreshing}
+              style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
+            >
+              {isRefreshing ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Feather name="refresh-cw" size={20} color="#FFFFFF" />
+              )}
+            </Pressable>
+            <Pressable
+              onPress={handleReprocessAllBackgrounds}
+              disabled={isReprocessingAll}
+              style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
+            >
+              {isReprocessingAll ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Feather name="scissors" size={20} color="#FFFFFF" />
+              )}
+            </Pressable>
+          </View>
         </View>
+
+        {batchBgProgress && isReprocessingAll ? (
+          <View style={[styles.batchProgressBanner, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ThemedText type="caption" style={{ color: '#FFFFFF', marginLeft: Spacing.sm }}>
+              Removing backgrounds {batchBgProgress.processed}/{batchBgProgress.total}
+              {batchBgProgress.failed > 0 ? ` (${batchBgProgress.failed} failed)` : ''}
+            </ThemedText>
+          </View>
+        ) : null}
 
         <FlatList
           data={CATEGORY_OPTIONS}
@@ -895,6 +1028,16 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           { paddingBottom: insets.bottom + Spacing.xl },
         ]}
         showsVerticalScrollIndicator={false}
+        alwaysBounceVertical
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={isDark ? '#FFFFFF' : LUXURY_COLORS.violet}
+            colors={[LUXURY_COLORS.violet]}
+            progressBackgroundColor={isDark ? LUXURY_COLORS.midnight : '#FFFFFF'}
+          />
+        }
         ListEmptyComponent={renderListEmptyComponent}
         ListFooterComponent={
           filteredItems.length > 0 ? (
@@ -1240,6 +1383,20 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: Spacing.lg,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  batchProgressBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    marginBottom: Spacing.sm,
+  },
   headerTitleContainer: {
     alignItems: 'center',
     gap: Spacing.xs,
@@ -1294,6 +1451,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   gridContent: {
+    flexGrow: 1,
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.sm,
   },

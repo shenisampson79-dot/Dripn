@@ -3,7 +3,7 @@
  * Proprietary and confidential.
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { StyleSheet, View, Pressable } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -15,6 +15,8 @@ import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, StyleThemes, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useWardrobe, WardrobeItem, ClothingCategory, ClothingColor, ClothingOccasion, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 type StyleDNAScreenProps = {
@@ -112,9 +114,48 @@ const OCCASION_STYLE_MAP: Record<ClothingOccasion, StyleTheme[]> = {
   everyday: ["smart-casual", "streetwear", "boho"],
 };
 
+const SERVER_AXIS_TO_THEME: Record<string, StyleTheme> = {
+  streetwear: "streetwear",
+  minimal: "luxury",
+  smart: "smart-casual",
+  luxury: "luxury",
+  sporty: "sporty",
+  classic: "business",
+  edgy: "edgy",
+  bohemian: "boho",
+};
+
+const SERVER_AXIS_LABELS: Record<string, string> = {
+  streetwear: "Streetwear",
+  minimal: "Minimal",
+  smart: "Smart Casual",
+  luxury: "Luxury",
+  sporty: "Sporty",
+  classic: "Classic",
+  edgy: "Edgy",
+  bohemian: "Bohemian",
+};
+
 export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
   const { theme, isDark } = useTheme();
   const { items } = useWardrobe();
+  const { user } = useAuth();
+  const [serverDna, setServerDna] = useState<Array<{ style: string; percentage: number }>>([]);
+  const [serverHeadline, setServerHeadline] = useState<string | null>(null);
+  const [engagementCount, setEngagementCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    apiService.getStyleVector()
+      .then((res) => {
+        if (res?.styleDna?.length) {
+          setServerDna(res.styleDna);
+          setServerHeadline(res.headline || null);
+          setEngagementCount(res.engagementCount || 0);
+        }
+      })
+      .catch(() => { /* offline / guest */ });
+  }, [user]);
 
   const ownedItems = useMemo(() => {
     return items.filter(item => !item.origin || item.origin === "owned");
@@ -319,6 +360,40 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
         </View>
       ) : (
         <>
+          {serverDna.length > 0 && engagementCount > 0 ? (
+            <Card style={styles.serverDnaCard}>
+              <ThemedText type="caption" style={{ opacity: 0.7 }}>
+                Learned from your swipes & saves
+              </ThemedText>
+              <ThemedText type="h3" style={{ marginTop: Spacing.xs }}>
+                {serverHeadline || "Your evolving Style DNA"}
+              </ThemedText>
+              <View style={styles.serverDnaBars}>
+                {serverDna.slice(0, 4).map((entry) => (
+                  <View key={entry.style} style={styles.serverDnaRow}>
+                    <ThemedText type="small" style={styles.serverDnaLabel}>
+                      {SERVER_AXIS_LABELS[entry.style] || entry.style}
+                    </ThemedText>
+                    <View style={[styles.serverDnaTrack, { backgroundColor: theme.backgroundDefault }]}>
+                      <View
+                        style={[
+                          styles.serverDnaFill,
+                          {
+                            width: `${Math.min(100, entry.percentage)}%`,
+                            backgroundColor: getStyleColor(SERVER_AXIS_TO_THEME[entry.style] || "smart-casual"),
+                          },
+                        ]}
+                      />
+                    </View>
+                    <ThemedText type="small" style={{ width: 36, textAlign: "right" }}>
+                      {entry.percentage}%
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            </Card>
+          ) : null}
+
           <Card style={styles.primaryStyleCard}>
             <View style={styles.primaryStyleHeader}>
               <View style={[styles.primaryStyleIcon, { backgroundColor: getStyleColor(styleAnalysis.primaryStyle.style) + "20" }]}>
@@ -592,6 +667,32 @@ const styles = StyleSheet.create({
   },
   secondaryStyleInfo: {
     flex: 1,
+  },
+  serverDnaCard: {
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  serverDnaBars: {
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  serverDnaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  serverDnaLabel: {
+    width: 88,
+  },
+  serverDnaTrack: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  serverDnaFill: {
+    height: "100%",
+    borderRadius: 4,
   },
   section: {
     marginBottom: Spacing.xl,
