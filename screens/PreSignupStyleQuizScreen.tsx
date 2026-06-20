@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { StyleSheet, View, Image, Dimensions, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,39 +8,92 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Button } from '@/components/Button';
-import { Spacing, BorderRadius } from '@/constants/theme';
+import { Spacing, BorderRadius, LuxuryColors } from '@/constants/theme';
 import type { AuthStackParamList } from '@/navigation/AuthStackNavigator';
-import { PRE_SIGNUP_QUIZ_OUTFITS } from '@/constants/preSignupQuizOutfits';
-import { onboardingProfileService } from '@/services/OnboardingProfileService';
+import {
+  getPreSignupQuizOutfits,
+  type QuizOutfitGender,
+} from '@/constants/preSignupQuizOutfits';
+import {
+  onboardingProfileService,
+  type DressFor,
+  type OnboardingProfile,
+  QUIZ_SCREEN_COPY,
+  DRESS_FOR_LABELS,
+} from '@/services/OnboardingProfileService';
+import { preSignupQuizService, type QuizCompletionSummary } from '@/services/PreSignupQuizService';
 import { apiService } from '@/services/ApiService';
 import { useAuth } from '@/contexts/AuthContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
-const QUIZ_COUNT = 5;
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'PreSignupStyleQuiz'>;
 };
 
+function defaultQuizGender(userGender: string | null | undefined): QuizOutfitGender {
+  if (userGender === 'man') return 'male';
+  return 'female';
+}
+
 export default function PreSignupStyleQuizScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const outfits = PRE_SIGNUP_QUIZ_OUTFITS.slice(0, QUIZ_COUNT);
+  const [quizGender, setQuizGender] = useState<QuizOutfitGender>(() =>
+    defaultQuizGender(user?.gender)
+  );
   const [index, setIndex] = useState(0);
   const [likes, setLikes] = useState(0);
   const [done, setDone] = useState(false);
-  const [topStyles, setTopStyles] = useState<string[]>([]);
+  const [completion, setCompletion] = useState<QuizCompletionSummary | null>(null);
+  const [completionLoading, setCompletionLoading] = useState(false);
+  const [dressFor, setDressFor] = useState<DressFor>('myself');
+  const [outfits, setOutfits] = useState(() => getPreSignupQuizOutfits('female', 'myself'));
+  const [quizTitle, setQuizTitle] = useState(QUIZ_SCREEN_COPY.myself.title);
+  const [quizSubtitle, setQuizSubtitle] = useState(QUIZ_SCREEN_COPY.myself.subtitle);
+  const [deckLoading, setDeckLoading] = useState(true);
 
   const current = outfits[index];
 
-  const finishQuiz = useCallback(async () => {
-    await onboardingProfileService.completeQuiz();
-    setDone(true);
-    const profile = await onboardingProfileService.getProfile();
-    const styles = profile.likedStyles || [];
-    setTopStyles(styles.slice(0, 3));
+  const loadDeck = useCallback(async (gender: QuizOutfitGender, userProfile: OnboardingProfile) => {
+    setDeckLoading(true);
+    const deck = await preSignupQuizService.buildDeck(gender, userProfile);
+    setOutfits(deck.outfits);
+    setQuizTitle(deck.title);
+    setQuizSubtitle(deck.subtitle);
+    setIndex(0);
+    setLikes(0);
+    setDeckLoading(false);
   }, []);
+
+  useEffect(() => {
+    onboardingProfileService.getProfile().then(async (loaded) => {
+      const occasion = loaded.dressFor || 'myself';
+      setDressFor(occasion);
+      const gender = loaded.quizGender || defaultQuizGender(user?.gender);
+      setQuizGender(gender);
+      await loadDeck(gender, loaded);
+    });
+  }, [loadDeck, user?.gender]);
+
+  const finishQuiz = useCallback(async () => {
+    setCompletionLoading(true);
+    await onboardingProfileService.completeQuiz();
+    const profile = await onboardingProfileService.getProfile();
+    const summary = await preSignupQuizService.getCompletionSummary(profile);
+    setCompletion(summary);
+    setCompletionLoading(false);
+    setDone(true);
+  }, []);
+
+  const handleGenderChange = useCallback(async (gender: QuizOutfitGender) => {
+    if (gender === quizGender) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setQuizGender(gender);
+    const nextProfile = await onboardingProfileService.saveProfile({ quizGender: gender });
+    await loadDeck(gender, nextProfile);
+  }, [quizGender, loadDeck]);
 
   const handleChoice = useCallback(async (liked: boolean) => {
     if (!current) return;
@@ -51,7 +104,11 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
-    await onboardingProfileService.recordQuizSwipe(liked, current.style);
+    await onboardingProfileService.recordQuizSwipe(
+      liked,
+      { id: current.id, name: current.name, style: current.style },
+      dressFor,
+    );
 
     if (user) {
       apiService.recordOutfitEngagement({
@@ -62,7 +119,13 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
         })),
         signal: liked ? 'liked' : 'skipped',
         occasion: current.occasion,
-        contextSnapshot: { source: 'pre_signup_quiz', outfitId: current.id, style: current.style },
+        contextSnapshot: {
+          source: 'pre_signup_quiz',
+          outfitId: current.id,
+          style: current.style,
+          quizGender,
+          dressFor,
+        },
       }).catch(() => {});
     }
 
@@ -71,28 +134,60 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
     } else {
       setIndex((i) => i + 1);
     }
-  }, [current, index, outfits.length, user, finishQuiz]);
+  }, [current, index, outfits.length, user, finishQuiz, quizGender, dressFor]);
 
   const handleContinue = () => {
     navigation.navigate('OnboardingEntry');
   };
 
-  if (done) {
+  if (deckLoading) {
+    return (
+      <View style={[styles.container, styles.loadingState, { paddingTop: insets.top + Spacing.xl }]}>
+        <ThemedText type="body" style={styles.loadingText}>
+          Curating looks for {DRESS_FOR_LABELS[dressFor]}...
+        </ThemedText>
+      </View>
+    );
+  }
+
+  if (!outfits.length) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.xl }]}>
+        <ThemedText type="h2" style={styles.title}>Almost there</ThemedText>
+        <ThemedText type="body" style={styles.subtitle}>
+          We could not load style picks for this occasion. Continue and your stylist will still decide for you.
+        </ThemedText>
+        <Button onPress={handleContinue} style={{ marginTop: Spacing.xl }}>Continue</Button>
+      </View>
+    );
+  }
+
+  if (done || completionLoading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.xl }]}>
         <View style={styles.doneContent}>
-          <Feather name="check-circle" size={56} color="#C9A87C" />
-          <ThemedText type="h1" style={styles.doneTitle}>We know your vibe</ThemedText>
-          <ThemedText type="body" style={styles.doneSub}>
-            {topStyles.length
-              ? `You lean ${topStyles.join(' · ')}. Your stylist already picked today's outfit.`
-              : 'Your stylist already picked today\'s outfit based on what you told us.'}
-          </ThemedText>
-          <ThemedText type="small" style={styles.doneHint}>
-            Zero wardrobe needed. We decide — you look better.
-          </ThemedText>
+          {completionLoading ? (
+            <ThemedText type="body" style={styles.doneSub}>
+              Reading your style picks...
+            </ThemedText>
+          ) : (
+            <>
+              <Feather name="check-circle" size={56} color="#C9A87C" />
+              <ThemedText type="h1" style={styles.doneTitle}>
+                {completion?.headline || 'We know your vibe'}
+              </ThemedText>
+              <ThemedText type="body" style={styles.doneSub}>
+                {completion?.summary || "Got it — we'll use your picks to style you."}
+              </ThemedText>
+              <ThemedText type="small" style={styles.doneHint}>
+                Next, choose how you want your stylist to help.
+              </ThemedText>
+            </>
+          )}
         </View>
-        <Button onPress={handleContinue}>See my outfit</Button>
+        {!completionLoading ? (
+          <Button onPress={handleContinue}>Continue</Button>
+        ) : null}
       </View>
     );
   }
@@ -103,12 +198,55 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
         <Feather name="arrow-left" size={20} color="#3D3426" />
       </Pressable>
 
-      <ThemedText type="caption" style={styles.progress}>
+      <View style={styles.genderRow}>
+        <ThemedText type="small" style={styles.genderLabel}>Show me outfits for</ThemedText>
+        <View style={styles.genderToggle}>
+          <Pressable
+            onPress={() => handleGenderChange('female')}
+            style={[styles.genderOption, quizGender === 'female' && styles.genderOptionActive]}
+          >
+            <Feather
+              name="user"
+              size={14}
+              color={quizGender === 'female' ? '#FFF' : '#5A4D3A'}
+            />
+            <ThemedText
+              type="small"
+              style={[styles.genderOptionText, quizGender === 'female' && styles.genderOptionTextActive]}
+            >
+              Women
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            onPress={() => handleGenderChange('male')}
+            style={[styles.genderOption, quizGender === 'male' && styles.genderOptionActive]}
+          >
+            <Feather
+              name="user"
+              size={14}
+              color={quizGender === 'male' ? '#FFF' : '#5A4D3A'}
+            />
+            <ThemedText
+              type="small"
+              style={[styles.genderOptionText, quizGender === 'male' && styles.genderOptionTextActive]}
+            >
+              Men
+            </ThemedText>
+          </Pressable>
+        </View>
+      </View>
+
+      <ThemedText
+        type="small"
+        lightColor="#5A4D3A"
+        darkColor="#3D3426"
+        style={styles.progress}
+      >
         {index + 1} of {outfits.length} — tap like or skip
       </ThemedText>
-      <ThemedText type="h2" style={styles.title}>Would you wear this?</ThemedText>
+      <ThemedText type="h2" style={styles.title}>{quizTitle}</ThemedText>
       <ThemedText type="body" style={styles.subtitle}>
-        No wrong answers. This teaches your stylist in seconds.
+        {quizSubtitle}
       </ThemedText>
 
       {current ? (
@@ -136,7 +274,45 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: Spacing.xl, backgroundColor: '#FFF9F0' },
   back: { marginBottom: Spacing.md },
-  progress: { opacity: 0.6, marginBottom: Spacing.xs },
+  genderRow: {
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  genderLabel: {
+    color: '#6B5E4C',
+    fontWeight: '500',
+  },
+  genderToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#F0EBE4',
+    borderRadius: BorderRadius.lg,
+    padding: 4,
+    gap: 4,
+  },
+  genderOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  genderOptionActive: {
+    backgroundColor: LuxuryColors.gold,
+  },
+  genderOptionText: {
+    color: '#5A4D3A',
+    fontWeight: '600',
+  },
+  genderOptionTextActive: {
+    color: '#FFF',
+  },
+  progress: {
+    marginBottom: Spacing.xs,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
   title: { color: '#3D3426' },
   subtitle: { color: '#5A4D3A', marginBottom: Spacing.lg, lineHeight: 22 },
   cardWrap: {
@@ -187,4 +363,15 @@ const styles = StyleSheet.create({
   doneTitle: { textAlign: 'center', color: '#3D3426' },
   doneSub: { textAlign: 'center', color: '#5A4D3A', lineHeight: 24 },
   doneHint: { textAlign: 'center', color: '#8B6F5C', marginTop: Spacing.sm },
+  loadingState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  loadingText: {
+    color: '#5A4D3A',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
 });
