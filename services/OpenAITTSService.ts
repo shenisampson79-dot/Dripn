@@ -1,10 +1,11 @@
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getVoicePreviewScript } from './CulturalLocalizationService';
 import { API_URL } from '@/config/api';
+import { LANGUAGE_ACCENT_MAP } from './PersonalStylistService';
 
 export type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
 export type TTSModel = 'tts-1' | 'tts-1-hd';
@@ -75,6 +76,58 @@ const getLanguageCodeForAccent = (accent?: string): string | undefined => {
   if (!accent) return undefined;
   return ELEVENLABS_LANGUAGE_CODES[accent];
 };
+
+/** Map onboarding language picker → backend accent key + ElevenLabs ISO code. */
+const LANGUAGE_TO_BACKEND_ACCENT: Record<string, string> = {
+  English: 'american',
+  Spanish: 'spanish',
+  French: 'french',
+  German: 'german',
+  Italian: 'italian',
+  Portuguese: 'portuguese',
+  Japanese: 'japanese',
+  Korean: 'korean',
+  Chinese: 'mandarin',
+  Arabic: 'arabic',
+  Hindi: 'hindi',
+  Dutch: 'dutch',
+  Russian: 'russian',
+  Swedish: 'swedish',
+};
+
+const LANGUAGE_TO_ISO_CODE: Record<string, string> = {
+  English: 'en',
+  Spanish: 'es',
+  French: 'fr',
+  German: 'de',
+  Italian: 'it',
+  Portuguese: 'pt',
+  Japanese: 'ja',
+  Korean: 'ko',
+  Chinese: 'zh',
+  Arabic: 'ar',
+  Hindi: 'hi',
+  Dutch: 'nl',
+  Russian: 'ru',
+  Swedish: 'sv',
+};
+
+function resolveVoiceLanguageContext(language: string, accent?: string) {
+  if (language === 'English') {
+    const englishAccent = accent || 'American';
+    return {
+      backendAccent: englishAccent,
+      voiceLibraryAccent: englishAccent,
+      languageCode: getLanguageCodeForAccent(englishAccent) || 'en',
+    };
+  }
+  const voiceLibraryAccent = LANGUAGE_ACCENT_MAP[language]?.[0] || language;
+  return {
+    backendAccent: LANGUAGE_TO_BACKEND_ACCENT[language] || language.toLowerCase(),
+    voiceLibraryAccent,
+    languageCode: LANGUAGE_TO_ISO_CODE[language],
+  };
+}
 
 const LANGUAGE_CODE_ALTERNATIVES: Record<string, string[]> = {
   French: ['fr-FR', 'fr-CA', 'fr-BE', 'fr-CH', 'fr'],
@@ -299,7 +352,7 @@ const VOICE_PREVIEW_PHRASES: Record<string, Record<string, string>> = {
   },
 };
 
-let currentSound: Audio.Sound | null = null;
+let currentPlayer: AudioPlayer | null = null;
 let webAudioElement: HTMLAudioElement | null = null;
 
 const playAudioOnWeb = async (dataUriOrBase64: string): Promise<void> => {
@@ -406,36 +459,36 @@ const playAudioFile = async (uri: string): Promise<void> => {
       return;
     }
     
-    if (currentSound) {
-      await currentSound.stopAsync();
-      await currentSound.unloadAsync();
-      currentSound = null;
+    if (currentPlayer) {
+      currentPlayer.pause();
+      currentPlayer.remove();
+      currentPlayer = null;
     }
     
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      shouldDuckAndroid: true,
+    await setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: false,
+      allowsRecording: false,
     });
     
-    const { sound } = await Audio.Sound.createAsync(
-      { uri },
-      { shouldPlay: true }
-    );
-    
-    currentSound = sound;
+    const player = createAudioPlayer({ uri });
+    currentPlayer = player;
     console.log('Playing ElevenLabs audio successfully');
     
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if (status.isLoaded && status.didJustFinish) {
-        sound.unloadAsync().catch(() => {});
+    const subscription = player.addListener('playbackStatusUpdate', (status) => {
+      if (status.didJustFinish) {
+        subscription.remove();
+        player.remove();
+        if (currentPlayer === player) {
+          currentPlayer = null;
+        }
         if (uri.startsWith(FileSystem.cacheDirectory || '')) {
           FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
         }
-        currentSound = null;
       }
     });
+    
+    player.play();
   } catch (error) {
     console.log('Error playing audio file:', error);
     throw error;
@@ -456,11 +509,11 @@ export const stopAudio = async (): Promise<void> => {
     }
   }
   
-  if (currentSound) {
+  if (currentPlayer) {
     try {
-      await currentSound.stopAsync();
-      await currentSound.unloadAsync();
-      currentSound = null;
+      currentPlayer.pause();
+      currentPlayer.remove();
+      currentPlayer = null;
     } catch (error) {
       console.log('Error stopping audio:', error);
     }
@@ -575,92 +628,79 @@ interface ElevenLabsVoiceSettings {
   speakerBoost: boolean;
 }
 
-// ElevenLabs native accent voice IDs
-// Real human voices recorded by native speakers with authentic regional accents
-// These are NOT synthesized accents - they are real voices from ElevenLabs Voice Library
-// IMPORTANT: These voices are native speakers from their respective countries, not Americans reading scripts
-// Voice IDs verified from json2video.com/ai-voices/elevenlabs/languages/
+// Voice selection is handled entirely by the backend (ELEVENLABS_VOICES + NON_ENGLISH_VOICES).
+// Do not send client-side voice ID overrides — they previously conflicted with the canonical map.
 const ELEVENLABS_ACCENT_VOICES: Record<string, Record<string, string>> = {
-  ruby: {
-    // English accents
-    'American': '', // Use backend default (ElevenLabs Ruby voice)
-    'British': 'ptBd2v6mebIps3ZQEXD7', // Adela - Neutral British 30s-40s female
-    // Native language voices (authentic native speakers from their countries)
-    'Standard Spanish': 'HYlEvvU9GMan5YdjFYpg', // LoidaBurgos - Young female FROM SPAIN, Castilian accent, friendly and calm
-    'Standard French': 'txtf1EDouKke753vN8SL', // Jeanne - Young Parisian French woman, native from France
-    'Standard German': 'YYDsZT3K2y6tv7X1aj6N', // Johanna - Clear, professional native German female voice
-    'Standard Italian': 'oVJbgLwL0s5pk9e2U6QH', // Manuela - Warm, clear Italian PRO actress, native from Italy
-    'Standard Portuguese': 'eVXYtPVYB9wDoz9NVTIy', // Carla - Young Brazilian female voice
-    'Standard Japanese': '8EkOjt4xTPGMclNlh1pk', // Morioki - Native Japanese woman
-    'Standard Korean': 'AW5wrnG1jVizOYY7R1Oo', // JiYoung - Warm Korean female from Seoul, friendly and natural
-    'Standard Mandarin': 'tOuLUAIdXShmWH7PEUrU', // Julia - 30s female, smooth neutral Mandarin accent
-    'Modern Standard Arabic': 'qi4PkV9c01kb869Vh7Su', // Asmaa - Young Female Arabic Modern Standard accent
-    'Standard Hindi': 'aUTn6mevnrM9pqtesisb', // Aaliyah - Sophisticated professional Hindi female
-    'Standard Dutch': 'YUdpWWny7k5yb4QCeweX', // Ruth - Young Dutch female professional voiceover
-    'Standard Russian': 'FZGeNF7bE3syeQOynDKC', // Victoria - Warm Russian female, mid-aged, confident
-    'Standard Swedish': 'aSLKtNoVBZlxQEMsnGL2', // Sanna Hartfield - Swedish professional narrator from Stockholm
-  },
-  max: {
-    // English accents
-    'American': '', // Use backend default (ElevenLabs Max voice)
-    'British': 'U1Vk2oyatMdYs096Ety7', // Michael - Deep, Dark British urban voice
-    // Native language voices (authentic native speakers from their countries)
-    'Standard Spanish': 'PBaBRSRTvwmnK1PAq9e0', // JeiJo - Man BORN IN MADRID, raised in León, Castilian accent
-    'Standard French': 'jUHQdLfy668sllNiNTSW', // Clément - Top French Voice, middle-aged native Parisian male
-    'Standard German': 'Rc6mVxOkevStnSH2pUO9', // Basti - Young authentic native German male (26yo from Germany)
-    'Standard Italian': 'lcweSB9PJMspXEFIqkPb', // Francesco - Warm, incisive native Italian male (30-50)
-    'Standard Portuguese': '29Pm0vQJJRoVfMCsUKB6', // Márcio - Brazilian deep masculine voice
-    'Standard Japanese': 'wAWUBOIVEUw9IEUYoNzR', // Junichi - Native Japanese male baritone voice
-    'Standard Korean': 'Ir7oQcBXWiq4oFGROCfj', // Taemin - Warm natural Korean male from Seoul (20s)
-    'Standard Mandarin': '4VZIsMPtgggwNg7OXbPY', // James Gao - Middle-aged Chinese male, calm friendly
-    'Modern Standard Arabic': 'R6nda3uM038xEEKi7GFl', // Anas - Middle-aged Arabic male, gentle conversational
-    'Standard Hindi': 'Mbwx1ZAXuMdYGtJRjvvQ', // Vayu - Soothing Hindi male narrator
-    'Standard Dutch': '62klqbsYqbynbr66ypRt', // Arjen - Dutch male, calm and familiar
-    'Standard Russian': '1EVds7FNGSXoKeOiMXuf', // Denis - Smooth refined Russian male, confident
-    'Standard Swedish': 'Hyidyy6OA9R3GpDKGwoZ', // Jonas - Deep Swedish voice for storytelling
-  },
+  ruby: { 'American': '' },
+  max: { 'American': '' },
+  ace: { 'American': '' },
+  ivy: { 'American': '' },
 };
 
-const getElevenLabsVoiceIdForAccent = (stylistId: string, accent?: string): string | undefined => {
-  if (!accent) return undefined;
-  const stylistVoices = ELEVENLABS_ACCENT_VOICES[stylistId];
-  if (!stylistVoices) return undefined;
-  const voiceId = stylistVoices[accent];
-  return voiceId || undefined;
+const getElevenLabsVoiceIdForAccent = (_stylistId: string, _accent?: string): string | undefined => {
+  return undefined;
 };
 
 const NATIVE_VOICE_NAMES: Record<string, Record<string, string>> = {
   ruby: {
-    'Standard Spanish': 'LoidaBurgos (Spain)',
-    'Standard French': 'Jeanne (Paris)',
-    'Standard German': 'Johanna (Germany)',
-    'Standard Italian': 'Manuela (Italian actress)',
-    'Standard Portuguese': 'Carla (Brazil)',
-    'Standard Japanese': 'Morioki (Japan)',
-    'Standard Korean': 'JiYoung (Seoul)',
-    'Standard Mandarin': 'Julia (China)',
-    'Modern Standard Arabic': 'Asmaa (Arabic)',
-    'Standard Hindi': 'Aaliyah (India)',
-    'Standard Dutch': 'Ruth (Netherlands)',
-    'Standard Russian': 'Victoria (Russia)',
-    'Standard Swedish': 'Sanna (Stockholm)',
-    'British': 'Adela (UK)',
+    'Standard Spanish': 'LoidaBurgos',
+    'Standard French': 'Jeanne',
+    'Standard German': 'Johanna',
+    'Standard Italian': 'Manuela',
+    'Standard Portuguese': 'Carla',
+    'Standard Japanese': 'Morioki',
+    'Standard Korean': 'JiYoung',
+    'Standard Mandarin': 'Julia',
+    'Modern Standard Arabic': 'Asmaa',
+    'Standard Hindi': 'Aaliyah',
+    'Standard Dutch': 'Ruth',
+    'Standard Russian': 'Victoria',
+    'Standard Swedish': 'Sanna',
   },
   max: {
-    'Standard Spanish': 'JeiJo (Madrid)',
-    'Standard French': 'Clément (Paris)',
-    'Standard German': 'Basti (26yo German)',
-    'Standard Italian': 'Francesco (Italy)',
-    'Standard Portuguese': 'Márcio (Brazil)',
-    'Standard Japanese': 'Junichi (Japan)',
-    'Standard Korean': 'Taemin (Seoul)',
-    'Standard Mandarin': 'James Gao (China)',
-    'Modern Standard Arabic': 'Anas (Arabic)',
-    'Standard Hindi': 'Vayu (India)',
-    'Standard Dutch': 'Arjen (Netherlands)',
-    'Standard Russian': 'Denis (Russia)',
-    'Standard Swedish': 'Jonas (Sweden)',
-    'British': 'Michael (UK)',
+    'Standard Spanish': 'JeiJo',
+    'Standard French': 'Clément',
+    'Standard German': 'Basti',
+    'Standard Italian': 'Francesco',
+    'Standard Portuguese': 'Márcio',
+    'Standard Japanese': 'Junichi',
+    'Standard Korean': 'Taemin',
+    'Standard Mandarin': 'James Gao',
+    'Modern Standard Arabic': 'Anas',
+    'Standard Hindi': 'Vayu',
+    'Standard Dutch': 'Arjen',
+    'Standard Russian': 'Denis',
+    'Standard Swedish': 'Jonas',
+  },
+  ace: {
+    'Standard Spanish': 'Jacobo Montoro',
+    'Standard French': 'Eric',
+    'Standard German': 'Oscar Lance',
+    'Standard Italian': 'Luca',
+    'Standard Portuguese': 'Márcio',
+    'Standard Japanese': 'Junichi',
+    'Standard Korean': 'Taemin',
+    'Standard Mandarin': 'James Gao',
+    'Modern Standard Arabic': 'Anas',
+    'Standard Hindi': 'Vayu',
+    'Standard Dutch': 'Arjen',
+    'Standard Russian': 'Denis',
+    'Standard Swedish': 'Jonas',
+  },
+  ivy: {
+    'Standard Spanish': 'Glinda',
+    'Standard French': 'Grace',
+    'Standard German': 'Emily',
+    'Standard Italian': 'Manuela',
+    'Standard Portuguese': 'Alice',
+    'Standard Japanese': 'Morioki',
+    'Standard Korean': 'JiYoung',
+    'Standard Mandarin': 'Julia',
+    'Modern Standard Arabic': 'Asmaa',
+    'Standard Hindi': 'Aaliyah',
+    'Standard Dutch': 'Ruth',
+    'Standard Russian': 'Victoria',
+    'Standard Swedish': 'Sanna',
   },
 };
 
@@ -669,23 +709,10 @@ const getNativeVoiceNameForId = (stylistId: string, accent?: string): string => 
   return NATIVE_VOICE_NAMES[stylistId]?.[accent] || accent;
 };
 
-const getVoiceSettingsForRange = (stylistId: string, voiceRange?: string): ElevenLabsVoiceSettings => {
-  if (stylistId === 'ruby') {
-    // Ruby only uses mezzo-soprano now
-    return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
-  } else if (stylistId === 'max') {
-    switch (voiceRange) {
-      case 'tenor':
-        return { stability: 0.48, similarityBoost: 0.88, style: 0.38, speakerBoost: true };
-      case 'baritone':
-        return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
-      case 'bass':
-        return { stability: 0.55, similarityBoost: 0.78, style: 0.22, speakerBoost: true };
-      default:
-        return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
-    }
-  }
-  return { stability: 0.50, similarityBoost: 0.90, style: 0.35, speakerBoost: true };
+const getVoiceSettingsForRange = (_stylistId: string, _voiceRange?: string): ElevenLabsVoiceSettings | undefined => {
+  // Let backend apply echo-free ElevenLabs settings (NATURAL_SETTINGS).
+  // Client overrides with high similarity/style/speakerBoost caused reverb/AI artifacts.
+  return undefined;
 };
 
 export const playVoicePreview = async (
@@ -707,9 +734,10 @@ export const playVoicePreview = async (
 
   try {
     if (Platform.OS === 'ios') {
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: false,
+        allowsRecording: false,
       });
     }
 
@@ -724,18 +752,16 @@ export const playVoicePreview = async (
       headers['Authorization'] = `Bearer ${authToken}`;
     }
 
-    const voiceSettings = getVoiceSettingsForRange(stylistId, voiceRange);
-    // Use accent-based native voice IDs for authentic regional accents
-    const elevenLabsVoiceId = getElevenLabsVoiceIdForAccent(stylistId, accent);
-    // Get language code for authentic pronunciation (ISO 639-1)
-    const languageCode = getLanguageCodeForAccent(accent);
+    const { backendAccent, voiceLibraryAccent } = resolveVoiceLanguageContext(language, accent);
+    const elevenLabsVoiceId = getElevenLabsVoiceIdForAccent(stylistId, voiceLibraryAccent);
     
-    // Fetch culturally-authentic script from backend (supports British, American, and other accents)
+    // Fetch culturally-authentic script from backend (supports all onboarding languages)
     let text: string;
     try {
       const scriptParams = new URLSearchParams({
         stylist: stylistId,
-        ...(accent && { accent }),
+        language,
+        accent: backendAccent,
         ...(userName && { userName }),
       });
       const scriptResponse = await fetch(`${API_URL}/api/ai/voice-preview/script?${scriptParams}`, {
@@ -745,30 +771,29 @@ export const playVoicePreview = async (
       
       if (scriptResponse.ok) {
         const scriptData = await scriptResponse.json();
-        text = scriptData.script || getVoicePreviewPhrase(stylistId, language, accent, userName) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
+        text = scriptData.script || getVoicePreviewPhrase(stylistId, language, backendAccent, userName) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
         console.log(`Fetched script from backend: ${text.substring(0, 60)}...`);
       } else {
         // Fall back to local script if backend endpoint fails
-        text = getVoicePreviewPhrase(stylistId, language, accent, userName) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
+        text = getVoicePreviewPhrase(stylistId, language, backendAccent, userName) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
         console.log(`Backend script endpoint failed, using local script`);
       }
     } catch (scriptError) {
       // Fall back to local script on error
-      text = getVoicePreviewPhrase(stylistId, language, accent, userName) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
+      text = getVoicePreviewPhrase(stylistId, language, backendAccent, userName) || "Hello, I'm your personal stylist. Let me help you discover your best style!";
       console.log(`Script fetch error, using local script:`, scriptError);
     }
     
     // Log native speaker voice details for debugging
-    const nativeVoiceName = elevenLabsVoiceId ? getNativeVoiceNameForId(stylistId, accent) : 'default backend voice';
+    const nativeVoiceName = elevenLabsVoiceId ? getNativeVoiceNameForId(stylistId, voiceLibraryAccent) : 'default backend voice';
     console.log(`=== VOICE PREVIEW REQUEST ===`);
-    console.log(`Stylist: ${stylistId}, Language accent: ${accent || 'none'}`);
-    console.log(`Native speaker voice: ${nativeVoiceName} (ID: ${elevenLabsVoiceId || 'using backend default'})`);
-    console.log(`Language code: ${languageCode || 'default'}`);
+    console.log(`Stylist: ${stylistId}, Language: ${language}, Backend accent: ${backendAccent}, Voice library: ${voiceLibraryAccent}`);
+    console.log(`Native speaker voice: ${nativeVoiceName} (backend selects voice from accent)`);
     console.log(`Text preview: ${text.substring(0, 80)}...`);
     
     // DEBUG: Show user which voice is being requested (remove after debugging)
     if (__DEV__) {
-      const debugMsg = `Voice: ${nativeVoiceName}\nAccent: ${accent || 'none'}\nID: ${elevenLabsVoiceId || 'backend default'}`;
+      const debugMsg = `Voice: ${nativeVoiceName}\nLanguage: ${language}\nAccent: ${backendAccent}\nID: ${elevenLabsVoiceId || 'backend default'}`;
       console.log(`DEBUG ALERT: ${debugMsg}`);
     }
     
@@ -776,10 +801,8 @@ export const playVoicePreview = async (
       text,
       stylist: stylistId,
       voiceRange,
-      accent,
-      voiceSettings,
-      ...(elevenLabsVoiceId && { elevenLabsVoiceId }),
-      ...(languageCode && { languageCode }),
+      language,
+      accent: backendAccent,
     };
     
     console.log(`FULL REQUEST BODY: ${JSON.stringify(requestBody)}`);
@@ -894,9 +917,8 @@ export const getSupportedLanguages = (): string[] => {
 };
 
 export const getVoicePreviewPhrase = (stylistId: string, language: string, accent?: string, userName?: string): string => {
-  // For non-English languages, use culturally-authentic scripts from CulturalLocalizationService
-  if (language !== 'English' && accent) {
-    const culturalScript = getVoicePreviewScript(language, accent, stylistId, userName);
+  if (language !== 'English') {
+    const culturalScript = getVoicePreviewScript(language, accent || language, stylistId, userName);
     if (culturalScript) {
       return culturalScript;
     }
