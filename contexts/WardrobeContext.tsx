@@ -16,13 +16,14 @@ import {
 } from '@/utils/wardrobeCategories';
 import { sanitizeWardrobeItemName } from '@/utils/wardrobeItemName';
 import { preloadWardrobeImages } from '@/utils/preloadWardrobe';
+import { invalidateWardrobeImageCache } from '@/utils/wardrobeImageLoader';
 import {
   hydrateWardrobeItemsWithLocalPhotos,
   localWardrobeFileExists,
   migrateWardrobeItemsToPermanentPhotos,
   resolveLocalWardrobePhoto,
 } from '@/utils/wardrobeLocalPhotos';
-import { persistWardrobePhotoToAppStorage } from '@/utils/persistWardrobePhoto';
+import { persistWardrobePhotoToAppStorage, downloadWardrobePhotoToPermanentStorage } from '@/utils/persistWardrobePhoto';
 import { getTierFeatures } from '@/utils/tierMatrix';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 import {
@@ -197,6 +198,13 @@ export interface WardrobeStats {
   sustainabilityScore: number;
 }
 
+export type BackgroundRemovalProgress = {
+  active: boolean;
+  processed: number;
+  total: number;
+  failed: number;
+};
+
 interface WardrobeContextType {
   items: WardrobeItem[];
   savedOutfits: SavedOutfit[];
@@ -208,7 +216,10 @@ interface WardrobeContextType {
   addItem: (item: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>) => Promise<WardrobeItem>;
   addItemsBatch: (
     items: Array<Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>>,
-    options?: { onBackgroundProgress?: (progress: { processed: number; total: number; failed: number }) => void },
+    options?: {
+      onBackgroundProgress?: (progress: { processed: number; total: number; failed: number }) => void;
+      waitForBackgroundRemoval?: boolean;
+    },
   ) => Promise<WardrobeItem[]>;
   updateItem: (id: string, updates: Partial<WardrobeItem>) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
@@ -218,6 +229,7 @@ interface WardrobeContextType {
     onlyItemIds?: string[],
   ) => Promise<{ fixed: number; failed: number; skipped: number; noLocal: number }>;
   wardrobePhotosUnavailable: boolean;
+  backgroundRemovalProgress: BackgroundRemovalProgress | null;
   markItemWorn: (id: string) => Promise<void>;
   toggleItemFavorite: (id: string) => Promise<void>;
   saveOutfit: (outfit: Omit<SavedOutfit, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>) => Promise<SavedOutfit>;
@@ -313,6 +325,7 @@ function isHttpImageUrl(url: unknown): url is string {
 }
 
 const BACKFILL_ATTEMPTED = new Set<string>();
+const BG_REMOVAL_CONCURRENCY = 2;
 
 async function attachPersistedLocalPhotos(item: WardrobeItem): Promise<WardrobeItem> {
   const source = item.originalImageUri || item.imageUri;
@@ -362,15 +375,41 @@ async function syncBackgroundRemovalForItems(
   const total = toProcess.length;
   onProgress?.({ processed: 0, total, failed: 0 });
 
-  for (const { item, localUri } of toProcess) {
+  let cursor = 0;
+  const processOne = async ({ item, localUri }: { item: WardrobeItem; localUri: string }) => {
     try {
       const base64 = await convertImageToBase64(localUri);
       const result = await apiService.uploadWardrobeItemImage(String(item.id), base64, { sync: true });
       if (result.success && result.imageUrl && result.imageProcessed) {
-        const processedUri = result.imageUrl;
+        const remoteUri = result.imageUrl;
+        const isCutout =
+          isProcessedWardrobeCdnUrl(remoteUri) ||
+          isProxyWardrobeImageUri(remoteUri);
+        if (!isCutout) {
+          failed += 1;
+          onProgress?.({ processed: fixed + failed, total, failed });
+          return;
+        }
+
+        invalidateWardrobeImageCache(item.id);
+
+        await apiService.init();
+        const token = await apiService.getToken();
+        const fetchHeaders =
+          isProxyWardrobeImageUri(remoteUri) && token
+            ? { Authorization: `Bearer ${token}` }
+            : undefined;
+
+        const localCutout = await downloadWardrobePhotoToPermanentStorage(
+          remoteUri,
+          item.id,
+          fetchHeaders ? { headers: fetchHeaders } : undefined,
+        );
+        const displayUri = localCutout || remoteUri;
+
         await updateImageCacheEntry(String(item.id), {
-          imageUri: processedUri,
-          enhancedImageUri: processedUri,
+          imageUri: displayUri,
+          enhancedImageUri: displayUri,
           originalImageUri: localUri,
           imageProcessed: true,
         });
@@ -379,8 +418,8 @@ async function syncBackgroundRemovalForItems(
             String(row.id) === String(item.id)
               ? {
                   ...row,
-                  imageUri: processedUri,
-                  enhancedImageUri: processedUri,
+                  imageUri: displayUri,
+                  enhancedImageUri: displayUri,
                   originalImageUri: localUri,
                   imageProcessed: true,
                 }
@@ -399,7 +438,22 @@ async function syncBackgroundRemovalForItems(
     }
 
     onProgress?.({ processed: fixed + failed, total, failed });
-  }
+  };
+
+  const worker = async () => {
+    while (cursor < toProcess.length) {
+      const job = toProcess[cursor];
+      cursor += 1;
+      if (!job) break;
+      await processOne(job);
+    }
+  };
+
+  const workers = Array.from(
+    { length: Math.min(BG_REMOVAL_CONCURRENCY, toProcess.length) },
+    () => worker(),
+  );
+  await Promise.all(workers);
 
   return { fixed, failed, skipped, noLocal };
 }
@@ -564,6 +618,8 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [wardrobePhotosUnavailable, setWardrobePhotosUnavailable] = useState(false);
+  const [backgroundRemovalProgress, setBackgroundRemovalProgress] = useState<BackgroundRemovalProgress | null>(null);
+  const backgroundRemovalJobRef = React.useRef(0);
 
   const itemsRef = React.useRef<WardrobeItem[]>([]);
   itemsRef.current = items;
@@ -932,7 +988,9 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      const response = await apiService.batchAddWardrobeItems(batchPayload);
+      const response = await apiService.batchAddWardrobeItems(batchPayload, {
+        processImagesAfterSave: false,
+      });
 
       if (response?.success && response.items?.length > 0) {
         const imageCache = await getImageCache();
@@ -978,14 +1036,55 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
         itemsRef.current = updatedItems;
         await saveFullLocalCache(updatedItems);
 
-        await syncBackgroundRemovalForItems(
-          newItems,
-          imageCache,
-          updateImageCacheEntry,
-          setItems,
-          itemsRef,
-          options?.onBackgroundProgress,
-        );
+        const runBackgroundRemoval = async () => {
+          const jobId = ++backgroundRemovalJobRef.current;
+          setBackgroundRemovalProgress({ active: true, processed: 0, total: 0, failed: 0 });
+          try {
+            const result = await syncBackgroundRemovalForItems(
+              newItems,
+              imageCache,
+              updateImageCacheEntry,
+              setItems,
+              itemsRef,
+              (progress) => {
+                if (backgroundRemovalJobRef.current !== jobId) return;
+                setBackgroundRemovalProgress({ active: true, ...progress });
+                options?.onBackgroundProgress?.(progress);
+              },
+            );
+            if (backgroundRemovalJobRef.current === jobId) {
+              const done = result.fixed + result.failed;
+              setBackgroundRemovalProgress({
+                active: false,
+                processed: done,
+                total: done + result.skipped + result.noLocal,
+                failed: result.failed,
+              });
+              if (result.fixed > 0) {
+                await saveFullLocalCache(itemsRef.current);
+                void reloadWardrobe();
+              }
+              setTimeout(() => {
+                if (backgroundRemovalJobRef.current === jobId) {
+                  setBackgroundRemovalProgress(null);
+                }
+              }, 5000);
+            }
+            return result;
+          } catch (err) {
+            console.warn('[WardrobeContext] Background removal job failed:', err);
+            if (backgroundRemovalJobRef.current === jobId) {
+              setBackgroundRemovalProgress(null);
+            }
+            throw err;
+          }
+        };
+
+        if (options?.waitForBackgroundRemoval) {
+          await runBackgroundRemoval();
+        } else {
+          void runBackgroundRemoval();
+        }
 
         return itemsRef.current.filter((row) =>
           newItems.some((item) => String(item.id) === String(row.id)),
@@ -1023,7 +1122,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     setItems(updatedItems);
     await saveFullLocalCache(updatedItems);
     return localItems;
-  }, [user]);
+  }, [user, reloadWardrobe]);
 
   const updateItem = useCallback(async (id: string, updates: Partial<WardrobeItem>) => {
     const updatedItems = itemsRef.current.map(item =>
@@ -1502,6 +1601,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     deleteItems,
     fixBackgroundsFromCache,
     wardrobePhotosUnavailable,
+    backgroundRemovalProgress,
     markItemWorn,
     toggleItemFavorite,
     saveOutfit,

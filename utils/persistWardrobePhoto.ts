@@ -73,3 +73,45 @@ export async function resolvePermanentWardrobePhoto(itemId: string | number): Pr
   }
   return null;
 }
+
+/** Download a bg-removed cutout (CDN or auth proxy) into permanent on-device storage. */
+export async function downloadWardrobePhotoToPermanentStorage(
+  remoteUri: string,
+  itemId: string | number,
+  fetchOptions?: { headers?: Record<string, string> },
+): Promise<string | null> {
+  if (!remoteUri?.startsWith('http')) return null;
+
+  const dest = permanentWardrobePhotoPath(itemId);
+  if (!dest) return null;
+
+  await ensureWardrobePhotosDir();
+
+  try {
+    const response = await fetch(remoteUri, fetchOptions);
+    if (!response.ok) return null;
+
+    const buffer = await response.arrayBuffer();
+    if (!buffer.byteLength) return null;
+
+    const bytes = new Uint8Array(buffer);
+    if (typeof globalThis.btoa !== 'function') return null;
+
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    const base64 = globalThis.btoa(binary);
+
+    await FileSystem.writeAsStringAsync(dest, base64, { encoding: 'base64' });
+    const info = await FileSystem.getInfoAsync(dest);
+    if (info.exists && (info.size ?? 0) > 256) {
+      return info.uri || dest;
+    }
+  } catch (error) {
+    if (__DEV__) console.warn('[WardrobePhoto] download failed', itemId, error);
+  }
+
+  return null;
+}

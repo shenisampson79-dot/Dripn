@@ -237,10 +237,24 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
       }
     }
 
-    const local = await resolveLocalWardrobePhoto(item.id, item);
-    if (local) {
-      logSource(item.id, 'local');
-      return remember(id, local);
+    // After bg removal, prefer the processed CDN/proxy cutout — not the original carpet photo.
+    const skipLocalOriginal =
+      !!item.imageProcessed &&
+      [item.enhancedImageUri, item.imageUri].some(
+        (uri) =>
+          typeof uri === 'string' &&
+          (isProxyWardrobeImageUri(uri) ||
+            (isRemoteImageUri(uri) && uri.includes('res.cloudinary.com') && /_processed/i.test(uri)) ||
+            uri.includes('replicate.delivery') ||
+            uri.includes('replicate.com')),
+      );
+
+    if (!skipLocalOriginal) {
+      const local = await resolveLocalWardrobePhoto(item.id, item);
+      if (local) {
+        logSource(item.id, 'local');
+        return remember(id, local);
+      }
     }
 
     const fromProxy = await fetchAuthProxyToCache(item.id);

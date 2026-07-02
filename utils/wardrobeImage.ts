@@ -94,7 +94,9 @@ export function resolveWardrobeImageUri(item: ImageFields): string {
     typeof item.originalImageUri === 'string' && item.originalImageUri.length > 0
       ? item.originalImageUri
       : '';
-  if (localOriginal && !isRemoteImageUri(localOriginal)) return localOriginal;
+  if (localOriginal && !isRemoteImageUri(localOriginal) && !item.imageProcessed && !item.aiAnalyzed) {
+    return localOriginal;
+  }
 
   const localFromCandidates = candidates.find((uri) => !isRemoteImageUri(uri));
   if (localFromCandidates) return localFromCandidates;
