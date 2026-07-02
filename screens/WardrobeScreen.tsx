@@ -21,7 +21,7 @@ import {
   itemMatchesWardrobeCategory,
   resolveUserPresentationGender,
 } from '@/utils/wardrobeCategories';
-import { isDurableWardrobeCdnUrl, isProxyWardrobeImageUri, wardrobeTileBackground } from "@/utils/wardrobeImage";
+import { isDurableWardrobeCdnUrl, isProxyWardrobeImageUri, wardrobeProcessedTileBackground, wardrobeTileBackground } from "@/utils/wardrobeImage";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
@@ -83,7 +83,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const { user } = useAuth();
   const { colorScheme, palette } = useColorScheme();
   const { translations, t } = useTranslations();
-  const { items, isLoading, deleteItem, deleteItems, toggleItemFavorite, markItemWorn, updateItem, reloadWardrobe, fixBackgroundsFromCache, wardrobePhotosUnavailable } = useWardrobe();
+  const { items, isLoading, deleteItem, deleteItems, toggleItemFavorite, markItemWorn, updateItem, reloadWardrobe, fixBackgroundsFromCache, wardrobePhotosUnavailable, backgroundRemovalProgress } = useWardrobe();
   
   const CATEGORY_COLORS = colorScheme === 'minimalist' 
     ? getMinimalistCategoryColors() 
@@ -416,7 +416,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               if (result.fixed > 0) {
                 Alert.alert(
                   'Backgrounds updated',
-                  `Processed ${result.fixed} item${result.fixed !== 1 ? 's' : ''}${result.failed > 0 ? `, ${result.failed} failed` : ''}.`
+                  `Removed backgrounds on ${result.fixed} item${result.fixed !== 1 ? 's' : ''}.${result.failed > 0 ? ` ${result.failed} could not be processed (photo unreadable or AI service error).` : ''}${result.noLocal > 0 ? ` ${result.noLocal} skipped — no photo on this device.` : ''}`
                 );
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               } else if (result.failed > 0) {
@@ -545,7 +545,9 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
     const hasProcessedImage = item.imageProcessed === true;
     const categoryColors = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['all'];
-    const tileBackground = wardrobeTileBackground(isDark);
+    const tileBackground = hasProcessedImage
+      ? wardrobeProcessedTileBackground()
+      : wardrobeTileBackground(isDark);
     const isSelected = selectedIds.has(String(item.id));
     
     return (
@@ -579,7 +581,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             item={item}
             style={styles.itemImage}
             processed={hasProcessedImage}
-            preferCover={hasProcessedImage}
+            preferCover={!hasProcessedImage}
             showLoading
             transition={280}
             tileBackgroundColor={tileBackground}
@@ -589,32 +591,28 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               {isSelected ? <Feather name="check" size={14} color="#FFFFFF" /> : null}
             </View>
           ) : null}
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.6)']}
-            style={styles.itemOverlay}
-          />
-          <View style={styles.itemInfoOverlay}>
-            <ThemedText type="caption" numberOfLines={1} style={styles.itemNameOverlay}>
-              {item.name}
-            </ThemedText>
-            <ThemedText type="caption" style={styles.itemWornText}>
-              Worn {item.timesWorn}x
-            </ThemedText>
+          {item.isFavorite ? (
+            <LinearGradient
+              colors={[LUXURY_COLORS.rose, LUXURY_COLORS.coral]}
+              style={styles.favoriteIndicator}
+            >
+              <Feather name="heart" size={10} color="#FFFFFF" />
+            </LinearGradient>
+          ) : null}
+          <View style={styles.categoryIndicator}>
+            <LinearGradient
+              colors={categoryColors.gradient}
+              style={styles.categoryDot}
+            />
           </View>
         </View>
-        {item.isFavorite ? (
-          <LinearGradient
-            colors={[LUXURY_COLORS.rose, LUXURY_COLORS.coral]}
-            style={styles.favoriteIndicator}
-          >
-            <Feather name="heart" size={10} color="#FFFFFF" />
-          </LinearGradient>
-        ) : null}
-        <View style={styles.categoryIndicator}>
-          <LinearGradient
-            colors={categoryColors.gradient}
-            style={styles.categoryDot}
-          />
+        <View style={styles.itemMeta}>
+          <ThemedText type="small" numberOfLines={2} style={styles.itemNameBelow}>
+            {item.name}
+          </ThemedText>
+          <ThemedText type="caption" style={styles.itemWornBelow}>
+            Worn {item.timesWorn}x
+          </ThemedText>
         </View>
       </Pressable>
     );
@@ -758,15 +756,23 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               <>
                 <View style={[
                   styles.modalImageWrapper,
-                  { backgroundColor: wardrobeTileBackground(isDark) },
+                  {
+                    backgroundColor: selectedItem.imageProcessed || selectedItem.aiAnalyzed
+                      ? wardrobeProcessedTileBackground()
+                      : wardrobeTileBackground(isDark),
+                  },
                 ]}>
                   <WardrobeItemImage
                     item={selectedItem}
                     style={styles.modalImage}
                     processed={!!(selectedItem.imageProcessed || selectedItem.aiAnalyzed)}
-                    preferCover={!!(selectedItem.imageProcessed || selectedItem.aiAnalyzed)}
+                    preferCover={!(selectedItem.imageProcessed || selectedItem.aiAnalyzed)}
                     transition={300}
-                    tileBackgroundColor={wardrobeTileBackground(isDark)}
+                    tileBackgroundColor={
+                      selectedItem.imageProcessed || selectedItem.aiAnalyzed
+                        ? wardrobeProcessedTileBackground()
+                        : wardrobeTileBackground(isDark)
+                    }
                   />
                 </View>
 
@@ -1062,12 +1068,17 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           </View>
         ) : null}
 
-        {batchBgProgress && isReprocessingAll ? (
+        {(batchBgProgress && isReprocessingAll) || backgroundRemovalProgress?.active ? (
           <View style={[styles.batchProgressBanner, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
             <ActivityIndicator size="small" color="#FFFFFF" />
             <ThemedText type="caption" style={{ color: '#FFFFFF', marginLeft: Spacing.sm }}>
-              Removing backgrounds {batchBgProgress.processed}/{batchBgProgress.total}
-              {batchBgProgress.failed > 0 ? ` (${batchBgProgress.failed} failed)` : ''}
+              Removing backgrounds{' '}
+              {backgroundRemovalProgress?.active
+                ? `${backgroundRemovalProgress.processed}/${backgroundRemovalProgress.total}`
+                : `${batchBgProgress?.processed ?? 0}/${batchBgProgress?.total ?? 0}`}
+              {(backgroundRemovalProgress?.failed || batchBgProgress?.failed || 0) > 0
+                ? ` (${backgroundRemovalProgress?.failed ?? batchBgProgress?.failed ?? 0} failed)`
+                : ''}
             </ThemedText>
           </View>
         ) : null}
@@ -1709,7 +1720,6 @@ const styles = StyleSheet.create({
   itemCard: {
     width: ITEM_SIZE,
     borderRadius: BorderRadius.lg,
-    overflow: "hidden",
   },
   selectionBadge: {
     position: 'absolute',
@@ -1777,7 +1787,7 @@ const styles = StyleSheet.create({
   },
   itemImageWrapper: {
     width: "100%",
-    height: ITEM_SIZE + 20,
+    height: ITEM_SIZE,
     borderRadius: BorderRadius.lg,
     overflow: "hidden",
   },
@@ -1785,28 +1795,21 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  itemOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
+  itemMeta: {
+    paddingTop: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    minHeight: 42,
   },
-  itemInfoOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: Spacing.sm,
-  },
-  itemNameOverlay: {
+  itemNameBelow: {
     color: '#FFFFFF',
-    fontWeight: "600",
-    marginBottom: 2,
+    fontWeight: '600',
+    lineHeight: 18,
   },
-  itemWornText: {
-    color: 'rgba(255,255,255,0.7)',
+  itemWornBelow: {
+    color: 'rgba(255,255,255,0.72)',
     fontSize: 11,
+    marginTop: 2,
+    lineHeight: 14,
   },
   favoriteIndicator: {
     position: "absolute",

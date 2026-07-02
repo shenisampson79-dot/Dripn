@@ -356,6 +356,7 @@ async function syncBackgroundRemovalForItems(
 
   const idFilter = onlyItemIds ? new Set(onlyItemIds.map(String)) : null;
   const toProcess: { item: WardrobeItem; localUri: string }[] = [];
+  const toServerReprocess: WardrobeItem[] = [];
 
   for (const item of items) {
     if (idFilter && !idFilter.has(String(item.id))) continue;
@@ -367,13 +368,69 @@ async function syncBackgroundRemovalForItems(
       (await resolveLocalWardrobePhoto(item.id, item)) || getLocalImageUri(item, imageCache);
     if (localUri && (await localWardrobeFileExists(localUri))) {
       toProcess.push({ item, localUri });
+    } else if (itemLikelyHasWardrobePhoto(item as any) || isRemoteImageUri(item.imageUri || '')) {
+      toServerReprocess.push(item);
     } else {
       noLocal += 1;
     }
   }
 
-  const total = toProcess.length;
+  const total = toProcess.length + toServerReprocess.length;
   onProgress?.({ processed: 0, total, failed: 0 });
+
+  const applyProcessedImage = async (
+    item: WardrobeItem,
+    remoteUri: string,
+  ): Promise<boolean> => {
+    const isCutout = isProcessedWardrobeCdnUrl(remoteUri);
+    if (!isCutout && !isProxyWardrobeImageUri(remoteUri)) {
+      return false;
+    }
+
+    invalidateWardrobeImageCache(item.id);
+
+    await apiService.init();
+    const token = await apiService.getToken();
+    const fetchHeaders =
+      isProxyWardrobeImageUri(remoteUri) && token
+        ? { Authorization: `Bearer ${token}` }
+        : undefined;
+
+    const localCutout = await downloadWardrobePhotoToPermanentStorage(
+      remoteUri,
+      item.id,
+      fetchHeaders ? { headers: fetchHeaders } : undefined,
+    );
+
+    if (!localCutout && !isProcessedWardrobeCdnUrl(remoteUri)) {
+      return false;
+    }
+
+    const displayUri = localCutout || remoteUri;
+
+    await updateImageCacheEntry(String(item.id), {
+      imageUri: displayUri,
+      enhancedImageUri: displayUri,
+      originalImageUri: displayUri,
+      imageProcessed: true,
+    });
+    setItems((prev) => {
+      const next = prev.map((row) =>
+        String(row.id) === String(item.id)
+          ? {
+              ...row,
+              imageUri: displayUri,
+              enhancedImageUri: displayUri,
+              originalImageUri: displayUri,
+              imageProcessed: true,
+            }
+          : row,
+      );
+      itemsRef.current = next;
+      return next;
+    });
+    return true;
+  };
 
   let cursor = 0;
   const processOne = async ({ item, localUri }: { item: WardrobeItem; localUri: string }) => {
@@ -381,54 +438,12 @@ async function syncBackgroundRemovalForItems(
       const base64 = await convertImageToBase64(localUri);
       const result = await apiService.uploadWardrobeItemImage(String(item.id), base64, { sync: true });
       if (result.success && result.imageUrl && result.imageProcessed) {
-        const remoteUri = result.imageUrl;
-        const isCutout =
-          isProcessedWardrobeCdnUrl(remoteUri) ||
-          isProxyWardrobeImageUri(remoteUri);
-        if (!isCutout) {
+        const applied = await applyProcessedImage(item, result.imageUrl);
+        if (applied) {
+          fixed += 1;
+        } else {
           failed += 1;
-          onProgress?.({ processed: fixed + failed, total, failed });
-          return;
         }
-
-        invalidateWardrobeImageCache(item.id);
-
-        await apiService.init();
-        const token = await apiService.getToken();
-        const fetchHeaders =
-          isProxyWardrobeImageUri(remoteUri) && token
-            ? { Authorization: `Bearer ${token}` }
-            : undefined;
-
-        const localCutout = await downloadWardrobePhotoToPermanentStorage(
-          remoteUri,
-          item.id,
-          fetchHeaders ? { headers: fetchHeaders } : undefined,
-        );
-        const displayUri = localCutout || remoteUri;
-
-        await updateImageCacheEntry(String(item.id), {
-          imageUri: displayUri,
-          enhancedImageUri: displayUri,
-          originalImageUri: localUri,
-          imageProcessed: true,
-        });
-        setItems((prev) => {
-          const next = prev.map((row) =>
-            String(row.id) === String(item.id)
-              ? {
-                  ...row,
-                  imageUri: displayUri,
-                  enhancedImageUri: displayUri,
-                  originalImageUri: localUri,
-                  imageProcessed: true,
-                }
-              : row,
-          );
-          itemsRef.current = next;
-          return next;
-        });
-        fixed += 1;
       } else {
         failed += 1;
       }
@@ -437,6 +452,26 @@ async function syncBackgroundRemovalForItems(
       failed += 1;
     }
 
+    onProgress?.({ processed: fixed + failed, total, failed });
+  };
+
+  const processServerItem = async (item: WardrobeItem) => {
+    try {
+      const result = await apiService.reprocessItemBackground(String(item.id));
+      if (result.success && result.imageUrl) {
+        const applied = await applyProcessedImage(item, result.imageUrl);
+        if (applied) {
+          fixed += 1;
+        } else {
+          failed += 1;
+        }
+      } else {
+        failed += 1;
+      }
+    } catch (err) {
+      console.warn(`[WardrobeContext] Server BG reprocess failed for ${item.id}:`, err);
+      failed += 1;
+    }
     onProgress?.({ processed: fixed + failed, total, failed });
   };
 
@@ -454,6 +489,10 @@ async function syncBackgroundRemovalForItems(
     () => worker(),
   );
   await Promise.all(workers);
+
+  for (const item of toServerReprocess) {
+    await processServerItem(item);
+  }
 
   return { fixed, failed, skipped, noLocal };
 }
@@ -730,26 +769,49 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           const backendItems = result.items.map((row: any) => {
             const mapped = mapBackendItemToFrontend(row, imageCache, gender);
             const saved = localById.get(String(row.id));
+            const cacheEntry = imageCache[String(row.id)];
+            const serverProcessed =
+              mapped.imageProcessed ||
+              !!row.backgroundRemoved ||
+              !!row.background_removed ||
+              isProcessedWardrobeCdnUrl(mapped.imageUri || '') ||
+              isProcessedWardrobeCdnUrl(mapped.enhancedImageUri || '');
+
+            if (cacheEntry?.imageProcessed && cacheEntry.imageUri) {
+              return {
+                ...mapped,
+                imageUri: cacheEntry.imageUri,
+                enhancedImageUri: cacheEntry.enhancedImageUri || cacheEntry.imageUri,
+                originalImageUri: cacheEntry.originalImageUri || mapped.originalImageUri,
+                imageProcessed: true,
+              };
+            }
+
             if (!saved) return mapped;
 
             const savedLocal =
-              [saved.originalImageUri, saved.imageUri].find(
+              [saved.imageUri, saved.originalImageUri].find(
                 (uri) => typeof uri === 'string' && uri.length > 0 && !isRemoteImageUri(uri),
               ) || '';
 
-            if (savedLocal) {
-              const withLocal = {
+            if (savedLocal && !serverProcessed && !saved.imageProcessed) {
+              return {
                 ...mapped,
                 originalImageUri: savedLocal || mapped.originalImageUri,
                 imageUri: savedLocal,
                 enhancedImageUri: savedLocal,
               };
-              return withLocal;
             }
 
-            if (mapped.imageProcessed || row.backgroundRemoved || row.background_removed) {
-              return mapped;
+            if (serverProcessed || saved.imageProcessed) {
+              return {
+                ...mapped,
+                imageProcessed: true,
+                imageUri: mapped.imageUri || saved.imageUri,
+                enhancedImageUri: mapped.enhancedImageUri || saved.enhancedImageUri || mapped.imageUri,
+              };
             }
+
             if (mapped.imageUri && !isProxyWardrobeImageUri(mapped.imageUri)) return mapped;
             return mapped;
           });

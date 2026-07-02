@@ -40,20 +40,17 @@ type OutfitBuilderScreenProps = {
   navigation: NativeStackNavigationProp<WardrobeStackParamList, 'OutfitBuilder'>;
 };
 
-// Compact Clueless-style reels — width/height computed per device in main screen
-const COMPACT_CENTER_RATIO = 0.46;
-const LABEL_ROW_H = 16;
+// Clueless-style reels — width/height computed per device in main screen
+const COMPACT_CENTER_RATIO = 0.58;
 
-// Category display order (body top → bottom → feet → sides)
-const REEL_ORDER: Array<{ key: ClothingCategory; label: string; icon: keyof typeof Feather.glyphMap }> = [
-  { key: 'outerwear',   label: 'Outer',       icon: 'cloud' },
-  { key: 'tops',        label: 'Top',         icon: 'sun' },
-  { key: 'dresses',     label: 'Dress',       icon: 'heart' },
-  { key: 'formal',      label: 'Formal',      icon: 'star' },
-  { key: 'bottoms',     label: 'Bottom',      icon: 'minus' },
-  { key: 'shoes',       label: 'Shoes',       icon: 'disc' },
-  { key: 'bags',        label: 'Bag',         icon: 'shopping-bag' },
-  { key: 'accessories', label: 'Acc.',        icon: 'watch' },
+// Category display order (body top → bottom → feet)
+const REEL_ORDER: Array<{ key: ClothingCategory }> = [
+  { key: 'outerwear' },
+  { key: 'tops' },
+  { key: 'dresses' },
+  { key: 'formal' },
+  { key: 'bottoms' },
+  { key: 'shoes' },
 ];
 
 const EVENT_TYPES: { value: PlannedEventType; label: string }[] = [
@@ -92,14 +89,10 @@ const DIMENSION_LABELS: Record<string, string> = {
 // ─── Single category reel ────────────────────────────────────────────────────
 
 type CategoryReelProps = {
-  category: ClothingCategory;
-  label: string;
-  icon: keyof typeof Feather.glyphMap;
   items: WardrobeItem[];
   selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  onSelect: (id: string) => void;
   isDark: boolean;
-  theme: any;
   rowHeight: number;
   centerWidth: number;
   sideGap: number;
@@ -108,29 +101,23 @@ type CategoryReelProps = {
 };
 
 function CategoryReel({
-  category,
-  label,
-  icon,
   items,
   selectedId,
   onSelect,
   isDark,
-  theme,
   rowHeight,
   centerWidth,
   sideGap,
   sideInset,
   snapInterval,
 }: CategoryReelProps) {
-  // data = [null (none), ...items]
-  const data = useMemo<(WardrobeItem | null)[]>(() => [null, ...items], [items]);
+  const data = items;
   const listRef = useRef<FlatList>(null);
 
-  // Scroll to the selected item on mount
   const initialIndex = useMemo(() => {
     if (!selectedId) return 0;
     const idx = items.findIndex(i => i.id === selectedId);
-    return idx >= 0 ? idx + 1 : 0;
+    return idx >= 0 ? idx : 0;
   }, []);
 
   const handleScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -138,13 +125,13 @@ function CategoryReel({
     const index = Math.round(x / snapInterval);
     const clamped = Math.max(0, Math.min(index, data.length - 1));
     const item = data[clamped];
+    if (!item) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onSelect(item ? item.id : null);
+    onSelect(item.id);
   }, [data, onSelect, snapInterval]);
 
-  const renderItem = useCallback(({ item }: { item: WardrobeItem | null; index: number }) => {
-    const isSelected = item ? item.id === selectedId : selectedId === null;
-    const isNone = item === null;
+  const renderItem = useCallback(({ item }: { item: WardrobeItem; index: number }) => {
+    const isSelected = item.id === selectedId;
 
     return (
       <View style={[styles.reelItemContainer, { width: centerWidth, height: rowHeight }]}>
@@ -155,48 +142,30 @@ function CategoryReel({
             !isSelected && { opacity: 0.42 },
           ]}
         >
-          {isNone ? (
-            <View style={styles.reelNone}>
-              <Feather name="x" size={16} color={isDark ? '#555' : '#ccc'} />
-            </View>
-          ) : item ? (
-            <View style={[
-              styles.reelImageWrap,
-              { backgroundColor: wardrobeImageBackground(isDark, item) || (isDark ? '#2C2C2E' : '#EBEBEF') },
-            ]}>
-              <WardrobeItemImage
-                item={item}
-                style={styles.reelImage}
-                processed={!!(item.imageProcessed || item.aiAnalyzed)}
-                contentFit="cover"
-                preferCover
-              />
-            </View>
-          ) : (
-            <View style={styles.reelNone}>
-              <Feather name="image" size={16} color={isDark ? '#444' : '#ccc'} />
-            </View>
-          )}
+          <View style={[
+            styles.reelImageWrap,
+            { backgroundColor: wardrobeImageBackground(isDark, item) || (isDark ? '#2C2C2E' : '#EBEBEF') },
+          ]}>
+            <WardrobeItemImage
+              item={item}
+              style={styles.reelImage}
+              processed={!!(item.imageProcessed || item.aiAnalyzed)}
+              contentFit="contain"
+            />
+          </View>
         </View>
       </View>
     );
   }, [selectedId, isDark, rowHeight, centerWidth]);
 
   return (
-    <View style={[styles.reelRow, { height: rowHeight + LABEL_ROW_H }]}>
-      <View style={styles.reelLabelRow}>
-        <Feather name={icon} size={10} color={theme.link} />
-        <ThemedText type="caption" style={[styles.reelLabel, { color: theme.link }]}>
-          {label}
-        </ThemedText>
-      </View>
-
+    <View style={[styles.reelRow, { height: rowHeight }]}>
       <View style={{ position: 'relative', height: rowHeight }}>
         <FlatList
           ref={listRef}
           data={data}
           renderItem={renderItem}
-          keyExtractor={(item, i) => item ? item.id : `none-${i}`}
+          keyExtractor={(item) => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
           snapToInterval={snapInterval}
@@ -290,12 +259,14 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     const headerBlock = 52;
     const scoreBlock = 58;
     const footerBlock = 96;
+    const rowGap = 8;
     const available = SH - insets.top - insets.bottom - headerBlock - scoreBlock - footerBlock;
-    const perRow = Math.floor(available / Math.max(activeReels.length, 1)) - LABEL_ROW_H - 2;
-    return Math.max(44, Math.min(68, perRow));
+    const gaps = Math.max(activeReels.length - 1, 0) * rowGap;
+    const perRow = Math.floor((available - gaps) / Math.max(activeReels.length, 1));
+    return Math.max(80, Math.min(132, perRow));
   }, [activeReels.length, insets.top, insets.bottom]);
 
-  const handleSelect = useCallback((cat: ClothingCategory, id: string | null) => {
+  const handleSelect = useCallback((cat: ClothingCategory, id: string) => {
     setSelection(prev => ({ ...prev, [cat]: id }));
   }, []);
 
@@ -510,17 +481,13 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
         </View>
       ) : (
         <View style={[styles.builderBody, { paddingBottom: insets.bottom + 88 }]}>
-          {activeReels.map(({ key, label, icon }) => (
+          {activeReels.map(({ key }) => (
             <CategoryReel
               key={key}
-              category={key}
-              label={label}
-              icon={icon}
               items={itemsByCategory[key] ?? []}
               selectedId={selection[key] ?? null}
               onSelect={id => handleSelect(key, id)}
               isDark={isDark}
-              theme={theme}
               rowHeight={compactRowHeight}
               centerWidth={layoutMetrics.centerWidth}
               sideGap={layoutMetrics.sideGap}
@@ -758,7 +725,8 @@ const styles = StyleSheet.create({
   builderBody: {
     flex: 1,
     justifyContent: 'space-evenly',
-    paddingTop: 2,
+    paddingTop: 4,
+    gap: 8,
   },
   backBtn: {
     padding: Spacing.sm,
@@ -770,20 +738,6 @@ const styles = StyleSheet.create({
   // Reel
   reelRow: {
     overflow: 'hidden',
-  },
-  reelLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: 2,
-    height: LABEL_ROW_H,
-  },
-  reelLabel: {
-    fontWeight: '700',
-    fontSize: 10,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
   },
   reelListContent: {},
   reelItemContainer: {
@@ -803,10 +757,6 @@ const styles = StyleSheet.create({
   reelImage: {
     width: '100%',
     height: '100%',
-  },
-  reelNone: {
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   // Save FAB

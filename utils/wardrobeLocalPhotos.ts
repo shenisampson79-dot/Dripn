@@ -82,7 +82,21 @@ export async function resolveLocalWardrobePhoto(
 }
 
 export async function hydrateWardrobeItemWithLocalPhoto(item: WardrobeItem): Promise<WardrobeItem> {
-  const local = await resolveLocalWardrobePhoto(item.id, item);
+  const permanent = await resolvePermanentWardrobePhoto(item.id);
+
+  if (item.imageProcessed) {
+    if (permanent) {
+      return {
+        ...item,
+        imageUri: permanent,
+        enhancedImageUri: permanent,
+        originalImageUri: item.originalImageUri || permanent,
+      };
+    }
+    return item;
+  }
+
+  const local = permanent || (await resolveLocalWardrobePhoto(item.id, item));
   if (!local) return item;
 
   return {
@@ -102,12 +116,21 @@ export async function migrateWardrobeItemsToPermanentPhotos(items: WardrobeItem[
   for (const item of items) {
     const existing = await resolvePermanentWardrobePhoto(item.id);
     if (existing) {
-      migrated.push({
-        ...item,
-        originalImageUri: existing,
-        imageUri: existing,
-        enhancedImageUri: existing,
-      });
+      if (item.imageProcessed) {
+        migrated.push({
+          ...item,
+          imageUri: existing,
+          enhancedImageUri: existing,
+          originalImageUri: item.originalImageUri || existing,
+        });
+      } else {
+        migrated.push({
+          ...item,
+          originalImageUri: existing,
+          imageUri: existing,
+          enhancedImageUri: existing,
+        });
+      }
       continue;
     }
 
