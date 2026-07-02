@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/ApiService';
 import { convertImageToBase64 } from '@/services/VisionAnalysisService';
-import { buildWardrobeImageProxyUrl, itemLikelyHasWardrobePhoto, isDurableWardrobeCdnUrl, isProxyWardrobeImageUri, isRemoteImageUri } from '@/utils/wardrobeImage';
+import { buildWardrobeImageProxyUrl, itemLikelyHasWardrobePhoto, isDurableWardrobeCdnUrl, isProcessedWardrobeCdnUrl, isProxyWardrobeImageUri, isRemoteImageUri } from '@/utils/wardrobeImage';
 import {
   normalizeWardrobeCategoryForGender,
   resolveUserPresentationGender,
@@ -25,6 +25,11 @@ import {
 import { persistWardrobePhotoToAppStorage } from '@/utils/persistWardrobePhoto';
 import { getTierFeatures } from '@/utils/tierMatrix';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import {
+  completeOutfitItemIds,
+  isCompleteOutfit,
+  MIN_OUTFIT_ITEMS,
+} from '@/utils/completeOutfit';
 
 function itemHasProcessedCdnImage(item: Pick<WardrobeItem, 'imageUri' | 'enhancedImageUri' | 'imageProcessed'>): boolean {
   const urls = [item.enhancedImageUri, item.imageUri].filter(Boolean) as string[];
@@ -32,7 +37,7 @@ function itemHasProcessedCdnImage(item: Pick<WardrobeItem, 'imageUri' | 'enhance
     (u) =>
       isRemoteImageUri(u) &&
       !isProxyWardrobeImageUri(u) &&
-      isDurableWardrobeCdnUrl(u),
+      isProcessedWardrobeCdnUrl(u),
   );
 }
 
@@ -201,11 +206,17 @@ interface WardrobeContextType {
   isLoading: boolean;
   error: string | null;
   addItem: (item: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>) => Promise<WardrobeItem>;
-  addItemsBatch: (items: Array<Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>>) => Promise<WardrobeItem[]>;
+  addItemsBatch: (
+    items: Array<Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>>,
+    options?: { onBackgroundProgress?: (progress: { processed: number; total: number; failed: number }) => void },
+  ) => Promise<WardrobeItem[]>;
   updateItem: (id: string, updates: Partial<WardrobeItem>) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
   deleteItems: (ids: string[]) => Promise<void>;
-  fixBackgroundsFromCache: (onProgress?: (progress: { processed: number; total: number; failed: number }) => void) => Promise<{ fixed: number; failed: number; skipped: number; noLocal: number }>;
+  fixBackgroundsFromCache: (
+    onProgress?: (progress: { processed: number; total: number; failed: number }) => void,
+    onlyItemIds?: string[],
+  ) => Promise<{ fixed: number; failed: number; skipped: number; noLocal: number }>;
   wardrobePhotosUnavailable: boolean;
   markItemWorn: (id: string) => Promise<void>;
   toggleItemFavorite: (id: string) => Promise<void>;
@@ -316,6 +327,83 @@ async function attachPersistedLocalPhotos(item: WardrobeItem): Promise<WardrobeI
   };
 }
 
+async function syncBackgroundRemovalForItems(
+  items: WardrobeItem[],
+  imageCache: ImageCache,
+  updateImageCacheEntry: (id: string, images: { imageUri?: string; enhancedImageUri?: string; originalImageUri?: string; imageProcessed?: boolean }) => Promise<void>,
+  setItems: React.Dispatch<React.SetStateAction<WardrobeItem[]>>,
+  itemsRef: React.MutableRefObject<WardrobeItem[]>,
+  onProgress?: (progress: { processed: number; total: number; failed: number }) => void,
+  onlyItemIds?: string[],
+): Promise<{ fixed: number; failed: number; skipped: number; noLocal: number }> {
+  let fixed = 0;
+  let failed = 0;
+  let skipped = 0;
+  let noLocal = 0;
+
+  const idFilter = onlyItemIds ? new Set(onlyItemIds.map(String)) : null;
+  const toProcess: { item: WardrobeItem; localUri: string }[] = [];
+
+  for (const item of items) {
+    if (idFilter && !idFilter.has(String(item.id))) continue;
+    if (item.imageProcessed && itemHasProcessedCdnImage(item)) {
+      skipped += 1;
+      continue;
+    }
+    const localUri =
+      (await resolveLocalWardrobePhoto(item.id, item)) || getLocalImageUri(item, imageCache);
+    if (localUri && (await localWardrobeFileExists(localUri))) {
+      toProcess.push({ item, localUri });
+    } else {
+      noLocal += 1;
+    }
+  }
+
+  const total = toProcess.length;
+  onProgress?.({ processed: 0, total, failed: 0 });
+
+  for (const { item, localUri } of toProcess) {
+    try {
+      const base64 = await convertImageToBase64(localUri);
+      const result = await apiService.uploadWardrobeItemImage(String(item.id), base64, { sync: true });
+      if (result.success && result.imageUrl && result.imageProcessed) {
+        const processedUri = result.imageUrl;
+        await updateImageCacheEntry(String(item.id), {
+          imageUri: processedUri,
+          enhancedImageUri: processedUri,
+          originalImageUri: localUri,
+          imageProcessed: true,
+        });
+        setItems((prev) => {
+          const next = prev.map((row) =>
+            String(row.id) === String(item.id)
+              ? {
+                  ...row,
+                  imageUri: processedUri,
+                  enhancedImageUri: processedUri,
+                  originalImageUri: localUri,
+                  imageProcessed: true,
+                }
+              : row,
+          );
+          itemsRef.current = next;
+          return next;
+        });
+        fixed += 1;
+      } else {
+        failed += 1;
+      }
+    } catch (err) {
+      console.warn(`[WardrobeContext] BG removal failed for ${item.id}:`, err);
+      failed += 1;
+    }
+
+    onProgress?.({ processed: fixed + failed, total, failed });
+  }
+
+  return { fixed, failed, skipped, noLocal };
+}
+
 async function backfillMissingServerImages(
   items: WardrobeItem[],
   imageCache: ImageCache,
@@ -366,16 +454,22 @@ function mapBackendItemToFrontend(
   const cachedOriginal = imgs.originalImageUri || (meta as any).originalImageUri || '';
   const apiBackgroundRemoved = !!(row.backgroundRemoved || row.background_removed);
   const cacheProcessed = !!imgs.imageProcessed;
-  const hasReplicateCdn = itemHasProcessedCdnImage({
-    imageUri: httpRaw || httpProcessed,
-    enhancedImageUri: httpProcessed || httpRaw,
-  });
+  const hasProcessedCdn =
+    isProcessedWardrobeCdnUrl(httpProcessed) ||
+    isProcessedWardrobeCdnUrl(imgs.enhancedImageUri || '') ||
+    itemHasProcessedCdnImage({
+      imageUri: httpRaw,
+      enhancedImageUri: httpProcessed,
+    });
   const serverHasStoredImage = itemLikelyHasWardrobePhoto(row);
-  const backgroundRemoved = hasReplicateCdn || apiBackgroundRemoved || (cacheProcessed && serverHasStoredImage);
+  const backgroundRemoved =
+    hasProcessedCdn ||
+    (apiBackgroundRemoved && isProcessedWardrobeCdnUrl(httpProcessed)) ||
+    (cacheProcessed && hasProcessedCdn && serverHasStoredImage);
   const localCachedUri = cachedUri && !isRemoteImageUri(cachedUri) ? cachedUri : '';
   const localOriginalUri =
     (cachedOriginal && !isRemoteImageUri(cachedOriginal) ? cachedOriginal : '') || localCachedUri;
-  const replicateUri = hasReplicateCdn ? (httpProcessed || httpRaw) : '';
+  const replicateUri = hasProcessedCdn ? (httpProcessed || httpRaw) : '';
   const cachedProxyUri = cachedUri && isProxyWardrobeImageUri(cachedUri) ? cachedUri : '';
   const proxyFromApi =
     (isProxyWardrobeImageUri(processedUrl) && processedUrl) ||
@@ -473,6 +567,8 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
 
   const itemsRef = React.useRef<WardrobeItem[]>([]);
   itemsRef.current = items;
+  const plannedOutfitsRef = React.useRef<PlannedOutfit[]>([]);
+  plannedOutfitsRef.current = plannedOutfits;
 
   const getImageCache = async (): Promise<ImageCache> => {
     try {
@@ -525,6 +621,7 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       const all: PlannedOutfit[] = existing ? JSON.parse(existing) : [];
       const others = all.filter(p => p.userId !== user?.id);
       await AsyncStorage.setItem(PLANNED_STORAGE_KEY, JSON.stringify([...others, ...newPlanned]));
+      plannedOutfitsRef.current = newPlanned;
       setPlannedOutfits(newPlanned);
     } catch (err) {
       console.error('[WardrobeContext] Failed to save planned outfits:', err);
@@ -791,7 +888,8 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const addItemsBatch = useCallback(async (
-    itemsData: Array<Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>>
+    itemsData: Array<Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>>,
+    options?: { onBackgroundProgress?: (progress: { processed: number; total: number; failed: number }) => void },
   ): Promise<WardrobeItem[]> => {
     if (!user) throw new Error('Not authenticated');
     const tierFeatures = getTierFeatures(user.subscriptionTier);
@@ -848,15 +946,8 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
           const backendId = String(backendItem.id);
           const localUri = originalItem.originalImageUri || originalItem.imageUri;
 
-          imageCache[backendId] = {
-            imageUri: localUri,
-            enhancedImageUri: originalItem.enhancedImageUri,
-            originalImageUri: localUri,
-            imageProcessed: false,
-          };
-
           const mapped = mapBackendItemToFrontend(backendItem, imageCache, gender);
-          newItems.push({
+          const withPhoto = await attachPersistedLocalPhotos({
             ...mapped,
             ...originalItem,
             id: backendId,
@@ -870,22 +961,35 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
             imageProcessed: mapped.imageProcessed,
             aiAnalyzed: originalItem.aiAnalyzed ?? mapped.aiAnalyzed,
           });
+
+          imageCache[backendId] = {
+            imageUri: withPhoto.imageUri,
+            enhancedImageUri: withPhoto.enhancedImageUri,
+            originalImageUri: withPhoto.originalImageUri || withPhoto.imageUri,
+            imageProcessed: false,
+          };
+
+          newItems.push(withPhoto);
         }
 
         await setImageCache(imageCache);
         const updatedItems = [...itemsRef.current, ...newItems];
         setItems(updatedItems);
+        itemsRef.current = updatedItems;
         await saveFullLocalCache(updatedItems);
 
-        backfillMissingServerImages(newItems, imageCache)
-          .then((count) => {
-            if (count > 0) {
-              setTimeout(() => loadWardrobe({ showLoader: false }), 15000);
-            }
-          })
-          .catch(() => {});
+        await syncBackgroundRemovalForItems(
+          newItems,
+          imageCache,
+          updateImageCacheEntry,
+          setItems,
+          itemsRef,
+          options?.onBackgroundProgress,
+        );
 
-        return newItems;
+        return itemsRef.current.filter((row) =>
+          newItems.some((item) => String(item.id) === String(row.id)),
+        );
       }
     } catch (err) {
       console.log('[WardrobeContext] Batch backend upload failed, saving locally:', err);
@@ -1017,77 +1121,28 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
 
   const fixBackgroundsFromCache = useCallback(async (
     onProgress?: (progress: { processed: number; total: number; failed: number }) => void,
+    onlyItemIds?: string[],
   ) => {
     const imageCache = await getImageCache();
-    let fixed = 0;
-    let failed = 0;
-    let skipped = 0;
-    let noLocal = 0;
+    const result = await syncBackgroundRemovalForItems(
+      itemsRef.current,
+      imageCache,
+      updateImageCacheEntry,
+      setItems,
+      itemsRef,
+      onProgress,
+      onlyItemIds,
+    );
 
-    const toProcess: { item: WardrobeItem; localUri: string }[] = [];
-    for (const item of itemsRef.current) {
-      const localUri =
-        (await resolveLocalWardrobePhoto(item.id, item)) || getLocalImageUri(item, imageCache);
-      if (localUri && (await localWardrobeFileExists(localUri))) {
-        toProcess.push({ item, localUri });
-      } else {
-        noLocal += 1;
-      }
-    }
-
-    const total = toProcess.length;
-    onProgress?.({ processed: 0, total, failed: 0 });
-
-    for (const { item, localUri } of toProcess) {
-      try {
-        const base64 = await convertImageToBase64(localUri);
-        const result = await apiService.uploadWardrobeItemImage(String(item.id), base64, { sync: true });
-        if (result.success && result.imageUrl) {
-          const processedUri = result.imageUrl;
-          await updateImageCacheEntry(String(item.id), {
-            imageUri: processedUri,
-            enhancedImageUri: processedUri,
-            originalImageUri: localUri,
-            imageProcessed: true,
-          });
-          setItems((prev) => {
-            const next = prev.map((row) =>
-              String(row.id) === String(item.id)
-                ? {
-                    ...row,
-                    imageUri: processedUri,
-                    enhancedImageUri: processedUri,
-                    originalImageUri: localUri,
-                    imageProcessed: true,
-                  }
-                : row,
-            );
-            itemsRef.current = next;
-            return next;
-          });
-          fixed += 1;
-        } else {
-          failed += 1;
-        }
-      } catch (err) {
-        console.warn(`[WardrobeContext] BG fix failed for ${item.id}:`, err);
-        failed += 1;
-      }
-
-      onProgress?.({ processed: fixed + failed, total, failed });
-    }
-
-    skipped = Math.max(0, itemsRef.current.length - toProcess.length - noLocal);
-
-    if (fixed > 0) {
+    if (result.fixed > 0) {
       await saveFullLocalCache(itemsRef.current);
       await loadWardrobe({ showLoader: false });
       setWardrobePhotosUnavailable(false);
-    } else if (noLocal > 0) {
+    } else if (result.noLocal > 0 && (!onlyItemIds || onlyItemIds.length === 0)) {
       setWardrobePhotosUnavailable(true);
     }
 
-    return { fixed, failed, skipped, noLocal };
+    return result;
   }, [loadWardrobe]);
 
   const markItemWorn = useCallback(async (id: string) => {
@@ -1168,17 +1223,22 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     planData: Omit<PlannedOutfit, 'id' | 'userId' | 'createdAt' | 'wasWorn'>
   ): Promise<PlannedOutfit> => {
     if (!user) throw new Error('Not authenticated');
+    const completedIds = completeOutfitItemIds(planData.itemIds.map(String), itemsRef.current);
+    if (!isCompleteOutfit(completedIds, itemsRef.current)) {
+      throw new Error(`Outfit must include at least ${MIN_OUTFIT_ITEMS} items with shoes or trainers`);
+    }
     const newPlan: PlannedOutfit = {
       ...planData,
+      itemIds: completedIds,
       id: `plan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       userId: user.id,
       wasWorn: false,
       createdAt: new Date().toISOString(),
     };
-    const updatedPlanned = [...plannedOutfits, newPlan];
+    const updatedPlanned = [...plannedOutfitsRef.current, newPlan];
     await savePlannedOutfits(updatedPlanned);
     return newPlan;
-  }, [user, plannedOutfits]);
+  }, [user]);
 
   const deletePlannedOutfit = useCallback(async (id: string) => {
     const updatedPlanned = plannedOutfits.filter(plan => plan.id !== id);
@@ -1194,12 +1254,20 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     id: string,
     updates: { itemIds?: string[]; eventName?: string; eventType?: PlannedEventType; notes?: string }
   ) => {
+    const normalizedUpdates = { ...updates };
+    if (updates.itemIds) {
+      const completedIds = completeOutfitItemIds(updates.itemIds.map(String), itemsRef.current);
+      if (!isCompleteOutfit(completedIds, itemsRef.current)) {
+        throw new Error(`Outfit must include at least ${MIN_OUTFIT_ITEMS} items with shoes or trainers`);
+      }
+      normalizedUpdates.itemIds = completedIds;
+    }
     const updatedPlanned = plannedOutfits.map(plan =>
-      plan.id === id ? { ...plan, ...updates } : plan
+      plan.id === id ? { ...plan, ...normalizedUpdates } : plan
     );
     await savePlannedOutfits(updatedPlanned);
     try {
-      await apiService.updateOutfitCalendarEntry(id, updates);
+      await apiService.updateOutfitCalendarEntry(id, normalizedUpdates);
     } catch (err) {
       console.log('[WardrobeContext] Backend PUT outfit-calendar failed (local already updated):', err);
     }
@@ -1306,15 +1374,17 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
       for (const bottom of bottoms.slice(0, 3)) {
         const matchingShoe = shoes.find(s =>
           s.color === top.color || s.color === bottom.color || s.color === 'black' || s.color === 'white'
-        );
-        const itemIds = [top.id, bottom.id];
-        if (matchingShoe) itemIds.push(matchingShoe.id);
+        ) || shoes[0];
+        const baseIds = [top.id, bottom.id];
+        if (matchingShoe) baseIds.push(matchingShoe.id);
         if (season === 'winter' || season === 'autumn') {
           const matchingOuterwear = outerwear.find(o =>
             o.color === 'black' || o.color === 'navy' || o.color === top.color
           );
-          if (matchingOuterwear) itemIds.push(matchingOuterwear.id);
+          if (matchingOuterwear) baseIds.push(matchingOuterwear.id);
         }
+        const itemIds = completeOutfitItemIds(baseIds, items);
+        if (!isCompleteOutfit(itemIds, items)) continue;
         newSuggestions.push({
           id: `suggestion_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           itemIds,
@@ -1331,9 +1401,11 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     for (const dress of dresses.slice(0, 3)) {
       const matchingShoe = shoes.find(s =>
         s.color === dress.color || s.color === 'black' || s.color === 'beige'
-      );
-      const itemIds = [dress.id];
-      if (matchingShoe) itemIds.push(matchingShoe.id);
+      ) || shoes[0];
+      const baseIds = [dress.id];
+      if (matchingShoe) baseIds.push(matchingShoe.id);
+      const itemIds = completeOutfitItemIds(baseIds, items);
+      if (!isCompleteOutfit(itemIds, items)) continue;
       newSuggestions.push({
         id: `suggestion_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         itemIds,
@@ -1359,12 +1431,12 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
     const tops = filteredItems.filter(i => i.category === 'tops');
     const bottoms = filteredItems.filter(i => i.category === 'bottoms');
     const shoes = filteredItems.filter(i => i.category === 'shoes');
-    if (tops.length === 0 || bottoms.length === 0) return null;
+    if (tops.length === 0 || bottoms.length === 0 || shoes.length === 0) return null;
     const randomTop = tops[Math.floor(Math.random() * tops.length)];
     const randomBottom = bottoms[Math.floor(Math.random() * bottoms.length)];
-    const randomShoe = shoes.length > 0 ? shoes[Math.floor(Math.random() * shoes.length)] : null;
-    const itemIds = [randomTop.id, randomBottom.id];
-    if (randomShoe) itemIds.push(randomShoe.id);
+    const randomShoe = shoes[Math.floor(Math.random() * shoes.length)];
+    const itemIds = completeOutfitItemIds([randomTop.id, randomBottom.id, randomShoe.id], filteredItems);
+    if (!isCompleteOutfit(itemIds, filteredItems)) return null;
     return {
       id: `shuffle_${Date.now()}`,
       itemIds,

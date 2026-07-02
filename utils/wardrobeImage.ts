@@ -19,6 +19,13 @@ export function isProxyWardrobeImageUri(uri?: string | null): boolean {
   return typeof uri === 'string' && uri.includes('/api/wardrobe/') && uri.endsWith('/image');
 }
 
+/** Permanent CDN URLs for bg-removed cutouts (not raw originals). */
+export function isProcessedWardrobeCdnUrl(uri: string): boolean {
+  if (uri.includes('replicate.delivery') || uri.includes('replicate.com')) return true;
+  if (uri.includes('res.cloudinary.com')) return /_processed(\.|\/|$)/i.test(uri);
+  return false;
+}
+
 /** Permanent CDN URLs that do not expire (Cloudinary) or legacy Replicate delivery. */
 export function isDurableWardrobeCdnUrl(uri: string): boolean {
   return (
@@ -32,14 +39,18 @@ export function buildWardrobeImageProxyUrl(itemId: string | number): string {
   return `${API_URL}/api/wardrobe/${itemId}/image`;
 }
 
-/** Indyx-style white tile for clothing cut-outs (light) and dark-mode equivalent. */
-export const WARDROBE_TILE_BG_LIGHT = '#FAFAFA';
+/** Indyx-style white tile for clothing cut-outs — always white, even in dark mode. */
+export const WARDROBE_CUTOUT_TILE_BG = '#FFFFFF';
+export const WARDROBE_TILE_BG_LIGHT = '#FFFFFF';
 export const WARDROBE_TILE_BG_DARK = '#2C2C2E';
-/** Inset so white-on-white processed cut-outs stay visible on white tiles. */
-export const WARDROBE_PROCESSED_IMAGE_INSET = 10;
 
 export function wardrobeTileBackground(isDark: boolean): string {
   return isDark ? WARDROBE_TILE_BG_DARK : WARDROBE_TILE_BG_LIGHT;
+}
+
+/** Processed / bg-removed items always sit on a white product tile. */
+export function wardrobeProcessedTileBackground(): string {
+  return WARDROBE_CUTOUT_TILE_BG;
 }
 
 type ImageFields = Pick<
@@ -160,8 +171,8 @@ export function wardrobeImageContentFit(
   usingFallback: boolean,
   preferCover = false,
 ): 'contain' | 'cover' {
+  if (item.imageProcessed || item.aiAnalyzed) return 'contain';
   if (preferCover || usingFallback) return 'cover';
-  if (item.imageProcessed || item.aiAnalyzed) return 'cover';
   return 'cover';
 }
 
@@ -186,7 +197,7 @@ export function enrichWardrobeItemForDisplay(item: ImageFields): ImageFields {
     ...item,
     imageUri: uri,
     enhancedImageUri: item.enhancedImageUri || uri,
-    imageProcessed: item.imageProcessed || isProxyWardrobeImageUri(uri),
+    imageProcessed: item.imageProcessed,
   };
 }
 
