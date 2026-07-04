@@ -43,8 +43,17 @@ type OutfitBuilderScreenProps = {
 };
 
 // Clueless-style reels — width/height computed per device in main screen
-const COMPACT_CENTER_RATIO = 0.62;
-const REEL_IMAGE_SCALE = 1.22;
+const COMPACT_CENTER_RATIO = 0.66;
+/** Per-category zoom inside reel tiles — outerwear runs large so keep it smaller. */
+const REEL_IMAGE_SCALE_BY_CATEGORY: Partial<Record<ClothingCategory, number>> = {
+  outerwear: 0.92,
+  tops: 1.42,
+  dresses: 1.38,
+  formal: 1.34,
+  bottoms: 1.44,
+  shoes: 1.48,
+};
+const DEFAULT_REEL_IMAGE_SCALE = 1.4;
 
 // Category display order (body top → bottom → feet)
 const REEL_ORDER: Array<{ key: ClothingCategory }> = [
@@ -92,6 +101,7 @@ const DIMENSION_LABELS: Record<string, string> = {
 // ─── Single category reel ────────────────────────────────────────────────────
 
 type CategoryReelProps = {
+  category: ClothingCategory;
   items: WardrobeItem[];
   selectedId: string | null;
   onSelect: (id: string) => void;
@@ -104,6 +114,7 @@ type CategoryReelProps = {
 };
 
 function CategoryReel({
+  category,
   items,
   selectedId,
   onSelect,
@@ -144,6 +155,8 @@ function CategoryReel({
     onSelect(item.id);
   }, [data, onSelect, selectedId, snapInterval]);
 
+  const imageScale = REEL_IMAGE_SCALE_BY_CATEGORY[category] ?? DEFAULT_REEL_IMAGE_SCALE;
+
   const renderItem = useCallback(({ item }: { item: WardrobeItem; index: number }) => {
     const isSelected = item.id === selectedId;
 
@@ -165,14 +178,14 @@ function CategoryReel({
               style={styles.reelImage}
               processed={!!(item.imageProcessed || item.aiAnalyzed)}
               contentFit="contain"
-              displayScale={REEL_IMAGE_SCALE}
+              displayScale={imageScale}
               tileBackgroundColor={wardrobeImageBackground(isDark, item) || (isDark ? '#2C2C2E' : '#EBEBEF')}
             />
           </View>
         </View>
       </View>
     );
-  }, [selectedId, isDark, rowHeight, centerWidth]);
+  }, [selectedId, isDark, rowHeight, centerWidth, imageScale]);
 
   return (
     <View style={[styles.reelRow, { height: rowHeight }]}>
@@ -294,7 +307,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     const available = SH - insets.top - headerBlock - scoreBlock - bottomChrome;
     const gaps = Math.max(activeReels.length - 1, 0) * rowGap;
     const perRow = Math.floor((available - gaps) / Math.max(activeReels.length, 1));
-    return Math.max(76, Math.min(128, perRow));
+    return Math.max(78, Math.min(134, perRow));
   }, [activeReels.length, insets.top, bottomNavClearance, showSaveButton]);
 
   const handleSelect = useCallback((cat: ClothingCategory, id: string) => {
@@ -528,6 +541,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
             {activeReels.map(({ key }) => (
               <CategoryReel
                 key={key}
+                category={key}
                 items={itemsByCategory[key] ?? []}
                 selectedId={selection[key] ?? null}
                 onSelect={id => handleSelect(key, id)}
@@ -550,7 +564,9 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
                   end={{ x: 1, y: 0 }}
                   style={styles.saveButtonGradient}
                 >
-                  <Feather name="save" size={17} color="#fff" />
+                  <View style={styles.saveButtonIcon} pointerEvents="none">
+                    <Feather name="save" size={17} color="#fff" />
+                  </View>
                   <ThemedText type="body" style={styles.saveButtonText}>
                     Save Outfit
                   </ThemedText>
@@ -814,9 +830,9 @@ const styles = StyleSheet.create({
 
   // Save button (below last reel)
   saveButton: {
-    alignSelf: 'stretch',
-    maxWidth: 320,
-    width: '100%',
+    alignSelf: 'center',
+    width: '88%',
+    maxWidth: 340,
     borderRadius: BorderRadius.full,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -826,19 +842,28 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   saveButtonGradient: {
-    flexDirection: 'row',
+    position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: Spacing.buttonHeight,
-    paddingHorizontal: Spacing['2xl'],
+    paddingHorizontal: Spacing['3xl'],
     paddingVertical: Spacing.md,
-    gap: Spacing.sm,
+  },
+  saveButtonIcon: {
+    position: 'absolute',
+    left: Spacing.xl,
+    top: 0,
+    bottom: 0,
+    width: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   saveButtonText: {
     color: '#fff',
     fontWeight: '700',
     fontSize: 15,
     textAlign: 'center',
+    width: '100%',
   },
 
   // Empty state
