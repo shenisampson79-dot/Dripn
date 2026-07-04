@@ -4,6 +4,7 @@ import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import pushNotificationService from '@/services/PushNotificationService';
+import weatherService, { type WeatherCondition as OutfitWeatherCondition } from '@/services/WeatherService';
 
 export interface WeatherData {
   temperature: number;
@@ -121,6 +122,47 @@ const WEATHER_CONDITIONS_MAP: Record<string, WeatherData['condition']> = {
   haze: 'foggy',
   wind: 'windy',
 };
+
+function mapOutfitWeatherToNotificationData(
+  weather: OutfitWeatherCondition,
+): WeatherData {
+  const peakTemp = weather.tempMax ?? weather.temperature;
+  let condition: WeatherData['condition'] = weather.condition;
+
+  if (condition === 'sunny' || condition === 'cloudy' || condition === 'foggy') {
+    if (peakTemp >= 30) condition = 'hot';
+    else if (peakTemp <= 5) condition = 'cold';
+  }
+
+  if (weather.windSpeed > 25 && condition !== 'stormy' && condition !== 'rainy') {
+    condition = 'windy';
+  }
+
+  return {
+    temperature: peakTemp,
+    condition,
+    humidity: weather.humidity,
+    description: weather.description,
+    icon: weather.icon,
+    city: weather.location,
+    updatedAt: new Date(weather.timestamp).toISOString(),
+  };
+}
+
+function buildSuggestionFromOutfitRecommendation(
+  weather: WeatherData,
+  recommendation: ReturnType<typeof weatherService.getOutfitRecommendation>,
+): WeatherOutfitSuggestion {
+  return {
+    id: `weather_${Date.now()}`,
+    weather,
+    suggestion: recommendation.stylingNote,
+    outfitTips: [recommendation.fabricTips, ...recommendation.layers].filter(Boolean),
+    itemsToWear: [...recommendation.keyPieces, ...recommendation.accessories],
+    itemsToAvoid: [],
+    generatedAt: new Date().toISOString(),
+  };
+}
 
 function getOutfitSuggestionsForWeather(weather: WeatherData): WeatherOutfitSuggestion {
   const suggestions: Record<WeatherData['condition'], { suggestion: string; tips: string[]; wear: string[]; avoid: string[] }> = {
@@ -347,8 +389,28 @@ export function SmartNotificationsProvider({ children }: { children: ReactNode }
   }, []);
 
   const refreshWeather = useCallback(async (): Promise<void> => {
+    const buildFromLiveWeather = async (): Promise<boolean> => {
+      const liveWeather = await weatherService.getWeatherForOutfits().catch(() => null);
+      if (!liveWeather) return false;
+
+      const weatherData = mapOutfitWeatherToNotificationData(liveWeather);
+      const recommendation = weatherService.getOutfitRecommendation(
+        liveWeather,
+        user?.gender ?? 'unspecified',
+      );
+      const suggestion = buildSuggestionFromOutfitRecommendation(weatherData, recommendation);
+
+      setCurrentWeather(weatherData);
+      setWeatherSuggestion(suggestion);
+      await saveWeatherData(weatherData, suggestion);
+      return true;
+    };
+
     if (Platform.OS === 'web') {
-      const mockWeather: WeatherData = {
+      const usedLive = await buildFromLiveWeather();
+      if (usedLive) return;
+
+      const fallbackWeather: WeatherData = {
         temperature: 12,
         condition: 'cloudy',
         humidity: 65,
@@ -357,69 +419,53 @@ export function SmartNotificationsProvider({ children }: { children: ReactNode }
         city: 'Your City',
         updatedAt: new Date().toISOString(),
       };
-      setCurrentWeather(mockWeather);
-      const suggestion = getOutfitSuggestionsForWeather(mockWeather);
+      setCurrentWeather(fallbackWeather);
+      const suggestion = getOutfitSuggestionsForWeather(fallbackWeather);
       setWeatherSuggestion(suggestion);
-      await saveWeatherData(mockWeather, suggestion);
+      await saveWeatherData(fallbackWeather, suggestion);
       return;
     }
 
     try {
       const { status } = await Location.getForegroundPermissionsAsync();
+      setLocationPermissionStatus(status === 'granted' ? 'granted' : status === 'denied' ? 'denied' : 'undetermined');
+
       if (status !== 'granted') {
-        const mockWeather: WeatherData = {
+        const fallbackWeather: WeatherData = {
           temperature: 15,
           condition: 'cloudy',
           humidity: 60,
-          description: 'Unable to get location',
+          description: 'Enable location for live weather styling',
           icon: 'cloud',
           city: 'Unknown',
           updatedAt: new Date().toISOString(),
         };
-        setCurrentWeather(mockWeather);
-        const suggestion = getOutfitSuggestionsForWeather(mockWeather);
+        setCurrentWeather(fallbackWeather);
+        const suggestion = getOutfitSuggestionsForWeather(fallbackWeather);
         setWeatherSuggestion(suggestion);
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      const weatherConditions: WeatherData['condition'][] = ['sunny', 'cloudy', 'rainy', 'cold', 'windy', 'foggy'];
-      const randomCondition = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
-      const tempRange = {
-        sunny: { min: 20, max: 30 },
-        hot: { min: 30, max: 40 },
-        cloudy: { min: 12, max: 22 },
-        rainy: { min: 10, max: 18 },
-        cold: { min: -5, max: 8 },
-        snowy: { min: -10, max: 2 },
-        windy: { min: 8, max: 18 },
-        stormy: { min: 12, max: 20 },
-        foggy: { min: 5, max: 15 },
-      };
-      const range = tempRange[randomCondition];
-      const temp = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
-
-      const mockWeather: WeatherData = {
-        temperature: temp,
-        condition: randomCondition,
-        humidity: Math.floor(Math.random() * 40) + 40,
-        description: `${randomCondition.charAt(0).toUpperCase() + randomCondition.slice(1)} conditions`,
-        icon: randomCondition,
-        city: 'Your Location',
-        updatedAt: new Date().toISOString(),
-      };
-
-      setCurrentWeather(mockWeather);
-      const suggestion = getOutfitSuggestionsForWeather(mockWeather);
-      setWeatherSuggestion(suggestion);
-      await saveWeatherData(mockWeather, suggestion);
+      const usedLive = await buildFromLiveWeather();
+      if (!usedLive) {
+        const fallbackWeather: WeatherData = {
+          temperature: 15,
+          condition: 'cloudy',
+          humidity: 60,
+          description: 'Weather unavailable',
+          icon: 'cloud',
+          city: 'Your Location',
+          updatedAt: new Date().toISOString(),
+        };
+        setCurrentWeather(fallbackWeather);
+        const suggestion = getOutfitSuggestionsForWeather(fallbackWeather);
+        setWeatherSuggestion(suggestion);
+        await saveWeatherData(fallbackWeather, suggestion);
+      }
     } catch (err) {
       console.error('Failed to get weather:', err);
     }
-  }, [user?.id]);
+  }, [user?.id, user?.gender]);
 
   const addPriceAlert = useCallback(async (
     alertData: Omit<PriceAlert, 'id' | 'isTriggered' | 'createdAt' | 'lastCheckedAt'>

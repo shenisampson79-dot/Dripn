@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, View, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Video, ResizeMode } from 'expo-av';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Button } from '@/components/Button';
-import { Spacing, BorderRadius } from '@/constants/theme';
+import { LoopingBackgroundVideo } from '@/components/LoopingBackgroundVideo';
+import { Spacing, BorderRadius, LuxuryColors } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { AuthStackParamList } from '@/navigation/AuthStackNavigator';
 import {
   onboardingProfileService,
@@ -68,10 +69,32 @@ const DRESS_FOR_OPTIONS: {
 
 export default function OnboardingProfileScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { theme, isDark } = useTheme();
   const [step, setStep] = useState(0);
   const [identity, setIdentity] = useState<StyleIdentity | null>(null);
   const [dressFor, setDressFor] = useState<DressFor | null>(null);
-  const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo());
+  const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo({ tone: 'confidence' }));
+
+  const ui = useMemo(
+    () => ({
+      gradientColors: isDark
+        ? (['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.92)'] as const)
+        : (['rgba(250,248,245,0.78)', 'rgba(250,248,245,0.9)', 'rgba(250,248,245,0.98)'] as const),
+      gradientLocations: isDark ? ([0, 0.35, 1] as const) : ([0, 0.2, 1] as const),
+      headline: isDark ? '#FFFFFF' : theme.text,
+      sub: isDark ? 'rgba(255,255,255,0.88)' : '#5A4D3A',
+      icon: isDark ? '#FFFFFF' : theme.text,
+      backBg: isDark ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.72)',
+      backIcon: isDark ? '#FFFFFF' : theme.text,
+      optionBg: isDark ? 'rgba(255,255,255,0.08)' : theme.backgroundDefault,
+      optionBorder: isDark ? 'rgba(255,255,255,0.12)' : theme.border,
+      optionSelectedBg: isDark ? 'rgba(201,168,124,0.15)' : 'rgba(201,168,124,0.22)',
+      optionLabel: isDark ? '#FFFFFF' : theme.text,
+      optionSub: isDark ? 'rgba(255,255,255,0.75)' : '#6B5E4C',
+      rootBg: isDark ? '#0D0B09' : theme.backgroundRoot,
+    }),
+    [isDark, theme]
+  );
 
   const handleContinue = async () => {
     if (step === 0 && identity) {
@@ -82,30 +105,29 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
       await onboardingProfileService.saveProfile({
         identity: identity || undefined,
         dressFor: dressFor || 'myself',
+        quizLikes: [],
+        likedStyles: [],
+        quizComplete: false,
       });
       navigation.navigate('PreSignupStyleQuiz');
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Video
-        source={backgroundVideo}
-        style={StyleSheet.absoluteFillObject}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay
-        isLooping
-        isMuted
-      />
+    <View style={[styles.container, { backgroundColor: ui.rootBg }]}>
+      <LoopingBackgroundVideo source={backgroundVideo} style={StyleSheet.absoluteFill} />
       <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.92)']}
-        locations={[0, 0.45, 1]}
-        style={StyleSheet.absoluteFillObject}
+        colors={ui.gradientColors}
+        locations={ui.gradientLocations}
+        style={StyleSheet.absoluteFill}
       />
 
       <View style={[styles.inner, { paddingTop: insets.top + Spacing.md, paddingBottom: insets.bottom + Spacing.lg }]}>
-        <Pressable onPress={() => (step > 0 ? setStep(0) : navigation.goBack())} style={styles.back}>
-          <Feather name="arrow-left" size={20} color="#FFF" />
+        <Pressable
+          onPress={() => (step > 0 ? setStep(0) : navigation.goBack())}
+          style={[styles.back, { backgroundColor: ui.backBg }]}
+        >
+          <Feather name="arrow-left" size={20} color={ui.backIcon} />
         </Pressable>
 
         <Animated.View
@@ -116,55 +138,73 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
         >
           {step === 0 ? (
             <>
-              <ThemedText type="h1" style={styles.headline}>
+              <ThemedText type="h1" style={[styles.headline, { color: ui.headline }]}>
                 Which sounds most like you?
               </ThemedText>
-              <ThemedText type="body" style={styles.sub}>
+              <ThemedText type="body" style={[styles.sub, { color: ui.sub }]}>
                 We will tailor how decisive your stylist is — and how much we explain.
               </ThemedText>
               <View style={styles.options}>
-                {IDENTITY_OPTIONS.map((opt) => (
-                  <Pressable
-                    key={opt.id}
-                    onPress={() => setIdentity(opt.id)}
-                    style={[
-                      styles.option,
-                      identity === opt.id && styles.optionSelected,
-                    ]}
-                  >
-                    <Feather name={opt.icon} size={20} color="#FFF" />
-                    <View style={styles.optionText}>
-                      <ThemedText type="body" style={styles.optionLabel}>{opt.label}</ThemedText>
-                      <ThemedText type="small" style={styles.optionSub}>{opt.subtitle}</ThemedText>
-                    </View>
-                    {identity === opt.id ? <Feather name="check-circle" size={20} color="#C9A87C" /> : null}
-                  </Pressable>
-                ))}
+                {IDENTITY_OPTIONS.map((opt) => {
+                  const selected = identity === opt.id;
+                  return (
+                    <Pressable
+                      key={opt.id}
+                      onPress={() => setIdentity(opt.id)}
+                      style={[
+                        styles.option,
+                        {
+                          backgroundColor: selected ? ui.optionSelectedBg : ui.optionBg,
+                          borderColor: selected ? LuxuryColors.gold : ui.optionBorder,
+                        },
+                      ]}
+                    >
+                      <Feather name={opt.icon} size={20} color={selected ? LuxuryColors.gold : ui.icon} />
+                      <View style={styles.optionText}>
+                        <ThemedText type="body" style={[styles.optionLabel, { color: ui.optionLabel }]}>
+                          {opt.label}
+                        </ThemedText>
+                        <ThemedText type="small" style={[styles.optionSub, { color: ui.optionSub }]}>
+                          {opt.subtitle}
+                        </ThemedText>
+                      </View>
+                      {selected ? <Feather name="check-circle" size={20} color={LuxuryColors.gold} /> : null}
+                    </Pressable>
+                  );
+                })}
               </View>
             </>
           ) : (
             <>
-              <ThemedText type="h1" style={styles.headline}>
-                Who are you dressing for most right now?
+              <ThemedText type="h1" style={[styles.headline, { color: ui.headline }]}>
+                What's the occasion?
               </ThemedText>
-              <ThemedText type="body" style={styles.sub}>
-                We use this to pick outfits that make you look better than everyone else in that room.
+              <ThemedText type="body" style={[styles.sub, { color: ui.sub }]}>
+                We'll tailor your outfit to the moment — or skip if you're just dressing for yourself.
               </ThemedText>
               <View style={styles.options}>
-                {DRESS_FOR_OPTIONS.map((opt) => (
-                  <Pressable
-                    key={opt.id}
-                    onPress={() => setDressFor(opt.id)}
-                    style={[
-                      styles.option,
-                      dressFor === opt.id && styles.optionSelected,
-                    ]}
-                  >
-                    <Feather name={opt.icon} size={20} color="#FFF" />
-                    <ThemedText type="body" style={[styles.optionLabel, { flex: 1 }]}>{opt.label}</ThemedText>
-                    {dressFor === opt.id ? <Feather name="check-circle" size={20} color="#C9A87C" /> : null}
-                  </Pressable>
-                ))}
+                {DRESS_FOR_OPTIONS.map((opt) => {
+                  const selected = dressFor === opt.id;
+                  return (
+                    <Pressable
+                      key={opt.id}
+                      onPress={() => setDressFor(opt.id)}
+                      style={[
+                        styles.option,
+                        {
+                          backgroundColor: selected ? ui.optionSelectedBg : ui.optionBg,
+                          borderColor: selected ? LuxuryColors.gold : ui.optionBorder,
+                        },
+                      ]}
+                    >
+                      <Feather name={opt.icon} size={20} color={selected ? LuxuryColors.gold : ui.icon} />
+                      <ThemedText type="body" style={[styles.optionLabel, { flex: 1, color: ui.optionLabel }]}>
+                        {opt.label}
+                      </ThemedText>
+                      {selected ? <Feather name="check-circle" size={20} color={LuxuryColors.gold} /> : null}
+                    </Pressable>
+                  );
+                })}
               </View>
             </>
           )}
@@ -189,14 +229,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
   },
   body: { flex: 1 },
-  headline: { color: '#FFF', marginBottom: Spacing.sm },
-  sub: { color: 'rgba(255,255,255,0.88)', marginBottom: Spacing.xl, lineHeight: 22 },
+  headline: { marginBottom: Spacing.sm },
+  sub: { marginBottom: Spacing.xl, lineHeight: 22 },
   options: { gap: Spacing.sm },
   option: {
     flexDirection: 'row',
@@ -204,16 +243,10 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  optionSelected: {
-    borderColor: '#C9A87C',
-    backgroundColor: 'rgba(201,168,124,0.15)',
   },
   optionText: { flex: 1 },
-  optionLabel: { color: '#FFF', fontWeight: '600' },
-  optionSub: { color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  optionLabel: { fontWeight: '600' },
+  optionSub: { marginTop: 2 },
   cta: { marginTop: Spacing.lg },
 });

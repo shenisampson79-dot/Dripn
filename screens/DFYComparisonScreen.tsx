@@ -10,7 +10,8 @@ import {
   Modal,
   Platform,
 } from "react-native";
-import { NativeStackNavigationProp, useRoute } from "@react-navigation/native-stack";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useRoute } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -64,7 +65,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
   const { theme, isDark } = useTheme();
   const { user, refreshSubscriptionFromBackend } = useAuth();
   const insets = useSafeAreaInsets();
-  const [selectedTier, setSelectedTier] = useState<DFYTier>(routeParams?.selectedTier || 'lite');
+  const [selectedTier, setSelectedTier] = useState<DFYTier>(routeParams?.selectedTier || 'core');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [email, setEmail] = useState('');
@@ -179,7 +180,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
                 [
                   {
                     text: 'Get Personal Stylist',
-                    onPress: () => navigation.navigate('Subscription' as any, { highlightPlan: 'premium' }),
+                    onPress: () => navigation.navigate('Subscription' as any, { highlightPlan: 'personal_stylist' }),
                   },
                   {
                     text: 'Continue Setup',
@@ -402,10 +403,10 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           <View style={styles.comparisonNote}>
             <Feather name="info" size={16} color="rgba(255,255,255,0.5)" />
             <ThemedText type="small" style={styles.comparisonNoteText}>
-              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Outfit-Based</ThemedText>
-              {" "}is tactical - solve this moment, once.{" "}
               <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Core Wardrobe</ThemedText>
-              {" "}is structural - I learn everything you own.
+              {" "}is structural - I learn everything you own.{" "}
+              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Outfit-Based</ThemedText>
+              {" "}is tactical - solve this moment, once.
             </ThemedText>
           </View>
         </View>

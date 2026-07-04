@@ -3,6 +3,96 @@ import Constants from 'expo-constants';
 import { ClothingCategory, ClothingColor, ClothingSeason, ClothingOccasion } from '@/contexts/WardrobeContext';
 import { convertImageToBase64 } from './VisionAnalysisService';
 import { apiService, ColorConfig } from './ApiService';
+import { DEFAULT_CHAT_MODEL, DEFAULT_VISION_MODEL } from '@/constants/aiModels';
+import { normalizeWardrobeCategory } from '@/utils/wardrobeCategories';
+import { resolveDetectedGarmentName } from '@/utils/wardrobeItemName';
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function isRetryableAnalyzeError(message: string): boolean {
+  return /429|503|502|504|408|busy|network|failed to fetch|abort|ECONNRESET|ETIMEDOUT/i.test(message);
+}
+
+async function analyzeGarmentWithRetry(imageUri: string): Promise<any> {
+  const maxAttempts = 4;
+  let lastError = '';
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const result = await apiService.analyzeGarmentByUri(imageUri);
+      if (result?.success === false) {
+        lastError = result.message || 'Analysis failed';
+        if (isRetryableAnalyzeError(lastError) && attempt < maxAttempts - 1) {
+          await sleep(2000 * (attempt + 1));
+          continue;
+        }
+        throw new Error(lastError);
+      }
+      return result;
+    } catch (error: any) {
+      lastError = error?.message || String(error);
+      if (isRetryableAnalyzeError(lastError) && attempt < maxAttempts - 1) {
+        await sleep(2000 * (attempt + 1));
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error(lastError || 'Analysis failed');
+}
+
+export function describeBulkAnalyzeFailure(error?: string | null): { title: string; message: string } {
+  const msg = String(error || '');
+
+  if (/401|403|unauthorized|not authenticated|sign in/i.test(msg)) {
+    return {
+      title: 'Session Expired',
+      message: 'Please sign out and sign back in, then try your upload again.',
+    };
+  }
+  if (/429|busy|retry in a few seconds/i.test(msg) && !/quota|billing|insufficient_quota/i.test(msg)) {
+    return {
+      title: 'Server Busy',
+      message: 'The server is processing other images. Wait a few seconds and tap Try Again.',
+    };
+  }
+  if (/quota|billing|insufficient_quota|QUOTA_EXCEEDED|OpenAI API quota exceeded/i.test(msg)) {
+    return {
+      title: 'AI Credits Exhausted',
+      message: 'Your OpenAI API quota has been exceeded. Please top up at platform.openai.com/billing.',
+    };
+  }
+  if (/TIMEOUT|timed out|timeout/i.test(msg)) {
+    return {
+      title: 'Analysis Timed Out',
+      message: 'The server took too long to analyze this photo. Try again with a clearer, well-lit image.',
+    };
+  }
+  if (/503|AI service not available|vision service not available/i.test(msg)) {
+    return {
+      title: 'AI Unavailable',
+      message: 'The analysis service is temporarily down. Please try again in a minute.',
+    };
+  }
+  if (/failed to analyze item|ANALYSIS_FAILED/i.test(msg)) {
+    return {
+      title: 'AI Analysis Error',
+      message: 'The server could not analyze your photos right now. Wait a moment and tap Try Again.',
+    };
+  }
+  if (/timeout|timed out|Network error|failed to fetch/i.test(msg)) {
+    return {
+      title: 'Connection Issue',
+      message: 'Could not reach the server in time. Check your internet connection and try again.',
+    };
+  }
+
+  return {
+    title: 'Analysis Failed',
+    message: 'AI analysis is temporarily unavailable. Wait a moment and tap Try Again.',
+  };
+}
 
 const getOpenAIKey = () => '';
 const OPENAI_API_KEY = getOpenAIKey();
@@ -36,6 +126,7 @@ export interface BulkScanResult {
   totalItemsFound: number;
   processingTime: number;
   error?: string;
+  errorDetail?: string;
 }
 
 export interface ProductLinkResult {
@@ -162,7 +253,7 @@ export async function analyzeImageQuality(imageUri: string): Promise<{
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-5.2',
+        model: DEFAULT_VISION_MODEL,
         messages: [
           {
             role: 'user',
@@ -250,7 +341,7 @@ IMPORTANT:
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: DEFAULT_VISION_MODEL,
         messages: [
           {
             role: 'user',
@@ -335,8 +426,8 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     let result: any;
     let apiErrorMessage = '';
     try {
-      // Use multipart file upload — avoids decoding full image into JS/native memory (no OOM crash)
-      result = await apiService.analyzeGarmentByUri(imageUri);
+      // Multipart upload with automatic retries for busy/timeout responses.
+      result = await analyzeGarmentWithRetry(imageUri);
       console.log('[BulkScan] API response:', JSON.stringify(result).substring(0, 200));
     } catch (apiError: any) {
       apiErrorMessage = apiError.message || '';
@@ -344,8 +435,16 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       result = null;
     }
     
-    // Use nested analysis.item for most fields
-    const data = result?.analysis?.item || result?.analysis || result;
+    // Merge nested analysis.item with top-level response fields from the backend.
+    const itemData = result?.analysis?.item || {};
+    const data = {
+      ...itemData,
+      ...(result?.analysis && typeof result.analysis === 'object' ? result.analysis : {}),
+      ...(result && typeof result === 'object' ? result : {}),
+      name: result?.suggestedName || result?.name || result?.itemName || itemData?.name,
+      category: result?.category || result?.garmentType || itemData?.category,
+      color: result?.color || itemData?.color,
+    };
     
     // Find colorTag from ANY level of the response (backend may put it at different levels)
     const colorTag = 
@@ -362,7 +461,11 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     const topLevelMaterial = typeof result?.material === 'string' ? result.material : null;
     const topLevelSubcategory = typeof result?.subcategory === 'string' ? result.subcategory : null;
     
-    if (data && (data.category || data.garmentType || data.color || data.primaryColor || topLevelColor)) {
+    if (
+      result?.success !== false &&
+      data &&
+      (data.category || data.garmentType || data.color || data.primaryColor || topLevelColor || data.name || result?.suggestedName)
+    ) {
       // Map garmentType to category if needed
       const categoryMap: Record<string, ClothingCategory> = {
         'shirt': 'tops', 'blouse': 'tops', 'sweater': 'tops', 't-shirt': 'tops', 'top': 'tops',
@@ -449,9 +552,11 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       console.log('[ColorMapping] data.color:', data.color, 'data.primaryColor:', data.primaryColor, 'data.colorFull:', data.colorFull);
       
       const rawCategory = extractString(data.category || data.garmentType).toLowerCase() || 'tops';
-      
-      const mappedCategory = categoryMap[rawCategory] || 
-        (validCategories.includes(rawCategory as ClothingCategory) ? rawCategory as ClothingCategory : 'tops');
+
+      const mappedCategory = normalizeWardrobeCategory(rawCategory, {
+        name: data.suggestedName || data.name,
+        subcategory: extractString(data.subcategory),
+      });
       
       // PRIORITY: Use colorTag directly from backend - no further processing needed
       // colorTag is specifically designed for frontend display (e.g., "denim", "cream")
@@ -487,18 +592,49 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       }
       
       console.log('[ColorMapping] Final mapped color:', mappedColor);
-      
-      // Generate a descriptive name - use colorTag, topLevelColor, or mapped color for display
-      const colorForDisplay = colorTag || topLevelColor || topLevelPrimaryColor || mappedColor;
-      const colorDisplay = colorForDisplay ? colorForDisplay.charAt(0).toUpperCase() + colorForDisplay.slice(1) : 'Item';
-      const typeValue = extractString(data.garmentType || data.category) || mappedCategory;
-      const typeDisplay = typeValue.charAt(0).toUpperCase() + typeValue.slice(1);
-      const suggestedName = data.suggestedName || data.name || `${colorDisplay} ${typeDisplay}`;
+
+      const materialHint = (topLevelMaterial || extractString(data.material || '')).toLowerCase();
+      const subcatHint = (topLevelSubcategory || extractString(data.subcategory || '')).toLowerCase();
+      const nameHint = (data.suggestedName || data.name || '').toLowerCase();
+      const isDenimItem =
+        mappedColor === 'denim' ||
+        colorTag === 'denim' ||
+        materialHint.includes('denim') ||
+        materialHint.includes('chambray') ||
+        subcatHint.includes('denim') ||
+        subcatHint.includes('jean') ||
+        nameHint.includes('denim');
+
+      if (isDenimItem) {
+        mappedColor = 'denim';
+      }
+
+      const subcategoryHint = extractString(data.subcategory || data.garmentType);
+      let suggestedName = resolveDetectedGarmentName(data.suggestedName || data.name, {
+        color: mappedColor,
+        category: mappedCategory,
+        subcategory: subcategoryHint,
+        brand: data.brand,
+      });
+      if (isDenimItem && data.brand) {
+        suggestedName = resolveDetectedGarmentName(`${data.brand} Denim ${subcategoryHint || 'Jeans'}`, {
+          color: 'denim',
+          category: mappedCategory,
+          subcategory: subcategoryHint || 'jeans',
+          brand: data.brand,
+        });
+      } else if (isDenimItem) {
+        suggestedName = resolveDetectedGarmentName(`Denim ${subcategoryHint || 'Jeans'}`, {
+          color: 'denim',
+          category: mappedCategory,
+          subcategory: subcategoryHint || 'jeans',
+        });
+      }
       
       const item: DetectedGarment = {
         category: mappedCategory,
         color: mappedColor,
-        suggestedName: suggestedName,
+        suggestedName,
         brand: data.brand || undefined,
         seasons: (data.seasons || ['all-season']).filter((s: string) => 
           validSeasons.includes(s as ClothingSeason)
@@ -522,8 +658,9 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     
     // If backend fails, try local OpenAI analysis as fallback
     console.log('[BulkScan] Backend failed, attempting local OpenAI analysis...');
-    
+
     try {
+      const base64Image = await convertImageToBase64(imageUri);
       const localAnalysis = await analyzeGarmentLocally(base64Image, validCategories, validColors, validSeasons, validOccasions);
       if (localAnalysis) {
         console.log('[BulkScan] Local analysis succeeded:', localAnalysis.suggestedName, localAnalysis.category, localAnalysis.color);
@@ -540,13 +677,18 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
     
     // Absolute last resort - return error so user knows analysis failed
     console.log('[BulkScan] All analysis methods failed. API error was:', apiErrorMessage);
-    const isQuotaError = apiErrorMessage.includes('429') || apiErrorMessage.includes('quota') || apiErrorMessage.includes('billing') || apiErrorMessage.includes('insufficient_quota');
+    const isQuotaError =
+      apiErrorMessage.includes('quota') ||
+      apiErrorMessage.includes('billing') ||
+      apiErrorMessage.includes('insufficient_quota');
+    const isAuthError = /401|403|unauthorized|not authenticated/i.test(apiErrorMessage);
     return {
       success: false,
       detectedItems: [],
       totalItemsFound: 0,
       processingTime: Date.now() - startTime,
-      error: isQuotaError ? 'QUOTA_EXCEEDED' : 'ANALYSIS_FAILED',
+      error: isQuotaError ? 'QUOTA_EXCEEDED' : isAuthError ? 'AUTH_REQUIRED' : 'ANALYSIS_FAILED',
+      errorDetail: apiErrorMessage || undefined,
     };
   } catch (error: any) {
     console.error('Bulk scan error:', error);
@@ -558,6 +700,121 @@ export async function scanBulkItems(imageUri: string): Promise<BulkScanResult> {
       error: error.message || 'Failed to scan items.',
     };
   }
+}
+
+function mapBatchRowToDetectedGarment(
+  row: any,
+  validColors: ClothingColor[],
+  validSeasons: ClothingSeason[],
+  validOccasions: ClothingOccasion[],
+): DetectedGarment | null {
+  if (!row?.success) return null;
+
+  const colorTag = String(row.colorTag || row.color || 'gray').toLowerCase();
+  let mappedColor: ClothingColor = validColors.includes(colorTag as ClothingColor)
+    ? (colorTag as ClothingColor)
+    : 'gray';
+  if (colorTag === 'cream' || colorTag === 'off-white' || colorTag === 'ivory') mappedColor = 'beige';
+  if (colorTag === 'grey') mappedColor = 'gray';
+  if (colorTag === 'denim') mappedColor = 'denim';
+
+  const mappedCategory = normalizeWardrobeCategory(String(row.category || 'tops').toLowerCase(), {
+    name: row.name,
+    subcategory: row.subcategory,
+  });
+
+  const subcategoryHint = row.subcategory || row.garmentType || '';
+  const suggestedName = resolveDetectedGarmentName(row.name || row.suggestedName || row.itemName, {
+    color: mappedColor,
+    category: mappedCategory,
+    subcategory: subcategoryHint,
+    brand: row.brand,
+  });
+
+  const seasonsRaw = row.seasons || row.season || ['all-season'];
+  const seasonsArr = Array.isArray(seasonsRaw) ? seasonsRaw : [seasonsRaw];
+  const occasionsRaw = row.occasions || ['everyday'];
+  const occasionsArr = Array.isArray(occasionsRaw) ? occasionsRaw : [occasionsRaw];
+
+  return {
+    category: mappedCategory,
+    color: mappedColor,
+    suggestedName,
+    brand: row.brand || undefined,
+    seasons: seasonsArr
+      .map((s) => String(s).toLowerCase().replace('all season', 'all-season'))
+      .filter((s) => validSeasons.includes(s as ClothingSeason)) as ClothingSeason[],
+    occasions: occasionsArr
+      .map((o) => {
+        const lower = String(o).toLowerCase();
+        if (lower === 'sport' || lower === 'gym' || lower === 'workout') return 'workout';
+        return lower;
+      })
+      .filter((o) => validOccasions.includes(o as ClothingOccasion)) as ClothingOccasion[],
+    confidence: typeof row.confidence === 'number' ? row.confidence : 0.85,
+    description: row.material || row.subcategory || '',
+  };
+}
+
+export async function scanBulkImagesBatch(imageUris: string[]): Promise<{
+  rows: Array<{
+    imageUri: string;
+    garment: DetectedGarment | null;
+    error?: string;
+    errorCode?: string;
+  }>;
+}> {
+  const validColors: ClothingColor[] = ['black', 'white', 'gray', 'navy', 'brown', 'beige', 'red', 'pink', 'orange', 'yellow', 'green', 'blue', 'purple', 'denim', 'cream', 'multicolor'];
+  const validSeasons: ClothingSeason[] = ['spring', 'summer', 'autumn', 'winter', 'all-season'];
+  const validOccasions: ClothingOccasion[] = ['casual', 'work', 'formal', 'date-night', 'workout', 'vacation', 'party', 'everyday'];
+
+  if (!colorConfigCache) {
+    try {
+      colorConfigCache = await apiService.getColorConfig();
+    } catch {
+      // Color config is optional for batch mapping
+    }
+  }
+
+  console.log(`[BulkScan] Batch analyzing ${imageUris.length} images via resilient batch API...`);
+
+  const images = await Promise.all(
+    imageUris.map(async (uri, index) => ({
+      id: String(index),
+      imageBase64: await convertImageToBase64(uri),
+    })),
+  );
+
+  const response = await apiService.analyzeGarmentBatchResilient(images);
+
+  if (!response?.results || !Array.isArray(response.results)) {
+    throw new Error(response?.message || 'Batch analysis returned no results');
+  }
+
+  console.log(
+    `[BulkScan] Batch complete — ${response.analyzed ?? response.results.filter((r: any) => r.success).length}/${imageUris.length} succeeded`,
+  );
+
+  return {
+    rows: imageUris.map((imageUri, index) => {
+      const row = response.results.find((r: any) => r.index === index) ?? response.results[index];
+      if (!row?.success) {
+        const errMsg = row?.error || response?.message || 'Analysis failed';
+        let errorCode: string | undefined;
+        if (/quota|billing|insufficient/i.test(errMsg)) errorCode = 'QUOTA_EXCEEDED';
+        if (/401|403|unauthorized/i.test(errMsg)) errorCode = 'AUTH_REQUIRED';
+        return { imageUri, garment: null, error: errMsg, errorCode };
+      }
+
+      const garment = mapBatchRowToDetectedGarment(row, validColors, validSeasons, validOccasions);
+      if (!garment) {
+        return { imageUri, garment: null, error: 'Could not parse analysis result' };
+      }
+
+      console.log('[BulkScan] Batch detected:', garment.suggestedName, garment.category, garment.color);
+      return { imageUri, garment };
+    }),
+  };
 }
 
 export async function extractProductFromText(text: string): Promise<ProductLinkResult> {
@@ -628,7 +885,7 @@ If you cannot determine a field, use null. For category and color, only use the 
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4.1',
+      model: DEFAULT_CHAT_MODEL,
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 200,
       response_format: { type: 'json_object' },
@@ -729,7 +986,7 @@ If you cannot determine a field, use null. For category and color, only use the 
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4.1',
+      model: DEFAULT_CHAT_MODEL,
       messages: [{
         role: 'user',
         content: [

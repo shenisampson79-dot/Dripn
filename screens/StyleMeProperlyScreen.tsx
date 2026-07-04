@@ -38,18 +38,6 @@ interface SetupOptionsResponse {
 
 const DEFAULT_TIERS: DfyTier[] = [
   {
-    id: "outfit",
-    title: "Outfit-Based Setup",
-    tagline: "Ready-to-wear looks for a trip or event (14 days).",
-    price: "£19.99",
-    turnaround: "Ready in 24h",
-    highlights: [
-      "Upload 5-7 outfits you wear",
-      "Ready to wear immediately",
-      "14-day access window",
-    ],
-  },
-  {
     id: "core",
     title: "Core Wardrobe Setup",
     tagline: "Build a system that generates unlimited outfits (keep forever).",
@@ -59,6 +47,18 @@ const DEFAULT_TIERS: DfyTier[] = [
       "Organize up to 30 individual items",
       "Generate unlimited outfit combinations",
       "Your wardrobe saved forever",
+    ],
+  },
+  {
+    id: "outfit",
+    title: "Outfit-Based Setup",
+    tagline: "Ready-to-wear looks for a trip or event (14 days).",
+    price: "£19.99",
+    turnaround: "Ready in 24h",
+    highlights: [
+      "Upload 5-7 outfits you wear",
+      "Ready to wear immediately",
+      "14-day access window",
     ],
   },
 ];

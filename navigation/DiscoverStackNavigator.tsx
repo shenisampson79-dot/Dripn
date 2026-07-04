@@ -34,6 +34,7 @@ export type DiscoverStackParamList = {
   VirtualTryOn: { garmentImageUrl?: string; garmentDescription?: string } | undefined;
   StyleSoulmates: undefined;
   Bargains: undefined;
+  Wishlist: undefined;
   Sustainability: undefined;
   FashionTherapy: undefined;
   MotionCoaching: undefined;
@@ -41,6 +42,15 @@ export type DiscoverStackParamList = {
   CulturalStyle: undefined;
   StyleStories: undefined;
   CollectiveInsights: undefined;
+  GamesHub: undefined;
+  StyleShowdown: undefined;
+  PriceCheck: undefined;
+  StyleQuiz: undefined;
+  MixMatch: undefined;
+  DailyStreak: undefined;
+  Leaderboard: undefined;
+  ChallengeDetail: { challengeId: string };
+  ChallengeSubmission: { challengeId: string };
 };
 
 const Stack = createNativeStackNavigator<DiscoverStackParamList>();
@@ -70,7 +80,7 @@ export default function DiscoverStackNavigator() {
       <Stack.Screen
         name="AIStylist"
         component={AIStylistScreen}
-        options={{ headerTitle: "Personal Stylist" }}
+        options={{ headerTitle: "Stylist Chat" }}
       />
       <Stack.Screen
         name="VisualSearch"

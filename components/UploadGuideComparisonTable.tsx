@@ -15,7 +15,7 @@ type UploadGuideComparisonTableProps = {
 };
 
 function toImageSource(value: UploadGuideImageSource): ImageSource {
-  return typeof value === 'number' ? value : { uri: value };
+  return (typeof value === 'number' ? value : { uri: value }) as ImageSource;
 }
 
 function ComparisonCell({

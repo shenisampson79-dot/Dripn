@@ -549,30 +549,46 @@ class ApiService {
     if (params?.undertone) queryParams.append('undertone', params.undertone);
     if (params?.trendType) queryParams.append('trendType', params.trendType);
     const query = queryParams.toString();
-    return this.request<{
-      colorOfTheYear: {
-        name: string;
-        hexCode: string;
-        pantoneCode?: string;
-        description: string;
-        pairingColors: string[];
-        bestFor: string[];
-        year: number;
-      };
-      seasonalPalette: Array<{
-        id: string;
-        name: string;
-        hexCode: string;
-        pantoneCode?: string;
-        season: string;
-        year: number;
-        trendType: string;
-        description: string;
-        pairingColors: string[];
-        bestFor: string[];
-        undertone?: 'warm' | 'cool' | 'neutral';
-      }>;
-    }>(`/api/color-trends/current${query ? `?${query}` : ''}`);
+    const raw = await this.request<Record<string, unknown>>(`/api/color-trends/current${query ? `?${query}` : ''}`);
+    const year = params?.year ?? new Date().getFullYear();
+
+    const colorRaw = raw.colorOfTheYear ?? raw.colorOfYear;
+    const colorOfTheYear = colorRaw && typeof colorRaw === 'object'
+      ? {
+          name: String((colorRaw as Record<string, unknown>).name ?? ''),
+          hexCode: String((colorRaw as Record<string, unknown>).hexCode ?? (colorRaw as Record<string, unknown>).hex ?? ''),
+          pantoneCode: (colorRaw as Record<string, unknown>).pantoneCode as string | undefined,
+          description: String((colorRaw as Record<string, unknown>).description ?? ''),
+          pairingColors: ((colorRaw as Record<string, unknown>).pairingColors as string[]) ?? [],
+          bestFor: (
+            ((colorRaw as Record<string, unknown>).bestFor as string[])
+            ?? ((colorRaw as Record<string, unknown>).suitableFor as string[] | undefined)?.map(
+              (v) => v.charAt(0).toUpperCase() + v.slice(1),
+            )
+            ?? ['Neutral']
+          ),
+          year: Number((colorRaw as Record<string, unknown>).year ?? year),
+        }
+      : null;
+
+    const seasonalPalette = Array.isArray(raw.seasonalPalette)
+      ? raw.seasonalPalette as Array<{
+          id: string;
+          name: string;
+          hexCode: string;
+          pantoneCode?: string;
+          season: string;
+          year: number;
+          description: string;
+          pairingColors: string[];
+          bestFor: string[];
+        }>
+      : [];
+
+    return {
+      colorOfTheYear: colorOfTheYear!,
+      seasonalPalette,
+    };
   }
 
   async getPersonalizedColorTrends() {
@@ -922,10 +938,25 @@ class ApiService {
   }
 
   async subscribeToNewsletter(email: string, name?: string, preferences?: Record<string, boolean>) {
-    return this.request<{ success: boolean; message: string; alreadySubscribed?: boolean }>('/api/newsletter/subscribe', {
+    const result = await this.request<{
+      success?: boolean;
+      message: string;
+      alreadySubscribed?: boolean;
+      resubscribed?: boolean;
+    }>('/api/newsletter/subscribe', {
       method: 'POST',
       body: JSON.stringify({ email, name, preferences }),
     });
+
+    return {
+      ...result,
+      success: Boolean(
+        result.success
+        || result.alreadySubscribed
+        || result.resubscribed
+        || /subscribed|resubscribed/i.test(result.message ?? ''),
+      ),
+    };
   }
 
   async unsubscribeFromNewsletter(email: string) {
@@ -946,31 +977,31 @@ class ApiService {
     return this.request<{ referralCode: string; totalReferrals: number }>(`/api/referral/stats/${code}`);
   }
 
-  async getPublishedNewsletters(params?: { limit?: number; offset?: number; category?: string; gender?: string }) {
+  async getPublishedNewsletters(params?: { limit?: number; offset?: number; category?: string; gender?: string; season?: string }) {
     const queryParams = new URLSearchParams();
     if (params?.limit) queryParams.set('limit', params.limit.toString());
     if (params?.offset) queryParams.set('offset', params.offset.toString());
     if (params?.category) queryParams.set('category', params.category);
     if (params?.gender) queryParams.set('gender', params.gender);
+    if (params?.season) queryParams.set('season', params.season);
     const queryString = queryParams.toString();
-    return this.request<{ 
-      newsletters: Array<{
-        id: string;
-        subject: string;
-        headline: string;
-        introduction: string;
-        tips: Array<{ title: string; content: string; proTip: string }>;
-        closingMessage: string;
-        category: string;
-        tags: string[];
-        gender: string;
-        season: string;
-        region: string;
-        publishedAt: string;
-        views: number;
-      }>;
-      categories: string[];
-    }>(`/api/newsletter/published${queryString ? `?${queryString}` : ''}`);
+    const raw = await this.request<Record<string, unknown> | Array<Record<string, unknown>>>(
+      `/api/newsletter/published${queryString ? `?${queryString}` : ''}`,
+    );
+
+    const newsletters = Array.isArray(raw)
+      ? raw
+      : ((raw.newsletters as Array<Record<string, unknown>> | undefined) ?? []);
+
+    const categories = Array.isArray(raw)
+      ? []
+      : ((raw.categories as string[] | undefined) ?? []);
+
+    return {
+      success: true,
+      newsletters,
+      categories,
+    };
   }
 
   async getNewsletter(id: string) {
@@ -1557,6 +1588,7 @@ class ApiService {
       stylistResponse?: string;
       message?: string;
       outfitImageUrl?: string;
+      recommendedIndex?: number;
     }>('/api/decision/check/resilient', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -2335,10 +2367,16 @@ class ApiService {
     });
   }
 
-  async batchAddWardrobeItems(items: any[]): Promise<{ success: boolean; items: any[]; saved: number; failed: number; errors: any[] }> {
+  async batchAddWardrobeItems(
+    items: any[],
+    options?: { processImagesAfterSave?: boolean },
+  ): Promise<{ success: boolean; items: any[]; saved: number; failed: number; errors: any[] }> {
     return this.request<{ success: boolean; items: any[]; saved: number; failed: number; errors: any[] }>('/api/wardrobe/batch', {
       method: 'POST',
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({
+        items,
+        processImagesAfterSave: options?.processImagesAfterSave !== false,
+      }),
       timeout: 120000,
     });
   }
@@ -3341,10 +3379,10 @@ class ApiService {
     }>('/api/dfy/access-status');
   }
 
-  async generateDFYDelivery(data: { tier: 'lite' | 'core'; stylistId: string }) {
+  async generateDFYDelivery(data: { tier: 'lite' | 'core'; stylistId: string; lat?: number; lon?: number; location?: string }) {
     return this.request<{
       success: boolean;
-      delivery: {
+      delivery?: {
         userId: string;
         tier: 'lite' | 'core';
         startDate: string;
@@ -3366,9 +3404,91 @@ class ApiService {
         completed: boolean;
         nudgesShown: number[];
       };
+      outfits?: Array<{
+        id: string;
+        day?: number;
+        dayNumber?: number;
+        title?: string;
+        occasion?: string;
+        stylistNote?: string;
+        stylistId?: string;
+        items: Array<{
+          id: string | number;
+          name: string;
+          category: string;
+          color: string;
+          imageUri?: string | null;
+          imageUrl?: string | null;
+          processedImageUrl?: string | null;
+        }>;
+      }>;
     }>('/api/dfy/generate-delivery', {
       method: 'POST',
+      body: JSON.stringify({
+        ...data,
+        count: data.tier === 'core' ? 30 : 14,
+      }),
+      timeout: 120000,
+    });
+  }
+
+  async getDFYLookbook() {
+    return this.request<{
+      success: boolean;
+      hasLookbook?: boolean;
+      outfits?: Array<{
+        id: string;
+        day?: number;
+        title?: string;
+        stylistNote?: string;
+        weatherNote?: string;
+        items: Array<{
+          id: string | number;
+          name: string;
+          category: string;
+          color: string;
+          imageUri?: string | null;
+          imageUrl?: string | null;
+          processedImageUrl?: string | null;
+        }>;
+      }>;
+    }>('/api/dfy/lite/lookbook');
+  }
+
+  async generateDFYLookbook(data: {
+    stylistId: string;
+    lat?: number;
+    lon?: number;
+    location?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      outfits?: Array<{
+        id: string;
+        day?: number;
+        dayNumber?: number;
+        title?: string;
+        occasion?: string;
+        stylistNote?: string;
+        notes?: string;
+        stylistId?: string;
+        items: Array<{
+          id: string | number;
+          name: string;
+          category: string;
+          color: string;
+          imageUri?: string | null;
+          imageUrl?: string | null;
+          processedImageUrl?: string | null;
+        }>;
+      }>;
+      stylistId?: string;
+      generatedAt?: string;
+      expiresAt?: string;
+    }>('/api/dfy/lite/lookbook/generate', {
+      method: 'POST',
       body: JSON.stringify(data),
+      timeout: 120000,
     });
   }
 
@@ -3434,7 +3554,6 @@ class ApiService {
         colourHarmony: string;
         colorHarmony: string;
         vibeLabel: string;
-        vibe: string;
         stylistMessage: string;
         stylistId: string;
         savedToCalendar: boolean;
@@ -3675,12 +3794,14 @@ class ApiService {
       hardRuleViolations: string[];
       improvements: string[];
       occasionRulesApplied: string | null;
+      hardCapApplied?: string | null;
       dimensions?: Record<string, number>;
       dimensionWeights?: Record<string, number>;
       explanations?: string[];
       trendMatches?: Array<{ name: string; layer: string; weight: number }>;
       contextUsed?: Record<string, unknown>;
       headline?: string;
+      error?: string;
     }>('/api/dfy/core/wardrobe/compatibility', {
       method: 'POST',
       timeout: 90000,
@@ -3815,6 +3936,26 @@ class ApiService {
         wasWorn: boolean;
       }>;
     }>(`/api/outfit-calendar/by-date/${dateStr}`);
+  }
+
+  async getDFYCalendarAlternatives(date: string, stylistId: string = 'ruby') {
+    return this.request<{
+      success: boolean;
+      alternatives: Array<{
+        id: string;
+        items: Array<{
+          id: string;
+          name?: string;
+          category?: string;
+          color?: string;
+          imageUri?: string;
+          imageUrl?: string;
+          processedImageUrl?: string;
+        }>;
+        stylistNote?: string;
+      }>;
+      message?: string;
+    }>(`/api/dfy/calendar/day/${date}/alternatives?stylistId=${stylistId}`);
   }
 
   // Mix & Match Outfit Builder

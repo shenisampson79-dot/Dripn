@@ -18,7 +18,8 @@ import { apiService } from "@/services/ApiService";
 import dfyService, { DFYAccessStatus, DFYTier } from "@/services/DFYService";
 import { useColorScheme, ColorSchemeMode } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
-import { getBillingPlanDisplayName } from "@/utils/subscriptionTier";
+import { getBillingPlanDisplayName, normalizeSubscriptionTier } from "@/utils/subscriptionTier";
+import { isDevTestingModeEnabled, setDevTestingModeEnabled } from "@/utils/devTesting";
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -122,11 +123,14 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const { setLanguage: setAppLanguage, t, translations } = useTranslations();
   const { colorScheme, setColorScheme, palette } = useColorScheme();
   
-  // Admin check — only for development sections
+  // Admin check — analytics / internal tools
   const isAdmin = user?.email?.endsWith('@dripn.io') || 
                   user?.email?.endsWith('@dripn.dev') ||
                   user?.email === 'sheni_sampson@yahoo.co.uk' ||
                   user?.role === 'admin';
+
+  // Testing toggles — visible in dev builds and for admin accounts
+  const showTestingTools = __DEV__ || isAdmin;
   
   // Dynamic colors from palette
   const LUXURY_COLORS = {
@@ -148,6 +152,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const [isNewsletterLoading, setIsNewsletterLoading] = useState(false);
   const [dfyAccess, setDfyAccess] = useState<DFYAccessStatus | null>(null);
   const [dfyLoading, setDfyLoading] = useState(false);
+  const [testingModeEnabled, setTestingModeEnabled] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
 
@@ -200,6 +205,22 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   useEffect(() => {
     loadDFYAccess();
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!showTestingTools) return;
+    let cancelled = false;
+    (async () => {
+      const enabled = await isDevTestingModeEnabled();
+      if (!cancelled) {
+        setTestingModeEnabled(
+          enabled || normalizeSubscriptionTier(user?.subscriptionTier) === 'stylist_unlimited'
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showTestingTools, user?.subscriptionTier]);
 
   useEffect(() => {
     const loadNewsletterStatus = async () => {
@@ -392,13 +413,12 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const handleTestingModeToggle = async (value: boolean) => {
     if (!user?.id) return;
     try {
-      await updateProfile({ subscriptionTier: value ? 'pro' : 'free' });
-      if (value) {
-        await dfyService.createMockLiteDelivery(user.id, user.stylistPreferences?.selectedStylistId || 'ruby');
-        await loadDFYAccess();
-      }
+      setTestingModeEnabled(value);
+      await setDevTestingModeEnabled(value);
+      await updateProfile({ subscriptionTier: value ? 'stylist_unlimited' : 'free' });
     } catch (error) {
       console.error('Error toggling testing mode:', error);
+      setTestingModeEnabled(!value);
       Alert.alert('Error', 'Could not update testing mode. Please try again.');
     }
   };
@@ -782,7 +802,95 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         </View>
       ) : null}
 
-      {isAdmin && (
+      {showTestingTools ? (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.emerald, LUXURY_COLORS.teal]}
+              style={styles.sectionIcon}
+            >
+              <Feather name="sliders" size={12} color="#FFFFFF" />
+            </LinearGradient>
+            <ThemedText type="h4" style={styles.sectionTitle}>Testing</ThemedText>
+          </View>
+          <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
+            <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.emerald, LUXURY_COLORS.teal]}
+                style={styles.settingIconGradient}
+              >
+                <Feather name="unlock" size={16} color="#FFFFFF" />
+              </LinearGradient>
+              <View style={styles.settingContent}>
+                <ThemedText type="body" style={styles.settingTitle}>
+                  Testing Mode
+                </ThemedText>
+                <ThemedText type="small" style={styles.settingSubtitle}>
+                  {testingModeEnabled ? 'Full access enabled (Stylist Unlimited)' : 'Unlock all app features locally'}
+                </ThemedText>
+              </View>
+              <Switch
+                value={testingModeEnabled}
+                onValueChange={handleTestingModeToggle}
+                trackColor={{ false: isDark ? '#333' : '#E0E0E0', true: LUXURY_COLORS.emerald }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+            <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.coral, '#C46A4F']}
+                style={styles.settingIconGradient}
+              >
+                <Feather name="book-open" size={16} color="#FFFFFF" />
+              </LinearGradient>
+              <View style={styles.settingContent}>
+                <ThemedText type="body" style={styles.settingTitle}>
+                  DFY Lite Access
+                </ThemedText>
+                <ThemedText type="small" style={styles.settingSubtitle}>
+                  {dfyAccess?.tier === 'lite' && dfyAccess?.hasAccess
+                    ? `${dfyAccess.daysRemaining}d remaining`
+                    : 'Test Outfit-Based Setup (14-day lookbook)'}
+                </ThemedText>
+              </View>
+              <Switch
+                value={dfyAccess?.tier === 'lite' && dfyAccess?.hasAccess}
+                onValueChange={(value) => handleDFYToggle('lite', value)}
+                disabled={dfyLoading}
+                trackColor={{ false: isDark ? '#333' : '#E0E0E0', true: LUXURY_COLORS.coral }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+            <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+                style={styles.settingIconGradient}
+              >
+                <Feather name="grid" size={16} color={LUXURY_COLORS.midnight} />
+              </LinearGradient>
+              <View style={styles.settingContent}>
+                <ThemedText type="body" style={styles.settingTitle}>
+                  DFY Core Access
+                </ThemedText>
+                <ThemedText type="small" style={styles.settingSubtitle}>
+                  {dfyAccess?.tier === 'core' && dfyAccess?.hasAccess
+                    ? `${dfyAccess.daysRemaining}d remaining`
+                    : 'Test Core Wardrobe Setup (30-day modular wardrobe)'}
+                </ThemedText>
+              </View>
+              <Switch
+                value={dfyAccess?.tier === 'core' && dfyAccess?.hasAccess}
+                onValueChange={(value) => handleDFYToggle('core', value)}
+                disabled={dfyLoading}
+                trackColor={{ false: isDark ? '#333' : '#E0E0E0', true: LUXURY_COLORS.gold }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          </View>
+        </View>
+      ) : null}
+
+      {isAdmin ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <LinearGradient
@@ -793,113 +901,36 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             </LinearGradient>
             <ThemedText type="h4" style={styles.sectionTitle}>Development</ThemedText>
           </View>
-        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
-          <SettingItem
-            icon="bar-chart-2"
-            title="Retention Analytics"
-            subtitle="Smart offers & win-back revenue"
-            onPress={() => navigation.navigate("AnalyticsDashboard")}
-            theme={theme}
-            isDark={isDark}
-            iconGradient={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-          />
-          <SettingItem
-            icon="image"
-            title="Logo Preview"
-            subtitle="View Dripn logo variations"
-            onPress={() => navigation.navigate("LogoPreview")}
-            theme={theme}
-            isDark={isDark}
-          />
-          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.emerald, LUXURY_COLORS.teal]}
-              style={styles.settingIconGradient}
-            >
-              <Feather name="unlock" size={16} color="#FFFFFF" />
-            </LinearGradient>
-            <View style={styles.settingContent}>
-              <ThemedText type="body" style={styles.settingTitle}>
-                Testing Mode
-              </ThemedText>
-              <ThemedText type="small" style={styles.settingSubtitle}>
-                {user?.subscriptionTier === 'pro' ? 'Full access enabled' : 'Unlock all features'}
-              </ThemedText>
-            </View>
-            <Switch
-              value={user?.subscriptionTier === 'pro'}
-              onValueChange={handleTestingModeToggle}
-              trackColor={{ false: isDark ? '#333' : '#E0E0E0', true: LUXURY_COLORS.emerald }}
-              thumbColor="#FFFFFF"
+          <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
+            <SettingItem
+              icon="bar-chart-2"
+              title="Retention Analytics"
+              subtitle="Smart offers & win-back revenue"
+              onPress={() => navigation.navigate("AnalyticsDashboard")}
+              theme={theme}
+              isDark={isDark}
+              iconGradient={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+            />
+            <SettingItem
+              icon="image"
+              title="Logo Preview"
+              subtitle="View Dripn logo variations"
+              onPress={() => navigation.navigate("LogoPreview")}
+              theme={theme}
+              isDark={isDark}
+            />
+            <SettingItem
+              icon="users"
+              title="Community Vote Preview"
+              subtitle="View voting screen as a member"
+              onPress={() => navigation.navigate("CommunityVoting", { session: null })}
+              theme={theme}
+              isDark={isDark}
+              iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
             />
           </View>
-          <SettingItem
-            icon="users"
-            title="Community Vote Preview"
-            subtitle="View voting screen as a member"
-            onPress={() => navigation.navigate("CommunityVoting", { session: null })}
-            theme={theme}
-            isDark={isDark}
-            iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
-          />
-          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.coral, '#C46A4F']}
-              style={styles.settingIconGradient}
-            >
-              <Feather name="book-open" size={16} color="#FFFFFF" />
-            </LinearGradient>
-            <View style={styles.settingContent}>
-              <ThemedText type="body" style={styles.settingTitle}>
-                DFY Lite Access
-              </ThemedText>
-              <ThemedText type="small" style={styles.settingSubtitle}>
-                {dfyAccess?.tier === 'lite' ? `${dfyAccess.daysRemaining}d remaining` : 'Test 14-day Lookbook'}
-              </ThemedText>
-            </View>
-            <Switch
-              value={dfyAccess?.tier === 'lite' && dfyAccess?.hasAccess}
-              onValueChange={(value) => handleDFYToggle('lite', value)}
-              disabled={dfyLoading}
-              trackColor={{ false: isDark ? '#333' : '#E0E0E0', true: LUXURY_COLORS.coral }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-              style={styles.settingIconGradient}
-            >
-              <Feather name="grid" size={16} color={LUXURY_COLORS.midnight} />
-            </LinearGradient>
-            <View style={styles.settingContent}>
-              <ThemedText type="body" style={styles.settingTitle}>
-                DFY Core Access
-              </ThemedText>
-              <ThemedText type="small" style={styles.settingSubtitle}>
-                {dfyAccess?.tier === 'core' ? `${dfyAccess.daysRemaining}d remaining` : 'Test 30-day Modular Wardrobe'}
-              </ThemedText>
-            </View>
-            <Switch
-              value={dfyAccess?.tier === 'core' && dfyAccess?.hasAccess}
-              onValueChange={(value) => handleDFYToggle('core', value)}
-              disabled={dfyLoading}
-              trackColor={{ false: isDark ? '#333' : '#E0E0E0', true: LUXURY_COLORS.gold }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-          <SettingItem
-            icon="users"
-            title="Community Vote Preview"
-            subtitle="View voting screen as a member"
-            onPress={() => navigation.navigate("CommunityVoting", { session: null })}
-            theme={theme}
-            isDark={isDark}
-            iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
-          />
         </View>
-      </View>
-      )}
+      ) : null}
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>

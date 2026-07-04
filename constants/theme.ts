@@ -205,10 +205,12 @@ const tintColorDark = "#C9A87C";
 export const Colors = {
   light: {
     text: "#11181C",
+    textSecondary: "#687076",
     buttonText: "#FFFFFF",
     tabIconDefault: "#687076",
     tabIconSelected: tintColorLight,
     link: tintColorLight,
+    background: "#FAF8F5",
     backgroundRoot: "#FAF8F5",
     backgroundDefault: "#F0EBE4",
     backgroundSecondary: "#E5DED4",
@@ -221,10 +223,12 @@ export const Colors = {
   },
   dark: {
     text: "#E8DDD3",
+    textSecondary: "#9BA1A6",
     buttonText: "#FFFFFF",
     tabIconDefault: "#9BA1A6",
     tabIconSelected: tintColorDark,
     link: tintColorDark,
+    background: "#0D0B09",
     backgroundRoot: "#0D0B09",
     backgroundDefault: "#1A1714",
     backgroundSecondary: "#26221E",
@@ -329,11 +333,24 @@ export const SubscriptionColors = {
     background: '#E0E0E0',
     text: '#666666',
   },
-  premium: {
+  personal_stylist: {
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     backgroundStart: '#667eea',
     backgroundEnd: '#764ba2',
     text: '#FFFFFF',
+  },
+  stylist_unlimited: {
+    background: 'linear-gradient(135deg, #C9A87C 0%, #A88B5C 100%)',
+    backgroundStart: '#C9A87C',
+    backgroundEnd: '#A88B5C',
+    text: '#1A1A2E',
+  },
+  // Legacy alias — maps to stylist_unlimited styling
+  premium: {
+    background: 'linear-gradient(135deg, #C9A87C 0%, #A88B5C 100%)',
+    backgroundStart: '#C9A87C',
+    backgroundEnd: '#A88B5C',
+    text: '#1A1A2E',
   },
 };
 

@@ -10,8 +10,17 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useAuth, SizeRange, BodyShape, BudgetRange, DressCodePreference, SubcultureStyle, DressCodeStrictness } from "@/contexts/AuthContext";
+import { useAuth, SizeRange, BodyShape, BudgetRange, DressCodePreference, SubcultureStyle, DressCodeStrictness, Gender, StylistId, VoicePitch } from "@/contexts/AuthContext";
+import { getAllStylists, getDefaultVoiceForStylist } from "@/services/PersonalStylistService";
+import { onboardingProfileService } from "@/services/OnboardingProfileService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+
+const GENDER_OPTIONS: { id: Gender; name: string }[] = [
+  { id: "woman", name: "Woman" },
+  { id: "man", name: "Man" },
+  { id: "non-binary", name: "Non-Binary" },
+  { id: "prefer-not-to-say", name: "Prefer not to say" },
+];
 
 const ALL_COUNTRIES = [
   "Albania", "Andorra", "Antigua and Barbuda", "Argentina", "Armenia", "Australia",
@@ -97,6 +106,10 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
   const [name, setName] = useState(user?.name || "");
   const [avatar, setAvatar] = useState(user?.avatar || null);
   const [country, setCountry] = useState(user?.country || "United States");
+  const [gender, setGender] = useState<Gender>(user?.gender || null);
+  const [selectedStylistId, setSelectedStylistId] = useState<StylistId>(
+    user?.stylistPreferences?.selectedStylistId || "ruby",
+  );
   const [sizeRange, setSizeRange] = useState<SizeRange>(user?.sizeRange || null);
   const [bodyShape, setBodyShape] = useState<BodyShape>(user?.bodyShape || null);
   const [budgetRange, setBudgetRange] = useState<BudgetRange>(user?.budgetRange || null);
@@ -119,6 +132,10 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
   );
   const [showDressCodePicker, setShowDressCodePicker] = useState(false);
   const [showSubculturePicker, setShowSubculturePicker] = useState(false);
+  const [showStylistPicker, setShowStylistPicker] = useState(false);
+
+  const stylists = getAllStylists();
+  const selectedStylist = stylists.find((s) => s.id === selectedStylistId);
 
   const filteredCountries = ALL_COUNTRIES.filter(c =>
     c.toLowerCase().includes(countrySearch.toLowerCase())
@@ -152,13 +169,20 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
 
     setIsSaving(true);
     try {
+      const stylistId = selectedStylistId || "ruby";
       await updateProfile({
         name: name.trim(),
         avatar,
         country,
+        gender,
         sizeRange,
         bodyShape,
         budgetRange,
+        stylistPreferences: {
+          ...user?.stylistPreferences,
+          selectedStylistId: stylistId,
+          voicePitch: getDefaultVoiceForStylist(stylistId) as VoicePitch,
+        },
         extendedPreferences: {
           ...user?.extendedPreferences,
           culturalStyle: {
@@ -169,6 +193,13 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
           },
         },
       } as any);
+
+      if (gender === "man") {
+        await onboardingProfileService.saveProfile({ quizGender: "male" });
+      } else if (gender === "woman") {
+        await onboardingProfileService.saveProfile({ quizGender: "female" });
+      }
+
       navigation.goBack();
     } catch (error) {
       Alert.alert("Error", "Failed to save profile. Please try again.");
@@ -301,6 +332,121 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
                   {c}
                 </ThemedText>
                 {country === c ? (
+                  <Feather name="check" size={18} color="#FFFFFF" />
+                ) : null}
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      <View style={styles.section}>
+        <ThemedText type="h3" style={styles.sectionTitle}>
+          Gender
+        </ThemedText>
+        <ThemedText type="small" style={styles.sectionHint}>
+          Tailors wardrobe categories, styling advice, and recommendations
+        </ThemedText>
+        <View style={styles.optionsRow}>
+          {GENDER_OPTIONS.map((option) => (
+            <Pressable
+              key={option.id}
+              onPress={() => setGender(gender === option.id ? null : option.id)}
+              style={({ pressed }) => [
+                styles.optionChip,
+                {
+                  backgroundColor: gender === option.id ? theme.link : theme.backgroundDefault,
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
+            >
+              <ThemedText
+                type="body"
+                style={{ color: gender === option.id ? "#FFFFFF" : theme.text }}
+              >
+                {option.name}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="h3" style={styles.sectionTitle}>
+          Personal Stylist
+        </ThemedText>
+        <ThemedText type="small" style={styles.sectionHint}>
+          Your AI stylist for chat, outfit advice, and recommendations
+        </ThemedText>
+        <Pressable
+          onPress={() => setShowStylistPicker(true)}
+          style={[styles.pickerButton, { backgroundColor: theme.backgroundDefault }]}
+        >
+          <ThemedText type="body" style={{ color: theme.text }}>
+            {selectedStylist ? selectedStylist.name : "Select stylist..."}
+          </ThemedText>
+          <Feather name="chevron-down" size={18} color={theme.tabIconDefault} />
+        </Pressable>
+        {selectedStylist ? (
+          <ThemedText type="small" style={[styles.sectionHint, { marginTop: Spacing.sm, marginBottom: 0 }]}>
+            {selectedStylist.tagline}
+          </ThemedText>
+        ) : null}
+      </View>
+
+      <Modal
+        visible={showStylistPicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowStylistPicker(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+          <View style={styles.modalHeader}>
+            <ThemedText type="h2">Personal Stylist</ThemedText>
+            <Pressable
+              onPress={() => setShowStylistPicker(false)}
+              style={styles.closeButton}
+            >
+              <Feather name="x" size={24} color={theme.text} />
+            </Pressable>
+          </View>
+          <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
+            {stylists.map((stylist) => (
+              <Pressable
+                key={stylist.id}
+                onPress={() => {
+                  setSelectedStylistId(stylist.id as StylistId);
+                  setShowStylistPicker(false);
+                }}
+                style={({ pressed }) => [
+                  styles.stylistPickerItem,
+                  {
+                    backgroundColor: selectedStylistId === stylist.id ? theme.link : theme.backgroundDefault,
+                    opacity: pressed ? 0.8 : 1,
+                  },
+                ]}
+              >
+                <View style={[styles.stylistPickerDot, { backgroundColor: stylist.color }]} />
+                <View style={styles.stylistPickerInfo}>
+                  <ThemedText
+                    type="body"
+                    style={{
+                      color: selectedStylistId === stylist.id ? "#FFFFFF" : theme.text,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {stylist.name}
+                  </ThemedText>
+                  <ThemedText
+                    type="small"
+                    style={{
+                      color: selectedStylistId === stylist.id ? "rgba(255,255,255,0.85)" : theme.tabIconDefault,
+                    }}
+                  >
+                    {stylist.tagline}
+                  </ThemedText>
+                </View>
+                {selectedStylistId === stylist.id ? (
                   <Feather name="check" size={18} color="#FFFFFF" />
                 ) : null}
               </Pressable>
@@ -805,5 +951,22 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
+  },
+  stylistPickerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.xs,
+    gap: Spacing.md,
+  },
+  stylistPickerDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  stylistPickerInfo: {
+    flex: 1,
   },
 });

@@ -1,7 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import { StyleSheet, View, Pressable, Platform, Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { Audio } from "expo-av";
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  setAudioModeAsync,
+  requestRecordingPermissionsAsync,
+  createAudioPlayer,
+  type AudioPlayer,
+} from "expo-audio";
 import * as Haptics from "expo-haptics";
 import Animated, {
   useSharedValue,
@@ -34,7 +41,7 @@ export function VoiceCommentInput({
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const pulseScale = useSharedValue(1);
@@ -90,8 +97,8 @@ export function VoiceCommentInput({
     }
 
     try {
-      const { status } = await Audio.requestPermissionsAsync();
-      setHasPermission(status === "granted");
+      const { granted } = await requestRecordingPermissionsAsync();
+      setHasPermission(granted);
     } catch (error) {
       setHasPermission(false);
     }
@@ -118,16 +125,13 @@ export function VoiceCommentInput({
     }
 
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
 
-      const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      await recording.startAsync();
-
-      recordingRef.current = recording;
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
       setIsRecording(true);
       setRecordingDuration(0);
 
@@ -154,16 +158,13 @@ export function VoiceCommentInput({
       timerRef.current = null;
     }
 
-    if (!recordingRef.current) {
+    if (!audioRecorder.isRecording && !audioRecorder.uri) {
       setIsRecording(false);
       return;
     }
 
     try {
-      const recording = recordingRef.current;
-      recordingRef.current = null;
-
-      await recording.stopAndUnloadAsync();
+      await audioRecorder.stop();
       setIsRecording(false);
 
       if (cancelled) {
@@ -171,7 +172,7 @@ export function VoiceCommentInput({
         return;
       }
 
-      const uri = recording.getURI();
+      const uri = audioRecorder.uri;
       if (uri) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         onRecordingComplete(uri, recordingDuration);
@@ -278,7 +279,7 @@ export function VoiceCommentPlayer({ uri, duration, transcript }: VoiceCommentPl
   const { theme } = useTheme();
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const playerRef = useRef<AudioPlayer | null>(null);
 
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -293,19 +294,25 @@ export function VoiceCommentPlayer({ uri, duration, transcript }: VoiceCommentPl
     }
 
     try {
-      if (isPlaying && soundRef.current) {
-        await soundRef.current.pauseAsync();
+      if (isPlaying && playerRef.current) {
+        playerRef.current.pause();
         setIsPlaying(false);
       } else {
-        if (!soundRef.current) {
-          const { sound } = await Audio.Sound.createAsync(
-            { uri },
-            { shouldPlay: true },
-            onPlaybackStatusUpdate
-          );
-          soundRef.current = sound;
+        if (!playerRef.current) {
+          const player = createAudioPlayer({ uri });
+          playerRef.current = player;
+          player.addListener("playbackStatusUpdate", (status) => {
+            if (status.currentTime && status.duration) {
+              setProgress(status.currentTime / status.duration);
+            }
+            if (status.didJustFinish) {
+              setIsPlaying(false);
+              setProgress(0);
+            }
+          });
+          player.play();
         } else {
-          await soundRef.current.playAsync();
+          playerRef.current.play();
         }
         setIsPlaying(true);
       }
@@ -314,22 +321,10 @@ export function VoiceCommentPlayer({ uri, duration, transcript }: VoiceCommentPl
     }
   };
 
-  const onPlaybackStatusUpdate = (status: any) => {
-    if (status.isLoaded) {
-      if (status.durationMillis) {
-        setProgress(status.positionMillis / status.durationMillis);
-      }
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-        setProgress(0);
-        soundRef.current?.setPositionAsync(0);
-      }
-    }
-  };
-
   useEffect(() => {
     return () => {
-      soundRef.current?.unloadAsync();
+      playerRef.current?.remove();
+      playerRef.current = null;
     };
   }, []);
 

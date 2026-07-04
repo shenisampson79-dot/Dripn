@@ -401,11 +401,6 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         night: 'date-night',
         'night out': 'date-night',
         nightout: 'date-night',
-        sport: 'workout',
-        sports: 'workout',
-        gym: 'workout',
-        exercise: 'workout',
-        athletic: 'workout',
         beach: 'vacation',
         lounge: 'casual',
         loungewear: 'casual',
@@ -424,10 +419,16 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       
       if (analysis) {
         console.log('[AI Analysis] Setting fields from analysis...');
+        const analysisFields = analysis as typeof analysis & {
+          suggestedName?: string;
+          itemName?: string;
+          colorTag?: string;
+          primaryColor?: string;
+        };
         
         // Handle name - check multiple field variations
-        const itemName = analysis.name || analysis.suggestedName || analysis.itemName;
-        const itemColor = analysis.color || analysis.colorTag || analysis.primaryColor;
+        const itemName = analysisFields.name || analysisFields.suggestedName || analysisFields.itemName;
+        const itemColor = analysisFields.color || analysisFields.colorTag || analysisFields.primaryColor;
         if (itemName) {
           const withBrand = analysis.brand
             ? reconcileWardrobeBrandName(itemName, analysis.brand)
@@ -461,7 +462,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         }
         
         // Handle color - check multiple field variations and map if needed
-        const apiColor = (analysis.color || analysis.colorTag || '').toLowerCase();
+        const apiColor = (analysisFields.color || analysisFields.colorTag || '').toLowerCase();
         if (apiColor) {
           console.log('[AI Analysis] Color from API:', apiColor);
           let mappedColor: ClothingColor | null = null;
@@ -687,6 +688,11 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     }
     if (occasions.length === 0) {
       Alert.alert("Missing Occasion", "Please select at least one occasion for your item.");
+      return;
+    }
+
+    if (!imageUri) {
+      Alert.alert("Missing Photo", "Please add a photo for your item.");
       return;
     }
 
@@ -953,7 +959,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>Item Type</ThemedText>
           <View style={styles.originSelector}>
-            {(['owned', 'inspiration'] as ItemOrigin[]).map((originOption) => {
+            {(['owned', 'inspiration'] as const).map((originOption) => {
               const isSelected = origin === originOption;
               const iconMap: Record<'owned' | 'inspiration', keyof typeof Feather.glyphMap> = {
                 owned: 'check-circle',
@@ -1499,7 +1505,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   processingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
     justifyContent: "center",
     alignItems: "center",

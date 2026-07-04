@@ -3,10 +3,12 @@
  * Proprietary and confidential.
  */
 
-import React, { useState, useMemo, useEffect } from "react";
-import { StyleSheet, View, Pressable, Image, Alert, ScrollView, ActivityIndicator, ImageSourcePropType } from "react-native";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { StyleSheet, View, Pressable, Alert, ScrollView, ActivityIndicator, Dimensions } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
@@ -16,32 +18,22 @@ import { Spacing, BorderRadius, SubscriptionColors, ContributorColors, LuxuryCol
 import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { useOutfitFavorites, LikedOutfit } from "@/contexts/OutfitFavoritesContext";
 import { useBodyProfile } from "@/contexts/BodyProfileContext";
 import { useStyleProfile } from "@/contexts/StyleProfileContext";
 import { useWardrobe } from "@/contexts/WardrobeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { OutfitPiecesVisual, OutfitPieceVisual } from "@/components/OutfitPiecesVisual";
+import { dfyService, SavedLookbookOutfit } from "@/services/DFYService";
+import { resolveDFYItemImageUri, RawDFYOutfitItem } from "@/utils/dfyOutfitImages";
+import { sortOutfitItemsByVisualOrder } from "@/utils/outfitItemOrder";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
 import apiService from "@/services/ApiService";
 
-// Using palette from ColorSchemeContext for dynamic theming
-
-type RegionalModelType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
-
-const REGIONAL_STYLE_IMAGES: Record<RegionalModelType, ImageSourcePropType> = {
-  'multicultural': require("../assets/images/models/multicultural.png"),
-  'asian': require("../assets/images/models/asian.png"),
-  'african': require("../assets/images/models/african.png"),
-  'middle-eastern': require("../assets/images/models/middle-eastern.png"),
-  'south-asian': require("../assets/images/models/south-asian.png"),
-  'latin-american': require("../assets/images/models/latin-american.png"),
-};
-
-const getStyleOfTheDayImage = (region: string): ImageSourcePropType => {
-  return REGIONAL_STYLE_IMAGES[region as RegionalModelType] || REGIONAL_STYLE_IMAGES['multicultural'];
-};
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const SAVED_LOOKBOOK_CARD_WIDTH = SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md * 2;
 
 type ProfileScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "Profile">;
@@ -54,11 +46,12 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const { translations, t } = useTranslations();
   const { user } = useAuth();
   const { limits } = useSubscription();
-  const { getLikedOutfits, toggleOutfitLike, isOutfitLiked, isLoading: outfitsLoading } = useOutfitFavorites();
   const { bodyProfile, hasBodyProfile, hasColorAnalysis, saveBodyProfile } = useBodyProfile();
   const { styleProfile, hasStyleProfile } = useStyleProfile();
   const { items: wardrobeItems } = useWardrobe();
   const [activeTab, setActiveTab] = useState<"outfits">("outfits");
+  const [savedLookbookOutfits, setSavedLookbookOutfits] = useState<SavedLookbookOutfit[]>([]);
+  const [loadingSavedLookbook, setLoadingSavedLookbook] = useState(false);
   const [savedMixAndMatchOutfits, setSavedMixAndMatchOutfits] = useState<any[]>([]);
   const [loadingSavedOutfits, setLoadingSavedOutfits] = useState(false);
 
@@ -99,11 +92,11 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
   // Sync onboarding body data into BodyProfileContext if not yet stored
   useEffect(() => {
-    if (!bodyProfile && user?.bodyShape && user.bodyShape !== 'unknown') {
-      const shape = (user.bodyShape as string).toLowerCase().replace(' ', '-') as any;
+    if (!bodyProfile && user?.bodyShape && String(user.bodyShape) !== 'unknown') {
+      const shape = String(user.bodyShape).toLowerCase().replace(' ', '-') as any;
       saveBodyProfile({
         bodyShape: shape,
-        measurements: user.bodyMeasurements || {},
+        measurements: user.bodyMeasurements ? { ...user.bodyMeasurements } as any : {},
         isManualEntry: true,
       }).catch(() => {});
     }
@@ -149,10 +142,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
       try {
         setLoadingSavedOutfits(true);
-        const response = await apiService.get('/api/outfits/mix-and-match');
+        const response = await apiService.getMixAndMatchOutfits();
         setSavedMixAndMatchOutfits(response.outfits || []);
-      } catch (error) {
-        console.error('[ProfileScreen] Failed to fetch saved outfits:', error);
+      } catch {
+        // Non-critical — profile still works with liked outfits only
         setSavedMixAndMatchOutfits([]);
       } finally {
         setLoadingSavedOutfits(false);
@@ -161,6 +154,29 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
     fetchSavedOutfits();
   }, [user?.id]);
+
+  const loadSavedLookbookOutfits = useCallback(async () => {
+    if (!user?.id) {
+      setSavedLookbookOutfits([]);
+      return;
+    }
+
+    try {
+      setLoadingSavedLookbook(true);
+      const outfits = await dfyService.getSavedLookbookOutfits(user.id);
+      setSavedLookbookOutfits(outfits);
+    } catch {
+      setSavedLookbookOutfits([]);
+    } finally {
+      setLoadingSavedLookbook(false);
+    }
+  }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadSavedLookbookOutfits();
+    }, [loadSavedLookbookOutfits]),
+  );
 
   // Dynamic colors from palette
   const LUXURY_COLORS = {
@@ -177,7 +193,57 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     emerald: palette.emerald,
   };
 
-  const likedOutfits = getLikedOutfits();
+  const likedOutfits: SavedLookbookOutfit[] = savedLookbookOutfits;
+
+  const handleOpenLookbook = () => {
+    navigation.getParent()?.navigate?.('WardrobeTab', { screen: 'DFYLookbook' });
+  };
+
+  const handleRemoveSavedLookbookOutfit = async (outfitId: string) => {
+    if (!user?.id) return;
+    try {
+      await dfyService.removeFromSavedLookbook(user.id, outfitId);
+      setSavedLookbookOutfits((prev) => prev.filter((outfit) => outfit.id !== outfitId));
+    } catch {
+      Alert.alert('Could not remove outfit', 'Please try again.');
+    }
+  };
+
+  const renderSavedLookbookVisual = (outfit: SavedLookbookOutfit) => {
+    const orderedItems = sortOutfitItemsByVisualOrder(outfit.items || []);
+    const pieces: OutfitPieceVisual[] = orderedItems
+      .map((item) => {
+        const wardrobe = wardrobeItems.find((w) => String(w.id) === String(item.id));
+        const imageUri = resolveDFYItemImageUri(item as RawDFYOutfitItem, wardrobe);
+        return {
+          wardrobeItemId: item.id,
+          name: item.name,
+          category: item.category || wardrobe?.category,
+          imageUrl: imageUri,
+        };
+      })
+      .filter((piece) => Boolean(piece.imageUrl || piece.wardrobeItemId));
+
+    if (pieces.length === 0) {
+      return (
+        <View style={[styles.savedLookbookVisualEmpty, { backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
+          <Feather name="image" size={28} color={theme.tabIconDefault} />
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.savedLookbookVisualBlock}>
+        <OutfitPiecesVisual
+          pieces={pieces}
+          wardrobeItems={wardrobeItems}
+          label=""
+          large
+          canvasWidth={SAVED_LOOKBOOK_CARD_WIDTH}
+        />
+      </View>
+    );
+  };
 
   const handleSettingsPress = () => {
     navigation.navigate("Settings");
@@ -201,9 +267,12 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                   user?.role === 'admin';
 
   const getSubscriptionBadgeGradient = (): readonly [string, string] => {
-    const tier = user?.subscriptionTier || "free";
-    if (tier === 'premium') {
+    const tier = normalizeSubscriptionTier(user?.subscriptionTier);
+    if (tier === 'stylist_unlimited') {
       return [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const;
+    }
+    if (tier === 'personal_stylist') {
+      return [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const;
     }
     return [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const;
   };
@@ -416,7 +485,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             </LinearGradient>
             <View style={styles.styleProfileCardContent}>
               <ThemedText type="body" style={styles.styleProfileCardTitle}>{translations.profile.bodyProfile}</ThemedText>
-              {(hasBodyProfile && bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown') || (user?.bodyShape && user.bodyShape !== 'unknown') ? (
+              {(hasBodyProfile && bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown') || (user?.bodyShape && String(user.bodyShape) !== 'unknown') ? (
                 <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.teal }]}>
                   {((bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown' ? bodyProfile.bodyShape : user?.bodyShape) as string || '').split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} shape
                 </ThemedText>
@@ -481,7 +550,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
       <View style={styles.contentSection}>
         {activeTab === "outfits" ? (
-          outfitsLoading || loadingSavedOutfits ? (
+          loadingSavedLookbook || loadingSavedOutfits ? (
             <View style={styles.emptyState}>
               <LinearGradient
                 colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
@@ -496,126 +565,51 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           ) : likedOutfits.length > 0 || savedMixAndMatchOutfits.length > 0 ? (
             <View style={styles.outfitsContainer}>
               {likedOutfits.map((outfit) => (
-                <View key={outfit.id} style={[styles.likedOutfitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
-                  {outfit.outfitType === 'style_of_the_day' ? (
-                    <>
-                      <View style={styles.likedOutfitHeader}>
-                        <LinearGradient
-                          colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.likedOutfitBadge}
-                        >
-                          <Feather name="star" size={10} color={LUXURY_COLORS.midnight} />
-                          <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: "700", fontSize: 10 }}>
-                            Style of the Day
-                          </ThemedText>
-                        </LinearGradient>
-                        <Pressable
-                          onPress={() => toggleOutfitLike(outfit)}
-                          style={({ pressed }) => [
-                            styles.unlikeButton,
-                            { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
-                          ]}
-                        >
-                          <Feather name="bookmark" size={14} color={LUXURY_COLORS.gold} />
-                        </Pressable>
-                      </View>
-                      <Image 
-                        source={getStyleOfTheDayImage(outfit.region)} 
-                        style={styles.likedOutfitImage}
-                      />
-                      <ThemedText type="h3" style={styles.likedOutfitTitle}>
-                        {outfit.title}
+                <Pressable
+                  key={outfit.id}
+                  onPress={handleOpenLookbook}
+                  style={[styles.likedOutfitCard, styles.likedOutfitCardVisual, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}
+                >
+                  <View style={styles.likedOutfitHeader}>
+                    <LinearGradient
+                      colors={[LUXURY_COLORS.coral, '#C46A4F']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.likedOutfitBadge}
+                    >
+                      <Feather name="book-open" size={10} color="#FFFFFF" />
+                      <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10 }}>
+                        My Lookbook · Day {outfit.dayNumber}
                       </ThemedText>
-                      <ThemedText type="small" style={styles.likedOutfitDesc} numberOfLines={2}>
-                        {outfit.description}
-                      </ThemedText>
-                    </>
-                  ) : outfit.outfitType === 'similar_outfit' ? (
-                    <>
-                      <View style={styles.likedOutfitHeader}>
-                        <LinearGradient
-                          colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.likedOutfitBadge}
-                        >
-                          <Feather name="grid" size={10} color="#FFFFFF" />
-                          <ThemedText type="caption" style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 10 }}>
-                            {t('profile.similarOutfit')}
-                          </ThemedText>
-                        </LinearGradient>
-                        <Pressable
-                          onPress={() => toggleOutfitLike(outfit)}
-                          style={({ pressed }) => [
-                            styles.unlikeButton,
-                            { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
-                          ]}
-                        >
-                          <Feather name="bookmark" size={14} color={LUXURY_COLORS.teal} />
-                        </Pressable>
-                      </View>
-                      {outfit.imageUri ? (
-                        <Image 
-                          source={{ uri: outfit.imageUri }} 
-                          style={styles.likedOutfitImage}
-                        />
-                      ) : null}
-                      <ThemedText type="h3" style={styles.likedOutfitTitle}>
-                        {outfit.title}
-                      </ThemedText>
-                      <View style={[styles.styleTag, { backgroundColor: LUXURY_COLORS.teal + '20' }]}>
-                        <ThemedText type="small" style={{ color: LUXURY_COLORS.teal, fontWeight: '600' }}>
-                          {outfit.style.charAt(0).toUpperCase() + outfit.style.slice(1)} Style
-                        </ThemedText>
-                      </View>
-                      {outfit.description ? (
-                        <ThemedText type="small" style={styles.likedOutfitDesc} numberOfLines={2}>
-                          {outfit.description}
-                        </ThemedText>
-                      ) : null}
-                    </>
-                  ) : (
-                    <>
-                      <View style={styles.likedOutfitHeader}>
-                        <View style={styles.likedOutfitUser}>
-                          <LinearGradient
-                            colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-                            style={styles.likedOutfitAvatar}
-                          >
-                            {(outfit as any).userAvatar ? (
-                              <Image source={{ uri: (outfit as any).userAvatar }} style={styles.likedOutfitAvatarImg} />
-                            ) : (
-                              <Feather name="user" size={12} color="#FFFFFF" />
-                            )}
-                          </LinearGradient>
-                          <ThemedText type="small" style={{ fontWeight: "600" }}>
-                            {(outfit as any).userName}
-                          </ThemedText>
+                    </LinearGradient>
+                    <View style={styles.savedLookbookFlags}>
+                      {(outfit.savedReason === 'bookmark' || outfit.savedReason === 'both') && (
+                        <View style={[styles.savedLookbookFlag, { backgroundColor: LUXURY_COLORS.gold + '25' }]}>
+                          <Feather name="bookmark" size={12} color={LUXURY_COLORS.gold} />
                         </View>
-                        <Pressable
-                          onPress={() => toggleOutfitLike(outfit)}
-                          style={({ pressed }) => [
-                            styles.unlikeButton,
-                            { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
-                          ]}
-                        >
-                          <Feather name="bookmark" size={14} color={LUXURY_COLORS.violet} />
-                        </Pressable>
-                      </View>
-                      {(outfit as any).media?.[0]?.uri || (outfit as any).images?.[0]?.uri ? (
-                        <Image 
-                          source={{ uri: (outfit as any).media?.[0]?.uri || (outfit as any).images?.[0]?.uri }} 
-                          style={styles.likedOutfitImage}
-                        />
-                      ) : null}
-                      <ThemedText type="small" style={styles.likedOutfitDesc} numberOfLines={2}>
-                        {(outfit as any).description}
-                      </ThemedText>
-                    </>
-                  )}
-                </View>
+                      )}
+                      {(outfit.savedReason === 'love' || outfit.savedReason === 'both') && (
+                        <View style={[styles.savedLookbookFlag, { backgroundColor: LUXURY_COLORS.rose + '25' }]}>
+                          <Feather name="heart" size={12} color={LUXURY_COLORS.rose} />
+                        </View>
+                      )}
+                      <Pressable
+                        onPress={(event) => {
+                          event.stopPropagation?.();
+                          handleRemoveSavedLookbookOutfit(outfit.id);
+                        }}
+                        style={({ pressed }) => [
+                          styles.unlikeButton,
+                          { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
+                        ]}
+                      >
+                        <Feather name="trash-2" size={14} color={LUXURY_COLORS.coral} />
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  {renderSavedLookbookVisual(outfit)}
+                </Pressable>
               ))}
               {savedMixAndMatchOutfits.map((outfit) => (
                 <View key={outfit.id} style={[styles.likedOutfitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
@@ -632,12 +626,12 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                       </ThemedText>
                     </LinearGradient>
                     <Pressable
-                      onPress={() => {
+                      onPress={async () => {
                         try {
-                          apiService.delete(`/api/outfits/mix-and-match/${outfit.id}`);
+                          await apiService.deleteMixAndMatchOutfit(String(outfit.id));
                           setSavedMixAndMatchOutfits(prev => prev.filter(o => o.id !== outfit.id));
-                        } catch (error) {
-                          console.error('[ProfileScreen] Failed to delete outfit:', error);
+                        } catch {
+                          // Keep UI unchanged if delete fails
                         }
                       }}
                       style={({ pressed }) => [
@@ -1019,6 +1013,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  likedOutfitCardVisual: {
+    overflow: 'visible',
+    paddingBottom: Spacing.sm,
+  },
   likedOutfitHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -1056,6 +1054,30 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.sm,
+  },
+  savedLookbookVisualBlock: {
+    width: '100%',
+    overflow: 'visible',
+    marginBottom: -Spacing.md,
+  },
+  savedLookbookVisualEmpty: {
+    width: '100%',
+    minHeight: 280,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  savedLookbookFlags: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  savedLookbookFlag: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   likedOutfitTitle: {
     marginBottom: 4,

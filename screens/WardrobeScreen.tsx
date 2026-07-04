@@ -40,9 +40,15 @@ import { useTranslations } from "@/contexts/TranslationContext";
 import { dfyService, DFYAccessStatus } from "@/services/DFYService";
 import apiService from "@/services/ApiService";
 import type { WardrobeStackParamList } from "@/navigation/WardrobeStackNavigator";
+import { OccasionPickerList } from '@/components/outfit/OccasionPickerList';
+import { GeneratedOutfitModal, type GeneratedOutfitModalData } from '@/components/outfit/GeneratedOutfitModal';
+import type { OutfitOccasionId } from '@/constants/outfitOccasions';
+import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const ITEM_SIZE = (SCREEN_WIDTH - Spacing.xl * 2 - Spacing.md) / 2;
+const GRID_GAP = Spacing.md;
+const ITEM_WIDTH = (SCREEN_WIDTH - Spacing.lg * 2 - GRID_GAP) / 2;
+const ITEM_HEIGHT = Math.round(ITEM_WIDTH * 1.34);
 const TAB_BAR_HEIGHT = 56;
 
 const getMinimalistCategoryColors = (): Record<string, { gradient: readonly [string, string]; icon: string }> => ({
@@ -110,7 +116,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const [showGeneratedOutfitModal, setShowGeneratedOutfitModal] = useState(false);
   const [isGeneratingOutfit, setIsGeneratingOutfit] = useState(false);
   const [generatingOccasion, setGeneratingOccasion] = useState<string | null>(null);
-  const [generatedOutfit, setGeneratedOutfit] = useState<any>(null);
+  const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfitModalData | null>(null);
   const [isReprocessingBg, setIsReprocessingBg] = useState(false);
   const [isReprocessingAll, setIsReprocessingAll] = useState(false);
   const [batchBgProgress, setBatchBgProgress] = useState<{ processed: number; total: number; failed: number } | null>(null);
@@ -299,6 +305,33 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       } catch (_) {}
     }
     setShowAIOutfitModal(true);
+  };
+
+  const handleOccasionOutfitGenerate = async (occasionId: OutfitOccasionId) => {
+    try {
+      setIsGeneratingOutfit(true);
+      setGeneratingOccasion(occasionId);
+      const generated = await generateWardrobeOutfit({
+        occasionType: occasionId,
+        wardrobeItems: items,
+        stylistId: user?.stylistPreferences?.selectedStylistId || 'ruby',
+        saveToCalendar: true,
+        calendarDate: new Date().toISOString().split('T')[0],
+      });
+      setGeneratedOutfit({
+        items: generated.items,
+        stylistMessage: generated.stylistMessage,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowAIOutfitModal(false);
+      setShowGeneratedOutfitModal(true);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unable to generate outfit. Please try again.';
+      Alert.alert('Generation Failed', message);
+    } finally {
+      setIsGeneratingOutfit(false);
+      setGeneratingOccasion(null);
+    }
   };
 
   const handleItemPress = (item: WardrobeItem) => {
@@ -1417,88 +1450,15 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               </Pressable>
             )}
 
-            <View style={styles.aiOutfitOptions}>
-              <ThemedText type="body" style={{ marginBottom: Spacing.md, fontWeight: '600' }}>
-                Generate Outfits For:
-              </ThemedText>
-              
-              {[
-                { id: 'todays_look', icon: 'sun', label: 'Today\'s Look', desc: 'Based on weather & your calendar' },
-                { id: 'work_outfit', icon: 'briefcase', label: 'Work Outfit', desc: 'Professional & polished' },
-                { id: 'date_night', icon: 'heart', label: 'Date Night', desc: 'Stylish & confident' },
-                { id: 'casual_day', icon: 'coffee', label: 'Casual Day', desc: 'Comfortable & effortless' },
-                { id: 'weekend', icon: 'sunset', label: 'Weekend', desc: 'Relaxed & put-together' },
-                { id: 'smart_casual', icon: 'layers', label: 'Smart Casual', desc: 'Elevated everyday style' },
-                { id: 'gym', icon: 'activity', label: 'Gym', desc: 'Functional & stylish' },
-                { id: 'evening_out', icon: 'star', label: 'Evening Out', desc: 'Elevated & memorable' },
-                { id: 'travel', icon: 'navigation', label: 'Travel', desc: 'Comfortable yet stylish' },
-              ].map((option) => (
-                <Pressable
-                  key={option.id}
-                  disabled={isGeneratingOutfit}
-                  onPress={async () => {
-                    try {
-                      setIsGeneratingOutfit(true);
-                      setGeneratingOccasion(option.id);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                      
-                      const result = await apiService.generateOutfit({
-                        occasionType: option.id as any,
-                        stylistId: user?.stylistPreferences?.selectedStylistId || 'ruby',
-                        saveToCalendar: true,
-                        calendarDate: new Date().toISOString().split('T')[0],
-                        localItems: items.map(i => ({
-                          id: i.id,
-                          name: i.name,
-                          category: i.category,
-                          color: i.color,
-                          imageUri: i.imageUri,
-                        })),
-                      });
-                      
-                      if (result.success && result.outfit) {
-                        setGeneratedOutfit(result.outfit);
-                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                        setShowAIOutfitModal(false);
-                        // Show the outfit directly instead of going to calendar
-                        setShowGeneratedOutfitModal(true);
-                      }
-                    } catch (error: any) {
-                      Alert.alert(
-                        'Generation Failed',
-                        error.message || 'Unable to generate outfit. Please try again.'
-                      );
-                    } finally {
-                      setIsGeneratingOutfit(false);
-                      setGeneratingOccasion(null);
-                    }
-                  }}
-                  style={({ pressed }) => [
-                    styles.aiOutfitOptionCard,
-                    { 
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                      opacity: pressed || (isGeneratingOutfit && generatingOccasion !== option.id) ? 0.5 : 1,
-                    }
-                  ]}
-                >
-                  <LinearGradient
-                    colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-                    style={styles.aiOutfitOptionIcon}
-                  >
-                    <Feather name={option.icon as any} size={18} color="#FFFFFF" />
-                  </LinearGradient>
-                  <View style={{ flex: 1, marginLeft: Spacing.md }}>
-                    <ThemedText type="body" style={{ fontWeight: '600' }}>{option.label}</ThemedText>
-                    <ThemedText type="small" style={{ color: theme.tabIconDefault }}>{option.desc}</ThemedText>
-                  </View>
-                  {generatingOccasion === option.id ? (
-                    <ActivityIndicator size="small" color={LUXURY_COLORS.violet} />
-                  ) : (
-                    <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
-                  )}
-                </Pressable>
-              ))}
-            </View>
+            <OccasionPickerList
+              generatingOccasionId={generatingOccasion}
+              disabled={isGeneratingOutfit}
+              onWeatherPress={() => {
+                setShowAIOutfitModal(false);
+                navigation.navigate('WeatherOutfit');
+              }}
+              onSelect={handleOccasionOutfitGenerate}
+            />
 
             <View style={styles.styleDNASection}>
               <ThemedText type="small" style={{ color: theme.tabIconDefault, textAlign: 'center' }}>
@@ -1526,63 +1486,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         </View>
       </Modal>
 
-      {/* Generated Outfit Display Modal */}
-      <Modal
+      <GeneratedOutfitModal
         visible={showGeneratedOutfitModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowGeneratedOutfitModal(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowGeneratedOutfitModal(false)}
-        >
-          <Pressable style={styles.outfitModalContent} onPress={e => e.stopPropagation()}>
-            <View style={styles.outfitModalHeader}>
-              <Pressable onPress={() => setShowGeneratedOutfitModal(false)}>
-                <Feather name="x" size={24} color={theme.text} />
-              </Pressable>
-              <ThemedText type="h2">Your Perfect Outfit</ThemedText>
-              <View style={{ width: 24 }} />
-            </View>
-
-            <ScrollView style={styles.outfitItemsScroll} contentContainerStyle={styles.outfitItemsContainer}>
-              {generatedOutfit?.items && generatedOutfit.items.map((item: WardrobeItem, idx: number) => (
-                <View key={idx} style={styles.generatedOutfitItem}>
-                  {item.imageUri ? (
-                    <Image source={{ uri: item.imageUri }} style={styles.generatedOutfitItemImage} />
-                  ) : (
-                    <View style={[styles.generatedOutfitItemImage, { backgroundColor: getColorHex(item.color) }]} />
-                  )}
-                  <View style={styles.generatedOutfitItemInfo}>
-                    <ThemedText type="body" numberOfLines={1}>{item.name}</ThemedText>
-                    <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
-                      {item.category}
-                    </ThemedText>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-
-            {generatedOutfit?.stylistMessage && (
-              <View style={styles.outfitStylistMessage}>
-                <ThemedText style={{ fontSize: 14, fontStyle: 'italic', color: theme.tabIconDefault }}>
-                  "{generatedOutfit.stylistMessage}"
-                </ThemedText>
-              </View>
-            )}
-
-            <Pressable 
-              style={({ pressed }) => [styles.outfitModalButton, pressed && { opacity: 0.7 }]}
-              onPress={() => setShowGeneratedOutfitModal(false)}
-            >
-              <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                Got it!
-              </ThemedText>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        outfit={generatedOutfit}
+        onClose={() => setShowGeneratedOutfitModal(false)}
+      />
     </View>
   );
 }
@@ -1702,7 +1610,7 @@ const styles = StyleSheet.create({
   },
   gridContent: {
     flexGrow: 1,
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
   },
   gridRow: {
@@ -1718,7 +1626,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   itemCard: {
-    width: ITEM_SIZE,
+    width: ITEM_WIDTH,
     borderRadius: BorderRadius.lg,
   },
   selectionBadge: {
@@ -1786,10 +1694,10 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   itemImageWrapper: {
-    width: "100%",
-    height: ITEM_SIZE,
+    width: '100%',
+    height: ITEM_HEIGHT,
     borderRadius: BorderRadius.lg,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   itemImage: {
     width: "100%",
@@ -2185,54 +2093,68 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
   outfitModalContent: {
     position: 'absolute',
     bottom: 0,
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.95)',
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     maxHeight: '85%',
     paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xl,
   },
   outfitModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   outfitItemsScroll: {
-    maxHeight: 300,
+    flexGrow: 0,
+    flexShrink: 1,
   },
   outfitItemsContainer: {
     paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
   },
   generatedOutfitItem: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: Spacing.md,
     paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(0,0,0,0.1)',
   },
-  generatedOutfitItemImage: {
-    width: 60,
-    height: 60,
+  generatedOutfitItemImageWrap: {
+    width: 80,
+    height: 80,
     borderRadius: BorderRadius.md,
+    overflow: 'hidden',
     marginRight: Spacing.md,
+  },
+  generatedOutfitItemImage: {
+    width: '100%',
+    height: '100%',
   },
   generatedOutfitItemInfo: {
     flex: 1,
   },
   outfitStylistMessage: {
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+  },
+  outfitModalFooter: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
-    marginVertical: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.08)',
   },
   outfitModalButton: {
-    marginHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.lg,
     backgroundColor: LuxuryColors.violet,

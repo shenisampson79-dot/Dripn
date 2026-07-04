@@ -909,7 +909,7 @@ export const playVoicePreview = async (
 };
 
 export const isPlaying = (): boolean => {
-  return currentSound !== null;
+  return currentPlayer !== null;
 };
 
 export const getSupportedLanguages = (): string[] => {

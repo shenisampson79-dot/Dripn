@@ -14,8 +14,8 @@ import { WardrobeImageShimmer } from '@/components/WardrobeImageShimmer';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { useTheme } from '@/hooks/useTheme';
 import {
-  WARDROBE_PROCESSED_IMAGE_INSET,
   wardrobeImageContentFit,
+  wardrobeProcessedTileBackground,
   wardrobeTileBackground,
 } from '@/utils/wardrobeImage';
 import {
@@ -37,6 +37,8 @@ type Props = {
   transition?: number;
   preferCover?: boolean;
   showLoading?: boolean;
+  /** Scale up contained cutouts inside the tile (1 = default). */
+  displayScale?: number;
   /** Override tile background (e.g. transparent when parent already provides one). */
   tileBackgroundColor?: string;
 };
@@ -50,10 +52,13 @@ export function WardrobeItemImage({
   preferCover = false,
   showLoading = true,
   tileBackgroundColor,
+  displayScale = 1,
 }: Props) {
   const { isDark } = useTheme();
-  const tileBg = tileBackgroundColor ?? wardrobeTileBackground(isDark);
   const isProcessed = processed ?? !!(item.imageProcessed || item.aiAnalyzed);
+  const tileBg =
+    tileBackgroundColor ??
+    (isProcessed ? wardrobeProcessedTileBackground() : wardrobeTileBackground(isDark));
 
   const cached = getCachedWardrobeImageUri(item.id);
   const [uri, setUri] = useState<string | null>(cached);
@@ -115,8 +120,6 @@ export function WardrobeItemImage({
     setRetryCount((n) => n + 1);
   }, [item.id, uri, retryCount]);
 
-  const imageInset = isProcessed ? WARDROBE_PROCESSED_IMAGE_INSET : 0;
-
   if (loading && showLoading) {
     return (
       <WardrobeImageShimmer
@@ -143,13 +146,17 @@ export function WardrobeItemImage({
       style={[
         containerStyle,
         styles.imageRoot,
-        { backgroundColor: tileBg, padding: imageInset },
+        { backgroundColor: tileBg },
       ]}
     >
       <Image
         source={{ uri }}
-        style={styles.imageFill}
-        contentFit={contentFit ?? wardrobeImageContentFit(item, false, preferCover || isProcessed)}
+        style={[
+          styles.imageFill,
+          { backgroundColor: tileBg },
+          displayScale !== 1 ? { transform: [{ scale: displayScale }] } : null,
+        ]}
+        contentFit={contentFit ?? wardrobeImageContentFit(item, false, preferCover && !isProcessed)}
         transition={transition}
         onError={handleError}
         recyclingKey={`${item.id}:${uri}:${retryCount}`}

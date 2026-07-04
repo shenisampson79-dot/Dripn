@@ -26,6 +26,8 @@ import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { TodaysOutfitCard } from "@/components/TodaysOutfitCard";
 
+import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
+
 type StylistHubScreenProps = {
   navigation: NativeStackNavigationProp<UserStylistStackParamList, "StylistHub">;
 };
@@ -48,20 +50,11 @@ interface StylistFeature {
 const getFeatures = (t: any): StylistFeature[] => [
   {
     id: "ai-stylist",
-    title: t?.stylistHub?.personalStylist || "Personal Stylist",
-    description: t?.stylistHub?.personalStylistDesc || "We decide — chat when you need more",
+    title: t?.stylistHub?.personalStylist || "Stylist Chat",
+    description: t?.stylistHub?.personalStylistDesc || "Chat, photos & wardrobe advice",
     icon: "message-circle",
     screen: "AIStylist",
     gradientKey: "primary",
-    category: "stylist",
-  },
-  {
-    id: "voice-chat",
-    title: t?.stylistHub?.voiceChat || "Voice Chat",
-    description: t?.stylistHub?.voiceChatDesc || "Talk to Ruby or Max",
-    icon: "headphones",
-    screen: "VoiceConversation",
-    gradientKey: "accent",
     category: "stylist",
   },
   {
@@ -127,7 +120,7 @@ const getGradientColors = (key: GradientKey, palette: any): readonly [string, st
 
 export default function StylistHubScreen({ navigation }: StylistHubScreenProps) {
   const { theme } = useTheme();
-  const { tier } = useSubscription();
+  const { tier, limits } = useSubscription();
   const { palette, colorScheme } = useColorScheme();
   const { translations } = useTranslations();
   const [tilesOrder, setTilesOrder] = useState<string[]>([]);
@@ -142,12 +135,12 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
         if (stored) {
           setTilesOrder(JSON.parse(stored));
         } else {
-          const defaultOrder = ["ai-stylist", "voice-chat", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules"];
+          const defaultOrder = ["ai-stylist", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules"];
           setTilesOrder(defaultOrder);
         }
       } catch (error) {
         console.error("Failed to load tiles order:", error);
-        const defaultOrder = ["ai-stylist", "voice-chat", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules"];
+        const defaultOrder = ["ai-stylist", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules"];
         setTilesOrder(defaultOrder);
       }
     };
@@ -174,6 +167,12 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
 
   const handleFeaturePress = (feature: StylistFeature) => {
     if (isEditMode) return;
+
+    if (feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      navigation.navigate('Subscription' as any, { highlightPlan: 'stylist_unlimited' });
+      return;
+    }
     
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate(feature.screen);
@@ -300,11 +299,19 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
               <View style={styles.tileContent}>
                 <ThemedText type="body" style={styles.tileTitle}>
                   {feature.title}
+                  {feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar ? ' · Unlimited' : ''}
                 </ThemedText>
                 <ThemedText type="caption" style={styles.tileDescription}>
-                  {feature.description}
+                  {feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar
+                    ? 'Plan outfits ahead — Stylist Unlimited'
+                    : feature.description}
                 </ThemedText>
               </View>
+              {feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar ? (
+                <View style={styles.premiumBadge}>
+                  <Feather name="lock" size={14} color="#FFFFFF" />
+                </View>
+              ) : null}
               
               {isEditMode ? (
                 <View style={styles.editControls}>

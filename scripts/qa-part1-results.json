@@ -1,0 +1,103 @@
+{
+  "ranAt": "2026-06-13T16:37:38.610Z",
+  "api": "https://dripn-server.onrender.com",
+  "frontend": "https://dripnapp.com",
+  "results": [
+    {
+      "id": "T1",
+      "label": "Style Chat £9.99/mo",
+      "baseline": "PASS",
+      "checkout": "PASS",
+      "payment": "PARTIAL",
+      "redirect": "PASS",
+      "tier": "FAIL",
+      "ui": "SKIP",
+      "notes": "email=dripn-qa-1781368250813-T1@test.dripn.local me=unknown status=style_chat active=true wait=15000ms"
+    },
+    {
+      "id": "T2",
+      "label": "Personal Stylist £14.99/mo",
+      "baseline": "PASS",
+      "checkout": "PASS",
+      "payment": "PARTIAL",
+      "redirect": "PASS",
+      "tier": "FAIL",
+      "ui": "SKIP",
+      "notes": "email=dripn-qa-1781368283705-T2@test.dripn.local me=unknown status=personal_stylist active=true"
+    },
+    {
+      "id": "T3",
+      "label": "Stylist Unlimited £19.99/mo",
+      "baseline": "PASS",
+      "checkout": "PASS",
+      "payment": "PARTIAL",
+      "redirect": "PASS",
+      "tier": "FAIL",
+      "ui": "SKIP",
+      "notes": "email=dripn-qa-1781368315497-T3@test.dripn.local me=unknown status=stylist_unlimited"
+    },
+    {
+      "id": "U1",
+      "label": "Upgrade style_chat → personal_stylist",
+      "baseline": "PASS",
+      "checkout": "PASS",
+      "payment": "PASS",
+      "redirect": "PASS",
+      "tier": "FAIL",
+      "duplicate": "PARTIAL",
+      "notes": "email=dripn-qa-1781368347533-U1@test.dripn.local after upgrade me=unknown subId=undefined"
+    },
+    {
+      "id": "U2",
+      "label": "Upgrade personal_stylist → stylist_unlimited",
+      "baseline": "PASS",
+      "checkout": "PASS",
+      "payment": "PASS",
+      "redirect": "PASS",
+      "tier": "FAIL",
+      "notes": "email=dripn-qa-1781368411987-U2@test.dripn.local me=unknown"
+    },
+    {
+      "id": "D1",
+      "label": "Downgrade stylist_unlimited → style_chat",
+      "baseline": "SKIP",
+      "tier": "PARTIAL",
+      "notes": "downgrade attempted me=unknown"
+    },
+    {
+      "id": "OT1",
+      "label": "Core Wardrobe £39.99 one-time",
+      "baseline": "PASS",
+      "checkout": "PASS",
+      "payment": "PASS",
+      "tier": "FAIL",
+      "noSub": "PASS",
+      "notes": "email=dripn-qa-1781368519756-OT1@test.dripn.local me=unknown stripeSub=undefined",
+      "redirect": "PASS"
+    },
+    {
+      "id": "OT2",
+      "label": "Outfit Setup £19.99 x2",
+      "baseline": "PASS",
+      "checkout": "PASS",
+      "payment": "PASS",
+      "tier": "FAIL",
+      "notes": "email=dripn-qa-1781368547991-OT2@test.dripn.local me=unknown (both purchases)"
+    },
+    {
+      "id": "E1",
+      "label": "Tier persists after re-login",
+      "baseline": "PASS",
+      "tier": "FAIL",
+      "notes": "re-login me=unknown status=style_chat"
+    },
+    {
+      "id": "E2",
+      "label": "Double-click Pay button",
+      "baseline": "PASS",
+      "payment": "PARTIAL",
+      "tier": "FAIL",
+      "notes": "double-click redirect=https://checkout.stripe.com/c/pay/cs_test_a1NbLUaH67Sn9fRFJ4VoxWaBqvasyH8A3bdXX0 me=unknown"
+    }
+  ]
+}

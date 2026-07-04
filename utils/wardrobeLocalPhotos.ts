@@ -31,7 +31,8 @@ export async function listLocalWardrobePhotoCandidates(
   const add = (uri?: string | null) => {
     if (typeof uri !== 'string' || !uri.trim()) return;
     const normalized = uri.trim();
-    if (isRemoteImageUri(normalized) || normalized.startsWith('data:')) return;
+    if (/^https?:\/\//i.test(normalized)) return;
+    if (normalized.startsWith('data:')) return;
     if (!uris.includes(normalized)) uris.push(normalized);
   };
 

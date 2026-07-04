@@ -1,0 +1,110 @@
+import type { OutfitOccasionId } from '@/constants/outfitOccasions';
+import type { WardrobeItem, ClothingCategory } from '@/contexts/WardrobeContext';
+import { completeOutfitItemIds } from '@/utils/completeOutfit';
+import { orderItemIdsByVisualOrder } from '@/utils/outfitItemOrder';
+import apiService from '@/services/ApiService';
+
+export type GeneratedOutfitApiItem = {
+  id: string | number;
+  name?: string;
+  category?: string;
+  color?: string;
+  imageUri?: string | null;
+  imageUrl?: string | null;
+};
+
+export type GeneratedOutfitDisplay = {
+  items: WardrobeItem[];
+  stylistMessage?: string;
+  vibeLabel?: string;
+};
+
+export function hydrateGeneratedOutfitItems(
+  outfitItems: GeneratedOutfitApiItem[],
+  wardrobeItems: WardrobeItem[],
+): WardrobeItem[] {
+  return outfitItems.map((apiItem) => {
+    const local = wardrobeItems.find((w) => String(w.id) === String(apiItem.id));
+    if (local) return local;
+
+    const imageUri = apiItem.imageUri || apiItem.imageUrl || '';
+    return {
+      id: String(apiItem.id),
+      userId: '',
+      imageUri,
+      enhancedImageUri: imageUri || undefined,
+      imageProcessed: Boolean(imageUri),
+      category: (apiItem.category as ClothingCategory) || 'tops',
+      color: apiItem.color || 'multicolor',
+      name: apiItem.name || 'Item',
+      seasons: ['all-season'],
+      occasions: ['everyday'],
+      timesWorn: 0,
+      isFavorite: false,
+      createdAt: '',
+      updatedAt: '',
+    };
+  });
+}
+
+export function resolveGeneratedOutfitItemIds(
+  result: {
+    outfit?: { items?: Array<{ id?: string | number }> };
+    hydratedItems?: Array<{ id?: string | number }>;
+  },
+  wardrobeItems: WardrobeItem[],
+): string[] {
+  const wardrobeIds = new Set(wardrobeItems.map((item) => String(item.id)));
+  const pickIds = (rows?: Array<{ id?: string | number }>) =>
+    (rows || [])
+      .map((row) => String(row.id))
+      .filter((id) => wardrobeIds.has(id));
+
+  const fromHydrated = pickIds(result.hydratedItems);
+  const rawIds = fromHydrated.length > 0 ? fromHydrated : pickIds(result.outfit?.items);
+  return orderItemIdsByVisualOrder(
+    completeOutfitItemIds([...new Set(rawIds)], wardrobeItems),
+    wardrobeItems,
+  );
+}
+
+export async function generateWardrobeOutfit(params: {
+  occasionType: OutfitOccasionId;
+  wardrobeItems: WardrobeItem[];
+  stylistId?: string;
+  saveToCalendar?: boolean;
+  calendarDate?: string;
+}): Promise<GeneratedOutfitDisplay & { raw: Awaited<ReturnType<typeof apiService.generateOutfit>> }> {
+  const { occasionType, wardrobeItems, stylistId, saveToCalendar, calendarDate } = params;
+
+  const result = await apiService.generateOutfit({
+    occasionType,
+    stylistId,
+    saveToCalendar,
+    calendarDate,
+    localItems: wardrobeItems.map((i) => ({
+      id: i.id,
+      name: i.name,
+      category: i.category,
+      color: i.color,
+      imageUri: i.imageUri,
+    })),
+  });
+
+  if (!result.success || !result.outfit) {
+    throw new Error(result.message || 'Unable to generate outfit');
+  }
+
+  const sourceItems = (result.hydratedItems?.length
+    ? result.hydratedItems
+    : result.outfit.items) as GeneratedOutfitApiItem[];
+
+  const displayItems = hydrateGeneratedOutfitItems(sourceItems, wardrobeItems);
+
+  return {
+    raw: result,
+    items: displayItems,
+    stylistMessage: result.stylistMessage || result.outfit.stylistMessage,
+    vibeLabel: result.vibeLabel || result.outfit.vibe,
+  };
+}

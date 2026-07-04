@@ -700,17 +700,16 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     setIsProcessing(true);
     setProcessingMessage('Saving items...');
     setProcessingDetail('Adding to your wardrobe');
-    setProcessingProgress({ current: 0, total: itemsToSave.length });
     let savedCount = 0;
 
     try {
       const batchItems = itemsToSave.map((item) => ({
-        imageUri: item.imageUri || undefined,
+        imageUri: item.imageUri ?? '',
         name: item.suggestedName,
         category: item.category,
         color: item.color,
-        seasons: item.seasons.length > 0 ? item.seasons : ['all-season'],
-        occasions: item.occasions.length > 0 ? item.occasions : ['everyday'],
+        seasons: (item.seasons.length > 0 ? item.seasons : ['all-season']) as import('@/contexts/WardrobeContext').ClothingSeason[],
+        occasions: (item.occasions.length > 0 ? item.occasions : ['everyday']) as import('@/contexts/WardrobeContext').ClothingOccasion[],
         brand: item.brand,
         notes: item.description,
         origin: 'owned' as const,
@@ -719,17 +718,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         isFavorite: false,
       }));
 
-      setProcessingMessage('Removing backgrounds...');
-      setProcessingDetail('Preparing photos...');
-
-      const savedItems = await addItemsBatch(batchItems, {
-        onBackgroundProgress: (progress) => {
-          setProcessingProgress({ current: progress.processed, total: progress.total });
-          if (progress.total > 0) {
-            setProcessingDetail(`Removing backgrounds: ${progress.processed} of ${progress.total}...`);
-          }
-        },
-      });
+      const savedItems = await addItemsBatch(batchItems);
       savedCount = savedItems.length;
     } catch (error) {
       console.error('Failed to save items:', error);
@@ -740,7 +729,9 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     
     Alert.alert(
       "Items Added",
-      `Successfully added ${savedCount} item${savedCount > 1 ? 's' : ''} to your wardrobe!`,
+      savedCount > 0
+        ? `Successfully added ${savedCount} item${savedCount > 1 ? 's' : ''}. Background removal will continue while you use the app — check your wardrobe for progress.`
+        : `Could not add items. Please try again.`,
       [{ text: "Done", onPress: () => navigation.goBack() }]
     );
   };
@@ -1537,9 +1528,6 @@ const styles = StyleSheet.create({
   tipsContent: {
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.xl,
-  },
-  tipsSection: {
-    marginBottom: Spacing.lg,
   },
   tipsSectionHeader: {
     flexDirection: "row",

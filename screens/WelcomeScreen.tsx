@@ -1,13 +1,13 @@
-import React, { useRef, useEffect, useState } from "react";
-import { StyleSheet, View, Image, Pressable, Platform } from "react-native";
+import React, { useState } from "react";
+import { StyleSheet, View, Image, Pressable, Platform, type ImageStyle, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
-import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
+import { LoopingBackgroundVideo } from "@/components/LoopingBackgroundVideo";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme, SchemePalette } from "@/contexts/ColorSchemeContext";
@@ -24,45 +24,18 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
   const { theme, isDark } = useTheme();
   const { palette } = useColorScheme();
   const { loginAsTestUser } = useAuth();
-  const videoRef = useRef<Video>(null);
-  const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo());
+  const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo({ tone: "mixed" }));
   
   const handleTestLogin = async () => {
     await loginAsTestUser();
   };
 
-  useEffect(() => {
-    if (Platform.OS === 'web' && videoRef.current) {
-      const attemptPlay = async () => {
-        try {
-          await videoRef.current?.playAsync();
-        } catch (e) {
-        }
-      };
-      attemptPlay();
-      const timer = setTimeout(attemptPlay, 500);
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
-  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (status.isLoaded && !status.isPlaying && Platform.OS === 'web') {
-      videoRef.current?.playAsync().catch(() => {});
-    }
-  };
-
   return (
     <View style={styles.container}>
-      <Video
-        ref={videoRef}
-        key={isDark ? 'dark-bg' : 'light-bg'}
+      <LoopingBackgroundVideo
+        key={isDark ? "dark-bg" : "light-bg"}
         source={backgroundVideo}
         style={styles.backgroundVideo}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay
-        isLooping
-        isMuted
-        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
       />
 
       <LinearGradient
@@ -207,6 +180,9 @@ function FeatureItem({ icon, title, description, theme, isDark, palette }: Featu
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    ...(Platform.OS === "web"
+      ? ({ minHeight: "100%", width: "100%", position: "relative" } as ViewStyle)
+      : {}),
   },
   backgroundVideo: {
     position: "absolute",
@@ -222,10 +198,12 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: "rgba(0, 0, 0, 0.35)",
+    zIndex: 1,
   },
   content: {
     flex: 1,
     paddingHorizontal: Spacing.xl,
+    zIndex: 2,
   },
   spacer: {
     flex: 1,
@@ -255,7 +233,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: BorderRadius.md,
-  },
+  } as ImageStyle,
   taglineBelow: {
     color: "rgba(255, 255, 255, 0.9)",
     fontStyle: "italic",
@@ -299,6 +277,7 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: Spacing.xl,
     gap: Spacing.md,
+    zIndex: 2,
   },
   primaryButton: {
     width: "100%",

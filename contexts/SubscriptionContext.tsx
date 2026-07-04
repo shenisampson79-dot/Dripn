@@ -7,7 +7,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth, SubscriptionTier } from '@/contexts/AuthContext';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
-import { apiService } from '@/services/ApiService';
+import { TIER_MATRIX } from '@/utils/tierMatrix';
 
 export interface SubscriptionPlan {
   id: string;
@@ -45,6 +45,12 @@ export interface TierLimits {
   canAccessOutfitCalendar: boolean;
   canAccessSustainabilityFeatures: boolean;
   virtualTryOnPerMonth: number;
+  maxBulkUploadBatch: number;
+  priorityBackgroundRemoval: boolean;
+  maxComparisonImages: number;
+  decisionsPerDay: number | 'unlimited';
+  hasDecisionHistory: boolean;
+  hasWardrobeAwareDecisions: boolean;
 }
 
 export interface UsageStats {
@@ -86,177 +92,103 @@ const SubscriptionContext = createContext<SubscriptionContextType | null>(null);
 const USAGE_STORAGE_KEY = '@dripn_usage';
 const TRIAL_STORAGE_KEY = '@dripn_trial';
 
+function matrixToLimits(tier: SubscriptionTier): TierLimits {
+  const m = TIER_MATRIX[tier];
+  const num = (v: number | 'unlimited') => (v === 'unlimited' ? Infinity : v);
+  return {
+    uploadsPerMonth: num(m.uploadsPerMonth),
+    aiAdvicePerMonth: num(m.outfitSuggestionsPerDay) * 30,
+    voiceCommentsPerMonth: num(m.voiceCommentsPerMonth),
+    comparisonPollsPerMonth: tier === 'free' ? 0 : tier === 'personal_stylist' ? 5 : Infinity,
+    maxImagesPerPost: m.maxImagesPerPost,
+    maxVideoSeconds: m.maxVideoSeconds,
+    canUploadVideo: m.canUploadVideo,
+    prioritySupport: m.prioritySupport,
+    exclusiveContent: tier === 'stylist_unlimited',
+    affiliateAccess: tier === 'stylist_unlimited',
+    customThemes: tier === 'stylist_unlimited',
+    canMakeVideoCalls: tier === 'stylist_unlimited',
+    stylistSessionsPerMonth: tier === 'stylist_unlimited' ? Infinity : 0,
+    canCallVIPMembers: tier === 'stylist_unlimited',
+    styleShuffleSwipesPerDay: num(m.styleShuffleSwipesPerDay),
+    visualSearchPerMonth: num(m.visualSearchPerMonth),
+    wardrobeItemsLimit: m.wardrobeItemsLimit,
+    aiChatMessagesPerDay: num(m.aiChatMessagesPerDay),
+    outfitSuggestionsPerDay: num(m.outfitSuggestionsPerDay),
+    canAccessChallenges: m.canAccessChallenges,
+    canAccessOutfitCalendar: m.hasOutfitCalendar,
+    canAccessSustainabilityFeatures: m.hasSustainabilityFeatures,
+    virtualTryOnPerMonth: num(m.virtualTryOnPerMonth),
+    maxBulkUploadBatch: m.maxBulkUploadBatch,
+    priorityBackgroundRemoval: m.priorityBackgroundRemoval,
+    maxComparisonImages: m.maxComparisonImages,
+    decisionsPerDay: m.decisionsPerDay,
+    hasDecisionHistory: m.hasDecisionHistory,
+    hasWardrobeAwareDecisions: m.hasWardrobeAwareDecisions,
+  };
+}
+
 const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
-  free: {
-    uploadsPerMonth: 3,
-    aiAdvicePerMonth: 3,
-    voiceCommentsPerMonth: 0,
-    comparisonPollsPerMonth: 1,
-    maxImagesPerPost: 2,
-    maxVideoSeconds: 0,
-    canUploadVideo: false,
-    prioritySupport: false,
-    exclusiveContent: false,
-    affiliateAccess: false,
-    customThemes: false,
-    canMakeVideoCalls: false,
-    stylistSessionsPerMonth: 0,
-    canCallVIPMembers: false,
-    styleShuffleSwipesPerDay: 5,
-    visualSearchPerMonth: 2,
-    wardrobeItemsLimit: 10,
-    aiChatMessagesPerDay: 10,
-    outfitSuggestionsPerDay: 2,
-    canAccessChallenges: false,
-    canAccessOutfitCalendar: false,
-    canAccessSustainabilityFeatures: false,
-    virtualTryOnPerMonth: 0,
-  },
-  subscription: {
-    uploadsPerMonth: 10,
-    aiAdvicePerMonth: 20,
-    voiceCommentsPerMonth: 15,
-    comparisonPollsPerMonth: 5,
-    maxImagesPerPost: 4,
-    maxVideoSeconds: 30,
-    canUploadVideo: true,
-    prioritySupport: false,
-    exclusiveContent: false,
-    affiliateAccess: false,
-    customThemes: false,
-    canMakeVideoCalls: false,
-    stylistSessionsPerMonth: 0,
-    canCallVIPMembers: false,
-    styleShuffleSwipesPerDay: 25,
-    visualSearchPerMonth: 10,
-    wardrobeItemsLimit: 50,
-    aiChatMessagesPerDay: 50,
-    outfitSuggestionsPerDay: 10,
-    canAccessChallenges: true,
-    canAccessOutfitCalendar: false,
-    canAccessSustainabilityFeatures: false,
-    virtualTryOnPerMonth: 3,
-  },
-  premium: {
-    uploadsPerMonth: 50,
-    aiAdvicePerMonth: Infinity,
-    voiceCommentsPerMonth: 50,
-    comparisonPollsPerMonth: 20,
-    maxImagesPerPost: 8,
-    maxVideoSeconds: 120,
-    canUploadVideo: true,
-    prioritySupport: true,
-    exclusiveContent: true,
-    affiliateAccess: true,
-    customThemes: true,
-    canMakeVideoCalls: false,
-    stylistSessionsPerMonth: 2,
-    canCallVIPMembers: false,
-    styleShuffleSwipesPerDay: Infinity,
-    visualSearchPerMonth: Infinity,
-    wardrobeItemsLimit: 200,
-    aiChatMessagesPerDay: Infinity,
-    outfitSuggestionsPerDay: Infinity,
-    canAccessChallenges: true,
-    canAccessOutfitCalendar: true,
-    canAccessSustainabilityFeatures: true,
-    virtualTryOnPerMonth: 10,
-  },
-  pro: {
-    uploadsPerMonth: Infinity,
-    aiAdvicePerMonth: Infinity,
-    voiceCommentsPerMonth: Infinity,
-    comparisonPollsPerMonth: Infinity,
-    maxImagesPerPost: 12,
-    maxVideoSeconds: 180,
-    canUploadVideo: true,
-    prioritySupport: true,
-    exclusiveContent: true,
-    affiliateAccess: true,
-    customThemes: true,
-    canMakeVideoCalls: true,
-    stylistSessionsPerMonth: Infinity,
-    canCallVIPMembers: true,
-    styleShuffleSwipesPerDay: Infinity,
-    visualSearchPerMonth: Infinity,
-    wardrobeItemsLimit: Infinity,
-    aiChatMessagesPerDay: Infinity,
-    outfitSuggestionsPerDay: Infinity,
-    canAccessChallenges: true,
-    canAccessOutfitCalendar: true,
-    canAccessSustainabilityFeatures: true,
-    virtualTryOnPerMonth: Infinity,
-  },
+  free: matrixToLimits('free'),
+  personal_stylist: matrixToLimits('personal_stylist'),
+  stylist_unlimited: matrixToLimits('stylist_unlimited'),
 };
 
 const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'free',
     tier: 'free',
-    name: 'Free',
+    name: TIER_MATRIX.free.displayName,
     price: 0,
     interval: 'month',
     features: [
-      'Basic styling tips',
-      'Limited wardrobe items',
-      'Community access',
+      '1 stylist decision per day',
+      'Compare 2 shopping options',
+      'Up to 15 wardrobe items',
+      'Basic AI chat',
     ],
   },
   {
-    id: 'subscription',
-    tier: 'subscription',
-    name: 'Style Chat',
-    price: 9.99,
+    id: 'personal_stylist',
+    tier: 'personal_stylist',
+    name: TIER_MATRIX.personal_stylist.displayName,
+    price: TIER_MATRIX.personal_stylist.monthlyPriceUsd,
     interval: 'month',
     priceId: 'price_style_chat_monthly',
     productId: 'style_chat',
     features: [
-      'Voice conversations (limited)',
-      'Extended wardrobe',
-      'Community voting',
-      'Style challenges',
+      'Unlimited stylist decisions',
+      'Compare up to 3 options',
+      'Decision history & wardrobe memory',
+      'Wardrobe-aware recommendations',
+      '75 wardrobe items',
+      'Voice styling sessions',
     ],
   },
   {
-    id: 'premium',
-    tier: 'premium',
-    name: 'Personal Stylist',
-    price: 14.99,
-    interval: 'month',
-    priceId: 'price_personal_stylist_monthly',
-    productId: 'personal_stylist',
-    popular: true,
-    features: [
-      'More voice conversations',
-      'Personal AI stylist',
-      'Full wardrobe analysis',
-      'Outfit calendar',
-      'Priority support',
-    ],
-  },
-  {
-    id: 'pro',
-    tier: 'pro',
-    name: 'Stylist Unlimited',
-    price: 19.99,
+    id: 'stylist_unlimited',
+    tier: 'stylist_unlimited',
+    name: TIER_MATRIX.stylist_unlimited.displayName,
+    price: TIER_MATRIX.stylist_unlimited.monthlyPriceUsd,
     interval: 'month',
     priceId: 'price_stylist_unlimited_monthly',
     productId: 'stylist_unlimited',
+    popular: true,
     features: [
-      'Unlimited voice conversations',
-      'Unlimited everything',
-      'Video calls with stylist',
-      'VIP member access',
-      'White-glove support',
+      'Everything in Personal Stylist',
+      'Outfit calendar & event planning',
+      'Unlimited wardrobe & try-on',
+      'Priority photo processing',
+      'Bulk upload (20 items)',
+      'Priority support',
     ],
   },
 ];
 
-// Yearly pricing (product IDs unchanged; display prices per conversion psychology)
+// Yearly pricing (Stripe product IDs unchanged)
 export const YEARLY_PRICING: Record<string, { productId: string; price: number }> = {
-  subscription: { productId: 'style_chat_yearly', price: 95.99 },
-  premium: { productId: 'personal_stylist_yearly', price: 139.99 },
-  pro: { productId: 'stylist_unlimited_yearly', price: 179.99 },
+  personal_stylist: { productId: 'style_chat_yearly', price: 95.99 },
+  stylist_unlimited: { productId: 'stylist_unlimited_yearly', price: 179.99 },
 };
 
 const createDefaultUsage = (): UsageStats => ({
@@ -277,7 +209,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user, updateProfile } = useAuth();
   const [usage, setUsage] = useState<UsageStats>(createDefaultUsage());
   const [isTrialActive, setIsTrialActive] = useState(false);
-  const [trialStartDate, setTrialStartDate] = useState<string | null>(null);
+  const [trialDaysRemaining, setTrialDaysRemaining] = useState(0);
   const [referralCode, setReferralCode] = useState('');
   const [referralCount, setReferralCount] = useState(0);
 
@@ -286,155 +218,70 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const currentPlan = SUBSCRIPTION_PLANS.find(p => p.tier === tier);
 
   useEffect(() => {
+    const loadUsage = async () => {
+      try {
+        const data = await AsyncStorage.getItem(USAGE_STORAGE_KEY);
+        if (data) {
+          const parsed: UsageStats = JSON.parse(data);
+          const lastReset = new Date(parsed.lastResetDate);
+          const now = new Date();
+          if (lastReset.getMonth() !== now.getMonth() || lastReset.getFullYear() !== now.getFullYear()) {
+            setUsage(createDefaultUsage());
+          } else {
+            setUsage(parsed);
+          }
+        }
+      } catch {}
+    };
     loadUsage();
-    loadTrialStatus();
+  }, []);
+
+  useEffect(() => {
     if (user?.id) {
       setReferralCode(generateReferralCode(user.id));
     }
   }, [user?.id]);
 
-  useEffect(() => {
-    checkMonthlyReset();
-  }, [usage.lastResetDate]);
-
-  const loadUsage = async () => {
-    try {
-      const data = await AsyncStorage.getItem(USAGE_STORAGE_KEY);
-      if (data) {
-        setUsage(JSON.parse(data));
-      }
-    } catch (error) {
-      console.error('Failed to load usage:', error);
-    }
-  };
-
-  const loadTrialStatus = async () => {
-    try {
-      const data = await AsyncStorage.getItem(TRIAL_STORAGE_KEY);
-      if (data) {
-        const trialData = JSON.parse(data);
-        setTrialStartDate(trialData.startDate);
-        const startDate = new Date(trialData.startDate);
-        const now = new Date();
-        const daysDiff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-        setIsTrialActive(daysDiff < 7);
-      }
-    } catch (error) {
-      console.error('Failed to load trial status:', error);
-    }
-  };
-
-  const checkMonthlyReset = () => {
-    const lastReset = new Date(usage.lastResetDate);
-    const now = new Date();
-    if (lastReset.getMonth() !== now.getMonth() || lastReset.getFullYear() !== now.getFullYear()) {
-      const newUsage = createDefaultUsage();
-      setUsage(newUsage);
-      saveUsage(newUsage);
-    }
-  };
-
   const saveUsage = async (newUsage: UsageStats) => {
-    try {
-      await AsyncStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(newUsage));
-      setUsage(newUsage);
-    } catch (error) {
-      console.error('Failed to save usage:', error);
-    }
+    setUsage(newUsage);
+    await AsyncStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(newUsage));
   };
 
-  const canUpload = () => {
-    if (limits.uploadsPerMonth === Infinity) return true;
-    return usage.uploadsThisMonth < limits.uploadsPerMonth;
-  };
-
-  const canRequestAIAdvice = () => {
-    if (limits.aiAdvicePerMonth === Infinity) return true;
-    return usage.aiAdviceThisMonth < limits.aiAdvicePerMonth;
-  };
-
-  const canRecordVoice = () => {
-    if (limits.voiceCommentsPerMonth === Infinity) return true;
-    if (limits.voiceCommentsPerMonth === 0) return false;
-    return usage.voiceCommentsThisMonth < limits.voiceCommentsPerMonth;
-  };
-
-  const canCreatePoll = () => {
-    if (limits.comparisonPollsPerMonth === Infinity) return true;
-    return usage.comparisonPollsThisMonth < limits.comparisonPollsPerMonth;
-  };
+  const canUpload = () => usage.uploadsThisMonth < limits.uploadsPerMonth;
+  const canRequestAIAdvice = () => usage.aiAdviceThisMonth < limits.aiAdvicePerMonth;
+  const canRecordVoice = () => limits.voiceCommentsPerMonth > 0 && usage.voiceCommentsThisMonth < limits.voiceCommentsPerMonth;
+  const canCreatePoll = () => usage.comparisonPollsThisMonth < limits.comparisonPollsPerMonth;
 
   const incrementUpload = async () => {
-    const newUsage = { ...usage, uploadsThisMonth: usage.uploadsThisMonth + 1 };
-    await saveUsage(newUsage);
+    await saveUsage({ ...usage, uploadsThisMonth: usage.uploadsThisMonth + 1 });
   };
-
   const incrementAIAdvice = async () => {
-    const newUsage = { ...usage, aiAdviceThisMonth: usage.aiAdviceThisMonth + 1 };
-    await saveUsage(newUsage);
+    await saveUsage({ ...usage, aiAdviceThisMonth: usage.aiAdviceThisMonth + 1 });
   };
-
   const incrementVoiceComment = async () => {
-    const newUsage = { ...usage, voiceCommentsThisMonth: usage.voiceCommentsThisMonth + 1 };
-    await saveUsage(newUsage);
+    await saveUsage({ ...usage, voiceCommentsThisMonth: usage.voiceCommentsThisMonth + 1 });
   };
-
   const incrementPoll = async () => {
-    const newUsage = { ...usage, comparisonPollsThisMonth: usage.comparisonPollsThisMonth + 1 };
-    await saveUsage(newUsage);
+    await saveUsage({ ...usage, comparisonPollsThisMonth: usage.comparisonPollsThisMonth + 1 });
   };
 
-  const getRemainingUploads = () => {
-    if (limits.uploadsPerMonth === Infinity) return Infinity;
-    return Math.max(0, limits.uploadsPerMonth - usage.uploadsThisMonth);
-  };
-
-  const getRemainingAIAdvice = () => {
-    if (limits.aiAdvicePerMonth === Infinity) return Infinity;
-    return Math.max(0, limits.aiAdvicePerMonth - usage.aiAdviceThisMonth);
-  };
-
-  const getRemainingVoice = () => {
-    if (limits.voiceCommentsPerMonth === Infinity) return Infinity;
-    return Math.max(0, limits.voiceCommentsPerMonth - usage.voiceCommentsThisMonth);
-  };
-
-  const getRemainingPolls = () => {
-    if (limits.comparisonPollsPerMonth === Infinity) return Infinity;
-    return Math.max(0, limits.comparisonPollsPerMonth - usage.comparisonPollsThisMonth);
-  };
-
-  const trialDaysRemaining = trialStartDate
-    ? Math.max(0, 7 - Math.floor((new Date().getTime() - new Date(trialStartDate).getTime()) / (1000 * 60 * 60 * 24)))
-    : 0;
+  const getRemainingUploads = () => Math.max(0, limits.uploadsPerMonth - usage.uploadsThisMonth);
+  const getRemainingAIAdvice = () => Math.max(0, limits.aiAdvicePerMonth - usage.aiAdviceThisMonth);
+  const getRemainingVoice = () => Math.max(0, limits.voiceCommentsPerMonth - usage.voiceCommentsThisMonth);
+  const getRemainingPolls = () => Math.max(0, limits.comparisonPollsPerMonth - usage.comparisonPollsThisMonth);
 
   const startTrial = async () => {
-    try {
-      const result = await apiService.startTrial();
-      const now = new Date().toISOString();
-      await AsyncStorage.setItem(TRIAL_STORAGE_KEY, JSON.stringify({ startDate: now }));
-      setTrialStartDate(now);
-      setIsTrialActive(true);
-      if (updateProfile && result.tier) {
-        await updateProfile({ subscriptionTier: result.tier as SubscriptionTier });
-      }
-    } catch (error) {
-      console.error('Failed to start trial:', error);
-      throw error;
-    }
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 7);
+    await AsyncStorage.setItem(TRIAL_STORAGE_KEY, JSON.stringify({ endDate: trialEnd.toISOString() }));
+    setIsTrialActive(true);
+    setTrialDaysRemaining(7);
   };
 
   const selectPlan = async (planId: string) => {
     const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
-    if (!plan) return;
-
-    try {
-      if (updateProfile) {
-        await updateProfile({ subscriptionTier: plan.tier });
-      }
-    } catch (error) {
-      console.error('Failed to select plan:', error);
-      throw error;
+    if (plan && plan.tier !== 'free') {
+      await updateProfile({ subscriptionTier: plan.tier });
     }
   };
 
@@ -474,10 +321,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 export function useSubscription() {
   const context = useContext(SubscriptionContext);
   if (!context) {
-    throw new Error('useSubscription must be used within a SubscriptionProvider');
+    throw new Error('useSubscription must be used within SubscriptionProvider');
   }
   return context;
 }
 
 export { SUBSCRIPTION_PLANS, TIER_LIMITS };
-export type { SubscriptionTier };

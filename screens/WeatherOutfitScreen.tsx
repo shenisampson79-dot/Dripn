@@ -57,14 +57,17 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
   const [permissionStatus, setPermissionStatus] = useState<'loading' | 'granted' | 'denied' | 'canAsk'>('loading');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const checkPermissionAndFetch = useCallback(async () => {
+  const checkPermissionAndFetch = useCallback(async (skipCache = false) => {
     setIsLoading(true);
     
     const permStatus = await weatherService.checkPermissionStatus();
     
     if (permStatus.granted) {
       setPermissionStatus('granted');
-      const weatherData = await weatherService.getCurrentWeather();
+      if (skipCache) {
+        await weatherService.clearWeatherCache();
+      }
+      const weatherData = await weatherService.getWeatherForOutfits(skipCache);
       if (weatherData) {
         setWeather(weatherData);
         const rec = weatherService.getOutfitRecommendation(weatherData, user?.gender || 'unspecified');
@@ -85,7 +88,7 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await checkPermissionAndFetch();
+    await checkPermissionAndFetch(true);
     setIsRefreshing(false);
   };
 
@@ -97,7 +100,7 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
     if (granted) {
       setPermissionStatus('granted');
       setIsLoading(true);
-      const weatherData = await weatherService.getCurrentWeather();
+      const weatherData = await weatherService.getWeatherForOutfits(true);
       if (weatherData) {
         setWeather(weatherData);
         const rec = weatherService.getOutfitRecommendation(weatherData, user?.gender || 'unspecified');
@@ -113,7 +116,9 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
   const getWardrobeMatches = () => {
     if (!recommendation || items.length === 0) return [];
     
-    const season = weather ? weatherService.getSeasonFromTemperature(weather.temperature) : 'all-season';
+    const season = weather
+      ? weatherService.getSeasonFromDailyRange(weather.tempMin, weather.tempMax, weather.temperature)
+      : 'all-season';
     const matchingItems = items.filter(item => 
       item.seasons.includes(season) || item.seasons.includes('all-season')
     );
@@ -242,12 +247,34 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
                 <ThemedText type="body" style={styles.weatherDesc}>
                   {weather.description}
                 </ThemedText>
+                {weather.tempMax != null ? (
+                  <ThemedText type="small" style={styles.weatherHighLow}>
+                    High {weather.tempMax}°C
+                    {weather.tempMin != null ? ` · Low ${weather.tempMin}°C` : ''}
+                  </ThemedText>
+                ) : null}
               </View>
               <View style={styles.weatherIconContainer}>
                 <Feather name={weather.icon as any} size={64} color="#FFFFFF" />
               </View>
             </View>
             <View style={styles.weatherDetails}>
+              {weather.tempMax != null ? (
+                <View style={styles.weatherDetail}>
+                  <Feather name="arrow-up" size={16} color="rgba(255,255,255,0.9)" />
+                  <ThemedText type="small" style={styles.weatherDetailText}>
+                    High {weather.tempMax}°C
+                  </ThemedText>
+                </View>
+              ) : null}
+              {weather.tempMin != null ? (
+                <View style={styles.weatherDetail}>
+                  <Feather name="arrow-down" size={16} color="rgba(255,255,255,0.9)" />
+                  <ThemedText type="small" style={styles.weatherDetailText}>
+                    Low {weather.tempMin}°C
+                  </ThemedText>
+                </View>
+              ) : null}
               <View style={styles.weatherDetail}>
                 <Feather name="thermometer" size={16} color="rgba(255,255,255,0.8)" />
                 <ThemedText type="small" style={styles.weatherDetailText}>
@@ -517,12 +544,18 @@ const styles = StyleSheet.create({
   weatherDesc: {
     color: 'rgba(255,255,255,0.9)',
   },
+  weatherHighLow: {
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: Spacing.xs,
+    fontWeight: '600',
+  },
   weatherIconContainer: {
     opacity: 0.9,
   },
   weatherDetails: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
   },
   weatherDetail: {
     flexDirection: 'row',

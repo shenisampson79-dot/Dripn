@@ -94,16 +94,20 @@ export function resolveWardrobeImageUri(item: ImageFields): string {
     typeof item.originalImageUri === 'string' && item.originalImageUri.length > 0
       ? item.originalImageUri
       : '';
-  if (localOriginal && !isRemoteImageUri(localOriginal) && !item.imageProcessed && !item.aiAnalyzed) {
+  if (localOriginal && !isRemoteImageUri(localOriginal) && !itemHasProcessedCutout(item)) {
     return localOriginal;
   }
 
   const localFromCandidates = candidates.find((uri) => !isRemoteImageUri(uri));
-  if (localFromCandidates) return localFromCandidates;
+  if (localFromCandidates && !itemHasProcessedCutout(item)) return localFromCandidates;
 
-  if (item.imageProcessed && item.id) {
+  if (itemHasProcessedCutout(item) && item.id) {
     const proxy = candidates.find(isProxyWardrobeImageUri);
     if (proxy) return proxy;
+    const processedCdn = candidates.find(
+      (uri) => isRemoteImageUri(uri) && isProcessedWardrobeCdnUrl(uri),
+    );
+    if (processedCdn) return processedCdn;
     return buildWardrobeImageProxyUrl(item.id);
   }
 
@@ -132,6 +136,28 @@ export function resolveWardrobeImageUri(item: ImageFields): string {
   }
 
   return '';
+}
+
+export function itemHasProcessedCutout(item: ImageFields): boolean {
+  if (item.imageProcessed || item.aiAnalyzed) return true;
+  return [item.enhancedImageUri, item.imageUri].some(
+    (uri) => typeof uri === 'string' && (isProxyWardrobeImageUri(uri) || isProcessedWardrobeCdnUrl(uri)),
+  );
+}
+
+/** Outfit stacks / lookbook — always prefer bg-removed cutouts over carpet originals. */
+export function enrichWardrobeItemForOutfitVisual(item: ImageFields): ImageFields {
+  if (itemHasProcessedCutout(item)) {
+    const uri = resolveWardrobeImageUri(item);
+    if (!uri) return item;
+    return {
+      ...item,
+      imageUri: uri,
+      enhancedImageUri: item.enhancedImageUri || uri,
+      imageProcessed: true,
+    };
+  }
+  return enrichWardrobeItemForDisplay(item);
 }
 
 export function resolveWardrobeFallbackUri(
@@ -180,6 +206,17 @@ export function wardrobeImageContentFit(
 
 /** Prefer on-device photos for chat/outfit visuals when available. */
 export function enrichWardrobeItemForDisplay(item: ImageFields): ImageFields {
+  if (itemHasProcessedCutout(item)) {
+    const uri = resolveWardrobeImageUri(item);
+    if (!uri) return item;
+    return {
+      ...item,
+      imageUri: uri,
+      enhancedImageUri: item.enhancedImageUri || uri,
+      imageProcessed: true,
+    };
+  }
+
   const localUri = listWardrobeImageUris(item).find((uri) => !isRemoteImageUri(uri));
   if (localUri) {
     return {

@@ -1,4 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiService } from './ApiService';
+import { onboardingSessionService } from './OnboardingSessionService';
 
 export type StyleIdentity =
   | 'never_learned'
@@ -13,10 +15,23 @@ export type DressFor =
   | 'myself'
   | 'event';
 
+export type QuizGender = 'female' | 'male';
+
+export interface QuizLike {
+  outfitId: string;
+  name: string;
+  style: string;
+  dressFor: DressFor;
+}
+
 export interface OnboardingProfile {
   identity?: StyleIdentity;
   dressFor?: DressFor;
+  quizGender?: QuizGender;
+  /** Unique style labels from current quiz session likes */
   likedStyles?: string[];
+  /** Full record of this quiz session — source of truth for completion copy */
+  quizLikes?: QuizLike[];
   quizComplete?: boolean;
 }
 
@@ -30,6 +45,45 @@ export interface TodaysOutfit {
 
 const PROFILE_KEY = '@dripn_onboarding_profile';
 const TODAYS_OUTFIT_KEY = '@dripn_todays_outfit';
+
+export const DRESS_FOR_LABELS: Record<DressFor, string> = {
+  work: 'work / meetings',
+  date: 'a date or romance',
+  friends: 'going out with friends',
+  event: 'an event or special occasion',
+  myself: 'yourself today',
+};
+
+export const DRESS_FOR_TO_OCCASION: Record<DressFor, string> = {
+  work: 'work',
+  date: 'date',
+  friends: 'casual',
+  event: 'event',
+  myself: 'casual',
+};
+
+export const QUIZ_SCREEN_COPY: Record<DressFor, { title: string; subtitle: string }> = {
+  work: {
+    title: 'Which work look feels like you?',
+    subtitle: 'Office-ready styles only — swipe to teach your stylist your professional vibe.',
+  },
+  date: {
+    title: 'Which date-night look is you?',
+    subtitle: 'Romantic and polished picks — no random athleisure here.',
+  },
+  friends: {
+    title: 'What would you wear out with friends?',
+    subtitle: 'Going-out energy only — help us nail your social style.',
+  },
+  event: {
+    title: 'What kind of event look is you?',
+    subtitle: 'Gala, theatre, wedding, festival — swipe across the full range of occasions.',
+  },
+  myself: {
+    title: 'What feels good for you today?',
+    subtitle: 'Comfort-first everyday looks — your off-duty style in seconds.',
+  },
+};
 
 const OUTFIT_TEMPLATES: Record<DressFor, { outfit: string; reasoning: string; whyRule: string }[]> = {
   work: [
@@ -121,16 +175,77 @@ class OnboardingProfileService {
     const current = await this.getProfile();
     const next = { ...current, ...partial };
     await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+    void this.syncToBackend(next);
     return next;
   }
 
-  async recordQuizSwipe(liked: boolean, style: string): Promise<void> {
-    const profile = await this.getProfile();
-    const likedStyles = [...(profile.likedStyles || [])];
-    if (liked && style && !likedStyles.includes(style)) {
-      likedStyles.push(style);
+  async syncToBackend(profile?: OnboardingProfile): Promise<void> {
+    const payload = profile || (await this.getProfile());
+    try {
+      const token = await apiService.getToken();
+      if (token) {
+        const existing = await apiService.fetchProfileFromBackend();
+        await apiService.syncProfile({
+          ...(existing || {}),
+          onboardingProfile: payload,
+          hasCompletedQuiz: payload.quizComplete ?? existing?.hasCompletedQuiz,
+        });
+        return;
+      }
+      const deviceId = await onboardingSessionService.getDeviceId();
+      await apiService.post('/api/onboarding/guest-profile', {
+        deviceId,
+        profile: payload,
+      });
+    } catch {
+      // Offline or pre-release backend — local profile still works
     }
-    await this.saveProfile({ likedStyles, quizComplete: false });
+  }
+
+  getDressForLabel(dressFor?: DressFor): string {
+    if (!dressFor) return '';
+    return DRESS_FOR_LABELS[dressFor] || dressFor;
+  }
+
+  hasOccasionAnswered(profile?: OnboardingProfile): boolean {
+    const p = profile;
+    return !!(p?.dressFor);
+  }
+
+  async beginQuizSession(): Promise<OnboardingProfile> {
+    const profile = await this.getProfile();
+    return this.saveProfile({
+      quizLikes: [],
+      likedStyles: [],
+      quizComplete: false,
+      dressFor: profile.dressFor,
+    });
+  }
+
+  getSessionQuizLikes(profile?: OnboardingProfile): QuizLike[] {
+    const p = profile;
+    if (!p?.quizLikes?.length) return [];
+    if (!p.dressFor) return p.quizLikes;
+    return p.quizLikes.filter((like) => like.dressFor === p.dressFor);
+  }
+
+  async recordQuizSwipe(
+    liked: boolean,
+    outfit: { id: string; name: string; style: string },
+    dressFor: DressFor,
+  ): Promise<void> {
+    const profile = await this.getProfile();
+    const quizLikes = [...(profile.quizLikes || [])];
+    if (liked) {
+      quizLikes.push({
+        outfitId: outfit.id,
+        name: outfit.name,
+        style: outfit.style,
+        dressFor,
+      });
+    }
+    const likedStyles = [...new Set(quizLikes.map((entry) => entry.style))];
+    await this.saveProfile({ quizLikes, likedStyles, quizComplete: false });
   }
 
   async completeQuiz(): Promise<OnboardingProfile> {

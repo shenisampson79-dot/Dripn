@@ -13,6 +13,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@/contexts/AuthContext";
+import { isPaidTier } from "@/utils/subscriptionTier";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useSustainability, getEcoRatingColor } from "@/contexts/SustainabilityContext";
 import { 
@@ -42,7 +43,7 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedDealForShare, setSelectedDealForShare] = useState<BargainDeal | null>(null);
 
-  const isPremium = user?.subscriptionTier === "premium";
+  const isPremium = isPaidTier(user?.subscriptionTier);
 
   const isItemInWishlist = (dealId: string) => {
     return wishlistItems.some(item => item.dealId === dealId || item.productUrl === dealId);

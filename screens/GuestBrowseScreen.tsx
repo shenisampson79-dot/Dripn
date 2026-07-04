@@ -175,9 +175,11 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       setIsSending(true);
       try {
         const session = await apiService.createGuestSession() as any;
-        activeToken = session.sessionToken;
-        await AsyncStorage.setItem(GUEST_TOKEN_KEY, activeToken);
-        setSessionToken(activeToken);
+        activeToken = session.sessionToken ?? null;
+        if (activeToken) {
+          await AsyncStorage.setItem(GUEST_TOKEN_KEY, activeToken);
+          setSessionToken(activeToken);
+        }
       } catch {
         const errorMessage: ChatMessage = {
           id: Date.now().toString(),
@@ -189,6 +191,11 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         setIsSending(false);
         return;
       }
+    }
+
+    if (!activeToken) {
+      setIsSending(false);
+      return;
     }
 
     const userText = inputText.trim();

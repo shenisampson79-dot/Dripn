@@ -8,7 +8,13 @@ import { StyleSheet, View, Text, Pressable, Animated, ActivityIndicator, Platfor
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Audio } from "expo-av";
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  setAudioModeAsync,
+  requestRecordingPermissionsAsync,
+  createAudioPlayer,
+} from "expo-audio";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -103,7 +109,7 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   useEffect(() => {
     checkPermissions();
@@ -161,7 +167,7 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
         quality: 0.7,
       });
       
-      if (!result.cancelled && result.assets && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets[0]) {
         setSelectedImageUri(result.assets[0].uri);
       }
     } catch (error) {
@@ -171,8 +177,8 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
 
   const checkPermissions = async () => {
     try {
-      const { status } = await Audio.requestPermissionsAsync();
-      setHasPermission(status === "granted");
+      const { granted } = await requestRecordingPermissionsAsync();
+      setHasPermission(granted);
     } catch (error) {
       setHasPermission(false);
     }
@@ -189,15 +195,13 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
     setCurrentTranscript("");
 
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
 
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      recordingRef.current = recording;
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
     } catch (err) {
       console.error('[VoiceConversation] Failed to start recording:', err);
       setError('Failed to start recording');
@@ -206,7 +210,7 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
   };
 
   const stopListeningAndTranscribe = async () => {
-    if (!recordingRef.current) {
+    if (!audioRecorder.isRecording && !audioRecorder.uri) {
       setConversationState("idle");
       return;
     }
@@ -223,13 +227,12 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
         return;
       }
 
-      await recordingRef.current.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
+      await audioRecorder.stop();
+      await setAudioModeAsync({
+        allowsRecording: false,
       });
 
-      const uri = recordingRef.current.getURI();
-      recordingRef.current = null;
+      const uri = audioRecorder.uri;
 
       if (!uri) {
         throw new Error('No recording URI available');
@@ -336,12 +339,13 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
         encoding: 'base64',
       });
       
-      const { sound } = await Audio.Sound.createAsync({ uri: fileUri });
-      await sound.playAsync();
-      
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          sound.unloadAsync();
+      const player = createAudioPlayer({ uri: fileUri });
+      player.play();
+
+      const subscription = player.addListener("playbackStatusUpdate", (status) => {
+        if (status.didJustFinish) {
+          subscription.remove();
+          player.remove();
           setConversationState("idle");
         }
       });
@@ -427,17 +431,17 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
   };
 
   const stopConversation = async () => {
-    if (conversationState === "listening" && recordingRef.current) {
+    if (conversationState === "listening" && audioRecorder.isRecording) {
       await stopListeningAndTranscribe();
-    } else {
-      if (recordingRef.current) {
-        try {
-          await recordingRef.current.stopAndUnloadAsync();
-        } catch (e) {
-          console.log('[VoiceConversation] Error stopping recording:', e);
-        }
-        recordingRef.current = null;
+    } else if (audioRecorder.isRecording) {
+      try {
+        await audioRecorder.stop();
+      } catch (e) {
+        console.log('[VoiceConversation] Error stopping recording:', e);
       }
+      setConversationState("idle");
+      setCurrentTranscript("");
+    } else {
       setConversationState("idle");
       setCurrentTranscript("");
     }

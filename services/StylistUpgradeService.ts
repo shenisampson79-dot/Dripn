@@ -29,7 +29,7 @@ export interface PostRecommendationUI {
   buttons: {
     save: { label: string; icon: string };
     another: { label: string; icon: string };
-    secondOpinion: { label: string; icon: string };
+    secondOpinion?: { label: string; icon: string };
   };
   tweakPlaceholder: string;
   saveBehaviour: {
@@ -319,7 +319,6 @@ class StylistUpgradeService {
         buttons: {
           save: { label: "Save outfit", icon: "bookmark" },
           another: { label: "Another option", icon: "refresh-cw" },
-          secondOpinion: { label: "Second opinion", icon: "users" },
         },
         tweakPlaceholder: "Want to tweak this?",
         saveBehaviour: {
@@ -340,16 +339,16 @@ class StylistUpgradeService {
       return {
         tiers: [
           {
-            id: "outfit",
-            name: "Outfit-Based Setup",
-            capabilities: ["AI learns your style", "Quick recommendations", "Occasion-based advice"],
-            limitations: ["Limited wardrobe visibility", "No item-level suggestions"],
-          },
-          {
             id: "core",
             name: "Core Wardrobe Setup",
             capabilities: ["Full wardrobe visibility", "Item-level recommendations", "Outfit combinations", "Seasonal planning"],
             limitations: [],
+          },
+          {
+            id: "outfit",
+            name: "Outfit-Based Setup",
+            capabilities: ["AI learns your style", "Quick recommendations", "Occasion-based advice"],
+            limitations: ["Limited wardrobe visibility", "No item-level suggestions"],
           },
         ],
       };

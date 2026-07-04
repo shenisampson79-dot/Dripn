@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   shimmerTrack: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '200%',
   },
   shimmerGradient: {

@@ -25,7 +25,7 @@ interface LimitHitUpgradePromptProps {
 
 export function LimitHitUpgradePrompt({
   title = "Daily limit reached",
-  message = "Upgrade to Personal Stylist for unlimited AI styling conversations.",
+  message = "Upgrade to Personal Stylist for unlimited stylist decisions and wardrobe-aware advice.",
   ctaLabel = "Upgrade Now",
   onUpgrade,
   variant = 'banner',

@@ -6,6 +6,7 @@ import {
   buildWardrobeImageProxyUrl,
   isProxyWardrobeImageUri,
   isRemoteImageUri,
+  itemHasProcessedCutout,
 } from '@/utils/wardrobeImage';
 import {
   localWardrobeFileExists,
@@ -238,16 +239,7 @@ export async function loadWardrobeImageForItem(item: WardrobeImageFields): Promi
     }
 
     // After bg removal, prefer the processed CDN/proxy cutout — not the original carpet photo.
-    const skipLocalOriginal =
-      !!item.imageProcessed &&
-      [item.enhancedImageUri, item.imageUri].some(
-        (uri) =>
-          typeof uri === 'string' &&
-          (isProxyWardrobeImageUri(uri) ||
-            (isRemoteImageUri(uri) && uri.includes('res.cloudinary.com') && /_processed/i.test(uri)) ||
-            uri.includes('replicate.delivery') ||
-            uri.includes('replicate.com')),
-      );
+    const skipLocalOriginal = itemHasProcessedCutout(item);
 
     if (!skipLocalOriginal) {
       const local = await resolveLocalWardrobePhoto(item.id, item);

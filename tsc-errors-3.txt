@@ -1,0 +1,181 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm 
+help npmrc` for supported config options.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+components/CancelSubscriptionFlow.tsx(242,9): error TS2322: Type 'BillingPlanId' is not assignable to type '"personal_stylist" | "stylist_unlimited" | "style_chat"'.
+  Type '"free"' is not assignable to type '"personal_stylist" | "stylist_unlimited" | "style_chat"'.
+components/CancelSubscriptionFlow.tsx(259,11): error TS2322: Type 'string' is not assignable to type 'SubscriptionTier | undefined'.
+components/LoopingBackgroundVideo.tsx(81,10): error TS2352: Conversion of type '{ position: "fixed"; width: "100vw"; height: "100vh"; }' to type 'ViewStyle' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'height' are incompatible.
+    Type '"100vh"' is not comparable to type 'DimensionValue | undefined'.
+components/PersonalStylistVoicePanel.tsx(164,27): error TS2345: Argument of type '{ remaining: string | number; monthlyAllowance: number; monthlyRemaining?: number | undefined; purchasedCredits?: number | undefined; isUnlimited?: boolean | undefined; }' is not assignable to parameter of type 'Partial<VoiceCreditsInternal>'.
+  Types of property 'remaining' are incompatible.
+    Type 'string | number' is not assignable to type 'number | undefined'.
+      Type 'string' is not assignable to type 'number'.
+components/ReportModal.tsx(95,35): error TS2339: Property 'background' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'background' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+components/ReportModal.tsx(136,44): error TS2339: Property 'background' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'background' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+components/UploadGuideComparisonTable.tsx(18,38): error TS2559: Type 'number' has no properties in common with type 'ImageSource'.
+components/VoiceCommentInput.tsx(280,27): error TS2503: Cannot find namespace 'Audio'.
+components/VoiceCommentInput.tsx(300,41): error TS2339: Property 'Sound' does not exist on type 'new (src?: string | undefined) => HTMLAudioElement'.
+screens/AddWardrobeItemScreen.tsx(424,52): error TS2339: Property 'suggestedName' does not exist on type '{ name: any; category: any; color: any; seasons: any; occasions: any; brand: any; description: any; }'.
+screens/AddWardrobeItemScreen.tsx(424,78): error TS2339: Property 'itemName' does not exist on type '{ name: any; category: any; color: any; seasons: any; occasions: any; brand: any; description: any; }'.
+screens/AddWardrobeItemScreen.tsx(425,54): error TS2339: Property 'colorTag' does not exist on type '{ name: any; category: any; color: any; seasons: any; occasions: any; brand: any; description: any; }'.
+screens/AddWardrobeItemScreen.tsx(425,75): error TS2339: Property 'primaryColor' does not exist on type '{ name: any; category: any; color: any; seasons: any; occasions: any; brand: any; description: any; }'.
+screens/AddWardrobeItemScreen.tsx(459,54): error TS2339: Property 'colorTag' does not exist on type '{ name: any; category: any; color: any; seasons: any; occasions: any; brand: any; description: any; }'.
+screens/AddWardrobeItemScreen.tsx(692,58): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+screens/AddWardrobeItemScreen.tsx(695,9): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+screens/AddWardrobeItemScreen.tsx(696,9): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+screens/AddWardrobeItemScreen.tsx(973,27): error TS7053: Element implicitly has an 'any' type because expression of type 'ItemOrigin' can't be used to index type 'Record<"owned" | "inspiration", "key" | "facebook" | "user" | "search" | "repeat" | "anchor" | "bold" | "link" | "map" | "filter" | "watch" | "feather" | "grid" | "layers" | "cloud" | ... 271 more ... | "zap-off">'.
+  Property 'wishlist' does not exist on type 'Record<"owned" | "inspiration", "key" | "facebook" | "user" | "search" | "repeat" | "anchor" | "bold" | "link" | "map" | "filter" | "watch" | "feather" | "grid" | "layers" | "cloud" | ... 271 more ... | "zap-off">'.
+screens/AIStylistScreen.tsx(252,5): error TS2322: Type 'WardrobeVisualPayload | null' is not assignable to type 'WardrobeVisualPayload | undefined'.
+  Type 'null' is not assignable to type 'WardrobeVisualPayload | undefined'.
+screens/AIStylistScreen.tsx(255,21): error TS18047: 'wardrobeVisual' is possibly 'null'.
+screens/AIStylistScreen.tsx(256,8): error TS18047: 'wardrobeVisual' is possibly 'null'.
+screens/AIStylistScreen.tsx(257,8): error TS18047: 'wardrobeVisual' is possibly 'null'.
+screens/AIStylistScreen.tsx(1397,54): error TS2345: Argument of type 'WardrobeVisualPayload | undefined' is not assignable to parameter of type 'WardrobeVisualPayload | null'.
+  Type 'undefined' is not assignable to type 'WardrobeVisualPayload | null'.
+screens/AIStylistScreen.tsx(2269,44): error TS2345: Argument of type 'WardrobeVisualPayload | undefined' is not assignable to parameter of type 'WardrobeVisualPayload | null'.
+  Type 'undefined' is not assignable to type 'WardrobeVisualPayload | null'.
+screens/AIStylistScreen.tsx(2345,42): error TS2345: Argument of type 'WardrobeVisualPayload | undefined' is not assignable to parameter of type 'WardrobeVisualPayload | null'.
+  Type 'undefined' is not assignable to type 'WardrobeVisualPayload | null'.
+screens/AIStylistScreen.tsx(2502,27): error TS2322: Type 'WardrobeVisualPayload | null' is not assignable to type 'WardrobeVisualPayload | undefined'.
+  Type 'null' is not assignable to type 'WardrobeVisualPayload | undefined'.
+screens/AIStylistScreen.tsx(2517,25): error TS2322: Type 'WardrobeVisualPayload | null' is not assignable to type 'WardrobeVisualPayload | undefined'.
+  Type 'null' is not assignable to type 'WardrobeVisualPayload | undefined'.
+screens/AskStylistScreen.tsx(411,39): error TS2538: Type 'null' cannot be used as an index type.
+screens/AskStylistScreen.tsx(419,42): error TS2339: Property 'recommendedIndex' does not exist on type '{ success: boolean; decision: string; response?: string | undefined; recommendation?: string | undefined; reasoning?: string | undefined; styleRating?: number | null | undefined; ratingLabel?: string | ... 1 more ... | undefined; ... 8 more ...; outfitImageUrl?: string | undefined; }'.
+screens/AskStylistScreen.tsx(613,42): error TS2339: Property 'recommendedIndex' does not exist on type '{ success: boolean; decision: string; response?: string | undefined; recommendation?: string | undefined; reasoning?: string | undefined; styleRating?: number | null | undefined; ratingLabel?: string | ... 1 more ... | undefined; ... 8 more ...; outfitImageUrl?: string | undefined; }'.
+screens/AuthScreen.tsx(52,5): error TS2561: Object literal may only specify known properties, but 'redirectUrl' does not exist in type 'Partial<GoogleAuthRequestConfig>'. Did you mean to write 'redirectUri'?
+screens/AuthScreen.tsx(70,53): error TS2339: Property 'exchangeCodeAsync' does not exist on type 'GoogleAuthRequest'.
+screens/BulkWardrobeUploadScreen.tsx(721,46): error TS2345: Argument of type '{ imageUri: string | undefined; name: string; category: ClothingCategory; color: ClothingColor; seasons: string[]; occasions: string[]; brand: string | undefined; ... 4 more ...; isFavorite: boolean; }[]' is not assignable to parameter of type 'Omit<WardrobeItem, "id" | "createdAt" | "updatedAt" | "userId" | "timesWorn">[]'.
+  Type '{ imageUri: string | undefined; name: string; category: ClothingCategory; color: ClothingColor; seasons: string[]; occasions: string[]; brand: string | undefined; ... 4 more ...; isFavorite: boolean; }' is not assignable to type 'Omit<WardrobeItem, "id" | "createdAt" | "updatedAt" | "userId" | "timesWorn">'.
+    Types of property 'occasions' are incompatible.
+      Type 'string[]' is not assignable to type 'ClothingOccasion[]'.
+        Type 'string' is not assignable to type 'ClothingOccasion'.
+screens/BulkWardrobeUploadScreen.tsx(1532,3): error TS1117: An object literal cannot have multiple properties with the same name.
+screens/CommunityVotingScreen.tsx(27,7): error TS2741: Property 'createdAt' is missing in type '{ id: string; userId: string; occasion: string; context: string; outfitOptions: ({ id: string; description: string; aiExplanation: string; label: "Recommended"; imageUrl: string; } | { id: string; description: string; aiExplanation: string; label: "Backup option"; imageUrl: string; })[]; status: "voting"; expiresAt:...' but required in type 'VotingSession'.
+screens/CommunityVotingScreen.tsx(149,11): error TS2345: Argument of type 'StylistId | undefined' is not assignable to parameter of type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+screens/CommunityVotingScreen.tsx(197,61): error TS2339: Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/CommunityVotingScreen.tsx(218,64): error TS2339: Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/CommunityVotingScreen.tsx(295,40): error TS2339: Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/CommunityVotingScreen.tsx(326,41): error TS2339: Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/CommunityVotingScreen.tsx(349,60): error TS2339: Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/CommunityVotingScreen.tsx(354,34): error TS2339: Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/CommunityVotingScreen.tsx(362,68): error TS2339: Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/CostPerWearScreen.tsx(152,7): error TS2353: Object literal may only specify known properties, and 'activewear' does not exist in type 'Record<ClothingCategory, string>'.
+screens/CreatePostScreen.tsx(242,9): error TS2322: Type 'SubscriptionTier' is not assignable to type '"free" | "premium"'.
+  Type '"personal_stylist"' is not assignable to type '"free" | "premium"'.
+screens/DecideForMeScreen.tsx(1250,11): error TS2322: Type '{ children: (Element | null)[]; ref: any; style: { flex: number; }; contentContainerStyle: ({ paddingHorizontal: number; paddingTop: number; } | { paddingBottom: number; })[]; showsVerticalScrollIndicator: false; keyboardShouldPersistTaps: "always"; bottomOffset: number; scrollOnFocus: boolean; }' is not assignable to type 'IntrinsicAttributes & { bottomOffset?: number | undefined; disableScrollOnKeyboardHide?: boolean | undefined; enabled?: boolean | undefined; extraKeyboardSpace?: number | undefined; mode?: KeyboardAwareScrollViewMode | undefined; ScrollViewComponent?: AnimatedScrollViewComponent | undefined; } & ScrollViewProps & { ...'.
+  Property 'scrollOnFocus' does not exist on type 'IntrinsicAttributes & { bottomOffset?: number | undefined; disableScrollOnKeyboardHide?: boolean | undefined; enabled?: boolean | undefined; extraKeyboardSpace?: number | undefined; mode?: KeyboardAwareScrollViewMode | undefined; ScrollViewComponent?: AnimatedScrollViewComponent | undefined; } & ScrollViewProps & { ...'.
+screens/DFYCalendarScreen.tsx(126,18): error TS7006: Parameter 'w' implicitly has an 'any' type.
+screens/DFYCalendarScreen.tsx(127,15): error TS7006: Parameter 'w' implicitly has an 'any' type.
+screens/DFYComparisonScreen.tsx(13,37): error TS2305: Module '"@react-navigation/native-stack"' has no exported member 'useRoute'.
+screens/DFYModularWardrobeScreen.tsx(198,38): error TS2339: Property 'error' does not exist on type '{ success: boolean; score: number; verdict: string; analysis: string; hardRuleViolations: string[]; improvements: string[]; occasionRulesApplied: string | null; dimensions?: Record<string, number> | undefined; ... 4 more ...; headline?: string | undefined; }'.
+screens/DiscoverScreen.tsx(597,7): error TS2345: Argument of type 'SubscriptionTier' is not assignable to parameter of type '"free" | "premium"'.
+  Type '"personal_stylist"' is not assignable to type '"free" | "premium"'.
+screens/GuestBrowseScreen.tsx(179,53): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+screens/GuestBrowseScreen.tsx(213,9): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+screens/OnboardingScreen.tsx(35,29): error TS2344: Type 'string | null' does not satisfy the constraint 'string | number | symbol'.
+  Type 'null' is not assignable to type 'string | number | symbol'.
+screens/OnboardingScreen.tsx(555,49): error TS2538: Type 'null' cannot be used as an index type.
+screens/OnboardingScreen.tsx(605,48): error TS2538: Type 'null' cannot be used as an index type.
+screens/OnboardingScreen.tsx(606,55): error TS2538: Type 'null' cannot be used as an index type.
+screens/OnboardingScreen.tsx(623,48): error TS2538: Type 'null' cannot be used as an index type.
+screens/OnboardingScreen.tsx(624,55): error TS2538: Type 'null' cannot be used as an index type.
+screens/OnboardingScreen.tsx(1275,11): error TS2741: Property 'accent' is missing in type '{ selectedStylistId: StylistId; language: string; voicePitch: VoicePitch; useNameInGreetings: boolean; namePronunciationConfirmed: boolean; }' but required in type 'StylistPreferences'.
+screens/OnboardingScreen.tsx(1580,53): error TS2538: Type 'null' cannot be used as an index type.
+screens/PostDetailScreen.tsx(160,68): error TS2769: No overload matches this call.
+  Argument of type '["Subscription"]' is not assignable to parameter of type '[screen: "Home", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | [screen: "PostDetail", params: { postId: string; }, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined]'.
+    Type '["Subscription"]' is not assignable to type '[screen: "Home", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined]'.
+      Type at position 0 in source is not compatible with type at position 0 in target.
+        Type '"Subscription"' is not assignable to type '"Home"'.
+  Overload 2 of 2, '(options: { name: "Home"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { name: "PostDetail"; params: { postId: string; }; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; }): void', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '{ name: "Home"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { name: "PostDetail"; params: { postId: string; }; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; }'.
+screens/PreSignupStyleQuizScreen.tsx(339,18): error TS2339: Property 'xxl' does not exist on type '{ xs: number; sm: number; md: number; lg: number; xl: number; "2xl": number; "3xl": number; "4xl": number; "5xl": number; inputHeight: number; buttonHeight: number; }'.
+screens/ProfileScreen.tsx(199,5): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+screens/SessionDetailScreen.tsx(316,13): error TS2322: Type '{ title: string; onPress: () => Promise<void>; disabled: boolean; style: ({ marginTop: number; } | { backgroundColor: string; })[]; textStyle: { color: string; }; }' is not assignable to type 'IntrinsicAttributes & ButtonProps'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & ButtonProps'.
+screens/SessionDetailScreen.tsx(326,13): error TS2322: Type '{ title: string; onPress: () => Promise<void>; disabled: boolean; style: ({ marginTop: number; } | { backgroundColor: string; })[]; }' is not assignable to type 'IntrinsicAttributes & ButtonProps'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & ButtonProps'.
+screens/SettingsScreen.tsx(909,50): error TS2769: No overload matches this call.
+  Argument of type '["AnalyticsDashboard"]' is not assignable to parameter of type '[screen: "Settings", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | [screen: "Support", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | ... 15 more ... | [screen: ...]'.
+    Type '["AnalyticsDashboard"]' is not assignable to type '[screen: "Settings", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | [screen: "Support", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | ... 14 more ... | [screen: ...]'.
+      Type '["AnalyticsDashboard"]' is not assignable to type '[screen: "Feedback", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined]'.
+        Type at position 0 in source is not compatible with type at position 0 in target.
+          Type '"AnalyticsDashboard"' is not assignable to type '"Feedback"'.
+  Overload 2 of 2, '(options: { name: "Settings"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { name: "Support"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | ... 15 more ... | { ...; }): void', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '{ name: "Settings"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { name: "Support"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | ... 15 more ... | { ...; }'.
+screens/StyleDNAScreen.tsx(75,7): error TS2739: Type '{ black: ("luxury" | "business" | "edgy")[]; white: ("luxury" | "sporty" | "smart-casual")[]; gray: ("smart-casual" | "business" | "edgy")[]; navy: ("luxury" | "smart-casual" | "business")[]; ... 9 more ...; multicolor: ("streetwear" | ... 1 more ... | "sporty")[]; }' is missing the following properties from type 'Record<ClothingColor, StyleTheme[]>': denim, cream
+screens/StyleDNAScreen.tsx(100,3): error TS2353: Object literal may only specify known properties, and 'activewear' does not exist in type 'Record<ClothingCategory, StyleTheme[]>'.
+screens/StyleDNAScreen.tsx(291,11): error TS2739: Type '{ black: string; white: string; gray: string; navy: string; brown: string; beige: string; red: string; pink: string; orange: string; yellow: string; green: string; blue: string; purple: string; multicolor: string; }' is missing the following properties from type 'Record<ClothingColor, string>': denim, cream
+screens/SubscriptionSuccessScreen.tsx(66,3): error TS2353: Object literal may only specify known properties, and 'personal_stylist' does not exist in type 'Record<BillingPlanId, TierContent>'.
+screens/SubscriptionSuccessScreen.tsx(169,43): error TS2322: Type '"pro"' is not assignable to type 'SubscriptionTier | undefined'.
+screens/SubscriptionSuccessScreen.tsx(292,62): error TS2339: Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/SubscriptionSuccessScreen.tsx(297,64): error TS2339: Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/SubscriptionSuccessScreen.tsx(353,73): error TS2339: Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/SustainabilityScreen.tsx(80,9): error TS2353: Object literal may only specify known properties, and 'currentValue' does not exist in type 'Omit<SustainabilityGoal, "id" | "createdAt" | "isCompleted" | "currentValue">'.
+screens/SustainabilityScreen.tsx(605,71): error TS2339: Property 'background' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'background' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/VIPMembersScreen.tsx(209,36): error TS2367: This comparison appears to be unintentional because the types 'SubscriptionTier' and '"premium"' have no overlap.
+screens/VoiceConversationScreen.tsx(434,46): error TS2304: Cannot find name 'recordingRef'.
+screens/VoiceConversationScreen.tsx(437,11): error TS2304: Cannot find name 'recordingRef'.
+screens/VoiceConversationScreen.tsx(439,17): error TS2304: Cannot find name 'recordingRef'.
+screens/VoiceConversationScreen.tsx(443,9): error TS2304: Cannot find name 'recordingRef'.
+screens/WardrobeScreen.tsx(923,70): error TS2339: Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/WardrobeScreen.tsx(925,73): error TS2339: Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/WardrobeScreen.tsx(927,69): error TS2339: Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; } | { ...; }'.
+  Property 'textSecondary' does not exist on type '{ text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }'.
+screens/WardrobeScreen.tsx(1537,25): error TS2339: Property 'modalOverlay' does not exist on type '{ container: { flex: number; }; loadingContainer: { flex: number; justifyContent: "center"; alignItems: "center"; }; loadingIconContainer: { width: number; height: number; borderRadius: number; alignItems: "center"; justifyContent: "center"; }; ... 101 more ...; outfitModalButton: { ...; }; }'.
+screens/WelcomeScreen.tsx(57,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ImageProps): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll" | undefined' is not assignable to type '"visible" | "hidden" | undefined'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden" | undefined'.
+  Overload 2 of 2, '(props: ImageProps, context: any): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll" | undefined' is not assignable to type '"visible" | "hidden" | undefined'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden" | undefined'.
+screens/WelcomeScreen.tsx(181,3): error TS2322: Type '{ minHeight?: "100vh" | undefined; width?: "100%" | undefined; position?: "relative" | undefined; flex: number; }' is not assignable to type 'ViewStyle | TextStyle | ImageStyle'.
+  Type '{ minHeight?: "100vh" | undefined; width?: "100%" | undefined; position?: "relative" | undefined; flex: number; }' is not assignable to type 'ImageStyle'.
+    Types of property 'minHeight' are incompatible.
+      Type '"100vh" | undefined' is not assignable to type 'DimensionValue | undefined'.
+        Type '"100vh"' is not assignable to type 'DimensionValue | undefined'.
+services/DecisionService.ts(479,26): error TS2352: Conversion of type '{ request: Record<string, unknown>; response: Record<string, unknown>; }[]' to type '{ request: DecisionRequest; response: DecisionResponse; }[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ request: Record<string, unknown>; response: Record<string, unknown>; }' is not comparable to type '{ request: DecisionRequest; response: DecisionResponse; }'.
+    Types of property 'request' are incompatible.
+      Type 'Record<string, unknown>' is missing the following properties from type 'DecisionRequest': id, userId, type, images, and 3 more.
+services/OpenAITTSService.ts(912,10): error TS2304: Cannot find name 'currentSound'.
+services/SharingService.ts(11,27): error TS2614: Module '"@/services/CurrencyService"' has no exported member 'CurrencyCode'. Did you mean to use 'import CurrencyCode from "@/services/CurrencyService"' instead?
+services/SharingService.ts(425,72): error TS2554: Expected 1 arguments, but got 2.
+services/UserProfileSyncService.ts(265,12): error TS2790: The operand of a 'delete' operator must be optional.
+utils/wardrobeLocalPhotos.ts(34,52): error TS2339: Property 'startsWith' does not exist on type 'never'.

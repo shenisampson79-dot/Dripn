@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, View, type DimensionValue } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { WardrobeItemImage } from '@/components/WardrobeItemImage';
@@ -8,15 +8,17 @@ import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { useTheme } from '@/hooks/useTheme';
 import {
   buildWardrobeImageProxyUrl,
-  enrichWardrobeItemForDisplay,
+  enrichWardrobeItemForOutfitVisual,
   isProxyWardrobeImageUri,
+  itemHasProcessedCutout,
   normalizeRemoteApiUrl,
+  wardrobeProcessedTileBackground,
   wardrobeTileBackground,
 } from '@/utils/wardrobeImage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CANVAS_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
-const STACK_OVERLAP = 42;
+const STACK_OVERLAP = 28;
 
 export type OutfitPieceVisual = {
   role?: string;
@@ -37,12 +39,21 @@ type ResolvedLayer = {
 };
 
 const LAYER_HEIGHT: Record<LayerSlot, number> = {
-  outerwear: 152,
-  top: 132,
-  bottom: 172,
-  shoes: 92,
-  dress: 290,
-  accessory: 108,
+  outerwear: 178,
+  top: 158,
+  bottom: 198,
+  shoes: 108,
+  dress: 318,
+  accessory: 118,
+};
+
+const LAYER_HEIGHT_LARGE: Record<LayerSlot, number> = {
+  outerwear: 258,
+  top: 228,
+  bottom: 258,
+  shoes: 178,
+  dress: 400,
+  accessory: 168,
 };
 
 const LAYER_WIDTH: Record<LayerSlot, number> = {
@@ -54,6 +65,17 @@ const LAYER_WIDTH: Record<LayerSlot, number> = {
   accessory: 0.36,
 };
 
+const LAYER_WIDTH_LARGE: Record<LayerSlot, number> = {
+  outerwear: 1,
+  top: 0.94,
+  bottom: 0.88,
+  shoes: 0.84,
+  dress: 0.92,
+  accessory: 0.4,
+};
+
+const STACK_OVERLAP_LARGE = 22;
+
 const STACK_ORDER: LayerSlot[] = ['outerwear', 'top', 'dress', 'bottom', 'shoes'];
 
 function inferSlotFromText(text: string): LayerSlot | null {
@@ -62,7 +84,7 @@ function inferSlotFromText(text: string): LayerSlot | null {
   if (/\b(blazer|jacket|coat|outerwear|cardigan|parka|trench|overcoat|gilet|vest)\b/.test(t)) return 'outerwear';
   if (/\b(trouser|pant|jean|short|skirt|cargo|chino|bottom|legging)\b/.test(t)) return 'bottom';
   if (/\b(shoe|trainer|sneaker|boot|loafer|heel|sandal|footwear|mule|flat)\b/.test(t)) return 'shoes';
-  if (/\b(bag|tote|purse|belt|scarf|hat|accessory|necklace|earring|watch)\b/.test(t)) return 'accessory';
+  if (/\b(bag|tote|purse|belt|scarf|hat|tie|bowtie|accessory|necklace|earring|watch)\b/.test(t)) return 'accessory';
   if (/\b(shirt|blouse|top|tee|t-shirt|sweater|knit|polo|tank|camisole)\b/.test(t)) return 'top';
   return null;
 }
@@ -113,7 +135,7 @@ function pieceToWardrobeItem(piece: OutfitPieceVisual, wardrobeItem?: WardrobeIt
   const fallbackUri = serverCdn || serverImageUrl || proxyFromId;
 
   if (wardrobeItem) {
-    return enrichWardrobeItemForDisplay(wardrobeItem) as WardrobeItem;
+    return enrichWardrobeItemForOutfitVisual(wardrobeItem) as WardrobeItem;
   }
 
   if (piece.wardrobeItemId != null && (fallbackUri || piece.name)) {
@@ -201,11 +223,21 @@ type Props = {
   wardrobeItems?: WardrobeItem[];
   label?: string;
   compact?: boolean;
+  large?: boolean;
+  canvasWidth?: number;
 };
 
-export function OutfitPiecesVisual({ pieces, wardrobeItems = [], label = 'Your outfit', compact = false }: Props) {
+export function OutfitPiecesVisual({
+  pieces,
+  wardrobeItems = [],
+  label = 'Your outfit',
+  compact = false,
+  large = false,
+  canvasWidth,
+}: Props) {
   const { isDark } = useTheme();
   const scale = compact ? 0.72 : 1;
+  const effectiveCanvasWidth = canvasWidth ?? CANVAS_WIDTH;
 
   const { stack, accessories } = useMemo(
     () => buildLayers(pieces, wardrobeItems),
@@ -214,22 +246,69 @@ export function OutfitPiecesVisual({ pieces, wardrobeItems = [], label = 'Your o
 
   if (stack.length === 0 && accessories.length === 0) return null;
 
-  const layerHeight = (slot: LayerSlot) => Math.round(LAYER_HEIGHT[slot] * scale);
-  const layerWidth = (slot: LayerSlot) => LAYER_WIDTH[slot] * (compact ? 0.94 : 1);
-  const stackOverlap = compact ? 30 : STACK_OVERLAP;
+  const layerHeight = (slot: LayerSlot) => {
+    const base = large ? LAYER_HEIGHT_LARGE[slot] : LAYER_HEIGHT[slot];
+    return Math.round(base * scale);
+  };
+  const layerWidth = (slot: LayerSlot) => {
+    const base = large ? LAYER_WIDTH_LARGE[slot] : LAYER_WIDTH[slot];
+    return base * (compact ? 0.94 : 1);
+  };
+  const stackOverlap = compact ? 30 : large ? STACK_OVERLAP_LARGE : STACK_OVERLAP;
 
   const canvasHeight =
     stack.reduce((sum, layer, index) => {
       const overlap = index === 0 ? 0 : stackOverlap;
       return sum + layerHeight(layer.slot) - overlap;
-    }, (compact ? Spacing.sm : Spacing.md) * 2)
-    + (accessories.length > 0 ? (compact ? 8 : 12) : 0);
+    }, (compact ? Spacing.sm : Spacing.md) * 2);
 
-  const canvasBg = wardrobeTileBackground(isDark);
-  const canvasBorder = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)';
+  const getAccessoryTop = (index: number) => {
+    if (!large) {
+      return (compact ? 64 : 88) + index * (compact ? 22 : 28);
+    }
+
+    const outerwearLayer = stack.find((layer) => layer.slot === 'outerwear');
+    const topLayer = stack.find((layer) => layer.slot === 'top');
+    let torsoAnchor = 20;
+
+    if (outerwearLayer) {
+      torsoAnchor = layerHeight('outerwear') - Math.round(stackOverlap * 0.55);
+    } else if (topLayer) {
+      torsoAnchor = Math.round(layerHeight('top') * 0.35);
+    }
+
+    if (topLayer && outerwearLayer) {
+      torsoAnchor += Math.round(layerHeight('top') * 0.12);
+    }
+
+    return torsoAnchor + index * (layerHeight('accessory') + 12);
+  };
+
+  const seamlessWhite = large;
+  const canvasBg = seamlessWhite ? wardrobeProcessedTileBackground() : wardrobeTileBackground(isDark);
+
+  const layerFrameStyle = (isProcessedLayer: boolean) => ({
+    backgroundColor: isProcessedLayer ? wardrobeProcessedTileBackground() : wardrobeTileBackground(isDark),
+    borderRadius: 0,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    overflow: 'visible' as const,
+  });
+
+  const renderLayerImage = (layer: ResolvedLayer, layerBg: string, isProcessedLayer: boolean) => (
+    <WardrobeItemImage
+      item={layer.item}
+      style={styles.layerImage}
+      processed={isProcessedLayer}
+      contentFit="contain"
+      preferCover={false}
+      showLoading
+      tileBackgroundColor={layerBg}
+    />
+  );
 
   return (
-    <View style={[styles.container, compact && styles.containerCompact]}>
+    <View style={[styles.container, compact && styles.containerCompact, large && styles.containerLarge]}>
       {label ? (
         <ThemedText
           type="small"
@@ -240,68 +319,71 @@ export function OutfitPiecesVisual({ pieces, wardrobeItems = [], label = 'Your o
           {label}
         </ThemedText>
       ) : null}
-      <View style={[styles.canvas, compact && styles.canvasCompact, { height: canvasHeight, backgroundColor: canvasBg, borderColor: canvasBorder }]}>
-        <View style={styles.stackColumn}>
+      <View
+        style={[
+          styles.canvas,
+          compact && styles.canvasCompact,
+          styles.canvasSeamless,
+          {
+            width: '100%',
+            minHeight: canvasHeight,
+            backgroundColor: canvasBg,
+            borderWidth: 0,
+            borderColor: 'transparent',
+          },
+        ]}
+      >
+        <View style={[styles.stackColumn, styles.stackColumnSeamless]}>
           {stack.map((layer, index) => {
-            const layerBg = wardrobeTileBackground(isDark);
+            const isProcessedLayer = itemHasProcessedCutout(layer.item);
+            const layerBg = isProcessedLayer
+              ? wardrobeProcessedTileBackground()
+              : wardrobeTileBackground(isDark);
+            const widthPct = `${Math.round(layerWidth(layer.slot) * 100)}%` as DimensionValue;
             return (
               <View
                 key={layer.key}
                 style={[
                   styles.layer,
+                  layerFrameStyle(isProcessedLayer),
                   {
-                    width: CANVAS_WIDTH * layerWidth(layer.slot),
+                    width: widthPct,
+                    maxWidth: '100%',
                     height: layerHeight(layer.slot),
                     marginTop: index === 0 ? 0 : -stackOverlap,
-                    zIndex: index + 1,
-                    backgroundColor: layerBg,
-                    borderRadius: BorderRadius.md,
-                    borderWidth: 1,
-                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                    zIndex: large ? 10 + index : index + 1,
                   },
                 ]}
               >
-                <WardrobeItemImage
-                  item={layer.item}
-                  style={styles.layerImage}
-                  processed={!!(layer.item.imageProcessed || layer.item.aiAnalyzed)}
-                  contentFit="contain"
-                  preferCover
-                  showLoading
-                />
+                {renderLayerImage(layer, layerBg, isProcessedLayer)}
               </View>
             );
           })}
         </View>
 
         {accessories.map((layer, index) => {
-          const layerBg = wardrobeTileBackground(isDark);
+          const isProcessedLayer = itemHasProcessedCutout(layer.item);
+          const layerBg = isProcessedLayer
+            ? wardrobeProcessedTileBackground()
+            : wardrobeTileBackground(isDark);
+          const accessoryWidthPct = `${Math.round(layerWidth('accessory') * 100)}%` as DimensionValue;
           return (
             <View
               key={layer.key}
               style={[
                 styles.accessoryFloat,
+                layerFrameStyle(isProcessedLayer),
                 {
-                  width: CANVAS_WIDTH * layerWidth('accessory'),
+                  width: large ? accessoryWidthPct : effectiveCanvasWidth * layerWidth('accessory'),
+                  maxWidth: large ? '44%' : undefined,
                   height: layerHeight('accessory'),
-                  top: (compact ? 64 : 88) + index * (compact ? 22 : 28),
-                  right: Spacing.sm,
-                  zIndex: stack.length + 10 + index,
-                  backgroundColor: layerBg,
-                  borderRadius: BorderRadius.md,
-                  borderWidth: 1,
-                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                  top: getAccessoryTop(index),
+                  right: 0,
+                  zIndex: stack.length + 20 + index,
                 },
               ]}
             >
-              <WardrobeItemImage
-                item={layer.item}
-                style={styles.layerImage}
-                processed={!!(layer.item.imageProcessed || layer.item.aiAnalyzed)}
-                contentFit="contain"
-                preferCover
-                showLoading
-              />
+              {renderLayerImage(layer, layerBg, isProcessedLayer)}
             </View>
           );
         })}
@@ -313,6 +395,9 @@ export function OutfitPiecesVisual({ pieces, wardrobeItems = [], label = 'Your o
 const styles = StyleSheet.create({
   container: {
     marginBottom: Spacing.lg,
+  },
+  containerLarge: {
+    overflow: 'visible',
   },
   containerCompact: {
     marginBottom: Spacing.md,
@@ -328,9 +413,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   canvas: {
-    borderRadius: BorderRadius.xl,
-    overflow: 'hidden',
-    borderWidth: 1,
+    borderRadius: 0,
+    overflow: 'visible',
+    borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingTop: Spacing.sm,
@@ -341,9 +426,20 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xs,
     paddingBottom: Spacing.sm,
   },
+  canvasSeamless: {
+    borderRadius: 0,
+    overflow: 'visible',
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingRight: 2,
+  },
   stackColumn: {
     alignItems: 'center',
     width: '100%',
+  },
+  stackColumnSeamless: {
+    overflow: 'visible',
+    paddingHorizontal: 2,
   },
   layer: {
     alignItems: 'center',
@@ -357,5 +453,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
   },
 });

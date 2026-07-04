@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     resizeMode: "cover",
   },
   videoOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },

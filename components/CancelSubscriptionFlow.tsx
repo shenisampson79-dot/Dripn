@@ -227,11 +227,10 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
     }
   };
 
-  const resolveDowngradePlan = (highlightPlan?: string): BillingPlanId => {
+  const resolveDowngradePlan = (highlightPlan?: string): 'style_chat' | 'personal_stylist' | 'stylist_unlimited' => {
     const plan = highlightPlan || 'style_chat';
-    if (plan === 'subscription' || plan === 'style_chat') return 'style_chat';
-    if (plan === 'personal_stylist' || plan === 'premium') return 'personal_stylist';
-    if (plan === 'stylist_unlimited' || plan === 'pro') return 'stylist_unlimited';
+    if (plan === 'subscription' || plan === 'style_chat' || plan === 'personal_stylist') return 'style_chat';
+    if (plan === 'stylist_unlimited' || plan === 'pro' || plan === 'premium') return 'stylist_unlimited';
     return 'style_chat';
   };
 
@@ -257,7 +256,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
       const msg = error?.message || "Could not change plan.";
       if (msg.includes("NOT_A_DOWNGRADE") || msg.includes("lower than")) {
         navigation.navigate("Subscription", {
-          highlightPlan: highlightPlan || "style_chat",
+          highlightPlan: (highlightPlan || "style_chat") as import("@/contexts/AuthContext").SubscriptionTier,
         });
         handleKeepSubscription();
         return;
@@ -514,7 +513,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
       },
       other: {
         title: "View lower plans",
-        body: "Style Chat starts at a lower price — you might not need to cancel.",
+        body: "Personal Stylist starts at a lower price — you might not need to cancel.",
         primaryAction: "downgrade",
         highlightPlan: "style_chat",
         actionLabel: "View Lower Plans",

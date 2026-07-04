@@ -239,7 +239,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
         userId: user.id,
         userName: user.name,
         userAvatar: user.avatar,
-        userSubscriptionTier: user.subscriptionTier,
+        userSubscriptionTier: user.subscriptionTier === 'free' ? 'free' : 'premium',
         type: postType,
         media: media.map((m) => ({
           ...m,

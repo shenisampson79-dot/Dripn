@@ -1,0 +1,313 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm 
+help npmrc` for supported config options.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+components/CancelSubscriptionFlow.tsx(21,69): error TS2459: Module '"@/utils/subscriptionTier"' declares 'BillingPlanId' locally, but it is not exported.
+components/CancelSubscriptionFlow.tsx(259,11): error TS2322: Type 'string' is not assignable to type 'SubscriptionTier | undefined'.
+components/LoopingBackgroundVideo.tsx(35,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: VideoViewProps): VideoView', gave the following error.
+    Type '{ player: VideoPlayer; style: ViewStyle | TextStyle | ImageStyle; contentFit: "cover"; nativeControls: false; allowsFullscreen: boolean; playsInline: true; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<VideoView> & Readonly<VideoViewProps>'.
+      Property 'allowsFullscreen' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<VideoView> & Readonly<VideoViewProps>'.
+  Overload 2 of 2, '(props: VideoViewProps, context: any): VideoView', gave the following error.
+    Type '{ player: VideoPlayer; style: ViewStyle | TextStyle | ImageStyle; contentFit: "cover"; nativeControls: false; allowsFullscreen: boolean; playsInline: true; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<VideoView> & Readonly<VideoViewProps>'.
+      Property 'allowsFullscreen' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<VideoView> & Readonly<VideoViewProps>'.
+components/LoopingBackgroundVideo.tsx(43,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: VideoViewProps): VideoView', gave the following error.
+    Type '{ player: VideoPlayer; style: ViewStyle | TextStyle | ImageStyle; contentFit: "contain"; nativeControls: false; allowsFullscreen: boolean; playsInline: true; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<VideoView> & Readonly<VideoViewProps>'.
+      Property 'allowsFullscreen' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<VideoView> & Readonly<VideoViewProps>'.
+  Overload 2 of 2, '(props: VideoViewProps, context: any): VideoView', gave the following error.
+    Type '{ player: VideoPlayer; style: ViewStyle | TextStyle | ImageStyle; contentFit: "contain"; nativeControls: false; allowsFullscreen: boolean; playsInline: true; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<VideoView> & Readonly<VideoViewProps>'.
+      Property 'allowsFullscreen' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<VideoView> & Readonly<VideoViewProps>'.
+components/LoopingBackgroundVideo.tsx(60,57): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+components/LoopingBackgroundVideo.tsx(66,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: VideoViewProps): VideoView', gave the following error.
+    Type '{ player: VideoPlayer; style: ViewStyle | TextStyle | ImageStyle; contentFit: "cover"; nativeControls: false; allowsFullscreen: boolean; playsInline: true; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<VideoView> & Readonly<VideoViewProps>'.
+      Property 'allowsFullscreen' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<VideoView> & Readonly<VideoViewProps>'.
+  Overload 2 of 2, '(props: VideoViewProps, context: any): VideoView', gave the following error.
+    Type '{ player: VideoPlayer; style: ViewStyle | TextStyle | ImageStyle; contentFit: "cover"; nativeControls: false; allowsFullscreen: boolean; playsInline: true; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<VideoView> & Readonly<VideoViewProps>'.
+      Property 'allowsFullscreen' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<VideoView> & Readonly<VideoViewProps>'.
+components/LoopingBackgroundVideo.tsx(86,5): error TS2322: Type '"fixed"' is not assignable to type '"absolute" | "relative" | "static" | undefined'.
+components/LoopingBackgroundVideo.tsx(91,5): error TS2322: Type '"100vw"' is not assignable to type 'DimensionValue | undefined'.
+components/LoopingBackgroundVideo.tsx(92,5): error TS2322: Type '"100vh"' is not assignable to type 'DimensionValue | undefined'.
+components/OutfitPiecesVisual.tsx(353,19): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type '{ width: string; maxWidth: "100%"; height: number; marginTop: number; zIndex: number; }' is not assignable to type 'Falsy | ViewStyle | RecursiveArray<Falsy | ViewStyle> | readonly (Falsy | ViewStyle)[]'.
+      Types of property 'width' are incompatible.
+        Type 'string' is not assignable to type 'DimensionValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '{ width: string; maxWidth: "100%"; height: number; marginTop: number; zIndex: number; }' is not assignable to type 'Falsy | ViewStyle | RecursiveArray<Falsy | ViewStyle> | readonly (Falsy | ViewStyle)[]'.
+      Types of property 'width' are incompatible.
+        Type 'string' is not assignable to type 'DimensionValue | undefined'.
+components/OutfitPiecesVisual.tsx(380,17): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type '{ width: string | number; maxWidth: "44%" | undefined; height: number; top: number; right: number; zIndex: number; }' is not assignable to type 'Falsy | ViewStyle | RecursiveArray<Falsy | ViewStyle> | readonly (Falsy | ViewStyle)[]'.
+      Types of property 'width' are incompatible.
+        Type 'string | number' is not assignable to type 'DimensionValue | undefined'.
+          Type 'string' is not assignable to type 'DimensionValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '{ width: string | number; maxWidth: "44%" | undefined; height: number; top: number; right: number; zIndex: number; }' is not assignable to type 'Falsy | ViewStyle | RecursiveArray<Falsy | ViewStyle> | readonly (Falsy | ViewStyle)[]'.
+      Types of property 'width' are incompatible.
+        Type 'string | number' is not assignable to type 'DimensionValue | undefined'.
+          Type 'string' is not assignable to type 'DimensionValue | undefined'.
+components/PersonalStylistVoicePanel.tsx(164,27): error TS2345: Argument of type '{ remaining: string | number; monthlyAllowance: number; monthlyRemaining?: number | undefined; purchasedCredits?: number | undefined; isUnlimited?: boolean | undefined; }' is not assignable to parameter of type 'Partial<VoiceCreditsInternal>'.
+  Types of property 'remaining' are incompatible.
+    Type 'string | number' is not assignable to type 'number | undefined'.
+      Type 'string' is not assignable to type 'number'.
+components/PostCard.tsx(393,19): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+components/SubscriptionBadge.tsx(24,25): error TS2551: Property 'backgroundStart' does not exist on type '{ background: string; text: string; } | { background: string; backgroundStart: string; backgroundEnd: string; text: string; } | { background: string; backgroundStart: string; backgroundEnd: string; text: string; } | { ...; }'. Did you mean 'background'?
+  Property 'backgroundStart' does not exist on type '{ background: string; text: string; }'.
+components/SubscriptionBadge.tsx(24,70): error TS2551: Property 'backgroundEnd' does not exist on type '{ background: string; text: string; } | { background: string; backgroundStart: string; backgroundEnd: string; text: string; } | { background: string; backgroundStart: string; backgroundEnd: string; text: string; } | { ...; }'. Did you mean 'background'?
+  Property 'backgroundEnd' does not exist on type '{ background: string; text: string; }'.
+components/UploadGuideComparisonTable.tsx(18,38): error TS2559: Type 'number' has no properties in common with type 'ImageSource'.
+components/VoiceCommentInput.tsx(280,27): error TS2503: Cannot find namespace 'Audio'.
+components/VoiceCommentInput.tsx(300,41): error TS2339: Property 'Sound' does not exist on type 'new (src?: string | undefined) => HTMLAudioElement'.
+components/WardrobeImageShimmer.tsx(57,19): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+contexts/AuthContext.tsx(777,11): error TS2741: Property 'skinUndertone' is missing in type '{ id: string; email: string; name: string; avatar: null; country: string; actualCountry: string; gender: "man"; stylePreference: "luxury"; sizeRange: "M-L"; bodyShape: "Athletic"; budgetRange: "Mid-Range"; ... 14 more ...; stylistPreferences: { ...; }; }' but required in type 'UserProfile'.
+contexts/WardrobeContext.tsx(1145,22): error TS2339: Property 'waitForBackgroundRemoval' does not exist on type '{ onBackgroundProgress?: ((progress: { processed: number; total: number; failed: number; }) => void) | undefined; }'.
+hooks/useTheme.ts(7,17): error TS7053: Element implicitly has an 'any' type because expression of type 'ColorSchemeName' can't be used to index type '{ light: { text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }; dark: { ...; }; }'.
+  Property 'unspecified' does not exist on type '{ light: { text: string; buttonText: string; tabIconDefault: string; tabIconSelected: string; link: string; backgroundRoot: string; backgroundDefault: string; backgroundSecondary: string; backgroundTertiary: string; ... 4 more ...; border: string; }; dark: { ...; }; }'.
+screens/AddWardrobeItemScreen.tsx(404,9): error TS1117: An object literal cannot have multiple properties with the same name.
+screens/AddWardrobeItemScreen.tsx(405,9): error TS1117: An object literal cannot have multiple properties with the same name.
+screens/AddWardrobeItemScreen.tsx(406,9): error TS1117: An object literal cannot have multiple properties with the same name.
+screens/AddWardrobeItemScreen.tsx(407,9): error TS1117: An object literal cannot have multiple properties with the same name.
+screens/AddWardrobeItemScreen.tsx(408,9): error TS1117: An object literal cannot have multiple properties with the same name.
+screens/AddWardrobeItemScreen.tsx(429,52): error TS2339: Property 'suggestedName' does not exist on type '{ name: any; category: any; color: any; seasons: any; occasions: any; brand: any; description: any; }'.
+screens/AddWardrobeItemScreen.tsx(429,78): error TS2339: Property 'itemName' does not exist on type '{ name: any; category: any; color: any; seasons: any; occasions: any; brand: any; description: any; }'.
+screens/AddWardrobeItemScreen.tsx(430,54): error TS2339: Property 'colorTag' does not exist on type '{ name: any; category: any; color: any; seasons: any; occasions: any; brand: any; description: any; }'.
+screens/AddWardrobeItemScreen.tsx(430,75): error TS2339: Property 'primaryColor' does not exist on type '{ name: any; category: any; color: any; seasons: any; occasions: any; brand: any; description: any; }'.
+screens/AddWardrobeItemScreen.tsx(464,54): error TS2339: Property 'colorTag' does not exist on type '{ name: any; category: any; color: any; seasons: any; occasions: any; brand: any; description: any; }'.
+screens/AddWardrobeItemScreen.tsx(697,58): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+screens/AddWardrobeItemScreen.tsx(700,9): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+screens/AddWardrobeItemScreen.tsx(701,9): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+screens/AddWardrobeItemScreen.tsx(978,27): error TS7053: Element implicitly has an 'any' type because expression of type 'ItemOrigin' can't be used to index type 'Record<"owned" | "inspiration", "key" | "facebook" | "user" | "search" | "repeat" | "anchor" | "bold" | "link" | "map" | "filter" | "watch" | "feather" | "grid" | "layers" | "cloud" | ... 271 more ... | "zap-off">'.
+  Property 'wishlist' does not exist on type 'Record<"owned" | "inspiration", "key" | "facebook" | "user" | "search" | "repeat" | "anchor" | "bold" | "link" | "map" | "filter" | "watch" | "feather" | "grid" | "layers" | "cloud" | ... 271 more ... | "zap-off">'.
+screens/AddWardrobeItemScreen.tsx(1502,19): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/AIStylistScreen.tsx(252,5): error TS2322: Type 'WardrobeVisualPayload | null' is not assignable to type 'WardrobeVisualPayload | undefined'.
+  Type 'null' is not assignable to type 'WardrobeVisualPayload | undefined'.
+screens/AIStylistScreen.tsx(255,21): error TS18047: 'wardrobeVisual' is possibly 'null'.
+screens/AIStylistScreen.tsx(256,8): error TS18047: 'wardrobeVisual' is possibly 'null'.
+screens/AIStylistScreen.tsx(257,8): error TS18047: 'wardrobeVisual' is possibly 'null'.
+screens/AIStylistScreen.tsx(1397,54): error TS2345: Argument of type 'WardrobeVisualPayload | undefined' is not assignable to parameter of type 'WardrobeVisualPayload | null'.
+  Type 'undefined' is not assignable to type 'WardrobeVisualPayload | null'.
+screens/AIStylistScreen.tsx(1810,21): error TS2339: Property 'profileData' does not exist on type 'UserProfile'.
+screens/AIStylistScreen.tsx(1973,19): error TS2551: Property 'cancelled' does not exist on type 'ImagePickerResult'. Did you mean 'canceled'?
+  Property 'cancelled' does not exist on type 'ImagePickerSuccessResult'.
+screens/AIStylistScreen.tsx(2080,21): error TS2339: Property 'profileData' does not exist on type 'UserProfile'.
+screens/AIStylistScreen.tsx(2269,44): error TS2345: Argument of type 'WardrobeVisualPayload | undefined' is not assignable to parameter of type 'WardrobeVisualPayload | null'.
+  Type 'undefined' is not assignable to type 'WardrobeVisualPayload | null'.
+screens/AIStylistScreen.tsx(2345,42): error TS2345: Argument of type 'WardrobeVisualPayload | undefined' is not assignable to parameter of type 'WardrobeVisualPayload | null'.
+  Type 'undefined' is not assignable to type 'WardrobeVisualPayload | null'.
+screens/AIStylistScreen.tsx(2502,27): error TS2322: Type 'WardrobeVisualPayload | null' is not assignable to type 'WardrobeVisualPayload | undefined'.
+  Type 'null' is not assignable to type 'WardrobeVisualPayload | undefined'.
+screens/AIStylistScreen.tsx(2517,25): error TS2322: Type 'WardrobeVisualPayload | null' is not assignable to type 'WardrobeVisualPayload | undefined'.
+  Type 'null' is not assignable to type 'WardrobeVisualPayload | undefined'.
+screens/AskStylistScreen.tsx(393,19): error TS2339: Property 'profileData' does not exist on type 'UserProfile'.
+screens/AskStylistScreen.tsx(411,39): error TS2538: Type 'null' cannot be used as an index type.
+screens/AskStylistScreen.tsx(419,42): error TS2339: Property 'recommendedIndex' does not exist on type '{ success: boolean; decision: string; response?: string | undefined; recommendation?: string | undefined; reasoning?: string | undefined; styleRating?: number | null | undefined; ratingLabel?: string | ... 1 more ... | undefined; ... 8 more ...; outfitImageUrl?: string | undefined; }'.
+screens/AskStylistScreen.tsx(587,19): error TS2339: Property 'profileData' does not exist on type 'UserProfile'.
+screens/AskStylistScreen.tsx(613,42): error TS2339: Property 'recommendedIndex' does not exist on type '{ success: boolean; decision: string; response?: string | undefined; recommendation?: string | undefined; reasoning?: string | undefined; styleRating?: number | null | undefined; ratingLabel?: string | ... 1 more ... | undefined; ... 8 more ...; outfitImageUrl?: string | undefined; }'.
+screens/AskStylistScreen.tsx(1698,18): error TS2339: Property 'uploadedImages' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1698,45): error TS2339: Property 'uploadedImages' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1698,83): error TS2339: Property 'recommendedIndex' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1701,37): error TS2339: Property 'uploadedImages' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1701,61): error TS2339: Property 'recommendedIndex' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1712,21): error TS2339: Property 'outfitPieces' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1712,46): error TS2339: Property 'outfitPieces' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1714,28): error TS2339: Property 'outfitPieces' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1720,20): error TS2339: Property 'styleRating' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1724,34): error TS2339: Property 'styleRating' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1730,24): error TS2339: Property 'ratingLabel' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1732,27): error TS2339: Property 'ratingLabel' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1738,20): error TS2339: Property 'outfitSummary' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1740,23): error TS2339: Property 'outfitSummary' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1744,20): error TS2339: Property 'outfitPieces' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1744,45): error TS2339: Property 'outfitPieces' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(1746,23): error TS2339: Property 'outfitPieces' does not exist on type 'DecisionResponse'.
+screens/AskStylistScreen.tsx(2958,3): error TS1117: An object literal cannot have multiple properties with the same name.
+screens/AuthScreen.tsx(52,5): error TS2561: Object literal may only specify known properties, but 'redirectUrl' does not exist in type 'Partial<GoogleAuthRequestConfig>'. Did you mean to write 'redirectUri'?
+screens/AuthScreen.tsx(70,53): error TS2339: Property 'exchangeCodeAsync' does not exist on type 'GoogleAuthRequest'.
+screens/BulkWardrobeUploadScreen.tsx(721,46): error TS2345: Argument of type '{ imageUri: string | undefined; name: string; category: ClothingCategory; color: ClothingColor; seasons: string[]; occasions: string[]; brand: string | undefined; ... 4 more ...; isFavorite: boolean; }[]' is not assignable to parameter of type 'Omit<WardrobeItem, "id" | "createdAt" | "updatedAt" | "userId" | "timesWorn">[]'.
+  Type '{ imageUri: string | undefined; name: string; category: ClothingCategory; color: ClothingColor; seasons: string[]; occasions: string[]; brand: string | undefined; ... 4 more ...; isFavorite: boolean; }' is not assignable to type 'Omit<WardrobeItem, "id" | "createdAt" | "updatedAt" | "userId" | "timesWorn">'.
+    Types of property 'occasions' are incompatible.
+      Type 'string[]' is not assignable to type 'ClothingOccasion[]'.
+        Type 'string' is not assignable to type 'ClothingOccasion'.
+screens/BulkWardrobeUploadScreen.tsx(1532,3): error TS1117: An object literal cannot have multiple properties with the same name.
+screens/ChallengeDetailScreen.tsx(20,52): error TS2344: Type '"ChallengeDetail"' does not satisfy the constraint 'keyof DiscoverStackParamList'.
+screens/ChallengeDetailScreen.tsx(27,11): error TS2339: Property 'challengeId' does not exist on type 'Readonly<unknown> | undefined'.
+screens/ChallengeDetailScreen.tsx(182,35): error TS2345: Argument of type '["ChallengeSubmission", { challengeId: string; }]' is not assignable to parameter of type '[screen: "Sustainability", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | [screen: "Events", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | ... 15 more ... | [screen: ...]'.
+  Type '["ChallengeSubmission", { challengeId: string; }]' is not assignable to type '[screen: "CollectiveInsights", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined]'.
+    Type at position 0 in source is not compatible with type at position 0 in target.
+      Type '"ChallengeSubmission"' is not assignable to type '"CollectiveInsights"'.
+screens/ChallengeDetailScreen.tsx(390,33): error TS2345: Argument of type '["ChallengeSubmission", { challengeId: string; }]' is not assignable to parameter of type '[screen: "Sustainability", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | [screen: "Events", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | ... 15 more ... | [screen: ...]'.
+  Type '["ChallengeSubmission", { challengeId: string; }]' is not assignable to type '[screen: "CollectiveInsights", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined]'.
+    Type at position 0 in source is not compatible with type at position 0 in target.
+      Type '"ChallengeSubmission"' is not assignable to type '"CollectiveInsights"'.
+screens/ChallengeSubmissionScreen.tsx(21,52): error TS2344: Type '"ChallengeSubmission"' does not satisfy the constraint 'keyof DiscoverStackParamList'.
+screens/ChallengeSubmissionScreen.tsx(26,11): error TS2339: Property 'challengeId' does not exist on type 'Readonly<unknown> | undefined'.
+screens/CommunityVotingScreen.tsx(27,7): error TS2741: Property 'createdAt' is missing in type '{ id: string; userId: string; occasion: string; context: string; outfitOptions: ({ id: string; description: string; aiExplanation: string; label: "Recommended"; imageUrl: string; } | { id: string; description: string; aiExplanation: string; label: "Backup option"; imageUrl: string; })[]; status: "voting"; expiresAt:...' but required in type 'VotingSession'.
+screens/CommunityVotingScreen.tsx(149,11): error TS2345: Argument of type 'StylistId | undefined' is not assignable to parameter of type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+screens/CostPerWearScreen.tsx(152,7): error TS2353: Object literal may only specify known properties, and 'activewear' does not exist in type 'Record<ClothingCategory, string>'.
+screens/CreatePostScreen.tsx(242,9): error TS2322: Type 'SubscriptionTier' is not assignable to type '"free" | "premium"'.
+  Type '"personal_stylist"' is not assignable to type '"free" | "premium"'.
+screens/DailyStreakScreen.tsx(20,65): error TS2344: Type '"DailyStreak"' does not satisfy the constraint 'keyof DiscoverStackParamList'.
+screens/DecideForMeScreen.tsx(1250,11): error TS2322: Type '{ children: (Element | null)[]; ref: any; style: { flex: number; }; contentContainerStyle: ({ paddingHorizontal: number; paddingTop: number; } | { paddingBottom: number; })[]; showsVerticalScrollIndicator: false; keyboardShouldPersistTaps: "always"; bottomOffset: number; scrollOnFocus: boolean; }' is not assignable to type 'IntrinsicAttributes & { bottomOffset?: number | undefined; disableScrollOnKeyboardHide?: boolean | undefined; enabled?: boolean | undefined; extraKeyboardSpace?: number | undefined; mode?: KeyboardAwareScrollViewMode | undefined; ScrollViewComponent?: AnimatedScrollViewComponent | undefined; } & ScrollViewProps & { ...'.
+  Property 'scrollOnFocus' does not exist on type 'IntrinsicAttributes & { bottomOffset?: number | undefined; disableScrollOnKeyboardHide?: boolean | undefined; enabled?: boolean | undefined; extraKeyboardSpace?: number | undefined; mode?: KeyboardAwareScrollViewMode | undefined; ScrollViewComponent?: AnimatedScrollViewComponent | undefined; } & ScrollViewProps & { ...'.
+screens/DFYCalendarScreen.tsx(127,15): error TS7006: Parameter 'w' implicitly has an 'any' type.
+screens/DFYComparisonScreen.tsx(13,37): error TS2305: Module '"@react-navigation/native-stack"' has no exported member 'useRoute'.
+screens/DFYModularWardrobeScreen.tsx(198,38): error TS2339: Property 'error' does not exist on type '{ success: boolean; score: number; verdict: string; analysis: string; hardRuleViolations: string[]; improvements: string[]; occasionRulesApplied: string | null; dimensions?: Record<string, number> | undefined; ... 4 more ...; headline?: string | undefined; }'.
+screens/DiscoverScreen.tsx(597,7): error TS2345: Argument of type 'SubscriptionTier' is not assignable to parameter of type '"free" | "premium"'.
+  Type '"personal_stylist"' is not assignable to type '"free" | "premium"'.
+screens/DiscoverScreen.tsx(1556,19): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/GamesHubScreen.tsx(21,65): error TS2344: Type '"GamesHub"' does not satisfy the constraint 'keyof DiscoverStackParamList'.
+screens/GamesHubScreen.tsx(43,5): error TS2322: Type '"StyleShowdown"' is not assignable to type 'keyof DiscoverStackParamList'.
+screens/GamesHubScreen.tsx(51,5): error TS2322: Type '"PriceCheck"' is not assignable to type 'keyof DiscoverStackParamList'.
+screens/GamesHubScreen.tsx(59,5): error TS2322: Type '"StyleQuiz"' is not assignable to type 'keyof DiscoverStackParamList'.
+screens/GamesHubScreen.tsx(67,5): error TS2322: Type '"MixMatch"' is not assignable to type 'keyof DiscoverStackParamList'.
+screens/GamesHubScreen.tsx(75,5): error TS2322: Type '"DailyStreak"' is not assignable to type 'keyof DiscoverStackParamList'.
+screens/GamesHubScreen.tsx(83,5): error TS2322: Type '"Leaderboard"' is not assignable to type 'keyof DiscoverStackParamList'.
+screens/GuestBrowseScreen.tsx(179,53): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+screens/GuestBrowseScreen.tsx(213,9): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+screens/HomeScreen.tsx(232,29): error TS2345: Argument of type '"PostDetail"' is not assignable to parameter of type '"Home"'.
+screens/HomeScreen.tsx(284,25): error TS2345: Argument of type '"PostDetail"' is not assignable to parameter of type '"Home"'.
+screens/LeaderboardScreen.tsx(21,65): error TS2344: Type '"Leaderboard"' does not satisfy the constraint 'keyof DiscoverStackParamList'.
+screens/MixMatchScreen.tsx(22,65): error TS2344: Type '"MixMatch"' does not satisfy the constraint 'keyof DiscoverStackParamList'.
+screens/OnboardingEntryScreen.tsx(114,74): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/OnboardingEntryScreen.tsx(116,34): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/OnboardingEntryScreen.tsx(121,27): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/OnboardingProfileScreen.tsx(118,74): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/OnboardingProfileScreen.tsx(122,27): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/OnboardingScreen.tsx(35,29): error TS2344: Type 'string | null' does not satisfy the constraint 'string | number | symbol'.
+  Type 'null' is not assignable to type 'string | number | symbol'.
+screens/OnboardingScreen.tsx(555,49): error TS2538: Type 'null' cannot be used as an index type.
+screens/OnboardingScreen.tsx(605,48): error TS2538: Type 'null' cannot be used as an index type.
+screens/OnboardingScreen.tsx(606,55): error TS2538: Type 'null' cannot be used as an index type.
+screens/OnboardingScreen.tsx(623,48): error TS2538: Type 'null' cannot be used as an index type.
+screens/OnboardingScreen.tsx(624,55): error TS2538: Type 'null' cannot be used as an index type.
+screens/OnboardingScreen.tsx(1275,11): error TS2741: Property 'accent' is missing in type '{ selectedStylistId: StylistId; language: string; voicePitch: VoicePitch; useNameInGreetings: boolean; namePronunciationConfirmed: boolean; }' but required in type 'StylistPreferences'.
+screens/OnboardingScreen.tsx(1580,53): error TS2538: Type 'null' cannot be used as an index type.
+screens/PostDetailScreen.tsx(26,61): error TS2344: Type '"PostDetail"' does not satisfy the constraint '"Home"'.
+screens/PostDetailScreen.tsx(27,40): error TS2344: Type '"PostDetail"' does not satisfy the constraint '"Home"'.
+screens/PostDetailScreen.tsx(33,11): error TS2339: Property 'postId' does not exist on type 'Readonly<unknown> | undefined'.
+screens/PostDetailScreen.tsx(160,68): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(screen: "Home", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined): void', gave the following error.
+    Argument of type '"Subscription"' is not assignable to parameter of type '"Home"'.
+  Overload 2 of 2, '(options: { name: "Home"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; }): void', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '{ name: "Home"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; }'.
+screens/PreSignupStyleQuizScreen.tsx(339,18): error TS2339: Property 'xxl' does not exist on type '{ xs: number; sm: number; md: number; lg: number; xl: number; "2xl": number; "3xl": number; "4xl": number; "5xl": number; inputHeight: number; buttonHeight: number; }'.
+screens/PriceCheckScreen.tsx(21,65): error TS2344: Type '"PriceCheck"' does not satisfy the constraint 'keyof DiscoverStackParamList'.
+screens/ProfileScreen.tsx(95,44): error TS2367: This comparison appears to be unintentional because the types '"Hourglass" | "Pear" | "Apple" | "Rectangle" | "Athletic" | "Inverted Triangle" | "Trapezoid" | "Oval"' and '"unknown"' have no overlap.
+screens/ProfileScreen.tsx(99,9): error TS2322: Type 'import("C:/Users/sheni/Downloads/dripn/StyleWise/contexts/AuthContext").BodyMeasurements' is not assignable to type 'import("C:/Users/sheni/Downloads/dripn/StyleWise/contexts/BodyProfileContext").BodyMeasurements'.
+  Types of property 'neck' are incompatible.
+    Type 'number | null | undefined' is not assignable to type 'number | undefined'.
+      Type 'null' is not assignable to type 'number | undefined'.
+screens/ProfileScreen.tsx(200,7): error TS2345: Argument of type '[never, never]' is not assignable to parameter of type 'never'.
+screens/ProfileScreen.tsx(270,25): error TS2339: Property 'role' does not exist on type 'UserProfile'.
+screens/ProfileScreen.tsx(491,121): error TS2367: This comparison appears to be unintentional because the types '"Hourglass" | "Pear" | "Apple" | "Rectangle" | "Athletic" | "Inverted Triangle" | "Trapezoid" | "Oval"' and '"unknown"' have no overlap.
+screens/SessionDetailScreen.tsx(316,13): error TS2322: Type '{ title: string; onPress: () => Promise<void>; disabled: boolean; style: ({ marginTop: number; } | { backgroundColor: any; })[]; textStyle: { color: any; }; }' is not assignable to type 'IntrinsicAttributes & ButtonProps'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & ButtonProps'.
+screens/SessionDetailScreen.tsx(326,13): error TS2322: Type '{ title: string; onPress: () => Promise<void>; disabled: boolean; style: ({ marginTop: number; } | { backgroundColor: string; })[]; }' is not assignable to type 'IntrinsicAttributes & ButtonProps'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & ButtonProps'.
+screens/SettingsScreen.tsx(130,25): error TS2339: Property 'role' does not exist on type 'UserProfile'.
+screens/SettingsScreen.tsx(909,50): error TS2769: No overload matches this call.
+  Argument of type '["AnalyticsDashboard"]' is not assignable to parameter of type '[screen: "Settings", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | [screen: "Support", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | ... 14 more ... | [screen: ...]'.
+    Type '["AnalyticsDashboard"]' is not assignable to type '[screen: "Feedback", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined]'.
+      Type at position 0 in source is not compatible with type at position 0 in target.
+        Type '"AnalyticsDashboard"' is not assignable to type '"Feedback"'.
+  Overload 2 of 2, '(options: { name: "Settings"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { name: "Support"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | ... 14 more ... | { ...; }): void', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '{ name: "Settings"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { name: "Support"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | ... 14 more ... | { ...; }'.
+screens/SettingsScreen.tsx(926,50): error TS2345: Argument of type '["CommunityVoting", { session: null; }]' is not assignable to parameter of type '[screen: "Settings", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | [screen: "Support", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | ... 14 more ... | [screen: ...]'.
+  Type '["CommunityVoting", { session: null; }]' is not assignable to type '[screen: "Feedback", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined]'.
+    Type at position 0 in source is not compatible with type at position 0 in target.
+      Type '"CommunityVoting"' is not assignable to type '"Feedback"'.
+screens/SocialStyleSyncScreen.tsx(25,68): error TS2344: Type '"SocialStyleSync"' does not satisfy the constraint 'keyof UserStylistStackParamList'.
+screens/SoftSignupGateScreen.tsx(102,76): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/SoftSignupGateScreen.tsx(104,34): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/SoftSignupGateScreen.tsx(109,27): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/StyleChallengesScreen.tsx(105,31): error TS2345: Argument of type '["ChallengeDetail", { challengeId: string; }]' is not assignable to parameter of type '[screen: "Sustainability", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | [screen: "Events", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | ... 15 more ... | [screen: ...]'.
+  Type '["ChallengeDetail", { challengeId: string; }]' is not assignable to type '[screen: "CollectiveInsights", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined]'.
+    Type at position 0 in source is not compatible with type at position 0 in target.
+      Type '"ChallengeDetail"' is not assignable to type '"CollectiveInsights"'.
+screens/StyleChallengesScreen.tsx(192,37): error TS2345: Argument of type '["ChallengeSubmission", { challengeId: string; }]' is not assignable to parameter of type '[screen: "Sustainability", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | [screen: "Events", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | ... 15 more ... | [screen: ...]'.
+  Type '["ChallengeSubmission", { challengeId: string; }]' is not assignable to type '[screen: "CollectiveInsights", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined]'.
+    Type at position 0 in source is not compatible with type at position 0 in target.
+      Type '"ChallengeSubmission"' is not assignable to type '"CollectiveInsights"'.
+screens/StyleDNAQuizScreen.tsx(21,65): error TS2344: Type '"StyleQuiz"' does not satisfy the constraint 'keyof DiscoverStackParamList'.
+screens/StyleDNAScreen.tsx(75,7): error TS2739: Type '{ black: ("luxury" | "business" | "edgy")[]; white: ("luxury" | "sporty" | "smart-casual")[]; gray: ("smart-casual" | "business" | "edgy")[]; navy: ("luxury" | "smart-casual" | "business")[]; ... 9 more ...; multicolor: ("streetwear" | ... 1 more ... | "sporty")[]; }' is missing the following properties from type 'Record<ClothingColor, StyleTheme[]>': denim, cream
+screens/StyleDNAScreen.tsx(100,3): error TS2353: Object literal may only specify known properties, and 'activewear' does not exist in type 'Record<ClothingCategory, StyleTheme[]>'.
+screens/StyleDNAScreen.tsx(291,11): error TS2739: Type '{ black: string; white: string; gray: string; navy: string; brown: string; beige: string; red: string; pink: string; orange: string; yellow: string; green: string; blue: string; purple: string; multicolor: string; }' is missing the following properties from type 'Record<ClothingColor, string>': denim, cream
+screens/StyleShowdownScreen.tsx(21,65): error TS2344: Type '"StyleShowdown"' does not satisfy the constraint 'keyof DiscoverStackParamList'.
+screens/StyleShowdownScreen.tsx(405,19): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/StyleShuffleScreen.tsx(1371,19): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/StyleShuffleScreen.tsx(1376,19): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/StyleShuffleScreen.tsx(1521,19): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/StylistHubScreen.tsx(30,41): error TS2304: Cannot find name 'UserStylistStackParamList'.
+screens/StylistHubScreen.tsx(42,17): error TS2304: Cannot find name 'UserStylistStackParamList'.
+screens/StylistHubScreen.tsx(176,25): error TS2769: No overload matches this call.
+  Argument of type '[string | number | symbol]' is not assignable to parameter of type '[screen: string, params?: any, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | [screen: number, params?: any, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | [screen: ...]'.
+    Type '[string | number | symbol]' is not assignable to type '[screen: symbol, params?: any, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined]'.
+      Type at position 0 in source is not compatible with type at position 0 in target.
+        Type 'string | number | symbol' is not assignable to type 'symbol'.
+          Type 'string' is not assignable to type 'symbol'.
+  Overload 2 of 2, '(options: { name: string; params: UserStylistStackParamList; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { name: number; params: UserStylistStackParamList; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { ...; }): void', gave the following error.
+    Argument of type 'string | number | symbol' is not assignable to parameter of type '{ name: string; params: UserStylistStackParamList; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { name: number; params: UserStylistStackParamList; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { ...; }'.
+      Type 'string' is not assignable to type '{ name: string; params: UserStylistStackParamList; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { name: number; params: UserStylistStackParamList; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { ...; }'.
+screens/SubscriptionSuccessScreen.tsx(24,3): error TS2459: Module '"@/utils/subscriptionTier"' declares 'BillingPlanId' locally, but it is not exported.
+screens/SubscriptionSuccessScreen.tsx(169,43): error TS2322: Type '"pro"' is not assignable to type 'SubscriptionTier | undefined'.
+screens/SustainabilityScreen.tsx(80,9): error TS2353: Object literal may only specify known properties, and 'currentValue' does not exist in type 'Omit<SustainabilityGoal, "id" | "createdAt" | "isCompleted" | "currentValue">'.
+screens/VIPMembersScreen.tsx(209,36): error TS2367: This comparison appears to be unintentional because the types 'SubscriptionTier' and '"premium"' have no overlap.
+screens/VisualSearchScreen.tsx(774,19): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?
+screens/VoiceConversationScreen.tsx(170,19): error TS2551: Property 'cancelled' does not exist on type 'ImagePickerResult'. Did you mean 'canceled'?
+  Property 'cancelled' does not exist on type 'ImagePickerSuccessResult'.
+screens/VoiceConversationScreen.tsx(434,46): error TS2304: Cannot find name 'recordingRef'.
+screens/VoiceConversationScreen.tsx(437,11): error TS2304: Cannot find name 'recordingRef'.
+screens/VoiceConversationScreen.tsx(439,17): error TS2304: Cannot find name 'recordingRef'.
+screens/VoiceConversationScreen.tsx(443,9): error TS2304: Cannot find name 'recordingRef'.
+screens/WardrobeScreen.tsx(1537,25): error TS2339: Property 'modalOverlay' does not exist on type '{ container: { flex: number; }; loadingContainer: { flex: number; justifyContent: "center"; alignItems: "center"; }; loadingIconContainer: { width: number; height: number; borderRadius: number; alignItems: "center"; justifyContent: "center"; }; ... 101 more ...; outfitModalButton: { ...; }; }'.
+screens/WelcomeScreen.tsx(57,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ImageProps): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll" | undefined' is not assignable to type '"visible" | "hidden" | undefined'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden" | undefined'.
+  Overload 2 of 2, '(props: ImageProps, context: any): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll" | undefined' is not assignable to type '"visible" | "hidden" | undefined'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden" | undefined'.
+screens/WelcomeScreen.tsx(181,3): error TS2322: Type '{ minHeight?: "100vh" | undefined; width?: "100%" | undefined; position?: "relative" | undefined; flex: number; }' is not assignable to type 'ViewStyle | TextStyle | ImageStyle'.
+  Type '{ minHeight?: "100vh" | undefined; width?: "100%" | undefined; position?: "relative" | undefined; flex: number; }' is not assignable to type 'ImageStyle'.
+    Types of property 'minHeight' are incompatible.
+      Type '"100vh" | undefined' is not assignable to type 'DimensionValue | undefined'.
+        Type '"100vh"' is not assignable to type 'DimensionValue | undefined'.
+services/ApiService.ts(3511,9): error TS2300: Duplicate identifier 'vibe'.
+services/ApiService.ts(3511,9): error TS2687: All declarations of 'vibe' must have identical modifiers.
+services/ApiService.ts(3525,9): error TS2300: Duplicate identifier 'vibe'.
+services/ApiService.ts(3525,9): error TS2687: All declarations of 'vibe' must have identical modifiers.
+services/ApiService.ts(3525,9): error TS2717: Subsequent property declarations must have the same type.  Property 'vibe' must be of type 'string | undefined', but here has type 'string'.
+services/DecisionService.ts(446,9): error TS2322: Type 'StylistId' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+services/DecisionService.ts(464,26): error TS2352: Conversion of type '{ request: Record<string, unknown>; response: Record<string, unknown>; }[]' to type '{ request: DecisionRequest; response: DecisionResponse; }[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ request: Record<string, unknown>; response: Record<string, unknown>; }' is not comparable to type '{ request: DecisionRequest; response: DecisionResponse; }'.
+    Types of property 'request' are incompatible.
+      Type 'Record<string, unknown>' is missing the following properties from type 'DecisionRequest': id, userId, type, images, and 3 more.
+services/OpenAITTSService.ts(912,10): error TS2304: Cannot find name 'currentSound'.
+services/SharingService.ts(11,27): error TS2614: Module '"@/services/CurrencyService"' has no exported member 'CurrencyCode'. Did you mean to use 'import CurrencyCode from "@/services/CurrencyService"' instead?
+services/SharingService.ts(425,72): error TS2554: Expected 1 arguments, but got 2.
+services/UserProfileSyncService.ts(265,12): error TS2790: The operand of a 'delete' operator must be optional.
+services/WeatherService.ts(108,9): error TS2393: Duplicate function implementation.
+services/WeatherService.ts(113,9): error TS2393: Duplicate function implementation.
+utils/wardrobeLocalPhotos.ts(34,52): error TS2339: Property 'startsWith' does not exist on type 'never'.

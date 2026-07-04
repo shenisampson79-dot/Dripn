@@ -15,10 +15,14 @@ export function resolveApiUrl(raw?: string): string {
     }
     return DEFAULT_API_URL;
   }
-  if (!/^https?:\/\//i.test(value)) {
-    return `https://${value}`;
+  let resolved = value;
+  if (!/^https?:\/\//i.test(resolved)) {
+    resolved = `https://${resolved}`;
   }
-  return value;
+  if (/^http:\/\/(.*\.onrender\.com|dripn-server)/i.test(resolved)) {
+    resolved = resolved.replace(/^http:\/\//i, 'https://');
+  }
+  return resolved;
 }
 
 export const API_URL = resolveApiUrl(process.env.EXPO_PUBLIC_API_URL);

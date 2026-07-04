@@ -35,6 +35,14 @@ import {
   outfitHasRequiredShoes,
   wardrobeCanBuildCompleteOutfit,
 } from '@/utils/completeOutfit';
+import { WeeklyOutfitPlannerPanel } from '@/components/outfit/WeeklyOutfitPlannerPanel';
+import {
+  buildWeekOccasionRotation,
+  OCCASION_TO_PLANNED_EVENT,
+  type OutfitOccasionId,
+} from '@/constants/outfitOccasions';
+import { resolveGeneratedOutfitItemIds } from '@/utils/generatedOutfit';
+import { orderItemIdsByVisualOrder, sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
 
 type OutfitCalendarScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'OutfitCalendar'>;
@@ -67,24 +75,6 @@ function toPlannedOutfitDateIso(date: Date): string {
 }
 
 
-function resolveGeneratedOutfitItemIds(
-  result: {
-    outfit?: { items?: Array<{ id?: string | number }> };
-    hydratedItems?: Array<{ id?: string | number }>;
-  },
-  wardrobeItems: WardrobeItem[],
-): string[] {
-  const wardrobeIds = new Set(wardrobeItems.map((item) => String(item.id)));
-  const pickIds = (rows?: Array<{ id?: string | number }>) =>
-    (rows || [])
-      .map((row) => String(row.id))
-      .filter((id) => wardrobeIds.has(id));
-
-  const fromHydrated = pickIds(result.hydratedItems);
-  const rawIds = fromHydrated.length > 0 ? fromHydrated : pickIds(result.outfit?.items);
-  return completeOutfitItemIds([...new Set(rawIds)], wardrobeItems);
-}
-
 function dedupeWardrobeItems(items: WardrobeItem[]): WardrobeItem[] {
   const seen = new Set<string>();
   const unique: WardrobeItem[] = [];
@@ -104,7 +94,7 @@ type StackedOutfitPreviewProps = {
 
 function StackedOutfitPreview({ outfitItems }: StackedOutfitPreviewProps) {
   const { isDark } = useTheme();
-  const uniqueItems = dedupeWardrobeItems(outfitItems);
+  const uniqueItems = sortOutfitItemsByVisualOrder(dedupeWardrobeItems(outfitItems));
 
   const slotBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
   const canvasBg = isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)';
@@ -189,6 +179,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   const [showAIModal, setShowAIModal] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [generatingDays, setGeneratingDays] = useState<number>(7);
+  const [focusOccasionId, setFocusOccasionId] = useState<OutfitOccasionId | null>(null);
   const [aiGenerateProgress, setAiGenerateProgress] = useState({ current: 0, total: 0 });
 
   const getDaysInMonth = (year: number, month: number) => {
@@ -316,7 +307,10 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
       return;
     }
 
-    const completedIds = completeOutfitItemIds(selectedItems, items);
+    const completedIds = orderItemIdsByVisualOrder(
+      completeOutfitItemIds(selectedItems, items),
+      items,
+    );
     if (!isCompleteOutfit(completedIds, items)) {
       Alert.alert(
         'Incomplete Outfit',
@@ -390,10 +384,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
     setIsGeneratingAI(true);
     setAiGenerateProgress({ current: 0, total: generatingDays });
     try {
-      const occasionTypes: Array<'todays_look' | 'work_outfit' | 'date_night' | 'casual_day'> = [
-        'casual_day', 'work_outfit', 'casual_day', 'work_outfit', 
-        'casual_day', 'date_night', 'casual_day'
-      ];
+      const occasionTypes = buildWeekOccasionRotation(generatingDays, focusOccasionId);
       
       const today = new Date();
       today.setHours(12, 0, 0, 0);
@@ -423,18 +414,13 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
           const itemIds = resolveGeneratedOutfitItemIds(result, items);
           
           if (result.success && isCompleteOutfit(itemIds, items)) {
-            const eventTypeMap: Record<string, PlannedEventType> = {
-              'todays_look': 'everyday',
-              'work_outfit': 'work',
-              'date_night': 'date-night',
-              'casual_day': 'casual',
-            };
-            
+            const eventType = (OCCASION_TO_PLANNED_EVENT[occasionType] || 'casual') as PlannedEventType;
+
             await planOutfit({
               date: toPlannedOutfitDateIso(targetDate),
               itemIds,
               eventName: result.vibeLabel || result.outfit?.vibe || `AI ${occasionType.replace('_', ' ')}`,
-              eventType: eventTypeMap[occasionType] || 'casual',
+              eventType,
               notes: 'Created by AI Stylist',
             });
             successCount++;
@@ -531,19 +517,19 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         >
           {day}
         </ThemedText>
-        {hasOutfits ? (
-          <View style={styles.dotsContainer}>
-            {outfitsForDay.slice(0, 3).map((outfit, i) => (
-              <View
-                key={outfit.id}
-                style={[
-                  styles.outfitDot,
-                  { backgroundColor: outfit.wasWorn ? theme.success : theme.link },
-                ]}
-              />
-            ))}
-          </View>
-        ) : null}
+        <View style={styles.dotsContainer}>
+          {hasOutfits
+            ? outfitsForDay.slice(0, 3).map((outfit) => (
+                <View
+                  key={outfit.id}
+                  style={[
+                    styles.outfitDot,
+                    { backgroundColor: outfit.wasWorn ? theme.success : theme.link },
+                  ]}
+                />
+              ))
+            : null}
+        </View>
       </Pressable>
     );
   };
@@ -999,87 +985,16 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
           </View>
 
           <ScrollView style={styles.modalContent}>
-            <View style={styles.aiModalHeader}>
-              <LinearGradient
-                colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
-                style={styles.aiModalIcon}
-              >
-                <Feather name="cpu" size={32} color="#FFFFFF" />
-              </LinearGradient>
-              <ThemedText type="h3" style={{ marginTop: Spacing.md, textAlign: 'center' }}>
-                Create Outfits for the Week
-              </ThemedText>
-              <ThemedText type="body" style={[styles.aiModalDescription, { color: secondaryTextColor }]}>
-                AI will create {generatingDays} outfit combinations from your {items.length} wardrobe items
-              </ThemedText>
-            </View>
-
-            <ThemedText type="caption" style={[styles.sectionLabel, { color: secondaryTextColor }]}>
-              Number of Days
-            </ThemedText>
-            <View style={styles.daysSelector}>
-              {[3, 5, 7].map(days => (
-                <Pressable
-                  key={days}
-                  onPress={() => setGeneratingDays(days)}
-                  style={[
-                    styles.dayOption,
-                    generatingDays === days 
-                      ? { backgroundColor: theme.link } 
-                      : { backgroundColor: theme.backgroundSecondary, borderColor: theme.border, borderWidth: 1 }
-                  ]}
-                >
-                  <ThemedText 
-                    type="body" 
-                    style={{ 
-                      color: generatingDays === days ? '#FFFFFF' : theme.text,
-                      fontWeight: '600' 
-                    }}
-                  >
-                    {days} Days
-                  </ThemedText>
-                </Pressable>
-              ))}
-            </View>
-
-            <Card elevation={1} style={styles.aiInfoCard}>
-              <Feather name="info" size={16} color={theme.link} />
-              <ThemedText type="caption" style={[styles.aiInfoText, { color: secondaryTextColor }]}>
-                AI will create a mix of work, casual, and date night outfits based on your Style DNA and wardrobe items.
-              </ThemedText>
-            </Card>
-
-            <Pressable
-              onPress={generateAIOutfitsForWeek}
-              disabled={isGeneratingAI}
-              style={[styles.generateButton, { opacity: isGeneratingAI ? 0.7 : 1 }]}
-            >
-              <LinearGradient
-                colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.generateButtonGradient}
-              >
-                {isGeneratingAI ? (
-                  <>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                    <ThemedText type="body" style={styles.generateButtonText}>
-                      {aiGenerateProgress.total > 0
-                        ? `Creating outfit ${Math.min(aiGenerateProgress.current + 1, aiGenerateProgress.total)} of ${aiGenerateProgress.total}...`
-                        : 'Creating Outfits...'}
-                    </ThemedText>
-                  </>
-                ) : (
-                  <>
-                    <Feather name="zap" size={20} color="#FFFFFF" />
-                    <ThemedText type="body" style={styles.generateButtonText}>
-                      Generate {generatingDays} Outfits
-                    </ThemedText>
-                  </>
-                )}
-              </LinearGradient>
-            </Pressable>
-
+            <WeeklyOutfitPlannerPanel
+              wardrobeCount={items.length}
+              generatingDays={generatingDays}
+              onDaysChange={setGeneratingDays}
+              focusOccasionId={focusOccasionId}
+              onFocusOccasionChange={setFocusOccasionId}
+              isGenerating={isGeneratingAI}
+              progress={aiGenerateProgress}
+              onGenerate={generateAIOutfitsForWeek}
+            />
             <View style={{ height: 100 }} />
           </ScrollView>
         </ThemedView>
@@ -1131,6 +1046,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.xs,
+    flexDirection: 'column',
   },
   todayCell: {
     borderWidth: 2,
@@ -1141,12 +1057,15 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 14,
+    lineHeight: 18,
   },
   dotsContainer: {
     flexDirection: 'row',
-    position: 'absolute',
-    bottom: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 2,
+    marginTop: 6,
+    minHeight: 5,
   },
   outfitDot: {
     width: 5,

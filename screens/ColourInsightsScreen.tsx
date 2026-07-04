@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Pressable } from "react-native";
+import React, { useState, useCallback } from "react";
+import { StyleSheet, View, Pressable, RefreshControl, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -9,6 +9,12 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { apiService } from "@/services/ApiService";
+import { getCurrentCalendarSeason, getCurrentFashionYear } from "@/utils/fashionSeason";
+import {
+  buildOfflineColorOfTheYear,
+  buildOfflineSeasonalPalette,
+  normalizeApiColorOfTheYear,
+} from "@/utils/pantoneColorOfYear";
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -40,59 +46,15 @@ interface ColorOfTheYear {
   year: number;
 }
 
-// Fallback used only if the backend is unreachable — updated annually alongside backend PANTONE_KNOWN
-const FALLBACK_COLOR_OF_YEAR: ColorOfTheYear = {
-  name: "Mocha Mousse",
-  hexCode: "#A47864",
-  pantoneCode: "PANTONE 17-1230",
-  description: "A warming, brown-based hue that enriches the mind, body, and soul — evoking timeless elegance and comfort.",
-  pairingColors: ["#FFFFFF", "#1A1A1A", "#D4A574", "#8B7355"],
-  bestFor: ["Warm", "Neutral"],
-  year: 2025,
-};
+// Offline fallbacks use verified Pantone data — see data/pantoneColorOfYear.ts
 
-const FALLBACK_SEASONAL_PALETTE: ColorTrend[] = [
-  {
-    id: "s26-1",
-    name: "Powder Blue",
-    hexCode: "#B0C4DE",
-    pantoneCode: "PANTONE 14-4318",
-    season: "Spring",
-    year: 2026,
-    pairingColors: ["#FFFFFF", "#1A1A1A", "#C9A87C"],
-    bestFor: ["Cool", "Neutral"],
-  },
-  {
-    id: "s26-2",
-    name: "Warm Putty",
-    hexCode: "#C8BAA6",
-    pantoneCode: "PANTONE 14-1108",
-    season: "Spring",
-    year: 2026,
-    pairingColors: ["#1A1A1A", "#2E3B8F", "#FFFFFF"],
-    bestFor: ["Warm", "Neutral"],
-  },
-  {
-    id: "s26-3",
-    name: "Forest Shadow",
-    hexCode: "#4A5E4A",
-    pantoneCode: "PANTONE 18-0125",
-    season: "Spring",
-    year: 2026,
-    pairingColors: ["#FFFFFF", "#C8BAA6", "#1A1A1A"],
-    bestFor: ["Cool", "Neutral"],
-  },
-  {
-    id: "s26-4",
-    name: "Terracotta Dusk",
-    hexCode: "#C47A5A",
-    pantoneCode: "PANTONE 17-1436",
-    season: "Spring",
-    year: 2026,
-    pairingColors: ["#FFFFFF", "#1A1A1A", "#C8BAA6"],
-    bestFor: ["Warm", "Neutral"],
-  },
-];
+interface PersonalizedColor {
+  id?: string;
+  name: string;
+  hexCode: string;
+  description?: string;
+  matchScore?: number;
+}
 
 export default function ColourInsightsScreen() {
   const { user } = useAuth();
@@ -100,24 +62,70 @@ export default function ColourInsightsScreen() {
 
   const [colorOfTheYear, setColorOfTheYear] = useState<ColorOfTheYear | null>(null);
   const [seasonalPalette, setSeasonalPalette] = useState<ColorTrend[]>([]);
+  const [personalizedColors, setPersonalizedColors] = useState<PersonalizedColor[]>([]);
+  const [avoidColors, setAvoidColors] = useState<Array<{ name: string; hexCode: string; reason: string }>>([]);
   const [showSeasonalPalette, setShowSeasonalPalette] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [usedFallback, setUsedFallback] = useState(false);
 
-  useEffect(() => {
-    loadColorTrends();
-  }, []);
+  const loadColorTrends = useCallback(async () => {
+    const season = getCurrentCalendarSeason();
+    const year = getCurrentFashionYear();
+    const undertone = user?.skinUndertone ?? user?.colorScanData?.skinUndertone;
 
-  const loadColorTrends = async () => {
     try {
-      const res = await apiService.getCurrentColorTrends();
-      setColorOfTheYear(res.colorOfTheYear);
-      setSeasonalPalette(res.seasonalPalette || []);
-    } catch {
-      setColorOfTheYear(FALLBACK_COLOR_OF_YEAR);
-      setSeasonalPalette(FALLBACK_SEASONAL_PALETTE);
-    }
-  };
+      const [trendsRes, personalizedRes] = await Promise.all([
+        apiService.getCurrentColorTrends({
+          season,
+          year,
+          undertone: undertone === 'warm' || undertone === 'cool' || undertone === 'neutral'
+            ? undertone
+            : undefined,
+        }),
+        apiService.getPersonalizedColorTrends().catch(() => null),
+      ]);
 
-  const undertone = user?.skinUndertone;
+      const normalizedColor = normalizeApiColorOfTheYear(
+        trendsRes.colorOfTheYear ?? (trendsRes as { colorOfYear?: unknown }).colorOfYear,
+        year,
+      );
+
+      setColorOfTheYear(normalizedColor ?? buildOfflineColorOfTheYear(year));
+      setSeasonalPalette(trendsRes.seasonalPalette?.length
+        ? trendsRes.seasonalPalette
+        : buildOfflineSeasonalPalette(year));
+      setUsedFallback(!normalizedColor);
+
+      if (personalizedRes?.recommendedColors?.length) {
+        setPersonalizedColors(personalizedRes.recommendedColors);
+        setAvoidColors(personalizedRes.avoidColors || []);
+      } else {
+        setPersonalizedColors([]);
+        setAvoidColors([]);
+      }
+    } catch {
+      setColorOfTheYear(buildOfflineColorOfTheYear(year));
+      setSeasonalPalette(buildOfflineSeasonalPalette(year));
+      setPersonalizedColors([]);
+      setAvoidColors([]);
+      setUsedFallback(true);
+    }
+  }, [user?.skinUndertone, user?.colorScanData?.skinUndertone]);
+
+  React.useEffect(() => {
+    loadColorTrends();
+  }, [loadColorTrends]);
+
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await loadColorTrends();
+    setIsRefreshing(false);
+  }, [loadColorTrends]);
+
+  const undertone = user?.skinUndertone ?? user?.colorScanData?.skinUndertone;
+  const colorSeason = user?.colorScanData?.colorSeasonType;
+  const powerColors = user?.colorScanData?.powerColors ?? [];
+  const scanAvoidColors = user?.colorScanData?.avoidColors ?? [];
 
   const warmSwatches = [
     { hex: '#C19A6B', name: 'Camel' },
@@ -168,17 +176,89 @@ export default function ColourInsightsScreen() {
   const s = makeStyles(theme);
 
   return (
-    <ScreenScrollView style={s.container}>
+    <ScreenScrollView
+      style={s.container}
+      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
+    >
       {/* Header */}
       <View style={s.headerRow}>
         <View style={s.headerIcon}>
           <Feather name="droplet" size={22} color={LUXURY_COLORS.gold} />
         </View>
-        <View>
+        <View style={{ flex: 1 }}>
           <ThemedText type="h2" style={s.headerTitle}>Colour Insights</ThemedText>
-          <ThemedText type="small" style={s.headerSubtitle}>Your personal colour guide</ThemedText>
+          <ThemedText type="small" style={s.headerSubtitle}>
+            {getCurrentCalendarSeason()} {getCurrentFashionYear()} · pull to refresh
+          </ThemedText>
         </View>
+        {isRefreshing ? <ActivityIndicator size="small" color={theme.link} /> : null}
       </View>
+
+      {usedFallback ? (
+        <View style={[s.noticeCard, { backgroundColor: theme.backgroundDefault }]}>
+          <ThemedText type="small" style={s.cardDesc}>
+            Showing offline colour trends until the latest palette loads from the server.
+          </ThemedText>
+        </View>
+      ) : null}
+
+      {colorSeason ? (
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <LinearGradient colors={[LUXURY_COLORS.gold, LUXURY_COLORS.violet]} style={s.cardIconBadge}>
+              <Feather name="camera" size={12} color="#FFFFFF" />
+            </LinearGradient>
+            <ThemedText type="small" style={s.cardBadgeText}>YOUR COLOUR SEASON</ThemedText>
+          </View>
+          <View style={s.cardBody}>
+            <ThemedText type="body" style={s.cardTitle}>{colorSeason}</ThemedText>
+            {user?.colorScanData?.seasonSubtype ? (
+              <ThemedText type="small" style={s.cardDesc}>{user.colorScanData.seasonSubtype}</ThemedText>
+            ) : null}
+            {powerColors.length > 0 ? (
+              <>
+                <ThemedText type="small" style={[s.cardDesc, { marginTop: Spacing.sm }]}>Power colours from your scan:</ThemedText>
+                <View style={s.swatchRow}>
+                  {powerColors.slice(0, 6).map((name, i) => (
+                    <View key={`${name}-${i}`} style={s.swatchChip}>
+                      <ThemedText type="caption" style={s.swatchLabel}>{name}</ThemedText>
+                    </View>
+                  ))}
+                </View>
+              </>
+            ) : null}
+            {scanAvoidColors.length > 0 ? (
+              <ThemedText type="small" style={s.cardDesc}>
+                Colours to use carefully: {scanAvoidColors.slice(0, 4).join(', ')}
+              </ThemedText>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
+
+      {personalizedColors.length > 0 ? (
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <LinearGradient colors={[LUXURY_COLORS.gold, LUXURY_COLORS.violet]} style={s.cardIconBadge}>
+              <Feather name="star" size={12} color="#FFFFFF" />
+            </LinearGradient>
+            <ThemedText type="small" style={s.cardBadgeText}>RECOMMENDED FOR YOU</ThemedText>
+          </View>
+          <View style={s.swatchRow}>
+            {personalizedColors.slice(0, 6).map((color, i) => (
+              <View key={color.id ?? `${color.name}-${i}`} style={s.swatchChip}>
+                <View style={[s.swatchCircle, { backgroundColor: color.hexCode }]} />
+                <ThemedText type="caption" style={s.swatchLabel}>{color.name}</ThemedText>
+              </View>
+            ))}
+          </View>
+          {avoidColors.length > 0 ? (
+            <ThemedText type="small" style={s.cardDesc}>
+              Use sparingly: {avoidColors.slice(0, 3).map((c) => c.name).join(', ')}
+            </ThemedText>
+          ) : null}
+        </View>
+      ) : null}
 
       {/* Personal Colour Profile */}
       <View style={s.card}>
@@ -189,7 +269,9 @@ export default function ColourInsightsScreen() {
           >
             <Feather name="user" size={12} color="#FFFFFF" />
           </LinearGradient>
-          <ThemedText type="small" style={s.cardBadgeText}>YOUR COLOUR PROFILE</ThemedText>
+          <ThemedText type="small" style={s.cardBadgeText}>
+            {profileTitle ? 'YOUR COLOUR PROFILE' : 'COMPLETE YOUR PROFILE'}
+          </ThemedText>
         </View>
 
         {profileTitle ? (
@@ -315,7 +397,7 @@ export default function ColourInsightsScreen() {
         <ThemedText type="body" style={s.expandBtnText}>
           {showSeasonalPalette
             ? 'Hide Seasonal Palette'
-            : `This Season's Palette (${seasonalPalette.length})`}
+            : `${getCurrentCalendarSeason().charAt(0).toUpperCase() + getCurrentCalendarSeason().slice(1)} palette (${seasonalPalette.length})`}
         </ThemedText>
         <Feather
           name={showSeasonalPalette ? "chevron-up" : "chevron-down"}
@@ -380,6 +462,14 @@ function makeStyles(theme: Record<string, string>) {
     headerSubtitle: {
       color: theme.tabIconDefault,
       marginTop: 2,
+    },
+    noticeCard: {
+      backgroundColor: theme.backgroundDefault,
+      borderRadius: BorderRadius.lg,
+      padding: Spacing.md,
+      marginBottom: Spacing.md,
+      borderWidth: 1,
+      borderColor: theme.backgroundSecondary,
     },
     card: {
       backgroundColor: theme.backgroundDefault,

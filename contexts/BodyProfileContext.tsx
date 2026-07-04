@@ -347,7 +347,7 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
           imageUri: `scan_${Date.now()}`,
           scannedAt: new Date().toISOString(),
           confidence: result.confidence,
-          aiModel: 'gpt-5.2',
+          aiModel: 'gpt-5.4',
         },
       });
 
@@ -515,7 +515,7 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
     setError(null);
 
     const apiKey = '';
-    const bestModel = await getBestAvailableModel('text', apiKey, 'gpt-5.2');
+    const bestModel = await getBestAvailableModel('text', apiKey, 'gpt-5.4');
     console.log(`Using text model: ${bestModel} for styling guide`);
 
     try {

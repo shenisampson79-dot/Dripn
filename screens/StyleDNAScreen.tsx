@@ -87,6 +87,8 @@ const COLOR_STYLE_MAP: Record<ClothingColor, StyleTheme[]> = {
   blue: ["sporty", "smart-casual", "business"],
   purple: ["edgy", "luxury", "boho"],
   multicolor: ["boho", "streetwear", "sporty"],
+  denim: ["smart-casual", "streetwear", "sporty"],
+  cream: ["luxury", "smart-casual", "boho"],
 };
 
 const CATEGORY_STYLE_MAP: Record<ClothingCategory, StyleTheme[]> = {
@@ -97,7 +99,8 @@ const CATEGORY_STYLE_MAP: Record<ClothingCategory, StyleTheme[]> = {
   shoes: ["luxury", "sporty", "streetwear"],
   bags: ["luxury", "business", "boho"],
   accessories: ["luxury", "edgy", "boho"],
-  activewear: ["sporty", "streetwear", "smart-casual"],
+  activewear_tops: ["sporty", "streetwear", "smart-casual"],
+  activewear_bottoms: ["sporty", "streetwear", "smart-casual"],
   swimwear: ["boho", "sporty", "luxury"],
   sleepwear: ["smart-casual", "boho", "luxury"],
   formal: ["luxury", "business", "smart-casual"],
@@ -302,6 +305,8 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
       green: "#4CAF50",
       blue: "#3D8BFF",
       purple: "#9B7EBD",
+      denim: "#4A6FA5",
+      cream: "#F5F0E6",
       multicolor: "transparent",
     };
     return colorMap[color];

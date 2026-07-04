@@ -21,10 +21,17 @@ export interface DFYOutfit {
   items: DFYOutfitItem[];
   occasion: DFYOccasion;
   stylistNote?: string;
+  weatherNote?: string;
   stylistId: StylistId;
   userReaction?: 'love' | 'not-me' | null;
   adjustmentRequest?: string;
   saved: boolean;
+}
+
+export type SavedLookbookOutfitReason = 'bookmark' | 'love' | 'both';
+
+export interface SavedLookbookOutfit extends DFYOutfit {
+  savedReason: SavedLookbookOutfitReason;
 }
 
 export interface DFYOutfitItem {
@@ -33,6 +40,8 @@ export interface DFYOutfitItem {
   category: string;
   color: string;
   imageUri?: string;
+  imageUrl?: string | null;
+  processedImageUrl?: string | null;
 }
 
 export interface DFYLiteDelivery {
@@ -190,29 +199,6 @@ const OBJECTION_RESPONSES: DFYObjectionResponse[] = [
 
 const COMPARISON_TIERS: DFYComparisonTier[] = [
   {
-    id: 'lite',
-    name: 'Outfit-Based Setup',
-    tagline: 'Ready-to-wear looks for a trip or event (14 days).',
-    price: '£19.99',
-    mentalModel: 'tactical',
-    description: 'Perfect for a holiday, weekend trip, or special event. I\'ll create 5-7 complete, ready-to-wear looks you can wear immediately. You have 14 days to use them—after that, the styling ends. No wardrobe building, no long-term commitment.',
-    features: [
-      { text: '5-7 complete, ready-to-wear outfits', included: true },
-      { text: 'Styled for one occasion (work, holiday, event)', included: true },
-      { text: '14-day access window only', included: true },
-      { text: 'Stylist adjustments during window', included: true },
-      { text: 'Save outfits as reference cards', included: true },
-      { text: 'Build your wardrobe system', included: false },
-      { text: 'Edit or customize individual items', included: false },
-      { text: 'Generate unlimited outfit combinations', included: false },
-    ],
-    deliveryDays: 14,
-    itemLimit: null,
-    outfitCount: 5,
-    photoType: 'outfit',
-    editAccess: false,
-  },
-  {
     id: 'core',
     name: 'Core Wardrobe Setup',
     tagline: 'Build a system that generates unlimited outfits (keep forever).',
@@ -234,6 +220,29 @@ const COMPARISON_TIERS: DFYComparisonTier[] = [
     outfitCount: 15,
     photoType: 'individual',
     editAccess: true,
+  },
+  {
+    id: 'lite',
+    name: 'Outfit-Based Setup',
+    tagline: 'Ready-to-wear looks for a trip or event (14 days).',
+    price: '£19.99',
+    mentalModel: 'tactical',
+    description: 'Perfect for a holiday, weekend trip, or special event. I\'ll create 5-7 complete, ready-to-wear looks you can wear immediately. You have 14 days to use them—after that, the styling ends. No wardrobe building, no long-term commitment.',
+    features: [
+      { text: '5-7 complete, ready-to-wear outfits', included: true },
+      { text: 'Styled for one occasion (work, holiday, event)', included: true },
+      { text: '14-day access window only', included: true },
+      { text: 'Stylist adjustments during window', included: true },
+      { text: 'Save outfits as reference cards', included: true },
+      { text: 'Build your wardrobe system', included: false },
+      { text: 'Edit or customize individual items', included: false },
+      { text: 'Generate unlimited outfit combinations', included: false },
+    ],
+    deliveryDays: 14,
+    itemLimit: null,
+    outfitCount: 5,
+    photoType: 'outfit',
+    editAccess: false,
   },
 ];
 
@@ -447,6 +456,40 @@ class DFYService {
     if (outfitIndex === -1) return;
 
     delivery.outfits[outfitIndex].saved = !delivery.outfits[outfitIndex].saved;
+    await this.saveDFYDelivery(delivery);
+  }
+
+  async getSavedLookbookOutfits(userId: string): Promise<SavedLookbookOutfit[]> {
+    const delivery = await this.getDFYDelivery(userId);
+    if (!delivery) return [];
+
+    return delivery.outfits
+      .filter((outfit) => outfit.saved || outfit.userReaction === 'love')
+      .map((outfit) => ({
+        ...outfit,
+        savedReason: (
+          outfit.saved && outfit.userReaction === 'love'
+            ? 'both'
+            : outfit.saved
+              ? 'bookmark'
+              : 'love'
+        ) as SavedLookbookOutfitReason,
+      }))
+      .sort((a, b) => a.dayNumber - b.dayNumber);
+  }
+
+  async removeFromSavedLookbook(userId: string, outfitId: string): Promise<void> {
+    const delivery = await this.getDFYDelivery(userId);
+    if (!delivery) return;
+
+    const outfitIndex = delivery.outfits.findIndex((o) => o.id === outfitId);
+    if (outfitIndex === -1) return;
+
+    delivery.outfits[outfitIndex].saved = false;
+    if (delivery.outfits[outfitIndex].userReaction === 'love') {
+      delivery.outfits[outfitIndex].userReaction = null;
+    }
+
     await this.saveDFYDelivery(delivery);
   }
 

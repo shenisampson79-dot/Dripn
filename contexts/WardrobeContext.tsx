@@ -213,7 +213,7 @@ interface WardrobeContextType {
   stats: WardrobeStats | null;
   isLoading: boolean;
   error: string | null;
-  addItem: (item: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>) => Promise<WardrobeItem>;
+  addItem: (item: Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'> & { imageBase64?: string }) => Promise<WardrobeItem>;
   addItemsBatch: (
     items: Array<Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>>,
     options?: {
@@ -1007,7 +1007,10 @@ export function WardrobeProvider({ children }: { children: ReactNode }) {
 
   const addItemsBatch = useCallback(async (
     itemsData: Array<Omit<WardrobeItem, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'timesWorn'>>,
-    options?: { onBackgroundProgress?: (progress: { processed: number; total: number; failed: number }) => void },
+    options?: {
+      onBackgroundProgress?: (progress: { processed: number; total: number; failed: number }) => void;
+      waitForBackgroundRemoval?: boolean;
+    },
   ): Promise<WardrobeItem[]> => {
     if (!user) throw new Error('Not authenticated');
     const tierFeatures = getTierFeatures(user.subscriptionTier);

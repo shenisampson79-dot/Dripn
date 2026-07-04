@@ -1,0 +1,130 @@
+{
+  "ranAt": "2026-06-14T20:44:57.569Z",
+  "api": "https://dripn-server.onrender.com",
+  "frontend": "https://dripnapp.com",
+  "email": "dripn-analytics-1781469899487@test.dripn.local",
+  "steps": {
+    "register": {
+      "ok": true,
+      "email": "dripn-analytics-1781469899487@test.dripn.local"
+    },
+    "checkout": {
+      "ok": true,
+      "sessionId": "cs_test_a1lz..."
+    },
+    "payment": {
+      "ok": false,
+      "redirectUrl": "https://checkout.stripe.com/c/pay/cs_test_a1lzxBWTekJVdLCvI54CZGpnt6gx3VyORQrwnwAIePN0Cq3pVpJXxed93D#fidnandhYHdWcXxpYCc"
+    },
+    "tierVerify": {
+      "ok": true,
+      "meTier": "style_chat",
+      "statusTier": "style_chat",
+      "isActive": true,
+      "waitedMs": 1346
+    },
+    "payments": {
+      "verify": {
+        "ok": true,
+        "json": {
+          "success": true,
+          "tier": "style_chat",
+          "tierName": "Style Chat",
+          "upgraded": false,
+          "stripeSubscriptionId": "sub_1TiKu97MwzC3AOiDV0kNQ48S",
+          "stripeCustomerId": "cus_UhkOkSZ4cyTOxT",
+          "verified": true
+        }
+      },
+      "status": {
+        "success": true,
+        "subscription": {
+          "tier": "style_chat",
+          "tierName": "Style Chat",
+          "isActive": true,
+          "isDFY": false,
+          "isRecurring": true,
+          "features": {
+            "aiChats": "unlimited",
+            "voiceMessages": 50,
+            "monthlyVoiceAllowance": 50,
+            "wardrobeItems": "unlimited",
+            "lookbooks": "unlimited",
+            "communityVotes": "unlimited",
+            "styleDNA": true,
+            "virtualTryOn": false,
+            "prioritySupport": false,
+            "voiceCreditPrice": 0.1
+          },
+          "stripeStatus": "active",
+          "currentPeriodEnd": null,
+          "cancelAtPeriodEnd": false,
+          "hasStripeBilling": true,
+          "isTrial": false
+        }
+      },
+      "payments": null
+    },
+    "cancel": {
+      "offer": {
+        "raw": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot POST /api/subscription/cancel/offer</pre>\n</body>\n</html>\n"
+      },
+      "cancel": {
+        "success": true,
+        "message": "Your subscription will be cancelled at the end of the current billing period.",
+        "cancelAtPeriodEnd": true,
+        "cancelAt": null
+      },
+      "cancelOk": true,
+      "cancelStatus": 200
+    },
+    "statusAfterCancel": {
+      "ok": true,
+      "cancelAtPeriodEnd": true,
+      "tier": "style_chat"
+    },
+    "winbackCron": {
+      "skipped": true,
+      "reason": "CRON_SECRET not set in env"
+    },
+    "winbackClick": {
+      "landingUrl": "https://dripnapp.com/subscription?source=winback_email&campaign=day0&cta=resume_50&variant=B",
+      "landingStatus": 200,
+      "landingOk": true,
+      "winbackLandingEvent": {
+        "ok": true,
+        "status": 200
+      },
+      "winbackClickEvent": {
+        "ok": true,
+        "status": 200
+      }
+    }
+  },
+  "analytics": {
+    "adminSecretConfigured": false,
+    "unauthorized": true,
+    "/api/analytics/summary": {
+      "ok": false,
+      "status": 401,
+      "error": "request failed"
+    },
+    "/api/analytics/revenue": {
+      "ok": false,
+      "status": 401,
+      "error": "request failed"
+    },
+    "/api/analytics/retention": {
+      "ok": false,
+      "status": 401,
+      "error": "request failed"
+    },
+    "/api/analytics/email-performance": {
+      "ok": false,
+      "status": 401,
+      "error": "request failed"
+    }
+  },
+  "errors": [],
+  "dashboardUrl": "https://dripnapp.com/admin/analytics"
+}

@@ -69,21 +69,16 @@ class CurrencyService {
     return `${symbol}${amount.toFixed(2)}`;
   }
 
-  getLocalizedPrices(): { free: string; style_chat: string; personal_stylist: string; stylist_unlimited: string } {
+  getLocalizedPrices(): { free: string; personal_stylist: string; stylist_unlimited: string } {
     return {
       free: 'Free',
-      style_chat: this.formatPrice(9.99),
-      personal_stylist: this.formatPrice(14.99),
+      personal_stylist: this.formatPrice(9.99),
       stylist_unlimited: this.formatPrice(19.99),
     };
   }
 
-  getStyleChatPrice(): string {
-    return this.formatPrice(9.99);
-  }
-
   getPersonalStylistPrice(): string {
-    return this.formatPrice(14.99);
+    return this.formatPrice(9.99);
   }
 
   getStylistUnlimitedPrice(): string {
@@ -98,11 +93,10 @@ class CurrencyService {
     };
   }
 
-  getYearlyPrices(): { free: string; style_chat: string; personal_stylist: string; stylist_unlimited: string } {
+  getYearlyPrices(): { free: string; personal_stylist: string; stylist_unlimited: string } {
     return {
       free: 'Free',
-      style_chat: this.formatPrice(95.99),
-      personal_stylist: this.formatPrice(139.99),
+      personal_stylist: this.formatPrice(95.99),
       stylist_unlimited: this.formatPrice(179.99),
     };
   }

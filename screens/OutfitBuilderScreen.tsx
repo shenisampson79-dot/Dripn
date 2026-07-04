@@ -31,7 +31,7 @@ import { Spacing, BorderRadius, LuxuryColors } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useWardrobe, WardrobeItem, ClothingCategory, PlannedEventType } from '@/contexts/WardrobeContext';
 import { apiService } from '@/services/ApiService';
-import { computeLocalOutfitScore } from '@/utils/outfitCompatibilityScore';
+import { computeLocalOutfitScore, mergeOutfitScores } from '@/utils/outfitCompatibilityScore';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 
 const { width: SW, height: SH } = Dimensions.get('window');
@@ -41,7 +41,8 @@ type OutfitBuilderScreenProps = {
 };
 
 // Clueless-style reels — width/height computed per device in main screen
-const COMPACT_CENTER_RATIO = 0.58;
+const COMPACT_CENTER_RATIO = 0.62;
+const REEL_IMAGE_SCALE = 1.22;
 
 // Category display order (body top → bottom → feet)
 const REEL_ORDER: Array<{ key: ClothingCategory }> = [
@@ -118,17 +119,28 @@ function CategoryReel({
     if (!selectedId) return 0;
     const idx = items.findIndex(i => i.id === selectedId);
     return idx >= 0 ? idx : 0;
-  }, []);
+  }, [items, selectedId]);
+
+  useEffect(() => {
+    if (!selectedId || !listRef.current) return;
+    const idx = data.findIndex((item) => item.id === selectedId);
+    if (idx < 0) return;
+    try {
+      listRef.current.scrollToIndex({ index: idx, animated: false });
+    } catch {
+      // FlatList may not be measured yet on first paint.
+    }
+  }, [data, selectedId]);
 
   const handleScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
     const index = Math.round(x / snapInterval);
     const clamped = Math.max(0, Math.min(index, data.length - 1));
     const item = data[clamped];
-    if (!item) return;
+    if (!item || item.id === selectedId) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSelect(item.id);
-  }, [data, onSelect, snapInterval]);
+  }, [data, onSelect, selectedId, snapInterval]);
 
   const renderItem = useCallback(({ item }: { item: WardrobeItem; index: number }) => {
     const isSelected = item.id === selectedId;
@@ -151,6 +163,8 @@ function CategoryReel({
               style={styles.reelImage}
               processed={!!(item.imageProcessed || item.aiAnalyzed)}
               contentFit="contain"
+              displayScale={REEL_IMAGE_SCALE}
+              tileBackgroundColor={wardrobeImageBackground(isDark, item) || (isDark ? '#2C2C2E' : '#EBEBEF')}
             />
           </View>
         </View>
@@ -175,6 +189,7 @@ function CategoryReel({
           contentOffset={{ x: -(sideInset - sideGap / 2), y: 0 }}
           contentContainerStyle={[styles.reelListContent, { gap: sideGap, paddingHorizontal: sideInset - sideGap / 2 }]}
           onMomentumScrollEnd={handleScrollEnd}
+          onScrollEndDrag={handleScrollEnd}
           initialScrollIndex={Math.min(initialIndex, Math.max(0, data.length - 1))}
           getItemLayout={(_, index) => ({ length: snapInterval, offset: snapInterval * index, index })}
         />
@@ -263,7 +278,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     const available = SH - insets.top - insets.bottom - headerBlock - scoreBlock - footerBlock;
     const gaps = Math.max(activeReels.length - 1, 0) * rowGap;
     const perRow = Math.floor((available - gaps) / Math.max(activeReels.length, 1));
-    return Math.max(80, Math.min(132, perRow));
+    return Math.max(88, Math.min(148, perRow));
   }, [activeReels.length, insets.top, insets.bottom]);
 
   const handleSelect = useCallback((cat: ClothingCategory, id: string) => {
@@ -282,6 +297,11 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     [selectedItemIds, items]
   );
 
+  const selectionKey = useMemo(
+    () => selectedItemIds.slice().sort().join('|'),
+    [selectedItemIds],
+  );
+
   useEffect(() => {
     const local = computeLocalOutfitScore(selectedWardrobeItems);
     setStyleScore(local.score);
@@ -298,11 +318,12 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
 
     const requestId = ++scoreRequestRef.current;
     setIsAiScoring(true);
+    const itemIdsForRequest = selectedWardrobeItems.map((item) => item.id);
 
     const timer = setTimeout(async () => {
       try {
         const result = await apiService.checkOutfitCompatibility({
-          items: selectedWardrobeItems.map((item) => item.id),
+          items: itemIdsForRequest,
           stylistId: 'ruby',
           occasion: OCCASION_SCORE_MAP[eventType] || 'casual-hangout',
         });
@@ -310,12 +331,23 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
         if (scoreRequestRef.current !== requestId) return;
 
         if (result.success && typeof result.score === 'number') {
-          setStyleScore(Math.round(result.score));
-          setStyleHint(result.headline || result.verdict || result.analysis || local.hint);
-          setScoreDimensions(result.dimensions || null);
-          setScoreExplanations(result.explanations || []);
-          setScoreHeadline(result.headline || null);
-          setAiScoreApplied(true);
+          const merged = mergeOutfitScores(local, {
+            score: result.score,
+            hardRuleViolations: result.hardRuleViolations,
+            hardCapApplied: result.hardCapApplied,
+            verdict: result.verdict,
+            analysis: result.analysis,
+            headline: result.headline,
+            explanations: result.explanations,
+            improvements: result.improvements,
+            dimensions: result.dimensions,
+          });
+          setStyleScore(merged.score);
+          setStyleHint(merged.hint);
+          setScoreDimensions(merged.dimensions);
+          setScoreExplanations(merged.explanations);
+          setScoreHeadline(merged.headline);
+          setAiScoreApplied(merged.aiApplied);
         }
       } catch {
         // Keep instant local score when AI is unavailable.
@@ -327,7 +359,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     }, 900);
 
     return () => clearTimeout(timer);
-  }, [selectedWardrobeItems, eventType]);
+  }, [selectionKey, eventType, items]);
 
   const handleClear = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -398,8 +430,8 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
 
   const secondaryText = isDark ? '#777' : '#aaa';
   const scoreColor =
-    styleScore >= 75 ? LuxuryColors.emerald :
-    styleScore >= 55 ? LuxuryColors.gold :
+    styleScore >= 80 ? LuxuryColors.emerald :
+    styleScore >= 60 ? LuxuryColors.gold :
     styleScore >= 35 ? LuxuryColors.coral :
     '#EF4444';
 
@@ -749,14 +781,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 2,
   },
   reelImageWrap: {
+    flex: 1,
     width: '100%',
-    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   reelImage: {
     width: '100%',
     height: '100%',
+    flex: 1,
   },
 
   // Save FAB

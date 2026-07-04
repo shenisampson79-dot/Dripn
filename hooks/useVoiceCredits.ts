@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { apiService } from '@/services/ApiService';
+import { getBillingPlanDisplayName, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
 
 interface VoiceCreditsInternal {
   remaining: number;
@@ -31,7 +32,7 @@ const STYLIST_NUDGES: Record<StylistId, StylistNudge> = {
   max: {
     stylistId: 'max',
     stylistName: 'Max',
-    message: "You've maxed out voice. Personal Stylist gives you unlimited.",
+    message: "You've maxed out voice. Personal Stylist gives you more sessions every month.",
     style: 'direct',
   },
   ace: {
@@ -51,17 +52,12 @@ const STYLIST_NUDGES: Record<StylistId, StylistNudge> = {
 export function useVoiceCredits() {
   const [credits, setCredits] = useState<VoiceCreditsInternal | null>(null);
   const [tier, setTier] = useState<string>('free');
-  const [tierName, setTierName] = useState<string>('Style Chat');
+  const [tierName, setTierName] = useState<string>('Free');
   const [isLoading, setIsLoading] = useState(true);
   const [isPurchasing, setIsPurchasing] = useState(false);
 
-  const getTierDisplayName = (tier: string): string => {
-    switch (tier) {
-      case 'pro': return 'Stylist Unlimited';
-      case 'premium': return 'Personal Stylist';
-      case 'subscription': return 'Style Chat';
-      default: return 'Free';
-    }
+  const getTierDisplayName = (rawTier: string): string => {
+    return getBillingPlanDisplayName(rawTier);
   };
 
   const fetchBalance = useCallback(async () => {
@@ -70,7 +66,8 @@ export function useVoiceCredits() {
       const response = await apiService.getVoiceCreditsBalance();
       if (response.success) {
         setCredits(response.credits);
-        setTier(response.tier);
+        const normalized = normalizeSubscriptionTier(response.tier);
+        setTier(normalized);
         setTierName(response.tierName || getTierDisplayName(response.tier));
       }
     } catch (error) {
@@ -92,8 +89,22 @@ export function useVoiceCredits() {
     fetchBalance();
   }, [fetchBalance]);
 
-  const updateBalance = useCallback((voiceCredits: Partial<VoiceCreditsInternal>) => {
-    setCredits(prev => prev ? { ...prev, ...voiceCredits } : null);
+  const updateBalance = useCallback((voiceCredits: {
+    remaining?: string | number;
+    monthlyAllowance?: number;
+    usedThisMonth?: number;
+    monthlyRemaining?: number;
+    purchasedCredits?: number;
+    isUnlimited?: boolean;
+  }) => {
+    const { remaining, ...rest } = voiceCredits;
+    const normalized: Partial<VoiceCreditsInternal> = {
+      ...rest,
+      ...(remaining !== undefined
+        ? { remaining: typeof remaining === 'string' ? Number(remaining) : remaining }
+        : {}),
+    };
+    setCredits(prev => prev ? { ...prev, ...normalized } : null);
   }, []);
 
   const refreshBalance = useCallback(() => {
@@ -124,16 +135,18 @@ export function useVoiceCredits() {
     return STYLIST_NUDGES[stylistId] || STYLIST_NUDGES.ruby;
   }, []);
 
+  const normalizedTier = normalizeSubscriptionTier(tier);
+
   return {
-    tier,
+    tier: normalizedTier,
     tierName,
     isLoading,
     hasCredits: credits?.isUnlimited || (credits?.remaining ?? 0) > 0,
     isUnlimited: credits?.isUnlimited ?? false,
-    isStylistUnlimited: tier === 'pro',
-    isPersonalStylist: tier === 'premium',
-    isStyleChat: tier === 'subscription',
-    isFreeUser: tier === 'free',
+    isStylistUnlimited: normalizedTier === 'stylist_unlimited',
+    isPersonalStylist: normalizedTier === 'personal_stylist',
+    isStyleChat: normalizedTier === 'personal_stylist',
+    isFreeUser: normalizedTier === 'free',
     isPurchasing,
     updateBalance,
     refreshBalance,

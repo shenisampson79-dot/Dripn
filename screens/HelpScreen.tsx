@@ -108,7 +108,7 @@ const FAQ_DATA: FAQCategory[] = [
       {
         id: 's1',
         question: 'What subscription plans are available?',
-        answer: 'We offer four tiers: Free (basic AI styling features), Style Chat at 9.99 per month (extended AI conversations and voice chat), Personal Stylist at 14.99 per month (unlimited AI advice and priority support), and Stylist Unlimited at 19.99 per month (everything plus personal stylist video sessions and exclusive features).',
+        answer: 'We offer three plans: Free (1 stylist decision per day, 2-option shopping compare, up to 15 wardrobe items), Personal Stylist at £9.99 per month (unlimited decisions, 3-way compare, wardrobe-aware advice, decision history), and Stylist Unlimited at £19.99 per month (outfit calendar, unlimited wardrobe, priority processing, and full planning tools).',
       },
       {
         id: 's2',
@@ -145,7 +145,7 @@ const FAQ_DATA: FAQCategory[] = [
       {
         id: 'ai3',
         question: 'How do voice conversations work?',
-        answer: 'You can have voice conversations with your AI stylist instead of typing. Each stylist has their own unique voice. Just tap the microphone icon to start a voice chat.',
+        answer: 'Open Stylist Chat and tap the headphones icon for Voice mode — your stylist speaks replies aloud (uses voice sessions from your plan). In Chat mode, type or tap the mic to dictate; text replies are unlimited on the Personal Stylist plan.',
       },
       {
         id: 'ai4',

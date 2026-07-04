@@ -1,19 +1,19 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Dimensions, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import Animated, { FadeIn } from "react-native-reanimated";
-import { Video, ResizeMode } from "expo-av";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
+import { LoopingBackgroundVideo } from "@/components/LoopingBackgroundVideo";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { onboardingAnalyticsService } from "@/services/OnboardingAnalyticsService";
-import { videoRandomizer } from "@/services/VideoRandomizerService";
+import { videoRandomizer, type VideoTone } from "@/services/VideoRandomizerService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -25,32 +25,39 @@ interface OnboardingContent {
   headline: string;
   subtext?: string;
   bullets?: { text: string; icon?: keyof typeof Feather.glyphMap }[];
+  tone: VideoTone;
 }
 
 const POSITIONING_OPTIONS: OnboardingContent[] = [
   {
     headline: "Stop overthinking what to wear.",
     subtext: "An opinionated AI stylist that tells you what to wear — using your wardrobe when available.",
+    tone: "pain",
   },
   {
     headline: "You've stared at your wardrobe for 20 minutes. Again.",
     subtext: "Let's fix that. One clear answer, every time.",
+    tone: "pain",
   },
   {
     headline: "Three outfits on the bed. Zero confidence in any of them.",
     subtext: "Sound familiar? I'll tell you which one to wear.",
+    tone: "pain",
   },
   {
     headline: "Running late because you changed twice.",
     subtext: "Get dressed with certainty. First time, every time.",
+    tone: "pain",
   },
   {
     headline: "The longer you look, the less you know.",
     subtext: "Break the spiral. Get a clear answer in seconds.",
+    tone: "pain",
   },
   {
     headline: "Your wardrobe isn't the problem. The decision is.",
     subtext: "I make the call. You make the exit.",
+    tone: "pain",
   },
 ];
 
@@ -58,34 +65,42 @@ const ASPIRATION_OPTIONS: OnboardingContent[] = [
   {
     headline: "Walk in looking like you planned it. Even if you didn't.",
     subtext: "We decide what you wear — so you look better than everyone else with zero effort.",
+    tone: "confidence",
   },
   {
     headline: "Be the best-dressed person in the room — without trying.",
     subtext: "Your friends will ask where you shop. You don't have to know.",
+    tone: "confidence",
   },
   {
     headline: "Stop being the one who 'doesn't really do fashion.'",
     subtext: "Nobody taught you? That's fine. We decide for you.",
+    tone: "confidence",
   },
   {
     headline: "Look like you have a stylist. Because you do.",
     subtext: "One clear outfit. No scrolling. No second-guessing.",
+    tone: "confidence",
   },
   {
     headline: "Think less. Look better.",
     subtext: "From 'I have nothing to wear' to 'just wear this' in seconds.",
+    tone: "confidence",
   },
   {
     headline: "Date tonight? Work tomorrow? Already handled.",
     subtext: "Tell us the occasion — we make the call.",
+    tone: "confidence",
   },
   {
     headline: "You don't need taste. You need a decision.",
     subtext: "Perfect if you've never learned how to dress — we won't judge.",
+    tone: "confidence",
   },
   {
     headline: "Quiet confidence beats loud insecurity.",
     subtext: "Dress sharper than your friends without making it a personality.",
+    tone: "confidence",
   },
 ];
 
@@ -97,6 +112,7 @@ const TRUST_FRAMING_OPTIONS: OnboardingContent[] = [
       { text: "No infinite options" },
       { text: "Just clarity" },
     ],
+    tone: "mixed",
   },
   {
     headline: "A stylist who actually decides.",
@@ -105,6 +121,7 @@ const TRUST_FRAMING_OPTIONS: OnboardingContent[] = [
       { text: "No scrolling, no trends" },
       { text: "Designed to save time, not steal it" },
     ],
+    tone: "mixed",
   },
   {
     headline: "No feed. No likes. No 'maybe this, maybe that.'",
@@ -113,6 +130,7 @@ const TRUST_FRAMING_OPTIONS: OnboardingContent[] = [
       { text: "One answer, not twenty options" },
       { text: "Get dressed and go" },
     ],
+    tone: "mixed",
   },
   {
     headline: "You ask. I answer. That's it.",
@@ -121,6 +139,7 @@ const TRUST_FRAMING_OPTIONS: OnboardingContent[] = [
       { text: "No algorithm games" },
       { text: "Just the outfit you need" },
     ],
+    tone: "mixed",
   },
   {
     headline: "Built to get you out the door, not glued to a screen.",
@@ -129,6 +148,7 @@ const TRUST_FRAMING_OPTIONS: OnboardingContent[] = [
       { text: "No time-wasting features" },
       { text: "Mission: get you dressed" },
     ],
+    tone: "mixed",
   },
   {
     headline: "Other apps want your attention. I want you dressed and gone.",
@@ -137,6 +157,7 @@ const TRUST_FRAMING_OPTIONS: OnboardingContent[] = [
       { text: "No engagement tricks" },
       { text: "Your time matters more than mine" },
     ],
+    tone: "mixed",
   },
 ];
 
@@ -144,10 +165,11 @@ const CONTROL_REASSURANCE_OPTIONS: OnboardingContent[] = [
   {
     headline: "You're always in control.",
     bullets: [
-      { text: "You can ask for a second opinion", icon: "users" },
+      { text: "You can change your mind anytime", icon: "refresh-cw" },
       { text: "You can ignore any advice", icon: "x-circle" },
       { text: "Nothing is posted publicly", icon: "lock" },
     ],
+    tone: "confidence",
   },
   {
     headline: "Ignore me. Disagree with me. You're still the boss.",
@@ -156,6 +178,7 @@ const CONTROL_REASSURANCE_OPTIONS: OnboardingContent[] = [
       { text: "Your style, your rules", icon: "user" },
       { text: "I'm just here to help decide", icon: "check" },
     ],
+    tone: "confidence",
   },
   {
     headline: "Your mirror moments stay between us.",
@@ -164,6 +187,7 @@ const CONTROL_REASSURANCE_OPTIONS: OnboardingContent[] = [
       { text: "No public profiles or feeds", icon: "eye-off" },
       { text: "This is your private space", icon: "shield" },
     ],
+    tone: "confidence",
   },
   {
     headline: "No one sees your outfit pics. Not even me judging your 2019 purchases.",
@@ -172,6 +196,7 @@ const CONTROL_REASSURANCE_OPTIONS: OnboardingContent[] = [
       { text: "No social pressure here", icon: "users" },
       { text: "Just honest, helpful advice", icon: "heart" },
     ],
+    tone: "confidence",
   },
   {
     headline: "Take my advice or don't. I'm not keeping score.",
@@ -180,6 +205,7 @@ const CONTROL_REASSURANCE_OPTIONS: OnboardingContent[] = [
       { text: "No passive-aggressive reminders", icon: "bell-off" },
       { text: "Just here when you need me", icon: "coffee" },
     ],
+    tone: "confidence",
   },
   {
     headline: "Private by default. Shared only if you say so.",
@@ -188,6 +214,7 @@ const CONTROL_REASSURANCE_OPTIONS: OnboardingContent[] = [
       { text: "Your data, your choice", icon: "database" },
       { text: "Trust built on transparency", icon: "shield" },
     ],
+    tone: "confidence",
   },
 ];
 
@@ -205,10 +232,9 @@ const ALL_TRUST_MESSAGES: OnboardingContent[] = [
 export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
-  const videoRef = useRef<Video>(null);
   
   const [trustMessage] = useState(() => getRandomContent(ALL_TRUST_MESSAGES));
-  const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo());
+  const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo({ tone: trustMessage.tone }));
   
   const [messageVariationId] = useState(() => `trust_${ALL_TRUST_MESSAGES.indexOf(trustMessage) + 1}`);
   
@@ -223,15 +249,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
 
   return (
     <View style={styles.container}>
-      <Video
-        ref={videoRef}
-        source={backgroundVideo}
-        style={styles.backgroundVideo}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay
-        isLooping
-        isMuted
-      />
+      <LoopingBackgroundVideo source={backgroundVideo} style={styles.backgroundVideo} />
 
       <LinearGradient
         colors={[

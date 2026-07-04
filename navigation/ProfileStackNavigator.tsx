@@ -84,6 +84,7 @@ export type ProfileStackParamList = {
   AdminDashboard: undefined;
   AnalyticsDashboard: undefined;
   Feedback: undefined;
+  CommunityVoting: { session?: unknown };
 };
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
