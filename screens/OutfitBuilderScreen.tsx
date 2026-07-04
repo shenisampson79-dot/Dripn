@@ -35,6 +35,7 @@ import { computeLocalOutfitScore, mergeOutfitScores } from '@/utils/outfitCompat
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 
 const { width: SW, height: SH } = Dimensions.get('window');
+const TAB_BAR_HEIGHT = 56;
 
 type OutfitBuilderScreenProps = {
   navigation: NativeStackNavigationProp<WardrobeStackParamList, 'OutfitBuilder'>;
@@ -512,7 +513,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           </Pressable>
         </View>
       ) : (
-        <View style={[styles.builderBody, { paddingBottom: insets.bottom + Spacing.lg }]}>
+        <View style={[styles.builderBody, { paddingBottom: insets.bottom + TAB_BAR_HEIGHT + Spacing.md }]}>
           {activeReels.map(({ key }) => (
             <CategoryReel
               key={key}
@@ -795,6 +796,8 @@ const styles = StyleSheet.create({
   saveButton: {
     alignSelf: 'center',
     marginTop: Spacing.xs,
+    marginBottom: Spacing.xs,
+    flexShrink: 0,
     borderRadius: BorderRadius.full,
     overflow: 'hidden',
     shadowColor: '#000',
