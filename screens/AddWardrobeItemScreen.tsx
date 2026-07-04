@@ -55,6 +55,10 @@ import { WardrobeItemImage } from "@/components/WardrobeItemImage";
 import { UploadGuideComparisonTable } from "@/components/UploadGuideComparisonTable";
 import { sanitizeWardrobeItemName, reconcileWardrobeBrandName } from "@/utils/wardrobeItemName";
 import {
+  getOutfitReelImageScale,
+  getOutfitReelPreviewAspectRatio,
+} from "@/utils/outfitReelImage";
+import {
   canOfferOutfitPlanning,
   countWardrobeOutfitBasics,
   describeOutfitPlanningGap,
@@ -772,6 +776,8 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   };
 
   const canSave = imageUri && name.trim() && category && color && seasons.length > 0 && occasions.length > 0;
+  const outfitMixPreviewScale = useMemo(() => getOutfitReelImageScale(category), [category]);
+  const outfitMixPreviewAspect = useMemo(() => getOutfitReelPreviewAspectRatio(), []);
 
   const scrollViewProps = {
     style: styles.scrollView,
@@ -810,9 +816,16 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       <ScrollContainer {...scrollViewProps}>
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>Photo</ThemedText>
+          <ThemedText type="caption" style={[styles.outfitMixPreviewHint, { color: theme.tabIconDefault }]}>
+            This preview matches Outfit Mix. Tap the photo to retake if the item looks too close or cut off.
+          </ThemedText>
           {imageUri ? (
             <View>
-              <Pressable onPress={handlePickImage} disabled={isProcessingImage} style={styles.imageContainer}>
+              <Pressable
+                onPress={handlePickImage}
+                disabled={isProcessingImage}
+                style={[styles.imageContainer, { aspectRatio: outfitMixPreviewAspect }]}
+              >
                 <View style={[
                   styles.imageWrapper,
                   wardrobeImageBackground(isDark, { imageUri, imageProcessed, aiAnalyzed: false })
@@ -823,6 +836,8 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
                     item={{ id: 'preview', imageUri, imageProcessed, enhancedImageUri: imageUri }}
                     style={styles.selectedImage}
                     processed={imageProcessed}
+                    contentFit="contain"
+                    displayScale={outfitMixPreviewScale}
                   />
                 </View>
                 {isProcessingImage && (
@@ -1305,9 +1320,12 @@ const styles = StyleSheet.create({
   imageContainer: {
     position: "relative",
     width: "100%",
-    aspectRatio: 1,
     borderRadius: BorderRadius.lg,
     overflow: "hidden",
+  },
+  outfitMixPreviewHint: {
+    marginBottom: Spacing.sm,
+    lineHeight: 18,
   },
   selectedImage: {
     width: "100%",

@@ -33,6 +33,10 @@ import { useTheme } from '@/hooks/useTheme';
 import { useWardrobe, WardrobeItem, ClothingCategory, PlannedEventType } from '@/contexts/WardrobeContext';
 import { apiService } from '@/services/ApiService';
 import { computeLocalOutfitScore, mergeOutfitScores } from '@/utils/outfitCompatibilityScore';
+import {
+  getOutfitReelImageScale,
+  OUTFIT_REEL_CENTER_RATIO,
+} from '@/utils/outfitReelImage';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 
 const { width: SW, height: SH } = Dimensions.get('window');
@@ -43,17 +47,7 @@ type OutfitBuilderScreenProps = {
 };
 
 // Clueless-style reels — width/height computed per device in main screen
-const COMPACT_CENTER_RATIO = 0.66;
-/** Per-category zoom inside reel tiles — outerwear runs large so keep it smaller. */
-const REEL_IMAGE_SCALE_BY_CATEGORY: Partial<Record<ClothingCategory, number>> = {
-  outerwear: 0.92,
-  tops: 1.42,
-  dresses: 1.38,
-  formal: 1.34,
-  bottoms: 1.44,
-  shoes: 1.48,
-};
-const DEFAULT_REEL_IMAGE_SCALE = 1.4;
+const COMPACT_CENTER_RATIO = OUTFIT_REEL_CENTER_RATIO;
 
 // Category display order (body top → bottom → feet)
 const REEL_ORDER: Array<{ key: ClothingCategory }> = [
@@ -155,7 +149,7 @@ function CategoryReel({
     onSelect(item.id);
   }, [data, onSelect, selectedId, snapInterval]);
 
-  const imageScale = REEL_IMAGE_SCALE_BY_CATEGORY[category] ?? DEFAULT_REEL_IMAGE_SCALE;
+  const imageScale = getOutfitReelImageScale(category);
 
   const renderItem = useCallback(({ item }: { item: WardrobeItem; index: number }) => {
     const isSelected = item.id === selectedId;
