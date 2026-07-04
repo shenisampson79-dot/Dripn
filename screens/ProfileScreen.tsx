@@ -18,7 +18,7 @@ import { Spacing, BorderRadius, SubscriptionColors, ContributorColors, LuxuryCol
 import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
+import { normalizeSubscriptionTier, getTierFeaturesDisplayName } from "@/utils/subscriptionTier";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useBodyProfile } from "@/contexts/BodyProfileContext";
 import { useStyleProfile } from "@/contexts/StyleProfileContext";
@@ -49,7 +49,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const { bodyProfile, hasBodyProfile, hasColorAnalysis, saveBodyProfile } = useBodyProfile();
   const { styleProfile, hasStyleProfile } = useStyleProfile();
   const { items: wardrobeItems } = useWardrobe();
-  const [activeTab, setActiveTab] = useState<"outfits">("outfits");
+  const [activeTab] = useState<"outfits">("outfits");
   const [savedLookbookOutfits, setSavedLookbookOutfits] = useState<SavedLookbookOutfit[]>([]);
   const [loadingSavedLookbook, setLoadingSavedLookbook] = useState(false);
   const [savedMixAndMatchOutfits, setSavedMixAndMatchOutfits] = useState<any[]>([]);
@@ -294,6 +294,8 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     );
   };
 
+  const subscriptionTierLabel = getTierFeaturesDisplayName(user?.subscriptionTier);
+
   const tabConfig = [
     { key: 'outfits', label: translations.profile.savedOutfits || 'Saved Outfits', icon: 'bookmark', color: LUXURY_COLORS.gold },
   ];
@@ -355,7 +357,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               style={styles.subscriptionBadge}
             >
               <ThemedText type="caption" style={styles.subscriptionBadgeText}>
-                {(user?.subscriptionTier || 'free').charAt(0).toUpperCase() + (user?.subscriptionTier || 'free').slice(1)}
+                {subscriptionTierLabel}
               </ThemedText>
             </LinearGradient>
             {getContributorBadge()}
@@ -517,35 +519,11 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
         ) : null}
       </View>
 
-      <View style={styles.tabsContainer}>
-        {tabConfig.map((tab) => (
-          <Pressable
-            key={tab.key}
-            onPress={() => setActiveTab(tab.key as any)}
-            style={styles.tabWrapper}
-          >
-            {activeTab === tab.key ? (
-              <LinearGradient
-                colors={[tab.color, tab.color + '80']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={styles.tabActive}
-              >
-                <Feather name={tab.icon as any} size={18} color="#FFFFFF" />
-                <ThemedText type="caption" style={styles.tabTextActive}>
-                  {tab.label}
-                </ThemedText>
-              </LinearGradient>
-            ) : (
-              <View style={[styles.tabInactive, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-                <Feather name={tab.icon as any} size={18} color={theme.tabIconDefault} />
-                <ThemedText type="caption" style={{ opacity: 0.7 }}>
-                  {tab.label}
-                </ThemedText>
-              </View>
-            )}
-          </Pressable>
-        ))}
+      <View style={styles.savedOutfitsSectionHeader}>
+        <Feather name="bookmark" size={18} color={LUXURY_COLORS.gold} />
+        <ThemedText type="h3" style={styles.savedOutfitsSectionTitle}>
+          {tabConfig[0].label}
+        </ThemedText>
       </View>
 
       <View style={styles.contentSection}>
@@ -704,6 +682,7 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     alignItems: "center",
+    marginBottom: Spacing.lg,
   },
   avatarRing: {
     width: 110,
@@ -749,6 +728,7 @@ const styles = StyleSheet.create({
   badgesContainer: {
     flexDirection: "row",
     gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   subscriptionBadge: {
     paddingVertical: 4,
@@ -805,6 +785,7 @@ const styles = StyleSheet.create({
   },
   actionsSection: {
     paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
     marginBottom: Spacing.xl,
     gap: Spacing.sm,
   },
@@ -877,34 +858,15 @@ const styles = StyleSheet.create({
     color: LuxuryColors.midnight,
     fontWeight: "700",
   },
-  tabsContainer: {
-    flexDirection: "row",
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+  savedOutfitsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
   },
-  tabWrapper: {
-    flex: 1,
-  },
-  tabActive: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  tabInactive: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+  savedOutfitsSectionTitle: {
+    fontWeight: '700',
   },
   contentSection: {
     minHeight: 200,
