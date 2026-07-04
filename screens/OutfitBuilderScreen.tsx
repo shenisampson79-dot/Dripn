@@ -206,7 +206,10 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
-  const bottomNavClearance = tabBarHeight > 0 ? tabBarHeight : TAB_BAR_HEIGHT + insets.bottom;
+  const bottomNavClearance = Math.max(
+    tabBarHeight,
+    TAB_BAR_HEIGHT + insets.bottom,
+  ) + Spacing.lg;
   const { items, reloadWardrobe } = useWardrobe();
 
   useFocusEffect(
@@ -279,19 +282,20 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     [selection]
   );
 
-  const saveFooterHeight = Spacing.buttonHeight + Spacing.lg;
   const showSaveButton = selectedItemIds.length > 0;
 
   const compactRowHeight = useMemo(() => {
     const headerBlock = 52;
     const scoreBlock = 58;
-    const bottomChrome = bottomNavClearance + (showSaveButton ? saveFooterHeight : Spacing.md);
+    const bottomChrome = showSaveButton
+      ? bottomNavClearance + Spacing.buttonHeight + Spacing.sm + Spacing.md
+      : bottomNavClearance;
     const rowGap = 8;
     const available = SH - insets.top - headerBlock - scoreBlock - bottomChrome;
     const gaps = Math.max(activeReels.length - 1, 0) * rowGap;
     const perRow = Math.floor((available - gaps) / Math.max(activeReels.length, 1));
-    return Math.max(80, Math.min(132, perRow));
-  }, [activeReels.length, insets.top, bottomNavClearance, showSaveButton, saveFooterHeight]);
+    return Math.max(76, Math.min(128, perRow));
+  }, [activeReels.length, insets.top, bottomNavClearance, showSaveButton]);
 
   const handleSelect = useCallback((cat: ClothingCategory, id: string) => {
     setSelection(prev => ({ ...prev, [cat]: id }));
@@ -538,7 +542,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           </View>
 
           {showSaveButton ? (
-            <View style={[styles.saveFooter, { paddingBottom: bottomNavClearance + Spacing.sm }]}>
+            <View style={[styles.saveFooter, { paddingBottom: bottomNavClearance + Spacing.md }]}>
               <Pressable onPress={handleSave} style={styles.saveButton}>
                 <LinearGradient
                   colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
@@ -824,6 +828,8 @@ const styles = StyleSheet.create({
   saveButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: Spacing.buttonHeight,
     paddingHorizontal: Spacing['2xl'],
     paddingVertical: Spacing.md,
     gap: Spacing.sm,
@@ -832,6 +838,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 15,
+    textAlign: 'center',
   },
 
   // Empty state
