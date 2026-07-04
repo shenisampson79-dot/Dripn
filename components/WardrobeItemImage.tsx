@@ -1,30 +1,61 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  StyleProp,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
-  ImageStyle,
-} from 'react-native';
-import { Image } from 'expo-image';
-import { Feather } from '@expo/vector-icons';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, StyleProp, ImageStyle, View, ViewStyle } from 'react-native';
+import { Image, ImageSource } from 'expo-image';
 
-import { WardrobeImageShimmer } from '@/components/WardrobeImageShimmer';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
-import { useTheme } from '@/hooks/useTheme';
+import { apiService } from '@/services/ApiService';
 import {
-  WARDROBE_PROCESSED_IMAGE_INSET,
+  isProxyWardrobeImageUri,
+  resolveWardrobeFallbackUri,
+  resolveWardrobeImageUri,
   wardrobeImageContentFit,
-  wardrobeTileBackground,
 } from '@/utils/wardrobeImage';
-import {
-  getCachedWardrobeImageUri,
-  invalidateWardrobeImageCache,
-  loadWardrobeImageForItem,
-} from '@/utils/wardrobeImageLoader';
 
-const MAX_RENDER_RETRIES = 2;
+function useAuthenticatedImageSource(uri: string): {
+  source: ImageSource | null;
+  ready: boolean;
+} {
+  const [source, setSource] = useState<ImageSource | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      if (!uri) {
+        if (mounted) {
+          setSource(null);
+          setReady(true);
+        }
+        return;
+      }
+
+      const needsAuth = isProxyWardrobeImageUri(uri);
+      if (!needsAuth) {
+        if (mounted) {
+          setSource({ uri });
+          setReady(true);
+        }
+        return;
+      }
+
+      const token = await apiService.getToken();
+      if (!mounted) return;
+      setSource(
+        token
+          ? { uri, headers: { Authorization: `Bearer ${token}` } }
+          : null,
+      );
+      setReady(true);
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [uri]);
+
+  return { source, ready };
+}
 
 type Props = {
   item: Pick<
@@ -37,8 +68,6 @@ type Props = {
   transition?: number;
   preferCover?: boolean;
   showLoading?: boolean;
-  /** Override tile background (e.g. transparent when parent already provides one). */
-  tileBackgroundColor?: string;
 };
 
 export function WardrobeItemImage({
@@ -46,116 +75,52 @@ export function WardrobeItemImage({
   style,
   processed,
   contentFit,
-  transition = 280,
+  transition = 200,
   preferCover = false,
-  showLoading = true,
-  tileBackgroundColor,
+  showLoading = false,
 }: Props) {
-  const { isDark } = useTheme();
-  const tileBg = tileBackgroundColor ?? wardrobeTileBackground(isDark);
-  const isProcessed = processed ?? !!(item.imageProcessed || item.aiAnalyzed);
-
-  const cached = getCachedWardrobeImageUri(item.id);
-  const [uri, setUri] = useState<string | null>(cached);
-  const [loading, setLoading] = useState(!cached);
-  const [failed, setFailed] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-
-  const containerStyle = useMemo(() => StyleSheet.flatten(style), [style]);
+  const primaryUri = resolveWardrobeImageUri(item);
+  const fallbackUri = resolveWardrobeFallbackUri(item, primaryUri);
+  const [activeUri, setActiveUri] = useState(primaryUri);
+  const [usingFallback, setUsingFallback] = useState(false);
 
   useEffect(() => {
-    setFailed(false);
-    setRetryCount(0);
-  }, [item.id, item.imageUri, item.enhancedImageUri, item.originalImageUri, item.imageProcessed]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const warm = getCachedWardrobeImageUri(item.id);
-    if (warm) {
-      setUri(warm);
-      setLoading(false);
-      setFailed(false);
-      return;
-    }
-
-    setLoading(true);
-    setUri(null);
-    setFailed(false);
-
-    loadWardrobeImageForItem(item).then((result) => {
-      if (cancelled) return;
-      setUri(result);
-      setLoading(false);
-      if (!result) setFailed(true);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    item.id,
-    item.imageUri,
-    item.enhancedImageUri,
-    item.originalImageUri,
-    item.imageProcessed,
-    retryCount,
-  ]);
+    setActiveUri(primaryUri);
+    setUsingFallback(false);
+  }, [primaryUri]);
 
   const handleError = useCallback(() => {
-    if (__DEV__) {
-      console.warn('[WardrobeImage] render error', item.id, uri);
+    if (!usingFallback && fallbackUri) {
+      setUsingFallback(true);
+      setActiveUri(fallbackUri);
     }
-    if (retryCount >= MAX_RENDER_RETRIES) {
-      setFailed(true);
-      setUri(null);
-      return;
-    }
-    invalidateWardrobeImageCache(item.id);
-    setRetryCount((n) => n + 1);
-  }, [item.id, uri, retryCount]);
+  }, [fallbackUri, usingFallback]);
 
-  const imageInset = isProcessed ? WARDROBE_PROCESSED_IMAGE_INSET : 0;
+  const { source, ready } = useAuthenticatedImageSource(activeUri || '');
 
-  if (loading && showLoading) {
+  if (!activeUri) return null;
+
+  if (!ready || !source) {
+    if (!showLoading) return null;
     return (
-      <WardrobeImageShimmer
-        style={containerStyle}
-        backgroundColor={tileBg}
-        isDark={isDark}
-      />
-    );
-  }
-
-  if (failed || !uri) {
-    return (
-      <View style={[containerStyle, styles.failedRoot, { backgroundColor: tileBg }]}>
-        <Feather name="image" size={22} color={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.22)'} />
-        <Text style={[styles.failedLabel, isDark ? styles.failedLabelDark : styles.failedLabelLight]}>
-          No photo
-        </Text>
+      <View style={[style, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="small" />
       </View>
     );
   }
 
   return (
-    <View
-      style={[
-        containerStyle,
-        styles.imageRoot,
-        { backgroundColor: tileBg, padding: imageInset },
-      ]}
-    >
-      <Image
-        source={{ uri }}
-        style={styles.imageFill}
-        contentFit={contentFit ?? wardrobeImageContentFit(item, false, preferCover || isProcessed)}
-        transition={transition}
-        onError={handleError}
-        recyclingKey={`${item.id}:${uri}:${retryCount}`}
-        cachePolicy={uri.startsWith('http') ? 'memory-disk' : undefined}
-      />
-    </View>
+    <Image
+      source={source}
+      style={style}
+      contentFit={
+        contentFit ?? wardrobeImageContentFit(item, usingFallback, preferCover)
+      }
+      transition={transition}
+      onError={handleError}
+      recyclingKey={`${activeUri}:${usingFallback ? 'fb' : 'primary'}`}
+      cachePolicy={activeUri.startsWith('http') ? 'memory-disk' : undefined}
+    />
   );
 }
 
@@ -174,30 +139,3 @@ export function WardrobeItemImageFrame({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  imageRoot: {
-    overflow: 'hidden',
-  },
-  imageFill: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  failedRoot: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  failedLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    letterSpacing: 0.2,
-  },
-  failedLabelLight: {
-    color: 'rgba(0,0,0,0.28)',
-  },
-  failedLabelDark: {
-    color: 'rgba(255,255,255,0.35)',
-  },
-});
