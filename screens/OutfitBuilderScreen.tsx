@@ -19,6 +19,7 @@ import { WardrobeItemImage } from '@/components/WardrobeItemImage';
 import { wardrobeImageBackground } from '@/utils/wardrobeImage';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -204,6 +205,8 @@ function CategoryReel({
 export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+  const bottomNavClearance = tabBarHeight > 0 ? tabBarHeight : TAB_BAR_HEIGHT + insets.bottom;
   const { items, reloadWardrobe } = useWardrobe();
 
   useFocusEffect(
@@ -271,25 +274,28 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     [itemsByCategory]
   );
 
-  const compactRowHeight = useMemo(() => {
-    const headerBlock = 52;
-    const scoreBlock = 58;
-    const footerBlock = 96;
-    const rowGap = 8;
-    const available = SH - insets.top - insets.bottom - headerBlock - scoreBlock - footerBlock;
-    const gaps = Math.max(activeReels.length - 1, 0) * rowGap;
-    const perRow = Math.floor((available - gaps) / Math.max(activeReels.length, 1));
-    return Math.max(88, Math.min(148, perRow));
-  }, [activeReels.length, insets.top, insets.bottom]);
-
-  const handleSelect = useCallback((cat: ClothingCategory, id: string) => {
-    setSelection(prev => ({ ...prev, [cat]: id }));
-  }, []);
-
   const selectedItemIds = useMemo(
     () => Object.values(selection).filter((id): id is string => !!id),
     [selection]
   );
+
+  const saveFooterHeight = Spacing.buttonHeight + Spacing.lg;
+  const showSaveButton = selectedItemIds.length > 0;
+
+  const compactRowHeight = useMemo(() => {
+    const headerBlock = 52;
+    const scoreBlock = 58;
+    const bottomChrome = bottomNavClearance + (showSaveButton ? saveFooterHeight : Spacing.md);
+    const rowGap = 8;
+    const available = SH - insets.top - headerBlock - scoreBlock - bottomChrome;
+    const gaps = Math.max(activeReels.length - 1, 0) * rowGap;
+    const perRow = Math.floor((available - gaps) / Math.max(activeReels.length, 1));
+    return Math.max(80, Math.min(132, perRow));
+  }, [activeReels.length, insets.top, bottomNavClearance, showSaveButton, saveFooterHeight]);
+
+  const handleSelect = useCallback((cat: ClothingCategory, id: string) => {
+    setSelection(prev => ({ ...prev, [cat]: id }));
+  }, []);
 
   const selectedWardrobeItems = useMemo(
     () => selectedItemIds
@@ -513,38 +519,42 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           </Pressable>
         </View>
       ) : (
-        <View style={[styles.builderBody, { paddingBottom: insets.bottom + TAB_BAR_HEIGHT + Spacing.md }]}>
-          {activeReels.map(({ key }) => (
-            <CategoryReel
-              key={key}
-              items={itemsByCategory[key] ?? []}
-              selectedId={selection[key] ?? null}
-              onSelect={id => handleSelect(key, id)}
-              isDark={isDark}
-              rowHeight={compactRowHeight}
-              centerWidth={layoutMetrics.centerWidth}
-              sideGap={layoutMetrics.sideGap}
-              sideInset={layoutMetrics.sideInset}
-              snapInterval={layoutMetrics.snapInterval}
-            />
-          ))}
+        <>
+          <View style={styles.reelsArea}>
+            {activeReels.map(({ key }) => (
+              <CategoryReel
+                key={key}
+                items={itemsByCategory[key] ?? []}
+                selectedId={selection[key] ?? null}
+                onSelect={id => handleSelect(key, id)}
+                isDark={isDark}
+                rowHeight={compactRowHeight}
+                centerWidth={layoutMetrics.centerWidth}
+                sideGap={layoutMetrics.sideGap}
+                sideInset={layoutMetrics.sideInset}
+                snapInterval={layoutMetrics.snapInterval}
+              />
+            ))}
+          </View>
 
-          {selectedItemIds.length > 0 ? (
-            <Pressable onPress={handleSave} style={styles.saveButton}>
-              <LinearGradient
-                colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.saveButtonGradient}
-              >
-                <Feather name="save" size={17} color="#fff" />
-                <ThemedText type="body" style={styles.saveButtonText}>
-                  Save Outfit
-                </ThemedText>
-              </LinearGradient>
-            </Pressable>
+          {showSaveButton ? (
+            <View style={[styles.saveFooter, { paddingBottom: bottomNavClearance + Spacing.sm }]}>
+              <Pressable onPress={handleSave} style={styles.saveButton}>
+                <LinearGradient
+                  colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.saveButtonGradient}
+                >
+                  <Feather name="save" size={17} color="#fff" />
+                  <ThemedText type="body" style={styles.saveButtonText}>
+                    Save Outfit
+                  </ThemedText>
+                </LinearGradient>
+              </Pressable>
+            </View>
           ) : null}
-        </View>
+        </>
       )}
 
       {/* Save modal */}
@@ -751,11 +761,17 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     marginRight: 6,
   },
-  builderBody: {
+  reelsArea: {
     flex: 1,
     justifyContent: 'space-evenly',
     paddingTop: 4,
     gap: 8,
+  },
+  saveFooter: {
+    paddingTop: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    flexShrink: 0,
   },
   backBtn: {
     padding: Spacing.sm,
@@ -794,10 +810,9 @@ const styles = StyleSheet.create({
 
   // Save button (below last reel)
   saveButton: {
-    alignSelf: 'center',
-    marginTop: Spacing.xs,
-    marginBottom: Spacing.xs,
-    flexShrink: 0,
+    alignSelf: 'stretch',
+    maxWidth: 320,
+    width: '100%',
     borderRadius: BorderRadius.full,
     overflow: 'hidden',
     shadowColor: '#000',
