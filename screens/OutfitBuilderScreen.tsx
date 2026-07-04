@@ -512,7 +512,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           </Pressable>
         </View>
       ) : (
-        <View style={[styles.builderBody, { paddingBottom: insets.bottom + 88 }]}>
+        <View style={[styles.builderBody, { paddingBottom: insets.bottom + Spacing.lg }]}>
           {activeReels.map(({ key }) => (
             <CategoryReel
               key={key}
@@ -527,28 +527,24 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
               snapInterval={layoutMetrics.snapInterval}
             />
           ))}
+
+          {selectedItemIds.length > 0 ? (
+            <Pressable onPress={handleSave} style={styles.saveButton}>
+              <LinearGradient
+                colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.saveButtonGradient}
+              >
+                <Feather name="save" size={17} color="#fff" />
+                <ThemedText type="body" style={styles.saveButtonText}>
+                  Save Outfit
+                </ThemedText>
+              </LinearGradient>
+            </Pressable>
+          ) : null}
         </View>
       )}
-
-      {/* Save FAB */}
-      {selectedItemIds.length > 0 ? (
-        <Pressable
-          onPress={handleSave}
-          style={[styles.saveFab, { bottom: insets.bottom + 90 }]}
-        >
-          <LinearGradient
-            colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.saveFabGradient}
-          >
-            <Feather name="save" size={17} color="#fff" />
-            <ThemedText type="body" style={styles.saveFabText}>
-              Save Outfit
-            </ThemedText>
-          </LinearGradient>
-        </Pressable>
-      ) : null}
 
       {/* Save modal */}
       <Modal
@@ -795,26 +791,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Save FAB
-  saveFab: {
-    position: 'absolute',
+  // Save button (below last reel)
+  saveButton: {
     alignSelf: 'center',
+    marginTop: Spacing.xs,
     borderRadius: BorderRadius.full,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 6,
   },
-  saveFabGradient: {
+  saveButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing['2xl'],
     paddingVertical: Spacing.md,
     gap: Spacing.sm,
   },
-  saveFabText: {
+  saveButtonText: {
     color: '#fff',
     fontWeight: '700',
     fontSize: 15,

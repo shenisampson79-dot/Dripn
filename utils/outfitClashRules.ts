@@ -75,7 +75,7 @@ export function isAthleticTop(item: WardrobeItem): boolean {
   const t = itemText(item);
   return item.category === 'activewear_tops'
     || item.category === 'activewear'
-    || /singlet|tank|sleeveless|jersey|running|athletic|gym|training|performance|compression|sports top|sports bra/.test(t);
+    || /singlet|tank|sleeveless|jersey|running vest|gym vest|training vest|athletic vest|performance vest|running|athletic|gym|training|performance|compression|sports top|sports bra/.test(t);
 }
 
 export function isAthleticBottom(item: WardrobeItem): boolean {
@@ -282,6 +282,13 @@ const CLASH_RULES: Array<{
     when: (ctx) => (ctx.any('isAthleticTop') || ctx.any('isAthleticBottom')) && ctx.any('isHeels'),
   },
   {
+    id: 'blazer_athletic_top',
+    penalty: 88,
+    hint: 'Running vest or gym top under a blazer — sportswear and tailoring do not mix',
+    severity: 'major',
+    when: (ctx) => ctx.any('isBlazer') && ctx.any('isAthleticTop'),
+  },
+  {
     id: 'blazer_shorts_uggs',
     penalty: 84,
     hint: 'Blazer, shorts & UGGs clash',
@@ -344,7 +351,7 @@ const CLASH_RULES: Array<{
     penalty: 52,
     hint: 'Blazer + trainers skew casual — chinos and loafers elevate this',
     severity: 'moderate',
-    when: (ctx) => ctx.any('isBlazer') && ctx.any('isCasualTrainer') && !ctx.any('isJeans'),
+    when: (ctx) => ctx.any('isBlazer') && ctx.any('isCasualTrainer') && !ctx.any('isJeans') && !ctx.any('isAthleticTop'),
   },
   {
     id: 'shorts_formal_shoes',

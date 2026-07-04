@@ -76,6 +76,7 @@ const CLASH_MATRIX: ClashCase[] = [
   { id: 'athletic_boots_shorts', items: [tank, shorts, workBoots], maxScore: 25 },
   { id: 'athletic_boots', items: [tank, chinos, workBoots], maxScore: 30 },
   { id: 'athletic_heels', items: [leggings, heels], maxScore: 30 },
+  { id: 'blazer_athletic_top', items: [blazer, item({ id: 'vest', category: 'activewear_tops', name: 'Running Vest', color: 'black' }), chinos, trainers], maxScore: 15 },
   { id: 'blazer_shorts_uggs', items: [blazer, shorts, uggs], maxScore: 25 },
   { id: 'blazer_shorts_trainers', items: [blazer, shorts, trainers], maxScore: 30 },
   { id: 'blazer_shorts', items: [blazer, shorts, loafers], maxScore: 35 },
@@ -160,5 +161,14 @@ assert(mergedGym.score < 40, `AI must not keep 89% on gym+boots clash, got ${mer
 
 const mergedGood = mergeOutfitScores(strong, { score: 84, verdict: 'Excellent combo' });
 assert(mergedGood.score >= 70 && mergedGood.score <= 100, `blended good score out of range: ${mergedGood.score}`);
+
+const userOutfit = computeLocalOutfitScore([
+  blazer,
+  item({ id: 'running-vest', category: 'activewear_tops', name: 'Running Vest', color: 'black' }),
+  chinos,
+  trainers,
+]);
+assert(userOutfit.score <= 15, `blazer + running vest should score ~10%, got ${userOutfit.score}`);
+assert(userOutfit.clashId === 'blazer_athletic_top', `expected blazer_athletic_top, got ${userOutfit.clashId}`);
 
 console.log(`verify-outfit-score: ${CLASH_MATRIX.length} clash rules + merge checks passed`);
