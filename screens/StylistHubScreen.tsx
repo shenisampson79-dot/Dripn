@@ -113,7 +113,7 @@ const getGradientColors = (key: GradientKey, palette: any): readonly [string, st
     accent: palette.gradientAccent,
     warm: palette.gradientWarm,
     cool: palette.gradientCool,
-    jewel: ['#9B7EBD', '#6B4E8D'],
+    jewel: palette.gradientJewel,
   };
   return gradientMap[key];
 };

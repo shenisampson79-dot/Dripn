@@ -22,6 +22,7 @@ const MinimalistPalette = {
   gradientAccent: ['#B8A898', '#A89888'] as readonly [string, string],
   gradientWarm: ['#C4A484', '#B49474'] as readonly [string, string],
   gradientCool: ['#A69279', '#968269'] as readonly [string, string],
+  gradientJewel: ['#B8A898', '#9C8B7A'] as readonly [string, string],
 };
 
 // Colorful palette - vibrant, bold gradient colors (purple/pink/cyan/green cards)
@@ -43,6 +44,7 @@ const ColorfulPalette = {
   gradientAccent: ['#f093fb', '#f5576c'] as readonly [string, string],
   gradientWarm: ['#ff6b6b', '#ee5a5a'] as readonly [string, string],
   gradientCool: ['#4facfe', '#00f2fe'] as readonly [string, string],
+  gradientJewel: ['#9B7EBD', '#6B4E8D'] as readonly [string, string],
 };
 
 export type SchemePalette = typeof ColorfulPalette;
