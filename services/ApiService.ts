@@ -3968,6 +3968,7 @@ class ApiService {
     name: string;
     occasion: string;
     wardrobeItemIds: string[];
+    notes?: string;
     calendarDate?: string; // ISO date string — pins to calendar in same call
   }) {
     return this.request<{
@@ -3986,13 +3987,15 @@ class ApiService {
       outfits: Array<{
         id: string;
         name: string;
-        occasion: string;
+        description?: string | null;
+        occasion?: string;
         items: Array<{
           id: string;
           name: string;
           category: string;
           colour: string;
           imageUri?: string;
+          imageUrl?: string | null;
         }>;
       }>;
     }>('/api/outfits/mix-and-match');

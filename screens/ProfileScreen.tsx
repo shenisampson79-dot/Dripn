@@ -25,7 +25,14 @@ import { useStyleProfile } from "@/contexts/StyleProfileContext";
 import { useWardrobe } from "@/contexts/WardrobeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { OutfitPiecesVisual, OutfitPieceVisual } from "@/components/OutfitPiecesVisual";
+import { SavedOutfitsTable } from "@/components/outfit/SavedOutfitsTable";
 import { dfyService, SavedLookbookOutfit } from "@/services/DFYService";
+import {
+  buildSavedOutfitTableRows,
+  findLookbookOutfitByRowId,
+  findMixOutfitByRowId,
+  type MixAndMatchSavedOutfit,
+} from "@/utils/profileSavedOutfits";
 import { resolveDFYItemImageUri, RawDFYOutfitItem } from "@/utils/dfyOutfitImages";
 import { sortOutfitItemsByVisualOrder } from "@/utils/outfitItemOrder";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -52,8 +59,9 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const [activeTab] = useState<"outfits">("outfits");
   const [savedLookbookOutfits, setSavedLookbookOutfits] = useState<SavedLookbookOutfit[]>([]);
   const [loadingSavedLookbook, setLoadingSavedLookbook] = useState(false);
-  const [savedMixAndMatchOutfits, setSavedMixAndMatchOutfits] = useState<any[]>([]);
+  const [savedMixAndMatchOutfits, setSavedMixAndMatchOutfits] = useState<MixAndMatchSavedOutfit[]>([]);
   const [loadingSavedOutfits, setLoadingSavedOutfits] = useState(false);
+  const [selectedOutfitId, setSelectedOutfitId] = useState<string | null>(null);
 
   // Derive Style DNA from wardrobe items — same logic as StyleDNAScreen
   const ownedWardrobeItems = useMemo(() => wardrobeItems.filter(i => !i.origin || i.origin === 'owned'), [wardrobeItems]);
@@ -195,6 +203,24 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
   const likedOutfits: SavedLookbookOutfit[] = savedLookbookOutfits;
 
+  const savedOutfitRows = useMemo(
+    () => buildSavedOutfitTableRows(likedOutfits, savedMixAndMatchOutfits, wardrobeItems),
+    [likedOutfits, savedMixAndMatchOutfits, wardrobeItems],
+  );
+
+  useEffect(() => {
+    if (savedOutfitRows.length === 0) {
+      setSelectedOutfitId(null);
+      return;
+    }
+    setSelectedOutfitId((current) =>
+      current && savedOutfitRows.some((row) => row.id === current) ? current : savedOutfitRows[0].id,
+    );
+  }, [savedOutfitRows]);
+
+  const selectedLookbookOutfit = findLookbookOutfitByRowId(selectedOutfitId, likedOutfits);
+  const selectedMixOutfit = findMixOutfitByRowId(selectedOutfitId, savedMixAndMatchOutfits);
+
   const handleOpenLookbook = () => {
     navigation.getParent()?.navigate?.('WardrobeTab', { screen: 'DFYLookbook' });
   };
@@ -204,6 +230,9 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     try {
       await dfyService.removeFromSavedLookbook(user.id, outfitId);
       setSavedLookbookOutfits((prev) => prev.filter((outfit) => outfit.id !== outfitId));
+      setSelectedOutfitId((current) =>
+        current === `lookbook-${outfitId}` ? null : current,
+      );
     } catch {
       Alert.alert('Could not remove outfit', 'Please try again.');
     }
@@ -219,6 +248,50 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           wardrobeItemId: item.id,
           name: item.name,
           category: item.category || wardrobe?.category,
+          imageUrl: imageUri,
+        };
+      })
+      .filter((piece) => Boolean(piece.imageUrl || piece.wardrobeItemId));
+
+    if (pieces.length === 0) {
+      return (
+        <View style={[styles.savedLookbookVisualEmpty, { backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
+          <Feather name="image" size={28} color={theme.tabIconDefault} />
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.savedLookbookVisualBlock}>
+        <OutfitPiecesVisual
+          pieces={pieces}
+          wardrobeItems={wardrobeItems}
+          label=""
+          large
+          canvasWidth={SAVED_LOOKBOOK_CARD_WIDTH}
+        />
+      </View>
+    );
+  };
+
+  const renderSavedMixVisual = (outfit: MixAndMatchSavedOutfit) => {
+    const rawItems = outfit.items || [];
+    const orderedItems = sortOutfitItemsByVisualOrder(
+      rawItems.map((item) => ({
+        id: String(item.id),
+        name: item.name,
+        category: item.category,
+      })),
+    );
+    const pieces: OutfitPieceVisual[] = orderedItems
+      .map((slot) => {
+        const item = rawItems.find((row) => String(row.id) === String(slot.id));
+        const wardrobe = wardrobeItems.find((w) => String(w.id) === String(slot.id));
+        const imageUri = item?.imageUri || item?.imageUrl || wardrobe?.imageUri || wardrobe?.enhancedImageUri || null;
+        return {
+          wardrobeItemId: slot.id,
+          name: item?.name || slot.name || 'Item',
+          category: item?.category || slot.category || wardrobe?.category,
           imageUrl: imageUri,
         };
       })
@@ -540,42 +613,43 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 {t('profile.loadingOutfits')}
               </ThemedText>
             </View>
-          ) : likedOutfits.length > 0 || savedMixAndMatchOutfits.length > 0 ? (
+          ) : savedOutfitRows.length > 0 ? (
             <View style={styles.outfitsContainer}>
-              {likedOutfits.map((outfit) => (
-                <Pressable
-                  key={outfit.id}
-                  onPress={handleOpenLookbook}
-                  style={[styles.likedOutfitCard, styles.likedOutfitCardVisual, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}
-                >
+              <SavedOutfitsTable
+                outfits={savedOutfitRows}
+                selectedId={selectedOutfitId}
+                onSelect={setSelectedOutfitId}
+              />
+
+              {selectedLookbookOutfit ? (
+                <View style={[styles.likedOutfitCard, styles.likedOutfitCardVisual, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
                   <View style={styles.likedOutfitHeader}>
-                    <LinearGradient
-                      colors={[LUXURY_COLORS.coral, '#C46A4F']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.likedOutfitBadge}
-                    >
-                      <Feather name="book-open" size={10} color="#FFFFFF" />
-                      <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10 }}>
-                        My Lookbook · Day {outfit.dayNumber}
-                      </ThemedText>
-                    </LinearGradient>
+                    <Pressable onPress={handleOpenLookbook}>
+                      <LinearGradient
+                        colors={[LUXURY_COLORS.coral, '#C46A4F']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.likedOutfitBadge}
+                      >
+                        <Feather name="book-open" size={10} color="#FFFFFF" />
+                        <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10 }}>
+                          My Lookbook · Day {selectedLookbookOutfit.dayNumber}
+                        </ThemedText>
+                      </LinearGradient>
+                    </Pressable>
                     <View style={styles.savedLookbookFlags}>
-                      {(outfit.savedReason === 'bookmark' || outfit.savedReason === 'both') && (
+                      {(selectedLookbookOutfit.savedReason === 'bookmark' || selectedLookbookOutfit.savedReason === 'both') && (
                         <View style={[styles.savedLookbookFlag, { backgroundColor: LUXURY_COLORS.gold + '25' }]}>
                           <Feather name="bookmark" size={12} color={LUXURY_COLORS.gold} />
                         </View>
                       )}
-                      {(outfit.savedReason === 'love' || outfit.savedReason === 'both') && (
+                      {(selectedLookbookOutfit.savedReason === 'love' || selectedLookbookOutfit.savedReason === 'both') && (
                         <View style={[styles.savedLookbookFlag, { backgroundColor: LUXURY_COLORS.rose + '25' }]}>
                           <Feather name="heart" size={12} color={LUXURY_COLORS.rose} />
                         </View>
                       )}
                       <Pressable
-                        onPress={(event) => {
-                          event.stopPropagation?.();
-                          handleRemoveSavedLookbookOutfit(outfit.id);
-                        }}
+                        onPress={() => handleRemoveSavedLookbookOutfit(selectedLookbookOutfit.id)}
                         style={({ pressed }) => [
                           styles.unlikeButton,
                           { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
@@ -585,12 +659,20 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                       </Pressable>
                     </View>
                   </View>
+                  <ThemedText type="h3" style={styles.likedOutfitTitle}>
+                    {selectedLookbookOutfit.title || `Lookbook · Day ${selectedLookbookOutfit.dayNumber}`}
+                  </ThemedText>
+                  {(selectedLookbookOutfit.description || selectedLookbookOutfit.stylistNote) ? (
+                    <ThemedText type="small" style={styles.likedOutfitDesc}>
+                      {selectedLookbookOutfit.description || selectedLookbookOutfit.stylistNote}
+                    </ThemedText>
+                  ) : null}
+                  {renderSavedLookbookVisual(selectedLookbookOutfit)}
+                </View>
+              ) : null}
 
-                  {renderSavedLookbookVisual(outfit)}
-                </Pressable>
-              ))}
-              {savedMixAndMatchOutfits.map((outfit) => (
-                <View key={outfit.id} style={[styles.likedOutfitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
+              {selectedMixOutfit ? (
+                <View style={[styles.likedOutfitCard, styles.likedOutfitCardVisual, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
                   <View style={styles.likedOutfitHeader}>
                     <LinearGradient
                       colors={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
@@ -599,15 +681,18 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                       style={styles.likedOutfitBadge}
                     >
                       <Feather name="layers" size={10} color="#FFFFFF" />
-                      <ThemedText type="caption" style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 10 }}>
+                      <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10 }}>
                         My Outfit
                       </ThemedText>
                     </LinearGradient>
                     <Pressable
                       onPress={async () => {
                         try {
-                          await apiService.deleteMixAndMatchOutfit(String(outfit.id));
-                          setSavedMixAndMatchOutfits(prev => prev.filter(o => o.id !== outfit.id));
+                          await apiService.deleteMixAndMatchOutfit(String(selectedMixOutfit.id));
+                          setSavedMixAndMatchOutfits((prev) => prev.filter((o) => o.id !== selectedMixOutfit.id));
+                          setSelectedOutfitId((current) =>
+                            current === `mix-${selectedMixOutfit.id}` ? null : current,
+                          );
                         } catch {
                           // Keep UI unchanged if delete fails
                         }
@@ -621,18 +706,16 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                     </Pressable>
                   </View>
                   <ThemedText type="h3" style={styles.likedOutfitTitle}>
-                    {outfit.name}
+                    {selectedMixOutfit.name}
                   </ThemedText>
-                  <ThemedText type="small" style={styles.likedOutfitDesc} numberOfLines={1}>
-                    {outfit.occasion}
-                  </ThemedText>
-                  {outfit.wardrobe_item_ids && outfit.wardrobe_item_ids.length > 0 && (
-                    <ThemedText type="small" style={styles.likedOutfitDesc} numberOfLines={1}>
-                      {outfit.wardrobe_item_ids.length} items
+                  {(selectedMixOutfit.description || selectedMixOutfit.occasion) ? (
+                    <ThemedText type="small" style={styles.likedOutfitDesc}>
+                      {selectedMixOutfit.description?.trim() || selectedMixOutfit.occasion}
                     </ThemedText>
-                  )}
+                  ) : null}
+                  {renderSavedMixVisual(selectedMixOutfit)}
                 </View>
-              ))}
+              ) : null}
             </View>
           ) : (
             <View style={styles.emptyState}>
@@ -731,14 +814,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   subscriptionBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.full,
+    minWidth: 160,
+    alignItems: 'center',
   },
   subscriptionBadgeText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 15,
+    letterSpacing: 0.2,
   },
   contributorBadge: {
     flexDirection: "row",

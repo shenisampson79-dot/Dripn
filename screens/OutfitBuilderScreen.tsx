@@ -271,6 +271,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [outfitName, setOutfitName] = useState('');
+  const [outfitDescription, setOutfitDescription] = useState('');
   const [eventType, setEventType] = useState<PlannedEventType>('casual');
   const [pinToCalendar, setPinToCalendar] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
@@ -438,6 +439,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
       return;
     }
     setOutfitName('');
+    setOutfitDescription('');
     setEventType('casual');
     setPinToCalendar(false);
     setCalendarDate(new Date());
@@ -456,6 +458,10 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
         occasion: eventType,
         wardrobeItemIds: selectedItemIds,
       };
+      const description = outfitDescription.trim();
+      if (description) {
+        payload.notes = description;
+      }
       if (pinToCalendar) {
         payload.calendarDate = calendarDate.toISOString().split('T')[0];
       }
@@ -641,6 +647,28 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
               placeholderTextColor={secondaryText}
               style={[
                 styles.modalInput,
+                {
+                  backgroundColor: theme.backgroundSecondary,
+                  color: theme.text,
+                  borderColor: theme.border,
+                },
+              ]}
+            />
+
+            <ThemedText type="caption" style={[styles.modalLabel, { color: secondaryText }]}>
+              Description
+            </ThemedText>
+            <TextInput
+              value={outfitDescription}
+              onChangeText={setOutfitDescription}
+              placeholder="e.g. Smart casual for client dinner, rainy day layers..."
+              placeholderTextColor={secondaryText}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              style={[
+                styles.modalInput,
+                styles.modalTextArea,
                 {
                   backgroundColor: theme.backgroundSecondary,
                   color: theme.text,
@@ -945,6 +973,10 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     fontSize: 16,
+  },
+  modalTextArea: {
+    minHeight: 88,
+    paddingTop: Spacing.md,
   },
   eventTypeGrid: {
     flexDirection: 'row',
