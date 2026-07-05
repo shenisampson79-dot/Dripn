@@ -2,7 +2,7 @@ import type { OutfitOccasionId } from '@/constants/outfitOccasions';
 import type { WardrobeItem, ClothingCategory } from '@/contexts/WardrobeContext';
 import type { UserProfile } from '@/contexts/AuthContext';
 import type { OnboardingProfile } from '@/services/OnboardingProfileService';
-import { completeOutfitItemIds } from '@/utils/completeOutfit';
+import { completeOutfitItemIds, MIN_OUTFIT_ITEMS } from '@/utils/completeOutfit';
 import { orderItemIdsByVisualOrder, sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
 import { resolveRegionalStyleContext } from '@/utils/outfitRegionalContext';
 import apiService from '@/services/ApiService';
@@ -102,13 +102,17 @@ export async function generateWardrobeOutfit(params: {
     throw new Error(result.message || 'Unable to generate outfit');
   }
 
-  const sourceItems = (result.hydratedItems?.length
-    ? result.hydratedItems
-    : result.outfit.items) as GeneratedOutfitApiItem[];
-
+  const completedIds = resolveGeneratedOutfitItemIds(result, wardrobeItems);
+  const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
   const displayItems = sortOutfitItemsByVisualOrder(
-    hydrateGeneratedOutfitItems(sourceItems, wardrobeItems),
+    completedIds
+      .map((id) => byId.get(id))
+      .filter((item): item is WardrobeItem => Boolean(item)),
   );
+
+  if (displayItems.length < MIN_OUTFIT_ITEMS) {
+    throw new Error('Could not build a complete outfit from your wardrobe. Add tops, bottoms, and shoes.');
+  }
 
   return {
     raw: result,
