@@ -43,6 +43,7 @@ export default function HomeStackNavigator() {
         component={SubscriptionScreen}
         options={{
           title: "Subscription",
+          headerShown: false,
           presentation: "modal",
         }}
       />
