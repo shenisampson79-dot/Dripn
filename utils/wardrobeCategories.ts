@@ -242,14 +242,14 @@ export type WardrobeCategoryTab = {
 
 export const WARDROBE_CATEGORY_TABS: WardrobeCategoryTab[] = [
   { key: 'all', icon: 'grid', iconSet: 'feather', translationKey: 'wardrobe.categoryAll' },
-  { key: 'tops', icon: 'tshirt-crew', iconSet: 'material', translationKey: 'wardrobe.categoryTops' },
-  { key: 'bottoms', icon: 'layers', iconSet: 'feather', translationKey: 'wardrobe.categoryBottoms' },
-  { key: 'dresses', icon: 'human-female', iconSet: 'material', translationKey: 'wardrobe.categoryDresses' },
   { key: 'outerwear', icon: 'cloud', iconSet: 'feather', translationKey: 'wardrobe.categoryOuterwear' },
-  { key: 'shoes', icon: 'shoe-formal', iconSet: 'material', translationKey: 'wardrobe.categoryShoes' },
+  { key: 'tops', icon: 'tshirt-crew', iconSet: 'material', translationKey: 'wardrobe.categoryTops' },
+  { key: 'dresses', icon: 'human-female', iconSet: 'material', translationKey: 'wardrobe.categoryDresses' },
   { key: 'activewear_tops', icon: 'run-fast', iconSet: 'material', translationKey: 'wardrobe.categoryActivewearTops' },
+  { key: 'bottoms', icon: 'layers', iconSet: 'feather', translationKey: 'wardrobe.categoryBottoms' },
   { key: 'activewear_bottoms', icon: 'run', iconSet: 'material', translationKey: 'wardrobe.categoryActivewearBottoms' },
   { key: 'formal', icon: 'bow-tie', iconSet: 'material', translationKey: 'wardrobe.categoryFormal' },
+  { key: 'shoes', icon: 'shoe-formal', iconSet: 'material', translationKey: 'wardrobe.categoryShoes' },
   { key: 'bags', icon: 'briefcase', iconSet: 'material', translationKey: 'wardrobe.categoryBags' },
   { key: 'accessories', icon: 'watch', iconSet: 'material', translationKey: 'wardrobe.categoryAccessories' },
 ];
@@ -268,14 +268,14 @@ export function getManualAddCategoryTabs(gender: PresentationGender): Array<{
 }> {
   const isMale = gender === 'male';
   return [
-    { key: 'tops', icon: 'tshirt-crew', iconSet: 'material' },
-    { key: 'bottoms', icon: 'layers', iconSet: 'feather' },
-    ...(isMale ? [] : [{ key: 'dresses' as ClothingCategory, icon: 'human-female', iconSet: 'material' as const }]),
     { key: 'outerwear', icon: 'cloud', iconSet: 'feather' },
-    { key: 'shoes', icon: isMale ? 'shoe-formal' : 'shoe-heel', iconSet: 'material' },
+    { key: 'tops', icon: 'tshirt-crew', iconSet: 'material' },
+    ...(isMale ? [] : [{ key: 'dresses' as ClothingCategory, icon: 'human-female', iconSet: 'material' as const }]),
     { key: 'activewear_tops', icon: 'run-fast', iconSet: 'material' },
+    { key: 'bottoms', icon: 'layers', iconSet: 'feather' },
     { key: 'activewear_bottoms', icon: 'dumbbell', iconSet: 'material' },
     { key: 'formal', icon: 'bow-tie', iconSet: 'material' },
+    { key: 'shoes', icon: isMale ? 'shoe-formal' : 'shoe-heel', iconSet: 'material' },
     { key: 'bags', icon: isMale ? 'briefcase' : 'bag-personal', iconSet: 'material' },
     { key: 'accessories', icon: isMale ? 'watch' : 'necklace', iconSet: 'material' },
     { key: 'swimwear', icon: 'swim', iconSet: 'material' },
