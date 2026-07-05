@@ -3,7 +3,7 @@ import type { WardrobeItem, ClothingCategory } from '@/contexts/WardrobeContext'
 import type { UserProfile } from '@/contexts/AuthContext';
 import type { OnboardingProfile } from '@/services/OnboardingProfileService';
 import { completeOutfitItemIds } from '@/utils/completeOutfit';
-import { orderItemIdsByVisualOrder } from '@/utils/outfitItemOrder';
+import { orderItemIdsByVisualOrder, sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
 import { resolveRegionalStyleContext } from '@/utils/outfitRegionalContext';
 import apiService from '@/services/ApiService';
 export type GeneratedOutfitApiItem = {
@@ -106,7 +106,9 @@ export async function generateWardrobeOutfit(params: {
     ? result.hydratedItems
     : result.outfit.items) as GeneratedOutfitApiItem[];
 
-  const displayItems = hydrateGeneratedOutfitItems(sourceItems, wardrobeItems);
+  const displayItems = sortOutfitItemsByVisualOrder(
+    hydrateGeneratedOutfitItems(sourceItems, wardrobeItems),
+  );
 
   return {
     raw: result,
