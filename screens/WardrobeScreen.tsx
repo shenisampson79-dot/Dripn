@@ -232,8 +232,8 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         }
       }).catch(() => {});
 
-      apiService.fetchStyleProfile().then(async (styleProfile) => {
-        const raw = String(styleProfile?.gender || '').toLowerCase();
+      apiService.getStyleProfile().then(async (styleProfile) => {
+        const raw = String((styleProfile as { gender?: string } | null)?.gender || '').toLowerCase();
         if (!raw) return;
         const profile = await onboardingProfileService.getProfile();
         if (profile.quizGender) return;
