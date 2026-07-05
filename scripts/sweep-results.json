@@ -1,0 +1,77 @@
+{
+  "ranAt": "2026-06-13T12:57:57.248Z",
+  "results": [
+    {
+      "id": "T1",
+      "label": "Style Chat £9.99/mo",
+      "checkout": "PASS",
+      "payment": "FAIL",
+      "redirect": "FAIL",
+      "tierUnlock": "FAIL",
+      "notes": "error: page.goto: Timeout 60000ms exceeded.\nCall log:\n  - navigating to \"https://checkout.stripe.com/c/pay/cs_test_a1X5Mip3yyWJqcNPJrpTwSvvrjuzofgmcvCFi0AunKs2rublHyZ5I88Yt7#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRWZGRRPTJIcn9GNkRKbEFKVG9SfWB%2FYDFCNGMyfHFnRzBJcHwwU1xAPXRwaFNVN1Qxa0hHVVI0VWp0RmByNUZobT1nZGZ%2FdFZVNndSaGBWdHZ%2Fc11XQmA1NTJOPFQ2SmBLJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl\", waiting until \"networkidle\"\n"
+    },
+    {
+      "id": "T2",
+      "label": "Personal Stylist £14.99/mo",
+      "checkout": "PASS",
+      "payment": "FAIL",
+      "redirect": "FAIL",
+      "tierUnlock": "FAIL",
+      "notes": "error: page.goto: Timeout 60000ms exceeded.\nCall log:\n  - navigating to \"https://checkout.stripe.com/c/pay/cs_test_a1DMMLBov6hRcrKp5a75eQGewdu7mB4H6qUmk16up3eCqlY1beJYdQf1iS#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRWZGRRPTJIcn9GNkRKbEFKVG9SfWB%2FYDFCNGMyfHFnRzBJcHwwU1xAPXRwaFNVN1Qxa0hHVVI0VWp0RmByNUZobT1nZGZ%2FdFZVNndSaGBWdHZ%2Fc11XQmA1NTJOPFQ2SmBLJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl\", waiting until \"networkidle\"\n"
+    },
+    {
+      "id": "T3",
+      "label": "Stylist Unlimited £19.99/mo",
+      "checkout": "PASS",
+      "payment": "FAIL",
+      "redirect": "FAIL",
+      "tierUnlock": "FAIL",
+      "notes": "error: page.goto: Timeout 60000ms exceeded.\nCall log:\n  - navigating to \"https://checkout.stripe.com/c/pay/cs_test_a1LTA6uYHMF94vh2RHrPrSBHDGNTwdJa37r17RkfCELoEdGVW7XT2cdNYS#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRWZGRRPTJIcn9GNkRKbEFKVG9SfWB%2FYDFCNGMyfHFnRzBJcHwwU1xAPXRwaFNVN1Qxa0hHVVI0VWp0RmByNUZobT1nZGZ%2FdFZVNndSaGBWdHZ%2Fc11XQmA1NTJOPFQ2SmBLJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl\", waiting until \"networkidle\"\n"
+    },
+    {
+      "id": "T4",
+      "label": "Core Wardrobe £39.99",
+      "checkout": "PASS",
+      "payment": "FAIL",
+      "redirect": "FAIL",
+      "tierUnlock": "FAIL",
+      "notes": "error: page.goto: Timeout 60000ms exceeded.\nCall log:\n  - navigating to \"https://checkout.stripe.com/c/pay/cs_test_a1wHvYqqeTXObPTnQhehfwHLklp7DrIv9Lc4QIbNocP8kqWkd66HDaxnzS#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRWZGRRPTJIcn9GNkRKbEFKVG9SfWB%2FYDFCNGMyfHFnRzBJcHwwU1xAPXRwaFNVN1Qxa0hHVVI0VWp0RmByNUZobT1nZGZ%2FdFZVNndSaGBWdHZ%2Fc11XQmA1NTJOPFQ2SmBLJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl\", waiting until \"networkidle\"\n"
+    },
+    {
+      "id": "T5",
+      "label": "Outfit Setup £19.99",
+      "checkout": "PASS",
+      "payment": "FAIL",
+      "redirect": "FAIL",
+      "tierUnlock": "FAIL",
+      "notes": "error: page.goto: Timeout 60000ms exceeded.\nCall log:\n  - navigating to \"https://checkout.stripe.com/c/pay/cs_test_a1Im17CR33QKjhOehsqqFcCVK1aBpeWaAlN044VD343ecMsvPJrTE6jXxb#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRWZGRRPTJIcn9GNkRKbEFKVG9SfWB%2FYDFCNGMyfHFnRzBJcHwwU1xAPXRwaFNVN1Qxa0hHVVI0VWp0RmByNUZobT1nZGZ%2FdFZVNndSaGBWdHZ%2Fc11XQmA1NTJOPFQ2SmBLJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl\", waiting until \"networkidle\"\n"
+    },
+    {
+      "id": "E1",
+      "label": "style_chat → personal_stylist upgrade",
+      "checkout": "PASS",
+      "payment": "FAIL",
+      "redirect": "FAIL",
+      "tierUnlock": "FAIL",
+      "notes": "error: page.goto: Timeout 60000ms exceeded.\nCall log:\n  - navigating to \"https://checkout.stripe.com/c/pay/cs_test_a1V5b41O73RGgkd3V15iJ2nTJGju7ACj3Ww0B9vdnvtD8sHbJZhvBwla0F#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRWZGRRPTJIcn9GNkRKbEFKVG9SfWB%2FYDFCNGMyfHFnRzBJcHwwU1xAPXRwaFNVN1Qxa0hHVVI0VWp0RmByNUZobT1nZGZ%2FdFZVNndSaGBWdHZ%2Fc11XQmA1NTJOPFQ2SmBLJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl\", waiting until \"networkidle\"\n"
+    },
+    {
+      "id": "E2",
+      "label": "personal_stylist → stylist_unlimited upgrade",
+      "checkout": "PASS",
+      "payment": "FAIL",
+      "redirect": "FAIL",
+      "tierUnlock": "FAIL",
+      "notes": "error: page.goto: Timeout 60000ms exceeded.\nCall log:\n  - navigating to \"https://checkout.stripe.com/c/pay/cs_test_a1iO82kJ1lDWxO66JvIYJds3H9CXhHdq4MU2MQXYitcrHj24qnGhDgmkNf#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRWZGRRPTJIcn9GNkRKbEFKVG9SfWB%2FYDFCNGMyfHFnRzBJcHwwU1xAPXRwaFNVN1Qxa0hHVVI0VWp0RmByNUZobT1nZGZ%2FdFZVNndSaGBWdHZ%2Fc11XQmA1NTJOPFQ2SmBLJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl\", waiting until \"networkidle\"\n"
+    },
+    {
+      "id": "E3",
+      "label": "outfit_setup purchased twice",
+      "checkout": "PASS",
+      "payment": "FAIL",
+      "redirect": "FAIL",
+      "tierUnlock": "FAIL",
+      "notes": "error: page.goto: Timeout 60000ms exceeded.\nCall log:\n  - navigating to \"https://checkout.stripe.com/c/pay/cs_test_a1NDhqPl82E53ggXMipDimh6EIbtlyvT1j91J3DWTDRX8I1lqzF78HpSN2#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRWZGRRPTJIcn9GNkRKbEFKVG9SfWB%2FYDFCNGMyfHFnRzBJcHwwU1xAPXRwaFNVN1Qxa0hHVVI0VWp0RmByNUZobT1nZGZ%2FdFZVNndSaGBWdHZ%2Fc11XQmA1NTJOPFQ2SmBLJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl\", waiting until \"networkidle\"\n"
+    }
+  ]
+}

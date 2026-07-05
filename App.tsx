@@ -32,6 +32,11 @@ import StylistStackNavigator from "@/navigation/StylistStackNavigator";
 import CreatePostScreen from "@/screens/CreatePostScreen";
 import AskStylistScreen from "@/screens/AskStylistScreen";
 import { AppTour } from "@/components/AppTour";
+import { apiService } from "@/services/ApiService";
+import {
+  getTourSeenStorageKey,
+  persistTourSeenLocally,
+} from "@/services/UserProfileSyncService";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { setNavigationRef } from "@/components/ErrorFallback";
@@ -109,7 +114,7 @@ function NavigationContainerWithRef() {
 const TOUR_SEEN_KEY = '@dripn_tour_seen';
 
 function AppContent() {
-  const { isAuthenticated, isLoading, user, updateProfile } = useAuth();
+  const { isAuthenticated, isLoading, isAuthenticating, user, updateProfile } = useAuth();
   // tourSeen: null = not yet loaded, false = not seen, true = seen
   const [tourSeen, setTourSeen] = useState<boolean | null>(null);
   const [showTour, setShowTour] = useState(false);
@@ -118,32 +123,62 @@ function AppContent() {
   const [portalMode, setPortalMode] = useState<PortalMode>(null);
   const navigation = useNavigation<any>();
 
-  // Load the device tour flag once on mount — this is the single source of truth
+  // Load the per-user tour flag once we know who is signed in
   useEffect(() => {
-    AsyncStorage.getItem(TOUR_SEEN_KEY)
-      .then(val => setTourSeen(val === 'true'))
-      .catch(() => setTourSeen(false));
-  }, []);
+    if (!user?.id) {
+      setTourSeen(null);
+      setShowTour(false);
+      return;
+    }
 
-  // Show tour only for first-time users who have completed onboarding and have not seen it before
+    let cancelled = false;
+    const loadTourFlag = async () => {
+      try {
+        const userKey = await AsyncStorage.getItem(getTourSeenStorageKey(user.id));
+        const legacyKey = await AsyncStorage.getItem(TOUR_SEEN_KEY);
+        const seen =
+          userKey === 'true'
+          || legacyKey === 'true'
+          || user.hasSeenTour === true;
+        if (!cancelled) {
+          setTourSeen(seen);
+          if (seen) setShowTour(false);
+        }
+      } catch {
+        if (!cancelled) setTourSeen(user.hasSeenTour === true);
+      }
+    };
+
+    loadTourFlag();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, user?.hasSeenTour]);
+
+  // Backend/profile hydration can flip hasSeenTour after login — respect it immediately
   useEffect(() => {
-    if (tourSeen === null || isLoading) return; // Still loading device flag or auth
-    if (tourSeen === true) return;              // Already seen on this device — never show
-    if (!user) return;
-    if (user.hasSeenTour === true) return;       // Backend already knows they saw it
-    if (!user.hasCompletedOnboarding) return;   // Don't show until onboarding is done
+    if (user?.hasSeenTour !== true || !user.id) return;
+    setTourSeen(true);
+    setShowTour(false);
+    persistTourSeenLocally(user.id).catch(() => {});
+  }, [user?.id, user?.hasSeenTour]);
+
+  // Show tour only once after onboarding, after auth + profile hydration settle
+  useEffect(() => {
+    if (tourSeen === null || isLoading || isAuthenticating) return;
+    if (tourSeen === true || user?.hasSeenTour === true) return;
+    if (!user?.hasCompletedOnboarding) return;
     setShowTour(true);
-  }, [tourSeen, user?.id, user?.hasCompletedOnboarding, user?.hasSeenTour, isLoading]);
+  }, [tourSeen, user?.id, user?.hasCompletedOnboarding, user?.hasSeenTour, isLoading, isAuthenticating]);
 
   const handleTourComplete = async () => {
-    // Write device flag immediately — this is what prevents future tour displays
     try {
-      await AsyncStorage.setItem(TOUR_SEEN_KEY, 'true');
+      await persistTourSeenLocally(user?.id);
     } catch { /* ignore */ }
     setTourSeen(true);
     setShowTour(false);
-    // Sync to user profile + backend (best effort, failure does NOT affect tour logic)
     updateProfile({ hasSeenTour: true }).catch(() => {});
+    apiService.completeTour().catch(() => {});
   };
 
   if (isLoading) {

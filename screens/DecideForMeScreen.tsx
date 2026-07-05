@@ -18,7 +18,8 @@ import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
 import { stylistUpgradeService } from "@/services/StylistUpgradeService";
 import { styleDirectionService, StyleDirection } from "@/services/StyleDirectionService";
-import { onboardingProfileService, DressFor } from "@/services/OnboardingProfileService";
+import { onboardingProfileService, OnboardingProfile, DRESS_FOR_TO_OCCASION } from "@/services/OnboardingProfileService";
+import { onboardingSessionService } from "@/services/OnboardingSessionService";
 import { getStyleRuleForOccasion, generateOutfitImage } from "@/services/OutfitImageService";
 
 type DecideForMeScreenProps = {
@@ -230,19 +231,11 @@ const getFilteredOutfits = (occasion: string | null, temperature: number | null)
   return filtered.length > 0 ? filtered : FALLBACK_OUTFITS;
 };
 
-const DRESS_FOR_TO_OCCASION: Record<DressFor, string> = {
-  work: 'work',
-  date: 'date',
-  friends: 'casual',
-  event: 'event',
-  myself: 'casual',
-};
-
 export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   
-  const [step, setStep] = useState<"occasion" | "loading" | "result">("occasion");
+  const [step, setStep] = useState<"occasion" | "loading" | "result">("loading");
   const [selectedOccasion, setSelectedOccasion] = useState<string | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
@@ -256,14 +249,16 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const [firstMessages, setFirstMessages] = useState<{
     message: string;
     options: { id: string; label: string }[];
+    skipOccasion?: boolean;
   } | null>(null);
+  const [onboardingProfile, setOnboardingProfile] = useState<OnboardingProfile | null>(null);
+  const autoStartedRef = useRef(false);
   const recommendationCountRef = useRef(0);
   const outfitIndexRef = useRef(0);
   const scrollRef = useRef<RNScrollView>(null);
   const expressionInputRef = useRef<TextInput>(null);
   const resultExpressionInputRef = useRef<TextInput>(null);
   const [isLoadingAnotherOption, setIsLoadingAnotherOption] = useState(false);
-  const [isLoadingSecondOpinion, setIsLoadingSecondOpinion] = useState(false);
   const [styleAdvice, setStyleAdvice] = useState<StyleAdvice | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
@@ -277,18 +272,27 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     loadCachedOutfitsCount();
     loadRecommendationCount();
     checkStyleDirectionStatus();
-    loadFirstMessages();
-    onboardingProfileService.getProfile().then((profile) => {
+    onboardingProfileService.getProfile().then(async (profile) => {
+      setOnboardingProfile(profile);
       if (profile.dressFor) {
         setSelectedOccasion(DRESS_FOR_TO_OCCASION[profile.dressFor] || null);
+      } else {
+        setStep("occasion");
       }
+      if (profile.quizGender) {
+        const direction: StyleDirection =
+          profile.quizGender === 'female' ? 'feminine' : 'masculine';
+        const isSet = await AsyncStorage.getItem(STYLE_DIRECTION_SET_KEY);
+        if (isSet !== 'true') {
+          await styleDirectionService.setStyleDirection(direction, 'onboarding');
+          await AsyncStorage.setItem(STYLE_DIRECTION_SET_KEY, 'true');
+          setStyleDirectionSet(true);
+        }
+      }
+      const messages = await styleDirectionService.getFirstMessages(profile);
+      setFirstMessages(messages);
     });
   }, []);
-
-  const loadFirstMessages = async () => {
-    const messages = await styleDirectionService.getFirstMessages();
-    setFirstMessages(messages);
-  };
 
   const checkStyleDirectionStatus = async () => {
     try {
@@ -467,16 +471,18 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     }
   };
 
-  const handleOccasionSelect = async (occasionId: string) => {
+  const generateRecommendation = useCallback(async (
+    occasionId: string,
+    profileOverride?: OnboardingProfile | null,
+  ) => {
+    const profile = profileOverride ?? onboardingProfile ?? await onboardingProfileService.getProfile();
     setSelectedOccasion(occasionId);
     setStep("loading");
     setStyleAdvice(null);
-    
-    // Get style rule immediately for the occasion
+
     const { styleRule, explanation } = getStyleRuleForOccasion(occasionId);
     setStyleAdvice({ styleRule, explanation, imageUrl: null });
-    
-    // Get context-aware fallback
+
     const filteredOutfits = getFilteredOutfits(occasionId, weather?.temperature ?? null);
     const randomIndex = Math.floor(Math.random() * filteredOutfits.length);
     outfitIndexRef.current = randomIndex;
@@ -485,14 +491,22 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     let outfitDescription = fallbackOutfit.outfit;
 
     try {
-      const data = await apiService.post<{ id?: string; recommendation?: string; reasoning?: string; stylistName?: string }>("/api/onboarding/quick-recommendation", {
+      const deviceId = await onboardingSessionService.getDeviceId();
+      const data = await apiService.post<{
+        id?: string;
+        recommendation?: string;
+        reasoning?: string;
+        stylistName?: string;
+      }>("/api/onboarding/quick-recommendation", {
         occasion: occasionId,
-        weather: weather,
+        weather,
         region: weather?.location || "UK",
-        styleExpression: expressionText.trim() || undefined,
+        expression: expressionText.trim() || undefined,
+        deviceId,
+        onboardingProfile: profile,
       });
 
-      if (data && data.recommendation) {
+      if (data?.recommendation) {
         outfitDescription = data.recommendation;
         setRecommendation({
           id: data.id,
@@ -509,10 +523,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       }
       setStep("result");
       incrementRecommendationCount();
-      
-      // Generate outfit image in background
       generateOutfitImageAsync(outfitDescription, occasionId);
-    } catch (error: unknown) {
+    } catch {
       setRecommendation({
         outfit: fallbackOutfit.outfit,
         reasoning: fallbackOutfit.reasoning,
@@ -520,10 +532,24 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       });
       setStep("result");
       incrementRecommendationCount();
-      
-      // Generate outfit image in background
       generateOutfitImageAsync(outfitDescription, occasionId);
     }
+  }, [onboardingProfile, weather, expressionText]);
+
+  useEffect(() => {
+    if (autoStartedRef.current) return;
+    if (!onboardingProfile?.dressFor || isLoadingWeather) return;
+
+    const occasionId = DRESS_FOR_TO_OCCASION[onboardingProfile.dressFor];
+    if (!occasionId) return;
+
+    autoStartedRef.current = true;
+    void generateRecommendation(occasionId, onboardingProfile);
+  }, [onboardingProfile, isLoadingWeather, generateRecommendation]);
+
+  const handleOccasionSelect = (occasionId: string) => {
+    autoStartedRef.current = true;
+    void generateRecommendation(occasionId);
   };
 
   const generateOutfitImageAsync = async (outfitDescription: string, occasionId: string) => {
@@ -646,19 +672,6 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     skipInterstitial?: boolean;
   }
 
-  // Vote request response type from backend
-  interface VoteRequestResponse {
-    requestId?: string;
-    state?: "pending" | "partial" | "complete" | "expired";
-    stylistMessage?: string;
-    communitySummary?: string;
-    consensusType?: "positive" | "negative_adapt" | "negative_hold" | "split" | "uncertain" | "mixed";
-    aiAdapted?: boolean;
-    notificationsEnabled?: boolean;
-    tier?: { urgentAvailable?: boolean };
-    onCreateAccount?: OnCreateAccountHint;
-  }
-
   // Helper to navigate based on onCreateAccount hint
   const navigateToSignup = (hint?: OnCreateAccountHint, fromPath?: string) => {
     if (hint?.navigateTo === "Signup" && hint?.skipInterstitial) {
@@ -670,198 +683,138 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     }
   };
 
-  const showSecondOpinionOptions = (response: VoteRequestResponse | null) => {
-    const stylistMessage = response?.stylistMessage || 
-      "Here's my take: this outfit works because it's balanced and easy to wear.\n\nIf you want, I can also get community input to sanity-check it.";
-    
-    const showUrgentOption = response?.tier?.urgentAvailable !== false;
-    const accountHint = response?.onCreateAccount;
-    
-    const buttons: any[] = [
-      { 
-        text: "Community input (30-60 mins)", 
-        onPress: () => {
-          Alert.alert(
-            "Posted for feedback",
-            "I'll gather community input. Results aren't instant, but they're unbiased. Check back later.",
-            [{ text: "Got it" }]
-          );
-        }
-      },
-    ];
-    
-    if (showUrgentOption) {
-      buttons.push({ 
-        text: "I need feedback quickly", 
-        onPress: () => {
-          // Check if we should skip the interstitial
-          if (accountHint?.skipInterstitial) {
-            navigateToSignup(accountHint, "second_opinion_urgent");
-          } else {
-            Alert.alert(
-              "Fast feedback",
-              "Fast feedback needs an active audience. If you want that, I'll set this up properly.",
-              [
-                { text: "Not now", style: "cancel" },
-                { text: "Sign up for Fast feedback", onPress: () => navigateToSignup(accountHint, "second_opinion_urgent") },
-              ]
-            );
-          }
-        },
-        style: "default"
-      });
-    }
-    
-    buttons.push({ text: "Not now", style: "cancel" });
-    
-    Alert.alert("Get a second opinion?", stylistMessage, buttons);
-  };
-
-  const showVoteResults = (response: VoteRequestResponse) => {
-    const { state, stylistMessage, communitySummary, aiAdapted } = response;
-    
-    if (state === "pending") {
-      Alert.alert(
-        "Waiting for feedback",
-        stylistMessage || "Still gathering community input. Check back soon.",
-        [{ text: "OK" }]
-      );
-    } else if (state === "partial") {
-      Alert.alert(
-        "Early reactions",
-        stylistMessage || "Some feedback is coming in. Here's what we're seeing so far.",
-        [{ text: "OK" }]
-      );
-    } else if (state === "complete") {
-      const title = aiAdapted ? "Community feedback (adjusted)" : "Community feedback";
-      Alert.alert(
-        title,
-        communitySummary || stylistMessage || "The community has weighed in.",
-        [{ text: "Got it" }]
-      );
-    } else if (state === "expired") {
-      Alert.alert(
-        "Feedback expired",
-        stylistMessage || "This request has expired. Start a new one if needed.",
-        [{ text: "OK" }]
-      );
-    }
-  };
-
-  const handleSecondOpinion = async () => {
-    setIsLoadingSecondOpinion(true);
-    
-    try {
-      // Record interaction (non-blocking, don't fail if backend unavailable)
-      recordInteraction("second_opinion").catch(() => {});
-      
-      const response = await apiService.post<VoteRequestResponse>("/api/community/vote-request", {
-        outfit: recommendation?.outfit,
-        occasion: selectedOccasion,
-        weather: weather,
-      });
-      
-      setIsLoadingSecondOpinion(false);
-      
-      // If we have results already (returning user), show those
-      if (response?.state && response.state !== "pending") {
-        showVoteResults(response);
-      } else {
-        // New request - show options
-        showSecondOpinionOptions(response);
-      }
-    } catch (error) {
-      setIsLoadingSecondOpinion(false);
-      // Always show fallback dialog even if backend fails
-      showSecondOpinionOptions(null);
-    }
-  };
-
   const [isSubmittingExpression, setIsSubmittingExpression] = useState(false);
-  
-  const handleExpressionSubmit = async () => {
-    if (expressionText.trim() && !isSubmittingExpression) {
-      setIsSubmittingExpression(true);
-      const userExpression = expressionText.trim();
-      
-      try {
-        await styleDirectionService.recordStyleExpression(userExpression);
-        recordInteraction("style_expression", userExpression).catch(() => {});
-        
-        let gotApiResponse = false;
-        try {
-          const data = await apiService.post<{ id?: string; recommendation?: string; reasoning?: string; stylistName?: string }>("/api/onboarding/quick-recommendation", {
-            occasion: selectedOccasion || "work",
-            weather: weather,
-            region: weather?.location || "UK",
-            styleExpression: userExpression,
-          });
-          
-          if (data && data.recommendation) {
-            setRecommendation({
-              id: data.id,
-              outfit: data.recommendation,
-              reasoning: data.reasoning || "Tailored to what you told me.",
-              stylistName: data.stylistName || "Ruby",
-            });
-            gotApiResponse = true;
-          }
-        } catch (apiError) {
-          console.log("API call failed, using local fallback");
-        }
-        
-        if (!gotApiResponse) {
-          const tailoredRecommendation = generateTailoredRecommendation(userExpression, selectedOccasion || "work");
-          setRecommendation({
-            outfit: tailoredRecommendation.outfit,
-            reasoning: tailoredRecommendation.reasoning,
-            stylistName: "Ruby",
-          });
-        }
-        
-        setExpressionText("");
-        Keyboard.dismiss();
-      } catch (error) {
-        console.log("Failed to submit expression");
-      } finally {
-        setIsSubmittingExpression(false);
-      }
+  const [isRefiningOutfit, setIsRefiningOutfit] = useState(false);
+
+  const generateTailoredRecommendation = useCallback((
+    userExpression: string,
+    occasion: string,
+    previousOutfit?: string,
+  ): { outfit: string; reasoning: string } => {
+    const expressionLower = userExpression.toLowerCase();
+    const isNegative = /don'?t like|not a fan|avoid|no |hate|dislike|not into|without/i.test(expressionLower);
+
+    if (isNegative && /jean|denim/i.test(expressionLower)) {
+      return {
+        outfit: "Relaxed tailored chinos in olive or stone, a fitted tee or lightweight knit, clean low-profile sneakers, and a casual overshirt or bomber. Skip denim entirely.",
+        reasoning: "You said jeans aren't for you — chinos and an overshirt keep the same going-out energy without straight-leg denim.",
+      };
     }
-  };
-  
-  const generateTailoredRecommendation = (expression: string, occasion: string): { outfit: string; reasoning: string } => {
-    const expressionLower = expression.toLowerCase();
-    
-    // Finance/formal work context
+
+    if (isNegative && /sneaker|trainer/i.test(expressionLower)) {
+      return {
+        outfit: "Smart chinos, a crisp shirt or knit polo, and polished loafers or desert boots. A lightweight jacket if it's cooler.",
+        reasoning: "Swapped trainers for a sharper shoe while keeping the look comfortable for your occasion.",
+      };
+    }
+
     if (expressionLower.includes("finance") || expressionLower.includes("bank") || expressionLower.includes("suit") || expressionLower.includes("formal")) {
       return {
         outfit: "A well-fitted navy or charcoal suit with a crisp white shirt, silk tie in a subtle pattern, and polished Oxford shoes. Add a quality leather belt to complete the look.",
         reasoning: "For finance, precision matters. This classic combination commands respect while staying professionally appropriate.",
       };
     }
-    
-    // Casual preferences
-    if (expressionLower.includes("casual") || expressionLower.includes("jeans") || expressionLower.includes("comfortable")) {
+
+    if (!isNegative && (expressionLower.includes("casual") || expressionLower.includes("comfortable"))) {
       return {
         outfit: "Dark slim-fit jeans with a well-fitted jumper in a neutral tone. Add clean white trainers and a quality watch for polish.",
         reasoning: "Casual doesn't mean sloppy. This look is relaxed but intentional.",
       };
     }
-    
-    // Creative/relaxed work
+
     if (expressionLower.includes("creative") || expressionLower.includes("startup") || expressionLower.includes("tech")) {
       return {
         outfit: "Smart chinos with a quality fitted t-shirt and a structured blazer. Clean minimalist trainers tie it together.",
         reasoning: "Modern workplaces value authenticity. This says capable without being corporate.",
       };
     }
-    
-    // Default tailored response
+
     return {
-      outfit: "Tailored trousers with a quality shirt in a flattering colour for you. Add appropriate footwear for your environment and a confidence-boosting accessory.",
-      reasoning: `I've noted your preferences. This adapts to what you've told me: "${expression.slice(0, 50)}${expression.length > 50 ? "..." : ""}"`,
+      outfit: previousOutfit
+        ? "Relaxed tailored trousers with a quality shirt in a flattering colour, clean shoes that suit the occasion, and one layer for polish."
+        : "Tailored trousers with a quality shirt in a flattering colour for you. Add appropriate footwear for your environment and a confidence-boosting accessory.",
+      reasoning: `Got it — I've adjusted based on: "${userExpression.slice(0, 80)}${userExpression.length > 80 ? "..." : ""}"`,
     };
-  };
+  }, []);
+
+  const handleExpressionSubmit = useCallback(async () => {
+    const userExpression = expressionText.trim();
+    if (!userExpression || isSubmittingExpression || isRefiningOutfit) return;
+
+    setIsSubmittingExpression(true);
+    setIsRefiningOutfit(true);
+    const previousOutfit = recommendation?.outfit || "";
+
+    void styleDirectionService.recordStyleExpression(userExpression);
+    void recordInteraction("style_expression", userExpression);
+
+    try {
+      let gotApiResponse = false;
+      try {
+        const deviceId = await onboardingSessionService.getDeviceId();
+        const profile = await onboardingProfileService.getProfile();
+        const data = await apiService.post<{
+          id?: string;
+          recommendation?: string;
+          reasoning?: string;
+          stylistName?: string;
+        }>("/api/onboarding/quick-recommendation", {
+          occasion: selectedOccasion || "work",
+          weather,
+          region: weather?.location || "UK",
+          styleExpression: userExpression,
+          expression: userExpression,
+          previousRecommendation: previousOutfit,
+          deviceId,
+          onboardingProfile: profile,
+        });
+
+        if (data?.recommendation) {
+          setRecommendation({
+            id: data.id,
+            outfit: data.recommendation,
+            reasoning: data.reasoning || "Updated based on what you told me.",
+            stylistName: data.stylistName || "Ruby",
+          });
+          gotApiResponse = true;
+          void generateOutfitImageAsync(data.recommendation, selectedOccasion || "work");
+        }
+      } catch {
+        console.log("Refinement API failed, using local fallback");
+      }
+
+      if (!gotApiResponse) {
+        const tailored = generateTailoredRecommendation(
+          userExpression,
+          selectedOccasion || "work",
+          previousOutfit,
+        );
+        setRecommendation({
+          outfit: tailored.outfit,
+          reasoning: tailored.reasoning,
+          stylistName: "Ruby",
+        });
+        void generateOutfitImageAsync(tailored.outfit, selectedOccasion || "work");
+      }
+
+      setExpressionText("");
+      Keyboard.dismiss();
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    } catch {
+      Alert.alert("Could not update outfit", "Please try again — Ruby didn't get your message.");
+    } finally {
+      setIsSubmittingExpression(false);
+      setIsRefiningOutfit(false);
+    }
+  }, [
+    expressionText,
+    isSubmittingExpression,
+    isRefiningOutfit,
+    recommendation?.outfit,
+    selectedOccasion,
+    weather,
+    generateTailoredRecommendation,
+  ]);
 
   const handlePersonalise = () => {
     navigation.navigate("StyleMeProperly");
@@ -996,14 +949,20 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     );
   };
 
-  const renderLoadingStep = () => (
-    <Animated.View entering={FadeIn} style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#4A3428" />
-      <ThemedText type="body" style={[styles.loadingText, { color: '#4A3428', fontWeight: '600' }]}>
-        Ruby is deciding your outfit...
-      </ThemedText>
-    </Animated.View>
-  );
+  const renderLoadingStep = () => {
+    const loadingMessage = firstMessages?.skipOccasion && onboardingProfile?.dressFor
+      ? `Ruby is deciding your outfit for ${onboardingProfileService.getDressForLabel(onboardingProfile.dressFor)}...`
+      : "Ruby is deciding your outfit...";
+
+    return (
+      <Animated.View entering={FadeIn} style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4A3428" />
+        <ThemedText type="body" style={[styles.loadingText, { color: '#4A3428', fontWeight: '600' }]}>
+          {loadingMessage}
+        </ThemedText>
+      </Animated.View>
+    );
+  };
 
   const renderSavePrompt = () => (
     <Animated.View entering={FadeIn} style={[styles.savePromptOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
@@ -1074,9 +1033,18 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           </View>
           
           <View style={styles.recommendationCardBody}>
-            <ThemedText type="body" style={[styles.recommendationCardText, { color: LuxuryColors.obsidian }]}>
-              {recommendation?.outfit && renderMarkdownText(recommendation.outfit)}
-            </ThemedText>
+            {isRefiningOutfit ? (
+              <View style={styles.refiningRow}>
+                <ActivityIndicator size="small" color={LuxuryColors.obsidian} />
+                <ThemedText type="body" style={[styles.recommendationCardText, { color: LuxuryColors.obsidian, marginLeft: Spacing.sm }]}>
+                  Ruby is adjusting your look...
+                </ThemedText>
+              </View>
+            ) : (
+              <ThemedText type="body" style={[styles.recommendationCardText, { color: LuxuryColors.obsidian }]}>
+                {recommendation?.outfit && renderMarkdownText(recommendation.outfit)}
+              </ThemedText>
+            )}
           </View>
           
           {recommendation?.reasoning ? (
@@ -1174,33 +1142,17 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             {isLoadingAnotherOption ? "Loading..." : "Another option"}
           </ThemedText>
         </Pressable>
-
-        <Pressable
-          style={[
-            styles.actionButton, 
-            { 
-              backgroundColor: isLoadingSecondOpinion ? theme.link : theme.backgroundSecondary, 
-              borderColor: isLoadingSecondOpinion ? theme.link : theme.border, 
-              borderWidth: 1,
-              opacity: isLoadingSecondOpinion ? 0.8 : 1,
-            }
-          ]}
-          onPress={handleSecondOpinion}
-          disabled={isLoadingSecondOpinion}
-        >
-          <Feather name="users" size={18} color={isLoadingSecondOpinion ? "#FFFFFF" : theme.text} />
-          <ThemedText type="body" style={[styles.actionButtonText, { color: isLoadingSecondOpinion ? "#FFFFFF" : theme.text }]}>
-            {isLoadingSecondOpinion ? "Loading..." : "Second opinion"}
-          </ThemedText>
-        </Pressable>
       </Animated.View>
 
-      <View style={styles.calibrationSection}>
+      <View style={styles.calibrationSection} pointerEvents="box-none">
         <ThemedText type="body" style={[styles.calibrationMessage, { color: theme.tabIconDefault }]}>
-          {styleDirectionService.getCalibrationMessage()}
+          {isRefiningOutfit
+            ? "Updating your outfit..."
+            : styleDirectionService.getCalibrationMessage()}
         </ThemedText>
         <View
           style={[styles.expressionInputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
+          pointerEvents="auto"
         >
           <TextInput
             ref={resultExpressionInputRef}
@@ -1210,20 +1162,30 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             value={expressionText}
             onChangeText={(text) => setExpressionText(text.slice(0, MAX_EXPRESSION_LENGTH))}
             returnKeyType="send"
-            blurOnSubmit={true}
-            onSubmitEditing={() => { handleExpressionSubmit(); Keyboard.dismiss(); }}
+            blurOnSubmit={false}
+            onSubmitEditing={() => { void handleExpressionSubmit(); }}
             multiline={false}
             maxLength={MAX_EXPRESSION_LENGTH}
+            editable={!isRefiningOutfit}
           />
-          {expressionText.trim() ? (
-            <Pressable 
-              onPress={handleExpressionSubmit} 
-              style={styles.expressionSendButton}
-              disabled={isSubmittingExpression}
-            >
-              <Feather name="send" size={18} color={isSubmittingExpression ? theme.tabIconDefault : theme.link} />
-            </Pressable>
-          ) : null}
+          <Pressable
+            onPress={() => { void handleExpressionSubmit(); }}
+            style={({ pressed }) => [
+              styles.expressionSendButton,
+              pressed && { opacity: 0.6 },
+              (!expressionText.trim() || isRefiningOutfit) && { opacity: 0.35 },
+            ]}
+            disabled={!expressionText.trim() || isSubmittingExpression || isRefiningOutfit}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityRole="button"
+            accessibilityLabel="Send feedback to Ruby"
+          >
+            {isRefiningOutfit ? (
+              <ActivityIndicator size="small" color={theme.link} />
+            ) : (
+              <Feather name="send" size={18} color={theme.link} />
+            )}
+          </Pressable>
         </View>
       </View>
 
@@ -1271,7 +1233,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           style={styles.scrollView}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl }]}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
         >
           {step === "occasion" ? renderOccasionStep() : null}
           {step === "loading" ? renderLoadingStep() : null}
@@ -1283,9 +1245,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           style={styles.scrollView}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl * 6 }]}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           bottomOffset={160}
-          scrollOnFocus={true}
         >
           {step === "occasion" ? renderOccasionStep() : null}
           {step === "loading" ? renderLoadingStep() : null}
@@ -1563,6 +1524,14 @@ const styles = StyleSheet.create({
   },
   expressionSendButton: {
     padding: Spacing.sm,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refiningRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   ctaSection: {
     marginTop: Spacing.lg,

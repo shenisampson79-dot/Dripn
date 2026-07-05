@@ -6,6 +6,8 @@
  * Handles automatic upgrades to the best available OpenAI models
  */
 
+import { DEFAULT_CHAT_MODEL, DEFAULT_VISION_MODEL } from '@/constants/aiModels';
+
 export type ModelCapability = 'vision' | 'text' | 'reasoning' | 'voice-transcription' | 'voice-synthesis';
 
 interface ModelConfig {
@@ -17,44 +19,18 @@ interface ModelConfig {
 }
 
 const VISION_MODELS: ModelConfig[] = [
-  { id: 'gpt-5.2', priority: 1, capabilities: ['vision', 'text', 'reasoning'], maxTokens: 256000, supportsImages: true },
-  { id: 'gpt-5.1', priority: 2, capabilities: ['vision', 'text', 'reasoning'], maxTokens: 256000, supportsImages: true },
-  { id: 'gpt-5', priority: 3, capabilities: ['vision', 'text', 'reasoning'], maxTokens: 256000, supportsImages: true },
-  { id: 'gpt-4.5', priority: 4, capabilities: ['vision', 'text', 'reasoning'], maxTokens: 128000, supportsImages: true },
-  { id: 'gpt-4.5-preview', priority: 5, capabilities: ['vision', 'text', 'reasoning'], maxTokens: 128000, supportsImages: true },
-  { id: 'gpt-4.1', priority: 6, capabilities: ['vision', 'text', 'reasoning'], maxTokens: 128000, supportsImages: true },
-  { id: 'gpt-4o', priority: 7, capabilities: ['vision', 'text'], maxTokens: 128000, supportsImages: true },
-  { id: 'gpt-4o-mini', priority: 8, capabilities: ['vision', 'text'], maxTokens: 128000, supportsImages: true },
-  { id: 'gpt-4-turbo', priority: 9, capabilities: ['vision', 'text'], maxTokens: 128000, supportsImages: true },
-  { id: 'gpt-4-vision-preview', priority: 10, capabilities: ['vision', 'text'], maxTokens: 128000, supportsImages: true },
+  { id: DEFAULT_VISION_MODEL, priority: 1, capabilities: ['vision', 'text', 'reasoning'], maxTokens: 256000, supportsImages: true },
+  { id: 'gpt-5.4-2026-03-05', priority: 2, capabilities: ['vision', 'text', 'reasoning'], maxTokens: 256000, supportsImages: true },
 ];
 
 const TEXT_MODELS: ModelConfig[] = [
-  { id: 'gpt-5.2', priority: 1, capabilities: ['text', 'reasoning'], maxTokens: 256000, supportsImages: false },
-  { id: 'gpt-5.1', priority: 2, capabilities: ['text', 'reasoning'], maxTokens: 256000, supportsImages: false },
-  { id: 'gpt-5', priority: 3, capabilities: ['text', 'reasoning'], maxTokens: 256000, supportsImages: false },
-  { id: 'gpt-4.5', priority: 4, capabilities: ['text', 'reasoning'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4.5-preview', priority: 5, capabilities: ['text', 'reasoning'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4.1', priority: 6, capabilities: ['text', 'reasoning'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4o', priority: 7, capabilities: ['text'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4-turbo', priority: 8, capabilities: ['text'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4', priority: 9, capabilities: ['text'], maxTokens: 8192, supportsImages: false },
-  { id: 'gpt-3.5-turbo', priority: 10, capabilities: ['text'], maxTokens: 16385, supportsImages: false },
+  { id: DEFAULT_CHAT_MODEL, priority: 1, capabilities: ['text', 'reasoning'], maxTokens: 256000, supportsImages: false },
+  { id: 'gpt-5.4-2026-03-05', priority: 2, capabilities: ['text', 'reasoning'], maxTokens: 256000, supportsImages: false },
 ];
 
 const REASONING_MODELS: ModelConfig[] = [
-  { id: 'o4', priority: 1, capabilities: ['reasoning', 'text'], maxTokens: 256000, supportsImages: false },
-  { id: 'o3', priority: 2, capabilities: ['reasoning', 'text'], maxTokens: 200000, supportsImages: false },
-  { id: 'o1', priority: 3, capabilities: ['reasoning', 'text'], maxTokens: 200000, supportsImages: false },
-  { id: 'o1-preview', priority: 4, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
-  { id: 'o1-mini', priority: 5, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-5.2', priority: 6, capabilities: ['reasoning', 'text'], maxTokens: 256000, supportsImages: false },
-  { id: 'gpt-5.1', priority: 7, capabilities: ['reasoning', 'text'], maxTokens: 256000, supportsImages: false },
-  { id: 'gpt-5', priority: 8, capabilities: ['reasoning', 'text'], maxTokens: 256000, supportsImages: false },
-  { id: 'gpt-4.5', priority: 9, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4.5-preview', priority: 10, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4.1', priority: 11, capabilities: ['reasoning', 'text'], maxTokens: 128000, supportsImages: false },
-  { id: 'gpt-4o', priority: 12, capabilities: ['text'], maxTokens: 128000, supportsImages: false },
+  { id: DEFAULT_CHAT_MODEL, priority: 1, capabilities: ['reasoning', 'text'], maxTokens: 256000, supportsImages: false },
+  { id: 'gpt-5.4-2026-03-05', priority: 2, capabilities: ['reasoning', 'text'], maxTokens: 256000, supportsImages: false },
 ];
 
 const VOICE_TRANSCRIPTION_MODELS: ModelConfig[] = [
@@ -138,7 +114,7 @@ export async function getBestAvailableModel(
     }
   }
 
-  const fallback = fallbackModel || models[models.length - 1]?.id || 'gpt-5.2';
+  const fallback = fallbackModel || DEFAULT_CHAT_MODEL;
   console.log(`No preferred models available for ${capability}, using fallback: ${fallback}`);
   return fallback;
 }
@@ -155,17 +131,17 @@ export function getBestModelSync(capability: ModelCapability): string {
 
   switch (capability) {
     case 'vision':
-      return 'gpt-5.2';
+      return DEFAULT_VISION_MODEL;
     case 'text':
-      return 'gpt-5.2';
+      return DEFAULT_CHAT_MODEL;
     case 'reasoning':
-      return 'gpt-5.2';
+      return DEFAULT_CHAT_MODEL;
     case 'voice-transcription':
       return 'whisper-1';
     case 'voice-synthesis':
       return 'tts-1-hd';
     default:
-      return 'gpt-5.2';
+      return DEFAULT_CHAT_MODEL;
   }
 }
 

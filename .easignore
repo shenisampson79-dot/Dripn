@@ -1,0 +1,17 @@
+# Keep EAS upload under the 2 GB limit.
+# These folders are not needed to compile the mobile app.
+
+.git/
+.local/
+attached_assets/
+backend-code/
+dist/
+web-build/
+.expo/
+node_modules/
+/ios
+/android
+
+# Dev-only
+.eas-size-audit.txt
+scripts/download-confidence-videos.mjs

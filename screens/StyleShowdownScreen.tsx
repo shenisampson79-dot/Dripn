@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.small.fontSize,
   },
   votingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",

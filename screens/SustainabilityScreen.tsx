@@ -76,8 +76,8 @@ export default function SustainabilityScreen() {
     try {
       await addGoal({
         title: newGoalTitle.trim(),
+        description: newGoalTitle.trim(),
         targetValue: target,
-        currentValue: 0,
         unit: 'items',
         deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       });

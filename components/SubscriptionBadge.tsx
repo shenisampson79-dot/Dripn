@@ -5,28 +5,33 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ThemedText } from "@/components/ThemedText";
 import { SubscriptionColors } from "@/constants/theme";
 import { SubscriptionTier } from "@/contexts/AuthContext";
+import { getTierFeaturesDisplayName, normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 
 interface SubscriptionBadgeProps {
-  tier: SubscriptionTier;
+  tier: SubscriptionTier | string;
   small?: boolean;
 }
 
 export function SubscriptionBadge({ tier, small = false }: SubscriptionBadgeProps) {
-  const colors = SubscriptionColors[tier];
-  const label = tier === "premium" ? "Premium" : tier.charAt(0).toUpperCase() + tier.slice(1);
+  const normalized = normalizeSubscriptionTier(tier);
+  const label = getTierFeaturesDisplayName(normalized);
+  const colors = SubscriptionColors[normalized as keyof typeof SubscriptionColors]
+    ?? SubscriptionColors.personal_stylist;
 
-  if (tier === "premium") {
-    const premiumColors = SubscriptionColors.premium;
+  if (normalized !== 'free') {
     return (
       <LinearGradient
-        colors={[premiumColors.backgroundStart, premiumColors.backgroundEnd]}
+        colors={[
+          'backgroundStart' in colors ? colors.backgroundStart : colors.background,
+          'backgroundEnd' in colors ? colors.backgroundEnd : colors.background,
+        ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.badge, small && styles.badgeSmall]}
       >
         <ThemedText
           type="caption"
-          style={[styles.text, small && styles.textSmall, { color: premiumColors.text }]}
+          style={[styles.text, small && styles.textSmall, { color: colors.text }]}
         >
           {label}
         </ThemedText>

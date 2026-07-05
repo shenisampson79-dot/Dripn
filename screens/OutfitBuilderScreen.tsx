@@ -19,6 +19,7 @@ import { WardrobeItemImage } from '@/components/WardrobeItemImage';
 import { wardrobeImageBackground } from '@/utils/wardrobeImage';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,29 +32,31 @@ import { Spacing, BorderRadius, LuxuryColors } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useWardrobe, WardrobeItem, ClothingCategory, PlannedEventType } from '@/contexts/WardrobeContext';
 import { apiService } from '@/services/ApiService';
-import { computeLocalOutfitScore } from '@/utils/outfitCompatibilityScore';
+import { computeLocalOutfitScore, mergeOutfitScores } from '@/utils/outfitCompatibilityScore';
+import {
+  getOutfitReelImageScale,
+  OUTFIT_REEL_CENTER_RATIO,
+} from '@/utils/outfitReelImage';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
 
 const { width: SW, height: SH } = Dimensions.get('window');
+const TAB_BAR_HEIGHT = 56;
 
 type OutfitBuilderScreenProps = {
   navigation: NativeStackNavigationProp<WardrobeStackParamList, 'OutfitBuilder'>;
 };
 
-// Compact Clueless-style reels — width/height computed per device in main screen
-const COMPACT_CENTER_RATIO = 0.46;
-const LABEL_ROW_H = 16;
+// Clueless-style reels — width/height computed per device in main screen
+const COMPACT_CENTER_RATIO = OUTFIT_REEL_CENTER_RATIO;
 
-// Category display order (body top → bottom → feet → sides)
-const REEL_ORDER: Array<{ key: ClothingCategory; label: string; icon: keyof typeof Feather.glyphMap }> = [
-  { key: 'outerwear',   label: 'Outer',       icon: 'cloud' },
-  { key: 'tops',        label: 'Top',         icon: 'sun' },
-  { key: 'dresses',     label: 'Dress',       icon: 'heart' },
-  { key: 'formal',      label: 'Formal',      icon: 'star' },
-  { key: 'bottoms',     label: 'Bottom',      icon: 'minus' },
-  { key: 'shoes',       label: 'Shoes',       icon: 'disc' },
-  { key: 'bags',        label: 'Bag',         icon: 'shopping-bag' },
-  { key: 'accessories', label: 'Acc.',        icon: 'watch' },
+// Category display order (body top → bottom → feet)
+const REEL_ORDER: Array<{ key: ClothingCategory }> = [
+  { key: 'outerwear' },
+  { key: 'tops' },
+  { key: 'dresses' },
+  { key: 'formal' },
+  { key: 'bottoms' },
+  { key: 'shoes' },
 ];
 
 const EVENT_TYPES: { value: PlannedEventType; label: string }[] = [
@@ -93,13 +96,10 @@ const DIMENSION_LABELS: Record<string, string> = {
 
 type CategoryReelProps = {
   category: ClothingCategory;
-  label: string;
-  icon: keyof typeof Feather.glyphMap;
   items: WardrobeItem[];
   selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  onSelect: (id: string) => void;
   isDark: boolean;
-  theme: any;
   rowHeight: number;
   centerWidth: number;
   sideGap: number;
@@ -109,42 +109,50 @@ type CategoryReelProps = {
 
 function CategoryReel({
   category,
-  label,
-  icon,
   items,
   selectedId,
   onSelect,
   isDark,
-  theme,
   rowHeight,
   centerWidth,
   sideGap,
   sideInset,
   snapInterval,
 }: CategoryReelProps) {
-  // data = [null (none), ...items]
-  const data = useMemo<(WardrobeItem | null)[]>(() => [null, ...items], [items]);
+  const data = items;
   const listRef = useRef<FlatList>(null);
 
-  // Scroll to the selected item on mount
   const initialIndex = useMemo(() => {
     if (!selectedId) return 0;
     const idx = items.findIndex(i => i.id === selectedId);
-    return idx >= 0 ? idx + 1 : 0;
-  }, []);
+    return idx >= 0 ? idx : 0;
+  }, [items, selectedId]);
+
+  useEffect(() => {
+    if (!selectedId || !listRef.current) return;
+    const idx = data.findIndex((item) => item.id === selectedId);
+    if (idx < 0) return;
+    try {
+      listRef.current.scrollToIndex({ index: idx, animated: false });
+    } catch {
+      // FlatList may not be measured yet on first paint.
+    }
+  }, [data, selectedId]);
 
   const handleScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
     const index = Math.round(x / snapInterval);
     const clamped = Math.max(0, Math.min(index, data.length - 1));
     const item = data[clamped];
+    if (!item || item.id === selectedId) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onSelect(item ? item.id : null);
-  }, [data, onSelect, snapInterval]);
+    onSelect(item.id);
+  }, [data, onSelect, selectedId, snapInterval]);
 
-  const renderItem = useCallback(({ item }: { item: WardrobeItem | null; index: number }) => {
-    const isSelected = item ? item.id === selectedId : selectedId === null;
-    const isNone = item === null;
+  const imageScale = getOutfitReelImageScale(category);
+
+  const renderItem = useCallback(({ item }: { item: WardrobeItem; index: number }) => {
+    const isSelected = item.id === selectedId;
 
     return (
       <View style={[styles.reelItemContainer, { width: centerWidth, height: rowHeight }]}>
@@ -155,48 +163,32 @@ function CategoryReel({
             !isSelected && { opacity: 0.42 },
           ]}
         >
-          {isNone ? (
-            <View style={styles.reelNone}>
-              <Feather name="x" size={16} color={isDark ? '#555' : '#ccc'} />
-            </View>
-          ) : item ? (
-            <View style={[
-              styles.reelImageWrap,
-              { backgroundColor: wardrobeImageBackground(isDark, item) || (isDark ? '#2C2C2E' : '#EBEBEF') },
-            ]}>
-              <WardrobeItemImage
-                item={item}
-                style={styles.reelImage}
-                processed={!!(item.imageProcessed || item.aiAnalyzed)}
-                contentFit="cover"
-                preferCover
-              />
-            </View>
-          ) : (
-            <View style={styles.reelNone}>
-              <Feather name="image" size={16} color={isDark ? '#444' : '#ccc'} />
-            </View>
-          )}
+          <View style={[
+            styles.reelImageWrap,
+            { backgroundColor: wardrobeImageBackground(isDark, item) || (isDark ? '#2C2C2E' : '#EBEBEF') },
+          ]}>
+            <WardrobeItemImage
+              item={item}
+              style={styles.reelImage}
+              processed={!!(item.imageProcessed || item.aiAnalyzed)}
+              contentFit="contain"
+              displayScale={imageScale}
+              tileBackgroundColor={wardrobeImageBackground(isDark, item) || (isDark ? '#2C2C2E' : '#EBEBEF')}
+            />
+          </View>
         </View>
       </View>
     );
-  }, [selectedId, isDark, rowHeight, centerWidth]);
+  }, [selectedId, isDark, rowHeight, centerWidth, imageScale]);
 
   return (
-    <View style={[styles.reelRow, { height: rowHeight + LABEL_ROW_H }]}>
-      <View style={styles.reelLabelRow}>
-        <Feather name={icon} size={10} color={theme.link} />
-        <ThemedText type="caption" style={[styles.reelLabel, { color: theme.link }]}>
-          {label}
-        </ThemedText>
-      </View>
-
+    <View style={[styles.reelRow, { height: rowHeight }]}>
       <View style={{ position: 'relative', height: rowHeight }}>
         <FlatList
           ref={listRef}
           data={data}
           renderItem={renderItem}
-          keyExtractor={(item, i) => item ? item.id : `none-${i}`}
+          keyExtractor={(item) => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
           snapToInterval={snapInterval}
@@ -206,6 +198,7 @@ function CategoryReel({
           contentOffset={{ x: -(sideInset - sideGap / 2), y: 0 }}
           contentContainerStyle={[styles.reelListContent, { gap: sideGap, paddingHorizontal: sideInset - sideGap / 2 }]}
           onMomentumScrollEnd={handleScrollEnd}
+          onScrollEndDrag={handleScrollEnd}
           initialScrollIndex={Math.min(initialIndex, Math.max(0, data.length - 1))}
           getItemLayout={(_, index) => ({ length: snapInterval, offset: snapInterval * index, index })}
         />
@@ -219,6 +212,11 @@ function CategoryReel({
 export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+  const bottomNavClearance = Math.max(
+    tabBarHeight,
+    TAB_BAR_HEIGHT + insets.bottom,
+  ) + Spacing.lg;
   const { items, reloadWardrobe } = useWardrobe();
 
   useFocusEffect(
@@ -286,29 +284,40 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     [itemsByCategory]
   );
 
-  const compactRowHeight = useMemo(() => {
-    const headerBlock = 52;
-    const scoreBlock = 58;
-    const footerBlock = 96;
-    const available = SH - insets.top - insets.bottom - headerBlock - scoreBlock - footerBlock;
-    const perRow = Math.floor(available / Math.max(activeReels.length, 1)) - LABEL_ROW_H - 2;
-    return Math.max(44, Math.min(68, perRow));
-  }, [activeReels.length, insets.top, insets.bottom]);
-
-  const handleSelect = useCallback((cat: ClothingCategory, id: string | null) => {
-    setSelection(prev => ({ ...prev, [cat]: id }));
-  }, []);
-
   const selectedItemIds = useMemo(
     () => Object.values(selection).filter((id): id is string => !!id),
     [selection]
   );
+
+  const showSaveButton = selectedItemIds.length > 0;
+
+  const compactRowHeight = useMemo(() => {
+    const headerBlock = 52;
+    const scoreBlock = 58;
+    const bottomChrome = showSaveButton
+      ? bottomNavClearance + Spacing.buttonHeight + Spacing.sm + Spacing.md
+      : bottomNavClearance;
+    const rowGap = 8;
+    const available = SH - insets.top - headerBlock - scoreBlock - bottomChrome;
+    const gaps = Math.max(activeReels.length - 1, 0) * rowGap;
+    const perRow = Math.floor((available - gaps) / Math.max(activeReels.length, 1));
+    return Math.max(78, Math.min(134, perRow));
+  }, [activeReels.length, insets.top, bottomNavClearance, showSaveButton]);
+
+  const handleSelect = useCallback((cat: ClothingCategory, id: string) => {
+    setSelection(prev => ({ ...prev, [cat]: id }));
+  }, []);
 
   const selectedWardrobeItems = useMemo(
     () => selectedItemIds
       .map((id) => items.find((item) => item.id === id))
       .filter((item): item is WardrobeItem => !!item),
     [selectedItemIds, items]
+  );
+
+  const selectionKey = useMemo(
+    () => selectedItemIds.slice().sort().join('|'),
+    [selectedItemIds],
   );
 
   useEffect(() => {
@@ -327,11 +336,12 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
 
     const requestId = ++scoreRequestRef.current;
     setIsAiScoring(true);
+    const itemIdsForRequest = selectedWardrobeItems.map((item) => item.id);
 
     const timer = setTimeout(async () => {
       try {
         const result = await apiService.checkOutfitCompatibility({
-          items: selectedWardrobeItems.map((item) => item.id),
+          items: itemIdsForRequest,
           stylistId: 'ruby',
           occasion: OCCASION_SCORE_MAP[eventType] || 'casual-hangout',
         });
@@ -339,12 +349,23 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
         if (scoreRequestRef.current !== requestId) return;
 
         if (result.success && typeof result.score === 'number') {
-          setStyleScore(Math.round(result.score));
-          setStyleHint(result.headline || result.verdict || result.analysis || local.hint);
-          setScoreDimensions(result.dimensions || null);
-          setScoreExplanations(result.explanations || []);
-          setScoreHeadline(result.headline || null);
-          setAiScoreApplied(true);
+          const merged = mergeOutfitScores(local, {
+            score: result.score,
+            hardRuleViolations: result.hardRuleViolations,
+            hardCapApplied: result.hardCapApplied,
+            verdict: result.verdict,
+            analysis: result.analysis,
+            headline: result.headline,
+            explanations: result.explanations,
+            improvements: result.improvements,
+            dimensions: result.dimensions,
+          });
+          setStyleScore(merged.score);
+          setStyleHint(merged.hint);
+          setScoreDimensions(merged.dimensions);
+          setScoreExplanations(merged.explanations);
+          setScoreHeadline(merged.headline);
+          setAiScoreApplied(merged.aiApplied);
         }
       } catch {
         // Keep instant local score when AI is unavailable.
@@ -356,7 +377,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     }, 900);
 
     return () => clearTimeout(timer);
-  }, [selectedWardrobeItems, eventType]);
+  }, [selectionKey, eventType, items]);
 
   const handleClear = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -427,8 +448,8 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
 
   const secondaryText = isDark ? '#777' : '#aaa';
   const scoreColor =
-    styleScore >= 75 ? LuxuryColors.emerald :
-    styleScore >= 55 ? LuxuryColors.gold :
+    styleScore >= 80 ? LuxuryColors.emerald :
+    styleScore >= 60 ? LuxuryColors.gold :
     styleScore >= 35 ? LuxuryColors.coral :
     '#EF4444';
 
@@ -509,47 +530,46 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           </Pressable>
         </View>
       ) : (
-        <View style={[styles.builderBody, { paddingBottom: insets.bottom + 88 }]}>
-          {activeReels.map(({ key, label, icon }) => (
-            <CategoryReel
-              key={key}
-              category={key}
-              label={label}
-              icon={icon}
-              items={itemsByCategory[key] ?? []}
-              selectedId={selection[key] ?? null}
-              onSelect={id => handleSelect(key, id)}
-              isDark={isDark}
-              theme={theme}
-              rowHeight={compactRowHeight}
-              centerWidth={layoutMetrics.centerWidth}
-              sideGap={layoutMetrics.sideGap}
-              sideInset={layoutMetrics.sideInset}
-              snapInterval={layoutMetrics.snapInterval}
-            />
-          ))}
-        </View>
-      )}
+        <>
+          <View style={styles.reelsArea}>
+            {activeReels.map(({ key }) => (
+              <CategoryReel
+                key={key}
+                category={key}
+                items={itemsByCategory[key] ?? []}
+                selectedId={selection[key] ?? null}
+                onSelect={id => handleSelect(key, id)}
+                isDark={isDark}
+                rowHeight={compactRowHeight}
+                centerWidth={layoutMetrics.centerWidth}
+                sideGap={layoutMetrics.sideGap}
+                sideInset={layoutMetrics.sideInset}
+                snapInterval={layoutMetrics.snapInterval}
+              />
+            ))}
+          </View>
 
-      {/* Save FAB */}
-      {selectedItemIds.length > 0 ? (
-        <Pressable
-          onPress={handleSave}
-          style={[styles.saveFab, { bottom: insets.bottom + 90 }]}
-        >
-          <LinearGradient
-            colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.saveFabGradient}
-          >
-            <Feather name="save" size={17} color="#fff" />
-            <ThemedText type="body" style={styles.saveFabText}>
-              Save Outfit
-            </ThemedText>
-          </LinearGradient>
-        </Pressable>
-      ) : null}
+          {showSaveButton ? (
+            <View style={[styles.saveFooter, { paddingBottom: bottomNavClearance + Spacing.md }]}>
+              <Pressable onPress={handleSave} style={styles.saveButton}>
+                <LinearGradient
+                  colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.saveButtonGradient}
+                >
+                  <View style={styles.saveButtonIcon} pointerEvents="none">
+                    <Feather name="save" size={17} color="#fff" />
+                  </View>
+                  <ThemedText type="body" style={styles.saveButtonText}>
+                    Save Outfit
+                  </ThemedText>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          ) : null}
+        </>
+      )}
 
       {/* Save modal */}
       <Modal
@@ -755,10 +775,17 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     marginRight: 6,
   },
-  builderBody: {
+  reelsArea: {
     flex: 1,
     justifyContent: 'space-evenly',
-    paddingTop: 2,
+    paddingTop: 4,
+    gap: 8,
+  },
+  saveFooter: {
+    paddingTop: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    flexShrink: 0,
   },
   backBtn: {
     padding: Spacing.sm,
@@ -771,20 +798,6 @@ const styles = StyleSheet.create({
   reelRow: {
     overflow: 'hidden',
   },
-  reelLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: 2,
-    height: LABEL_ROW_H,
-  },
-  reelLabel: {
-    fontWeight: '700',
-    fontSize: 10,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
   reelListContent: {},
   reelItemContainer: {
     position: 'relative',
@@ -795,43 +808,56 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 2,
   },
   reelImageWrap: {
+    flex: 1,
     width: '100%',
-    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   reelImage: {
     width: '100%',
     height: '100%',
-  },
-  reelNone: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1,
   },
 
-  // Save FAB
-  saveFab: {
-    position: 'absolute',
+  // Save button (below last reel)
+  saveButton: {
     alignSelf: 'center',
+    width: '88%',
+    maxWidth: 340,
     borderRadius: BorderRadius.full,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 6,
   },
-  saveFabGradient: {
-    flexDirection: 'row',
+  saveButtonGradient: {
+    position: 'relative',
     alignItems: 'center',
-    paddingHorizontal: Spacing['2xl'],
+    justifyContent: 'center',
+    minHeight: Spacing.buttonHeight,
+    paddingHorizontal: Spacing['3xl'],
     paddingVertical: Spacing.md,
-    gap: Spacing.sm,
   },
-  saveFabText: {
+  saveButtonIcon: {
+    position: 'absolute',
+    left: Spacing.xl,
+    top: 0,
+    bottom: 0,
+    width: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
     color: '#fff',
     fontWeight: '700',
     fontSize: 15,
+    textAlign: 'center',
+    width: '100%',
   },
 
   // Empty state

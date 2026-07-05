@@ -24,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWardrobe, WardrobeItem, ClothingCategory, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
 import { useScreenInsets } from "@/hooks/useScreenInsets";
 import apiService from "@/services/ApiService";
+import { computeLocalOutfitScore, mergeOutfitScores } from "@/utils/outfitCompatibilityScore";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const ITEM_SIZE = 100;
@@ -168,51 +169,56 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
       return;
     }
 
+    const local = computeLocalOutfitScore(selected);
+    setCompatibilityScore(local.score);
+    setCompatibilityVerdict(local.hint);
+    setCompatibilityAnalysis(null);
+    setCompatibilityViolations([]);
+    setCompatibilityImprovements([]);
+    setOccasionRulesApplied(null);
+
     try {
       setIsCheckingCompatibility(true);
       setCompatibilityError(null);
       const itemIds = selected.map(item => item.id);
-      console.log('[DFYModularWardrobe] Selected items for compatibility:', selected.map(item => `${item.name} (${item.category})`));
-      console.log('[DFYModularWardrobe] Item IDs being sent:', itemIds);
-      
+
       const result = await apiService.checkOutfitCompatibility({
         items: itemIds,
         stylistId: 'ruby',
-        occasion: 'casual_day',
+        occasion: 'casual-hangout',
       });
 
       if (result.success && result.score !== undefined) {
-        setCompatibilityScore(Math.round(result.score));
-        setCompatibilityVerdict(result.verdict || null);
-        setCompatibilityAnalysis(result.analysis || null);
+        const merged = mergeOutfitScores(local, {
+          score: result.score,
+          hardRuleViolations: result.hardRuleViolations,
+          hardCapApplied: result.hardCapApplied,
+          verdict: result.verdict,
+          analysis: result.analysis,
+          explanations: result.explanations,
+          improvements: result.improvements,
+        });
+        setCompatibilityScore(merged.score);
+        setCompatibilityVerdict(merged.headline || merged.hint);
+        setCompatibilityAnalysis(merged.explanations[0] || result.analysis || null);
         setCompatibilityViolations(result.hardRuleViolations || []);
         setCompatibilityImprovements(result.improvements || []);
         setOccasionRulesApplied(result.occasionRulesApplied || null);
       } else {
-        setCompatibilityScore(null);
-        setCompatibilityVerdict(null);
-        setCompatibilityAnalysis(null);
-        setCompatibilityViolations([]);
-        setCompatibilityImprovements([]);
-        setOccasionRulesApplied(null);
         setCompatibilityError(result.error || 'Failed to check compatibility');
       }
     } catch (error: any) {
       console.error('Failed to calculate compatibility:', error);
-      
-      // Extract error message from various error formats
+
       let errorMsg = 'Failed to check compatibility';
       if (error?.response?.data?.error) {
         errorMsg = error.response.data.error;
       } else if (error?.message) {
         errorMsg = error.message;
       }
-      
+
       setCompatibilityError(errorMsg);
-      setCompatibilityScore(null);
-      
-      // Show error alert to user
-      Alert.alert('Compatibility Check Failed', errorMsg);
+      // Keep local score visible when API fails.
     } finally {
       setIsCheckingCompatibility(false);
     }

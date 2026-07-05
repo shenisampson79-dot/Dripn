@@ -1,0 +1,548 @@
+{
+  "ranAt": "2026-06-15T09:19:51.906Z",
+  "api": "https://dripn-server.onrender.com",
+  "frontend": "https://dripnapp.com",
+  "databaseSeeding": false,
+  "env": {
+    "api": "https://dripn-server.onrender.com",
+    "databaseUrl": false,
+    "cronSecret": false,
+    "adminCredentials": false
+  },
+  "personas": {
+    "high_churn": {
+      "accept": {
+        "register": {
+          "pass": true,
+          "status": "PASS",
+          "email": "dripn-e2e-high_churn-accept-1781515192070@test.dripn.local"
+        },
+        "seedSignals": {
+          "pass": true,
+          "status": "SKIP",
+          "skipped": true,
+          "reason": "DATABASE_URL not set — using natural signals only (A/C segments may skip)"
+        },
+        "checkout": {
+          "pass": true,
+          "status": "PASS",
+          "plan": "personal_stylist",
+          "sessionId": "cs_test_a1EV7C"
+        },
+        "payment": {
+          "pass": true,
+          "status": "SKIP",
+          "browserPayment": false,
+          "verifyFallback": true,
+          "note": null,
+          "skipped": true,
+          "reason": "Browser automation incomplete — subscription verified via API"
+        },
+        "tier": {
+          "pass": true,
+          "status": "PASS",
+          "tier": "personal_stylist",
+          "waitedMs": 1056
+        },
+        "paymentsVerify": {
+          "pass": true,
+          "status": 200
+        },
+        "cancelOffer": {
+          "pass": true,
+          "status": 200,
+          "skipped": true,
+          "reason": "Segment check skipped — set DATABASE_URL to seed high_churn signals (needs cancel_events / last_active)",
+          "checks": {
+            "personaSegment": false,
+            "type": false,
+            "acceptedOffer": false,
+            "offerKey": false,
+            "churnScorePresent": true
+          },
+          "offer": {
+            "type": "downgrade",
+            "offerKey": null,
+            "cta": "downgrade_plan",
+            "segment": "low",
+            "usageSegment": "low",
+            "churnScore": 22,
+            "message": "Style Chat keeps your wardrobe and AI stylist at a lower monthly price — you might not need to cancel.",
+            "title": "A lighter plan might fit better",
+            "body": "Style Chat keeps your wardrobe and AI stylist at a lower monthly price — you might not need to cancel.",
+            "actionLabel": "View Style Chat",
+            "acceptedOffer": "downgrade_style_chat",
+            "primaryAction": "downgrade",
+            "highlightPlan": "style_chat",
+            "personaSegment": "low_usage",
+            "variant": "A",
+            "socialProof": null
+          },
+          "churnScore": 22
+        },
+        "acceptPath": {
+          "pass": true,
+          "status": 200,
+          "offerType": "downgrade",
+          "response": {
+            "success": true,
+            "message": "You're now on Style Chat. Your next bill reflects the new plan with prorated credit.",
+            "plan": "style_chat",
+            "tierName": "Style Chat"
+          },
+          "skipped": false
+        }
+      },
+      "reject": {
+        "register": {
+          "pass": true,
+          "status": "PASS",
+          "email": "dripn-e2e-high_churn-reject-1781515216678@test.dripn.local"
+        },
+        "seedSignals": {
+          "pass": true,
+          "status": "SKIP",
+          "skipped": true,
+          "reason": "DATABASE_URL not set — using natural signals only (A/C segments may skip)"
+        },
+        "checkout": {
+          "pass": true,
+          "status": "PASS",
+          "plan": "personal_stylist",
+          "sessionId": "cs_test_a10zIs"
+        },
+        "payment": {
+          "pass": true,
+          "status": "SKIP",
+          "browserPayment": false,
+          "verifyFallback": true,
+          "note": null,
+          "skipped": true,
+          "reason": "Browser automation incomplete — subscription verified via API"
+        },
+        "tier": {
+          "pass": true,
+          "status": "PASS",
+          "tier": "personal_stylist",
+          "waitedMs": 1041
+        },
+        "paymentsVerify": {
+          "pass": true,
+          "status": 200
+        },
+        "cancelOffer": {
+          "pass": true,
+          "status": 200,
+          "skipped": true,
+          "reason": "Segment check skipped — set DATABASE_URL to seed high_churn signals (needs cancel_events / last_active)",
+          "checks": {
+            "personaSegment": false,
+            "type": false,
+            "acceptedOffer": false,
+            "offerKey": false,
+            "churnScorePresent": true
+          },
+          "offer": {
+            "type": "downgrade",
+            "offerKey": null,
+            "cta": "downgrade_plan",
+            "segment": "low",
+            "usageSegment": "low",
+            "churnScore": 22,
+            "message": "Style Chat keeps your wardrobe and AI stylist at a lower monthly price — you might not need to cancel.",
+            "title": "A lighter plan might fit better",
+            "body": "Style Chat keeps your wardrobe and AI stylist at a lower monthly price — you might not need to cancel.",
+            "actionLabel": "View Style Chat",
+            "acceptedOffer": "downgrade_style_chat",
+            "primaryAction": "downgrade",
+            "highlightPlan": "style_chat",
+            "personaSegment": "low_usage",
+            "variant": "B",
+            "socialProof": null
+          },
+          "churnScore": 22
+        },
+        "rejectPath": {
+          "pass": true,
+          "status": 200,
+          "response": {
+            "success": true,
+            "message": "Your subscription will be cancelled at the end of the current billing period.",
+            "cancelAtPeriodEnd": true,
+            "cancelAt": null
+          }
+        }
+      },
+      "emailClick": {
+        "pass": true,
+        "status": "PASS",
+        "landingStatus": 200,
+        "eventStatus": 200,
+        "landingUrl": "https://dripnapp.com/subscription?source=winback_email&campaign=day0&campaign_id=day0&user_id=60&cta=resume_50&cta_id=resume_50&variant=B"
+      }
+    },
+    "low_usage": {
+      "accept": {
+        "register": {
+          "pass": true,
+          "status": "PASS",
+          "email": "dripn-e2e-low_usage-accept-1781515239191@test.dripn.local"
+        },
+        "seedSignals": {
+          "pass": true,
+          "status": "SKIP",
+          "skipped": true,
+          "reason": "DATABASE_URL not set — using natural signals only (A/C segments may skip)"
+        },
+        "checkout": {
+          "pass": true,
+          "status": "PASS",
+          "plan": "personal_stylist",
+          "sessionId": "cs_test_a1VHHJ"
+        },
+        "payment": {
+          "pass": true,
+          "status": "SKIP",
+          "browserPayment": false,
+          "verifyFallback": true,
+          "note": null,
+          "skipped": true,
+          "reason": "Browser automation incomplete — subscription verified via API"
+        },
+        "tier": {
+          "pass": true,
+          "status": "PASS",
+          "tier": "personal_stylist",
+          "waitedMs": 1020
+        },
+        "paymentsVerify": {
+          "pass": true,
+          "status": 200
+        },
+        "cancelOffer": {
+          "pass": true,
+          "status": 200,
+          "checks": {
+            "personaSegment": true,
+            "type": true,
+            "acceptedOffer": true,
+            "offerKey": true,
+            "churnScorePresent": true
+          },
+          "offer": {
+            "type": "downgrade",
+            "offerKey": null,
+            "cta": "downgrade_plan",
+            "segment": "low",
+            "usageSegment": "low",
+            "churnScore": 22,
+            "message": "Style Chat keeps your wardrobe and AI stylist at a lower monthly price — you might not need to cancel.",
+            "title": "A lighter plan might fit better",
+            "body": "Style Chat keeps your wardrobe and AI stylist at a lower monthly price — you might not need to cancel.",
+            "actionLabel": "View Style Chat",
+            "acceptedOffer": "downgrade_style_chat",
+            "primaryAction": "downgrade",
+            "highlightPlan": "style_chat",
+            "personaSegment": "low_usage",
+            "variant": "B",
+            "socialProof": null
+          },
+          "churnScore": 22
+        },
+        "acceptPath": {
+          "pass": true,
+          "status": 200,
+          "offerType": "downgrade",
+          "response": {
+            "success": true,
+            "message": "You're now on Style Chat. Your next bill reflects the new plan with prorated credit.",
+            "plan": "style_chat",
+            "tierName": "Style Chat"
+          },
+          "skipped": false
+        }
+      },
+      "reject": {
+        "register": {
+          "pass": true,
+          "status": "PASS",
+          "email": "dripn-e2e-low_usage-reject-1781515262147@test.dripn.local"
+        },
+        "seedSignals": {
+          "pass": true,
+          "status": "SKIP",
+          "skipped": true,
+          "reason": "DATABASE_URL not set — using natural signals only (A/C segments may skip)"
+        },
+        "checkout": {
+          "pass": true,
+          "status": "PASS",
+          "plan": "personal_stylist",
+          "sessionId": "cs_test_a1bLJp"
+        },
+        "payment": {
+          "pass": true,
+          "status": "SKIP",
+          "browserPayment": false,
+          "verifyFallback": true,
+          "note": null,
+          "skipped": true,
+          "reason": "Browser automation incomplete — subscription verified via API"
+        },
+        "tier": {
+          "pass": true,
+          "status": "PASS",
+          "tier": "personal_stylist",
+          "waitedMs": 1072
+        },
+        "paymentsVerify": {
+          "pass": true,
+          "status": 200
+        },
+        "cancelOffer": {
+          "pass": true,
+          "status": 200,
+          "checks": {
+            "personaSegment": true,
+            "type": true,
+            "acceptedOffer": true,
+            "offerKey": true,
+            "churnScorePresent": true
+          },
+          "offer": {
+            "type": "downgrade",
+            "offerKey": null,
+            "cta": "downgrade_plan",
+            "segment": "low",
+            "usageSegment": "low",
+            "churnScore": 22,
+            "message": "Style Chat keeps your wardrobe and AI stylist at a lower monthly price — you might not need to cancel.",
+            "title": "A lighter plan might fit better",
+            "body": "Style Chat keeps your wardrobe and AI stylist at a lower monthly price — you might not need to cancel.",
+            "actionLabel": "View Style Chat",
+            "acceptedOffer": "downgrade_style_chat",
+            "primaryAction": "downgrade",
+            "highlightPlan": "style_chat",
+            "personaSegment": "low_usage",
+            "variant": "B",
+            "socialProof": null
+          },
+          "churnScore": 22
+        },
+        "rejectPath": {
+          "pass": true,
+          "status": 200,
+          "response": {
+            "success": true,
+            "message": "Your subscription will be cancelled at the end of the current billing period.",
+            "cancelAtPeriodEnd": true,
+            "cancelAt": null
+          }
+        }
+      },
+      "emailClick": {
+        "pass": true,
+        "status": "PASS",
+        "landingStatus": 200,
+        "eventStatus": 200,
+        "landingUrl": "https://dripnapp.com/subscription?source=winback_email&campaign=day0&campaign_id=day0&user_id=62&cta=resume_50&cta_id=resume_50&variant=B"
+      }
+    },
+    "medium": {
+      "accept": {
+        "register": {
+          "pass": true,
+          "status": "PASS",
+          "email": "dripn-e2e-medium-accept-1781515284746@test.dripn.local"
+        },
+        "seedSignals": {
+          "pass": true,
+          "status": "SKIP",
+          "skipped": true,
+          "reason": "DATABASE_URL not set — using natural signals only (A/C segments may skip)"
+        },
+        "checkout": {
+          "pass": true,
+          "status": "PASS",
+          "plan": "personal_stylist",
+          "sessionId": "cs_test_a1c0bw"
+        },
+        "payment": {
+          "pass": true,
+          "status": "SKIP",
+          "browserPayment": false,
+          "verifyFallback": true,
+          "note": null,
+          "skipped": true,
+          "reason": "Browser automation incomplete — subscription verified via API"
+        },
+        "tier": {
+          "pass": true,
+          "status": "PASS",
+          "tier": "personal_stylist",
+          "waitedMs": 1111
+        },
+        "paymentsVerify": {
+          "pass": true,
+          "status": 200
+        },
+        "cancelOffer": {
+          "pass": true,
+          "status": 200,
+          "skipped": true,
+          "reason": "Segment check skipped — set DATABASE_URL to seed medium signals (needs cancel_events / last_active)",
+          "checks": {
+            "personaSegment": false,
+            "type": false,
+            "acceptedOffer": false,
+            "offerKey": true,
+            "churnScorePresent": true
+          },
+          "offer": {
+            "type": "downgrade",
+            "offerKey": null,
+            "cta": "downgrade_plan",
+            "segment": "low",
+            "usageSegment": "low",
+            "churnScore": 22,
+            "message": "Style Chat keeps your wardrobe and AI stylist at a lower monthly price — you might not need to cancel.",
+            "title": "A lighter plan might fit better",
+            "body": "Style Chat keeps your wardrobe and AI stylist at a lower monthly price — you might not need to cancel.",
+            "actionLabel": "View Style Chat",
+            "acceptedOffer": "downgrade_style_chat",
+            "primaryAction": "downgrade",
+            "highlightPlan": "style_chat",
+            "personaSegment": "low_usage",
+            "variant": "A",
+            "socialProof": null
+          },
+          "churnScore": 22
+        },
+        "acceptPath": {
+          "pass": true,
+          "status": 200,
+          "offerType": "downgrade",
+          "response": {
+            "success": true,
+            "message": "You're now on Style Chat. Your next bill reflects the new plan with prorated credit.",
+            "plan": "style_chat",
+            "tierName": "Style Chat"
+          },
+          "skipped": false
+        }
+      },
+      "reject": {
+        "register": {
+          "pass": true,
+          "status": "PASS",
+          "email": "dripn-e2e-medium-reject-1781515309022@test.dripn.local"
+        },
+        "seedSignals": {
+          "pass": true,
+          "status": "SKIP",
+          "skipped": true,
+          "reason": "DATABASE_URL not set — using natural signals only (A/C segments may skip)"
+        },
+        "checkout": {
+          "pass": true,
+          "status": "PASS",
+          "plan": "personal_stylist",
+          "sessionId": "cs_test_a15t10"
+        },
+        "payment": {
+          "pass": true,
+          "status": "SKIP",
+          "browserPayment": false,
+          "verifyFallback": true,
+          "note": null,
+          "skipped": true,
+          "reason": "Browser automation incomplete — subscription verified via API"
+        },
+        "tier": {
+          "pass": true,
+          "status": "PASS",
+          "tier": "personal_stylist",
+          "waitedMs": 1074
+        },
+        "paymentsVerify": {
+          "pass": true,
+          "status": 200
+        },
+        "cancelOffer": {
+          "pass": true,
+          "status": 200,
+          "skipped": true,
+          "reason": "Segment check skipped — set DATABASE_URL to seed medium signals (needs cancel_events / last_active)",
+          "checks": {
+            "personaSegment": false,
+            "type": false,
+            "acceptedOffer": false,
+            "offerKey": true,
+            "churnScorePresent": true
+          },
+          "offer": {
+            "type": "downgrade",
+            "offerKey": null,
+            "cta": "downgrade_plan",
+            "segment": "low",
+            "usageSegment": "low",
+            "churnScore": 22,
+            "message": "Style Chat keeps your wardrobe and AI stylist at a lower monthly price — you might not need to cancel.",
+            "title": "A lighter plan might fit better",
+            "body": "Style Chat keeps your wardrobe and AI stylist at a lower monthly price — you might not need to cancel.",
+            "actionLabel": "View Style Chat",
+            "acceptedOffer": "downgrade_style_chat",
+            "primaryAction": "downgrade",
+            "highlightPlan": "style_chat",
+            "personaSegment": "low_usage",
+            "variant": "B",
+            "socialProof": null
+          },
+          "churnScore": 22
+        },
+        "rejectPath": {
+          "pass": true,
+          "status": 200,
+          "response": {
+            "success": true,
+            "message": "Your subscription will be cancelled at the end of the current billing period.",
+            "cancelAtPeriodEnd": true,
+            "cancelAt": null
+          }
+        }
+      },
+      "emailClick": {
+        "pass": true,
+        "status": "PASS",
+        "landingStatus": 200,
+        "eventStatus": 200,
+        "landingUrl": "https://dripnapp.com/subscription?source=winback_email&campaign=day0&campaign_id=day0&user_id=64&cta=resume_50&cta_id=resume_50&variant=B"
+      }
+    }
+  },
+  "global": {
+    "winbackCron": {
+      "pass": true,
+      "status": "SKIP",
+      "skipped": true,
+      "reason": "CRON_SECRET not set — add from Render dashboard env to test cron routes"
+    },
+    "optimizeCron": {
+      "pass": true,
+      "status": "SKIP",
+      "skipped": true,
+      "reason": "CRON_SECRET not set — add from Render dashboard env to test cron routes"
+    },
+    "emailClickAuth": {
+      "pass": true,
+      "status": 401
+    },
+    "adminAuth": {
+      "pass": true,
+      "status": "SKIP",
+      "skipped": true,
+      "reason": "Set ADMIN_EMAIL+ADMIN_PASSWORD or ADMIN_SECRET from Render dashboard to test admin routes"
+    }
+  },
+  "errors": []
+}

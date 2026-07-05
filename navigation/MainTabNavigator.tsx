@@ -3,8 +3,8 @@
  * Proprietary and confidential.
  */
 
-import React from "react";
-import { View, StyleSheet, Pressable, Platform } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, StyleSheet, Pressable, Platform, Keyboard } from "react-native";
 import { createBottomTabNavigator, BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -51,6 +51,23 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { translations } = useTranslations();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showListener = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideListener = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
+
+  if (keyboardVisible) {
+    return null;
+  }
 
   const leftTabs = TAB_CONFIG.slice(0, 2);
   const rightTabs = TAB_CONFIG.slice(2);

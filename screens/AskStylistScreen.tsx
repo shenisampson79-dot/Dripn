@@ -8,6 +8,8 @@ import {
   Image,
   Alert,
   Modal,
+  Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -17,10 +19,13 @@ import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScreenKeyboardAwareScrollView } from "@/components/ScreenKeyboardAwareScrollView";
+import { OutfitPiecesVisual } from "@/components/OutfitPiecesVisual";
+import { SurpriseMeLoadingOverlay } from "@/components/SurpriseMeLoadingOverlay";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWardrobe } from "@/contexts/WardrobeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import {
   decisionService,
@@ -29,16 +34,26 @@ import {
   DecisionRequest,
   DecisionResponse,
   DecisionAccessStatus,
-  SecondOpinionResponse,
 } from "@/services/DecisionService";
 import { apiService } from "@/services/ApiService";
-import { convertImageToBase64 } from "@/services/VisionAnalysisService";
+import weatherService from "@/services/WeatherService";
+import { pickDailyRuleFromPersonalized } from "@/utils/personalizedStyleRules";
+import { FASHION_RULES } from "@/data/fashionRules";
 import {
-  CommunityVotingService,
-  VotingSession,
-  VotingResult,
-} from "@/services/CommunityVotingService";
-import { ScrollView, ActivityIndicator } from "react-native";
+  buildOfflineColorOfTheYear,
+  buildOfflineSeasonalPalette,
+  normalizeApiColorOfTheYear,
+} from "@/utils/pantoneColorOfYear";
+import { getCurrentFashionYear } from "@/utils/fashionSeason";
+import { convertImageToBase64 } from "@/services/VisionAnalysisService";
+import { canSaveDecisionHistory, getMaxComparisonImages, getOutfitDecisionImageLimit } from "@/utils/tierMatrix";
+import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const OUTFIT_THUMB_COLUMNS = 3;
+const OUTFIT_THUMB_GAP = Spacing.sm;
+const OUTFIT_THUMB_SIZE =
+  (SCREEN_WIDTH - Spacing.xl * 2 - OUTFIT_THUMB_GAP * (OUTFIT_THUMB_COLUMNS - 1)) / OUTFIT_THUMB_COLUMNS;
 
 interface FashionRule {
   id: number;
@@ -95,6 +110,32 @@ const LUXURY_COLORS = {
   obsidian: '#0D0B09',
 };
 
+const EVENT_TYPES = [
+  { id: 'wedding', label: 'Wedding' },
+  { id: 'date', label: 'Date Night' },
+  { id: 'party', label: 'Party' },
+  { id: 'business', label: 'Business Meeting' },
+  { id: 'interview', label: 'Interview' },
+  { id: 'dinner', label: 'Dinner' },
+  { id: 'other', label: 'Other' },
+];
+
+const DRESS_CODES = [
+  { id: 'casual', label: 'Casual' },
+  { id: 'smart-casual', label: 'Smart Casual' },
+  { id: 'business', label: 'Business' },
+  { id: 'cocktail', label: 'Cocktail' },
+  { id: 'formal', label: 'Formal' },
+  { id: 'black-tie', label: 'Black Tie' },
+];
+
+const TIME_OPTIONS = [
+  { id: 'morning', label: 'Morning' },
+  { id: 'afternoon', label: 'Afternoon' },
+  { id: 'evening', label: 'Evening' },
+  { id: 'night', label: 'Night' },
+];
+
 type AskStylistScreenProps = {
   navigation: NativeStackNavigationProp<any>;
 };
@@ -102,6 +143,7 @@ type AskStylistScreenProps = {
 export default function AskStylistScreen({ navigation }: AskStylistScreenProps) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
+  const { items: wardrobeItems } = useWardrobe();
   const { translations } = useTranslations();
   const insets = useSafeAreaInsets();
 
@@ -121,13 +163,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   const [accessStatus, setAccessStatus] = useState<DecisionAccessStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<DecisionResponse | null>(null);
-  const [secondOpinion, setSecondOpinion] = useState<SecondOpinionResponse | null>(null);
-  const [votingSession, setVotingSession] = useState<VotingSession | null>(null);
-  const [votingResult, setVotingResult] = useState<VotingResult | null>(null);
-  const [showVotingResults, setShowVotingResults] = useState(false);
-  const [votingRefreshInterval, setVotingRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   const [fashionRules, setFashionRules] = useState<FashionRule[]>([]);
   const [dailyRule, setDailyRule] = useState<FashionRule | null>(null);
@@ -148,26 +184,36 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     loadFashionBlog();
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (votingRefreshInterval) {
-        clearInterval(votingRefreshInterval);
-      }
-    };
-  }, [votingRefreshInterval]);
-
-  useEffect(() => {
-    if (!showVotingResults && votingRefreshInterval) {
-      clearInterval(votingRefreshInterval);
-      setVotingRefreshInterval(null);
+  const getUploadLimit = () => {
+    if (selectedType === 'sanity-check') return 1;
+    if (selectedType === 'what-to-wear' || selectedType === 'event-outfit') {
+      return getOutfitDecisionImageLimit(user?.subscriptionTier || 'free');
     }
-  }, [showVotingResults]);
+    if (selectedType === 'shopping') {
+      const comparisonMax =
+        accessStatus?.maxImages ?? getMaxComparisonImages(user?.subscriptionTier || 'free');
+      return Math.min(3, comparisonMax);
+    }
+    return accessStatus?.maxImages ?? getMaxComparisonImages(user?.subscriptionTier || 'free');
+  };
+
+  const formatSubmitError = (error: any) => {
+    const raw = error?.message || '';
+    if (raw === 'too_many_images' || raw.includes('too_many_images')) {
+      const limit = getUploadLimit();
+      return `You can add up to ${limit} photos for this question. Remove a few and try again.`;
+    }
+    return raw || 'Something went wrong. Please try again.';
+  };
+
+  const canUploadThirdShoppingOption = () => getUploadLimit() >= 3;
 
   const loadFashionBlog = async () => {
     try {
-      const [dailyRes, categoriesRes] = await Promise.all([
+      const [dailyRes, categoriesRes, currentWeather] = await Promise.all([
         apiService.getDailyFashionRule(),
         apiService.getFashionRuleCategories(),
+        weatherService.getWeatherForOutfits().catch(() => null),
       ]);
       if (dailyRes && dailyRes.id && dailyRes.title) {
         setDailyRule(dailyRes as FashionRule);
@@ -176,7 +222,14 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
       }
       setCategories(categoriesRes.categories || []);
     } catch (error) {
-      setDailyRule({
+      const currentWeather = await weatherService.getWeatherForOutfits().catch(() => null);
+      const personalizedRule = pickDailyRuleFromPersonalized(FASHION_RULES, {
+        gender: user?.gender,
+        wardrobeItems,
+        weather: currentWeather,
+        bodyShape: user?.bodyShape,
+      });
+      setDailyRule(personalizedRule ?? {
         id: 1,
         title: "The 60-30-10 Color Rule",
         content: "Use 60% dominant color, 30% secondary, and 10% accent for a balanced, stylish outfit.",
@@ -201,64 +254,19 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
 
     try {
       const colorTrendsRes = await apiService.getCurrentColorTrends();
-      setColorOfTheYear(colorTrendsRes.colorOfTheYear);
-      setSeasonalPalette(colorTrendsRes.seasonalPalette || []);
+      const year = getCurrentFashionYear();
+      const normalizedColor = normalizeApiColorOfTheYear(
+        colorTrendsRes.colorOfTheYear ?? (colorTrendsRes as { colorOfYear?: unknown }).colorOfYear,
+        year,
+      );
+      setColorOfTheYear(normalizedColor ?? buildOfflineColorOfTheYear(year));
+      setSeasonalPalette(colorTrendsRes.seasonalPalette?.length
+        ? colorTrendsRes.seasonalPalette
+        : buildOfflineSeasonalPalette(year));
     } catch (error) {
-      setColorOfTheYear({
-        name: "Mocha Mousse",
-        hexCode: "#A47864",
-        pantoneCode: "PANTONE 17-1230",
-        description: "A warm, earthy brown that evokes comfort and timeless elegance.",
-        pairingColors: ["#FFFFFF", "#000000", "#D4A574", "#8B7355"],
-        bestFor: ["Warm", "Neutral"],
-        year: 2025,
-      });
-      setSeasonalPalette([
-        {
-          id: "1",
-          name: "Butter Cream",
-          hexCode: "#F5E6C8",
-          pantoneCode: "PANTONE 13-0720",
-          season: "Spring",
-          year: 2026,
-          description: "A soft, creamy yellow that brings warmth and optimism.",
-          pairingColors: ["#A47864", "#6B5B4F", "#FFFFFF"],
-          bestFor: ["Warm", "Neutral"],
-        },
-        {
-          id: "2",
-          name: "Sage Mist",
-          hexCode: "#B8C4A8",
-          pantoneCode: "PANTONE 15-6316",
-          season: "Spring",
-          year: 2026,
-          description: "A calming, muted green perfect for fresh spring looks.",
-          pairingColors: ["#FFFFFF", "#F5E6C8", "#6B7355"],
-          bestFor: ["Cool", "Neutral"],
-        },
-        {
-          id: "3",
-          name: "Dusty Rose",
-          hexCode: "#D4A5A5",
-          pantoneCode: "PANTONE 15-1614",
-          season: "Spring",
-          year: 2026,
-          description: "A romantic, muted pink that flatters all skin tones.",
-          pairingColors: ["#FFFFFF", "#000000", "#C9A87C"],
-          bestFor: ["Warm", "Cool"],
-        },
-        {
-          id: "4",
-          name: "Ocean Depth",
-          hexCode: "#2E5A6B",
-          pantoneCode: "PANTONE 19-4241",
-          season: "Spring",
-          year: 2026,
-          description: "A sophisticated teal that adds depth to any outfit.",
-          pairingColors: ["#FFFFFF", "#F5E6C8", "#C9A87C"],
-          bestFor: ["Cool", "Neutral"],
-        },
-      ]);
+      const year = getCurrentFashionYear();
+      setColorOfTheYear(buildOfflineColorOfTheYear(year));
+      setSeasonalPalette(buildOfflineSeasonalPalette(year));
     }
   };
 
@@ -292,24 +300,45 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedType(type);
     setIsSurpriseMe(false);
-    // For "what-to-wear" and "sanity-check", show exploratory questions first before upload
-    if (type === 'what-to-wear' || type === 'sanity-check') {
+    setEventDetails({ eventType: '', dressCode: '', venue: '', timeOfDay: '' });
+    setSelectedContexts([]);
+    setContextNotes('');
+    // Situational context first — helps wardrobe-aware styling pick relevant pieces
+    if (type === 'what-to-wear' || type === 'sanity-check' || type === 'event-outfit') {
       setStep('context');
     } else {
       setStep('upload');
     }
   };
 
+  const buildDecisionContext = (): string => {
+    const situational = decisionService.formatContextForApi(selectedContexts);
+    const notes = contextNotes.trim() || undefined;
+
+    if (selectedType === 'event-outfit') {
+      const eventParts: string[] = [];
+      const eventTypeLabel = EVENT_TYPES.find((t) => t.id === eventDetails.eventType)?.label;
+      const dressCodeLabel = DRESS_CODES.find((d) => d.id === eventDetails.dressCode)?.label;
+      const timeLabel = TIME_OPTIONS.find((t) => t.id === eventDetails.timeOfDay)?.label;
+      if (eventTypeLabel) eventParts.push(`Event type: ${eventTypeLabel}`);
+      if (dressCodeLabel) eventParts.push(`Dress code: ${dressCodeLabel}`);
+      if (timeLabel) eventParts.push(`Time of day: ${timeLabel}`);
+      if (eventDetails.venue?.trim()) eventParts.push(`Venue: ${eventDetails.venue.trim()}`);
+
+      const sections = [situational, eventParts.join('\n'), notes].filter(Boolean);
+      return sections.join('\n\n');
+    }
+
+    return decisionService.formatContextForApi(selectedContexts, notes);
+  };
+
   const handleSurpriseMe = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // For "what-to-wear", submit directly with isSurpriseMe = true
-    if (selectedType === 'what-to-wear') {
+    setIsSurpriseMe(true);
+    if (selectedType === 'what-to-wear' || selectedType === 'event-outfit') {
+      setIsLoading(true);
       submitWithSurpriseMe();
-    } else if (selectedType === 'event-outfit') {
-      setIsSurpriseMe(true);
-      setStep('event-questions');
     } else {
-      setIsSurpriseMe(true);
       setStep('context');
     }
   };
@@ -320,7 +349,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
 
     try {
       const stylistId = user?.stylistPreferences?.selectedStylistId || 'ruby';
-      const context = decisionService.formatContextForApi(selectedContexts, contextNotes.trim() || undefined);
+      const context = buildDecisionContext();
       
       const decisionTypeMap: Record<string, 'sanity_check' | 'shopping' | 'what_to_wear' | 'event_outfit'> = {
         'sanity-check': 'sanity_check',
@@ -351,11 +380,12 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
       };
 
       const apiResult = await apiService.submitDecisionCheck({
-        decisionType: decisionTypeMap[selectedType] || 'sanity_check',
+        decisionType: (selectedType ? decisionTypeMap[selectedType] : undefined) || 'sanity_check',
         images: [], // Surprise Me doesn't need images
         context,
         stylist: stylistId,
         userProfile: fullUserProfile,
+        surpriseMe: true,
       });
 
       const recommendedIndex = apiResult.recommendedIndex ?? 0;
@@ -364,6 +394,11 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         requestId: `request-${Date.now()}`,
         recommendation: apiResult.decision || apiResult.recommendation || apiResult.response || '',
         reasoning: apiResult.reasoning || '',
+        styleRating: apiResult.styleRating ?? null,
+        ratingLabel: apiResult.ratingLabel ?? null,
+        outfitPieces: apiResult.outfitPieces ?? null,
+        outfitSummary: apiResult.outfitSummary ?? null,
+        isSurpriseMe: true,
         stylistId,
         timestamp: new Date().toISOString(),
         outfitImageUrl: apiResult.outfitImageUrl,
@@ -375,6 +410,20 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
       if (user?.id) {
         await decisionService.incrementDecisionsToday(user.id);
         await decisionService.incrementTotalDecisions(user.id);
+        const tier = normalizeSubscriptionTier(user.subscriptionTier);
+        if (canSaveDecisionHistory(tier)) {
+          const historyRequest: DecisionRequest = {
+            id: result.requestId,
+            userId: user.id,
+            type: selectedType!,
+            images,
+            contextNotes: contextNotes.trim() || undefined,
+            contextChips: selectedContexts,
+            timestamp: new Date().toISOString(),
+            stylistId: stylistId as any,
+          };
+          await decisionService.saveToHistory(user.id, historyRequest, result, user.subscriptionTier);
+        }
       }
 
       setResponse(result);
@@ -403,7 +452,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           ]
         );
       } else {
-        Alert.alert('Unable to submit', error.message);
+        Alert.alert('Unable to submit', formatSubmitError(error));
       }
     } finally {
       setIsLoading(false);
@@ -411,12 +460,12 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   };
 
   const handlePickImage = async () => {
-    if (!accessStatus) return;
-
-    if (images.length >= accessStatus.maxImages) {
+    const uploadLimit = getUploadLimit();
+    if (uploadLimit === 0) return;
+    if (images.length >= uploadLimit) {
       Alert.alert(
         'Maximum images reached',
-        `You can upload up to ${accessStatus.maxImages} images.`
+        `You can upload up to ${uploadLimit} images.`
       );
       return;
     }
@@ -425,22 +474,22 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       quality: 0.8,
-      selectionLimit: accessStatus.maxImages - images.length,
+      selectionLimit: uploadLimit - images.length,
     });
 
     if (!result.canceled) {
       const newImages = result.assets.map(asset => asset.uri);
-      setImages(prev => [...prev, ...newImages].slice(0, accessStatus.maxImages));
+      setImages(prev => [...prev, ...newImages].slice(0, uploadLimit));
     }
   };
 
   const handleTakePhoto = async () => {
-    if (!accessStatus) return;
-
-    if (images.length >= accessStatus.maxImages) {
+    const uploadLimit = getUploadLimit();
+    if (uploadLimit === 0) return;
+    if (images.length >= uploadLimit) {
       Alert.alert(
         'Maximum images reached',
-        `You can upload up to ${accessStatus.maxImages} images.`
+        `You can upload up to ${uploadLimit} images.`
       );
       return;
     }
@@ -456,7 +505,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     });
 
     if (!result.canceled) {
-      setImages(prev => [...prev, result.assets[0].uri].slice(0, accessStatus.maxImages));
+      setImages(prev => [...prev, result.assets[0].uri].slice(0, uploadLimit));
     }
   };
 
@@ -485,18 +534,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     try {
       const stylistId = user?.stylistPreferences?.selectedStylistId || 'ruby';
       
-      // For event-outfit, build context from event details instead of selectedContexts
-      let context: string;
-      if (selectedType === 'event-outfit') {
-        const eventParts: string[] = [];
-        if (eventDetails.eventType) eventParts.push(`Event type: ${eventDetails.eventType}`);
-        if (eventDetails.dressCode) eventParts.push(`Dress code: ${eventDetails.dressCode}`);
-        if (eventDetails.timeOfDay) eventParts.push(`Time of day: ${eventDetails.timeOfDay}`);
-        if (contextNotes.trim()) eventParts.push(`Additional details: ${contextNotes.trim()}`);
-        context = eventParts.join('\n');
-      } else {
-        context = decisionService.formatContextForApi(selectedContexts, contextNotes.trim() || undefined);
-      }
+      const context = buildDecisionContext();
       
       const decisionTypeMap: Record<string, 'sanity_check' | 'shopping' | 'what_to_wear' | 'event_outfit'> = {
         'sanity-check': 'sanity_check',
@@ -536,11 +574,12 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
       };
 
       const apiResult = await apiService.submitDecisionCheck({
-        decisionType: decisionTypeMap[selectedType] || 'sanity_check',
+        decisionType: (selectedType ? decisionTypeMap[selectedType] : undefined) || 'sanity_check',
         images: base64Images,
         context,
         stylist: stylistId,
         userProfile: fullUserProfile,
+        surpriseMe: isSurpriseMe,
       });
 
       const recommendedIndex = apiResult.recommendedIndex ?? 0;
@@ -549,6 +588,11 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         requestId: `request-${Date.now()}`,
         recommendation: apiResult.decision || apiResult.recommendation || apiResult.response || '',
         reasoning: apiResult.reasoning || '',
+        styleRating: apiResult.styleRating ?? null,
+        ratingLabel: apiResult.ratingLabel ?? null,
+        outfitPieces: apiResult.outfitPieces ?? null,
+        outfitSummary: apiResult.outfitSummary ?? null,
+        isSurpriseMe,
         stylistId,
         timestamp: new Date().toISOString(),
         outfitImageUrl: apiResult.outfitImageUrl,
@@ -560,6 +604,20 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
       if (user?.id) {
         await decisionService.incrementDecisionsToday(user.id);
         await decisionService.incrementTotalDecisions(user.id);
+        const tier = normalizeSubscriptionTier(user.subscriptionTier);
+        if (canSaveDecisionHistory(tier)) {
+          const historyRequest: DecisionRequest = {
+            id: result.requestId,
+            userId: user.id,
+            type: selectedType!,
+            images,
+            contextNotes: contextNotes.trim() || undefined,
+            contextChips: selectedContexts,
+            timestamp: new Date().toISOString(),
+            stylistId: stylistId as any,
+          };
+          await decisionService.saveToHistory(user.id, historyRequest, result, user.subscriptionTier);
+        }
       }
 
       setResponse(result);
@@ -588,60 +646,8 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           ]
         );
       } else {
-        Alert.alert('Unable to submit', error.message);
+        Alert.alert('Unable to submit', formatSubmitError(error));
       }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSecondOpinion = async () => {
-    if (!response) return;
-
-    if (!user?.id) {
-      setShowRegisterModal(true);
-      return;
-    }
-
-    if (!accessStatus?.hasSecondOpinion) {
-      setShowUpgradeModal(true);
-      return;
-    }
-
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsLoading(true);
-
-    try {
-      const session = await CommunityVotingService.createVotingSession(
-        user.id,
-        response.outfitOptions || [],
-        response.recommendedOptionId || '0',
-        {
-          occasion: decisionContext.occasion || '',
-          description: decisionContext.context,
-        }
-      );
-
-      setVotingSession(session);
-      setShowVotingResults(true);
-
-      const results = await CommunityVotingService.getVotingResults(
-        session.id,
-        user.stylistPreferences?.selectedStylistId
-      );
-      setVotingResult(results);
-
-      const interval = setInterval(async () => {
-        const updatedResults = await CommunityVotingService.getVotingResults(
-          session.id,
-          user.stylistPreferences?.selectedStylistId
-        );
-        setVotingResult(updatedResults);
-      }, 3000);
-
-      setVotingRefreshInterval(interval);
-    } catch (error: any) {
-      Alert.alert('Unable to request second opinion', error.message);
     } finally {
       setIsLoading(false);
     }
@@ -1041,22 +1047,119 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   };
 
   const getUploadSubtitle = () => {
+    const limit = getUploadLimit();
     if (selectedType === 'sanity-check') return "Upload one outfit or item for a quick check.";
-    if (selectedType === 'what-to-wear' || selectedType === 'event-outfit') return "Upload photos or let me pick something from your wardrobe.";
+    if (selectedType === 'what-to-wear' || selectedType === 'event-outfit') {
+      return `Add up to ${limit} photos of your outfit pieces — they'll show together here. Or tap Surprise Me to use your wardrobe.`;
+    }
     return "Two or three options is perfect.";
   };
 
-  const getMaxImagesForType = () => {
-    if (selectedType === 'sanity-check') return 1;
-    return accessStatus?.maxImages || 2;
-  };
+  const getMaxImagesForType = () => getUploadLimit();
 
   const showSurpriseMeOption = selectedType === 'what-to-wear' || selectedType === 'event-outfit';
 
+  const renderOutfitUploadGrid = () => {
+    const limit = getUploadLimit();
+    const slots = Array.from({ length: limit }, (_, index) => index);
+
+    return (
+      <View style={styles.outfitImagesGrid}>
+        {slots.map((slotIndex) => {
+          const uri = images[slotIndex];
+          if (uri) {
+            return (
+              <View key={`slot-${slotIndex}`} style={styles.outfitImageContainer}>
+                <Image
+                  source={{ uri }}
+                  style={styles.outfitUploadedImage}
+                  resizeMode="cover"
+                />
+                <Pressable
+                  onPress={() => handleRemoveImage(slotIndex)}
+                  style={styles.removeImageButton}
+                >
+                  <Feather name="x" size={14} color="#FFFFFF" />
+                </Pressable>
+              </View>
+            );
+          }
+
+          return (
+            <Pressable
+              key={`slot-${slotIndex}`}
+              onPress={handlePickImage}
+              style={({ pressed }) => [
+                styles.outfitEmptySlot,
+                pressed && styles.outfitEmptySlotPressed,
+              ]}
+            >
+              <Feather name="plus" size={22} color="rgba(255,255,255,0.7)" />
+              <ThemedText type="caption" style={styles.outfitEmptySlotLabel}>
+                Piece {slotIndex + 1}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+    );
+  };
+
+  const renderOptionUploadButtons = () => (
+    <View style={styles.optionUploadArea}>
+      <View style={styles.uploadButtonsColumn}>
+        <Pressable
+          onPress={handlePickImage}
+          style={({ pressed }) => [
+            styles.optionUploadButton,
+            pressed && styles.uploadButtonPressed,
+          ]}
+        >
+          {({ pressed }) => (
+            <LinearGradient
+              colors={pressed
+                ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.2)']
+                : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+              style={styles.uploadButtonGradient}
+            >
+              <Feather name="image" size={28} color={pressed ? '#FFFFFF' : 'rgba(255,255,255,0.6)'} />
+              <ThemedText type="small" style={[styles.uploadButtonText, pressed && { color: '#FFFFFF' }]}>
+                Gallery
+              </ThemedText>
+            </LinearGradient>
+          )}
+        </Pressable>
+        <Pressable
+          onPress={handleTakePhoto}
+          style={({ pressed }) => [
+            styles.optionUploadButton,
+            pressed && styles.uploadButtonPressed,
+          ]}
+        >
+          {({ pressed }) => (
+            <LinearGradient
+              colors={pressed
+                ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.2)']
+                : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+              style={styles.uploadButtonGradient}
+            >
+              <Feather name="camera" size={28} color={pressed ? '#FFFFFF' : 'rgba(255,255,255,0.6)'} />
+              <ThemedText type="small" style={[styles.uploadButtonText, pressed && { color: '#FFFFFF' }]}>
+                Camera
+              </ThemedText>
+            </LinearGradient>
+          )}
+        </Pressable>
+      </View>
+    </View>
+  );
+
   const renderUpload = () => {
     const isComparisonMode = selectedType === 'shopping';
+    const isOutfitUploadMode = selectedType === 'what-to-wear' || selectedType === 'event-outfit';
     const option1Filled = images.length > 0;
     const option2Filled = images.length > 1;
+    const option3Filled = images.length > 2;
 
     return (
       <View style={styles.stepContent}>
@@ -1083,52 +1186,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
                   </Pressable>
                 </View>
               ) : (
-                <View style={styles.optionUploadArea}>
-                  <View style={styles.uploadButtonsColumn}>
-                    <Pressable 
-                      onPress={handlePickImage} 
-                      style={({ pressed }) => [
-                        styles.optionUploadButton,
-                        pressed && styles.uploadButtonPressed
-                      ]}
-                    >
-                      {({ pressed }) => (
-                        <LinearGradient
-                          colors={pressed 
-                            ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.2)'] 
-                            : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-                          style={styles.uploadButtonGradient}
-                        >
-                          <Feather name="image" size={28} color={pressed ? '#FFFFFF' : 'rgba(255,255,255,0.6)'} />
-                          <ThemedText type="small" style={[styles.uploadButtonText, pressed && { color: '#FFFFFF' }]}>
-                            Gallery
-                          </ThemedText>
-                        </LinearGradient>
-                      )}
-                    </Pressable>
-                    <Pressable 
-                      onPress={handleTakePhoto} 
-                      style={({ pressed }) => [
-                        styles.optionUploadButton,
-                        pressed && styles.uploadButtonPressed
-                      ]}
-                    >
-                      {({ pressed }) => (
-                        <LinearGradient
-                          colors={pressed 
-                            ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.2)'] 
-                            : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-                          style={styles.uploadButtonGradient}
-                        >
-                          <Feather name="camera" size={28} color={pressed ? '#FFFFFF' : 'rgba(255,255,255,0.6)'} />
-                          <ThemedText type="small" style={[styles.uploadButtonText, pressed && { color: '#FFFFFF' }]}>
-                            Camera
-                          </ThemedText>
-                        </LinearGradient>
-                      )}
-                    </Pressable>
-                  </View>
-                </View>
+                renderOptionUploadButtons()
               )}
             </View>
 
@@ -1148,52 +1206,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
                   </Pressable>
                 </View>
               ) : option1Filled ? (
-                <View style={styles.optionUploadArea}>
-                  <View style={styles.uploadButtonsColumn}>
-                    <Pressable 
-                      onPress={handlePickImage} 
-                      style={({ pressed }) => [
-                        styles.optionUploadButton,
-                        pressed && styles.uploadButtonPressed
-                      ]}
-                    >
-                      {({ pressed }) => (
-                        <LinearGradient
-                          colors={pressed 
-                            ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.2)'] 
-                            : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-                          style={styles.uploadButtonGradient}
-                        >
-                          <Feather name="image" size={28} color={pressed ? '#FFFFFF' : 'rgba(255,255,255,0.6)'} />
-                          <ThemedText type="small" style={[styles.uploadButtonText, pressed && { color: '#FFFFFF' }]}>
-                            Gallery
-                          </ThemedText>
-                        </LinearGradient>
-                      )}
-                    </Pressable>
-                    <Pressable 
-                      onPress={handleTakePhoto} 
-                      style={({ pressed }) => [
-                        styles.optionUploadButton,
-                        pressed && styles.uploadButtonPressed
-                      ]}
-                    >
-                      {({ pressed }) => (
-                        <LinearGradient
-                          colors={pressed 
-                            ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.2)'] 
-                            : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-                          style={styles.uploadButtonGradient}
-                        >
-                          <Feather name="camera" size={28} color={pressed ? '#FFFFFF' : 'rgba(255,255,255,0.6)'} />
-                          <ThemedText type="small" style={[styles.uploadButtonText, pressed && { color: '#FFFFFF' }]}>
-                            Camera
-                          </ThemedText>
-                        </LinearGradient>
-                      )}
-                    </Pressable>
-                  </View>
-                </View>
+                renderOptionUploadButtons()
               ) : (
                 <View style={[styles.optionUploadArea, styles.optionDisabled]}>
                   <ThemedText type="small" style={styles.optionDisabledText}>
@@ -1202,13 +1215,82 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
                 </View>
               )}
             </View>
+
+            {/* Option 3 Section (optional) */}
+            <View style={styles.optionSection}>
+              <ThemedText type="body" style={[styles.optionLabel, { opacity: option2Filled ? 1 : 0.5 }]}>
+                Option 3 (optional)
+              </ThemedText>
+              {option3Filled ? (
+                <View style={styles.optionImageContainer}>
+                  <Image source={{ uri: images[2] }} style={styles.uploadedImage} />
+                  <Pressable
+                    onPress={() => handleRemoveImage(2)}
+                    style={styles.removeImageButton}
+                  >
+                    <Feather name="x" size={16} color="#FFFFFF" />
+                  </Pressable>
+                </View>
+              ) : option2Filled ? (
+                canUploadThirdShoppingOption() ? (
+                  renderOptionUploadButtons()
+                ) : (
+                  <Pressable
+                    onPress={() => setShowUpgradeModal(true)}
+                    style={[styles.optionUploadArea, styles.optionLocked]}
+                  >
+                    <Feather name="lock" size={22} color="rgba(255,255,255,0.6)" />
+                    <ThemedText type="small" style={styles.optionLockedText}>
+                      Compare 3 options with Personal Stylist
+                    </ThemedText>
+                  </Pressable>
+                )
+              ) : (
+                <View style={[styles.optionUploadArea, styles.optionDisabled]}>
+                  <ThemedText type="small" style={styles.optionDisabledText}>
+                    Upload Option 2 first
+                  </ThemedText>
+                </View>
+              )}
+            </View>
           </View>
+        ) : isOutfitUploadMode ? (
+          <>
+            {renderOutfitUploadGrid()}
+            {images.length < getMaxImagesForType() ? (
+              <View style={styles.outfitUploadActionsRow}>
+                <Pressable
+                  onPress={handlePickImage}
+                  style={({ pressed }) => [
+                    styles.outfitUploadAction,
+                    pressed && styles.uploadButtonPressed,
+                  ]}
+                >
+                  <Feather name="image" size={18} color="#FFFFFF" />
+                  <ThemedText type="small" style={styles.outfitUploadActionText}>
+                    Gallery
+                  </ThemedText>
+                </Pressable>
+                <Pressable
+                  onPress={handleTakePhoto}
+                  style={({ pressed }) => [
+                    styles.outfitUploadAction,
+                    pressed && styles.uploadButtonPressed,
+                  ]}
+                >
+                  <Feather name="camera" size={18} color="#FFFFFF" />
+                  <ThemedText type="small" style={styles.outfitUploadActionText}>
+                    Camera
+                  </ThemedText>
+                </Pressable>
+              </View>
+            ) : null}
+          </>
         ) : (
-          // Single image upload (non-shopping mode)
           <View style={styles.imagesGrid}>
             {images.map((uri, index) => (
               <View key={index} style={styles.imageContainer}>
-                <Image source={{ uri }} style={styles.uploadedImage} />
+                <Image source={{ uri }} style={styles.uploadedImage} resizeMode="cover" />
                 <Pressable
                   onPress={() => handleRemoveImage(index)}
                   style={styles.removeImageButton}
@@ -1220,17 +1302,14 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
 
             {images.length < getMaxImagesForType() ? (
               <View style={styles.uploadButtonsRow}>
-                <Pressable 
-                  onPress={handlePickImage} 
-                  style={({ pressed }) => [
-                    styles.uploadButton,
-                    pressed && styles.uploadButtonPressed
-                  ]}
+                <Pressable
+                  onPress={handlePickImage}
+                  style={({ pressed }) => [styles.uploadButton, pressed && styles.uploadButtonPressed]}
                 >
                   {({ pressed }) => (
                     <LinearGradient
-                      colors={pressed 
-                        ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.2)'] 
+                      colors={pressed
+                        ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.2)']
                         : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
                       style={styles.uploadButtonGradient}
                     >
@@ -1241,17 +1320,14 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
                     </LinearGradient>
                   )}
                 </Pressable>
-                <Pressable 
-                  onPress={handleTakePhoto} 
-                  style={({ pressed }) => [
-                    styles.uploadButton,
-                    pressed && styles.uploadButtonPressed
-                  ]}
+                <Pressable
+                  onPress={handleTakePhoto}
+                  style={({ pressed }) => [styles.uploadButton, pressed && styles.uploadButtonPressed]}
                 >
                   {({ pressed }) => (
                     <LinearGradient
-                      colors={pressed 
-                        ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.2)'] 
+                      colors={pressed
+                        ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.2)']
                         : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
                       style={styles.uploadButtonGradient}
                     >
@@ -1274,18 +1350,35 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
               <ThemedText style={styles.orText}>or</ThemedText>
               <View style={styles.dividerLine} />
             </View>
-            <Pressable onPress={handleSurpriseMe} style={styles.surpriseMeButton}>
+            <Pressable
+              onPress={handleSurpriseMe}
+              disabled={isLoading}
+              style={[styles.surpriseMeButton, isLoading && styles.surpriseMeButtonDisabled]}
+            >
               <LinearGradient
-                colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+                colors={isLoading
+                  ? ['rgba(201,168,124,0.55)', 'rgba(168,139,92,0.55)']
+                  : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
                 style={styles.surpriseMeButtonGradient}
               >
-                <Feather name="shuffle" size={20} color={LUXURY_COLORS.midnight} />
-                <ThemedText type="body" style={styles.surpriseMeButtonText}>
-                  Surprise Me
-                </ThemedText>
-                <ThemedText type="small" style={styles.surpriseMeSubtext}>
-                  Pick from my wardrobe
-                </ThemedText>
+                {isLoading && isSurpriseMe ? (
+                  <>
+                    <ActivityIndicator size="small" color={LUXURY_COLORS.midnight} />
+                    <ThemedText type="body" style={styles.surpriseMeButtonText}>
+                      Styling your look...
+                    </ThemedText>
+                  </>
+                ) : (
+                  <>
+                    <Feather name="shuffle" size={20} color={LUXURY_COLORS.midnight} />
+                    <ThemedText type="body" style={styles.surpriseMeButtonText}>
+                      Surprise Me
+                    </ThemedText>
+                    <ThemedText type="small" style={styles.surpriseMeSubtext}>
+                      Pick from my wardrobe
+                    </ThemedText>
+                  </>
+                )}
               </LinearGradient>
             </Pressable>
           </View>
@@ -1293,7 +1386,17 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
 
         {images.length > 0 ? (
           <Pressable
-            onPress={() => selectedType === 'what-to-wear' || selectedType === 'sanity-check' ? handleSubmit() : setStep('context')}
+            onPress={() => {
+              const submitFromUpload =
+                selectedType === 'what-to-wear'
+                || selectedType === 'sanity-check'
+                || selectedType === 'event-outfit';
+              if (submitFromUpload) {
+                handleSubmit();
+              } else {
+                setStep('context');
+              }
+            }}
             disabled={isLoading}
             style={styles.nextButton}
           >
@@ -1312,39 +1415,13 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     );
   };
 
-  const eventTypes = [
-    { id: 'wedding', label: 'Wedding' },
-    { id: 'date', label: 'Date Night' },
-    { id: 'party', label: 'Party' },
-    { id: 'business', label: 'Business Meeting' },
-    { id: 'interview', label: 'Interview' },
-    { id: 'dinner', label: 'Dinner' },
-    { id: 'other', label: 'Other' },
-  ];
-
-  const dressCodes = [
-    { id: 'casual', label: 'Casual' },
-    { id: 'smart-casual', label: 'Smart Casual' },
-    { id: 'business', label: 'Business' },
-    { id: 'cocktail', label: 'Cocktail' },
-    { id: 'formal', label: 'Formal' },
-    { id: 'black-tie', label: 'Black Tie' },
-  ];
-
-  const timeOptions = [
-    { id: 'morning', label: 'Morning' },
-    { id: 'afternoon', label: 'Afternoon' },
-    { id: 'evening', label: 'Evening' },
-    { id: 'night', label: 'Night' },
-  ];
-
   const renderEventQuestions = () => (
     <View style={styles.stepContent}>
       <ThemedText type="h2" style={styles.stepTitle}>
         Tell me about your event
       </ThemedText>
       <ThemedText style={styles.stepSubtitle}>
-        Help me pick the perfect outfit for you.
+        A few details so I can pick the right pieces from your wardrobe.
       </ThemedText>
 
       <View style={styles.eventQuestionsContainer}>
@@ -1352,7 +1429,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           What type of event?
         </ThemedText>
         <View style={styles.eventChipsRow}>
-          {eventTypes.map((type) => (
+          {EVENT_TYPES.map((type) => (
             <Pressable
               key={type.id}
               onPress={() => setEventDetails(prev => ({ ...prev, eventType: type.id }))}
@@ -1378,7 +1455,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           Dress code?
         </ThemedText>
         <View style={styles.eventChipsRow}>
-          {dressCodes.map((code) => (
+          {DRESS_CODES.map((code) => (
             <Pressable
               key={code.id}
               onPress={() => setEventDetails(prev => ({ ...prev, dressCode: code.id }))}
@@ -1404,7 +1481,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           Time of day?
         </ThemedText>
         <View style={styles.eventChipsRow}>
-          {timeOptions.map((time) => (
+          {TIME_OPTIONS.map((time) => (
             <Pressable
               key={time.id}
               onPress={() => setEventDetails(prev => ({ ...prev, timeOfDay: time.id }))}
@@ -1425,57 +1502,41 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
             </Pressable>
           ))}
         </View>
-
-        <ThemedText type="body" style={styles.eventQuestionLabel}>
-          Anything I should know?
-        </ThemedText>
-
-        <TextInput
-          ref={contextInputRef}
-          style={styles.contextInput}
-          placeholder="Add any extra details (optional)"
-          placeholderTextColor="rgba(255,255,255,0.4)"
-          value={contextNotes}
-          onChangeText={setContextNotes}
-          multiline
-          numberOfLines={3}
-          maxLength={200}
-        />
       </View>
 
       {eventDetails.eventType && eventDetails.dressCode ? (
         <Pressable
-          onPress={handleSubmit}
-          disabled={isLoading}
+          onPress={() => setStep('upload')}
           style={styles.nextButton}
         >
           <LinearGradient
             colors={getStylistGradient()}
             style={styles.nextButtonGradient}
           >
-            {isLoading ? (
-              <ThemedText type="body" style={styles.nextButtonText}>
-                Thinking...
-              </ThemedText>
-            ) : (
-              <>
-                <ThemedText type="body" style={styles.nextButtonText}>
-                  Ask my stylist
-                </ThemedText>
-                <Feather name="send" size={18} color="#FFFFFF" />
-              </>
-            )}
+            <ThemedText type="body" style={styles.nextButtonText}>
+              Next
+            </ThemedText>
+            <Feather name="arrow-right" size={18} color="#FFFFFF" />
           </LinearGradient>
         </Pressable>
       ) : null}
+
+      <Pressable onPress={() => setStep('context')} style={styles.backLink}>
+        <ThemedText style={styles.backLinkText}>Back</ThemedText>
+      </Pressable>
     </View>
   );
 
   const renderContext = () => (
     <View style={styles.stepContent}>
       <ThemedText type="h2" style={styles.stepTitle}>
-        Anything I should know?
+        {selectedType === 'event-outfit' ? 'What\'s the situation?' : 'Anything I should know?'}
       </ThemedText>
+      {selectedType === 'event-outfit' ? (
+        <ThemedText style={styles.stepSubtitle}>
+          Weather, vibe, comfort — anything that helps me pick from your wardrobe.
+        </ThemedText>
+      ) : null}
 
       <View style={styles.contextChipsContainer}>
         {contextChips.map((chip) => {
@@ -1515,10 +1576,10 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         maxLength={200}
       />
 
-      {selectedType === 'what-to-wear' || selectedType === 'sanity-check' ? (
+      {selectedType === 'what-to-wear' || selectedType === 'sanity-check' || selectedType === 'event-outfit' ? (
         <>
           <Pressable
-            onPress={() => setStep('upload')}
+            onPress={() => setStep(selectedType === 'event-outfit' ? 'event-questions' : 'upload')}
             style={styles.submitButton}
           >
             <LinearGradient
@@ -1548,7 +1609,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
             >
               {isLoading ? (
                 <ThemedText type="body" style={styles.submitButtonText}>
-                  Thinking...
+                  {isSurpriseMe ? 'Styling your look...' : 'Thinking...'}
                 </ThemedText>
               ) : (
                 <>
@@ -1607,42 +1668,78 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
       </View>
 
       {response?.uploadedImages && response.uploadedImages.length > 0 && response.recommendedIndex !== undefined ? (
-        <View style={styles.outfitImageContainer}>
+        <View style={styles.responseOutfitImageContainer}>
           <Image
             source={{ uri: response.uploadedImages[response.recommendedIndex] }}
             style={styles.outfitImage}
           />
         </View>
       ) : response?.outfitImageUrl ? (
-        <View style={styles.outfitImageContainer}>
+        <View style={styles.responseOutfitImageContainer}>
           <Image
             source={{ uri: response.outfitImageUrl }}
             style={styles.outfitImage}
           />
         </View>
+      ) : response?.outfitPieces && response.outfitPieces.length > 0 ? (
+        <OutfitPiecesVisual
+          pieces={response.outfitPieces}
+          wardrobeItems={wardrobeItems}
+          large
+        />
       ) : null}
 
       <View style={styles.responseCard}>
-        <ThemedText type="body" style={styles.responseText}>
-          {response?.recommendation && renderMarkdownText(response.recommendation)}
-        </ThemedText>
+        {response?.styleRating != null ? (
+          <View style={styles.styleRatingRow}>
+            <View style={styles.styleRatingBadge}>
+              <ThemedText type="h2" style={styles.styleRatingNumber}>
+                {Number(response.styleRating).toFixed(1)}
+              </ThemedText>
+              <ThemedText type="small" style={styles.styleRatingOutOf}>
+                /10
+              </ThemedText>
+            </View>
+            {response?.ratingLabel ? (
+              <ThemedText type="body" style={styles.styleRatingLabel}>
+                {response.ratingLabel}
+              </ThemedText>
+            ) : null}
+          </View>
+        ) : null}
+
+        {response?.outfitSummary ? (
+          <ThemedText type="body" style={[styles.responseText, styles.outfitSummaryText]}>
+            {response.outfitSummary}
+          </ThemedText>
+        ) : null}
+
+        {response?.outfitPieces && response.outfitPieces.length > 0 ? (
+          <View style={styles.outfitPiecesList}>
+            {response.outfitPieces.map((piece: any, index: number) => (
+              <View key={`piece-${index}`} style={styles.outfitPieceRow}>
+                <ThemedText type="small" style={styles.outfitPieceRole}>
+                  {(piece.role || 'Piece').charAt(0).toUpperCase() + (piece.role || 'piece').slice(1)}
+                </ThemedText>
+                <ThemedText type="body" style={styles.outfitPieceName}>
+                  {piece.name}
+                  {piece.stylingNote ? ` — ${piece.stylingNote}` : ''}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <ThemedText type="body" style={styles.responseText}>
+            {response?.recommendation && renderMarkdownText(response.recommendation)}
+          </ThemedText>
+        )}
+
         {response?.reasoning ? (
           <ThemedText style={styles.reasoningText}>
             {renderMarkdownText(response.reasoning)}
           </ThemedText>
         ) : null}
       </View>
-
-      {secondOpinion ? (
-        <View style={styles.secondOpinionCard}>
-          <ThemedText type="small" style={styles.secondOpinionLabel}>
-            Second opinion
-          </ThemedText>
-          <ThemedText style={styles.secondOpinionText}>
-            {secondOpinion.response}
-          </ThemedText>
-        </View>
-      ) : null}
 
       <View style={styles.responseActions}>
         <Pressable onPress={handleHelpful} style={styles.helpfulButton}>
@@ -1656,22 +1753,6 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
             </ThemedText>
           </LinearGradient>
         </Pressable>
-
-        {!secondOpinion && accessStatus?.hasSecondOpinion ? (
-          <Pressable onPress={handleSecondOpinion} style={styles.secondOpinionButton}>
-            <Feather name="refresh-cw" size={16} color="rgba(255,255,255,0.7)" />
-            <ThemedText style={styles.secondOpinionButtonText}>
-              Second opinion
-            </ThemedText>
-          </Pressable>
-        ) : !accessStatus?.hasSecondOpinion ? (
-          <Pressable onPress={() => setShowUpgradeModal(true)} style={styles.secondOpinionButton}>
-            <Feather name="lock" size={16} color="rgba(255,255,255,0.5)" />
-            <ThemedText style={styles.secondOpinionButtonText}>
-              Second opinion
-            </ThemedText>
-          </Pressable>
-        ) : null}
       </View>
     </View>
   );
@@ -1708,53 +1789,13 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         </View>
       </ScreenKeyboardAwareScrollView>
 
-      <Modal
-        visible={showRegisterModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowRegisterModal(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowRegisterModal(false)}
-        >
-          <Pressable style={styles.upgradeModal} onPress={e => e.stopPropagation()}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-              style={styles.upgradeModalGradient}
-            >
-              <View style={styles.upgradeIconContainer}>
-                <Feather name="user-plus" size={32} color={LUXURY_COLORS.midnight} />
-              </View>
-              <ThemedText type="h2" style={styles.upgradeTitle}>
-                Register to access second opinions
-              </ThemedText>
-              <ThemedText style={styles.upgradeDescription}>
-                Create an account so we can get your style details and send you personalized recommendations. Your registered profile helps our stylists understand your preferences better.
-              </ThemedText>
-              <Pressable
-                onPress={() => {
-                  setShowRegisterModal(false);
-                  navigation.navigate('Auth');
-                }}
-                style={styles.upgradeButton}
-              >
-                <ThemedText type="body" style={styles.upgradeButtonText}>
-                  Sign up now
-                </ThemedText>
-              </Pressable>
-              <Pressable
-                onPress={() => setShowRegisterModal(false)}
-                style={[styles.upgradeButton, { backgroundColor: 'transparent', borderWidth: 1, borderColor: LUXURY_COLORS.gold }]}
-              >
-                <ThemedText type="body" style={[styles.upgradeButtonText, { color: LUXURY_COLORS.gold }]}>
-                  Maybe later
-                </ThemedText>
-              </Pressable>
-            </LinearGradient>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <SurpriseMeLoadingOverlay
+        visible={isLoading && isSurpriseMe}
+        stylistId={user?.stylistPreferences?.selectedStylistId || 'ruby'}
+        stylistName={getStylistName()}
+        stylistGradient={getStylistGradient()}
+        stylistIcon={getStylistIcon() as keyof typeof Feather.glyphMap}
+      />
 
       <Modal
         visible={showUpgradeModal}
@@ -1778,8 +1819,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
                 {decisionService.getUpgradeCopy().headline}
               </ThemedText>
               <ThemedText style={styles.upgradeDescription}>
-                {accessStatus?.reason ||
-                  decisionService.getSecondOpinionLockedCopy()}
+                {accessStatus?.reason || "Upgrade for unlimited stylist decisions."}
               </ThemedText>
               <Pressable
                 onPress={() => {
@@ -1801,119 +1841,6 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
                 </ThemedText>
               </Pressable>
             </LinearGradient>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      <Modal
-        visible={showVotingResults}
-        transparent
-        animationType="slide"
-        onRequestClose={() => {
-          setShowVotingResults(false);
-          if (votingRefreshInterval) {
-            clearInterval(votingRefreshInterval);
-            setVotingRefreshInterval(null);
-          }
-        }}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => {
-            setShowVotingResults(false);
-            if (votingRefreshInterval) {
-              clearInterval(votingRefreshInterval);
-              setVotingRefreshInterval(null);
-            }
-          }}
-        >
-          <Pressable style={styles.votingResultsModal} onPress={e => e.stopPropagation()}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.votingResultsHeader}>
-                <ThemedText type="h3">Community votes</ThemedText>
-                <ThemedText
-                  type="small"
-                  style={{ color: theme.textSecondary, marginTop: Spacing.xs }}
-                >
-                  {votingResult ? `${votingResult.totalVotes} ${votingResult.totalVotes === 1 ? 'vote' : 'votes'}` : 'Waiting...'}
-                </ThemedText>
-              </View>
-
-              {votingResult && votingSession ? (
-                <>
-                  {votingResult.totalVotes >= 3 ? (
-                    <View style={styles.votingResultsList}>
-                      {votingSession.outfitOptions.map((option, idx) => {
-                        const optRes = votingResult.optionResults.find(r => r.optionId === option.id);
-                        const pct = optRes?.percentage ?? 0;
-                        return (
-                          <View key={option.id} style={styles.votingResultItem}>
-                            <View style={styles.votingResultLabel}>
-                              <ThemedText type="small" style={{ fontWeight: '600' }}>
-                                Option {String.fromCharCode(65 + idx)}
-                              </ThemedText>
-                              <ThemedText type="h4">{pct}%</ThemedText>
-                            </View>
-                            <View style={[styles.votingResultBar, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
-                              <View
-                                style={[
-                                  styles.votingResultFill,
-                                  {
-                                    width: `${pct}%`,
-                                    backgroundColor: theme.link,
-                                  },
-                                ]}
-                              />
-                            </View>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  ) : (
-                    <View style={styles.votingWaitingCard}>
-                      <Feather name="clock" size={24} color={theme.textSecondary} />
-                      <ThemedText
-                        type="body"
-                        style={{
-                          textAlign: 'center',
-                          color: theme.textSecondary,
-                          marginTop: Spacing.lg,
-                        }}
-                      >
-                        Waiting for community votes...{'\n'}Results appear when {3 - (votingResult.totalVotes || 0)} more {votingResult.totalVotes === 2 ? 'person votes' : 'people vote'}.
-                      </ThemedText>
-                    </View>
-                  )}
-
-                  <View style={[styles.stylistRecommendCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-                    <Feather name="zap" size={14} color={theme.link} />
-                    <ThemedText type="small" style={{ color: theme.link, fontWeight: '700', marginLeft: Spacing.xs }}>
-                      Stylist's read
-                    </ThemedText>
-                  </View>
-                  <ThemedText type="body" style={styles.votingResultsInterpretation}>
-                    {votingResult.aiInterpretation}
-                  </ThemedText>
-                </>
-              ) : (
-                <ActivityIndicator size="large" color={theme.link} />
-              )}
-
-              <Pressable
-                style={styles.votingResultsCloseButton}
-                onPress={() => {
-                  setShowVotingResults(false);
-                  if (votingRefreshInterval) {
-                    clearInterval(votingRefreshInterval);
-                    setVotingRefreshInterval(null);
-                  }
-                }}
-              >
-                <ThemedText style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                  Got it
-                </ThemedText>
-              </Pressable>
-            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -2010,15 +1937,75 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     marginBottom: Spacing.xl,
   },
+  outfitImagesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: OUTFIT_THUMB_GAP,
+    marginBottom: Spacing.lg,
+  },
   imageContainer: {
     position: 'relative',
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
   },
+  outfitImageContainer: {
+    width: OUTFIT_THUMB_SIZE,
+    height: OUTFIT_THUMB_SIZE,
+    borderRadius: BorderRadius.md,
+  },
   uploadedImage: {
     width: '100%',
     height: 200,
     borderRadius: BorderRadius.lg,
+  },
+  outfitUploadedImage: {
+    height: OUTFIT_THUMB_SIZE,
+    borderRadius: BorderRadius.md,
+  },
+  outfitUploadButtonsRow: {
+    width: '100%',
+    marginTop: Spacing.xs,
+  },
+  outfitEmptySlot: {
+    width: OUTFIT_THUMB_SIZE,
+    height: OUTFIT_THUMB_SIZE,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
+    borderStyle: 'dashed',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+  },
+  outfitEmptySlotPressed: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.55)',
+  },
+  outfitEmptySlotLabel: {
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 11,
+  },
+  outfitUploadActionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  outfitUploadAction: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  outfitUploadActionText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   removeImageButton: {
     position: 'absolute',
@@ -2077,6 +2064,9 @@ const styles = StyleSheet.create({
   surpriseMeButton: {
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
+  },
+  surpriseMeButtonDisabled: {
+    opacity: 0.92,
   },
   surpriseMeButtonGradient: {
     alignItems: 'center',
@@ -2238,6 +2228,57 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     lineHeight: 24,
     marginBottom: Spacing.sm,
+  },
+  outfitSummaryText: {
+    fontWeight: '600',
+    marginBottom: Spacing.md,
+  },
+  styleRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.15)',
+  },
+  styleRatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  styleRatingNumber: {
+    color: LUXURY_COLORS.gold,
+    fontWeight: '700',
+  },
+  styleRatingOutOf: {
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 4,
+    marginLeft: 2,
+  },
+  styleRatingLabel: {
+    color: '#FFFFFF',
+    flex: 1,
+    fontWeight: '500',
+  },
+  outfitPiecesList: {
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  outfitPieceRow: {
+    gap: 2,
+  },
+  outfitPieceRole: {
+    color: LUXURY_COLORS.gold,
+    textTransform: 'capitalize',
+    fontWeight: '600',
+  },
+  outfitPieceName: {
+    color: '#FFFFFF',
+    lineHeight: 22,
   },
   reasoningText: {
     color: 'rgba(255,255,255,0.7)',
@@ -2873,7 +2914,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: Spacing.xl,
   },
-  outfitImageContainer: {
+  optionLocked: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderStyle: 'dashed',
+  },
+  optionLockedText: {
+    color: 'rgba(255,255,255,0.75)',
+    textAlign: 'center',
+    paddingHorizontal: Spacing.md,
+  },
+  responseOutfitImageContainer: {
     marginVertical: Spacing.lg,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',

@@ -497,7 +497,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
     currencyService.initialize().then(() => setCurrencyInitialized(true));
   }, []);
 
-  const isPremium = tier === "premium";
+  const isPremium = tier !== "free";
 
   const userRegion = useMemo(() => {
     return getRegionFromCountry(user?.country || 'United States');
@@ -594,7 +594,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const magazineInspirations = useMemo(() => {
     return MagazineInspirationService.getFilteredInspirations(
       userGender,
-      tier || "free"
+      tier === "free" || !tier ? "free" : "premium"
     ).slice(0, 6);
   }, [userGender, tier]);
 
@@ -1553,7 +1553,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   sheetBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheetContainer: {

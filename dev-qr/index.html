@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dripn — Scan to open on phone</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 0 auto; padding: 24px; background: #fff9f0; color: #1a1a1a; }
+    h1 { margin-bottom: 8px; }
+    .card { background: white; border-radius: 12px; padding: 20px; margin: 16px 0; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+    img { display: block; margin: 12px auto; max-width: 280px; width: 100%; }
+    code { background: #f3f3f3; padding: 2px 6px; border-radius: 4px; word-break: break-all; font-size: 13px; }
+    ol { line-height: 1.6; }
+    .warn { color: #8a4b00; font-weight: 600; }
+    .ok { color: #0a7a4b; font-weight: 600; }
+    .updated { font-size: 14px; color: #666; }
+    .step { font-size: 18px; margin: 0 0 8px; }
+  </style>
+</head>
+<body>
+  <h1>Dripn on your phone</h1>
+  <p class="updated">Updated 2 Jul 2026 — Metro LAN mode (tunnel unavailable).</p>
+
+  <div class="card">
+    <p class="warn">If the app “downloads but doesn’t open” — you’re likely on Step 2 before Step 1 is finished, or iOS hasn’t trusted the developer yet. Follow the steps in order.</p>
+  </div>
+
+  <div class="card">
+    <p class="step"><strong>Step 1 — Install the Dripn dev app (one time)</strong></p>
+    <p>Scan with iPhone Camera → Safari opens → tap <strong>Install</strong>. Sign in to Expo if asked.</p>
+    <img src="dripn-ios-install-qr.png" alt="Install Dripn dev build" />
+    <p><code>https://expo.dev/accounts/ahmayatazah/projects/dripn/builds/410d4c88-3dfb-4777-82e7-f93ee4052bdf</code></p>
+    <p><strong>After install, before opening:</strong></p>
+    <ol>
+      <li><strong>Settings → General → VPN &amp; Device Management</strong></li>
+      <li>Tap the developer profile → <strong>Trust</strong></li>
+      <li>Open the <strong>Dripn</strong> icon from your home screen once (you should see the Expo dev launcher)</li>
+    </ol>
+    <p class="warn">Do not use Expo Go — Dripn needs this custom dev build.</p>
+  </div>
+
+  <div class="card">
+    <p class="step"><strong>Step 2 — Connect to your PC (scan this after Step 1)</strong></p>
+    <p class="warn">Phone and PC must be on the <strong>same Wi‑Fi</strong>. Tunnel mode is broken on this PC (ngrok error).</p>
+    <img src="dripn-dev-client-qr.png" alt="Dripn dev client LAN QR" />
+    <p><code>exp+dripn://expo-development-client/?url=http://192.168.0.184:8081</code></p>
+  </div>
+
+  <div class="card">
+    <h2>Keep running on PC</h2>
+    <p><code>cd C:\Users\sheni\Downloads\dripn\StyleWise</code><br />
+    <code>npx expo start --dev-client --lan</code></p>
+    <p>API: <code>https://dripn-server.onrender.com</code></p>
+  </div>
+</body>
+</html>

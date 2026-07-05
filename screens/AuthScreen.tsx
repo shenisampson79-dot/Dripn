@@ -49,7 +49,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
     clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
-    redirectUrl,
+    redirectUri: redirectUrl,
     scopes: ['openid', 'profile', 'email'],
   });
 
@@ -66,14 +66,19 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
             accessToken = googleResponse.authentication.accessToken;
             idToken = googleResponse.authentication.idToken ?? undefined;
           } else if (googleResponse.params?.code && googleRequest) {
-            // Authorization code flow — exchange the code for tokens
-            const tokenResult = await googleRequest.exchangeCodeAsync({
-              clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
-              redirectUri: redirectUrl,
-            }, {
-              authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-              tokenEndpoint: 'https://oauth2.googleapis.com/token',
-            });
+            const tokenResult = await AuthSession.exchangeCodeAsync(
+              {
+                clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
+                code: googleResponse.params.code,
+                redirectUri: redirectUrl,
+                extraParams: {
+                  code_verifier: googleRequest.codeVerifier || '',
+                },
+              },
+              {
+                tokenEndpoint: 'https://oauth2.googleapis.com/token',
+              },
+            );
             accessToken = tokenResult.accessToken;
             idToken = tokenResult.idToken ?? undefined;
           } else {

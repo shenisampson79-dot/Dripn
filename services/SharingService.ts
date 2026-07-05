@@ -8,7 +8,7 @@ import * as StoreReview from "expo-store-review";
 import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Post } from "@/contexts/PostsContext";
-import { currencyService, CurrencyCode } from "@/services/CurrencyService";
+import { currencyService } from "@/services/CurrencyService";
 
 const DRIPN_BRANDING = {
   tagline: "Style that flows - Get personalized fashion advice from AI and real people",
@@ -420,10 +420,7 @@ export interface DealShareInfo {
   source: string;
 }
 
-function formatDealPrice(amount: number, currencyCode?: string): string {
-  if (currencyCode) {
-    return currencyService.formatPrice(Math.round(amount * 100) / 100, currencyCode as CurrencyCode);
-  }
+function formatDealPrice(amount: number, _currencyCode?: string): string {
   return currencyService.formatPrice(Math.round(amount * 100) / 100);
 }
 

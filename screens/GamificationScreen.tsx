@@ -512,8 +512,8 @@ export default function GamificationScreen() {
       <View style={styles.sectionHeader}>
         <ThemedText style={styles.sectionTitle}>Spin to Win</ThemedText>
         <ThemedText style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-          {tier === 'premium'
-            ? 'Premium: Unlimited daily spins!'
+          {tier !== 'free'
+            ? 'Paid plan: Unlimited daily spins!'
             : 'One free spin per day'}
         </ThemedText>
       </View>

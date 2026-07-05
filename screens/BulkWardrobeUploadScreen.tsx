@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -23,20 +23,41 @@ import * as Haptics from "expo-haptics";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
+import { UploadGuideComparisonTable } from "@/components/UploadGuideComparisonTable";
+import { getClothingUploadComparisons } from "@/constants/uploadGuideExamples";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "expo-linear-gradient";
-import { useWardrobe, ClothingCategory, ClothingColor, ClothingSeason, ClothingOccasion } from "@/contexts/WardrobeContext";
+import {
+  useWardrobe,
+  ClothingCategory,
+  ClothingColor,
+  ClothingSeason,
+  ClothingOccasion,
+  CATEGORY_LABELS,
+  COLOR_LABELS,
+} from "@/contexts/WardrobeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { getTierFeatures } from "@/utils/tierMatrix";
 import {
   scanBulkItems,
+  scanBulkImagesBatch,
   extractProductFromText,
   extractProductFromImage,
   getPhotoTips,
   DetectedGarment,
   ProductLinkResult,
+  describeBulkAnalyzeFailure,
 } from "@/services/WardrobeDigitizationService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import { prepareWardrobeImagesFromPickerAssets, rotateWardrobeImage } from "@/utils/wardrobeImageOrientation";
+
+function yieldToUi(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -60,11 +81,19 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { limits } = useSubscription();
+  const maxBulkBatch = limits.maxBulkUploadBatch;
   const { addItem, addItemsBatch, items: existingItems } = useWardrobe();
   const isMale = user?.gender === 'man';
+  const clothingPhotoTips = useMemo(
+    () => getClothingUploadComparisons(user?.gender),
+    [user?.gender],
+  );
 
   const [inputMethod, setInputMethod] = useState<InputMethod | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState('Analyzing items...');
+  const [processingDetail, setProcessingDetail] = useState('AI is detecting clothing items');
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
   const [urlInput, setUrlInput] = useState("");
   const [showPhotoTips, setShowPhotoTips] = useState(false);
@@ -125,12 +154,38 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     setPendingItems(items =>
       items.map(item =>
         item.id === editingItem.id
-          ? { ...item, suggestedName: editName, category: editCategory, color: editColor }
+          ? { ...item, suggestedName: editName, category: editCategory, color: editColor, imageUri: editingItem.imageUri }
           : item
       )
     );
     setEditingItem(null);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const rotateEditingItemImage = async (degrees: number) => {
+    if (!editingItem?.imageUri) return;
+    try {
+      const rotated = await rotateWardrobeImage(editingItem.imageUri, degrees);
+      const newUri = rotated.uri;
+      setEditingItem((prev) => (prev ? { ...prev, imageUri: newUri } : prev));
+      setPendingItems((items) =>
+        items.map((item) =>
+          item.id === editingItem.id ? { ...item, imageUri: newUri } : item,
+        ),
+      );
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
+      Alert.alert('Rotate failed', 'Could not rotate this photo. Try again.');
+    }
+  };
+
+  const preparePickerAssets = async (
+    assets: ImagePicker.ImagePickerAsset[],
+  ): Promise<string[]> => {
+    const { uris } = await prepareWardrobeImagesFromPickerAssets(assets, {
+      autoRotateSideways: true,
+    });
+    return uris;
   };
 
   const openAppSettings = async () => {
@@ -139,6 +194,19 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         await Linking.openSettings();
       } catch {}
     }
+  };
+
+  const beginProcessing = async (
+    message: string,
+    detail: string,
+    progress: { current: number; total: number },
+  ) => {
+    setProcessingMessage(message);
+    setProcessingDetail(detail);
+    setProcessingProgress(progress);
+    setIsProcessing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await yieldToUi();
   };
 
   const handlePickMultipleImages = async () => {
@@ -162,26 +230,39 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      selectionLimit: 10,
+      selectionLimit: maxBulkBatch,
       quality: 0.8,
+      exif: true,
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const imageUris = result.assets.map(asset => asset.uri);
-      
-      // Enforce max 10 images to prevent memory issues with HEIC conversion
-      if (imageUris.length > 10) {
-        Alert.alert(
-          "Too Many Images",
-          "Please select up to 10 images at a time to ensure smooth processing.",
-          [{ text: "OK" }]
+      const total = Math.min(result.assets.length, maxBulkBatch);
+      try {
+        await beginProcessing(
+          'Preparing photos...',
+          `Getting ${total} photo${total > 1 ? 's' : ''} ready`,
+          { current: 0, total },
         );
-        setSelectedImages(imageUris.slice(0, 10));
-        await processBulkImages(imageUris.slice(0, 10));
-      } else {
-        setSelectedImages(imageUris);
-        await processBulkImages(imageUris);
+
+        const preparedUris = await preparePickerAssets(result.assets);
+
+        if (preparedUris.length > maxBulkBatch) {
+          Alert.alert(
+            "Too Many Images",
+            `Please select up to ${maxBulkBatch} images at a time to ensure smooth processing.`,
+            [{ text: "OK" }]
+          );
+        }
+
+        const uris = preparedUris.slice(0, maxBulkBatch);
+        setSelectedImages(uris);
+        setProcessingMessage('Analyzing items...');
+        setProcessingDetail('AI is detecting clothing items');
+        await processBulkImages(uris);
+      } catch (error) {
+        console.error('[BulkUpload] Failed to prepare images:', error);
+        setIsProcessing(false);
+        Alert.alert('Error', 'Failed to prepare your photos. Please try again.');
       }
     }
   };
@@ -206,13 +287,26 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
 
     const result = await ImagePicker.launchCameraAsync({
       quality: 0.8,
+      exif: true,
     });
 
     if (!result.canceled && result.assets[0]) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const imageUri = result.assets[0].uri;
-      setSelectedImages([imageUri]);
-      await processSingleImage(imageUri);
+      try {
+        await beginProcessing(
+          'Preparing photo...',
+          'Optimizing your image',
+          { current: 0, total: 1 },
+        );
+        const [imageUri] = await preparePickerAssets([result.assets[0]]);
+        setSelectedImages([imageUri]);
+        setProcessingMessage('Analyzing items...');
+        setProcessingDetail('AI is detecting clothing items');
+        await processSingleImage(imageUri);
+      } catch (error) {
+        console.error('[BulkUpload] Failed to prepare camera photo:', error);
+        setIsProcessing(false);
+        Alert.alert('Error', 'Failed to prepare your photo. Please try again.');
+      }
     }
   };
 
@@ -238,18 +332,33 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
       quality: 0.9,
+      exif: true,
     });
 
     if (!result.canceled && result.assets[0]) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const imageUri = result.assets[0].uri;
-      setSelectedImages([imageUri]);
-      await processScreenshot(imageUri);
+      try {
+        await beginProcessing(
+          'Preparing photo...',
+          'Optimizing your image',
+          { current: 0, total: 1 },
+        );
+        const [imageUri] = await preparePickerAssets([result.assets[0]]);
+        setSelectedImages([imageUri]);
+        setProcessingMessage('Analyzing items...');
+        setProcessingDetail('AI is detecting clothing items');
+        await processScreenshot(imageUri);
+      } catch (error) {
+        console.error('[BulkUpload] Failed to prepare screenshot:', error);
+        setIsProcessing(false);
+        Alert.alert('Error', 'Failed to prepare your photo. Please try again.');
+      }
     }
   };
 
   const processSingleImage = async (imageUri: string) => {
     setIsProcessing(true);
+    setProcessingMessage('Analyzing items...');
+    setProcessingDetail('AI is detecting clothing items');
     setProcessingProgress({ current: 1, total: 1 });
 
     try {
@@ -282,37 +391,100 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
 
   const processBulkImages = async (imageUris: string[], isRetry: boolean = false) => {
     setIsProcessing(true);
+    setProcessingMessage('Analyzing items...');
+    setProcessingDetail('AI is detecting clothing items');
     const allItems: PendingItem[] = [];
     const failedUris: string[] = [];
     let quotaExceeded = false;
+    let authRequired = false;
+    let lastErrorDetail = '';
     setProcessingProgress({ current: 0, total: imageUris.length });
 
-    for (let i = 0; i < imageUris.length; i++) {
-      setProcessingProgress({ current: i + 1, total: imageUris.length });
-      
-      try {
-        const result = await scanBulkItems(imageUris[i]);
-        if (result.success && result.detectedItems.length > 0) {
-          const items: PendingItem[] = result.detectedItems.map((item, index) => ({
-            ...item,
-            id: `item_${Date.now()}_${i}_${index}`,
-            imageUri: imageUris[i],
-            selected: true,
-          }));
-          allItems.push(...items);
-        } else {
-          if (result.error === 'QUOTA_EXCEEDED') quotaExceeded = true;
-          failedUris.push(imageUris[i]);
-          console.log(`[BulkUpload] Analysis failed for image ${i + 1}: ${result.error}`);
-        }
-      } catch (error) {
-        console.error(`Failed to process image ${i + 1}:`, error);
-        failedUris.push(imageUris[i]);
+    try {
+    const appendScanResult = (
+      imageUri: string,
+      result: Awaited<ReturnType<typeof scanBulkItems>>,
+      index: number,
+    ) => {
+      if (result.success && result.detectedItems.length > 0) {
+        const items: PendingItem[] = result.detectedItems.map((item, itemIndex) => ({
+          ...item,
+          id: `item_${Date.now()}_${index}_${itemIndex}`,
+          imageUri,
+          selected: true,
+        }));
+        allItems.push(...items);
+        return;
       }
+
+      if (result.error === 'QUOTA_EXCEEDED') quotaExceeded = true;
+      if (result.error === 'AUTH_REQUIRED') authRequired = true;
+      if (result.errorDetail) lastErrorDetail = result.errorDetail;
+      failedUris.push(imageUri);
+      console.log(`[BulkUpload] Analysis failed for image ${index + 1}: ${result.error}`);
+    };
+
+    const processSequential = async (uris: string[]) => {
+      for (let i = 0; i < uris.length; i++) {
+        setProcessingProgress({ current: i + 1, total: imageUris.length });
+
+        try {
+          const result = await scanBulkItems(uris[i]);
+          appendScanResult(uris[i], result, i);
+        } catch (error: any) {
+          console.error(`Failed to process image ${i + 1}:`, error);
+          if (error?.message) lastErrorDetail = error.message;
+          failedUris.push(uris[i]);
+        }
+
+        if (i < uris.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+      }
+    };
+
+    let usedBatch = false;
+
+    if (imageUris.length >= 2) {
+      try {
+        setProcessingProgress({ current: 0, total: imageUris.length });
+        const { rows } = await scanBulkImagesBatch(imageUris);
+        usedBatch = true;
+        setProcessingProgress({ current: imageUris.length, total: imageUris.length });
+
+        rows.forEach((row, index) => {
+          if (row.garment) {
+            allItems.push({
+              ...row.garment,
+              id: `item_${Date.now()}_${index}`,
+              imageUri: row.imageUri,
+              selected: true,
+            });
+            return;
+          }
+
+          if (row.errorCode === 'QUOTA_EXCEEDED') quotaExceeded = true;
+          if (row.errorCode === 'AUTH_REQUIRED') authRequired = true;
+          if (row.error) lastErrorDetail = row.error;
+          failedUris.push(row.imageUri);
+          console.log(`[BulkUpload] Batch analysis failed for image ${index + 1}: ${row.error}`);
+        });
+      } catch (error: any) {
+        console.error('[BulkUpload] Batch analyze failed, falling back to sequential:', error);
+        lastErrorDetail = error?.message || String(error);
+        await processSequential(imageUris);
+      }
+    } else {
+      await processSequential(imageUris);
+    }
+
+    if (usedBatch && failedUris.length > 0) {
+      const urisToRetry = [...failedUris];
+      failedUris.length = 0;
+      await processSequential(urisToRetry);
     }
 
     setPendingItems(allItems);
-    setIsProcessing(false);
 
     if (allItems.length > 0) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -339,16 +511,31 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           "Your OpenAI API quota has been exceeded. Please top up your OpenAI account at platform.openai.com/billing to continue using AI analysis.",
           [{ text: "OK", style: "cancel" }]
         );
-      } else {
+      } else if (authRequired) {
         Alert.alert(
-          "Analysis Failed",
-          "AI analysis is temporarily unavailable. Please check your connection and try again.",
+          "Session Expired",
+          "Please sign out and sign back in, then try your upload again.",
+          [{ text: "OK", style: "cancel" }]
+        );
+      } else {
+        const failure = describeBulkAnalyzeFailure(lastErrorDetail);
+        Alert.alert(
+          failure.title,
+          failure.message,
           [
             { text: "Try Again", onPress: () => processBulkImages(imageUris, true) },
             { text: "Cancel", style: "cancel" },
           ]
         );
       }
+    }
+    } catch (error: any) {
+      console.error('[BulkUpload] Unexpected processing error:', error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const failure = describeBulkAnalyzeFailure(error?.message || String(error));
+      Alert.alert(failure.title, failure.message);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -511,25 +698,23 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     }
 
     setIsProcessing(true);
+    setProcessingMessage('Saving items...');
+    setProcessingDetail('Adding to your wardrobe');
     let savedCount = 0;
 
     try {
-      // Pass items directly — no base64 conversion needed here.
-      // WardrobeContext.addItemsBatch strips imageBase64 before sending to the server anyway,
-      // and converting 10 images to base64 in parallel was causing memory pressure for nothing.
       const batchItems = itemsToSave.map((item) => ({
-        imageUri: item.imageUri || undefined,
+        imageUri: item.imageUri ?? '',
         name: item.suggestedName,
         category: item.category,
         color: item.color,
-        seasons: item.seasons.length > 0 ? item.seasons : ['all-season'],
-        occasions: item.occasions.length > 0 ? item.occasions : ['everyday'],
+        seasons: (item.seasons.length > 0 ? item.seasons : ['all-season']) as import('@/contexts/WardrobeContext').ClothingSeason[],
+        occasions: (item.occasions.length > 0 ? item.occasions : ['everyday']) as import('@/contexts/WardrobeContext').ClothingOccasion[],
         brand: item.brand,
         notes: item.description,
         origin: 'owned' as const,
         sourceUrl: item.sourceUrl,
         purchasePrice: item.price,
-        aiAnalyzed: true,
         isFavorite: false,
       }));
 
@@ -544,63 +729,71 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     
     Alert.alert(
       "Items Added",
-      `Successfully added ${savedCount} item${savedCount > 1 ? 's' : ''} to your wardrobe!`,
+      savedCount > 0
+        ? `Successfully added ${savedCount} item${savedCount > 1 ? 's' : ''}. Background removal will continue while you use the app — check your wardrobe for progress.`
+        : `Could not add items. Please try again.`,
       [{ text: "Done", onPress: () => navigation.goBack() }]
     );
   };
 
   const renderInputMethodSelector = () => (
-    <View style={styles.methodsContainer}>
-      <ThemedText type="h3" style={styles.sectionTitle}>
-        How would you like to add items?
-      </ThemedText>
+    <View>
+      <View style={styles.uploadActionsSection}>
+        <ThemedText type="h3" style={styles.sectionTitle}>
+          How would you like to add items?
+        </ThemedText>
 
-      <View style={styles.methodsGrid}>
-        <Pressable
-          onPress={() => {
-            setInputMethod('bulk');
-            handlePickMultipleImages();
-          }}
-          style={[styles.methodCard, { backgroundColor: theme.backgroundDefault }]}
-        >
-          <View style={[styles.methodIconContainer, { backgroundColor: theme.link + '20' }]}>
-            <Feather name="layers" size={28} color={theme.link} />
-          </View>
-          <ThemedText type="body" style={styles.methodTitle}>Bulk Upload</ThemedText>
-          <ThemedText type="caption" style={styles.methodDescription}>
-            Select multiple photos at once
-          </ThemedText>
-        </Pressable>
-
-        {Platform.OS !== "web" ? (
+        <View style={styles.methodsGrid}>
           <Pressable
             onPress={() => {
-              setInputMethod('camera');
-              handleTakePhoto();
+              setInputMethod('bulk');
+              handlePickMultipleImages();
             }}
             style={[styles.methodCard, { backgroundColor: theme.backgroundDefault }]}
           >
             <View style={[styles.methodIconContainer, { backgroundColor: theme.link + '20' }]}>
-              <Feather name="camera" size={28} color={theme.link} />
+              <Feather name="layers" size={28} color={theme.link} />
             </View>
-            <ThemedText type="body" style={styles.methodTitle}>Take Photo</ThemedText>
+            <ThemedText type="body" style={styles.methodTitle}>Bulk Upload</ThemedText>
             <ThemedText type="caption" style={styles.methodDescription}>
-              Photograph your clothes
+              Select multiple photos at once
             </ThemedText>
           </Pressable>
-        ) : null}
 
+          {Platform.OS !== "web" ? (
+            <Pressable
+              onPress={() => {
+                setInputMethod('camera');
+                handleTakePhoto();
+              }}
+              style={[styles.methodCard, { backgroundColor: theme.backgroundDefault }]}
+            >
+              <View style={[styles.methodIconContainer, { backgroundColor: theme.link + '20' }]}>
+                <Feather name="camera" size={28} color={theme.link} />
+              </View>
+              <ThemedText type="body" style={styles.methodTitle}>Take Photo</ThemedText>
+              <ThemedText type="caption" style={styles.methodDescription}>
+                Photograph your clothes
+              </ThemedText>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
-      <Pressable
-        onPress={() => setShowPhotoTips(true)}
-        style={[styles.tipsButton, { borderColor: theme.tabIconDefault }]}
-      >
-        <Feather name="help-circle" size={18} color={theme.tabIconDefault} />
-        <ThemedText type="body" style={{ marginLeft: Spacing.sm }}>
-          Photo Tips for Best Results
-        </ThemedText>
-      </Pressable>
+      <View style={[styles.tipsSection, { backgroundColor: theme.backgroundSecondary }]}>
+        <UploadGuideComparisonTable
+          compact
+          title="Photo tips for best results"
+          rows={clothingPhotoTips}
+        />
+
+        <Pressable onPress={() => setShowPhotoTips(true)} style={styles.seeAllTipsLink}>
+          <ThemedText type="caption" style={{ color: theme.link, fontWeight: '600' }}>
+            More photo tips
+          </ThemedText>
+          <Feather name="chevron-right" size={14} color={theme.link} />
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -699,11 +892,11 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         )}
 
         <View style={styles.pendingItemInfo}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <ThemedText type="body" numberOfLines={1} style={{ fontWeight: '600', flex: 1 }}>
+          <View style={styles.pendingItemTitleRow}>
+            <ThemedText type="body" style={styles.pendingItemTitle}>
               {item.suggestedName || 'New Item'}
             </ThemedText>
-            <Feather name="edit-2" size={14} color={theme.link} style={{ marginLeft: Spacing.xs }} />
+            <Feather name="edit-2" size={14} color={theme.link} style={styles.pendingItemEditIcon} />
           </View>
           {item.brand ? (
             <ThemedText type="caption" style={{ opacity: 0.7 }}>
@@ -713,12 +906,12 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           <View style={styles.pendingItemTags}>
             <View style={[styles.miniTag, { backgroundColor: theme.link + '20' }]}>
               <ThemedText type="caption" style={{ color: theme.link }}>
-                {item.category}
+                {CATEGORY_LABELS[item.category] || item.category.replace(/_/g, ' ')}
               </ThemedText>
             </View>
             <View style={[styles.miniTag, { backgroundColor: theme.link + '20' }]}>
               <ThemedText type="caption" style={{ color: theme.link }}>
-                {item.color}
+                {COLOR_LABELS[item.color] || item.color}
               </ThemedText>
             </View>
           </View>
@@ -835,11 +1028,33 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           contentContainerStyle={styles.editModalContent}
         >
           {editingItem?.imageUri ? (
-            <Image
-              source={{ uri: editingItem.imageUri }}
-              style={styles.editItemImage}
-              contentFit="contain"
-            />
+            <>
+              <Image
+                source={{ uri: editingItem.imageUri }}
+                style={styles.editItemImage}
+                contentFit="contain"
+              />
+              <View style={styles.rotateRow}>
+                <Pressable
+                  onPress={() => rotateEditingItemImage(-90)}
+                  style={[styles.rotateButton, { backgroundColor: theme.backgroundDefault }]}
+                >
+                  <Feather name="rotate-ccw" size={18} color={theme.text} />
+                  <ThemedText type="caption" style={{ marginLeft: Spacing.xs }}>
+                    Rotate left
+                  </ThemedText>
+                </Pressable>
+                <Pressable
+                  onPress={() => rotateEditingItemImage(90)}
+                  style={[styles.rotateButton, { backgroundColor: theme.backgroundDefault }]}
+                >
+                  <Feather name="rotate-cw" size={18} color={theme.text} />
+                  <ThemedText type="caption" style={{ marginLeft: Spacing.xs }}>
+                    Rotate right
+                  </ThemedText>
+                </Pressable>
+              </View>
+            </>
           ) : null}
           
           <View style={styles.editSection}>
@@ -963,28 +1178,35 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     </Modal>
   );
 
-  const renderProcessingOverlay = () => {
-    if (!isProcessing) return null;
-
-    return (
+  const renderProcessingOverlay = () => (
+    <Modal
+      visible={isProcessing}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      presentationStyle="overFullScreen"
+      onRequestClose={() => {}}
+    >
       <View style={styles.processingOverlay}>
         <View style={[styles.processingCard, { backgroundColor: theme.backgroundRoot }]}>
           <ActivityIndicator size="large" color={theme.link} />
           <ThemedText type="h4" style={{ marginTop: Spacing.lg }}>
-            Analyzing Items...
+            {processingMessage}
           </ThemedText>
           {processingProgress.total > 1 ? (
             <ThemedText type="caption" style={{ marginTop: Spacing.sm, color: theme.tabIconDefault }}>
-              Processing {processingProgress.current} of {processingProgress.total}
+              {processingProgress.current > 0
+                ? `Processing ${processingProgress.current} of ${processingProgress.total}`
+                : `${processingProgress.total} photos selected`}
             </ThemedText>
           ) : null}
           <ThemedText type="caption" style={{ marginTop: Spacing.sm, color: theme.tabIconDefault }}>
-            AI is detecting clothing items
+            {processingDetail}
           </ThemedText>
         </View>
       </View>
-    );
-  };
+    </Modal>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
@@ -1044,6 +1266,19 @@ const styles = StyleSheet.create({
   methodsContainer: {
     paddingTop: Spacing.lg,
   },
+  uploadActionsSection: {
+    paddingTop: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  tipsSection: {
+    marginTop: Spacing.md,
+    marginHorizontal: -Spacing.xl,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+  },
   sectionTitle: {
     marginBottom: Spacing.lg,
   },
@@ -1076,14 +1311,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     opacity: 0.7,
   },
-  tipsButton: {
+  seeAllTipsLink: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: Spacing.lg,
-    marginTop: Spacing.xl,
-    borderWidth: 1,
-    borderRadius: BorderRadius.md,
+    gap: 2,
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   urlInputContainer: {
     paddingTop: Spacing.lg,
@@ -1142,14 +1376,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.md,
-    alignItems: "center",
+    alignItems: "flex-start",
     overflow: "hidden",
   },
   pendingItemMain: {
     flex: 1,
     flexDirection: "row",
     padding: Spacing.md,
-    alignItems: "center",
+    alignItems: "flex-start",
   },
   pendingItemImage: {
     width: 70,
@@ -1161,10 +1395,25 @@ const styles = StyleSheet.create({
   pendingItemInfo: {
     flex: 1,
     marginLeft: Spacing.md,
+    minWidth: 0,
+  },
+  pendingItemTitleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  pendingItemTitle: {
+    flex: 1,
+    flexShrink: 1,
+    fontWeight: "600",
+  },
+  pendingItemEditIcon: {
+    marginLeft: Spacing.xs,
+    marginTop: 3,
   },
   checkBoxTouchArea: {
     padding: Spacing.md,
     paddingLeft: 0,
+    alignSelf: "center",
   },
   pendingItemTags: {
     flexDirection: "row",
@@ -1241,7 +1490,20 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 200,
     borderRadius: BorderRadius.md,
+    marginBottom: Spacing.sm,
+  },
+  rotateRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: Spacing.md,
     marginBottom: Spacing.lg,
+  },
+  rotateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
   },
   editSection: {
     marginBottom: Spacing.xl,
@@ -1267,9 +1529,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.xl,
   },
-  tipsSection: {
-    marginBottom: Spacing.lg,
-  },
   tipsSectionHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -1291,10 +1550,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   processingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
+    paddingTop: Dimensions.get("window").height * 0.28,
+    paddingHorizontal: Spacing.xl,
   },
   processingCard: {
     padding: Spacing["2xl"],

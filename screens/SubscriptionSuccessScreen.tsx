@@ -52,15 +52,15 @@ type TierContent = {
   checklist: string[];
 };
 
-const TIER_CONTENT: Record<BillingPlanId, TierContent> = {
+const TIER_CONTENT: Record<string, TierContent> = {
   style_chat: {
-    headline: "Start generating outfits instantly",
-    subtext: "Your Style Chat is now unlocked",
+    headline: "Your Personal Stylist is ready",
+    subtext: "Unlimited decisions and wardrobe-aware advice are unlocked",
     checklist: [
-      "Voice styling conversations",
-      "Extended wardrobe storage",
-      "Smart daily outfit suggestions",
-      "Outfit calendar access",
+      "Unlimited stylist decisions",
+      "3-way shopping compare",
+      "Decision history & wardrobe memory",
+      "Voice styling sessions",
     ],
   },
   personal_stylist: {
@@ -70,17 +70,17 @@ const TIER_CONTENT: Record<BillingPlanId, TierContent> = {
       "Personal AI stylist with extended voice",
       "Full wardrobe analysis",
       "Priority outfit recommendations",
-      "Outfit calendar & style insights",
+      "Wardrobe-aware daily advice",
     ],
   },
   stylist_unlimited: {
     headline: "Full access unlocked — no limits",
-    subtext: "Unlimited styling, voice, and VIP features",
+    subtext: "Plan, pack, and prioritise with Stylist Unlimited",
     checklist: [
-      "Unlimited AI chat & voice sessions",
-      "Video calls with your stylist",
-      "VIP member access",
-      "White-glove priority support",
+      "Outfit calendar & event planning",
+      "Unlimited wardrobe & try-on",
+      "Priority photo processing",
+      "Priority support",
     ],
   },
   core_wardrobe: {
@@ -166,7 +166,7 @@ export default function SubscriptionSuccessScreen({ navigation, route }: Props) 
 
   const goToUpgrade = useCallback(() => {
     markInteraction();
-    navigation.navigate("Subscription", { highlightPlan: "pro" });
+    navigation.navigate("Subscription", { highlightPlan: "stylist_unlimited" });
   }, [markInteraction, navigation]);
 
   useEffect(() => {

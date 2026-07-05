@@ -6,6 +6,8 @@ import {
   FlatList,
   ScrollView,
   Modal,
+  ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -20,16 +22,17 @@ import { ThemedText } from '@/components/ThemedText';
 import { Spacing, BorderRadius } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
-import { DFYTier, StylistId } from '@/services/DFYService';
+import { DFYTier, StylistId, dfyService, DFYLiteDelivery } from '@/services/DFYService';
 import apiService from '@/services/ApiService';
-
-interface WardrobeItem {
-  id: string;
-  name: string;
-  imageUri?: string;
-  category?: string;
-  color?: string;
-}
+import { useWardrobe, type WardrobeItem } from '@/contexts/WardrobeContext';
+import {
+  mapLookbookDeliveryToCalendarOutfits,
+  mapApiLookbookToCalendarOutfits,
+  DFYCalendarMappedOutfit,
+} from '@/utils/dfyCalendarBridge';
+import { buildLocalAlternatives, DFYAlternativeOutfit } from '@/utils/dfyOutfitImages';
+import { enrichWardrobeItemForOutfitVisual } from '@/utils/wardrobeImage';
+import { OutfitPiecesVisual, OutfitPieceVisual } from '@/components/OutfitPiecesVisual';
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -48,19 +51,11 @@ const LUXURY_COLORS = {
 
 const DAYS_OF_WEEK = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const EMBEDDED_OUTFIT_WIDTH = SCREEN_WIDTH - Spacing.xl * 2 - Spacing.lg * 2;
+const MODAL_OUTFIT_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
 
-interface DFYCalendarOutfit {
-  id: string;
-  date: string;
-  title: string;
-  stylistNote: string;
-  stylistId: StylistId;
-  weatherNote?: string;
-  wasWorn: boolean;
-  alternativesCount: number;
-  itemIds?: string[];
-  items?: WardrobeItem[];
-}
+interface DFYCalendarOutfit extends DFYCalendarMappedOutfit {}
 
 type ViewMode = 'calendar' | 'week' | 'list';
 
@@ -73,6 +68,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
   const tier = route.params?.tier || 'lite';
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
+  const { items: wardrobeItems } = useWardrobe();
   const insets = useSafeAreaInsets();
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -83,7 +79,9 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
   const [calendarOutfits, setCalendarOutfits] = useState<DFYCalendarOutfit[]>([]);
   const [loadingDate, setLoadingDate] = useState<string | null>(null);
   const [loadingAll, setLoadingAll] = useState(true);
-  const [items, setItems] = useState<WardrobeItem[]>([]);
+  const [showAlternatives, setShowAlternatives] = useState(false);
+  const [loadingAlternatives, setLoadingAlternatives] = useState(false);
+  const [alternatives, setAlternatives] = useState<DFYAlternativeOutfit[]>([]);
 
   const totalDays = tier === 'lite' ? 14 : 30;
   const startDate = useMemo(() => {
@@ -92,29 +90,69 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     return d;
   }, []);
 
-  // Load wardrobe items and outfits on mount
-  useEffect(() => {
-    loadWardrobe();
-  }, []);
+  const tabBarClearance = insets.bottom + 100;
 
-  const loadWardrobe = async () => {
-    try {
-      const result = await apiService.getWardrobe();
-      if (result.success && result.items) {
-        setItems(result.items.map((i: any) => ({
-          id: i.id,
-          name: i.name,
-          imageUri: i.imageUri || i.image_url,
-          category: i.category,
-          color: i.color,
-        })));
-      }
-    } catch (err) {
-      console.log('Error loading wardrobe:', err);
+  const formatDateKey = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+  const applyCalendarOutfits = (mapped: DFYCalendarOutfit[]) => {
+    setCalendarOutfits(mapped);
+    const todayKey = formatDateKey(new Date());
+    const todayOutfit = mapped.find((o) => formatDateKey(new Date(o.date)) === todayKey);
+    if (todayOutfit) {
+      setSelectedOutfit(todayOutfit);
+      setSelectedDate(new Date());
+      return;
+    }
+    if (mapped[0]) {
+      setSelectedOutfit(mapped[0]);
+      setSelectedDate(new Date(mapped[0].date));
     }
   };
 
-  // Bulk-load all outfits for the full plan range on mount
+  const mapApiCalendarOutfits = (rawOutfits: any[]): DFYCalendarOutfit[] =>
+    rawOutfits.map((outfit) => ({
+      id: outfit.id,
+      date: outfit.date,
+      title: outfit.eventName || 'Curated Outfit',
+      stylistNote: outfit.notes || '',
+      stylistId: 'ruby' as StylistId,
+      wasWorn: outfit.wasWorn,
+      alternativesCount: 0,
+      dayNumber: 0,
+      itemIds: outfit.itemIds || [],
+      items: (outfit.itemIds || [])
+        .map((id: string) => wardrobeItems.find((w: WardrobeItem) => String(w.id) === String(id)))
+        .filter((w: WardrobeItem | undefined): w is WardrobeItem => Boolean(w))
+        .map((w: WardrobeItem) => ({
+          id: String(w.id),
+          name: w.name,
+          imageUri: w.imageUri || w.enhancedImageUri,
+          category: w.category,
+          color: w.color,
+        })),
+    }));
+
+  const loadLookbookCalendarOutfits = async (): Promise<DFYCalendarOutfit[]> => {
+    if (!user?.id) return [];
+
+    const saved = await dfyService.getDFYDelivery(user.id);
+    if (saved?.tier === 'lite' && saved.outfits.some((o) => o.items && o.items.length > 0)) {
+      return mapLookbookDeliveryToCalendarOutfits(saved as DFYLiteDelivery, startDate, wardrobeItems);
+    }
+
+    try {
+      const remote = await apiService.getDFYLookbook();
+      if (remote.success && remote.outfits && remote.outfits.length > 0) {
+        return mapApiLookbookToCalendarOutfits(remote.outfits, startDate, wardrobeItems, 'ruby');
+      }
+    } catch (err) {
+      console.log('[DFYCalendar] Remote lookbook fetch failed:', err);
+    }
+
+    return [];
+  };
+
   useEffect(() => {
     const loadAllOutfits = async () => {
       try {
@@ -122,50 +160,45 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
         const endDate = new Date(startDate);
         endDate.setDate(endDate.getDate() + totalDays - 1);
         let result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
-        
-        // If no outfits found and tier is core, generate them
-        if ((!result.success || !result.outfits || result.outfits.length === 0) && tier === 'core') {
-          console.log('[DFYCalendar] No outfits found for core tier. Generating...');
+
+        if (result.success && result.outfits && result.outfits.length > 0) {
+          applyCalendarOutfits(mapApiCalendarOutfits(result.outfits));
+          return;
+        }
+
+        if (tier === 'lite') {
+          const lookbookOutfits = await loadLookbookCalendarOutfits();
+          if (lookbookOutfits.length > 0) {
+            applyCalendarOutfits(lookbookOutfits);
+            return;
+          }
+        }
+
+        if (tier === 'core') {
           try {
-            await apiService.request('/api/dfy/generate-delivery', {
-              method: 'POST',
-              body: JSON.stringify({ tier: 'core', stylistId: 'ruby' }),
-            });
-            console.log('[DFYCalendar] Outfits generated. Re-fetching...');
-            // Re-fetch after generation
+            await apiService.generateDFYDelivery({ tier: 'core', stylistId: 'ruby' });
             result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
+            if (result.success && result.outfits && result.outfits.length > 0) {
+              applyCalendarOutfits(mapApiCalendarOutfits(result.outfits));
+            }
           } catch (genErr) {
             console.warn('[DFYCalendar] Failed to generate outfits:', genErr);
           }
         }
-        
-        if (result.success && result.outfits && result.outfits.length > 0) {
-          const mapped: DFYCalendarOutfit[] = result.outfits.map(outfit => ({
-            id: outfit.id,
-            date: outfit.date,
-            title: outfit.eventName || 'Curated Outfit',
-            stylistNote: outfit.notes || '',
-            stylistId: 'ruby' as StylistId,
-            wasWorn: outfit.wasWorn,
-            alternativesCount: 0,
-            itemIds: outfit.itemIds || [],
-          }));
-          setCalendarOutfits(mapped);
-          // Auto-select today's outfit if available
-          const todayKey = formatDateKey(new Date());
-          const todayOutfit = mapped.find(o => formatDateKey(new Date(o.date)) === todayKey);
-          if (todayOutfit) {
-            setSelectedOutfit(todayOutfit);
-          }
-        }
       } catch (err) {
         console.log('[DFYCalendar] Error loading all outfits:', err);
+        if (tier === 'lite') {
+          const lookbookOutfits = await loadLookbookCalendarOutfits();
+          if (lookbookOutfits.length > 0) {
+            applyCalendarOutfits(lookbookOutfits);
+          }
+        }
       } finally {
         setLoadingAll(false);
       }
     };
     loadAllOutfits();
-  }, [startDate, totalDays, tier]);
+  }, [startDate, totalDays, tier, user?.id, wardrobeItems.length]);
 
   // Fetch outfit for a specific date from backend
   const fetchOutfitForDate = async (date: Date) => {
@@ -174,18 +207,9 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
       const result = await apiService.getOutfitForDate(date);
       if (result.success && result.outfits && result.outfits.length > 0) {
         const outfit = result.outfits[0];
-        const dfiOutfit: DFYCalendarOutfit = {
-          id: outfit.id,
-          date: outfit.date,
-          title: outfit.eventName || 'Outfit',
-          stylistNote: outfit.notes || '',
-          stylistId: 'ruby' as StylistId,
-          wasWorn: outfit.wasWorn,
-          alternativesCount: 0,
-          itemIds: outfit.itemIds || [],
-        };
-        setCalendarOutfits(prev => {
-          const idx = prev.findIndex(o => o.id === dfiOutfit.id);
+        const dfiOutfit: DFYCalendarOutfit = mapApiCalendarOutfits([outfit])[0];
+        setCalendarOutfits((prev) => {
+          const idx = prev.findIndex((o) => o.id === dfiOutfit.id);
           if (idx >= 0) {
             const newList = [...prev];
             newList[idx] = dfiOutfit;
@@ -195,6 +219,22 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
         });
         return dfiOutfit;
       }
+
+      if (tier === 'lite' && user?.id) {
+        const dayOffset = Math.round((date.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+        if (dayOffset >= 0 && dayOffset < totalDays) {
+          const lookbookOutfits = await loadLookbookCalendarOutfits();
+          const match = lookbookOutfits[dayOffset];
+          if (match) {
+            setCalendarOutfits((prev) => {
+              const idx = prev.findIndex((o) => o.id === match.id);
+              if (idx >= 0) return prev;
+              return [...prev, match];
+            });
+            return match;
+          }
+        }
+      }
     } catch (err) {
       console.log('Error fetching outfit for date:', err);
     } finally {
@@ -203,35 +243,29 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     return undefined;
   };
 
-  // Format date as YYYY-MM-DD
-  const formatDateKey = (date: Date) => {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  };
-
-  // Regenerate calendar
   const handleRegenerateCalendar = async () => {
     try {
       setLoadingAll(true);
-      // Generate new outfits via the API
+      if (tier === 'lite') {
+        const lookbookOutfits = await loadLookbookCalendarOutfits();
+        if (lookbookOutfits.length > 0) {
+          applyCalendarOutfits(lookbookOutfits);
+          return;
+        }
+      }
+
       await apiService.generateDFYDelivery({ tier: tier as 'lite' | 'core', stylistId: 'ruby' });
-      // Re-fetch after generation
       const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + totalDays);
+      endDate.setDate(endDate.getDate() + totalDays - 1);
       const result = await apiService.getCalendarOutfitsForRange(startDate, endDate);
       if (result.success && result.outfits && result.outfits.length > 0) {
-        const mapped: DFYCalendarOutfit[] = result.outfits.map(outfit => ({
-          id: outfit.id,
-          date: outfit.date,
-          title: outfit.eventName || 'Curated Outfit',
-          stylistNote: outfit.notes || '',
-          stylistId: 'ruby' as StylistId,
-          wasWorn: outfit.wasWorn,
-          alternativesCount: 0,
-          itemIds: outfit.itemIds || [],
-        }));
-        setCalendarOutfits(mapped);
-        // Reset selected outfit
-        setSelectedOutfit(null);
+        applyCalendarOutfits(mapApiCalendarOutfits(result.outfits));
+        return;
+      }
+
+      const lookbookOutfits = await loadLookbookCalendarOutfits();
+      if (lookbookOutfits.length > 0) {
+        applyCalendarOutfits(lookbookOutfits);
       }
     } catch (err) {
       console.error('Failed to regenerate calendar:', err);
@@ -277,6 +311,8 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     }
     if (outfit) {
       setSelectedOutfit(outfit);
+    } else if (isInPlanRange(day)) {
+      setSelectedOutfit(null);
     }
   };
 
@@ -290,6 +326,121 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     if (!selectedOutfit) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setSelectedOutfit({ ...selectedOutfit, wasWorn: true });
+    setCalendarOutfits((prev) =>
+      prev.map((o) => (o.id === selectedOutfit.id ? { ...o, wasWorn: true } : o)),
+    );
+  };
+
+  const mapApiAlternatives = (raw: any[]): DFYAlternativeOutfit[] =>
+    raw
+      .map((alt, idx) => ({
+        id: alt.id || `alt-${idx + 1}`,
+        stylistNote: alt.stylistNote || alt.notes || `Alternative ${idx + 1}`,
+        items: (alt.items || [])
+          .map((it: any) => {
+            const wardrobe = wardrobeItems.find((w) => String(w.id) === String(it.id));
+            return {
+              id: String(it.id),
+              name: it.name || wardrobe?.name || 'Wardrobe item',
+              category: it.category || wardrobe?.category || '',
+              color: it.color || wardrobe?.color || '',
+              imageUri:
+                it.imageUri ||
+                it.processedImageUrl ||
+                it.imageUrl ||
+                wardrobe?.imageUri ||
+                wardrobe?.enhancedImageUri,
+            };
+          })
+          .filter((it: { id: string }) => Boolean(it.id)),
+      }))
+      .filter((alt) => alt.items.length >= 2);
+
+  const handleSeeAlternatives = async () => {
+    if (!selectedOutfit || !selectedDate) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setShowAlternatives(true);
+    setLoadingAlternatives(true);
+    setAlternatives([]);
+
+    const dateKey = formatDateKey(selectedDate);
+    const currentIds = selectedOutfit.itemIds.length
+      ? selectedOutfit.itemIds
+      : (selectedOutfit.items || []).map((i) => i.id);
+
+    try {
+      const remote = await apiService.getDFYCalendarAlternatives(dateKey, String(selectedOutfit.stylistId));
+      if (remote.success && remote.alternatives?.length) {
+        const mapped = mapApiAlternatives(remote.alternatives);
+        if (mapped.length > 0) {
+          setAlternatives(mapped);
+          return;
+        }
+      }
+
+      const local = buildLocalAlternatives(
+        currentIds,
+        selectedOutfit.dayNumber || 1,
+        wardrobeItems,
+        2,
+      );
+      setAlternatives(local);
+    } catch (err) {
+      console.log('[DFYCalendar] Remote alternatives failed, using local:', err);
+      const local = buildLocalAlternatives(
+        currentIds,
+        selectedOutfit.dayNumber || 1,
+        wardrobeItems,
+        2,
+      );
+      setAlternatives(local);
+    } finally {
+      setLoadingAlternatives(false);
+    }
+  };
+
+  const handleSelectAlternative = async (alt: DFYAlternativeOutfit) => {
+    if (!selectedOutfit || !selectedDate) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    const updated: DFYCalendarOutfit = {
+      ...selectedOutfit,
+      stylistNote: alt.stylistNote,
+      itemIds: alt.items.map((i) => i.id),
+      items: alt.items.map((i) => ({
+        id: i.id,
+        name: i.name,
+        imageUri: i.imageUri,
+        category: i.category,
+        color: i.color,
+      })),
+      wasWorn: false,
+    };
+
+    setSelectedOutfit(updated);
+    setCalendarOutfits((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+    setShowAlternatives(false);
+
+    if (tier === 'lite' && user?.id) {
+      try {
+        const delivery = await dfyService.getDFYDelivery(user.id);
+        if (delivery?.tier === 'lite') {
+          const idx = delivery.outfits.findIndex(
+            (o) => o.id === updated.id || o.dayNumber === updated.dayNumber,
+          );
+          if (idx >= 0) {
+            delivery.outfits[idx] = {
+              ...delivery.outfits[idx],
+              items: alt.items,
+              stylistNote: alt.stylistNote,
+            };
+            await dfyService.saveDFYDelivery(delivery);
+          }
+        }
+      } catch (err) {
+        console.log('[DFYCalendar] Failed to persist alternative to lookbook:', err);
+      }
+    }
   };
 
   const isToday = (day: number) => {
@@ -351,6 +502,94 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     );
   };
 
+  const getOutfitDisplayItems = (outfit: DFYCalendarOutfit) => {
+    if (outfit.items?.length) return outfit.items;
+    return (outfit.itemIds || [])
+      .map((id) => {
+        const w = wardrobeItems.find((i) => String(i.id) === String(id));
+        if (!w) return null;
+        return {
+          id: String(w.id),
+          name: w.name,
+          imageUri: w.imageUri || w.enhancedImageUri,
+          category: w.category,
+          color: w.color,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  };
+
+  const itemsToVisualPieces = (
+    items: Array<{ id: string; name: string; category?: string; imageUri?: string }>,
+  ): OutfitPieceVisual[] =>
+    items.map((item) => {
+      const wardrobe = wardrobeItems.find((w) => String(w.id) === String(item.id));
+      const processedUri = wardrobe ? enrichWardrobeItemForOutfitVisual(wardrobe).imageUri : item.imageUri;
+      return {
+        wardrobeItemId: item.id,
+        name: item.name,
+        category: item.category || wardrobe?.category,
+        imageUrl: processedUri || item.imageUri,
+      };
+    });
+
+  const renderOutfitItemLegend = (
+    items: Array<{ id: string; name: string }>,
+  ) => (
+    <View style={styles.outfitItemLegend}>
+      {items.map((item) => (
+        <View
+          key={item.id}
+          style={[styles.outfitItemPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}
+        >
+          <ThemedText type="caption" style={{ textAlign: 'center', lineHeight: 16 }}>
+            {item.name}
+          </ThemedText>
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderOutfitStackVisual = (
+    outfit: DFYCalendarOutfit,
+    options?: { canvasWidth?: number; showLegend?: boolean },
+  ) => {
+    const displayItems = getOutfitDisplayItems(outfit);
+    const pieces = itemsToVisualPieces(displayItems);
+    if (!pieces.length) return null;
+
+    return (
+      <View style={styles.outfitVisualBlock}>
+        <OutfitPiecesVisual
+          pieces={pieces}
+          wardrobeItems={wardrobeItems}
+          label=""
+          large
+          canvasWidth={options?.canvasWidth ?? EMBEDDED_OUTFIT_WIDTH}
+        />
+        {options?.showLegend !== false ? renderOutfitItemLegend(displayItems) : null}
+      </View>
+    );
+  };
+
+  const renderAlternativeStackVisual = (alt: DFYAlternativeOutfit) => {
+    const pieces = itemsToVisualPieces(alt.items);
+    if (!pieces.length) return null;
+
+    return (
+      <View style={styles.outfitVisualBlock}>
+        <OutfitPiecesVisual
+          pieces={pieces}
+          wardrobeItems={wardrobeItems}
+          label=""
+          large
+          canvasWidth={MODAL_OUTFIT_WIDTH}
+        />
+        {renderOutfitItemLegend(alt.items)}
+      </View>
+    );
+  };
+
   const renderWeekView = () => {
     const today = new Date();
     const weekDays = Array.from({ length: 7 }, (_, i) => {
@@ -394,24 +633,34 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
           })}
         </View>
         {selectedDate && selectedOutfit && (
-          <Pressable
-            onPress={() => handleOutfitPress(selectedOutfit)}
-            style={[styles.selectedOutfitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)' }]}
+          <View
+            style={[styles.selectedOutfitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)' }]}
           >
-            <View style={styles.outfitCardHeader}>
-              <LinearGradient
-                colors={tier === 'lite' ? [LUXURY_COLORS.coral, '#C46A4F'] : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-                style={styles.outfitCardIcon}
-              >
-                <Feather name="image" size={20} color={tier === 'lite' ? '#FFFFFF' : LUXURY_COLORS.midnight} />
-              </LinearGradient>
-              <View style={styles.outfitCardInfo}>
-                <ThemedText type="h3">{selectedOutfit.title}</ThemedText>
-                <ThemedText type="small" style={{ opacity: 0.7 }}>{selectedOutfit.stylistNote}</ThemedText>
+            <Pressable onPress={() => handleOutfitPress(selectedOutfit)}>
+              {renderOutfitStackVisual(selectedOutfit)}
+
+              <View style={[styles.outfitCardHeader, { marginTop: Spacing.md }]}>
+                <View style={styles.outfitCardInfo}>
+                  <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 4 }}>
+                    {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </ThemedText>
+                  <ThemedText type="h3">{selectedOutfit.title}</ThemedText>
+                  {selectedOutfit.weatherNote ? (
+                    <ThemedText type="caption" style={{ opacity: 0.6, marginTop: 4 }}>
+                      {selectedOutfit.weatherNote}
+                    </ThemedText>
+                  ) : null}
+                </View>
+                <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
               </View>
-              <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
-            </View>
-          </Pressable>
+
+              {selectedOutfit.stylistNote ? (
+                <ThemedText type="small" numberOfLines={3} style={{ opacity: 0.7, marginTop: Spacing.md, lineHeight: 18 }}>
+                  {selectedOutfit.stylistNote}
+                </ThemedText>
+              ) : null}
+            </Pressable>
+          </View>
         )}
       </View>
     );
@@ -421,7 +670,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     <FlatList
       data={calendarOutfits}
       keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.listContent}
+      contentContainerStyle={[styles.listContent, { paddingBottom: tabBarClearance }]}
       showsVerticalScrollIndicator={false}
       renderItem={({ item, index }) => (
         <Pressable
@@ -429,12 +678,22 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
           style={[styles.listOutfitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)' }]}
         >
           <View style={[styles.listDayBadge, { backgroundColor: tier === 'lite' ? LUXURY_COLORS.coral + '20' : LUXURY_COLORS.gold + '20' }]}>
-            <ThemedText type="h3" style={{ color: tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold }}>
-              {index + 1}
-            </ThemedText>
-            <ThemedText type="caption" style={{ color: tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold }}>
-              DAY
-            </ThemedText>
+            {getOutfitDisplayItems(item)[0]?.imageUri ? (
+              <Image
+                source={{ uri: getOutfitDisplayItems(item)[0].imageUri }}
+                style={styles.listDayThumb}
+                contentFit="cover"
+              />
+            ) : (
+              <>
+                <ThemedText type="h3" style={{ color: tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold }}>
+                  {item.dayNumber || index + 1}
+                </ThemedText>
+                <ThemedText type="caption" style={{ color: tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold }}>
+                  DAY
+                </ThemedText>
+              </>
+            )}
           </View>
           <View style={styles.listOutfitInfo}>
             <ThemedText type="body" style={{ fontWeight: '600' }}>{item.title}</ThemedText>
@@ -465,6 +724,67 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
     />
   );
 
+  const renderAlternativesModal = () => (
+    <Modal
+      visible={showAlternatives}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setShowAlternatives(false)}
+    >
+      <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+        <View style={[styles.modalHeader, { paddingTop: insets.top + Spacing.md }]}>
+          <Pressable onPress={() => setShowAlternatives(false)} style={styles.modalCloseButton}>
+            <Feather name="x" size={20} color={theme.text} />
+          </Pressable>
+          <ThemedText type="h3">Alternatives</ThemedText>
+          <View style={{ width: 40 }} />
+        </View>
+
+        {loadingAlternatives ? (
+          <View style={styles.alternativesLoading}>
+            <ActivityIndicator size="large" color={tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold} />
+            <ThemedText type="body" style={{ marginTop: Spacing.md, opacity: 0.7 }}>
+              Finding other ways to wear your wardrobe...
+            </ThemedText>
+          </View>
+        ) : alternatives.length === 0 ? (
+          <View style={styles.alternativesLoading}>
+            <Feather name="package" size={40} color={theme.tabIconDefault} />
+            <ThemedText type="body" style={{ marginTop: Spacing.md, textAlign: 'center', opacity: 0.7 }}>
+              Add more wardrobe items to unlock outfit alternatives.
+            </ThemedText>
+          </View>
+        ) : (
+          <ScrollView contentContainerStyle={[styles.alternativesList, { paddingBottom: insets.bottom + Spacing.xl }]}>
+            {alternatives.map((alt, index) => (
+              <View
+                key={alt.id}
+                style={[styles.alternativeCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)' }]}
+              >
+                <ThemedText type="small" style={{ opacity: 0.6, marginBottom: Spacing.sm }}>
+                  Option {index + 1}
+                </ThemedText>
+                {renderAlternativeStackVisual(alt)}
+                <ThemedText type="body" style={{ marginTop: Spacing.md, lineHeight: 22 }}>
+                  {alt.stylistNote}
+                </ThemedText>
+                <Pressable
+                  onPress={() => handleSelectAlternative(alt)}
+                  style={[styles.wearAltButton, { backgroundColor: tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold }]}
+                >
+                  <Feather name="check" size={16} color="#FFFFFF" />
+                  <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: 6, fontWeight: '700' }}>
+                    Wear This
+                  </ThemedText>
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+    </Modal>
+  );
+
   const renderOutfitDetail = () => (
     <Modal
       visible={showOutfitDetail}
@@ -488,23 +808,8 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
 
         <ScreenScrollView style={{ backgroundColor: 'transparent' }}>
           <View style={styles.modalContent}>
-            {selectedOutfit?.itemIds && selectedOutfit.itemIds.length > 0 ? (
-              <View style={styles.outfitGrid}>
-                {selectedOutfit.itemIds.map((itemId) => {
-                  const item = items.find(i => i.id === itemId);
-                  return (
-                    <View key={itemId} style={styles.outfitGridItem}>
-                      <View style={[styles.outfitGridImage, { backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
-                        {item?.imageUri ? (
-                          <Image source={{ uri: item.imageUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
-                        ) : (
-                          <Feather name="image" size={48} color={theme.tabIconDefault} />
-                        )}
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
+            {(selectedOutfit?.items?.length || selectedOutfit?.itemIds?.length) ? (
+              renderOutfitStackVisual(selectedOutfit, { canvasWidth: MODAL_OUTFIT_WIDTH, showLegend: true })
             ) : (
               <View style={[styles.outfitImagePlaceholder, { backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
                 <LinearGradient
@@ -557,11 +862,14 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
               </LinearGradient>
             )}
 
-            {selectedOutfit && selectedOutfit.alternativesCount > 0 && (
-              <Pressable style={[styles.alternativesButton, { borderColor: tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold }]}>
+            {selectedOutfit && (
+              <Pressable
+                onPress={handleSeeAlternatives}
+                style={[styles.alternativesButton, { borderColor: tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold }]}
+              >
                 <Feather name="shuffle" size={18} color={tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold} />
                 <ThemedText type="body" style={{ color: tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold, marginLeft: Spacing.sm }}>
-                  View {selectedOutfit.alternativesCount} Alternative{selectedOutfit.alternativesCount > 1 ? 's' : ''}
+                  See Alternatives
                 </ThemedText>
               </Pressable>
             )}
@@ -637,7 +945,11 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
       )}
 
       {!loadingAll && viewMode === 'calendar' && (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: Spacing.xl }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: tabBarClearance }}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={[styles.calendarCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)' }]}>
             <View style={styles.calendarHeader}>
               <Pressable onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}>
@@ -665,46 +977,51 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
           </View>
 
           {selectedDate && selectedOutfit && (
-            <Pressable
-              onPress={() => handleOutfitPress(selectedOutfit)}
+            <View
               style={[styles.selectedOutfitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)' }]}
             >
-              <View style={styles.selectedOutfitHeader}>
-                <View>
-                  <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 4 }}>
-                    {selectedDate.toLocaleDateString('en-US', { weekday: 'short' })}
-                  </ThemedText>
-                  <ThemedText type="h3">
-                    {selectedOutfit.title}
-                  </ThemedText>
-                  <ThemedText type="caption" style={{ opacity: 0.6, marginTop: 4 }}>
-                    {selectedOutfit.alternativesCount} alternatives available
-                  </ThemedText>
-                </View>
-                <View style={[styles.outfitStatus, { backgroundColor: selectedOutfit.wasWorn ? LUXURY_COLORS.emerald : tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold }]}>
-                  <Feather name={selectedOutfit.wasWorn ? 'check' : 'eye'} size={20} color="#FFFFFF" />
-                </View>
-              </View>
+              <Pressable onPress={() => handleOutfitPress(selectedOutfit)}>
+                {renderOutfitStackVisual(selectedOutfit)}
 
-              {selectedOutfit.stylistNote && (
-                <View style={{ marginTop: Spacing.md }}>
-                  <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 6 }}>
-                    Stylist Note
-                  </ThemedText>
-                  <ThemedText type="body" style={{ lineHeight: 20 }}>
-                    {selectedOutfit.stylistNote}
-                  </ThemedText>
+                <View style={[styles.selectedOutfitHeader, { marginTop: Spacing.md, marginBottom: 0 }]}>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 4 }}>
+                      {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </ThemedText>
+                    <ThemedText type="h3">
+                      {selectedOutfit.title}
+                    </ThemedText>
+                    {selectedOutfit.weatherNote ? (
+                      <ThemedText type="caption" style={{ opacity: 0.6, marginTop: 4 }}>
+                        {selectedOutfit.weatherNote}
+                      </ThemedText>
+                    ) : null}
+                  </View>
+                  <View style={[styles.outfitStatus, { backgroundColor: selectedOutfit.wasWorn ? LUXURY_COLORS.emerald : tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold }]}>
+                    <Feather name={selectedOutfit.wasWorn ? 'check' : 'eye'} size={20} color="#FFFFFF" />
+                  </View>
                 </View>
-              )}
 
-              {selectedOutfit.weatherNote && (
-                <View style={{ marginTop: Spacing.md }}>
-                  <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 6 }}>
-                    Weather
-                  </ThemedText>
-                  <ThemedText type="body">{selectedOutfit.weatherNote}</ThemedText>
-                </View>
-              )}
+                {selectedOutfit.stylistNote && (
+                  <View style={{ marginTop: Spacing.md }}>
+                    <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 6 }}>
+                      Stylist Note
+                    </ThemedText>
+                    <ThemedText type="body" style={{ lineHeight: 20 }}>
+                      {selectedOutfit.stylistNote}
+                    </ThemedText>
+                  </View>
+                )}
+
+                {selectedOutfit.weatherNote && (
+                  <View style={{ marginTop: Spacing.md }}>
+                    <ThemedText type="small" style={{ opacity: 0.6, marginBottom: 6 }}>
+                      Weather
+                    </ThemedText>
+                    <ThemedText type="body">{selectedOutfit.weatherNote}</ThemedText>
+                  </View>
+                )}
+              </Pressable>
 
               <View style={styles.outfitActions}>
                 <Pressable
@@ -717,22 +1034,54 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
                     Mark Worn
                   </ThemedText>
                 </Pressable>
-                <Pressable style={[styles.actionButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                  <Feather name="arrow-right" size={16} color="#FFFFFF" />
-                  <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: 6 }}>
+                <Pressable
+                  onPress={handleSeeAlternatives}
+                  style={[styles.actionButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)' }]}
+                >
+                  <Feather name="arrow-right" size={16} color={isDark ? '#FFFFFF' : theme.text} />
+                  <ThemedText type="small" style={{ color: isDark ? '#FFFFFF' : theme.text, marginLeft: 6 }}>
                     See Alternatives
                   </ThemedText>
                 </Pressable>
               </View>
-            </Pressable>
+            </View>
+          )}
+
+          {!loadingAll && calendarOutfits.length === 0 && (
+            <View style={[styles.emptyStateCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)' }]}>
+              <Feather name="calendar" size={28} color={tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold} />
+              <ThemedText type="body" style={{ marginTop: Spacing.md, textAlign: 'center' }}>
+                No outfits in your calendar yet.
+              </ThemedText>
+              <ThemedText type="small" style={{ marginTop: Spacing.sm, opacity: 0.7, textAlign: 'center' }}>
+                Open My Lookbook to build your 14-day plan, then return here.
+              </ThemedText>
+              <Pressable
+                onPress={() => navigation.navigate('DFYLookbook')}
+                style={[styles.emptyStateButton, { backgroundColor: tier === 'lite' ? LUXURY_COLORS.coral : LUXURY_COLORS.gold }]}
+              >
+                <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                  Go to My Lookbook
+                </ThemedText>
+              </Pressable>
+            </View>
           )}
         </ScrollView>
       )}
 
-      {!loadingAll && viewMode === 'week' && renderWeekView()}
+      {!loadingAll && viewMode === 'week' && (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: tabBarClearance }}
+          showsVerticalScrollIndicator={false}
+        >
+          {renderWeekView()}
+        </ScrollView>
+      )}
       {!loadingAll && viewMode === 'list' && renderListView()}
 
       {renderOutfitDetail()}
+      {renderAlternativesModal()}
     </View>
   );
 }
@@ -805,6 +1154,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.md,
     marginTop: Spacing.lg,
+    paddingTop: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.08)',
   },
   actionButton: {
     flex: 1,
@@ -887,10 +1239,6 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     marginTop: 6,
   },
-  selectedOutfitCard: {
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-  },
   outfitCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -924,6 +1272,12 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  listDayThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   listOutfitInfo: {
     flex: 1,
@@ -936,6 +1290,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
+  },
+  outfitVisualBlock: {
+    marginBottom: Spacing.sm,
+    overflow: 'visible',
+  },
+  outfitItemLegend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  outfitItemPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    maxWidth: '48%',
+    flexGrow: 1,
+  },
+  calendarItemThumb: {
+    marginRight: Spacing.sm,
+    alignItems: 'center',
+  },
+  calendarItemImage: {
+    width: 72,
+    height: 72,
+    borderRadius: BorderRadius.md,
+    backgroundColor: '#F0EDE8',
+  },
+  emptyStateCard: {
+    marginHorizontal: Spacing.xl,
+    marginTop: Spacing.lg,
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+  },
+  emptyStateButton: {
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
   },
   wornBadge: {
     width: 18,
@@ -1036,5 +1430,30 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.full,
     borderWidth: 2,
+  },
+  alternativesLoading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+  },
+  alternativesList: {
+    padding: Spacing.lg,
+    gap: Spacing.md,
+  },
+  alternativeCard: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  wearAltButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.full,
+    alignSelf: 'flex-start',
   },
 });

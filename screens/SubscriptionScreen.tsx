@@ -14,6 +14,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { normalizeSubscriptionTier, tierToBillingPlan, getBillingPlanDisplayName } from "@/utils/subscriptionTier";
+import { TIER_MATRIX } from "@/utils/tierMatrix";
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
 import { getErrorMessage, openExternalUrl } from "@/utils/openExternalUrl";
@@ -64,60 +65,59 @@ interface Plan {
   anchorStyle: 'highlight' | 'normal' | 'subtle';
 }
 
-type DisplayTier = 'free' | 'style_chat' | 'personal_stylist' | 'stylist_unlimited';
+type DisplayTier = 'free' | 'personal_stylist' | 'stylist_unlimited';
 
 const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
   free: [
-    { text: "Basic styling tips", included: true },
-    { text: "Limited wardrobe items", included: true },
-    { text: "Daily outfit decisions", included: true },
-    { text: "Voice conversations", included: false },
-    { text: "Personal stylist", included: false },
-  ],
-  style_chat: [
-    { text: "Voice conversations (limited)", included: true },
-    { text: "Extended wardrobe", included: true },
-    { text: "Outfit calendar access", included: true },
-    { text: "Smart outfit suggestions", included: true },
-    { text: "Unlimited voice", included: false },
-    { text: "Personal stylist", included: false },
+    { text: "1 stylist decision per day", included: true },
+    { text: "Compare 2 shopping options", included: true },
+    { text: "Up to 15 wardrobe items", included: true },
+    { text: "Basic AI chat (10/day)", included: true },
+    { text: "Decision history", included: false },
+    { text: "Wardrobe-aware advice", included: false },
+    { text: "Outfit calendar", included: false },
   ],
   personal_stylist: [
-    { text: "Extended voice sessions", included: true, bold: true },
-    { text: "Personal AI stylist", included: true, bold: true },
-    { text: "Ruby, Max, Ace, or Ivy", included: true },
-    { text: "Full wardrobe analysis", included: true },
-    { text: "Outfit calendar", included: true },
-    { text: "Priority support", included: true },
+    { text: "Unlimited stylist decisions", included: true, bold: true },
+    { text: "Compare up to 3 options", included: true, bold: true },
+    { text: "Decision history & wardrobe memory", included: true },
+    { text: "Wardrobe-aware recommendations", included: true },
+    { text: "75 wardrobe items", included: true },
+    { text: "Voice styling sessions", included: true },
+    { text: "Outfit calendar", included: false },
   ],
   stylist_unlimited: [
-    { text: "Unlimited voice conversations", included: true, bold: true },
-    { text: "Unlimited everything", included: true, bold: true },
-    { text: "Video calls with stylist", included: true },
-    { text: "VIP member access", included: true },
-    { text: "White-glove support", included: true },
+    { text: "Everything in Personal Stylist", included: true, bold: true },
+    { text: "Outfit calendar & event planning", included: true, bold: true },
+    { text: "Unlimited wardrobe & try-on", included: true },
+    { text: "Priority photo processing", included: true },
+    { text: "Bulk upload (20 items)", included: true },
+    { text: "Priority support", included: true },
   ],
 };
 
-const getPlanMetadata = (isYearly: boolean): Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean; bestValue?: boolean; starter?: boolean; tagline?: string }> => ({
-  free: { name: "Free", period: "forever", description: "Get started with basics" },
-  style_chat: { name: "Stylist", period: isYearly ? "/year" : "/month", description: "Voice access & extended features", starter: true },
-  personal_stylist: { name: "Personal Stylist", period: isYearly ? "/year" : "/month", description: "Your personal AI stylist" },
-  stylist_unlimited: {
-    name: "Unlimited Stylist (Best Value)",
+const getPlanMetadata = (isYearly: boolean): Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean; bestValue?: boolean; tagline?: string }> => ({
+  free: { name: "Free", period: "forever", description: TIER_MATRIX.free.tagline },
+  personal_stylist: {
+    name: "Personal Stylist",
     period: isYearly ? "/year" : "/month",
-    description: "Unlimited everything",
+    description: TIER_MATRIX.personal_stylist.jobToBeDone,
+    tagline: "Decide faster, every day",
+  },
+  stylist_unlimited: {
+    name: "Stylist Unlimited",
+    period: isYearly ? "/year" : "/month",
+    description: TIER_MATRIX.stylist_unlimited.jobToBeDone,
     popular: true,
     bestValue: true,
-    tagline: "Less than £0.66/day for a full-time stylist",
+    tagline: "Plan your style life — calendar, packing, priority speed",
   },
 });
 
 const PLAN_SAVINGS: Record<DisplayTier, { save: string; yearlyEquiv?: string; badge?: string; altSuffix?: string }> = {
   free: { save: '' },
-  style_chat: { save: '£23.89', altSuffix: 'Save 20%' },
-  personal_stylist: { save: '~£40' },
-  stylist_unlimited: { save: '£60', yearlyEquiv: 'only £4.99/month', badge: '2 months free' },
+  personal_stylist: { save: '£23.89', altSuffix: 'Save 20%' },
+  stylist_unlimited: { save: '£60', yearlyEquiv: 'only £4.99/month extra vs monthly', badge: '2 months free' },
 };
 
 const buildPlanPricing = (
@@ -151,14 +151,13 @@ const buildPlanPricing = (
 
 interface LocalizedPrices {
   free: string;
-  style_chat: string;
   personal_stylist: string;
   stylist_unlimited: string;
 }
 
 const getLocalizedPlans = (monthlyPrices: LocalizedPrices, yearlyPrices: LocalizedPrices, isYearly: boolean): Plan[] => {
   const metadata = getPlanMetadata(isYearly);
-  const planOrder: DisplayTier[] = ['stylist_unlimited', 'personal_stylist', 'style_chat'];
+  const planOrder: DisplayTier[] = ['stylist_unlimited', 'personal_stylist'];
 
   const planConfigs: Record<DisplayTier, Omit<Plan, 'price' | 'altPrice' | 'savingsLabel' | 'period'>> = {
     free: {
@@ -170,26 +169,17 @@ const getLocalizedPlans = (monthlyPrices: LocalizedPrices, yearlyPrices: Localiz
       accentColor: LUXURY_COLORS.champagne,
       anchorStyle: 'subtle',
     },
-    style_chat: {
-      id: 'subscription',
-      displayTier: 'style_chat',
-      ...metadata.style_chat,
-      features: PLAN_FEATURES.style_chat,
-      gradientColors: [LUXURY_COLORS.teal, LUXURY_COLORS.emerald] as const,
-      accentColor: LUXURY_COLORS.champagne,
-      anchorStyle: 'subtle',
-    },
     personal_stylist: {
-      id: 'premium',
+      id: 'personal_stylist',
       displayTier: 'personal_stylist',
       ...metadata.personal_stylist,
       features: PLAN_FEATURES.personal_stylist,
-      gradientColors: [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const,
-      accentColor: LUXURY_COLORS.gold,
+      gradientColors: [LUXURY_COLORS.teal, LUXURY_COLORS.emerald] as const,
+      accentColor: LUXURY_COLORS.champagne,
       anchorStyle: 'normal',
     },
     stylist_unlimited: {
-      id: 'pro',
+      id: 'stylist_unlimited',
       displayTier: 'stylist_unlimited',
       ...metadata.stylist_unlimited,
       features: PLAN_FEATURES.stylist_unlimited,
@@ -214,20 +204,18 @@ const getTierDisplayName = (tier?: SubscriptionTier): string => {
   return getBillingPlanDisplayName(tier);
 };
 
-const getTierColor = (tier?: SubscriptionTier): string => {
-  switch (tier) {
-    case 'pro': return LUXURY_COLORS.gold;
-    case 'premium': return LUXURY_COLORS.violet;
-    case 'subscription': return LUXURY_COLORS.teal;
-    default: return LUXURY_COLORS.champagne;
+const getCurrentTierAccent = (tier?: SubscriptionTier, isDark = false): string => {
+  switch (normalizeSubscriptionTier(tier)) {
+    case 'stylist_unlimited': return LUXURY_COLORS.gold;
+    case 'personal_stylist': return LUXURY_COLORS.teal;
+    default: return isDark ? LUXURY_COLORS.champagne : LUXURY_COLORS.midnight;
   }
 };
 
 const getTierIcon = (tier?: SubscriptionTier): "award" | "star" | "message-circle" | "user" => {
-  switch (tier) {
-    case 'pro': return 'award';
-    case 'premium': return 'star';
-    case 'subscription': return 'message-circle';
+  switch (normalizeSubscriptionTier(tier)) {
+    case 'stylist_unlimited': return 'award';
+    case 'personal_stylist': return 'message-circle';
     default: return 'user';
   }
 };
@@ -241,22 +229,22 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const checkoutInProgressRef = useRef(false);
 
   const normalizedTier = normalizeTier(user?.subscriptionTier);
+  const currentTierAccent = getCurrentTierAccent(normalizedTier, isDark);
+  const currentTierMutedLabel = isDark ? 'rgba(255,255,255,0.65)' : 'rgba(26,26,46,0.6)';
   
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>(
-    route?.params?.highlightPlan ?? (normalizeTier(user?.subscriptionTier) === 'free' ? 'pro' : normalizeTier(user?.subscriptionTier))
+    route?.params?.highlightPlan ?? (normalizedTier === 'free' ? 'personal_stylist' : normalizedTier)
   );
   const [isProcessing, setIsProcessing] = useState(false);
   const [isYearly, setIsYearly] = useState(true);
   const [localizedPrices, setLocalizedPrices] = useState<LocalizedPrices>({
     free: "Free",
-    style_chat: "£9.99",
-    personal_stylist: "£14.99",
+    personal_stylist: "£9.99",
     stylist_unlimited: "£19.99",
   });
   const [yearlyPrices, setYearlyPrices] = useState<LocalizedPrices>({
     free: "Free",
-    style_chat: "£95.99",
-    personal_stylist: "£139.99",
+    personal_stylist: "£95.99",
     stylist_unlimited: "£179.99",
   });
   const [dfyPrices, setDfyPrices] = useState<{ outfit_setup: string; wardrobe_setup: string }>({
@@ -294,7 +282,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         setWinbackBanner((prev) => prev ?? "You can pause your plan instead of cancelling — no charges while paused.");
       }
       if (cta === "downgrade") {
-        setSelectedPlan("subscription");
+        setSelectedPlan("personal_stylist");
       }
 
       if (source === "winback_email") {
@@ -690,7 +678,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               <Feather 
                 name="check" 
                 size={16} 
-                color={plan.id === 'pro' ? '#FFFFFF' : LUXURY_COLORS.midnight} 
+                color={plan.id === 'stylist_unlimited' ? '#FFFFFF' : LUXURY_COLORS.midnight} 
               />
             </View>
           ) : null}
@@ -705,7 +693,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 type="body" 
                 style={[
                   styles.inlineSubscribeButtonText,
-                  { color: plan.id === 'pro' ? '#FFFFFF' : LUXURY_COLORS.midnight }
+                  { color: plan.id === 'stylist_unlimited' ? '#FFFFFF' : LUXURY_COLORS.midnight }
                 ]}
               >
                 {isProcessing ? "Processing..." : `Start ${plan.name} Plan`}
@@ -738,10 +726,10 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             </LinearGradient>
           </View>
           <ThemedText type="h1" style={styles.heroTitle}>
-            Elevate Your Style
+            Pick Your Stylist Level
           </ThemedText>
           <ThemedText type="body" style={styles.heroSubtitle}>
-            Unlock premium features and personalized AI styling
+            Free to try · Personal Stylist for daily decisions · Unlimited for planning
           </ThemedText>
         </View>
       </LinearGradient>
@@ -778,23 +766,23 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
       <View style={[styles.currentTierSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
         <View style={styles.currentTierRow}>
-          <View style={[styles.currentTierIcon, { backgroundColor: getTierColor(normalizedTier) + '20' }]}>
+          <View style={[styles.currentTierIcon, { backgroundColor: currentTierAccent + '20' }]}>
             <Feather 
               name={getTierIcon(normalizedTier)} 
               size={20} 
-              color={getTierColor(normalizedTier)} 
+              color={currentTierAccent} 
             />
           </View>
           <View style={styles.currentTierText}>
-            <ThemedText type="small" style={{ opacity: 0.6 }}>You're on</ThemedText>
+            <ThemedText type="small" style={{ color: currentTierMutedLabel }}>You're on</ThemedText>
             <ThemedText type="h3">
               {getTierDisplayName(normalizedTier)}
             </ThemedText>
           </View>
         {normalizedTier !== 'free' ? (
-          <View style={[styles.tierBadge, { backgroundColor: getTierColor(normalizedTier) + '20' }]}>
-            <Feather name="check" size={14} color={getTierColor(normalizedTier)} />
-            <ThemedText type="caption" style={{ color: getTierColor(normalizedTier), fontWeight: '600' }}>Active</ThemedText>
+          <View style={[styles.tierBadge, { backgroundColor: currentTierAccent + '20' }]}>
+            <Feather name="check" size={14} color={currentTierAccent} />
+            <ThemedText type="caption" style={{ color: currentTierAccent, fontWeight: '600' }}>Active</ThemedText>
           </View>
         ) : null}
         </View>
@@ -802,10 +790,16 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           <Pressable 
             onPress={handleManageSubscription}
             disabled={isProcessing}
-            style={[styles.manageButton, { borderColor: getTierColor(normalizedTier) + '40' }]}
+            style={[
+              styles.manageButton,
+              {
+                borderColor: currentTierAccent + (isDark ? '40' : '25'),
+                backgroundColor: normalizedTier === 'free' && !isDark ? 'rgba(26,26,46,0.04)' : 'transparent',
+              },
+            ]}
           >
-            <Feather name="settings" size={16} color={getTierColor(normalizedTier)} />
-            <ThemedText type="body" style={{ color: getTierColor(normalizedTier), fontWeight: '600' }}>
+            <Feather name="settings" size={16} color={currentTierAccent} />
+            <ThemedText type="body" style={{ color: currentTierAccent, fontWeight: '600' }}>
               {normalizedTier === 'free' ? 'Upgrade / Manage Billing' : 'Manage Billing'}
             </ThemedText>
           </Pressable>
@@ -934,6 +928,64 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
         <Pressable style={styles.dfyCardWrapper}>
           <LinearGradient
+            colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.dfyCard, styles.dfyCardFeatured]}
+          >
+            <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(26,26,46,0.3)' }]}>
+              <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>Structural</ThemedText>
+            </View>
+            <View style={styles.dfyCardHeader}>
+              <View style={[styles.dfyBadge, { backgroundColor: 'rgba(26,26,46,0.2)' }]}>
+                <Feather name="grid" size={18} color={LUXURY_COLORS.midnight} />
+              </View>
+              <View style={styles.dfyCardTitleContainer}>
+                <ThemedText type="h3" style={{ color: LUXURY_COLORS.midnight }}>Core Wardrobe Setup</ThemedText>
+                <ThemedText type="caption" style={{ color: 'rgba(26,26,46,0.6)' }}>One-time purchase</ThemedText>
+              </View>
+            </View>
+            <View style={styles.dfyPriceRow}>
+              <ThemedText type="h1" style={[styles.dfyPrice, { color: LUXURY_COLORS.midnight }]}>{dfyPrices.wardrobe_setup}</ThemedText>
+            </View>
+            <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(26,26,46,0.85)' }]}>
+              Solve the system, not the moment. Photograph individual items and I'll organise your wardrobe so decisions get easier every time.
+            </ThemedText>
+            <View style={styles.dfyFeatures}>
+              {[
+                "You photograph individual items",
+                "Up to 30 wardrobe items",
+                "Proper categorisation & tagging",
+                "Wardrobe saved forever",
+                "30 days of active styling",
+                "Dynamic outfit generation",
+                "Swap & remix any piece",
+                "Less repetition, more variety",
+              ].map((feature, idx) => (
+                <View key={idx} style={styles.dfyFeatureRow}>
+                  <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(26,26,46,0.15)' }]}>
+                    <Feather name="check" size={12} color={LUXURY_COLORS.midnight} />
+                  </View>
+                  <ThemedText type="small" style={{ color: LUXURY_COLORS.midnight }}>{feature}</ThemedText>
+                </View>
+              ))}
+            </View>
+            <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(26,26,46,0.2)' }]}>
+              <Pressable 
+                style={styles.dfyButtonInner}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  navigation.navigate('DFYComparison' as any, { selectedTier: 'core', autoCheckout: true });
+                }}
+              >
+                <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '600' }}>Build my wardrobe</ThemedText>
+              </Pressable>
+            </View>
+          </LinearGradient>
+        </Pressable>
+
+        <Pressable style={styles.dfyCardWrapper}>
+          <LinearGradient
             colors={[LUXURY_COLORS.coral, '#C46A4F']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -994,64 +1046,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 }}
               >
                 <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Style me for this</ThemedText>
-              </Pressable>
-            </View>
-          </LinearGradient>
-        </Pressable>
-
-        <Pressable style={styles.dfyCardWrapper}>
-          <LinearGradient
-            colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.dfyCard, styles.dfyCardFeatured]}
-          >
-            <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(26,26,46,0.3)' }]}>
-              <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>Structural</ThemedText>
-            </View>
-            <View style={styles.dfyCardHeader}>
-              <View style={[styles.dfyBadge, { backgroundColor: 'rgba(26,26,46,0.2)' }]}>
-                <Feather name="grid" size={18} color={LUXURY_COLORS.midnight} />
-              </View>
-              <View style={styles.dfyCardTitleContainer}>
-                <ThemedText type="h3" style={{ color: LUXURY_COLORS.midnight }}>Core Wardrobe Setup</ThemedText>
-                <ThemedText type="caption" style={{ color: 'rgba(26,26,46,0.6)' }}>One-time purchase</ThemedText>
-              </View>
-            </View>
-            <View style={styles.dfyPriceRow}>
-              <ThemedText type="h1" style={[styles.dfyPrice, { color: LUXURY_COLORS.midnight }]}>{dfyPrices.wardrobe_setup}</ThemedText>
-            </View>
-            <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(26,26,46,0.85)' }]}>
-              Solve the system, not the moment. Photograph individual items and I'll organise your wardrobe so decisions get easier every time.
-            </ThemedText>
-            <View style={styles.dfyFeatures}>
-              {[
-                "You photograph individual items",
-                "Up to 30 wardrobe items",
-                "Proper categorisation & tagging",
-                "Wardrobe saved forever",
-                "30 days of active styling",
-                "Dynamic outfit generation",
-                "Swap & remix any piece",
-                "Less repetition, more variety",
-              ].map((feature, idx) => (
-                <View key={idx} style={styles.dfyFeatureRow}>
-                  <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(26,26,46,0.15)' }]}>
-                    <Feather name="check" size={12} color={LUXURY_COLORS.midnight} />
-                  </View>
-                  <ThemedText type="small" style={{ color: LUXURY_COLORS.midnight }}>{feature}</ThemedText>
-                </View>
-              ))}
-            </View>
-            <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(26,26,46,0.2)' }]}>
-              <Pressable 
-                style={styles.dfyButtonInner}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  navigation.navigate('DFYComparison' as any, { selectedTier: 'core', autoCheckout: true });
-                }}
-              >
-                <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '600' }}>Build my wardrobe</ThemedText>
               </Pressable>
             </View>
           </LinearGradient>

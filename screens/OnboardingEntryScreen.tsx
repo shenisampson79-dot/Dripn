@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, View, Pressable, Dimensions, Platform } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { StyleSheet, View, Pressable, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -8,14 +8,11 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
 import { LoopingBackgroundVideo } from "@/components/LoopingBackgroundVideo";
-import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
-const SPACING_XXL = 32;
+import { Spacing, BorderRadius, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
 import { videoRandomizer } from "@/services/VideoRandomizerService";
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 type OnboardingEntryScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "OnboardingEntry">;
@@ -37,9 +34,28 @@ interface EntryData {
 
 export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScreenProps) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const [entryData, setEntryData] = useState<EntryData | null>(null);
-  const [selectedVideo] = useState(() => videoRandomizer.getNextVideo());
+  const [selectedVideo] = useState(() => videoRandomizer.getNextVideo({ tone: "confidence" }));
+
+  const ui = useMemo(
+    () => ({
+      gradientColors: isDark
+        ? (["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.65)", "rgba(0,0,0,0.95)"] as const)
+        : (["rgba(250,248,245,0.75)", "rgba(250,248,245,0.88)", "rgba(250,248,245,0.94)", "rgba(250,248,245,0.98)"] as const),
+      gradientLocations: isDark ? ([0, 0.4, 0.7, 1] as const) : ([0, 0.25, 0.55, 1] as const),
+      rootBg: isDark ? "#000000" : theme.backgroundRoot,
+      title: isDark ? "#FFFFFF" : theme.text,
+      subtitle: isDark ? "rgba(255,255,255,0.9)" : "#5A4D3A",
+      backBg: isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.72)",
+      backIcon: isDark ? "#FFFFFF" : theme.text,
+      signInBorder: isDark ? "rgba(255,255,255,0.4)" : theme.border,
+      signInBg: isDark ? "rgba(255,255,255,0.1)" : theme.backgroundDefault,
+      signInText: isDark ? "#FFFFFF" : theme.text,
+      trustText: isDark ? "rgba(255,255,255,0.6)" : "#6B5E4C",
+    }),
+    [isDark, theme]
+  );
 
   useEffect(() => {
     loadEntryData();
@@ -93,47 +109,41 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
   const styleMeProperly = entryData?.entryPoints?.find(e => e.id === "style_me_properly");
 
   return (
-    <View style={styles.container}>
-      <LoopingBackgroundVideo
-        source={selectedVideo}
-        style={StyleSheet.absoluteFillObject}
-      />
+    <View style={[styles.container, { backgroundColor: ui.rootBg }]}>
+      {Platform.OS !== "web" ? (
+        <LoopingBackgroundVideo source={selectedVideo} style={StyleSheet.absoluteFill} />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.backgroundDefault }]} />
+      )}
 
       <LinearGradient
-        colors={[
-          "transparent", 
-          "rgba(0,0,0,0.35)",
-          "rgba(0,0,0,0.65)",
-          "rgba(0,0,0,0.95)"
-        ]}
-        style={StyleSheet.absoluteFillObject}
-        locations={[0, 0.4, 0.7, 1]}
+        colors={ui.gradientColors}
+        style={StyleSheet.absoluteFill}
+        locations={ui.gradientLocations}
       />
 
       <Pressable 
         onPress={() => navigation.goBack()} 
         style={[styles.backButton, { top: insets.top + Spacing.md }]}
       >
-        <View style={styles.backButtonInner}>
-          <Feather name="arrow-left" size={20} color="#FFFFFF" />
+        <View style={[styles.backButtonInner, { backgroundColor: ui.backBg }]}>
+          <Feather name="arrow-left" size={20} color={ui.backIcon} />
         </View>
       </Pressable>
 
-      <View style={[styles.content, { paddingTop: insets.top + SPACING_XXL }]}>
+      <View style={[styles.content, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.xl }]}>
         <Animated.View entering={FadeIn.delay(200)} style={styles.header}>
-          <ThemedText type="h1" style={styles.title}>
+          <ThemedText type="h1" style={[styles.title, { color: ui.title }, !isDark && styles.titleLight]}>
             {entryData?.title || "What should I wear?"}
           </ThemedText>
-          <ThemedText type="body" style={styles.subtitle}>
+          <ThemedText type="body" style={[styles.subtitle, { color: ui.subtitle }, !isDark && styles.subtitleLight]}>
             {entryData?.subtitle || "Your AI stylist will decide for you — no scrolling, no guessing."}
           </ThemedText>
         </Animated.View>
 
-        <View style={styles.spacer} />
-
         <Animated.View 
           entering={FadeInDown.delay(400).springify()} 
-          style={[styles.ctaContainer, { paddingBottom: insets.bottom + Spacing.xl }]}
+          style={styles.ctaContainer}
         >
           <Pressable
             style={({ pressed }) => [
@@ -197,15 +207,18 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
 
           <Pressable 
             onPress={() => navigation.navigate("Auth", { mode: "login" })}
-            style={styles.signInButton}
+            style={[
+              styles.signInButton,
+              { borderColor: ui.signInBorder, backgroundColor: ui.signInBg },
+            ]}
           >
-            <ThemedText type="body" style={styles.signInButtonText}>
+            <ThemedText type="body" style={[styles.signInButtonText, { color: ui.signInText }]}>
               Already have an account? Sign in
             </ThemedText>
           </Pressable>
 
           <Pressable onPress={handleJustBrowsing}>
-            <ThemedText type="small" style={[styles.trustText, { textDecorationLine: 'underline' }]}>
+            <ThemedText type="small" style={[styles.trustText, { color: ui.trustText, textDecorationLine: 'underline' }]}>
               {entryData?.trustBuilding || "See how it works before signing up"}
             </ThemedText>
           </Pressable>
@@ -218,7 +231,6 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
   },
   backButton: {
     position: "absolute",
@@ -229,7 +241,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.3)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -239,10 +250,9 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginTop: SPACING_XXL,
+    marginBottom: Spacing.xl,
   },
   title: {
-    color: "#FFFFFF",
     fontSize: 32,
     fontWeight: "700",
     textAlign: "center",
@@ -250,8 +260,10 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
+  titleLight: {
+    textShadowColor: "transparent",
+  },
   subtitle: {
-    color: "rgba(255,255,255,0.9)",
     fontSize: 17,
     textAlign: "center",
     marginTop: Spacing.md,
@@ -260,11 +272,12 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
-  spacer: {
-    flex: 1,
+  subtitleLight: {
+    textShadowColor: "transparent",
   },
   ctaContainer: {
     gap: Spacing.md,
+    marginTop: Spacing.lg,
   },
   ctaButton: {
     borderRadius: BorderRadius.lg,
@@ -317,22 +330,18 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   signInButton: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.xl,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.xl,
     borderRadius: 24,
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.4)",
-    backgroundColor: "rgba(255,255,255,0.1)",
   },
   signInButtonText: {
-    color: "#FFFFFF",
     textAlign: "center",
     fontSize: 14,
     fontWeight: "600",
   },
   trustText: {
-    color: "rgba(255,255,255,0.6)",
     textAlign: "center",
     marginTop: Spacing.sm,
     fontSize: 13,

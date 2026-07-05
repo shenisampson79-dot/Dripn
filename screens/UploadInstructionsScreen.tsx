@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { StyleSheet, View, Pressable, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -9,7 +9,14 @@ import { Image } from "expo-image";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
+import { UploadGuideComparisonTable } from "@/components/UploadGuideComparisonTable";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import {
+  ACCESSORY_UPLOAD_COMPARISONS,
+  getClothingUploadComparisons,
+  OUTFIT_UPLOAD_COMPARISONS,
+} from "@/constants/uploadGuideExamples";
+import { useAuth } from "@/contexts/AuthContext";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
@@ -97,6 +104,11 @@ const DEFAULT_INSTRUCTIONS: Record<string, UploadInstructions> = {
 export default function UploadInstructionsScreen({ navigation, route }: UploadInstructionsScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { user } = useAuth();
+  const clothingComparisons = useMemo(
+    () => getClothingUploadComparisons(user?.gender),
+    [user?.gender],
+  );
   const uploadType = route.params?.type || "outfit";
   const defaultInstructions = DEFAULT_INSTRUCTIONS[uploadType] || DEFAULT_INSTRUCTIONS.outfit;
   const [instructions, setInstructions] = useState<UploadInstructions>(defaultInstructions);
@@ -231,31 +243,15 @@ export default function UploadInstructionsScreen({ navigation, route }: UploadIn
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.delay(400)} style={styles.section}>
-          <View style={styles.examplesRow}>
-            <View style={styles.exampleColumn}>
-              <ThemedText type="body" style={[styles.exampleHeader, { color: theme.link }]}>
-                Good examples
-              </ThemedText>
-              {instructions.examples.good.map((example, index) => (
-                <View key={index} style={styles.exampleItem}>
-                  <Feather name="check" size={14} color={theme.link} />
-                  <ThemedText type="small" style={{ color: theme.text }}>{example}</ThemedText>
-                </View>
-              ))}
-            </View>
-            <View style={styles.exampleColumn}>
-              <ThemedText type="body" style={[styles.exampleHeader, { color: "#E57373" }]}>
-                Avoid
-              </ThemedText>
-              {instructions.examples.avoid.map((example, index) => (
-                <View key={index} style={styles.exampleItem}>
-                  <Feather name="x" size={14} color="#E57373" />
-                  <ThemedText type="small" style={{ color: theme.tabIconDefault }}>{example}</ThemedText>
-                </View>
-              ))}
-            </View>
-          </View>
+        <Animated.View entering={FadeInUp.delay(250)}>
+          {uploadType === 'outfit' ? (
+            <UploadGuideComparisonTable title="Outfit photos" rows={OUTFIT_UPLOAD_COMPARISONS} />
+          ) : (
+            <>
+              <UploadGuideComparisonTable title="Clothing" rows={clothingComparisons} />
+              <UploadGuideComparisonTable title="Accessories" rows={ACCESSORY_UPLOAD_COMPARISONS} />
+            </>
+          )}
         </Animated.View>
       </ScreenScrollView>
 
@@ -351,53 +347,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
-  },
-  examplesRow: {
-    flexDirection: "row",
-    gap: Spacing.lg,
-  },
-  exampleColumn: {
-    flex: 1,
-  },
-  exampleHeader: {
-    fontWeight: "600",
-    marginBottom: Spacing.sm,
-  },
-  exampleItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-    marginBottom: 6,
-  },
-  visualExamplesRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-  },
-  visualExampleCard: {
-    flex: 1,
-    borderRadius: BorderRadius.lg,
-    overflow: "hidden",
-    position: "relative",
-  },
-  visualExampleImage: {
-    width: "0%",
-    height: 0,
-  },
-  visualBadge: {
-    position: "absolute",
-    top: Spacing.xs,
-    right: Spacing.xs,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1,
-  },
-  visualLabel: {
-    textAlign: "center",
-    marginTop: Spacing.xs,
-    fontWeight: "600",
   },
   footer: {
     position: "absolute",

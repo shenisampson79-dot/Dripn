@@ -313,21 +313,22 @@ export default function SessionDetailScreen({ navigation, route, onExit }: Sessi
             textAlignVertical="top"
           />
           <Button
-            title={isSaving ? "Saving..." : "Save Notes"}
             onPress={handleSaveNotes}
             disabled={isSaving || !notes.trim()}
             style={[styles.saveButton, { backgroundColor: theme.backgroundSecondary }]}
-            textStyle={{ color: theme.text }}
-          />
+          >
+            <ThemedText style={{ color: theme.text }}>{isSaving ? "Saving..." : "Save Notes"}</ThemedText>
+          </Button>
         </Card>
 
         {session.status === 'scheduled' || session.status === 'in_progress' ? (
           <Button
-            title={isCompleting ? "Completing..." : "Mark as Completed"}
             onPress={handleCompleteSession}
             disabled={isCompleting}
             style={[styles.completeButton, { backgroundColor: '#10B981' }]}
-          />
+          >
+            <ThemedText style={{ color: '#FFFFFF' }}>{isCompleting ? "Completing..." : "Mark as Completed"}</ThemedText>
+          </Button>
         ) : null}
 
         {session.completedAt ? (

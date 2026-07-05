@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,8 +21,19 @@ import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWardrobe } from "@/contexts/WardrobeContext";
 import { dfyService, DFYOutfit, DFYLiteDelivery, StylistId } from "@/services/DFYService";
 import { apiService } from "@/services/ApiService";
+import { weatherService } from "@/services/WeatherService";
+import {
+  enrichDeliveryWithWardrobeImages,
+  resolveDFYItemImageUri,
+  RawDFYOutfitItem,
+  fillEmptyLookbookSlots,
+  countFilledLookbookDays,
+  ensureLookbookOutfitsHaveFootwear,
+} from "@/utils/dfyOutfitImages";
+import { sortOutfitItemsByVisualOrder } from "@/utils/outfitItemOrder";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
@@ -55,6 +67,7 @@ type DFYLookbookScreenProps = {
 export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
+  const { items: wardrobeItems } = useWardrobe();
   const insets = useSafeAreaInsets();
 
   const [delivery, setDelivery] = useState<DFYLiteDelivery | null>(null);
@@ -62,11 +75,32 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   const [showOutfitModal, setShowOutfitModal] = useState(false);
   const [currentDay, setCurrentDay] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatingVisuals, setGeneratingVisuals] = useState<Set<string>>(new Set());
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const backfillStartedRef = useRef(false);
 
   useEffect(() => {
-    loadDelivery();
-  }, []);
+    if (!user?.id) return;
+    void loadDelivery();
+  }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!delivery || !user?.id) return;
+      const totalDays = delivery.totalDays || 14;
+      if (countFilledLookbookDays(delivery) >= totalDays) return;
+      if (backfillStartedRef.current) return;
+      backfillStartedRef.current = true;
+      void populateLookbookOutfits(delivery, { fillGapsOnly: true });
+    }, [delivery, user?.id]),
+  );
+
+  const maybeBackfillLookbook = (hydrated: DFYLiteDelivery) => {
+    const totalDays = hydrated.totalDays || 14;
+    const filledCount = countFilledLookbookDays(hydrated);
+    if (filledCount >= totalDays || backfillStartedRef.current) return;
+    backfillStartedRef.current = true;
+    void populateLookbookOutfits(hydrated, { fillGapsOnly: filledCount > 0 });
+  };
 
   const loadDelivery = async () => {
     if (!user?.id) return;
@@ -94,161 +128,219 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         await dfyService.saveDFYDelivery(normalised);
       }
 
-      setDelivery(normalised);
-      setCurrentDay(normalised.currentDay);
+      const hydrated = enrichDeliveryWithWardrobeImages(
+        ensureLookbookOutfitsHaveFootwear(normalised, wardrobeItems),
+        wardrobeItems,
+      );
+      const forecast = await weatherService.get14DayForecast();
+      const withWeather = forecast?.days?.length
+        ? {
+            ...hydrated,
+            outfits: hydrated.outfits.map((outfit, idx) => ({
+              ...outfit,
+              weatherNote:
+                outfit.weatherNote ||
+                weatherService.buildWeatherNoteForDay(
+                  weatherService.getForecastDay(forecast, outfit.dayNumber || idx + 1),
+                ),
+            })),
+          }
+        : hydrated;
+      setDelivery(withWeather);
+      setCurrentDay(withWeather.currentDay);
 
-      // If all outfits have empty items, auto-generate real outfits from the wardrobe
-      const allEmpty = normalised.outfits.every(o => !o.items || o.items.length === 0);
-      if (allEmpty) {
-        generateRealOutfits(normalised);
-      } else {
-        // Restore DB-cached visuals, then generate any that are missing
-        restoreCachedVisuals(normalised);
+      const gainedImages = withWeather.outfits.some((outfit, idx) =>
+        outfit.items.some((item, itemIdx) => {
+          const prev = normalised.outfits[idx]?.items[itemIdx];
+          return item.imageUri && !prev?.imageUri;
+        }),
+      );
+      const gainedShoes = withWeather.outfits.some((outfit, idx) => {
+        const prev = normalised.outfits[idx];
+        return (outfit.items?.length || 0) > (prev?.items?.length || 0);
+      });
+      const gainedWeather = withWeather.outfits.some(
+        (outfit, idx) => outfit.weatherNote && !normalised.outfits[idx]?.weatherNote,
+      );
+      if (gainedImages || gainedShoes || gainedWeather) {
+        await dfyService.saveDFYDelivery(withWeather);
       }
+
+      maybeBackfillLookbook(withWeather);
     }
   };
 
-  const generateRealOutfits = async (existingDelivery: DFYLiteDelivery) => {
-    if (!user?.id || isGenerating) return;
-    setIsGenerating(true);
-    try {
-      const stylistId = user.stylistPreferences?.selectedStylistId || 'ruby';
-      const result = await apiService.generateDFYDelivery({ tier: 'lite', stylistId });
-      if (result.success && result.delivery) {
-        const updatedDelivery: DFYLiteDelivery = {
-          ...existingDelivery,
-          outfits: result.delivery.outfits as any,
-        };
-        await dfyService.saveDFYDelivery(updatedDelivery);
-        setDelivery(updatedDelivery);
-        scheduleVisualGeneration(updatedDelivery);
+  // Re-hydrate item photos when wardrobe finishes loading on device
+  useEffect(() => {
+    if (!delivery || wardrobeItems.length === 0) return;
+    const hydrated = enrichDeliveryWithWardrobeImages(delivery, wardrobeItems);
+    const gainedImages = hydrated.outfits.some((outfit, idx) =>
+      outfit.items.some((item, itemIdx) => {
+        const prev = delivery.outfits[idx]?.items[itemIdx];
+        return item.imageUri && !prev?.imageUri;
+      }),
+    );
+    const totalDays = hydrated.totalDays || 14;
+    const needsMoreDays = countFilledLookbookDays(hydrated) < totalDays;
+
+    if (gainedImages || needsMoreDays) {
+      if (needsMoreDays && wardrobeItems.length >= 2) {
+        backfillStartedRef.current = false;
+        void populateLookbookOutfits(hydrated, {
+          fillGapsOnly: countFilledLookbookDays(hydrated) > 0,
+          force: true,
+        });
+      } else if (gainedImages) {
+        setDelivery(hydrated);
+        void dfyService.saveDFYDelivery(hydrated);
       }
-    } catch (err) {
-      console.log('[DFYLookbook] Auto-generation failed:', err);
+    }
+  }, [wardrobeItems]);
+
+  const mapApiOutfitsToDelivery = (rawOutfits: any[], stylistId: StylistId): DFYOutfit[] =>
+    rawOutfits.map((o, idx) => ({
+      id: o.id || `outfit_${idx + 1}`,
+      dayNumber: o.day || o.dayNumber || idx + 1,
+      title: o.title || (idx === 0 ? "Today's Look" : `Day ${idx + 1} Look`),
+      description: o.description || o.stylistNote || '',
+      items: (o.items || []).map((it: any) => ({
+        id: String(it.id),
+        name: it.name || '',
+        category: it.category || '',
+        color: it.color || '',
+        imageUrl: it.imageUrl,
+        processedImageUrl: it.processedImageUrl,
+        imageUri: it.imageUri || it.processedImageUrl || it.imageUrl || undefined,
+      })),
+      occasion: o.occasion || 'casual',
+      stylistNote: o.stylistNote,
+      weatherNote: o.weatherNote,
+      stylistId: (o.stylistId || stylistId) as StylistId,
+      userReaction: null,
+      saved: false,
+    }));
+
+  const mergeLookbookOutfits = (
+    existingDelivery: DFYLiteDelivery,
+    mappedOutfits: DFYOutfit[],
+    fillGapsOnly: boolean,
+  ): DFYOutfit[] =>
+    existingDelivery.outfits.map((slot, idx) => {
+      if (fillGapsOnly && slot.items && slot.items.length > 0) return slot;
+      const source = mappedOutfits[idx];
+      if (!source?.items?.length) return slot;
+      return {
+        ...source,
+        id: slot.id,
+        dayNumber: slot.dayNumber,
+        title: slot.title,
+        userReaction: slot.userReaction ?? null,
+        saved: slot.saved ?? false,
+      };
+    });
+
+  const populateLookbookOutfits = async (
+    existingDelivery: DFYLiteDelivery,
+    options: { fillGapsOnly?: boolean; force?: boolean } = {},
+  ) => {
+    if (!user?.id || isGenerating) return;
+    if (!options.force && backfillStartedRef.current && countFilledLookbookDays(existingDelivery) >= (existingDelivery.totalDays || 14)) {
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerateError(null);
+
+    const stylistId = user.stylistPreferences?.selectedStylistId || 'ruby';
+    const fillGapsOnly =
+      options.fillGapsOnly ?? existingDelivery.outfits.some((o) => o.items && o.items.length > 0);
+
+    try {
+      let working = existingDelivery;
+      const forecast = await weatherService.get14DayForecast();
+      const coords = forecast
+        ? { lat: forecast.lat, lon: forecast.lon, locationName: forecast.location }
+        : await weatherService.getLocationCoords();
+
+      // Instant on-device fill so empty days appear immediately
+      if (wardrobeItems.length >= 2) {
+        const locallyFilled = fillEmptyLookbookSlots(working, wardrobeItems, stylistId, forecast);
+        if (countFilledLookbookDays(locallyFilled) > countFilledLookbookDays(working)) {
+          working = locallyFilled;
+          await dfyService.saveDFYDelivery(working);
+          setDelivery(working);
+        }
+      }
+
+      // Try server for richer AI styling (may be slow on cold start)
+      let rawOutfits: any[] = [];
+      try {
+        const result = await apiService.generateDFYLookbook({
+          stylistId,
+          lat: coords?.lat,
+          lon: coords?.lon,
+          location: coords?.locationName || forecast?.location,
+        });
+        rawOutfits = result.outfits || [];
+        if (!result.success || rawOutfits.length === 0) {
+          const fallback = await apiService.generateDFYDelivery({
+            tier: 'lite',
+            stylistId,
+            lat: coords?.lat,
+            lon: coords?.lon,
+            location: coords?.locationName || forecast?.location,
+          });
+          rawOutfits =
+            fallback.outfits ||
+            (fallback as any).delivery?.outfits ||
+            [];
+        }
+      } catch (apiErr: any) {
+        console.log('[DFYLookbook] Server lookbook unavailable, keeping local outfits:', apiErr?.message || apiErr);
+      }
+
+      if (rawOutfits.length > 0) {
+        const mappedOutfits = mapApiOutfitsToDelivery(rawOutfits, stylistId);
+        const mergedOutfits = mergeLookbookOutfits(working, mappedOutfits, fillGapsOnly);
+        working = enrichDeliveryWithWardrobeImages(
+          { ...working, outfits: mergedOutfits },
+          wardrobeItems,
+        );
+      }
+
+      // Final safety net — never leave empty days if wardrobe has items
+      if (wardrobeItems.length >= 2) {
+        working = fillEmptyLookbookSlots(working, wardrobeItems, stylistId, forecast);
+      }
+      working = ensureLookbookOutfitsHaveFootwear(working, wardrobeItems);
+
+      if (forecast?.days?.length) {
+        working = {
+          ...working,
+          outfits: working.outfits.map((outfit, idx) => ({
+            ...outfit,
+            weatherNote:
+              outfit.weatherNote ||
+              weatherService.buildWeatherNoteForDay(
+                weatherService.getForecastDay(forecast, outfit.dayNumber || idx + 1),
+              ),
+          })),
+        };
+      }
+
+      await dfyService.saveDFYDelivery(working);
+      setDelivery(working);
+
+      const totalDays = working.totalDays || 14;
+      if (countFilledLookbookDays(working) < totalDays) {
+        setGenerateError('Some days could not be filled. Add more wardrobe pieces and tap Refresh.');
+      }
+    } catch (err: any) {
+      console.log('[DFYLookbook] Lookbook generation failed:', err);
+      setGenerateError(err?.message || 'Could not finish building your lookbook. Tap Refresh to try again.');
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  // Restore previously generated visuals from the DB cache, then fill any gaps with AI generation
-  const restoreCachedVisuals = async (currentDelivery: DFYLiteDelivery) => {
-    const outfitsWithoutVisual = currentDelivery.outfits.filter(o => {
-      if (!o.items || o.items.length === 0) return false;
-      if (o.imageUri) return false;
-      return true; // All outfits without AI visual
-    });
-    if (outfitsWithoutVisual.length === 0) return;
-
-    let updatedOutfits = [...currentDelivery.outfits];
-    let cachedCount = 0;
-
-    // FAST PATH: Try to restore from DB cache (no generation cost, instant display)
-    const cachedPromises = outfitsWithoutVisual.map(async (outfit) => {
-      try {
-        const cached = await apiService.getDFYOutfitVisual(outfit.dayNumber);
-        if (cached.success && cached.imageUrl) {
-          updatedOutfits = updatedOutfits.map(o =>
-            o.id === outfit.id ? { ...o, imageUri: cached.imageUrl! } : o
-          );
-          cachedCount++;
-        }
-      } catch (_) {}
-    });
-
-    await Promise.all(cachedPromises);
-
-    // Update state with cached visuals
-    if (cachedCount > 0) {
-      const saved: DFYLiteDelivery = { ...currentDelivery, outfits: updatedOutfits };
-      await dfyService.saveDFYDelivery(saved);
-      setDelivery({ ...currentDelivery, outfits: [...updatedOutfits] });
-    }
-
-    // IMMEDIATE: Generate AI visuals for missing ones — NO WAITING, NO DELAYS
-    const stillMissing = updatedOutfits.filter(o => !o.imageUri && o.items?.length > 0);
-    if (stillMissing.length > 0) {
-      // Start generation immediately for all missing visuals
-      // Don't batch or queue — generate in parallel batches of 2-3
-      scheduleVisualGeneration({ ...currentDelivery, outfits: updatedOutfits });
-    }
-  };
-
-  // Generate AI outfit visuals for outfits that have items but no imageUri
-  const scheduleVisualGeneration = async (currentDelivery: DFYLiteDelivery) => {
-    const outfitsNeedingVisuals = currentDelivery.outfits.filter(o => {
-      if (!o.items || o.items.length === 0) return false;
-      if (o.imageUri) return false;
-      return true; // Generate for all without AI visuals
-    });
-    if (outfitsNeedingVisuals.length === 0) return;
-
-    let updatedOutfits = [...currentDelivery.outfits];
-
-    // Generate 3-4 at a time for faster throughput (respects rate limits while being quick)
-    const batchSize = 3;
-    for (let i = 0; i < outfitsNeedingVisuals.length; i += batchSize) {
-      const batch = outfitsNeedingVisuals.slice(i, i + batchSize);
-      setGeneratingVisuals(prev => {
-        const next = new Set(prev);
-        batch.forEach(o => next.add(o.id));
-        return next;
-      });
-
-      await Promise.all(batch.map(async (outfit) => {
-        try {
-          const result = await apiService.generateDFYOutfitVisual({
-            outfitDay: outfit.dayNumber,
-            outfitName: outfit.title || '',
-            items: outfit.items.map(it => ({ name: it.name, category: it.category, color: it.color })),
-            stylistNote: outfit.stylistNote || '',
-            occasion: outfit.occasion || '',
-            vibeLabel: (outfit as any).vibeLabel || '',
-            stylist: outfit.stylistId || '',
-          });
-          if (result.success && result.imageUrl) {
-            updatedOutfits = updatedOutfits.map(o =>
-              o.id === outfit.id ? { ...o, imageUri: result.imageUrl! } : o
-            );
-            const saved: DFYLiteDelivery = { ...currentDelivery, outfits: updatedOutfits };
-            await dfyService.saveDFYDelivery(saved);
-            setDelivery({ ...currentDelivery, outfits: [...updatedOutfits] });
-          }
-        } catch (_) {}
-        setGeneratingVisuals(prev => {
-          const next = new Set(prev);
-          next.delete(outfit.id);
-          return next;
-        });
-      }));
-    }
-  };
-
-  const generateSingleVisual = async (outfit: DFYOutfit) => {
-    if (!delivery || generatingVisuals.has(outfit.id) || outfit.imageUri) return;
-    setGeneratingVisuals(prev => new Set(prev).add(outfit.id));
-    try {
-      const result = await apiService.generateDFYOutfitVisual({
-        outfitDay: outfit.dayNumber,
-        outfitName: outfit.title || '',
-        items: outfit.items.map(it => ({ name: it.name, category: it.category, color: it.color })),
-        stylistNote: outfit.stylistNote || '',
-        occasion: outfit.occasion || '',
-        vibeLabel: (outfit as any).vibeLabel || '',
-        stylist: outfit.stylistId || '',
-      });
-      if (result.success && result.imageUrl) {
-        const updatedOutfits = delivery.outfits.map(o =>
-          o.id === outfit.id ? { ...o, imageUri: result.imageUrl! } : o
-        );
-        const updatedDelivery = { ...delivery, outfits: updatedOutfits };
-        await dfyService.saveDFYDelivery(updatedDelivery);
-        setDelivery(updatedDelivery);
-        if (selectedOutfit?.id === outfit.id) {
-          setSelectedOutfit({ ...selectedOutfit, imageUri: result.imageUrl! });
-        }
-      }
-    } catch (_) {}
-    setGeneratingVisuals(prev => { const next = new Set(prev); next.delete(outfit.id); return next; });
   };
 
   const handleOutfitPress = (outfit: DFYOutfit) => {
@@ -299,100 +391,54 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
 
   const renderOutfitVisual = (outfit: DFYOutfit, height: number = 220) => {
     const colors = outfit.stylistId ? STYLIST_COLORS[outfit.stylistId] : STYLIST_COLORS.ruby;
-    const itemsWithImages = (outfit.items || []).filter(i => i.imageUri);
-    const isLoadingVisual = generatingVisuals.has(outfit.id);
+    const orderedItems = sortOutfitItemsByVisualOrder(outfit.items || []);
+    const itemsWithImages = orderedItems
+      .map((item) => ({
+        item,
+        uri: resolveDFYItemImageUri(item as RawDFYOutfitItem),
+      }))
+      .filter((entry): entry is { item: typeof outfit.items[0]; uri: string } => Boolean(entry.uri));
 
-    // Priority 1: outfit-level AI-generated image (PRIMARY — always show if available)
-    if (outfit.imageUri) {
-      // If we also have real photos, optionally show them as an overlay or replace
-      // For now, AI visual is the main show, real photos are bonus
-      return (
-        <Image
-          source={{ uri: outfit.imageUri }}
-          style={{ width: '100%', height }}
-          contentFit="cover"
-        />
-      );
-    }
-
-    // Priority 2: AI visual is being generated — show shimmer loader (FAST FEEDBACK)
-    if (isLoadingVisual) {
-      return (
-        <LinearGradient
-          colors={[colors.gradient[0] + '50', colors.gradient[1] + '30', colors.gradient[0] + '50']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <ActivityIndicator color={colors.accent} size="small" />
-          <ThemedText type="caption" style={{ color: colors.accent, marginTop: Spacing.sm, opacity: 0.9 }}>
-            Styling your look...
-          </ThemedText>
-        </LinearGradient>
-      );
-    }
-
-    // Priority 3: Real wardrobe photos as fallback (if no AI visual yet)
-    // These load in background while AI generates
+    // Show the user's actual wardrobe pieces — not AI-generated flat lays
     if (itemsWithImages.length >= 2) {
       const photos = itemsWithImages.slice(0, 4);
       const halfH = height / 2;
-      const halfW = (CARD_WIDTH) / 2;
+      const halfW = CARD_WIDTH / 2;
       return (
         <View style={{ width: '100%', height, flexDirection: 'row', flexWrap: 'wrap' }}>
-          {photos.map((it, k) => (
+          {photos.map(({ item, uri }) => (
             <Image
-              key={it.id}
-              source={{ uri: it.imageUri! }}
+              key={item.id}
+              source={{ uri }}
               style={{ width: halfW, height: photos.length <= 2 ? height : halfH }}
-              contentFit="cover"
+              contentFit="contain"
             />
           ))}
         </View>
       );
     }
 
-    // Priority 4: single item photo (fill the whole visual)
     if (itemsWithImages.length === 1) {
       return (
         <Image
-          source={{ uri: itemsWithImages[0].imageUri! }}
+          source={{ uri: itemsWithImages[0].uri }}
           style={{ width: '100%', height }}
-          contentFit="cover"
+          contentFit="contain"
         />
       );
     }
 
-    // Priority 5: No visual available yet — trigger AI generation immediately
-    // Don't wait, don't timeout — just generate now
-    if (!outfit.imageUri && !isLoadingVisual) {
-      // Trigger generation synchronously (not delayed)
-      generateSingleVisual(outfit);
-      
-      return (
-        <LinearGradient
-          colors={[colors.gradient[0] + '50', colors.gradient[1] + '30', colors.gradient[0] + '50']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <ActivityIndicator color={colors.accent} size="small" />
-          <ThemedText type="caption" style={{ color: colors.accent, marginTop: Spacing.sm, opacity: 0.9 }}>
-            Styling your look...
-          </ThemedText>
-        </LinearGradient>
-      );
-    }
-
-    // Fallback (should rarely reach here)
     return (
       <LinearGradient
-        colors={[colors.gradient[0] + '40', colors.gradient[1] + '20']}
+        colors={[colors.gradient[0] + '50', colors.gradient[1] + '30', colors.gradient[0] + '50']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center' }}
+        style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.lg }}
       >
-        <ActivityIndicator color={colors.accent} size="small" />
+        <Feather name="image" size={28} color={colors.accent} />
+        <ThemedText type="caption" style={{ color: colors.accent, marginTop: Spacing.sm, opacity: 0.9, textAlign: 'center' }}>
+          {outfit.items?.length ? 'Wardrobe photos loading…' : 'Outfit pieces coming soon'}
+        </ThemedText>
       </LinearGradient>
     );
   };
@@ -467,6 +513,15 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
               </View>
             </View>
 
+            {item.weatherNote ? (
+              <View style={styles.weatherNotePreview}>
+                <Feather name="cloud" size={12} color={colors.accent} />
+                <ThemedText type="caption" style={{ marginLeft: 6, opacity: 0.7, flex: 1 }}>
+                  {item.weatherNote}
+                </ThemedText>
+              </View>
+            ) : null}
+
             {item.stylistNote ? (
               <View style={[styles.stylistNotePreview, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
                 <View style={[styles.stylistAvatar, { backgroundColor: colors.accent }]}>
@@ -480,7 +535,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
 
             {hasItems ? (
               <View style={styles.itemPillsRow}>
-                {item.items.slice(0, 3).map((it, k) => (
+                {sortOutfitItemsByVisualOrder(item.items).slice(0, 3).map((it, k) => (
                   <View key={k} style={[styles.itemPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
                     <ThemedText type="caption" numberOfLines={1} style={{ opacity: 0.75 }}>
                       {it.name}
@@ -500,7 +555,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         </View>
       </Pressable>
     );
-  }, [currentDay, isDark, generatingVisuals, delivery]);
+  }, [currentDay, isDark, delivery]);
 
   const renderOutfitModal = () => {
     if (!selectedOutfit) return null;
@@ -558,10 +613,12 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
                       The pieces ({selectedOutfit.items.length})
                     </ThemedText>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm }}>
-                      {selectedOutfit.items.map((wardrobeItem) => (
+                      {sortOutfitItemsByVisualOrder(selectedOutfit.items).map((wardrobeItem) => {
+                        const itemUri = resolveDFYItemImageUri(wardrobeItem as RawDFYOutfitItem);
+                        return (
                         <View key={wardrobeItem.id} style={styles.modalItemCard}>
-                          {wardrobeItem.imageUri ? (
-                            <Image source={{ uri: wardrobeItem.imageUri }} style={styles.modalItemImage} contentFit="cover" />
+                          {itemUri ? (
+                            <Image source={{ uri: itemUri }} style={styles.modalItemImage} contentFit="contain" />
                           ) : (
                             <View style={[styles.modalItemImage, { backgroundColor: wardrobeItem.color || (isDark ? '#2A2A3E' : '#F0EDE8'), alignItems: 'center', justifyContent: 'center' }]}>
                               {!wardrobeItem.color && (
@@ -576,8 +633,18 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
                             {wardrobeItem.category}
                           </ThemedText>
                         </View>
-                      ))}
+                        );
+                      })}
                     </ScrollView>
+                  </View>
+                ) : null}
+
+                {selectedOutfit.weatherNote ? (
+                  <View style={[styles.weatherNoteCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+                    <Feather name="cloud" size={16} color={colors.accent} />
+                    <ThemedText type="body" style={{ marginLeft: Spacing.sm, flex: 1 }}>
+                      {selectedOutfit.weatherNote}
+                    </ThemedText>
                   </View>
                 ) : null}
 
@@ -727,10 +794,19 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         <View style={[styles.generatingBanner, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
           <ActivityIndicator color="#FFFFFF" size="small" />
           <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: Spacing.sm }}>
-            Your stylist is curating your outfits from your wardrobe...
+            Filling in your remaining days from your wardrobe...
           </ThemedText>
         </View>
       )}
+
+      {generateError && !isGenerating ? (
+        <View style={[styles.generatingBanner, { backgroundColor: 'rgba(224, 122, 95, 0.35)' }]}>
+          <Feather name="alert-circle" size={14} color="#FFFFFF" />
+          <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: Spacing.sm, flex: 1 }}>
+            {generateError}
+          </ThemedText>
+        </View>
+      ) : null}
 
       <FlatList
         data={delivery.outfits}
@@ -741,7 +817,11 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         ListFooterComponent={
           !isGenerating ? (
             <Pressable
-              onPress={() => delivery && generateRealOutfits(delivery)}
+              onPress={() => {
+                if (!delivery) return;
+                backfillStartedRef.current = false;
+                void populateLookbookOutfits(delivery, { force: true });
+              }}
               style={[styles.regenerateButton, { borderColor: 'rgba(255,255,255,0.3)' }]}
             >
               <Feather name="refresh-cw" size={14} color="rgba(255,255,255,0.7)" />
@@ -879,6 +959,18 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: BorderRadius.full,
     marginTop: 4,
+  },
+  weatherNotePreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+  },
+  weatherNoteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
   },
   stylistNotePreview: {
     flexDirection: 'row',

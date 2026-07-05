@@ -8,8 +8,8 @@ import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
-import { Button } from "@/components/Button";
 import { LoopingBackgroundVideo } from "@/components/LoopingBackgroundVideo";
+import { Button } from "@/components/Button";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
@@ -26,7 +26,7 @@ type SoftSignupGateScreenProps = {
 export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGateScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo());
+  const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo({ tone: "confidence" }));
   const fromPath = route.params?.fromPath || "decide_for_me";
 
   const handleCreateAccount = async () => {
@@ -98,14 +98,15 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
 
   return (
     <View style={styles.container}>
-      <LoopingBackgroundVideo
-        source={backgroundVideo}
-        style={StyleSheet.absoluteFillObject}
-      />
+      {Platform.OS !== "web" ? (
+        <LoopingBackgroundVideo source={backgroundVideo} style={StyleSheet.absoluteFill} />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.backgroundDefault }]} />
+      )}
 
       <LinearGradient
         colors={["transparent", "rgba(0,0,0,0.6)", "rgba(0,0,0,0.9)"]}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         locations={[0, 0.4, 1]}
       />
 

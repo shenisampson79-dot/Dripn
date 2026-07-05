@@ -23,9 +23,26 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from '@/constant
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { LimitHitUpgradePrompt } from '@/components/LimitHitUpgradePrompt';
 import { useWardrobe, WardrobeItem, PlannedOutfit, PlannedEventType } from '@/contexts/WardrobeContext';
 import type { ProfileStackParamList } from '@/navigation/ProfileStackNavigator';
 import { apiService } from '@/services/ApiService';
+import {
+  completeOutfitItemIds,
+  isCompleteOutfit,
+  MIN_OUTFIT_ITEMS,
+  outfitHasRequiredShoes,
+  wardrobeCanBuildCompleteOutfit,
+} from '@/utils/completeOutfit';
+import { WeeklyOutfitPlannerPanel } from '@/components/outfit/WeeklyOutfitPlannerPanel';
+import {
+  buildWeekOccasionRotation,
+  OCCASION_TO_PLANNED_EVENT,
+  type OutfitOccasionId,
+} from '@/constants/outfitOccasions';
+import { resolveGeneratedOutfitItemIds } from '@/utils/generatedOutfit';
+import { orderItemIdsByVisualOrder, sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
 
 type OutfitCalendarScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'OutfitCalendar'>;
@@ -49,29 +66,38 @@ const EVENT_TYPES: { value: PlannedEventType; label: string; icon: keyof typeof 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+/** Store planned dates on the user's local calendar day (avoids UTC timezone drift). */
+function toPlannedOutfitDateIso(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}T12:00:00.000Z`;
+}
+
+
+function dedupeWardrobeItems(items: WardrobeItem[]): WardrobeItem[] {
+  const seen = new Set<string>();
+  const unique: WardrobeItem[] = [];
+  for (const item of items) {
+    const key = String(item.id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(item);
+  }
+  return unique;
+}
+
 // ── Flat-lay stacked outfit preview (Indyx style) ──────────────────────────
 type StackedOutfitPreviewProps = {
   outfitItems: WardrobeItem[];
 };
 
 function StackedOutfitPreview({ outfitItems }: StackedOutfitPreviewProps) {
-  const { theme, isDark } = useTheme();
-
-  const outerwear = outfitItems.filter(i => i.category === 'outerwear');
-  const tops = outfitItems.filter(i => ['tops', 'activewear_tops', 'formal'].includes(i.category));
-  const bottoms = outfitItems.filter(i => ['bottoms', 'dresses', 'activewear_bottoms'].includes(i.category));
-  const shoes = outfitItems.filter(i => i.category === 'shoes');
-  const accessories = outfitItems.filter(i => ['bags', 'accessories'].includes(i.category));
-  const others = outfitItems.filter(i =>
-    !['outerwear', 'tops', 'activewear_tops', 'activewear_bottoms', 'formal', 'bottoms', 'dresses', 'shoes', 'bags', 'accessories'].includes(i.category)
-  );
+  const { isDark } = useTheme();
+  const uniqueItems = sortOutfitItemsByVisualOrder(dedupeWardrobeItems(outfitItems));
 
   const slotBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
   const canvasBg = isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)';
-
-  const hasTopRow = outerwear.length > 0 || tops.length > 0;
-  const hasMidRow = bottoms.length > 0;
-  const hasFootRow = shoes.length > 0 || accessories.length > 0;
 
   const renderSlot = (item: WardrobeItem, slotStyle?: object) => (
     <View key={item.id} style={[styles.flatLaySlot, { backgroundColor: slotBg }, slotStyle]}>
@@ -87,52 +113,29 @@ function StackedOutfitPreview({ outfitItems }: StackedOutfitPreviewProps) {
     </View>
   );
 
-  if (outfitItems.length === 0) return null;
+  if (uniqueItems.length === 0) return null;
+
+  const rows: WardrobeItem[][] = [];
+  for (let i = 0; i < uniqueItems.length; i += 2) {
+    rows.push(uniqueItems.slice(i, i + 2));
+  }
 
   return (
     <View style={[styles.flatLayCanvas, { backgroundColor: canvasBg }]}>
-      {/* Row 1: Outerwear + Top (side by side) */}
-      {hasTopRow ? (
-        <View style={styles.flatLayRow}>
-          {outerwear[0] ? renderSlot(outerwear[0], styles.flatLayHalfSlot) : null}
-          {tops[0] ? renderSlot(tops[0], styles.flatLayHalfSlot) : null}
-          {/* If only outerwear or only top, show it full-width */}
-          {!outerwear[0] && !tops[0] ? null : null}
+      {rows.map((row, rowIndex) => (
+        <View
+          key={`row-${rowIndex}`}
+          style={row.length === 1 ? styles.flatLayCenterRow : styles.flatLayRow}
+        >
+          {row.map((item) =>
+            renderSlot(item, row.length === 1 ? styles.flatLayCenterSlot : styles.flatLayHalfSlot),
+          )}
         </View>
-      ) : null}
+      ))}
 
-      {/* Row 2: Bottoms / Dress — centered, narrower */}
-      {hasMidRow ? (
-        <View style={styles.flatLayCenterRow}>
-          {renderSlot(bottoms[0], styles.flatLayCenterSlot)}
-          {/* Show second item (e.g. second dress/bottom) if exists and no top row */}
-          {!hasTopRow && bottoms[1] ? renderSlot(bottoms[1], styles.flatLayCenterSlot) : null}
-        </View>
-      ) : null}
-
-      {/* Row 3: Shoes + Bag/Accessory */}
-      {hasFootRow ? (
-        <View style={styles.flatLayRow}>
-          {shoes[0] ? renderSlot(shoes[0], styles.flatLayFootSlot) : null}
-          {shoes[1]
-            ? renderSlot(shoes[1], styles.flatLayFootSlot)
-            : accessories[0]
-            ? renderSlot(accessories[0], styles.flatLayFootSlot)
-            : null}
-        </View>
-      ) : null}
-
-      {/* Row 4: Any remaining items (swimwear, sleepwear, other) */}
-      {others.length > 0 ? (
-        <View style={styles.flatLayRow}>
-          {others.slice(0, 2).map(item => renderSlot(item, styles.flatLayHalfSlot))}
-        </View>
-      ) : null}
-
-      {/* Item count label */}
       <View style={styles.flatLayItemCount}>
         <ThemedText type="caption" style={{ color: isDark ? '#888' : '#999', fontSize: 11 }}>
-          {outfitItems.length} {outfitItems.length === 1 ? 'item' : 'items'}
+          {uniqueItems.length} {uniqueItems.length === 1 ? 'item' : 'items'}
         </ThemedText>
       </View>
     </View>
@@ -145,6 +148,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   const { theme, isDark } = useTheme();
   const { translations } = useTranslations();
   const { user } = useAuth();
+  const { limits } = useSubscription();
   const secondaryTextColor = getSecondaryTextColor(isDark);
   const tertiaryTextColor = getTertiaryTextColor(isDark);
   const { 
@@ -175,6 +179,8 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   const [showAIModal, setShowAIModal] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [generatingDays, setGeneratingDays] = useState<number>(7);
+  const [focusOccasionId, setFocusOccasionId] = useState<OutfitOccasionId | null>(null);
+  const [aiGenerateProgress, setAiGenerateProgress] = useState({ current: 0, total: 0 });
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate();
@@ -301,10 +307,22 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
       return;
     }
 
+    const completedIds = orderItemIdsByVisualOrder(
+      completeOutfitItemIds(selectedItems, items),
+      items,
+    );
+    if (!isCompleteOutfit(completedIds, items)) {
+      Alert.alert(
+        'Incomplete Outfit',
+        `Every outfit needs at least ${MIN_OUTFIT_ITEMS} items including shoes or trainers.`,
+      );
+      return;
+    }
+
     try {
       if (editingOutfitId) {
         await updatePlannedOutfit(editingOutfitId, {
-          itemIds: selectedItems,
+          itemIds: completedIds,
           eventName: newEventName || undefined,
           eventType: newEventType,
           notes: notes || undefined,
@@ -312,8 +330,8 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
       } else {
         if (!selectedDate) return;
         await planOutfit({
-          date: selectedDate.toISOString(),
-          itemIds: selectedItems,
+          date: toPlannedOutfitDateIso(selectedDate),
+          itemIds: completedIds,
           eventName: newEventName || undefined,
           eventType: newEventType,
           notes: notes || undefined,
@@ -351,10 +369,10 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   };
 
   const handleAICreateOutfits = () => {
-    if (items.length < 3) {
+    if (!wardrobeCanBuildCompleteOutfit(items)) {
       Alert.alert(
         "Need More Items",
-        "Add at least 3 items to your wardrobe for AI to create outfit combinations.",
+        `Add at least ${MIN_OUTFIT_ITEMS} wardrobe items including shoes/trainers, a top, and a bottom for AI to create complete outfits.`,
         [{ text: "OK" }]
       );
       return;
@@ -364,16 +382,17 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
 
   const generateAIOutfitsForWeek = async () => {
     setIsGeneratingAI(true);
+    setAiGenerateProgress({ current: 0, total: generatingDays });
     try {
-      const occasionTypes: Array<'todays_look' | 'work_outfit' | 'date_night' | 'casual_day'> = [
-        'casual_day', 'work_outfit', 'casual_day', 'work_outfit', 
-        'casual_day', 'date_night', 'casual_day'
-      ];
+      const occasionTypes = buildWeekOccasionRotation(generatingDays, focusOccasionId);
       
       const today = new Date();
+      today.setHours(12, 0, 0, 0);
       let successCount = 0;
+      let firstPlannedDate: Date | null = null;
       
       for (let i = 0; i < generatingDays; i++) {
+        setAiGenerateProgress({ current: i, total: generatingDays });
         const targetDate = new Date(today);
         targetDate.setDate(today.getDate() + i);
         
@@ -384,7 +403,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
             occasionType,
             stylistId: user?.stylistPreferences?.selectedStylistId || 'ruby',
             localItems: items.map(i => ({
-              id: i.id,
+              id: String(i.id),
               name: i.name,
               category: i.category,
               color: i.color,
@@ -392,46 +411,51 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
             })),
           });
           
-          if (result.success && result.outfit && result.outfit.items.length > 0) {
-            const itemIds = result.outfit.items.map((item: any) => item.id);
-            
-            const eventTypeMap: Record<string, PlannedEventType> = {
-              'todays_look': 'everyday',
-              'work_outfit': 'work',
-              'date_night': 'date-night',
-              'casual_day': 'casual',
-            };
-            
+          const itemIds = resolveGeneratedOutfitItemIds(result, items);
+          
+          if (result.success && isCompleteOutfit(itemIds, items)) {
+            const eventType = (OCCASION_TO_PLANNED_EVENT[occasionType] || 'casual') as PlannedEventType;
+
             await planOutfit({
-              date: targetDate.toISOString(),
+              date: toPlannedOutfitDateIso(targetDate),
               itemIds,
-              eventName: result.outfit.vibe || `AI ${occasionType.replace('_', ' ')}`,
-              eventType: eventTypeMap[occasionType] || 'casual',
+              eventName: result.vibeLabel || result.outfit?.vibe || `AI ${occasionType.replace('_', ' ')}`,
+              eventType,
               notes: 'Created by AI Stylist',
             });
             successCount++;
+            if (!firstPlannedDate) firstPlannedDate = targetDate;
           }
         } catch (err) {
           console.log(`Failed to generate outfit for day ${i + 1}:`, err);
         }
       }
       
+      setAiGenerateProgress({ current: generatingDays, total: generatingDays });
       setShowAIModal(false);
       
       if (successCount > 0) {
+        if (firstPlannedDate) {
+          setCurrentDate(new Date(firstPlannedDate.getFullYear(), firstPlannedDate.getMonth(), 1));
+          setSelectedDate(firstPlannedDate);
+        }
+        const partial = successCount < generatingDays;
         Alert.alert(
-          "Outfits Created!",
-          `AI created ${successCount} outfit${successCount > 1 ? 's' : ''} for the next ${generatingDays} days.`,
-          [{ text: "View Calendar", onPress: () => setSelectedDate(today) }]
+          partial ? "Some Outfits Created" : "Outfits Created!",
+          partial
+            ? `AI created ${successCount} of ${generatingDays} outfits. Tap the marked days on your calendar to view them.`
+            : `AI created ${successCount} outfit${successCount > 1 ? 's' : ''} for the next ${successCount} days.`,
+          [{ text: "View Calendar", onPress: () => firstPlannedDate && setSelectedDate(firstPlannedDate) }]
         );
       } else {
-        Alert.alert("No Outfits Created", "AI couldn't create outfits. Try adding more variety to your wardrobe.");
+        Alert.alert("No Outfits Created", "AI couldn't match your wardrobe items. Try again or add more variety to your wardrobe.");
       }
     } catch (error) {
       console.error('AI outfit generation error:', error);
       Alert.alert('Error', 'Failed to generate AI outfits. Please try again.');
     } finally {
       setIsGeneratingAI(false);
+      setAiGenerateProgress({ current: 0, total: 0 });
     }
   };
 
@@ -444,7 +468,8 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   };
 
   const getItemById = (itemId: string): WardrobeItem | undefined => {
-    return items.find(item => item.id === itemId);
+    const key = String(itemId);
+    return items.find(item => String(item.id) === key);
   };
 
   const getEventIcon = (eventType?: PlannedEventType): keyof typeof Feather.glyphMap => {
@@ -492,25 +517,27 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         >
           {day}
         </ThemedText>
-        {hasOutfits ? (
-          <View style={styles.dotsContainer}>
-            {outfitsForDay.slice(0, 3).map((outfit, i) => (
-              <View
-                key={outfit.id}
-                style={[
-                  styles.outfitDot,
-                  { backgroundColor: outfit.wasWorn ? theme.success : theme.link },
-                ]}
-              />
-            ))}
-          </View>
-        ) : null}
+        <View style={styles.dotsContainer}>
+          {hasOutfits
+            ? outfitsForDay.slice(0, 3).map((outfit) => (
+                <View
+                  key={outfit.id}
+                  style={[
+                    styles.outfitDot,
+                    { backgroundColor: outfit.wasWorn ? theme.success : theme.link },
+                  ]}
+                />
+              ))
+            : null}
+        </View>
       </Pressable>
     );
   };
 
   const renderOutfitItem = ({ item }: { item: PlannedOutfit }) => {
-    const outfitItems = item.itemIds.map(id => getItemById(id)).filter(Boolean) as WardrobeItem[];
+    const outfitItems = dedupeWardrobeItems(
+      item.itemIds.map(id => getItemById(id)).filter(Boolean) as WardrobeItem[],
+    );
     const eventLabel = getEventLabel(item.eventType);
 
     return (
@@ -620,6 +647,27 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
       </Pressable>
     );
   };
+
+  if (!limits.canAccessOutfitCalendar) {
+    return (
+      <ScreenKeyboardAwareScrollView>
+        <View style={styles.header}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Feather name="arrow-left" size={24} color={theme.text} />
+          </Pressable>
+          <ThemedText type="h2">{translations.stylistHub?.outfitCalendar || 'Outfit Calendar'}</ThemedText>
+          <View style={{ width: 40 }} />
+        </View>
+        <LimitHitUpgradePrompt
+          variant="card"
+          title="Outfit calendar is part of Stylist Unlimited"
+          message="Plan looks ahead, pack for trips, and map outfits to your week. Upgrade to unlock the full planning toolkit."
+          ctaLabel="View Stylist Unlimited"
+          onUpgrade={() => navigation.navigate('Subscription' as any, { highlightPlan: 'stylist_unlimited' })}
+        />
+      </ScreenKeyboardAwareScrollView>
+    );
+  }
 
   return (
     <ScreenKeyboardAwareScrollView>
@@ -937,85 +985,16 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
           </View>
 
           <ScrollView style={styles.modalContent}>
-            <View style={styles.aiModalHeader}>
-              <LinearGradient
-                colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
-                style={styles.aiModalIcon}
-              >
-                <Feather name="cpu" size={32} color="#FFFFFF" />
-              </LinearGradient>
-              <ThemedText type="h3" style={{ marginTop: Spacing.md, textAlign: 'center' }}>
-                Create Outfits for the Week
-              </ThemedText>
-              <ThemedText type="body" style={[styles.aiModalDescription, { color: secondaryTextColor }]}>
-                AI will create {generatingDays} outfit combinations from your {items.length} wardrobe items
-              </ThemedText>
-            </View>
-
-            <ThemedText type="caption" style={[styles.sectionLabel, { color: secondaryTextColor }]}>
-              Number of Days
-            </ThemedText>
-            <View style={styles.daysSelector}>
-              {[3, 5, 7].map(days => (
-                <Pressable
-                  key={days}
-                  onPress={() => setGeneratingDays(days)}
-                  style={[
-                    styles.dayOption,
-                    generatingDays === days 
-                      ? { backgroundColor: theme.link } 
-                      : { backgroundColor: theme.backgroundSecondary, borderColor: theme.border, borderWidth: 1 }
-                  ]}
-                >
-                  <ThemedText 
-                    type="body" 
-                    style={{ 
-                      color: generatingDays === days ? '#FFFFFF' : theme.text,
-                      fontWeight: '600' 
-                    }}
-                  >
-                    {days} Days
-                  </ThemedText>
-                </Pressable>
-              ))}
-            </View>
-
-            <Card elevation={1} style={styles.aiInfoCard}>
-              <Feather name="info" size={16} color={theme.link} />
-              <ThemedText type="caption" style={[styles.aiInfoText, { color: secondaryTextColor }]}>
-                AI will create a mix of work, casual, and date night outfits based on your Style DNA and wardrobe items.
-              </ThemedText>
-            </Card>
-
-            <Pressable
-              onPress={generateAIOutfitsForWeek}
-              disabled={isGeneratingAI}
-              style={[styles.generateButton, { opacity: isGeneratingAI ? 0.7 : 1 }]}
-            >
-              <LinearGradient
-                colors={[LuxuryColors.violet, LuxuryColors.deepViolet]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.generateButtonGradient}
-              >
-                {isGeneratingAI ? (
-                  <>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                    <ThemedText type="body" style={styles.generateButtonText}>
-                      Creating Outfits...
-                    </ThemedText>
-                  </>
-                ) : (
-                  <>
-                    <Feather name="zap" size={20} color="#FFFFFF" />
-                    <ThemedText type="body" style={styles.generateButtonText}>
-                      Generate {generatingDays} Outfits
-                    </ThemedText>
-                  </>
-                )}
-              </LinearGradient>
-            </Pressable>
-
+            <WeeklyOutfitPlannerPanel
+              wardrobeCount={items.length}
+              generatingDays={generatingDays}
+              onDaysChange={setGeneratingDays}
+              focusOccasionId={focusOccasionId}
+              onFocusOccasionChange={setFocusOccasionId}
+              isGenerating={isGeneratingAI}
+              progress={aiGenerateProgress}
+              onGenerate={generateAIOutfitsForWeek}
+            />
             <View style={{ height: 100 }} />
           </ScrollView>
         </ThemedView>
@@ -1067,6 +1046,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.xs,
+    flexDirection: 'column',
   },
   todayCell: {
     borderWidth: 2,
@@ -1077,12 +1057,15 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 14,
+    lineHeight: 18,
   },
   dotsContainer: {
     flexDirection: 'row',
-    position: 'absolute',
-    bottom: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 2,
+    marginTop: 6,
+    minHeight: 5,
   },
   outfitDot: {
     width: 5,

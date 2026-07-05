@@ -3,6 +3,9 @@
  * Proprietary and confidential.
  */
 
+import { normalizeSubscriptionTier, isPaidTier, isTopTier } from '@/utils/subscriptionTier';
+import type { SubscriptionTier } from '@/contexts/AuthContext';
+
 export interface FashionInfluencer {
   name: string;
   handle: string;
@@ -66,7 +69,7 @@ export interface TrendInsight {
   category: string;
   source: string;
   date: string;
-  tierAccess: "free" | "premium";
+  tierAccess: "free" | "personal_stylist" | "stylist_unlimited";
 }
 
 const UK_TRENDS: RegionalTrends = {
@@ -1766,8 +1769,9 @@ export class TrendInsightsService {
   static async generateTrendInsights(
     country: string,
     gender: "male" | "female",
-    subscriptionTier: "free" | "premium"
+    subscriptionTier: SubscriptionTier | string
   ): Promise<TrendInsight[]> {
+    const tier = normalizeSubscriptionTier(subscriptionTier);
     const trends = await this.getTrendsForRegion(country);
     if (!trends) return [];
 
@@ -1785,11 +1789,11 @@ export class TrendInsightsService {
         category: item.category,
         source: trends.publications[0]?.name || "Style Experts",
         date: new Date().toISOString().split("T")[0],
-        tierAccess: item.hotLevel >= 5 ? "free" : "premium",
+        tierAccess: item.hotLevel >= 5 ? "free" : "personal_stylist",
       });
     });
 
-    if (subscriptionTier !== "free" && influencers.length > 0) {
+    if (isPaidTier(tier) && influencers.length > 0) {
       const topInfluencer = influencers[0];
       insights.push({
         id: "influencer-spotlight",
@@ -1800,11 +1804,11 @@ export class TrendInsightsService {
         category: "Influencer",
         source: topInfluencer.platform,
         date: new Date().toISOString().split("T")[0],
-        tierAccess: "premium",
+        tierAccess: "personal_stylist",
       });
     }
 
-    if (subscriptionTier === "premium" && trends.styleMovements.length > 0) {
+    if (isTopTier(tier) && trends.styleMovements.length > 0) {
       const movement = trends.styleMovements[0];
       insights.push({
         id: "style-movement",
@@ -1815,11 +1819,11 @@ export class TrendInsightsService {
         category: "Style Movement",
         source: "Fashion Analysts",
         date: new Date().toISOString().split("T")[0],
-        tierAccess: "premium",
+        tierAccess: "stylist_unlimited",
       });
     }
 
-    if (subscriptionTier === "premium") {
+    if (isTopTier(tier)) {
       const colors = trends.colorPalette.slice(0, 3);
       insights.push({
         id: "color-forecast",
@@ -1830,7 +1834,7 @@ export class TrendInsightsService {
         category: "Colour Trends",
         source: "Colour Analysts",
         date: new Date().toISOString().split("T")[0],
-        tierAccess: "premium",
+        tierAccess: "stylist_unlimited",
       });
     }
 

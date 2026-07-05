@@ -12,7 +12,10 @@ import * as WebBrowser from 'expo-web-browser';
 import { Platform, AppState } from 'react-native';
 import { StyleTheme } from '@/constants/theme';
 import { apiService } from '@/services/ApiService';
+import { onboardingProfileService } from '@/services/OnboardingProfileService';
+import { hydrateAndSyncUserProfileAfterAuth, hydrateUserProfileAfterAuth, getTourSeenStorageKey, persistTourSeenLocally, syncHydratedProfileToBackend } from '@/services/UserProfileSyncService';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { isDevTestingModeEnabled } from '@/utils/devTesting';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -20,7 +23,7 @@ export type Gender = 'woman' | 'man' | 'non-binary' | 'prefer-not-to-say' | null
 export type SizeRange = 'XS-S' | 'S-M' | 'M-L' | 'L-XL' | 'XL-2X' | '3X+' | null;
 export type BodyShape = 'Hourglass' | 'Pear' | 'Apple' | 'Rectangle' | 'Athletic' | 'Inverted Triangle' | 'Trapezoid' | 'Oval' | null;
 export type BudgetRange = 'Budget' | 'Mid-Range' | 'Premium' | 'Luxury' | null;
-export type SubscriptionTier = 'free' | 'subscription' | 'premium' | 'pro';
+export type SubscriptionTier = 'free' | 'personal_stylist' | 'stylist_unlimited';
 export type ContributorTier = 'none' | 'styleContributor' | 'fashionAdvisor' | 'styleExpert' | 'fashionGuru';
 export type FeedPreference = 'global' | 'regional' | 'local';
 export type Lifestyle = 'casual' | 'professional' | 'active' | 'creative' | 'minimalist' | 'trendsetter' | null;
@@ -44,7 +47,7 @@ export type VoicePitch = RubyVoicePitch | MaxVoiceRange;
 export interface StylistPreferences {
   selectedStylistId: StylistId;
   language: string;
-  accent: string;
+  accent?: string;
   voicePitch: VoicePitch;
   // Name pronunciation preferences
   useNameInGreetings: boolean; // Whether to use member's name in voice greetings
@@ -136,6 +139,8 @@ export interface UserProfile {
   bodyMeasurements: BodyMeasurements;
   extendedPreferences: ExtendedPreferences;
   stylistPreferences: StylistPreferences;
+  role?: string;
+  profileData?: Record<string, unknown>;
   colorScanData?: {
     colorSeasonType: string;
     seasonSubtype: string;
@@ -145,6 +150,13 @@ export interface UserProfile {
     bestMetals: string;
     analyzedAt: string;
   } | null;
+  onboardingProfile?: {
+    identity?: string;
+    dressFor?: string;
+    quizGender?: 'female' | 'male';
+    likedStyles?: string[];
+    quizComplete?: boolean;
+  };
 }
 
 type LocationPermissionStatus = 'unknown' | 'granted' | 'denied' | 'denied_forever';
@@ -175,6 +187,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const STORAGE_KEY = '@dripn_user';
+
+async function syncHydratedProfileToBackendSafe(profile: UserProfile): Promise<void> {
+  try {
+    await syncHydratedProfileToBackend(profile);
+  } catch (err) {
+    console.log('[Auth] Background profile sync failed (local profile still updated):', err);
+  }
+}
 
 const createDefaultUser = (email: string, name: string): UserProfile => ({
   id: Date.now().toString(),
@@ -418,33 +438,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userData) {
         const localUser = JSON.parse(userData);
         localUser.subscriptionTier = normalizeSubscriptionTier(localUser.subscriptionTier);
+        if (await isDevTestingModeEnabled()) {
+          localUser.subscriptionTier = 'stylist_unlimited';
+        }
         setUser(localUser);
         
         // Try to refresh from backend to ensure onboarding + tour status is accurate
         try {
           const backendProfile = await apiService.getMe();
-          if (backendProfile && backendProfile.hasCompletedOnboarding !== undefined) {
-            // Determine hasSeenTour: device flag wins, then backend, then local
-            const deviceFlag = await AsyncStorage.getItem('@dripn_tour_seen').catch(() => null);
-            const deviceTourSeen = deviceFlag === 'true';
+          if (backendProfile) {
+            const deviceFlag = await AsyncStorage.getItem(getTourSeenStorageKey(localUser.id)).catch(() => null);
+            const legacyFlag = await AsyncStorage.getItem('@dripn_tour_seen').catch(() => null);
+            const deviceTourSeen = deviceFlag === 'true' || legacyFlag === 'true';
             const backendTourSeen = backendProfile.hasSeenTour === true
               || backendProfile.profileData?.hasSeenTour === true;
             const hasSeenTour = deviceTourSeen || backendTourSeen || localUser.hasSeenTour === true;
 
-            // If backend/local says seen but device flag is missing, write it now
-            // so future cold-starts don't need to hit the backend at all
-            if (hasSeenTour && !deviceTourSeen) {
-              AsyncStorage.setItem('@dripn_tour_seen', 'true').catch(() => {});
+            if (hasSeenTour) {
+              persistTourSeenLocally(localUser.id).catch(() => {});
             }
 
+            const hydrated = await hydrateUserProfileAfterAuth(localUser, {
+              backendLoginUser: backendProfile,
+              preserveLocalEmail: localUser.email,
+            });
             const updatedUser = {
-              ...localUser,
-              hasCompletedOnboarding: backendProfile.hasCompletedOnboarding,
+              ...hydrated,
               hasSeenTour,
-              profileData: backendProfile.profileData || localUser.profileData,
             };
+            if (await isDevTestingModeEnabled()) {
+              updatedUser.subscriptionTier = 'stylist_unlimited';
+            }
             await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
             setUser(updatedUser);
+            await syncHydratedProfileToBackendSafe(updatedUser);
             console.log('[Auth] loadUser refresh:', { hasSeenTour, hasCompletedOnboarding: updatedUser.hasCompletedOnboarding });
           }
         } catch (backendErr) {
@@ -456,6 +483,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Failed to load user:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const saveUserLocalOnly = async (userData: UserProfile) => {
+    const normalizedUser: UserProfile = {
+      ...userData,
+      subscriptionTier: normalizeSubscriptionTier(userData.subscriptionTier),
+    };
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedUser));
+      setUser(normalizedUser);
+    } catch (error) {
+      console.error('Failed to save user locally:', error);
+      throw error;
     }
   };
 
@@ -520,60 +561,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userProfile.hasCompletedOnboarding = backendUser.hasCompletedOnboarding;
       }
 
+      if (backendUser.hasSeenTour === true || backendUser.profileData?.hasSeenTour === true) {
+        userProfile.hasSeenTour = true;
+      }
+
       if (backendUser.subscriptionTier) {
         userProfile.subscriptionTier = normalizeSubscriptionTier(backendUser.subscriptionTier);
       }
 
-      // CRITICAL: Check device flag BEFORE fetching backend profile
-      // Device flag is the ultimate source of truth for tour
-      let deviceTourSeen = false;
-      try {
-        const deviceFlag = await AsyncStorage.getItem('@dripn_tour_seen');
-        deviceTourSeen = deviceFlag === 'true';
-      } catch {
-        // Ignore storage errors
-      }
+      userProfile = await hydrateAndSyncUserProfileAfterAuth(userProfile, {
+        backendLoginUser: backendUser,
+        preserveLocalEmail: email,
+      });
 
-      // Fetch full profile from backend for additional profile data
-      try {
-        const fullProfile = await apiService.getMe();
-        console.log('[Auth] Retrieved profile from backend:', { hasSeenTour: fullProfile.profileData?.hasSeenTour, hasCompletedOnboarding: fullProfile.profileData?.hasCompletedOnboarding });
-        if (fullProfile.profileData) {
-          // Destructure to exclude hasSeenTour from the spread
-          const { hasSeenTour: _, ...profileDataWithoutTour } = fullProfile.profileData;
-          
-          userProfile = {
-            ...userProfile,
-            ...profileDataWithoutTour,
-            id: userId || userProfile.id,
-            email,
-            // Re-ensure hasCompletedOnboarding is set (double-check)
-            hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? userProfile.hasCompletedOnboarding,
-          };
-          
-          // CRITICAL: Device flag is ALWAYS the source of truth for tour
-          // Priority: device flag > backend value
-          if (deviceTourSeen) {
-            userProfile.hasSeenTour = true;
-            console.log('[Auth] ✓ hasSeenTour = TRUE from device flag (@dripn_tour_seen)');
-          } else if (fullProfile.profileData.hasSeenTour === true) {
-            userProfile.hasSeenTour = true;
-            console.log('[Auth] ✓ hasSeenTour = TRUE from backend');
-          } else {
-            userProfile.hasSeenTour = false;
-            console.log('[Auth] hasSeenTour = FALSE (device flag not set, backend has no record)');
-          }
-          console.log('[Auth] Final user profile after login:', { hasSeenTour: userProfile.hasSeenTour, hasCompletedOnboarding: userProfile.hasCompletedOnboarding });
-        }
-      } catch (err) {
-        // If getMe fails, use device flag as fallback
-        console.log('[Auth] Could not fetch full profile, using device flag fallback');
-        if (deviceTourSeen) {
-          userProfile.hasSeenTour = true;
-        }
-      }
-
-      await saveUser(userProfile);
+      await saveUserLocalOnly(userProfile);
     } finally {
       setIsAuthenticating(false);
     }
@@ -704,34 +705,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         newUser.hasCompletedOnboarding = backendUser.hasCompletedOnboarding;
       }
 
-      // Fetch full profile from backend for additional profile data
-      try {
-        const fullProfile = await apiService.getMe();
-        if (fullProfile.profileData) {
-          // CRITICAL: Explicitly preserve hasSeenTour from backend — never default to false
-          const backendHasSeenTour = fullProfile.profileData.hasSeenTour;
-          newUser = {
-            ...newUser,
-            ...fullProfile.profileData,
-            id: backendUser.id.toString(),
-            email: backendUser.email || userEmail || newUser.email,
-            // Re-ensure hasCompletedOnboarding is set (double-check)
-            hasCompletedOnboarding: fullProfile.profileData.hasCompletedOnboarding ?? newUser.hasCompletedOnboarding,
-          };
-          // CRITICAL: Set hasSeenTour LAST to ensure it never gets overridden
-          if (backendHasSeenTour === true) {
-            newUser.hasSeenTour = true;
-            console.log('[Auth] ✓ hasSeenTour restored as TRUE from backend (social login)');
-          } else if (backendHasSeenTour === false) {
-            newUser.hasSeenTour = false;
-          }
-        }
-      } catch (err) {
-        // If getMe fails, that's okay — we already have hasCompletedOnboarding from login
-        console.log('[Auth] Could not fetch full profile in social login, continuing');
-      }
+      newUser = await hydrateAndSyncUserProfileAfterAuth(newUser, {
+        backendLoginUser: backendUser,
+        preserveLocalEmail: backendUser.email || userEmail || newUser.email,
+      });
 
-      await saveUser(newUser);
+      await saveUserLocalOnly(newUser);
 
       try {
         const email = backendUser.email || userEmail;
@@ -766,24 +745,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       newUser.id = backendUser.id.toString();
 
-      // CRITICAL: Use hasCompletedOnboarding from backend response
       if (backendUser.hasCompletedOnboarding !== undefined) {
         newUser.hasCompletedOnboarding = backendUser.hasCompletedOnboarding;
       }
 
-      if (backendUser.profileData) {
-        newUser = {
-          ...newUser,
-          ...backendUser.profileData,
-          id: backendUser.id.toString(),
-          email: backendUser.email || userEmail || newUser.email,
-          hasCompletedOnboarding: backendUser.hasCompletedOnboarding ?? newUser.hasCompletedOnboarding,
-          // Restore hasSeenTour from backend so tour only shows once
-          hasSeenTour: backendUser.profileData.hasSeenTour ?? newUser.hasSeenTour,
-        };
-      }
+      newUser = await hydrateAndSyncUserProfileAfterAuth(newUser, {
+        backendLoginUser: backendUser,
+        preserveLocalEmail: backendUser.email || userEmail || newUser.email,
+      });
 
-      await saveUser(newUser);
+      await saveUserLocalOnly(newUser);
 
       try {
         const email = backendUser.email || userEmail;
@@ -817,7 +788,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sizeRange: 'M-L',
       bodyShape: 'Athletic',
       budgetRange: 'Mid-Range',
-      subscriptionTier: 'pro',
+      skinUndertone: null,
+      subscriptionTier: 'stylist_unlimited',
       contributorTier: 'none',
       feedPreference: 'global',
       aiSuggestionsEnabled: true,
@@ -912,6 +884,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshSubscriptionFromBackend = useCallback(async (sessionId?: string) => {
     if (!user) return;
+    if (await isDevTestingModeEnabled()) return;
     try {
       // First try direct verification (checks Stripe directly, bypasses webhook delays)
       let subStatus = await apiService.verifySubscription(sessionId).catch(async () => {
@@ -954,6 +927,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       hasCompletedOnboarding: true 
     };
+    if (profile.gender === 'man') {
+      await onboardingProfileService.saveProfile({ quizGender: 'male' }).catch(() => {});
+    } else if (profile.gender === 'woman') {
+      await onboardingProfileService.saveProfile({ quizGender: 'female' }).catch(() => {});
+    }
     await saveUser(updatedUser);
   };
 

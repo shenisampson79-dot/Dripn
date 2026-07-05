@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: Spacing.xxl,
+    gap: Spacing["2xl"],
   },
   actionBtn: {
     width: 64,

@@ -13,7 +13,10 @@ import { Spacing, BorderRadius, LuxuryColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
-import { apiService } from "@/services/ApiService";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWardrobe } from "@/contexts/WardrobeContext";
+import weatherService, { type WeatherCondition } from "@/services/WeatherService";
+import { personalizeStyleRules } from "@/utils/personalizedStyleRules";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
 import { FASHION_RULES, FASHION_CATEGORIES, type FashionRule, type CategoryInfo } from "@/data/fashionRules";
 
@@ -44,56 +47,63 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
   const { theme, isDark } = useTheme();
   const { translations } = useTranslations();
   const { palette } = useColorScheme();
+  const { user } = useAuth();
+  const { items: wardrobeItems } = useWardrobe();
   const [rules, setRules] = useState<FashionRule[]>(FASHION_RULES);
   const [categories, setCategories] = useState<CategoryInfo[]>(FASHION_CATEGORIES);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedRules, setExpandedRules] = useState<Set<number>>(new Set());
+  const [highlightRule, setHighlightRule] = useState<FashionRule | null>(null);
+  const [contextLabel, setContextLabel] = useState<string | null>(null);
+  const [weather, setWeather] = useState<WeatherCondition | null>(null);
 
-  const getFilteredRules = useCallback((category: string | null, allRules: FashionRule[]) => {
-    if (!category) return allRules;
-    return allRules.filter(rule => rule.category === category);
-  }, []);
+  const applyPersonalization = useCallback((
+    allRules: FashionRule[],
+    category: string | null,
+    currentWeather: WeatherCondition | null,
+  ) => {
+    const base = category
+      ? allRules.filter((rule) => rule.category === category)
+      : allRules;
 
-  // Use local data directly - API has incomplete data (only 20 rules vs 105 local)
-  const fetchRulesFromApi = useCallback(async () => {
-    return FASHION_RULES;
-  }, []);
+    const personalized = personalizeStyleRules(base, {
+      gender: user?.gender,
+      wardrobeItems,
+      weather: currentWeather,
+      bodyShape: user?.bodyShape,
+    });
 
-  const fetchCategoriesFromApi = useCallback(async () => {
-    setCategories(FASHION_CATEGORIES);
-  }, []);
+    setHighlightRule(category ? null : personalized.highlightRule);
+    setContextLabel(personalized.contextLabel);
+    setRules(personalized.orderedRules);
+  }, [user?.gender, user?.bodyShape, wardrobeItems]);
 
-  const [allRules, setAllRules] = useState<FashionRule[]>(FASHION_RULES);
-
+  const loadContext = useCallback(async () => {
+    const currentWeather = await weatherService.getWeatherForOutfits().catch(() => null);
+    setWeather(currentWeather);
+    applyPersonalization(FASHION_RULES, selectedCategory, currentWeather);
+  }, [applyPersonalization, selectedCategory]);
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoading(true);
-      const [fetchedRules] = await Promise.all([
-        fetchRulesFromApi(),
-        fetchCategoriesFromApi()
-      ]);
-      setAllRules(fetchedRules);
-      setRules(fetchedRules);
+      setCategories(FASHION_CATEGORIES);
+      await loadContext();
       setIsLoading(false);
     };
     loadInitialData();
-  }, [fetchRulesFromApi, fetchCategoriesFromApi]);
+  }, [loadContext]);
 
   useEffect(() => {
-    const filtered = getFilteredRules(selectedCategory, allRules);
-    setRules(filtered);
-  }, [selectedCategory, allRules, getFilteredRules]);
+    applyPersonalization(FASHION_RULES, selectedCategory, weather);
+  }, [selectedCategory, weather, applyPersonalization]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    const [fetchedRules] = await Promise.all([
-      fetchRulesFromApi(),
-      fetchCategoriesFromApi()
-    ]);
-    setAllRules(fetchedRules);
-    setRules(getFilteredRules(selectedCategory, fetchedRules));
+    setCategories(FASHION_CATEGORIES);
+    await weatherService.clearWeatherCache().catch(() => {});
+    await loadContext();
     setIsRefreshing(false);
   };
 
@@ -222,7 +232,7 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
     );
   };
 
-  const allCategory = { name: 'All', count: allRules.length };
+  const allCategory = { name: 'All', count: FASHION_RULES.length };
   const categoryList = [allCategory, ...categories];
 
   const ListHeader = () => (
@@ -242,10 +252,26 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
           </View>
           <ThemedText style={styles.headerTitle}>{translations.stylistHub?.styleRules || 'Style Rules'}</ThemedText>
           <ThemedText style={styles.headerSubtitle}>
-            {allRules.length}+ essential fashion guidelines
+            {FASHION_RULES.length}+ essential fashion guidelines
           </ThemedText>
         </View>
       </LinearGradient>
+
+      {!selectedCategory && highlightRule && contextLabel ? (
+        <Card style={styles.contextCard} elevation={2}>
+          <View style={styles.contextHeader}>
+            <Feather name="sun" size={18} color={palette.gold} />
+            <ThemedText style={[styles.contextLabel, { color: palette.gold }]}>
+              {contextLabel}
+            </ThemedText>
+          </View>
+          <ThemedText style={styles.contextTitle}>Top rule for you today</ThemedText>
+          <ThemedText style={styles.contextRuleTitle}>{highlightRule.title}</ThemedText>
+          <ThemedText style={styles.contextRulePreview} numberOfLines={3}>
+            {highlightRule.content}
+          </ThemedText>
+        </Card>
+      ) : null}
 
       <View style={styles.categoriesSection}>
         <ThemedText style={styles.sectionTitle}>Categories</ThemedText>
@@ -259,7 +285,7 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
       </View>
 
       <ThemedText style={styles.rulesCount}>
-        {selectedCategory ? `${rules.length} rules in ${selectedCategory}` : `All ${allRules.length} rules`}
+        {selectedCategory ? `${rules.length} rules in ${selectedCategory}` : `All ${FASHION_RULES.length} rules`}
       </ThemedText>
     </View>
   );
@@ -317,6 +343,37 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     marginBottom: Spacing.lg,
+  },
+  contextCard: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+  },
+  contextHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  contextLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  contextTitle: {
+    fontSize: 13,
+    opacity: 0.7,
+    marginBottom: Spacing.xs,
+  },
+  contextRuleTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: Spacing.xs,
+  },
+  contextRulePreview: {
+    fontSize: 14,
+    lineHeight: 20,
+    opacity: 0.85,
   },
   headerGradient: {
     paddingTop: 60,

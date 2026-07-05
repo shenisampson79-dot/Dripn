@@ -16,30 +16,22 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/ApiService";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
+import {
+  type BlogPost,
+  applyCurrentYearToBlogPost,
+  filterBlogPostsForProfile,
+  formatBlogPostDate,
+  prepareFallbackBlogPosts,
+} from "@/utils/fashionBlogUtils";
+import { getCurrentCalendarSeason, mapUserGenderToNewsletterFilter } from "@/utils/fashionSeason";
 
 type FashionBlogScreenProps = {
   navigation: NativeStackNavigationProp<UserStylistStackParamList, "FashionBlog">;
 };
 
-interface BlogPost {
-  id: string;
-  subject: string;
-  headline: string;
-  previewText: string;
-  introduction: string;
-  category: string;
-  tags: string[];
-  publishedAt: string;
-  tips: Array<{
-    title: string;
-    content: string;
-    proTip: string;
-  }>;
-}
-
 const NEWSLETTER_SUBSCRIPTION_KEY = "@dripn_newsletter_subscribed";
-
-const FALLBACK_BLOG_POSTS: BlogPost[] = [
+function createFallbackBlogPosts(): BlogPost[] {
+  return [
   {
     id: "fallback-color-guide",
     subject: "Dripn Weekly: Your Complete Seasonal Colour Analysis Guide",
@@ -58,15 +50,15 @@ const FALLBACK_BLOG_POSTS: BlogPost[] = [
   },
   {
     id: "fallback-1",
-    subject: "Dripn Weekly: 2025 Fashion Trends That Are Here to Stay",
-    headline: "2025 Fashion Trends That Are Here to Stay",
-    previewText: "The defining looks shaping this year's style",
-    introduction: "From quiet luxury to bold maximalism, 2025 is all about personal expression. Here are the trends worth investing in.",
+    subject: "Dripn Weekly: Fashion Trends Worth Investing In",
+    headline: "Fashion Trends Worth Investing In",
+    previewText: "The defining looks with staying power beyond a single season",
+    introduction: "From quiet luxury to bold maximalism, personal expression continues to shape style. Here are trends worth investing in — not just for one year, but for your wardrobe long term.",
     category: "Trend Report",
-    tags: ["2025-trends", "fashion-forecast", "style"],
+    tags: ["style-trends", "fashion-forecast", "style"],
     publishedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     tips: [
-      { title: "Butter Yellow Everything", content: "Pantone's colour of the year is making waves across runways. This warm, optimistic hue works for all skin tones and seasons.", proTip: "Start with accessories like a butter yellow handbag or scarf before committing to a full look." },
+      { title: "Warm Yellow Trend", content: "Warm, optimistic yellow tones are trending on runways this season. Choose the depth that flatters your undertone rather than assuming one shade suits everyone.", proTip: "Start with accessories like a soft yellow handbag or scarf before committing to a full look." },
       { title: "The Return of Tailoring", content: "Oversized blazers, wide-leg trousers, and structured shoulders are dominating. Think power dressing with a relaxed twist.", proTip: "Invest in a quality blazer that fits perfectly in the shoulders - alterations are worth it." },
       { title: "Quiet Luxury 2.0", content: "Stealth wealth continues but with more personality. Think premium fabrics, subtle details, and timeless silhouettes.", proTip: "Focus on cashmere, silk, and quality leather in muted tones." },
       { title: "Cherry Red Moment", content: "Bold, unapologetic cherry red is the statement colour of the season. From bags to boots, this shade demands attention.", proTip: "Pair cherry red with neutrals like cream, camel, or navy for maximum impact." }
@@ -489,6 +481,7 @@ const FALLBACK_BLOG_POSTS: BlogPost[] = [
     ]
   }
 ];
+}
 
 export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps) {
   const { theme, isDark } = useTheme();
@@ -499,11 +492,48 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [reportingPostId, setReportingPostId] = useState<string | null>(null);
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
+  const [contentNotice, setContentNotice] = useState<string | null>(null);
 
   useEffect(() => {
     loadSubscriptionStatus();
     fetchPosts();
-  }, []);
+  }, [user?.gender]);
+
+  const applyProfileFilters = useCallback((items: BlogPost[]) => {
+    return filterBlogPostsForProfile(items, user, getCurrentCalendarSeason());
+  }, [user]);
+
+  const loadFallbackPosts = useCallback((notice?: string) => {
+    const prepared = prepareFallbackBlogPosts(createFallbackBlogPosts());
+    setPosts(applyProfileFilters(prepared));
+    setIsUsingFallback(true);
+    setContentNotice(notice ?? null);
+  }, [applyProfileFilters]);
+
+  const mapNewslettersToPosts = (newsletters: Array<Record<string, unknown>>): BlogPost[] => {
+    return newsletters.map((newsletter) => {
+      const aiGenerated = Boolean(newsletter.aiGenerated);
+      const base: BlogPost = {
+        id: String(newsletter.id ?? newsletter.slug ?? ''),
+        subject: String(newsletter.subject ?? ''),
+        headline: String(newsletter.headline ?? newsletter.subject ?? ''),
+        previewText: String(newsletter.previewText ?? newsletter.introduction ?? '').substring(0, 100),
+        introduction: String(newsletter.introduction ?? newsletter.previewText ?? ''),
+        category: String(newsletter.category ?? 'Style'),
+        tags: (newsletter.tags as string[]) || [],
+        publishedAt: String(newsletter.publishedAt ?? new Date().toISOString()),
+        tips: (newsletter.tips as BlogPost['tips']) || [],
+        gender: (newsletter.gender as BlogPost['gender']) || 'all',
+        season: (newsletter.season as BlogPost['season']) || 'all',
+        isEvergreen: false,
+        aiGenerated,
+        sourcesUsed: (newsletter.sourcesUsed as string[]) || [],
+        researchedAt: newsletter.researchedAt ? String(newsletter.researchedAt) : null,
+      };
+      return aiGenerated ? base : applyCurrentYearToBlogPost(base);
+    });
+  };
 
   const loadSubscriptionStatus = async () => {
     try {
@@ -517,33 +547,43 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
   const fetchPosts = async () => {
     try {
       setLoading(true);
+      setContentNotice(null);
+      const gender = mapUserGenderToNewsletterFilter(user?.gender);
       
       if (!apiService.isConfigured()) {
-        setPosts(FALLBACK_BLOG_POSTS);
+        loadFallbackPosts("Connect to the internet to load weekly newsletter issues.");
         return;
       }
 
-      const response = await apiService.getPublishedNewsletters({ limit: 20 });
+      const response = await apiService.getPublishedNewsletters({
+        limit: 20,
+        gender,
+        season: getCurrentCalendarSeason(),
+      });
       
-      if (response.newsletters && response.newsletters.length > 0) {
-        const formattedPosts: BlogPost[] = response.newsletters.map(newsletter => ({
-          id: newsletter.id,
-          subject: newsletter.subject,
-          headline: newsletter.headline,
-          previewText: newsletter.introduction?.substring(0, 100) || "",
-          introduction: newsletter.introduction,
-          category: newsletter.category,
-          tags: newsletter.tags || [],
-          publishedAt: newsletter.publishedAt,
-          tips: newsletter.tips || []
-        }));
-        setPosts(formattedPosts);
+      const newsletters = response.newsletters ?? [];
+      const subscribedFlag = (await AsyncStorage.getItem(NEWSLETTER_SUBSCRIPTION_KEY)) === "true";
+      if (newsletters.length > 0) {
+        const formattedPosts = mapNewslettersToPosts(newsletters as Array<Record<string, unknown>>);
+        const filtered = applyProfileFilters(formattedPosts);
+        if (filtered.length > 0) {
+          setPosts(filtered);
+          setIsUsingFallback(false);
+        } else {
+          setPosts(formattedPosts);
+          setIsUsingFallback(false);
+          setContentNotice("No issues matched your season or profile filter — showing all published newsletters.");
+        }
       } else {
-        setPosts(FALLBACK_BLOG_POSTS);
+        loadFallbackPosts(
+          subscribedFlag
+            ? "You're on the mailing list. No weekly issues are published in the app yet — curated guides below."
+            : "No weekly issues published yet — curated guides below until the newsletter feed goes live.",
+        );
       }
     } catch (error) {
       console.log("Error fetching newsletters, using fallback:", error);
-      setPosts(FALLBACK_BLOG_POSTS);
+      loadFallbackPosts("Couldn't reach the newsletter server — curated guides below.");
     } finally {
       setLoading(false);
     }
@@ -553,47 +593,60 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
     setRefreshing(true);
     await fetchPosts();
     setRefreshing(false);
-  }, []);
+  }, [user?.gender, applyProfileFilters, loadFallbackPosts]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  };
+  const formatDate = (post: BlogPost) => formatBlogPostDate(post, post.publishedAt);
 
   const handleSubscribe = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
-    // Try API call but don't block on it
-    if (apiService.isConfigured() && user?.email) {
-      try {
-        await apiService.subscribeToNewsletter(user.email, user.displayName);
-      } catch (error) {
-        console.log("Newsletter API call failed (non-blocking):", error);
-      }
+
+    if (!user?.email) {
+      Alert.alert(
+        "Email Required",
+        "Add an email address to your Dripn account to receive the weekly newsletter.",
+        [{ text: "OK" }],
+      );
+      return;
     }
-    
-    // Always save locally and show success
+
+    if (!apiService.isConfigured()) {
+      Alert.alert(
+        "Connection Required",
+        "Connect to the internet to subscribe to the weekly newsletter.",
+        [{ text: "OK" }],
+      );
+      return;
+    }
+
     try {
+      const result = await apiService.subscribeToNewsletter(user.email, user.name);
+      const subscribed = Boolean(
+        result?.success
+        || result?.alreadySubscribed
+        || result?.resubscribed
+        || /subscribed|resubscribed/i.test(result?.message ?? ''),
+      );
+      if (!subscribed) {
+        throw new Error(result?.message || "Subscribe failed");
+      }
+
       await AsyncStorage.setItem(NEWSLETTER_SUBSCRIPTION_KEY, "true");
       setIsSubscribed(true);
-      
+      await fetchPosts();
+
       Alert.alert(
-        "Subscribed!",
-        "You'll receive our weekly fashion newsletter straight to your inbox.",
-        [{ text: "Great!" }]
+        result?.alreadySubscribed ? "Already Subscribed" : "Subscribed!",
+        result?.alreadySubscribed
+          ? "You're on our weekly list. New issues will appear here when published."
+          : "You're on our weekly list. New issues will appear here when published and arrive by email.",
+        [{ text: "Great!" }],
       );
     } catch (error) {
-      console.log("Error saving subscription status:", error);
+      console.log("Newsletter subscribe failed:", error);
       Alert.alert(
         "Subscription Failed",
-        "We couldn't complete your subscription. Please try again later.",
-        [{ text: "OK" }]
+        "We couldn't save your subscription. Please try again later.",
+        [{ text: "OK" }],
       );
     }
   };
@@ -651,8 +704,22 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
     <View style={styles.headerContainer}>
       <ThemedText type="h2" style={styles.title}>Fashion Blog</ThemedText>
       <ThemedText type="body" style={styles.subtitle}>
-        Weekly style insights and expert fashion advice
+        AI-researched weekly style insights — web, Instagram & TikTok intelligence
       </ThemedText>
+
+      {isUsingFallback || contentNotice ? (
+        <View style={[styles.fallbackBanner, { backgroundColor: isDark ? 'rgba(255,193,7,0.12)' : 'rgba(255,193,7,0.18)' }]}>
+          <Feather name="book-open" size={16} color={theme.link} />
+          <ThemedText type="small" style={styles.fallbackBannerText}>
+            {contentNotice
+              ?? (isUsingFallback
+                ? (isSubscribed
+                  ? "You're on the mailing list. No weekly issues are in the app yet — curated guides below (not your inbox feed)."
+                  : `Curated style guides for ${getCurrentCalendarSeason()} — not live newsletter issues.`)
+                : null)}
+          </ThemedText>
+        </View>
+      ) : null}
       
       {!isSubscribed ? (
         <Card style={[styles.subscribeCard, { backgroundColor: isDark ? "rgba(201, 169, 97, 0.15)" : "rgba(201, 169, 97, 0.1)" }]}>
@@ -671,11 +738,18 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
             Subscribe
           </Button>
         </Card>
-      ) : (
+      ) : !isUsingFallback ? (
         <View style={[styles.subscribedBadge, { backgroundColor: isDark ? "rgba(52, 199, 89, 0.2)" : "rgba(52, 199, 89, 0.1)" }]}>
           <Feather name="check-circle" size={16} color={theme.success || "#34C759"} />
           <ThemedText type="small" style={{ color: theme.success || "#34C759" }}>
-            Subscribed to newsletter
+            Subscribed · weekly issues below
+          </ThemedText>
+        </View>
+      ) : (
+        <View style={[styles.subscribedBadge, { backgroundColor: isDark ? "rgba(52, 199, 89, 0.2)" : "rgba(52, 199, 89, 0.1)" }]}>
+          <Feather name="mail" size={16} color={theme.success || "#34C759"} />
+          <ThemedText type="small" style={{ color: theme.success || "#34C759" }}>
+            On mailing list · email delivery active
           </ThemedText>
         </View>
       )}
@@ -689,13 +763,23 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
       <Pressable onPress={() => toggleExpanded(item.id)}>
         <Card style={styles.postCard}>
           <View style={styles.postHeader}>
-            <View style={[styles.categoryBadge, { backgroundColor: isDark ? "rgba(201, 169, 97, 0.2)" : "rgba(201, 169, 97, 0.15)" }]}>
-              <ThemedText type="caption" style={{ color: theme.link }}>
-                {item.category}
-              </ThemedText>
+            <View style={styles.postHeaderBadges}>
+              <View style={[styles.categoryBadge, { backgroundColor: isDark ? "rgba(201, 169, 97, 0.2)" : "rgba(201, 169, 97, 0.15)" }]}>
+                <ThemedText type="caption" style={{ color: theme.link }}>
+                  {item.category}
+                </ThemedText>
+              </View>
+              {item.aiGenerated ? (
+                <View style={[styles.aiBadge, { backgroundColor: isDark ? "rgba(100, 149, 237, 0.2)" : "rgba(100, 149, 237, 0.15)" }]}>
+                  <Feather name="cpu" size={11} color={theme.link} />
+                  <ThemedText type="caption" style={{ color: theme.link, marginLeft: 4 }}>
+                    AI-researched
+                  </ThemedText>
+                </View>
+              ) : null}
             </View>
             <ThemedText type="caption" style={styles.dateText}>
-              {formatDate(item.publishedAt)}
+              {formatDate(item)}
             </ThemedText>
           </View>
           
@@ -709,6 +793,11 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
           
           {isExpanded ? (
             <View style={styles.expandedContent}>
+              {item.aiGenerated && item.sourcesUsed && item.sourcesUsed.length > 0 ? (
+                <ThemedText type="caption" style={styles.sourcesLine}>
+                  Researched from: {item.sourcesUsed.slice(0, 4).join(' · ')}
+                </ThemedText>
+              ) : null}
               {item.tips.map((tip, index) => (
                 <View key={index} style={[styles.tipCard, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }]}>
                   <ThemedText type="body" style={[styles.tipTitle, { fontWeight: "600" }]}>
@@ -827,6 +916,19 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginBottom: Spacing.lg,
   },
+  fallbackBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  fallbackBannerText: {
+    flex: 1,
+    opacity: 0.85,
+    lineHeight: 18,
+  },
   subscribeCard: {
     padding: Spacing.lg,
   },
@@ -865,10 +967,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: Spacing.sm,
   },
+  postHeaderBadges: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    flexShrink: 1,
+  },
   categoryBadge: {
     paddingVertical: 4,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.xs,
+  },
+  aiBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.xs,
+  },
+  sourcesLine: {
+    opacity: 0.65,
+    marginBottom: Spacing.md,
+    lineHeight: 18,
   },
   dateText: {
     opacity: 0.6,

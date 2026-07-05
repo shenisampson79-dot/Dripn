@@ -8,6 +8,7 @@ import { API_URL, ADMIN_API_URL } from '@/config/api';
 
 const TOKEN_KEY = '@dripn_token';
 const ADMIN_TOKEN_KEY = '@dripn_admin_token';
+const DEVICE_ID_KEY = 'dripn_device_id';
 
 const DEFAULT_TIMEOUT = 30000;
 
@@ -109,6 +110,15 @@ class ApiService {
       (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
     }
 
+    try {
+      const deviceId = await AsyncStorage.getItem(DEVICE_ID_KEY);
+      if (deviceId) {
+        (headers as Record<string, string>)['X-Device-Id'] = deviceId;
+      }
+    } catch {
+      // Non-blocking — onboarding memory still works via explicit deviceId in body
+    }
+
     let response: Response;
     try {
       response = await this.fetchWithTimeout(`${API_URL}${endpoint}`, {
@@ -119,7 +129,7 @@ class ApiService {
       if (error.name === 'AbortError') {
         const reason = error.message || '';
         if (reason === 'INTERNAL_TIMEOUT') {
-          throw new Error('Request timed out. Please check your connection and try again.');
+          throw new Error('Server took too long to respond. Please try again.');
         }
         if (reason !== 'EXTERNAL_ABORT' && reason.length > 0) {
           throw new Error(reason);
@@ -141,7 +151,14 @@ class ApiService {
       const error = await response.json().catch(() => ({ error: 'Request failed' }));
       let errorMessage = error.error || error.message || '';
 
-      if (error.hint === 'stripe_portal_not_configured') {
+      if (error.error === 'too_many_images') {
+        errorMessage = error.stylistResponse
+          || (error.maxAllowed
+            ? `You can add up to ${error.maxAllowed} photos for this question. Remove a few and try again.`
+            : 'Too many photos for this question. Remove a few and try again.');
+      } else if (error.stylistResponse && typeof error.stylistResponse === 'string') {
+        errorMessage = error.stylistResponse;
+      } else if (error.hint === 'stripe_portal_not_configured') {
         errorMessage =
           error.error ||
           'Billing portal is not configured in Stripe. Enable Customer Portal under Stripe Dashboard → Settings → Billing → Customer portal.';
@@ -161,6 +178,10 @@ class ApiService {
         console.log('[Subscription DEBUG] Full error details:', { status: response.status, endpoint, error });
       }
       
+      if (!errorMessage && error.errorCode) {
+        errorMessage = error.message || String(error.errorCode);
+      }
+
       if (!errorMessage || errorMessage.startsWith('HTTP')) {
         switch (response.status) {
           case 401:
@@ -176,7 +197,7 @@ class ApiService {
             errorMessage = 'Too many attempts. Please try again later.';
             break;
           case 500:
-            errorMessage = 'Server error. Please try again later.';
+            errorMessage = error.message || 'Server error. Please try again later.';
             break;
           default:
             errorMessage = 'Something went wrong. Please try again.';
@@ -280,6 +301,27 @@ class ApiService {
 
   async getCurrentUser() {
     return this.request<any>('/api/auth/me');
+  }
+
+  /** Alias used across auth flows */
+  async getMe() {
+    return this.getCurrentUser();
+  }
+
+  async fetchStyleProfile(): Promise<Record<string, any> | null> {
+    try {
+      return await this.request<Record<string, any>>('/api/style-profile');
+    } catch {
+      return null;
+    }
+  }
+
+  async fetchOnboardingProgress(): Promise<Record<string, any> | null> {
+    try {
+      return await this.request<Record<string, any>>('/api/onboarding/progress');
+    } catch {
+      return null;
+    }
   }
 
   async updateProfile(data: { displayName?: string; bio?: string; avatarUrl?: string }) {
@@ -507,30 +549,46 @@ class ApiService {
     if (params?.undertone) queryParams.append('undertone', params.undertone);
     if (params?.trendType) queryParams.append('trendType', params.trendType);
     const query = queryParams.toString();
-    return this.request<{
-      colorOfTheYear: {
-        name: string;
-        hexCode: string;
-        pantoneCode?: string;
-        description: string;
-        pairingColors: string[];
-        bestFor: string[];
-        year: number;
-      };
-      seasonalPalette: Array<{
-        id: string;
-        name: string;
-        hexCode: string;
-        pantoneCode?: string;
-        season: string;
-        year: number;
-        trendType: string;
-        description: string;
-        pairingColors: string[];
-        bestFor: string[];
-        undertone?: 'warm' | 'cool' | 'neutral';
-      }>;
-    }>(`/api/color-trends/current${query ? `?${query}` : ''}`);
+    const raw = await this.request<Record<string, unknown>>(`/api/color-trends/current${query ? `?${query}` : ''}`);
+    const year = params?.year ?? new Date().getFullYear();
+
+    const colorRaw = raw.colorOfTheYear ?? raw.colorOfYear;
+    const colorOfTheYear = colorRaw && typeof colorRaw === 'object'
+      ? {
+          name: String((colorRaw as Record<string, unknown>).name ?? ''),
+          hexCode: String((colorRaw as Record<string, unknown>).hexCode ?? (colorRaw as Record<string, unknown>).hex ?? ''),
+          pantoneCode: (colorRaw as Record<string, unknown>).pantoneCode as string | undefined,
+          description: String((colorRaw as Record<string, unknown>).description ?? ''),
+          pairingColors: ((colorRaw as Record<string, unknown>).pairingColors as string[]) ?? [],
+          bestFor: (
+            ((colorRaw as Record<string, unknown>).bestFor as string[])
+            ?? ((colorRaw as Record<string, unknown>).suitableFor as string[] | undefined)?.map(
+              (v) => v.charAt(0).toUpperCase() + v.slice(1),
+            )
+            ?? ['Neutral']
+          ),
+          year: Number((colorRaw as Record<string, unknown>).year ?? year),
+        }
+      : null;
+
+    const seasonalPalette = Array.isArray(raw.seasonalPalette)
+      ? raw.seasonalPalette as Array<{
+          id: string;
+          name: string;
+          hexCode: string;
+          pantoneCode?: string;
+          season: string;
+          year: number;
+          description: string;
+          pairingColors: string[];
+          bestFor: string[];
+        }>
+      : [];
+
+    return {
+      colorOfTheYear: colorOfTheYear!,
+      seasonalPalette,
+    };
   }
 
   async getPersonalizedColorTrends() {
@@ -611,34 +669,20 @@ class ApiService {
   }
 
   async analyzeGarmentByUri(imageUri: string): Promise<any> {
-    const token = await this.getToken();
-    const headers: Record<string, string> = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    if (this.sessionBackup) headers['X-Session-Backup'] = this.sessionBackup;
-    if (this.guestToken) headers['X-Guest-Token'] = this.guestToken;
-
-    const formData = new FormData();
-    formData.append('image', { uri: imageUri, type: 'image/jpeg', name: 'photo.jpg' } as any);
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
-    try {
-      const response = await fetch(`${API_URL}/api/wardrobe/analyze/upload`, {
-        method: 'POST',
-        headers,
-        body: formData,
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      if (!response.ok) {
-        const errText = await response.text().catch(() => '');
-        throw new Error(`Upload analyze failed ${response.status}: ${errText}`);
-      }
-      return response.json();
-    } catch (err) {
-      clearTimeout(timeoutId);
-      throw err;
+    if (!API_URL) {
+      throw new Error('Backend API URL not configured. Set EXPO_PUBLIC_API_URL environment variable.');
     }
+
+    const token = await this.getToken();
+    if (!token) {
+      throw new Error('401 Unauthorized — not authenticated');
+    }
+
+    // RN fetch + FormData file URIs is broken in current Expo ("Unsupported FormDataPart").
+    // Base64 via /api/wardrobe/analyze/resilient is the reliable path.
+    const { convertImageToBase64 } = await import('./VisionAnalysisService');
+    const imageBase64 = await convertImageToBase64(imageUri);
+    return this.analyzeGarmentPhoto(imageBase64);
   }
 
   async analyzeGarmentPhoto(imageBase64: string, options?: { detailed?: boolean }) {
@@ -680,6 +724,8 @@ class ApiService {
       message?: string;
     };
 
+    const ANALYZE_TIMEOUT_MS = 120000;
+
     let result: AnalysisResult;
     try {
       console.log('[Wardrobe] Trying /api/wardrobe/analyze/resilient');
@@ -687,16 +733,24 @@ class ApiService {
         method: 'POST',
         headers,
         body: requestBody,
-        timeout: 90000,
+        timeout: ANALYZE_TIMEOUT_MS,
       });
     } catch (resilientError: any) {
-      // Resilient endpoint not available on this backend — fall back to standard endpoint
-      console.log('[Wardrobe] Resilient endpoint unavailable, falling back to /api/wardrobe/analyze');
-      result = await this.request<AnalysisResult>('/api/wardrobe/analyze', {
-        method: 'POST',
-        body: requestBody,
-        timeout: 90000,
-      });
+      const msg = resilientError?.message || '';
+      if (/404|not found/i.test(msg)) {
+        console.log('[Wardrobe] Resilient endpoint missing, falling back to /api/wardrobe/analyze');
+        result = await this.request<AnalysisResult>('/api/wardrobe/analyze', {
+          method: 'POST',
+          body: requestBody,
+          timeout: ANALYZE_TIMEOUT_MS,
+        });
+      } else {
+        throw resilientError;
+      }
+    }
+
+    if (result?.success === false) {
+      throw new Error(result.message || 'Failed to analyze item');
     }
 
     console.log('[Wardrobe] Analysis response received');
@@ -708,7 +762,15 @@ class ApiService {
     return result;
   }
 
-  async analyzeGarmentBatchResilient(items: { imageBase64: string }[]) {
+  async analyzeGarmentBatchResilient(
+    images: Array<{ imageBase64: string; id?: string }>,
+  ) {
+    try {
+      await this.wakeBackend();
+    } catch {
+      // Non-fatal — batch request may still succeed if backend is already warm
+    }
+
     const headers: Record<string, string> = {};
     if (this.sessionBackup) {
       headers['X-Session-Backup'] = this.sessionBackup;
@@ -717,10 +779,13 @@ class ApiService {
       headers['X-Guest-Token'] = this.guestToken;
     }
 
+    const BATCH_TIMEOUT_MS = 180000;
+
     return this.request<any>('/api/wardrobe/batch-analyze/resilient', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ images }),
+      timeout: BATCH_TIMEOUT_MS,
     });
   }
 
@@ -795,24 +860,34 @@ class ApiService {
       return { success: false, wasAsleep: false };
     }
 
-    try {
-      const response = await this.fetchWithTimeout(`${API_URL}/api/health`, { timeout: 15000 });
-      if (response.ok) {
-        return { success: true, wasAsleep: false };
+    // Render free tier can take 30–60s to wake; retry with longer timeouts.
+    const attempts = [
+      { timeout: 20000, delayMs: 0 },
+      { timeout: 35000, delayMs: 5000 },
+      { timeout: 50000, delayMs: 8000 },
+    ];
+
+    let wasAsleep = false;
+    for (let i = 0; i < attempts.length; i++) {
+      const { timeout, delayMs } = attempts[i];
+      if (delayMs > 0) {
+        wasAsleep = true;
+        await new Promise((r) => setTimeout(r, delayMs));
       }
-    } catch (e) {
-      console.log('Backend may be waking up, retrying...');
+      try {
+        const response = await this.fetchWithTimeout(`${API_URL}/api/health`, { timeout });
+        if (response.ok) {
+          return { success: true, wasAsleep };
+        }
+      } catch {
+        if (i === 0) {
+          console.log('Backend may be waking up (Render cold start), retrying...');
+        }
+      }
     }
 
-    await new Promise(r => setTimeout(r, 3000));
-
-    try {
-      const response = await this.fetchWithTimeout(`${API_URL}/api/health`, { timeout: 15000 });
-      return { success: response.ok, wasAsleep: true };
-    } catch (e) {
-      console.log('Backend wake-up failed after retry');
-      return { success: false, wasAsleep: true };
-    }
+    console.log('Backend wake-up failed after retries');
+    return { success: false, wasAsleep: true };
   }
 
   async checkHealth(): Promise<boolean> {
@@ -863,10 +938,25 @@ class ApiService {
   }
 
   async subscribeToNewsletter(email: string, name?: string, preferences?: Record<string, boolean>) {
-    return this.request<{ success: boolean; message: string; alreadySubscribed?: boolean }>('/api/newsletter/subscribe', {
+    const result = await this.request<{
+      success?: boolean;
+      message: string;
+      alreadySubscribed?: boolean;
+      resubscribed?: boolean;
+    }>('/api/newsletter/subscribe', {
       method: 'POST',
       body: JSON.stringify({ email, name, preferences }),
     });
+
+    return {
+      ...result,
+      success: Boolean(
+        result.success
+        || result.alreadySubscribed
+        || result.resubscribed
+        || /subscribed|resubscribed/i.test(result.message ?? ''),
+      ),
+    };
   }
 
   async unsubscribeFromNewsletter(email: string) {
@@ -887,31 +977,31 @@ class ApiService {
     return this.request<{ referralCode: string; totalReferrals: number }>(`/api/referral/stats/${code}`);
   }
 
-  async getPublishedNewsletters(params?: { limit?: number; offset?: number; category?: string; gender?: string }) {
+  async getPublishedNewsletters(params?: { limit?: number; offset?: number; category?: string; gender?: string; season?: string }) {
     const queryParams = new URLSearchParams();
     if (params?.limit) queryParams.set('limit', params.limit.toString());
     if (params?.offset) queryParams.set('offset', params.offset.toString());
     if (params?.category) queryParams.set('category', params.category);
     if (params?.gender) queryParams.set('gender', params.gender);
+    if (params?.season) queryParams.set('season', params.season);
     const queryString = queryParams.toString();
-    return this.request<{ 
-      newsletters: Array<{
-        id: string;
-        subject: string;
-        headline: string;
-        introduction: string;
-        tips: Array<{ title: string; content: string; proTip: string }>;
-        closingMessage: string;
-        category: string;
-        tags: string[];
-        gender: string;
-        season: string;
-        region: string;
-        publishedAt: string;
-        views: number;
-      }>;
-      categories: string[];
-    }>(`/api/newsletter/published${queryString ? `?${queryString}` : ''}`);
+    const raw = await this.request<Record<string, unknown> | Array<Record<string, unknown>>>(
+      `/api/newsletter/published${queryString ? `?${queryString}` : ''}`,
+    );
+
+    const newsletters = Array.isArray(raw)
+      ? raw
+      : ((raw.newsletters as Array<Record<string, unknown>> | undefined) ?? []);
+
+    const categories = Array.isArray(raw)
+      ? []
+      : ((raw.categories as string[] | undefined) ?? []);
+
+    return {
+      success: true,
+      newsletters,
+      categories,
+    };
   }
 
   async getNewsletter(id: string) {
@@ -1312,6 +1402,31 @@ class ApiService {
     location?: string;
   }): Promise<{
     content: string;
+    wardrobeVisual?: {
+      layout: 'highlight' | 'stacked' | 'multi';
+      pieces?: Array<{
+        wardrobeItemId: number | string;
+        name: string;
+        role?: string;
+        imageUrl?: string | null;
+        category?: string | null;
+        color?: string | null;
+        brand?: string | null;
+      }>;
+      outfits?: Array<{
+        title?: string | null;
+        sectionIndex: number;
+        pieces: Array<{
+          wardrobeItemId: number | string;
+          name: string;
+          role?: string;
+          imageUrl?: string | null;
+          category?: string | null;
+          color?: string | null;
+          brand?: string | null;
+        }>;
+      }>;
+    } | null;
     mood?: {
       mood: string;
       confidence: number;
@@ -1349,6 +1464,31 @@ class ApiService {
       response?: string;
       content?: string;
       stylist?: string;
+      wardrobeVisual?: {
+        layout: 'highlight' | 'stacked' | 'multi';
+        pieces?: Array<{
+          wardrobeItemId: number | string;
+          name: string;
+          role?: string;
+          imageUrl?: string | null;
+          category?: string | null;
+          color?: string | null;
+          brand?: string | null;
+        }>;
+        outfits?: Array<{
+          title?: string | null;
+          sectionIndex: number;
+          pieces: Array<{
+            wardrobeItemId: number | string;
+            name: string;
+            role?: string;
+            imageUrl?: string | null;
+            category?: string | null;
+            color?: string | null;
+            brand?: string | null;
+          }>;
+        }>;
+      } | null;
       mood?: {
         mood: string;
         confidence: number;
@@ -1391,6 +1531,7 @@ class ApiService {
     
     return {
       content: mappedContent,
+      wardrobeVisual: result.wardrobeVisual ?? null,
       mood: result.mood,
       stylistId: result.stylist || stylistId,
       error: result.error,
@@ -1416,9 +1557,10 @@ class ApiService {
     context: string;
     stylist: string;
     userProfile?: any;
+    surpriseMe?: boolean;
   }) {
     console.log('[Ask Stylist] Submitting to /api/decision/check/resilient with decisionType:', data.decisionType);
-    console.log('[Ask Stylist] Number of images:', data.images.length);
+    console.log('[Ask Stylist] Number of images:', data.images.length, 'surpriseMe:', data.surpriseMe);
     
     return this.request<{
       success: boolean;
@@ -1426,10 +1568,27 @@ class ApiService {
       response?: string;
       recommendation?: string;
       reasoning?: string;
+      styleRating?: number | null;
+      ratingLabel?: string | null;
+      outfitPieces?: Array<{
+        role: string;
+        name: string;
+        wardrobeItemId?: number;
+        stylingNote?: string;
+        imageUrl?: string | null;
+        category?: string | null;
+        color?: string | null;
+        brand?: string | null;
+      }> | null;
+      outfitSummary?: string | null;
+      surpriseMe?: boolean;
       stylistId?: string;
       decisionType?: string;
       error?: string;
+      stylistResponse?: string;
+      message?: string;
       outfitImageUrl?: string;
+      recommendedIndex?: number;
     }>('/api/decision/check/resilient', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -2020,6 +2179,14 @@ class ApiService {
       audioBase64: string | null;
       stylist: string;
       message?: string;
+      voiceCreditsExhausted?: boolean;
+      voiceCredits?: {
+        remaining: number | string;
+        monthlyAllowance: number;
+        monthlyRemaining?: number;
+        purchasedCredits?: number;
+        isUnlimited?: boolean;
+      };
     }>('/api/ai/voice-chat', {
       method: 'POST',
       timeout: 90000,
@@ -2200,11 +2367,33 @@ class ApiService {
     });
   }
 
-  async batchAddWardrobeItems(items: any[]): Promise<{ success: boolean; items: any[]; saved: number; failed: number; errors: any[] }> {
+  async batchAddWardrobeItems(
+    items: any[],
+    options?: { processImagesAfterSave?: boolean },
+  ): Promise<{ success: boolean; items: any[]; saved: number; failed: number; errors: any[] }> {
     return this.request<{ success: boolean; items: any[]; saved: number; failed: number; errors: any[] }>('/api/wardrobe/batch', {
       method: 'POST',
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({
+        items,
+        processImagesAfterSave: options?.processImagesAfterSave !== false,
+      }),
       timeout: 120000,
+    });
+  }
+
+  async uploadWardrobeItemImage(id: string, imageBase64: string, options?: { sync?: boolean }): Promise<{ success: boolean; processing?: boolean; imageUrl?: string; imageProcessed?: boolean }> {
+    const sync = options?.sync ? '?sync=true' : '';
+    return this.request<{ success: boolean; processing?: boolean; imageUrl?: string; imageProcessed?: boolean }>(`/api/wardrobe/${id}/upload-image${sync}`, {
+      method: 'POST',
+      body: JSON.stringify({ imageBase64 }),
+      timeout: options?.sync ? 120000 : 30000,
+    });
+  }
+
+  async bulkDeleteWardrobeItems(ids: string[]): Promise<{ success: boolean; deleted: number; ids: number[] }> {
+    return this.request<{ success: boolean; deleted: number; ids: number[] }>('/api/wardrobe/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
     });
   }
 
@@ -3190,10 +3379,10 @@ class ApiService {
     }>('/api/dfy/access-status');
   }
 
-  async generateDFYDelivery(data: { tier: 'lite' | 'core'; stylistId: string }) {
+  async generateDFYDelivery(data: { tier: 'lite' | 'core'; stylistId: string; lat?: number; lon?: number; location?: string }) {
     return this.request<{
       success: boolean;
-      delivery: {
+      delivery?: {
         userId: string;
         tier: 'lite' | 'core';
         startDate: string;
@@ -3215,9 +3404,91 @@ class ApiService {
         completed: boolean;
         nudgesShown: number[];
       };
+      outfits?: Array<{
+        id: string;
+        day?: number;
+        dayNumber?: number;
+        title?: string;
+        occasion?: string;
+        stylistNote?: string;
+        stylistId?: string;
+        items: Array<{
+          id: string | number;
+          name: string;
+          category: string;
+          color: string;
+          imageUri?: string | null;
+          imageUrl?: string | null;
+          processedImageUrl?: string | null;
+        }>;
+      }>;
     }>('/api/dfy/generate-delivery', {
       method: 'POST',
+      body: JSON.stringify({
+        ...data,
+        count: data.tier === 'core' ? 30 : 14,
+      }),
+      timeout: 120000,
+    });
+  }
+
+  async getDFYLookbook() {
+    return this.request<{
+      success: boolean;
+      hasLookbook?: boolean;
+      outfits?: Array<{
+        id: string;
+        day?: number;
+        title?: string;
+        stylistNote?: string;
+        weatherNote?: string;
+        items: Array<{
+          id: string | number;
+          name: string;
+          category: string;
+          color: string;
+          imageUri?: string | null;
+          imageUrl?: string | null;
+          processedImageUrl?: string | null;
+        }>;
+      }>;
+    }>('/api/dfy/lite/lookbook');
+  }
+
+  async generateDFYLookbook(data: {
+    stylistId: string;
+    lat?: number;
+    lon?: number;
+    location?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      outfits?: Array<{
+        id: string;
+        day?: number;
+        dayNumber?: number;
+        title?: string;
+        occasion?: string;
+        stylistNote?: string;
+        notes?: string;
+        stylistId?: string;
+        items: Array<{
+          id: string | number;
+          name: string;
+          category: string;
+          color: string;
+          imageUri?: string | null;
+          imageUrl?: string | null;
+          processedImageUrl?: string | null;
+        }>;
+      }>;
+      stylistId?: string;
+      generatedAt?: string;
+      expiresAt?: string;
+    }>('/api/dfy/lite/lookbook/generate', {
+      method: 'POST',
       body: JSON.stringify(data),
+      timeout: 120000,
     });
   }
 
@@ -3266,29 +3537,33 @@ class ApiService {
   }) {
     return this.request<{
       success: boolean;
+      vibeLabel?: string;
       outfit: {
-        id: string;
+        id?: string;
+        vibe?: string;
         items: Array<{
           id: string;
           name: string;
-          imageUri: string;
+          imageUri?: string;
+          imageUrl?: string;
           category: string;
           color: string;
         }>;
-        hydratedItems: Array<{ id: string; name: string; imageUri: string; category: string; color: string }>;
+        hydratedItems?: Array<{ id: string; name: string; imageUri: string; category: string; color: string }>;
         stylingTips: string[];
         colourHarmony: string;
         colorHarmony: string;
         vibeLabel: string;
-        vibe: string;
         stylistMessage: string;
         stylistId: string;
         savedToCalendar: boolean;
         calendarDate?: string;
       };
+      hydratedItems?: Array<{ id: string; name: string; imageUri?: string; imageUrl?: string; category: string; color: string }>;
     }>('/api/wardrobe/generate-outfit/resilient', {
       method: 'POST',
       body: JSON.stringify(data),
+      timeout: 90000,
     });
   }
 
@@ -3519,12 +3794,14 @@ class ApiService {
       hardRuleViolations: string[];
       improvements: string[];
       occasionRulesApplied: string | null;
+      hardCapApplied?: string | null;
       dimensions?: Record<string, number>;
       dimensionWeights?: Record<string, number>;
       explanations?: string[];
       trendMatches?: Array<{ name: string; layer: string; weight: number }>;
       contextUsed?: Record<string, unknown>;
       headline?: string;
+      error?: string;
     }>('/api/dfy/core/wardrobe/compatibility', {
       method: 'POST',
       timeout: 90000,
@@ -3659,6 +3936,26 @@ class ApiService {
         wasWorn: boolean;
       }>;
     }>(`/api/outfit-calendar/by-date/${dateStr}`);
+  }
+
+  async getDFYCalendarAlternatives(date: string, stylistId: string = 'ruby') {
+    return this.request<{
+      success: boolean;
+      alternatives: Array<{
+        id: string;
+        items: Array<{
+          id: string;
+          name?: string;
+          category?: string;
+          color?: string;
+          imageUri?: string;
+          imageUrl?: string;
+          processedImageUrl?: string;
+        }>;
+        stylistNote?: string;
+      }>;
+      message?: string;
+    }>(`/api/dfy/calendar/day/${date}/alternatives?stylistId=${stylistId}`);
   }
 
   // Mix & Match Outfit Builder
@@ -4043,12 +4340,35 @@ class ApiService {
         canceled: number;
         planDistribution: {
           free: number;
-          style_chat: number;
           personal_stylist: number;
           stylist_unlimited: number;
         };
       };
     }>('/api/admin/subscriptions');
+  }
+
+  async getDecisionHistory(limit = 50) {
+    return this.request<{
+      success: boolean;
+      history: Array<{ request: Record<string, unknown>; response: Record<string, unknown> }>;
+    }>(`/api/decisions/history?limit=${limit}`);
+  }
+
+  async saveDecisionHistory(entry: {
+    requestId: string;
+    decisionType: string;
+    recommendation: string;
+    reasoning?: string;
+    stylistId?: string;
+    contextNotes?: string;
+    contextChips?: string[];
+    images?: string[];
+    responsePayload?: Record<string, unknown>;
+  }) {
+    return this.request<{ success: boolean }>('/api/decisions/history', {
+      method: 'POST',
+      body: JSON.stringify(entry),
+    });
   }
 
   async getAnalyticsSummary() {

@@ -71,7 +71,7 @@ export default function VisualSearchScreen() {
   const { paddingTop } = useScreenInsets();
   const navigation = useNavigation();
   
-  const isPaidTier = tier === 'premium';
+  const isPaidTier = tier !== 'free';
 
   const [searchState, setSearchState] = useState<SearchState>({
     status: 'idle',
@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   analyzingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: BorderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',

@@ -52,6 +52,7 @@ const PREVIEW_SESSION: VotingSession = {
   ],
   status: "voting",
   expiresAt: new Date(Date.now() + 10 * 60000).toISOString(),
+  createdAt: new Date().toISOString(),
   aiRecommendedOptionId: "1",
 };
 
@@ -146,7 +147,7 @@ export default function CommunityVotingScreen({ navigation, route }: any) {
       if (result.success) {
         const results = await CommunityVotingService.getVotingResults(
           session.id,
-          stylistId
+          stylistId ?? undefined
         );
         setVotingResult(results);
         setHasVoted(true);

@@ -1,5 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StylistId, SubscriptionTier } from '@/contexts/AuthContext';
+import { getTierFeatures, tierHasUnlimitedDecisions, canSaveDecisionHistory } from '@/utils/tierMatrix';
+import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
+import { apiService } from '@/services/ApiService';
 
 export type DecisionType = 'shopping' | 'what-to-wear' | 'event-outfit' | 'sanity-check';
 export type DecisionContext = 'work-appropriate' | 'casual' | 'formal' | 'date-night' | 'comfort' | 'versatility' | 'budget' | 'trendy';
@@ -31,6 +34,21 @@ export interface DecisionResponse {
   stylistId: StylistId;
   timestamp: string;
   outfitImageUrl?: string;
+  success?: boolean;
+  decision?: string;
+  response?: string;
+  styleRating?: number | null;
+  ratingLabel?: string | null;
+  recommendedIndex?: number;
+  uploadedImages?: string[];
+  outfitPieces?: Array<{
+    role?: string;
+    name?: string;
+    wardrobeItemId?: number | string;
+    imageUrl?: string | null;
+    category?: string | null;
+  }>;
+  outfitSummary?: string;
 }
 
 export interface SecondOpinionResponse {
@@ -118,29 +136,21 @@ const TIER_LIMITS: Record<SubscriptionTier, DecisionLimits> = {
     hasHistory: false,
     hasCommunityVoting: false,
   },
-  subscription: {
-    tier: 'subscription',
-    decisionsPerDay: 5,
+  personal_stylist: {
+    tier: 'personal_stylist',
+    decisionsPerDay: 'unlimited',
     maxImages: 3,
-    hasSecondOpinion: true,
+    hasSecondOpinion: false,
     hasHistory: true,
     hasCommunityVoting: false,
   },
-  pro: {
-    tier: 'pro',
+  stylist_unlimited: {
+    tier: 'stylist_unlimited',
     decisionsPerDay: 'unlimited',
     maxImages: 5,
-    hasSecondOpinion: true,
+    hasSecondOpinion: false,
     hasHistory: true,
-    hasCommunityVoting: true,
-  },
-  premium: {
-    tier: 'premium',
-    decisionsPerDay: 'unlimited',
-    maxImages: 5,
-    hasSecondOpinion: true,
-    hasHistory: true,
-    hasCommunityVoting: true,
+    hasCommunityVoting: false,
   },
 };
 
@@ -220,22 +230,25 @@ class DecisionService {
   }
 
   async checkDecisionAccess(userId: string, tier: SubscriptionTier): Promise<DecisionAccessStatus> {
-    const limits = this.getTierLimits(tier);
+    const normalized = normalizeSubscriptionTier(tier);
+    const limits = this.getTierLimits(normalized);
+    const features = getTierFeatures(normalized);
     const decisionsToday = await this.getDecisionsToday(userId);
 
-    const maxDecisions = limits.decisionsPerDay === 'unlimited' ? 999 : limits.decisionsPerDay;
-    const canMakeDecision = limits.decisionsPerDay === 'unlimited' || decisionsToday < limits.decisionsPerDay;
+    const unlimited = tierHasUnlimitedDecisions(normalized);
+    const maxDecisions = unlimited ? 999 : (limits.decisionsPerDay as number);
+    const canMakeDecision = unlimited || decisionsToday < (limits.decisionsPerDay as number);
 
     let reason: string | undefined;
     if (!canMakeDecision) {
-      reason = "That's your decision for today. Your stylist is here whenever you're ready.";
+      reason = "That's your decision for today. Upgrade to Personal Stylist for unlimited decisions.";
     }
 
     return {
       canMakeDecision,
       decisionsToday,
       maxDecisionsToday: maxDecisions,
-      maxImages: limits.maxImages,
+      maxImages: features.maxComparisonImages,
       hasSecondOpinion: limits.hasSecondOpinion,
       hasHistory: limits.hasHistory,
       reason,
@@ -287,7 +300,7 @@ class DecisionService {
     hasDFYCompleted: boolean
   ): Promise<CommunityVotingEligibility> {
     const totalDecisions = await this.getTotalDecisions(userId);
-    const isPaid = tier === 'premium';
+    const isPaid = tier !== 'free';
 
     const eligible = totalDecisions >= 5 || isPaid || hasDFYCompleted;
 
@@ -337,7 +350,7 @@ class DecisionService {
     };
 
     if (TIER_LIMITS[tier].hasHistory) {
-      await this.saveToHistory(request.userId, request, response);
+      await this.saveToHistory(request.userId, request, response, tier);
     }
 
     return response;
@@ -418,25 +431,60 @@ class DecisionService {
   async saveToHistory(
     userId: string,
     request: DecisionRequest,
-    response: DecisionResponse
+    response: DecisionResponse,
+    tier?: SubscriptionTier | string
   ): Promise<void> {
+    const entry = { request, response };
+
     try {
       const historyData = await AsyncStorage.getItem(`${DECISION_HISTORY_KEY}_${userId}`);
       const history = historyData ? JSON.parse(historyData) : [];
-
-      history.unshift({ request, response });
-
+      history.unshift(entry);
       if (history.length > 50) {
         history.pop();
       }
-
       await AsyncStorage.setItem(`${DECISION_HISTORY_KEY}_${userId}`, JSON.stringify(history));
     } catch (error) {
-      console.error('Error saving decision history:', error);
+      console.error('Error saving decision history locally:', error);
+    }
+
+    if (!tier || !canSaveDecisionHistory(tier)) {
+      return;
+    }
+
+    try {
+      await apiService.saveDecisionHistory({
+        requestId: response.requestId || request.id,
+        decisionType: request.type,
+        recommendation: response.recommendation,
+        reasoning: response.reasoning,
+        stylistId: response.stylistId ?? undefined,
+        contextNotes: request.contextNotes,
+        contextChips: request.contextChips,
+        images: request.images,
+        responsePayload: response as unknown as Record<string, unknown>,
+      });
+    } catch (error) {
+      console.warn('Decision history server sync failed (local copy kept):', error);
     }
   }
 
-  async getHistory(userId: string): Promise<{ request: DecisionRequest; response: DecisionResponse }[]> {
+  async getHistory(userId: string, tier?: SubscriptionTier | string): Promise<{ request: DecisionRequest; response: DecisionResponse }[]> {
+    const normalizedTier = normalizeSubscriptionTier(tier);
+
+    if (canSaveDecisionHistory(normalizedTier)) {
+      try {
+        const remote = await apiService.getDecisionHistory();
+        if (remote.success && Array.isArray(remote.history) && remote.history.length > 0) {
+          const parsed = remote.history as unknown as { request: DecisionRequest; response: DecisionResponse }[];
+          await AsyncStorage.setItem(`${DECISION_HISTORY_KEY}_${userId}`, JSON.stringify(parsed));
+          return parsed;
+        }
+      } catch (error) {
+        console.warn('Decision history server fetch failed, using local cache:', error);
+      }
+    }
+
     try {
       const data = await AsyncStorage.getItem(`${DECISION_HISTORY_KEY}_${userId}`);
       return data ? JSON.parse(data) : [];
@@ -451,25 +499,29 @@ class DecisionService {
   }
 
   getLimitCopy(tier: SubscriptionTier): { title: string; subtitle: string } {
-    const limits = this.getTierLimits(tier);
-
-    if (limits.decisionsPerDay === 'unlimited') {
+    const normalized = normalizeSubscriptionTier(tier);
+    if (normalized === 'free') {
       return {
-        title: 'Your stylist, on call',
-        subtitle: 'Unlimited decisions whenever you need them',
+        title: '1 decision per day',
+        subtitle: 'Upgrade to Personal Stylist for unlimited decisions and 3-way shopping compare.',
       };
     }
-
+    if (normalized === 'personal_stylist') {
+      return {
+        title: 'Personal Stylist',
+        subtitle: 'Unlimited decisions with wardrobe-aware advice.',
+      };
+    }
     return {
-      title: `${limits.decisionsPerDay} decision${limits.decisionsPerDay > 1 ? 's' : ''} per day`,
-      subtitle: "One decision a day, on me.",
+      title: 'Stylist Unlimited',
+      subtitle: 'Calendar, planning, and priority processing included.',
     };
   }
 
   getUpgradeCopy(): { headline: string; cta: string } {
     return {
-      headline: "Outfits shouldn't take this much thinking.",
-      cta: 'Unlock unlimited decisions',
+      headline: "Stop overthinking outfits.",
+      cta: 'Upgrade to Personal Stylist',
     };
   }
 

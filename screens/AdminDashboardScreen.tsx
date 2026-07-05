@@ -67,7 +67,6 @@ interface SubscriptionsData {
     canceled: number;
     planDistribution: {
       free: number;
-      style_chat: number;
       personal_stylist: number;
       stylist_unlimited: number;
     };
@@ -417,12 +416,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
                 <ThemedText type="body">Free</ThemedText>
                 <ThemedText type="body" style={{ fontWeight: "600" }}>
                   {subscriptionsData.stats.planDistribution.free}
-                </ThemedText>
-              </View>
-              <View style={styles.planRow}>
-                <ThemedText type="body">Style Chat</ThemedText>
-                <ThemedText type="body" style={{ fontWeight: "600" }}>
-                  {subscriptionsData.stats.planDistribution.style_chat}
                 </ThemedText>
               </View>
               <View style={styles.planRow}>

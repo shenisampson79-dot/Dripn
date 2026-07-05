@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -10,9 +10,15 @@ import {
   Linking,
   ScrollView,
   ActivityIndicator,
+  Modal,
+  FlatList,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { WardrobeItemImage } from "@/components/WardrobeItemImage";
+import {
+  getManualAddCategoryTabs,
+  resolveUserPresentationGender,
+} from '@/utils/wardrobeCategories';
+import { onboardingProfileService } from '@/services/OnboardingProfileService';
 import { wardrobeImageBackground } from "@/utils/wardrobeImage";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -42,7 +48,26 @@ import {
 } from "@/contexts/WardrobeContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { apiService } from "@/services/ApiService";
+import { describeBulkAnalyzeFailure, getPhotoTips } from "@/services/WardrobeDigitizationService";
+import { getClothingUploadComparisons } from "@/constants/uploadGuideExamples";
 import * as FileSystem from "expo-file-system/legacy";
+import { WardrobeItemImage } from "@/components/WardrobeItemImage";
+import { UploadGuideComparisonTable } from "@/components/UploadGuideComparisonTable";
+import { sanitizeWardrobeItemName, reconcileWardrobeBrandName } from "@/utils/wardrobeItemName";
+import {
+  getOutfitReelImageScale,
+  getOutfitReelPreviewAspectRatio,
+} from "@/utils/outfitReelImage";
+import {
+  canOfferOutfitPlanning,
+  countWardrobeOutfitBasics,
+  describeOutfitPlanningGap,
+} from "@/utils/wardrobeOutfitReadiness";
+import {
+  correctWardrobeImageOrientation,
+  promptWardrobeOrientationReview,
+  rotateWardrobeImage,
+} from "@/utils/wardrobeImageOrientation";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -50,24 +75,8 @@ type AddWardrobeItemScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "AddWardrobeItem">;
 };
 
-const getCategoryOptions = (isMale: boolean): Array<{ key: ClothingCategory; icon: string; iconSet: 'feather' | 'material' }> => {
-  const all: Array<{ key: ClothingCategory; icon: string; iconSet: 'feather' | 'material' }> = [
-    { key: 'tops', icon: 'tshirt-crew', iconSet: 'material' },
-    { key: 'bottoms', icon: 'layers', iconSet: 'feather' },
-    // dresses excluded for male users
-    ...(!isMale ? [{ key: 'dresses' as ClothingCategory, icon: 'human-female', iconSet: 'material' as const }] : []),
-    { key: 'outerwear', icon: 'cloud', iconSet: 'feather' },
-    { key: 'shoes', icon: isMale ? 'shoe-formal' : 'shoe-heel', iconSet: 'material' },
-    { key: 'bags', icon: isMale ? 'briefcase' : 'bag-personal', iconSet: 'material' },
-    { key: 'accessories', icon: isMale ? 'watch' : 'necklace', iconSet: 'material' },
-    { key: 'activewear_tops' as ClothingCategory, icon: 'run-fast', iconSet: 'material' },
-    { key: 'activewear_bottoms' as ClothingCategory, icon: 'dumbbell', iconSet: 'material' },
-    { key: 'swimwear', icon: 'swim', iconSet: 'material' },
-    { key: 'sleepwear', icon: 'bed', iconSet: 'material' },
-    { key: 'formal', icon: 'bow-tie', iconSet: 'material' },
-  ];
-  return all;
-};
+const getCategoryOptions = (gender: ReturnType<typeof resolveUserPresentationGender>) =>
+  getManualAddCategoryTabs(gender);
 
 const COLOR_OPTIONS: ClothingColor[] = [
   'black', 'white', 'gray', 'navy', 'brown', 'beige',
@@ -83,11 +92,16 @@ const OCCASION_OPTIONS: ClothingOccasion[] = [
 export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScreenProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { addItem } = useWardrobe();
+  const { addItem, items } = useWardrobe();
   const { user } = useAuth();
-  
-  const isMale = user?.gender === 'man';
-  const categoryOptions = getCategoryOptions(isMale);
+  const [onboardingProfile, setOnboardingProfile] = useState<Awaited<ReturnType<typeof onboardingProfileService.getProfile>> | null>(null);
+
+  useEffect(() => {
+    onboardingProfileService.getProfile().then(setOnboardingProfile).catch(() => {});
+  }, []);
+
+  const presentationGender = resolveUserPresentationGender(user, onboardingProfile);
+  const categoryOptions = getCategoryOptions(presentationGender);
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [originalImageUri, setOriginalImageUri] = useState<string | null>(null);
@@ -106,6 +120,50 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   const [aiAnalyzed, setAiAnalyzed] = useState(false);
   const [scansRemaining, setScansRemaining] = useState<number | null>(null);
   const [isGuest, setIsGuest] = useState(false);
+  const [showPhotoTips, setShowPhotoTips] = useState(false);
+  const photoTips = getPhotoTips();
+  const clothingPhotoTips = useMemo(
+    () => getClothingUploadComparisons(user?.gender),
+    [user?.gender],
+  );
+
+  const beginImageImport = async (asset: ImagePicker.ImagePickerAsset) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      const corrected = await correctWardrobeImageOrientation(asset.uri, asset);
+      setOriginalImageUri(corrected.uri);
+      setImageUri(corrected.uri);
+      setImageProcessed(false);
+      setAiAnalyzed(false);
+
+      promptWardrobeOrientationReview(corrected, (uri) => {
+        setOriginalImageUri(uri);
+        setImageUri(uri);
+        processImageWithAI(uri);
+      });
+    } catch (error) {
+      console.warn('[AddWardrobeItem] Orientation correction failed:', error);
+      setOriginalImageUri(asset.uri);
+      setImageUri(asset.uri);
+      setImageProcessed(false);
+      setAiAnalyzed(false);
+      processImageWithAI(asset.uri);
+    }
+  };
+
+  const handleRotatePhoto = async () => {
+    if (!imageUri || isProcessingImage) return;
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const rotated = await rotateWardrobeImage(imageUri, 90);
+      setImageUri(rotated.uri);
+      setOriginalImageUri(rotated.uri);
+      setImageProcessed(false);
+      setAiAnalyzed(false);
+    } catch (error) {
+      Alert.alert('Rotate failed', 'Could not rotate this photo. Please try another image.');
+    }
+  };
 
   const toJpegBase64 = async (uri: string): Promise<{ base64: string; correctedUri: string }> => {
     if (uri.startsWith('data:')) return { base64: uri.split(',')[1], correctedUri: uri };
@@ -210,7 +268,11 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     
     try {
       const { base64: imageBase64 } = await toJpegBase64(imageUri);
-      
+
+      if (!imageBase64 || imageBase64.length < 100) {
+        throw new Error('Could not read this photo. Try taking a new picture or picking a different image.');
+      }
+
       const result = await apiService.analyzeGarmentPhoto(imageBase64) as any;
       
       // Debug log to see what API returns
@@ -343,11 +405,6 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         night: 'date-night',
         'night out': 'date-night',
         nightout: 'date-night',
-        sport: 'workout',
-        sports: 'workout',
-        gym: 'workout',
-        exercise: 'workout',
-        athletic: 'workout',
         beach: 'vacation',
         lounge: 'casual',
         loungewear: 'casual',
@@ -366,12 +423,26 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       
       if (analysis) {
         console.log('[AI Analysis] Setting fields from analysis...');
+        const analysisFields = analysis as typeof analysis & {
+          suggestedName?: string;
+          itemName?: string;
+          colorTag?: string;
+          primaryColor?: string;
+        };
         
         // Handle name - check multiple field variations
-        const itemName = analysis.name || analysis.suggestedName || analysis.itemName;
+        const itemName = analysisFields.name || analysisFields.suggestedName || analysisFields.itemName;
+        const itemColor = analysisFields.color || analysisFields.colorTag || analysisFields.primaryColor;
         if (itemName) {
-          console.log('[AI Analysis] Setting name:', itemName);
-          setName(itemName);
+          const withBrand = analysis.brand
+            ? reconcileWardrobeBrandName(itemName, analysis.brand)
+            : itemName;
+          const cleaned = sanitizeWardrobeItemName(withBrand, {
+            color: itemColor,
+            brand: analysis.brand,
+          });
+          console.log('[AI Analysis] Setting name:', cleaned);
+          setName(cleaned);
         }
         
         // Handle category — map generic 'activewear' to subcategory based on item name
@@ -395,7 +466,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         }
         
         // Handle color - check multiple field variations and map if needed
-        const apiColor = (analysis.color || analysis.colorTag || '').toLowerCase();
+        const apiColor = (analysisFields.color || analysisFields.colorTag || '').toLowerCase();
         if (apiColor) {
           console.log('[AI Analysis] Color from API:', apiColor);
           let mappedColor: ClothingColor | null = null;
@@ -485,7 +556,11 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       }
     } catch (error: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Error", error.message || "Failed to analyze image. Please try again or fill in details manually.");
+      const failure = describeBulkAnalyzeFailure(error?.message);
+      Alert.alert(
+        failure.title,
+        failure.message || "Failed to analyze image. Please try again or fill in details manually.",
+      );
     } finally {
       setIsAnalyzing(false);
     }
@@ -525,17 +600,11 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
+      exif: true,
     });
 
     if (!result.canceled && result.assets[0]) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const selectedUri = result.assets[0].uri;
-      setOriginalImageUri(selectedUri);
-      setImageUri(selectedUri);
-      setImageProcessed(false);
-      setAiAnalyzed(false);
-      
-      processImageWithAI(selectedUri);
+      await beginImageImport(result.assets[0]);
     }
   };
 
@@ -562,17 +631,11 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
+      exif: true,
     });
 
     if (!result.canceled && result.assets[0]) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const selectedUri = result.assets[0].uri;
-      setOriginalImageUri(selectedUri);
-      setImageUri(selectedUri);
-      setImageProcessed(false);
-      setAiAnalyzed(false);
-      
-      processImageWithAI(selectedUri);
+      await beginImageImport(result.assets[0]);
     }
   };
 
@@ -632,18 +695,23 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       return;
     }
 
+    if (!imageUri) {
+      Alert.alert("Missing Photo", "Please add a photo for your item.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       // Convert image to base64 for backend processing
       const { base64: imageBase64 } = await toJpegBase64(imageUri);
       
-      const newItemId = await addItem({
+      const newItem = await addItem({
         imageUri,
         originalImageUri: originalImageUri || imageUri,
         imageProcessed,
         imageBase64,
-        name: name.trim(),
+        name: sanitizeWardrobeItemName(name.trim(), { color, brand: undefined }),
         category,
         color,
         seasons,
@@ -656,23 +724,49 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
-      Alert.alert(
-        "Item Added",
-        `${name.trim()} has been added to your wardrobe. Would you like to plan an outfit with it?`,
-        [
-          {
-            text: "Not Now",
-            style: "cancel",
-            onPress: () => navigation.goBack(),
-          },
-          {
-            text: "Plan Outfit",
-            onPress: () => {
-              navigation.replace('OutfitCalendar');
+
+      const itemLabel = name.trim();
+
+      if (origin === 'inspiration') {
+        Alert.alert(
+          'Saved to Inspiration',
+          `${itemLabel} has been added to your style inspiration board.`,
+          [{ text: 'Done', onPress: () => navigation.goBack() }],
+        );
+        return;
+      }
+
+      const wardrobeForCounts = [
+        ...items.filter((item) => item.origin !== 'inspiration' && item.id !== newItem.id),
+        newItem,
+      ];
+      const outfitCounts = countWardrobeOutfitBasics(wardrobeForCounts);
+
+      if (canOfferOutfitPlanning(outfitCounts)) {
+        Alert.alert(
+          'Item Added',
+          `${itemLabel} has been added to your wardrobe. Would you like to plan an outfit with it?`,
+          [
+            {
+              text: 'Not Now',
+              style: 'cancel',
+              onPress: () => navigation.goBack(),
             },
-          },
-        ]
+            {
+              text: 'Plan Outfit',
+              onPress: () => {
+                navigation.replace('OutfitCalendar');
+              },
+            },
+          ],
+        );
+        return;
+      }
+
+      Alert.alert(
+        'Item Added',
+        `${itemLabel} has been added to your wardrobe.\n\n${describeOutfitPlanningGap(outfitCounts)}`,
+        [{ text: 'Keep Building', onPress: () => navigation.goBack() }],
       );
     } catch (error) {
       Alert.alert("Error", "Failed to add item to wardrobe. Please try again.");
@@ -682,6 +776,8 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
   };
 
   const canSave = imageUri && name.trim() && category && color && seasons.length > 0 && occasions.length > 0;
+  const outfitMixPreviewScale = useMemo(() => getOutfitReelImageScale(category), [category]);
+  const outfitMixPreviewAspect = useMemo(() => getOutfitReelPreviewAspectRatio(), []);
 
   const scrollViewProps = {
     style: styles.scrollView,
@@ -720,9 +816,16 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       <ScrollContainer {...scrollViewProps}>
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>Photo</ThemedText>
+          <ThemedText type="caption" style={[styles.outfitMixPreviewHint, { color: theme.tabIconDefault }]}>
+            This preview matches Outfit Mix. Tap the photo to retake if the item looks too close or cut off.
+          </ThemedText>
           {imageUri ? (
             <View>
-              <Pressable onPress={handlePickImage} disabled={isProcessingImage} style={styles.imageContainer}>
+              <Pressable
+                onPress={handlePickImage}
+                disabled={isProcessingImage}
+                style={[styles.imageContainer, { aspectRatio: outfitMixPreviewAspect }]}
+              >
                 <View style={[
                   styles.imageWrapper,
                   wardrobeImageBackground(isDark, { imageUri, imageProcessed, aiAnalyzed: false })
@@ -733,6 +836,8 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
                     item={{ id: 'preview', imageUri, imageProcessed, enhancedImageUri: imageUri }}
                     style={styles.selectedImage}
                     processed={imageProcessed}
+                    contentFit="contain"
+                    displayScale={outfitMixPreviewScale}
                   />
                 </View>
                 {isProcessingImage && (
@@ -746,6 +851,15 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
                 <View style={[styles.changeImageBadge, { backgroundColor: theme.backgroundDefault }]}>
                   <Feather name="edit-2" size={16} color={theme.text} />
                 </View>
+                {!isProcessingImage ? (
+                  <Pressable
+                    onPress={handleRotatePhoto}
+                    style={[styles.rotateImageBadge, { backgroundColor: theme.backgroundDefault }]}
+                    accessibilityLabel="Rotate photo 90 degrees"
+                  >
+                    <Feather name="rotate-cw" size={16} color={theme.text} />
+                  </Pressable>
+                ) : null}
                 {imageProcessed && !isProcessingImage && (
                   <View style={[styles.processedBadge, { backgroundColor: '#10B981' }]}>
                     <Feather name="check-circle" size={14} color="#FFFFFF" />
@@ -840,6 +954,19 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
                   </View>
                 )}
               </View>
+              <View style={[styles.tipsSectionInline, { backgroundColor: theme.backgroundSecondary }]}>
+                <UploadGuideComparisonTable
+                  compact
+                  title="Photo tips for best results"
+                  rows={clothingPhotoTips}
+                />
+                <Pressable onPress={() => setShowPhotoTips(true)} style={styles.seeAllTipsLink}>
+                <ThemedText type="caption" style={{ color: theme.link, fontWeight: '600' }}>
+                  More photo tips
+                </ThemedText>
+                <Feather name="chevron-right" size={14} color={theme.link} />
+              </Pressable>
+              </View>
             </View>
           )}
         </View>
@@ -847,7 +974,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>Item Type</ThemedText>
           <View style={styles.originSelector}>
-            {(['owned', 'inspiration'] as ItemOrigin[]).map((originOption) => {
+            {(['owned', 'inspiration'] as const).map((originOption) => {
               const isSelected = origin === originOption;
               const iconMap: Record<'owned' | 'inspiration', keyof typeof Feather.glyphMap> = {
                 owned: 'check-circle',
@@ -1077,6 +1204,51 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
           />
         </View>
       </ScrollContainer>
+
+      <Modal
+        visible={showPhotoTips}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowPhotoTips(false)}
+      >
+        <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+          <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
+            <Pressable
+              onPress={() => setShowPhotoTips(false)}
+              style={[styles.headerButton, { backgroundColor: theme.backgroundDefault }]}
+            >
+              <Feather name="x" size={20} color={theme.text} />
+            </Pressable>
+            <ThemedText type="h3">Photo Tips</ThemedText>
+            <View style={{ width: 44 }} />
+          </View>
+          <FlatList
+            data={[
+              { title: 'Do', items: photoTips.doList, icon: 'check-circle', color: '#34C759' },
+              { title: "Don't", items: photoTips.dontList, icon: 'x-circle', color: '#FF3B30' },
+              { title: 'Tips', items: photoTips.tips, icon: 'info', color: theme.link },
+            ]}
+            keyExtractor={(item) => item.title}
+            contentContainerStyle={styles.photoTipsModalContent}
+            renderItem={({ item }) => (
+              <Card elevation={1} style={styles.photoTipsSection}>
+                <View style={styles.photoTipsSectionHeader}>
+                  <Feather name={item.icon as any} size={20} color={item.color} />
+                  <ThemedText type="h4" style={{ marginLeft: Spacing.sm }}>
+                    {item.title}
+                  </ThemedText>
+                </View>
+                {item.items.map((tip, index) => (
+                  <View key={index} style={styles.photoTipRow}>
+                    <View style={[styles.photoTipBullet, { backgroundColor: item.color }]} />
+                    <ThemedText type="body" style={styles.photoTipText}>{tip}</ThemedText>
+                  </View>
+                ))}
+              </Card>
+            )}
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1148,9 +1320,12 @@ const styles = StyleSheet.create({
   imageContainer: {
     position: "relative",
     width: "100%",
-    aspectRatio: 1,
     borderRadius: BorderRadius.lg,
     overflow: "hidden",
+  },
+  outfitMixPreviewHint: {
+    marginBottom: Spacing.sm,
+    lineHeight: 18,
   },
   selectedImage: {
     width: "100%",
@@ -1160,6 +1335,16 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: Spacing.md,
     right: Spacing.md,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rotateImageBadge: {
+    position: "absolute",
+    bottom: Spacing.md,
+    right: Spacing.md + 44 + Spacing.sm,
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -1233,6 +1418,19 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     textAlign: "center",
   },
+  seeAllTipsLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  tipsSectionInline: {
+    marginTop: Spacing.xl,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+  },
   photoTipsCard: {
     marginTop: Spacing.md,
     padding: Spacing.md,
@@ -1241,6 +1439,33 @@ const styles = StyleSheet.create({
   photoTipsTitle: {
     fontWeight: "600",
     marginBottom: Spacing.sm,
+  },
+  photoTipsModalContent: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl,
+  },
+  photoTipsSection: {
+    marginBottom: Spacing.lg,
+  },
+  photoTipsSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
+  photoTipRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: Spacing.sm,
+  },
+  photoTipBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 6,
+    marginRight: Spacing.sm,
+  },
+  photoTipText: {
+    flex: 1,
   },
   visualGuideContainer: {
     marginTop: Spacing.md,
@@ -1298,7 +1523,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   processingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
     justifyContent: "center",
     alignItems: "center",

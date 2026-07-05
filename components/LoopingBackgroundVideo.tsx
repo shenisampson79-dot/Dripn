@@ -51,16 +51,12 @@ function LoopingBackgroundVideoWeb({ source }: { source: number }) {
         style={styles.webBackdropVideo}
         contentFit="cover"
         nativeControls={false}
-        allowsFullscreen={false}
-        playsInline
       />
       <VideoView
         player={foregroundPlayer}
         style={styles.webForegroundVideo}
         contentFit="contain"
         nativeControls={false}
-        allowsFullscreen={false}
-        playsInline
       />
     </View>
   );
@@ -77,14 +73,12 @@ function LoopingBackgroundVideoNative({
   const player = useVideoPlayer(source, configureBackgroundPlayer);
 
   return (
-    <View style={[styles.container, style ?? StyleSheet.absoluteFillObject]} pointerEvents="none">
+    <View style={[styles.container, style ?? StyleSheet.absoluteFill]} pointerEvents="none">
       <VideoView
         player={player}
         style={styles.video}
         contentFit="cover"
         nativeControls={false}
-        allowsFullscreen={false}
-        playsInline
       />
     </View>
   );
@@ -110,13 +104,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#0a0a0a",
   },
   webContainer: {
-    position: "fixed",
+    ...(Platform.OS === 'web'
+      ? ({
+          position: 'fixed',
+          width: '100vw',
+          height: '100vh',
+        } as unknown as ViewStyle)
+      : {}),
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    width: "100vw",
-    height: "100vh",
     zIndex: 0,
     overflow: "hidden",
     backgroundColor: "#0a0a0a",

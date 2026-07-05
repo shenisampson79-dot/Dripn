@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const MALE_VIDEOS = [
+export type VideoTone = "pain" | "confidence" | "mixed";
+
+const PAIN_MALE_VIDEOS = [
   require("../assets/videos/asian_man_indecisive_in_store.mp4"),
   require("../assets/videos/black_man_indecisive_in_store.mp4"),
   require("../assets/videos/black_man_indecisive_at_home.mp4"),
@@ -8,7 +10,7 @@ const MALE_VIDEOS = [
   require("../assets/videos/white_man_indecisive_at_home.mp4"),
 ];
 
-const FEMALE_VIDEOS = [
+const PAIN_FEMALE_VIDEOS = [
   require("../assets/videos/asian_woman_indecisive_in_store.mp4"),
   require("../assets/videos/black_woman_indecisive_in_store.mp4"),
   require("../assets/videos/black_woman_choosing_clothes_indecisively.mp4"),
@@ -20,17 +22,42 @@ const FEMALE_VIDEOS = [
   require("../assets/videos/woman_trying_tops_with_closed_mouth.mp4"),
 ];
 
-const ALL_BACKGROUND_VIDEOS = [...MALE_VIDEOS, ...FEMALE_VIDEOS];
+const CONFIDENCE_MALE_VIDEOS = [
+  require("../assets/videos/confidence/conf_male_blue_portrait.mp4"),
+  require("../assets/videos/confidence/conf_male_denim_pose.mp4"),
+  require("../assets/videos/confidence/conf_male_neon_lights.mp4"),
+  require("../assets/videos/confidence/conf_male_denim_neon.mp4"),
+  require("../assets/videos/confidence/conf_male_mirror_reflection.mp4"),
+];
 
-const STORAGE_KEY = "video_randomizer_state";
+const CONFIDENCE_FEMALE_VIDEOS = [
+  require("../assets/videos/confidence/conf_female_walking_street_night.mp4"),
+  require("../assets/videos/confidence/conf_female_neon_sign.mp4"),
+  require("../assets/videos/confidence/conf_female_fashion_bar.mp4"),
+  require("../assets/videos/confidence/conf_female_night_portrait.mp4"),
+  require("../assets/videos/confidence/conf_female_neon_peek.mp4"),
+  require("../assets/videos/confidence/conf_female_sports_car.mp4"),
+  require("../assets/videos/confidence/conf_female_camaro_lean.mp4"),
+];
 
-interface RandomizerState {
+const STORAGE_KEY = "video_randomizer_state_v2";
+
+interface PoolState {
   maleIndex: number;
   femaleIndex: number;
   shuffledMale: number[];
   shuffledFemale: number[];
+}
+
+interface RandomizerState {
+  pain: PoolState;
+  confidence: PoolState;
   lastGender: "male" | "female";
   timestamp: number;
+}
+
+export interface GetNextVideoOptions {
+  tone?: VideoTone;
 }
 
 class VideoRandomizerService {
@@ -42,12 +69,19 @@ class VideoRandomizerService {
     this.loadState();
   }
 
-  private createFreshState(): RandomizerState {
+  private createPoolState(maleCount: number, femaleCount: number): PoolState {
     return {
       maleIndex: 0,
       femaleIndex: 0,
-      shuffledMale: this.createShuffledIndices(MALE_VIDEOS.length),
-      shuffledFemale: this.createShuffledIndices(FEMALE_VIDEOS.length),
+      shuffledMale: this.createShuffledIndices(maleCount),
+      shuffledFemale: this.createShuffledIndices(femaleCount),
+    };
+  }
+
+  private createFreshState(): RandomizerState {
+    return {
+      pain: this.createPoolState(PAIN_MALE_VIDEOS.length, PAIN_FEMALE_VIDEOS.length),
+      confidence: this.createPoolState(CONFIDENCE_MALE_VIDEOS.length, CONFIDENCE_FEMALE_VIDEOS.length),
       lastGender: Math.random() > 0.5 ? "male" : "female",
       timestamp: Date.now(),
     };
@@ -62,16 +96,23 @@ class VideoRandomizerService {
     return indices;
   }
 
+  private resolveTone(tone: VideoTone): "pain" | "confidence" {
+    if (tone === "mixed") {
+      return Math.random() < 0.6 ? "confidence" : "pain";
+    }
+    return tone;
+  }
+
   private async loadState() {
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as RandomizerState;
-        if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+        if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000 && parsed.pain && parsed.confidence) {
           this.state = parsed;
         }
       }
-    } catch (e) {
+    } catch {
       console.log("Failed to load video randomizer state");
     }
     this.initialized = true;
@@ -81,44 +122,51 @@ class VideoRandomizerService {
     try {
       this.state.timestamp = Date.now();
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
-    } catch (e) {
+    } catch {
       console.log("Failed to save video randomizer state");
     }
   }
 
-  getNextVideo(_options?: { tone?: string }) {
+  getNextVideo(options: GetNextVideoOptions = {}) {
+    const resolvedTone = this.resolveTone(options.tone ?? "mixed");
+    const poolState = this.state[resolvedTone];
+    const maleVideos = resolvedTone === "confidence" ? CONFIDENCE_MALE_VIDEOS : PAIN_MALE_VIDEOS;
+    const femaleVideos = resolvedTone === "confidence" ? CONFIDENCE_FEMALE_VIDEOS : PAIN_FEMALE_VIDEOS;
+
     const useGender = this.state.lastGender === "male" ? "female" : "male";
     this.state.lastGender = useGender;
 
     if (useGender === "male") {
-      if (this.state.maleIndex >= this.state.shuffledMale.length) {
-        this.state.shuffledMale = this.createShuffledIndices(MALE_VIDEOS.length);
-        this.state.maleIndex = 0;
+      if (poolState.maleIndex >= poolState.shuffledMale.length) {
+        poolState.shuffledMale = this.createShuffledIndices(maleVideos.length);
+        poolState.maleIndex = 0;
       }
-      const videoIndex = this.state.shuffledMale[this.state.maleIndex];
-      this.state.maleIndex++;
+      const videoIndex = poolState.shuffledMale[poolState.maleIndex];
+      poolState.maleIndex++;
       this.saveState();
-      return MALE_VIDEOS[videoIndex];
-    } else {
-      if (this.state.femaleIndex >= this.state.shuffledFemale.length) {
-        this.state.shuffledFemale = this.createShuffledIndices(FEMALE_VIDEOS.length);
-        this.state.femaleIndex = 0;
-      }
-      const videoIndex = this.state.shuffledFemale[this.state.femaleIndex];
-      this.state.femaleIndex++;
-      this.saveState();
-      return FEMALE_VIDEOS[videoIndex];
+      return maleVideos[videoIndex];
     }
+
+    if (poolState.femaleIndex >= poolState.shuffledFemale.length) {
+      poolState.shuffledFemale = this.createShuffledIndices(femaleVideos.length);
+      poolState.femaleIndex = 0;
+    }
+    const videoIndex = poolState.shuffledFemale[poolState.femaleIndex];
+    poolState.femaleIndex++;
+    this.saveState();
+    return femaleVideos[videoIndex];
   }
 
-  getVideoForSlot(slotId: string): typeof ALL_BACKGROUND_VIDEOS[0] {
+  getVideoForSlot(slotId: string, tone: VideoTone = "mixed") {
+    const resolvedTone = this.resolveTone(tone);
+    const maleVideos = resolvedTone === "confidence" ? CONFIDENCE_MALE_VIDEOS : PAIN_MALE_VIDEOS;
+    const femaleVideos = resolvedTone === "confidence" ? CONFIDENCE_FEMALE_VIDEOS : PAIN_FEMALE_VIDEOS;
     const hash = slotId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    
+
     if (hash % 3 === 0) {
-      return MALE_VIDEOS[hash % MALE_VIDEOS.length];
-    } else {
-      return FEMALE_VIDEOS[hash % FEMALE_VIDEOS.length];
+      return maleVideos[hash % maleVideos.length];
     }
+    return femaleVideos[hash % femaleVideos.length];
   }
 
   reset() {

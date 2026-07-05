@@ -13,7 +13,9 @@ import TrendInsightsService, {
   RegionalTrends 
 } from './TrendInsightsService';
 import ContentPersonalizationService from './ContentPersonalizationService';
-import { DripnGoal, ExtendedPreferences } from '@/contexts/AuthContext';
+import { DripnGoal, ExtendedPreferences, SubscriptionTier } from '@/contexts/AuthContext';
+import { normalizeSubscriptionTier, isPaidTier } from '@/utils/subscriptionTier';
+import { getTrendPreviewLimits } from '@/utils/tierMatrix';
 
 const REGIONAL_INFLUENCER_STYLES: Record<string, {
   influencers: { name: string; handle: string; signature: string; gender: 'female' | 'male' }[];
@@ -1017,14 +1019,16 @@ function generateTrendingTip(description: string, userGender?: string): string {
 }
 
 async function generateAdvice(
-  description: string, 
-  isPremium: boolean, 
-  userCountry?: string, 
+  description: string,
+  userCountry?: string,
   userGender?: string,
-  subscriptionTier: 'free' | 'premium' = 'free',
+  subscriptionTier: SubscriptionTier | string = 'free',
   userGoals: DripnGoal[] = [],
   extendedPrefs?: Partial<ExtendedPreferences>
 ): Promise<AIAdviceResult> {
+  const tier = normalizeSubscriptionTier(subscriptionTier);
+  const isPaid = isPaidTier(tier);
+  const trendLimits = getTrendPreviewLimits(tier);
   const descLower = description.toLowerCase();
 
   let category: 'general' | 'casual' | 'formal' = 'general';
@@ -1048,7 +1052,7 @@ async function generateAdvice(
   const trendingTip = generateTrendingTip(description, userGender);
 
   const suggestions = [seasonalAdvice];
-  if (isPremium) {
+  if (isPaid) {
     suggestions.push(sizeInclusiveAdvice);
   }
 
@@ -1075,7 +1079,7 @@ async function generateAdvice(
 
   const hashtags = getRandomItem(HASHTAG_SUGGESTIONS).split(' ');
 
-  const numProducts = isPremium ? 3 : 1;
+  const numProducts = tier === 'stylist_unlimited' ? 3 : isPaid ? 2 : 1;
   const genderProducts = userGender === 'man' ? PRODUCT_SUGGESTIONS_MALE : PRODUCT_SUGGESTIONS_FEMALE;
   const shuffledProducts = [...genderProducts].sort(() => Math.random() - 0.5);
   const productRecommendations = shuffledProducts.slice(0, numProducts);
@@ -1091,12 +1095,11 @@ async function generateAdvice(
 
   let trendInsights: AIAdviceResult['trendInsights'] = undefined;
   
-  if (subscriptionTier !== 'free' && userCountry) {
+  if (trendLimits && userCountry) {
     try {
       const genderParam: 'male' | 'female' = userGender === 'man' ? 'male' : 'female';
       
-      const [regionalTrends, hotItems, influencers, colorTrends, styleMovements, publications, culturalNotes] = await Promise.all([
-        TrendInsightsService.getTrendsForRegion(userCountry),
+      const [hotItems, influencers, colorTrends, styleMovements, publications, culturalNotes] = await Promise.all([
         TrendInsightsService.getTrendingItemsForRegion(userCountry, genderParam),
         TrendInsightsService.getInfluencersForRegion(userCountry, genderParam),
         TrendInsightsService.getColorPaletteForRegion(userCountry),
@@ -1105,15 +1108,16 @@ async function generateAdvice(
         TrendInsightsService.getCulturalNotesForRegion(userCountry),
       ]);
 
-      const itemLimit = subscriptionTier === 'premium' ? 5 : 2;
-      const influencerLimit = subscriptionTier === 'premium' ? 4 : 1;
-
       trendInsights = {
-        hotItems: hotItems.slice(0, itemLimit),
-        recommendedInfluencers: influencers.slice(0, influencerLimit),
-        colorTrends: subscriptionTier === 'premium' ? colorTrends : colorTrends.slice(0, 3),
-        styleMovement: subscriptionTier === 'premium' ? styleMovements[0] : undefined,
-        culturalNotes: subscriptionTier === 'premium' ? culturalNotes : culturalNotes.slice(0, 2),
+        hotItems: hotItems.slice(0, trendLimits.itemLimit),
+        recommendedInfluencers: influencers.slice(0, trendLimits.influencerLimit),
+        colorTrends: Number.isFinite(trendLimits.colorTrendLimit)
+          ? colorTrends.slice(0, trendLimits.colorTrendLimit)
+          : colorTrends,
+        styleMovement: trendLimits.includeStyleMovement ? styleMovements[0] : undefined,
+        culturalNotes: Number.isFinite(trendLimits.culturalNotesLimit)
+          ? culturalNotes.slice(0, trendLimits.culturalNotesLimit)
+          : culturalNotes,
         publications: publications.map(p => ({ name: p.name, focus: p.focus })),
       };
 
@@ -1123,20 +1127,20 @@ async function generateAdvice(
         suggestions.push(hotItemTip);
       }
 
-      if (influencers.length > 0) {
+      if (trendLimits.includeInfluencerSpotlight && influencers.length > 0) {
         const topInfluencer = influencers[0];
         const influencerTip = `Follow ${topInfluencer.name} (${topInfluencer.handle}) for ${topInfluencer.specialty.slice(0, 2).join(' and ')} inspiration.`;
         suggestions.push(influencerTip);
       }
 
-      if (colorTrends.length > 0 && subscriptionTier === 'premium') {
+      if (trendLimits.includeColorForecastTip && colorTrends.length > 0) {
         const trendingColor = colorTrends[0];
         const colorTip = `2025/2026 Colour Forecast: ${trendingColor.name} is the colour of the moment for ${trendingColor.usage.slice(0, 2).join(' and ')}.`;
         suggestions.push(colorTip);
       }
 
-      if (subscriptionTier === 'premium') {
-        suggestions.push(`Premium Early Access: Get tomorrow's trends today! These insights are 4-6 weeks ahead of mainstream fashion coverage.`);
+      if (trendLimits.includeEarlyAccessTip) {
+        suggestions.push(`Stylist Unlimited early access: Get tomorrow's trends today — insights are weeks ahead of mainstream coverage.`);
       }
     } catch (error) {
       console.warn('Failed to fetch trend insights:', error);
@@ -1150,16 +1154,16 @@ async function generateAdvice(
 
   return {
     mainAdvice: localizedMainAdvice,
-    colorAdvice: isPremium ? localizedColorAdvice : undefined,
-    proportionAdvice: isPremium ? proportionAdvice : undefined,
+    colorAdvice: isPaid ? localizedColorAdvice : undefined,
+    proportionAdvice: tier === 'stylist_unlimited' ? proportionAdvice : undefined,
     suggestions,
     hashtags,
     productRecommendations: localizedProducts,
     confidence: 0.85 + Math.random() * 0.1,
-    influencerInsight: isPremium ? influencerInsight : undefined,
+    influencerInsight: isPaid ? influencerInsight : undefined,
     trendingTip: localizedTrendingTip,
     trendInsights,
-    generatedOutfitDescription: isPremium ? generatedOutfitDescription : undefined,
+    generatedOutfitDescription: isPaid ? generatedOutfitDescription : undefined,
     similarOutfits: similarOutfits,
   };
 }
@@ -1243,16 +1247,15 @@ export function getOutfitInspirationByStyle(style: string, gender: 'male' | 'fem
 export async function getAIFashionAdvice(
   imageUri: string,
   description: string,
-  isPremiumUser: boolean = false,
+  subscriptionTier: SubscriptionTier | string = 'free',
   userCountry?: string,
   userGender?: string,
-  subscriptionTier: 'free' | 'premium' = 'free',
   userGoals: DripnGoal[] = [],
   extendedPrefs?: Partial<ExtendedPreferences>
 ): Promise<AIAdviceResult> {
   await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
 
-  return generateAdvice(description, isPremiumUser, userCountry, userGender, subscriptionTier, userGoals, extendedPrefs);
+  return generateAdvice(description, userCountry, userGender, subscriptionTier, userGoals, extendedPrefs);
 }
 
 export async function getQuickAdvice(description: string): Promise<string> {
@@ -1347,7 +1350,7 @@ export function getStyleOfTheDayContent(country: string, userGender?: string): {
 export async function getTrendInsightsForUser(
   country: string,
   gender: 'male' | 'female',
-  subscriptionTier: 'free' | 'premium'
+  subscriptionTier: SubscriptionTier | string
 ): Promise<{
   hotItems: TrendingItem[];
   influencers: FashionInfluencer[];
@@ -1358,7 +1361,8 @@ export async function getTrendInsightsForUser(
   globalTrendingBrands: string[];
   colorForecast2025: ColorTrend[];
 } | null> {
-  if (subscriptionTier === 'free') {
+  const trendLimits = getTrendPreviewLimits(subscriptionTier);
+  if (!trendLimits) {
     return null;
   }
 
@@ -1372,18 +1376,23 @@ export async function getTrendInsightsForUser(
       TrendInsightsService.getPublicationsForRegion(country, gender),
     ]);
 
-    const itemLimit = subscriptionTier === 'premium' ? 5 : 2;
-    const influencerLimit = subscriptionTier === 'premium' ? 4 : 1;
+    const forecast = TrendInsightsService.get2025ColorTrends();
 
     return {
-      hotItems: hotItems.slice(0, itemLimit),
-      influencers: influencers.slice(0, influencerLimit),
-      colorTrends: subscriptionTier === 'premium' ? colorTrends : colorTrends.slice(0, 3),
-      styleMovements: subscriptionTier === 'premium' ? styleMovements : styleMovements.slice(0, 1),
-      culturalNotes: subscriptionTier === 'premium' ? culturalNotes : culturalNotes.slice(0, 2),
+      hotItems: hotItems.slice(0, trendLimits.itemLimit),
+      influencers: influencers.slice(0, trendLimits.influencerLimit),
+      colorTrends: Number.isFinite(trendLimits.colorTrendLimit)
+        ? colorTrends.slice(0, trendLimits.colorTrendLimit)
+        : colorTrends,
+      styleMovements: trendLimits.includeStyleMovement ? styleMovements : styleMovements.slice(0, 1),
+      culturalNotes: Number.isFinite(trendLimits.culturalNotesLimit)
+        ? culturalNotes.slice(0, trendLimits.culturalNotesLimit)
+        : culturalNotes,
       publications,
       globalTrendingBrands: TrendInsightsService.getGlobalTrendingBrands(gender),
-      colorForecast2025: subscriptionTier === 'premium' ? TrendInsightsService.get2025ColorTrends() : TrendInsightsService.get2025ColorTrends().slice(0, 4),
+      colorForecast2025: Number.isFinite(trendLimits.colorForecastLimit)
+        ? forecast.slice(0, trendLimits.colorForecastLimit)
+        : forecast,
     };
   } catch (error) {
     console.warn('Failed to fetch trend insights:', error);

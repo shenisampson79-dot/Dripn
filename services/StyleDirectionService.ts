@@ -111,23 +111,76 @@ class StyleDirectionService {
     return "If you want, I can tailor this more closely — tell me a bit about what you usually wear.";
   }
 
-  async getFirstMessages(): Promise<{
+  async getFirstMessages(profile?: {
+    dressFor?: string;
+    identity?: string;
+    quizGender?: string;
+    likedStyles?: string[];
+    quizComplete?: boolean;
+  }): Promise<{
     message: string;
     options: { id: string; label: string }[];
+    skipOccasion?: boolean;
+    occasion?: string;
   }> {
     try {
+      const deviceId = await onboardingSessionService.getDeviceId();
+      const params = new URLSearchParams({ deviceId });
+      if (profile?.dressFor) params.set('dressFor', profile.dressFor);
+      if (profile?.identity) params.set('identity', profile.identity);
+      if (profile?.quizGender) params.set('quizGender', profile.quizGender);
+      if (profile?.likedStyles?.length) params.set('likedStyles', profile.likedStyles.join(','));
+      if (profile?.quizComplete) params.set('quizComplete', 'true');
+
       const data = await apiService.get<{
-        message: string;
-        options: { id: string; label: string }[];
-      }>("/api/onboarding/first-messages");
-      return data || this.getDefaultFirstMessages();
+        message?: string;
+        options?: { id: string; label: string }[];
+        skipOccasion?: boolean;
+        occasion?: string;
+        messages?: { entry?: { message: string; buttons: { id: string; label: string }[] } };
+      }>(`/api/onboarding/first-messages?${params.toString()}`);
+
+      if (data?.message) {
+        return {
+          message: data.message,
+          options: data.options || [],
+          skipOccasion: data.skipOccasion,
+          occasion: data.occasion,
+        };
+      }
+
+      if (data?.messages?.entry) {
+        return {
+          message: data.messages.entry.message,
+          options: data.messages.entry.buttons,
+          skipOccasion: false,
+        };
+      }
+
+      return this.getDefaultFirstMessages(profile);
     } catch (error) {
       console.log("Failed to fetch first messages");
-      return this.getDefaultFirstMessages();
+      return this.getDefaultFirstMessages(profile);
     }
   }
 
-  private getDefaultFirstMessages() {
+  private getDefaultFirstMessages(profile?: { dressFor?: string }) {
+    if (profile?.dressFor) {
+      const labels: Record<string, string> = {
+        work: 'work / meetings',
+        date: 'a date or romance',
+        friends: 'going out with friends',
+        event: 'an event or special occasion',
+        myself: 'yourself today',
+      };
+      const label = labels[profile.dressFor] || profile.dressFor;
+      return {
+        message: `Got it — you're dressing for ${label}. I'm deciding your outfit now.`,
+        options: [] as { id: string; label: string }[],
+        skipOccasion: true,
+        occasion: profile.dressFor,
+      };
+    }
     return {
       message: "Tell me what you're dressing for — I'll decide the outfit.",
       options: [
@@ -137,6 +190,7 @@ class StyleDirectionService {
         { id: "event", label: "Event" },
         { id: "browsing", label: "Just browsing" },
       ],
+      skipOccasion: false,
     };
   }
 

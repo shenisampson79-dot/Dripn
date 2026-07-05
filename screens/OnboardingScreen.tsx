@@ -25,14 +25,14 @@ import { useTranslations } from "@/contexts/TranslationContext";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { setCurrentOnboardingStep } from "@/components/ErrorFallback";
 
-const GENDER_OPTIONS: { id: Gender; name: string; icon: keyof typeof Feather.glyphMap }[] = [
+const GENDER_OPTIONS: { id: Exclude<Gender, null>; name: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "woman", name: "Woman", icon: "user" },
   { id: "man", name: "Man", icon: "user" },
   { id: "non-binary", name: "Non-Binary", icon: "users" },
   { id: "prefer-not-to-say", name: "Prefer not to say", icon: "user-x" },
 ];
 
-const GENDER_COLORS: Record<Gender, { bg: string; border: string; icon: string }> = {
+const GENDER_COLORS: Record<Exclude<Gender, null>, { bg: string; border: string; icon: string }> = {
   "woman": { bg: "#4A1942", border: "#EC4899", icon: "#F472B6" },
   "man": { bg: "#1E3A5F", border: "#3B82F6", icon: "#60A5FA" },
   "non-binary": { bg: "#4C1D95", border: "#A855F7", icon: "#C084FC" },
@@ -65,7 +65,7 @@ const STYLE_COLORS: Record<string, { bg: string; border: string }> = {
 
 // Shop category colors removed — now uses theme colors consistently
 
-const WOMEN_BODY_SHAPES: { id: BodyShape; name: string; description: string }[] = [
+const WOMEN_BODY_SHAPES: { id: Exclude<BodyShape, null>; name: string; description: string }[] = [
   { id: "Hourglass", name: "Hourglass", description: "Balanced shoulders and hips, defined waist" },
   { id: "Pear", name: "Pear", description: "Hips wider than shoulders" },
   { id: "Apple", name: "Apple", description: "Fuller midsection, slimmer legs" },
@@ -73,7 +73,7 @@ const WOMEN_BODY_SHAPES: { id: BodyShape; name: string; description: string }[] 
   { id: "Athletic", name: "Athletic", description: "Broader shoulders, defined muscles" },
 ];
 
-const MEN_BODY_SHAPES: { id: BodyShape; name: string; description: string }[] = [
+const MEN_BODY_SHAPES: { id: Exclude<BodyShape, null>; name: string; description: string }[] = [
   { id: "Rectangle", name: "Rectangle", description: "Shoulders, waist, and hips similar width" },
   { id: "Trapezoid", name: "Trapezoid", description: "Broader shoulders, narrower waist" },
   { id: "Inverted Triangle", name: "Inverted Triangle", description: "Wide shoulders, narrow hips" },
@@ -828,6 +828,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         try {
           await AudioModule.setAudioModeAsync({
             playsInSilentMode: true,
+            allowsRecording: false,
           });
           console.log('Audio mode configured for iOS');
         } catch (error) {
@@ -842,7 +843,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     };
   }, []);
 
-  const playVoicePreview = useCallback(async (stylistId: string) => {
+  const playVoicePreview = useCallback(async (stylistId: string, pitchOverride?: VoicePitch) => {
     if (isPlayingVoice === stylistId) {
       await stopAudio();
       setIsPlayingVoice(null);
@@ -852,13 +853,15 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     await stopAudio();
     setIsPlayingVoice(stylistId);
 
+    const effectivePitch = pitchOverride ?? voicePitch;
+
     try {
       const STYLIST_VOICE_MAP: Record<string, 'nova' | 'onyx' | 'echo' | 'fable'> = { ruby: 'nova', max: 'onyx', ace: 'echo', ivy: 'fable' };
       const voiceForStylist = STYLIST_VOICE_MAP[stylistId] || 'nova';
       // Pass user's first name for personalized greetings (e.g., "Ciao Sarah!" instead of "Ciao bella!")
       // Only use name if user hasn't said pronunciation is wrong
       const nameToUse = useNameInGreetings ? userFirstName : undefined;
-      await playOpenAIVoice(stylistId, stylistLanguage, voicePitch, voiceForStylist, nameToUse);
+      await playOpenAIVoice(stylistId, stylistLanguage, effectivePitch, voiceForStylist, undefined, nameToUse);
       setIsPlayingVoice(null);
       
       // Show pronunciation prompt after first voice preview if user has a name and hasn't confirmed yet
@@ -878,7 +881,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     if (stylistId) {
       const defaultVoice = getDefaultVoiceForStylist(stylistId);
       setVoicePitch(defaultVoice as VoicePitch);
-      playVoicePreview(stylistId);
+      playVoicePreview(stylistId, defaultVoice as VoicePitch);
     }
   }, [playVoicePreview]);
 
@@ -905,7 +908,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         const STYLIST_VOICE_MAP2: Record<string, 'nova' | 'onyx' | 'echo' | 'fable'> = { ruby: 'nova', max: 'onyx', ace: 'echo', ivy: 'fable' };
         const voiceForStylist = STYLIST_VOICE_MAP2[selectedStylistId] || 'nova';
         const nameToUse = useNameInGreetings ? userFirstName : undefined;
-        await playOpenAIVoice(selectedStylistId, lang, voicePitch, voiceForStylist, nameToUse);
+        await playOpenAIVoice(selectedStylistId, lang, voicePitch, voiceForStylist, undefined, nameToUse);
         setIsPlayingVoice(null);
       } catch (error) {
         console.log('Voice preview error:', error);

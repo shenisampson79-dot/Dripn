@@ -44,6 +44,7 @@ export type UserStylistStackParamList = {
   FashionBlog: undefined;
   StyleRules: undefined;
   ColourInsights: undefined;
+  SocialStyleSync: undefined;
 };
 
 const Stack = createNativeStackNavigator<UserStylistStackParamList>();
@@ -64,7 +65,7 @@ export default function UserStylistStackNavigator() {
       <Stack.Screen
         name="AIStylist"
         component={AIStylistScreen}
-        options={{ headerTitle: "Your Personal Stylist" }}
+        options={{ headerTitle: "Stylist Chat" }}
       />
       <Stack.Screen
         name="StyleShuffle"
