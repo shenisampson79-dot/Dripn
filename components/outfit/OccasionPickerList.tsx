@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/ThemedText';
-import { BorderRadius, LUXURY_COLORS, LuxuryColors, Spacing } from '@/constants/theme';
+import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import {
   OUTFIT_OCCASION_OPTIONS,
   type OutfitOccasionId,
@@ -102,7 +102,7 @@ export function OccasionPickerList({
           ]}
         >
           <LinearGradient
-            colors={[LUXURY_COLORS.teal, '#0E7490']}
+            colors={[LuxuryColors.teal, '#0E7490']}
             style={styles.optionIcon}
           >
             <Feather name="cloud" size={18} color="#FFFFFF" />

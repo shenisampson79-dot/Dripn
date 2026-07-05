@@ -427,6 +427,9 @@ export const LuxuryColors = {
   },
 };
 
+/** @deprecated Use LuxuryColors — kept for legacy imports */
+export const LUXURY_COLORS = LuxuryColors;
+
 // Screen-Specific Gradient Palettes - Each screen gets a unique identity
 export const ScreenGradients = {
   // Onboarding Flow - Progressive journey colors
