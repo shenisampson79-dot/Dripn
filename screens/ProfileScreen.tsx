@@ -271,7 +271,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     const forModal = options?.forModal;
 
     return (
-      <View style={[styles.savedLookbookVisualBlock, forModal && styles.savedLookbookVisualBlockModal]}>
+      <View style={[styles.savedLookbookVisualBlock, forModal && styles.savedLookbookVisualBlockModal, forModal && { width: '100%' }]}>
         <OutfitPiecesVisual
           pieces={pieces}
           wardrobeItems={wardrobeItems}
@@ -321,7 +321,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     const forModal = options?.forModal;
 
     return (
-      <View style={[styles.savedLookbookVisualBlock, forModal && styles.savedLookbookVisualBlockModal]}>
+      <View style={[styles.savedLookbookVisualBlock, forModal && styles.savedLookbookVisualBlockModal, forModal && { width: '100%' }]}>
         <OutfitPiecesVisual
           pieces={pieces}
           wardrobeItems={wardrobeItems}
@@ -1147,7 +1147,8 @@ const styles = StyleSheet.create({
     marginBottom: -Spacing.md,
   },
   savedLookbookVisualBlockModal: {
-    alignItems: 'center',
+    width: '100%',
+    alignSelf: 'stretch',
     marginBottom: 0,
     paddingVertical: Spacing.sm,
   },

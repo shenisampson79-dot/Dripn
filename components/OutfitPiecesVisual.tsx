@@ -247,7 +247,48 @@ export function OutfitPiecesVisual({
     [pieces, wardrobeItems],
   );
 
-  if (stack.length === 0 && accessories.length === 0) return null;
+  if (stack.length === 0 && accessories.length === 0) {
+    const fallbackBg = large ? wardrobeProcessedTileBackground() : wardrobeTileBackground(isDark);
+    return (
+      <View
+        style={[
+          styles.container,
+          large && styles.containerLarge,
+          { width: '100%', maxWidth: effectiveCanvasWidth, alignSelf: 'stretch' },
+        ]}
+      >
+        <View style={[styles.canvas, styles.canvasSeamless, { width: '100%', minHeight: 120, backgroundColor: fallbackBg }]}>
+          {pieces.map((piece, index) => {
+            const wardrobeItem = findWardrobeItemForPiece(piece, wardrobeItems);
+            const displayItem = pieceToWardrobeItem(piece, wardrobeItem);
+            if (!displayItem) return null;
+            const thumb = Math.round(96 * sizeScale);
+            return (
+              <View
+                key={`fallback-${piece.wardrobeItemId || index}`}
+                style={{
+                  width: thumb,
+                  height: thumb,
+                  marginVertical: Spacing.xs,
+                  alignSelf: 'center',
+                  backgroundColor: wardrobeTileBackground(isDark),
+                }}
+              >
+                <WardrobeItemImage
+                  item={displayItem}
+                  style={styles.layerImage}
+                  processed={itemHasProcessedCutout(displayItem)}
+                  contentFit="contain"
+                  preferCover={false}
+                  tileBackgroundColor={wardrobeTileBackground(isDark)}
+                />
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  }
 
   const layerHeight = (slot: LayerSlot) => {
     const base = large ? LAYER_HEIGHT_LARGE[slot] : LAYER_HEIGHT[slot];
@@ -313,7 +354,14 @@ export function OutfitPiecesVisual({
   );
 
   return (
-    <View style={[styles.container, compact && styles.containerCompact, large && styles.containerLarge]}>
+    <View
+      style={[
+        styles.container,
+        compact && styles.containerCompact,
+        large && styles.containerLarge,
+        { width: '100%', maxWidth: effectiveCanvasWidth, alignSelf: 'stretch' },
+      ]}
+    >
       {label ? (
         <ThemedText
           type="small"
@@ -331,7 +379,7 @@ export function OutfitPiecesVisual({
           styles.canvasSeamless,
           {
             width: '100%',
-            minHeight: canvasHeight,
+            minHeight: Math.max(canvasHeight, 120),
             backgroundColor: canvasBg,
             borderWidth: 0,
             borderColor: 'transparent',
