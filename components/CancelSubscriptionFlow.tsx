@@ -19,8 +19,21 @@ import { Spacing, BorderRadius, LuxuryColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeSubscriptionTier, getBillingPlanDisplayName, type BillingPlanId } from "@/utils/subscriptionTier";
+import { isDevTestingModeEnabled } from "@/utils/devTesting";
 import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import type { SubscriptionTier } from "@/contexts/AuthContext";
+
+function formatRetentionLabel(value?: string | null): string {
+  if (!value) return "";
+  return value.replace(/_/g, " ");
+}
+
+const TIER_RANK: Record<SubscriptionTier, number> = {
+  free: 0,
+  personal_stylist: 1,
+  stylist_unlimited: 2,
+};
 
 export type CancelReason =
   | "too-expensive"
@@ -107,7 +120,7 @@ type CancelSubscriptionFlowProps = {
 
 export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscriptionFlowProps) {
   const { theme, isDark } = useTheme();
-  const { user, refreshSubscriptionFromBackend } = useAuth();
+  const { user, refreshSubscriptionFromBackend, updateProfile } = useAuth();
 
   const [step, setStep] = useState(1);
   const [selectedReason, setSelectedReason] = useState<CancelReason | null>(null);
@@ -236,8 +249,32 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
 
   const handleDowngrade = async (highlightPlan?: string, acceptedOffer = 'downgrade_style_chat') => {
     const plan = resolveDowngradePlan(highlightPlan);
+    const targetTier = normalizeSubscriptionTier(plan);
     setIsProcessing(true);
     try {
+      const devTesting = await isDevTestingModeEnabled();
+      const currentRank = TIER_RANK[normalizedTier] ?? 0;
+      const targetRank = TIER_RANK[targetTier] ?? 0;
+
+      if (targetRank >= currentRank) {
+        navigation.navigate("Subscription", {
+          highlightPlan: (highlightPlan || "style_chat") as SubscriptionTier,
+        });
+        handleKeepSubscription();
+        return;
+      }
+
+      if (devTesting) {
+        await updateProfile({ subscriptionTier: targetTier });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          "Plan updated",
+          `You're now on ${getBillingPlanDisplayName(targetTier)} (testing mode — no Stripe charge).`,
+          [{ text: "OK", onPress: handleKeepSubscription }],
+        );
+        return;
+      }
+
       const result = await apiService.downgradeSubscription({
         plan,
         reason: selectedReason ?? undefined,
@@ -533,7 +570,8 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
       <View style={styles.stepContent}>
         {smartOffer?.personaSegment || smartOffer?.segment ? (
           <ThemedText type="small" style={[styles.segmentHint, { color: theme.tabIconDefault }]}>
-            Personalised for {smartOffer.usageSegment} usage · {smartOffer.personaSegment ?? smartOffer.segment} retention
+            Personalised for {formatRetentionLabel(smartOffer.usageSegment) || "your"} usage ·{" "}
+            {formatRetentionLabel(smartOffer.personaSegment ?? smartOffer.segment)} retention
           </ThemedText>
         ) : null}
         <Animated.View style={{ transform: [{ scale: offerScale }], opacity: offerOpacity }}>
