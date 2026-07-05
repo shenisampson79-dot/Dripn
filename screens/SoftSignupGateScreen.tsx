@@ -5,11 +5,11 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
-import { Video, ResizeMode } from "expo-av";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
+import { LoopingBackgroundVideo } from "@/components/LoopingBackgroundVideo";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
@@ -98,18 +98,10 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
 
   return (
     <View style={styles.container}>
-      {Platform.OS !== "web" ? (
-        <Video
-          source={backgroundVideo}
-          style={StyleSheet.absoluteFillObject}
-          resizeMode={ResizeMode.COVER}
-          shouldPlay
-          isLooping
-          isMuted
-        />
-      ) : (
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: theme.backgroundDefault }]} />
-      )}
+      <LoopingBackgroundVideo
+        source={backgroundVideo}
+        style={StyleSheet.absoluteFillObject}
+      />
 
       <LinearGradient
         colors={["transparent", "rgba(0,0,0,0.6)", "rgba(0,0,0,0.9)"]}

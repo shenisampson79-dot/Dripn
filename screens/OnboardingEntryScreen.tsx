@@ -4,10 +4,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
-import { Video, ResizeMode } from "expo-av";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
+import { LoopingBackgroundVideo } from "@/components/LoopingBackgroundVideo";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 const SPACING_XXL = 32;
 import { useTheme } from "@/hooks/useTheme";
@@ -94,18 +94,10 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
 
   return (
     <View style={styles.container}>
-      {Platform.OS !== "web" ? (
-        <Video
-          source={selectedVideo}
-          style={StyleSheet.absoluteFillObject}
-          resizeMode={ResizeMode.COVER}
-          shouldPlay
-          isLooping
-          isMuted
-        />
-      ) : (
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: theme.backgroundDefault }]} />
-      )}
+      <LoopingBackgroundVideo
+        source={selectedVideo}
+        style={StyleSheet.absoluteFillObject}
+      />
 
       <LinearGradient
         colors={[

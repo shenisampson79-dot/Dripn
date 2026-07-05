@@ -5,10 +5,10 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Video, ResizeMode } from 'expo-av';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Button } from '@/components/Button';
+import { LoopingBackgroundVideo } from '@/components/LoopingBackgroundVideo';
 import { Spacing, BorderRadius } from '@/constants/theme';
 import type { AuthStackParamList } from '@/navigation/AuthStackNavigator';
 import {
@@ -89,13 +89,9 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <Video
+      <LoopingBackgroundVideo
         source={backgroundVideo}
         style={StyleSheet.absoluteFillObject}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay
-        isLooping
-        isMuted
       />
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.92)']}

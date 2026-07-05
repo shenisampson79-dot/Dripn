@@ -86,7 +86,7 @@ class VideoRandomizerService {
     }
   }
 
-  getNextVideo() {
+  getNextVideo(_options?: { tone?: string }) {
     const useGender = this.state.lastGender === "male" ? "female" : "male";
     this.state.lastGender = useGender;
 

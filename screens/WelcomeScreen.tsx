@@ -1,13 +1,13 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { StyleSheet, View, Image, Pressable, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
-import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
+import { LoopingBackgroundVideo } from "@/components/LoopingBackgroundVideo";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme, SchemePalette } from "@/contexts/ColorSchemeContext";
@@ -24,45 +24,18 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
   const { theme, isDark } = useTheme();
   const { palette } = useColorScheme();
   const { loginAsTestUser } = useAuth();
-  const videoRef = useRef<Video>(null);
   const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo());
   
   const handleTestLogin = async () => {
     await loginAsTestUser();
   };
 
-  useEffect(() => {
-    if (Platform.OS === 'web' && videoRef.current) {
-      const attemptPlay = async () => {
-        try {
-          await videoRef.current?.playAsync();
-        } catch (e) {
-        }
-      };
-      attemptPlay();
-      const timer = setTimeout(attemptPlay, 500);
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
-  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (status.isLoaded && !status.isPlaying && Platform.OS === 'web') {
-      videoRef.current?.playAsync().catch(() => {});
-    }
-  };
-
   return (
     <View style={styles.container}>
-      <Video
-        ref={videoRef}
-        key={isDark ? 'dark-bg' : 'light-bg'}
+      <LoopingBackgroundVideo
+        key={isDark ? "dark-bg" : "light-bg"}
         source={backgroundVideo}
         style={styles.backgroundVideo}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay
-        isLooping
-        isMuted
-        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
       />
 
       <LinearGradient

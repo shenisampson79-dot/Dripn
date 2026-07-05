@@ -4,11 +4,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import Animated, { FadeIn } from "react-native-reanimated";
-import { Video, ResizeMode } from "expo-av";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
+import { LoopingBackgroundVideo } from "@/components/LoopingBackgroundVideo";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
@@ -205,7 +205,6 @@ const ALL_TRUST_MESSAGES: OnboardingContent[] = [
 export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
-  const videoRef = useRef<Video>(null);
   
   const [trustMessage] = useState(() => getRandomContent(ALL_TRUST_MESSAGES));
   const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo());
@@ -223,14 +222,9 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
 
   return (
     <View style={styles.container}>
-      <Video
-        ref={videoRef}
+      <LoopingBackgroundVideo
         source={backgroundVideo}
         style={styles.backgroundVideo}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay
-        isLooping
-        isMuted
       />
 
       <LinearGradient
