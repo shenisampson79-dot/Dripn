@@ -1,19 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, Alert } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
-import Animated, { FadeIn, FadeOut, SlideInRight, SlideOutLeft } from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { LinearGradient } from "expo-linear-gradient";
-import { Spacing, BorderRadius, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import { Spacing, BorderRadius, StyleTheme } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useScreenInsets } from "@/hooks/useScreenInsets";
-import { useAuth, Gender } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  onboardingProfileService,
+  type OnboardingProfile,
+} from "@/services/OnboardingProfileService";
+import {
+  isMalePresentationGender,
+  resolveUserPresentationGender,
+} from "@/utils/wardrobeCategories";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+
+const EDGY_FEMALE_IMAGE: ImageSourcePropType = require("../assets/images/styles/edgy/female/default.png");
+const EDGY_MALE_IMAGE: ImageSourcePropType = require("../assets/images/styles/edgy/male/default.png");
+const STREETWEAR_FEMALE_IMAGE: ImageSourcePropType = require("../assets/images/styles/streetwear/female/default.png");
+const STREETWEAR_MALE_IMAGE: ImageSourcePropType = require("../assets/images/styles/streetwear/male/default.png");
 
 const STYLE_IMAGES: Record<Exclude<StyleTheme, 'smart-casual' | 'boho' | 'sporty' | 'business'>, ImageSourcePropType> = {
   luxury: require("../assets/images/styles/luxury.png"),
@@ -103,29 +116,54 @@ const STREETWEAR_MALE_IMAGES: Record<RegionalType, ImageSourcePropType> = {
   'latin-american': require("../assets/images/styles/streetwear/male/latin-american.png"),
 };
 
-const getGenderSpecificStreetwearImage = (region: RegionalType, gender: Gender): ImageSourcePropType => {
-  if (gender === 'man') return STREETWEAR_MALE_IMAGES[region];
-  return STYLE_IMAGES.streetwear;
+const getGenderSpecificStreetwearImage = (region: RegionalType, isMale: boolean): ImageSourcePropType => {
+  if (isMale) return STREETWEAR_MALE_IMAGES[region] ?? STREETWEAR_MALE_IMAGE;
+  return STREETWEAR_FEMALE_IMAGE;
 };
 
-const getGenderSpecificBohoImage = (region: RegionalType, gender: Gender): ImageSourcePropType => {
-  if (gender === 'man') return BOHO_MALE_IMAGES[region];
+const getGenderSpecificBohoImage = (region: RegionalType, isMale: boolean): ImageSourcePropType => {
+  if (isMale) return BOHO_MALE_IMAGES[region];
   return BOHO_FEMALE_IMAGES[region];
 };
 
-const getGenderSpecificSportyImage = (region: RegionalType, gender: Gender): ImageSourcePropType => {
-  if (gender === 'man') return SPORTY_MALE_IMAGES[region];
+const getGenderSpecificSportyImage = (region: RegionalType, isMale: boolean): ImageSourcePropType => {
+  if (isMale) return SPORTY_MALE_IMAGES[region];
   return SPORTY_FEMALE_IMAGES[region];
 };
 
-const getGenderSpecificBusinessImage = (region: RegionalType): ImageSourcePropType => {
-  return BUSINESS_MALE_IMAGES[region];
-};
-
-const getSmartCasualImage = (region: RegionalType, gender: Gender): ImageSourcePropType => {
-  if (gender === 'man') return SMART_CASUAL_MALE_IMAGES[region];
+const getGenderSpecificBusinessImage = (region: RegionalType, isMale: boolean): ImageSourcePropType => {
+  if (isMale) return BUSINESS_MALE_IMAGES[region];
   return SMART_CASUAL_FEMALE_IMAGES[region];
 };
+
+const getSmartCasualImage = (region: RegionalType, isMale: boolean): ImageSourcePropType => {
+  if (isMale) return SMART_CASUAL_MALE_IMAGES[region];
+  return SMART_CASUAL_FEMALE_IMAGES[region];
+};
+
+const MALE_STYLE_IDS = new Set<StyleTheme>([
+  'smart-casual',
+  'streetwear',
+  'boho',
+  'sporty',
+  'business',
+  'edgy',
+]);
+
+const FEMALE_STYLE_IDS = new Set<StyleTheme>([
+  'luxury',
+  'streetwear',
+  'boho',
+  'sporty',
+  'smart-casual',
+  'edgy',
+]);
+
+function normalizeStyleThemeForGender(styleId: StyleTheme, isMale: boolean): StyleTheme {
+  const allowed = isMale ? MALE_STYLE_IDS : FEMALE_STYLE_IDS;
+  if (allowed.has(styleId)) return styleId;
+  return isMale ? 'smart-casual' : 'luxury';
+}
 
 const getRegionFromCountry = (country: string): RegionalType => {
   const nordicEasternEuropeanCountries = [
@@ -293,34 +331,64 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
   const { paddingTop, paddingBottom } = useScreenInsets();
   const { theme } = useTheme();
   const { user, updateProfile } = useAuth();
-  
-  const [selectedStyle, setSelectedStyle] = useState<StyleTheme>(user?.stylePreference || "luxury");
-  const [isUpdating, setIsUpdating] = useState(false);
-  
-  const styleOptions = user?.gender === 'man' ? STYLE_OPTIONS_MALE : STYLE_OPTIONS_FEMALE;
-  const currentStyle = styleOptions.find(s => s.id === selectedStyle) || styleOptions[0];
-  
+  const [onboardingProfile, setOnboardingProfile] = useState<OnboardingProfile | null>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      let active = true;
+      onboardingProfileService.getProfile().then((profile) => {
+        if (active) setOnboardingProfile(profile);
+      }).catch(() => {});
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
+  const isMale = useMemo(
+    () => isMalePresentationGender(resolveUserPresentationGender(user, onboardingProfile)),
+    [user, onboardingProfile],
+  );
+
+  const styleOptions = isMale ? STYLE_OPTIONS_MALE : STYLE_OPTIONS_FEMALE;
   const region = getRegionFromCountry(user?.country || "United States");
-  
+
+  const resolvedPreference = normalizeStyleThemeForGender(
+    user?.stylePreference || (isMale ? 'smart-casual' : 'luxury'),
+    isMale,
+  );
+
+  const [selectedStyle, setSelectedStyle] = useState<StyleTheme>(resolvedPreference);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    setSelectedStyle(resolvedPreference);
+  }, [resolvedPreference]);
+
+  const currentStyle = styleOptions.find((s) => s.id === selectedStyle) || styleOptions[0];
+
   const getStyleImage = (styleId: StyleTheme): ImageSourcePropType => {
-    const gender = user?.gender || 'woman';
-    if (styleId === 'smart-casual') return getSmartCasualImage(region, gender);
-    if (styleId === 'boho') return getGenderSpecificBohoImage(region, gender);
-    if (styleId === 'sporty') return getGenderSpecificSportyImage(region, gender);
-    if (styleId === 'business') return getGenderSpecificBusinessImage(region);
-    if (styleId === 'streetwear') return getGenderSpecificStreetwearImage(region, gender);
-    return STYLE_IMAGES[styleId as keyof typeof STYLE_IMAGES];
+    const normalizedStyle = normalizeStyleThemeForGender(styleId, isMale);
+    if (normalizedStyle === 'smart-casual') return getSmartCasualImage(region, isMale);
+    if (normalizedStyle === 'boho') return getGenderSpecificBohoImage(region, isMale);
+    if (normalizedStyle === 'sporty') return getGenderSpecificSportyImage(region, isMale);
+    if (normalizedStyle === 'business') return getGenderSpecificBusinessImage(region, isMale);
+    if (normalizedStyle === 'streetwear') return getGenderSpecificStreetwearImage(region, isMale);
+    if (normalizedStyle === 'edgy') return isMale ? EDGY_MALE_IMAGE : EDGY_FEMALE_IMAGE;
+    if (normalizedStyle === 'luxury') return STYLE_IMAGES.luxury;
+    return isMale ? SMART_CASUAL_MALE_IMAGES[region] : SMART_CASUAL_FEMALE_IMAGES[region];
   };
   
   const handleApplyStyle = async () => {
-    if (selectedStyle === user?.stylePreference) {
+    const styleToSave = normalizeStyleThemeForGender(selectedStyle, isMale);
+    if (styleToSave === user?.stylePreference) {
       navigation.goBack();
       return;
     }
     
     setIsUpdating(true);
     try {
-      await updateProfile({ stylePreference: selectedStyle });
+      await updateProfile({ stylePreference: styleToSave });
       Alert.alert(
         "Style Updated",
         `Your style has been changed to ${currentStyle.name}. Your feed and recommendations will now reflect this style.`,
@@ -365,7 +433,7 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
             >
               {style.name}
             </ThemedText>
-            {user?.stylePreference === style.id ? (
+            {normalizeStyleThemeForGender(user?.stylePreference || (isMale ? 'smart-casual' : 'luxury'), isMale) === style.id ? (
               <View style={[styles.currentBadge, { backgroundColor: selectedStyle === style.id ? "rgba(255,255,255,0.3)" : theme.link }]}>
                 <Feather name="check" size={10} color={selectedStyle === style.id ? "#FFFFFF" : "#FFFFFF"} />
               </View>
@@ -434,7 +502,7 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
       </ScrollView>
       
       <View style={[styles.footer, { paddingBottom }]}>
-        {selectedStyle === user?.stylePreference ? (
+        {normalizeStyleThemeForGender(selectedStyle, isMale) === resolvedPreference ? (
           <View style={[styles.currentStyleBanner, { backgroundColor: theme.backgroundSecondary }]}>
             <Feather name="check-circle" size={20} color={theme.link} />
             <ThemedText type="body" style={{ marginLeft: Spacing.sm }}>
