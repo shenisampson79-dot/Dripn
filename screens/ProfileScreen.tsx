@@ -43,9 +43,9 @@ import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
 import apiService from "@/services/ApiService";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SAVED_LOOKBOOK_CARD_WIDTH = SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md * 2;
-const MODAL_OUTFIT_CANVAS_WIDTH = SCREEN_WIDTH - Spacing.lg * 4 - Spacing.md * 2;
+const MODAL_OUTFIT_CANVAS_WIDTH = SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md * 2;
 
 type ProfileScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "Profile">;
@@ -278,7 +278,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           label=""
           large
           canvasWidth={forModal ? MODAL_OUTFIT_CANVAS_WIDTH : SAVED_LOOKBOOK_CARD_WIDTH}
-          visualScale={forModal ? computeOutfitVisualScaleForModal(pieces.length) : undefined}
+          visualScale={forModal ? computeOutfitVisualScaleForModal(pieces.length, SCREEN_HEIGHT) : undefined}
         />
       </View>
     );
@@ -328,7 +328,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           label=""
           large
           canvasWidth={forModal ? MODAL_OUTFIT_CANVAS_WIDTH : SAVED_LOOKBOOK_CARD_WIDTH}
-          visualScale={forModal ? computeOutfitVisualScaleForModal(pieces.length) : undefined}
+          visualScale={forModal ? computeOutfitVisualScaleForModal(pieces.length, SCREEN_HEIGHT) : undefined}
         />
       </View>
     );
