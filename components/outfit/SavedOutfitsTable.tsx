@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,10 +29,20 @@ type Props = {
   onSelect: (id: string) => void;
 };
 
+const ROW_HEIGHT_ESTIMATE = 88;
+const HEADER_HEIGHT = 36;
+const MAX_VISIBLE_ROWS = 6;
+
 export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
   const { theme, isDark } = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
 
   if (outfits.length === 0) return null;
+
+  const scrollMaxHeight = Math.min(
+    windowHeight * 0.38,
+    HEADER_HEIGHT + ROW_HEIGHT_ESTIMATE * MAX_VISIBLE_ROWS,
+  );
 
   return (
     <View
@@ -46,74 +56,92 @@ export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
     >
       <View style={[styles.tableHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
         <ThemedText type="caption" style={[styles.headerCell, styles.titleCol, { color: theme.tabIconDefault }]}>
-          Outfit
+          Outfit ({outfits.length})
         </ThemedText>
         <ThemedText type="caption" style={[styles.headerCell, styles.previewCol, { color: theme.tabIconDefault }]}>
           Preview
         </ThemedText>
       </View>
 
-      {outfits.map((outfit, index) => {
-        const selected = outfit.id === selectedId;
-        return (
-          <Pressable
-            key={outfit.id}
-            onPress={() => onSelect(outfit.id)}
-            style={({ pressed }) => [
-              styles.row,
-              index < outfits.length - 1 && {
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-              },
-              selected && {
-                backgroundColor: isDark ? 'rgba(201,168,124,0.12)' : 'rgba(201,168,124,0.14)',
-              },
-              pressed && { opacity: 0.85 },
-            ]}
-          >
-            <View style={styles.titleCol}>
-              <LinearGradient
-                colors={outfit.badgeColors}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.badge}
-              >
-                <ThemedText type="caption" style={styles.badgeText} numberOfLines={1}>
-                  {outfit.badgeLabel}
-                </ThemedText>
-              </LinearGradient>
-              <ThemedText type="body" style={styles.rowTitle} numberOfLines={1}>
-                {outfit.title}
-              </ThemedText>
-              <ThemedText type="caption" style={{ color: theme.tabIconDefault }} numberOfLines={2}>
-                {outfit.description || `${outfit.itemCount} items`}
-              </ThemedText>
-            </View>
+      <ScrollView
+        style={{ maxHeight: scrollMaxHeight }}
+        contentContainerStyle={styles.scrollContent}
+        nestedScrollEnabled
+        showsVerticalScrollIndicator
+        keyboardShouldPersistTaps="handled"
+      >
+        {outfits.map((outfit, index) => {
+          const selected = outfit.id === selectedId;
+          const thumbs = outfit.previewItems.length > 0
+            ? outfit.previewItems.slice(0, 3)
+            : [{ id: 'placeholder', name: 'Item', imageUri: null }];
 
-            <View style={styles.previewCol}>
-              <View style={styles.thumbRow}>
-                {outfit.previewItems.slice(0, 3).map((item) => (
-                  <View
-                    key={item.id}
-                    style={[styles.thumb, { backgroundColor: wardrobeTileBackground(isDark) }]}
-                  >
-                    {item.imageUri ? (
-                      <Image source={{ uri: item.imageUri }} style={styles.thumbImage} contentFit="contain" />
-                    ) : (
-                      <Feather name="image" size={14} color={theme.tabIconDefault} />
-                    )}
-                  </View>
-                ))}
+          return (
+            <Pressable
+              key={outfit.id}
+              onPress={() => onSelect(outfit.id)}
+              style={({ pressed }) => [
+                styles.row,
+                index < outfits.length - 1 && {
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                },
+                selected && {
+                  backgroundColor: isDark ? 'rgba(201,168,124,0.12)' : 'rgba(201,168,124,0.14)',
+                },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <View style={styles.titleCol}>
+                <LinearGradient
+                  colors={outfit.badgeColors}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.badge}
+                >
+                  <ThemedText type="caption" style={styles.badgeText} numberOfLines={1}>
+                    {outfit.badgeLabel}
+                  </ThemedText>
+                </LinearGradient>
+                <ThemedText type="body" style={styles.rowTitle} numberOfLines={1}>
+                  {outfit.title}
+                </ThemedText>
+                <ThemedText type="caption" style={{ color: theme.tabIconDefault }} numberOfLines={2}>
+                  {outfit.description || `${outfit.itemCount} items`}
+                </ThemedText>
               </View>
-              <Feather
-                name={selected ? 'chevron-down' : 'chevron-right'}
-                size={18}
-                color={selected ? theme.link : theme.tabIconDefault}
-              />
-            </View>
-          </Pressable>
-        );
-      })}
+
+              <View style={styles.previewCol}>
+                <View style={styles.thumbRow}>
+                  {thumbs.map((item) => (
+                    <View
+                      key={item.id}
+                      style={[styles.thumb, { backgroundColor: wardrobeTileBackground(isDark) }]}
+                    >
+                      {item.imageUri ? (
+                        <Image source={{ uri: item.imageUri }} style={styles.thumbImage} contentFit="contain" />
+                      ) : (
+                        <Feather name="image" size={14} color={theme.tabIconDefault} />
+                      )}
+                    </View>
+                  ))}
+                </View>
+                <Feather
+                  name="chevron-right"
+                  size={18}
+                  color={selected ? theme.link : theme.tabIconDefault}
+                />
+              </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {outfits.length > MAX_VISIBLE_ROWS ? (
+        <ThemedText type="caption" style={[styles.scrollHint, { color: theme.tabIconDefault }]}>
+          Scroll the list to browse all {outfits.length} outfits
+        </ThemedText>
+      ) : null}
     </View>
   );
 }
@@ -137,12 +165,22 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     fontSize: 10,
   },
+  scrollContent: {
+    flexGrow: 0,
+  },
+  scrollHint: {
+    textAlign: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    fontStyle: 'italic',
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm + 2,
     gap: Spacing.sm,
+    minHeight: ROW_HEIGHT_ESTIMATE,
   },
   titleCol: {
     flex: 1,

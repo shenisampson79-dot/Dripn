@@ -26,13 +26,16 @@ import { useWardrobe } from "@/contexts/WardrobeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { OutfitPiecesVisual, OutfitPieceVisual } from "@/components/OutfitPiecesVisual";
 import { SavedOutfitsTable } from "@/components/outfit/SavedOutfitsTable";
+import { SavedOutfitDetailModal } from "@/components/outfit/SavedOutfitDetailModal";
 import { dfyService, SavedLookbookOutfit } from "@/services/DFYService";
 import {
   buildSavedOutfitTableRows,
   findLookbookOutfitByRowId,
   findMixOutfitByRowId,
+  resolveMixOutfitItems,
   type MixAndMatchSavedOutfit,
 } from "@/utils/profileSavedOutfits";
+import { resolveWardrobeImageUri } from "@/utils/wardrobeImage";
 import { resolveDFYItemImageUri, RawDFYOutfitItem } from "@/utils/dfyOutfitImages";
 import { sortOutfitItemsByVisualOrder } from "@/utils/outfitItemOrder";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -62,6 +65,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const [savedMixAndMatchOutfits, setSavedMixAndMatchOutfits] = useState<MixAndMatchSavedOutfit[]>([]);
   const [loadingSavedOutfits, setLoadingSavedOutfits] = useState(false);
   const [selectedOutfitId, setSelectedOutfitId] = useState<string | null>(null);
+  const [showOutfitDetailModal, setShowOutfitDetailModal] = useState(false);
 
   // Derive Style DNA from wardrobe items — same logic as StyleDNAScreen
   const ownedWardrobeItems = useMemo(() => wardrobeItems.filter(i => !i.origin || i.origin === 'owned'), [wardrobeItems]);
@@ -209,14 +213,12 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   );
 
   useEffect(() => {
-    if (savedOutfitRows.length === 0) {
+    if (!selectedOutfitId) return;
+    if (!savedOutfitRows.some((row) => row.id === selectedOutfitId)) {
       setSelectedOutfitId(null);
-      return;
+      setShowOutfitDetailModal(false);
     }
-    setSelectedOutfitId((current) =>
-      current && savedOutfitRows.some((row) => row.id === current) ? current : savedOutfitRows[0].id,
-    );
-  }, [savedOutfitRows]);
+  }, [savedOutfitRows, selectedOutfitId]);
 
   const selectedLookbookOutfit = findLookbookOutfitByRowId(selectedOutfitId, likedOutfits);
   const selectedMixOutfit = findMixOutfitByRowId(selectedOutfitId, savedMixAndMatchOutfits);
@@ -275,19 +277,19 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   };
 
   const renderSavedMixVisual = (outfit: MixAndMatchSavedOutfit) => {
-    const rawItems = outfit.items || [];
+    const resolvedItems = resolveMixOutfitItems(outfit, wardrobeItems);
     const orderedItems = sortOutfitItemsByVisualOrder(
-      rawItems.map((item) => ({
-        id: String(item.id),
+      resolvedItems.map((item) => ({
+        id: item.id,
         name: item.name,
         category: item.category,
       })),
     );
     const pieces: OutfitPieceVisual[] = orderedItems
       .map((slot) => {
-        const item = rawItems.find((row) => String(row.id) === String(slot.id));
+        const item = resolvedItems.find((row) => String(row.id) === String(slot.id));
         const wardrobe = wardrobeItems.find((w) => String(w.id) === String(slot.id));
-        const imageUri = item?.imageUri || item?.imageUrl || wardrobe?.imageUri || wardrobe?.enhancedImageUri || null;
+        const imageUri = item?.imageUri || (wardrobe ? resolveWardrobeImageUri(wardrobe) : null);
         return {
           wardrobeItemId: slot.id,
           name: item?.name || slot.name || 'Item',
@@ -618,110 +620,11 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               <SavedOutfitsTable
                 outfits={savedOutfitRows}
                 selectedId={selectedOutfitId}
-                onSelect={setSelectedOutfitId}
+                onSelect={(id) => {
+                  setSelectedOutfitId(id);
+                  setShowOutfitDetailModal(true);
+                }}
               />
-
-              {selectedLookbookOutfit ? (
-                <View style={[styles.likedOutfitCard, styles.likedOutfitCardVisual, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
-                  <View style={styles.likedOutfitHeader}>
-                    <Pressable onPress={handleOpenLookbook}>
-                      <LinearGradient
-                        colors={[LUXURY_COLORS.coral, '#C46A4F']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.likedOutfitBadge}
-                      >
-                        <Feather name="book-open" size={10} color="#FFFFFF" />
-                        <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10 }}>
-                          My Lookbook · Day {selectedLookbookOutfit.dayNumber}
-                        </ThemedText>
-                      </LinearGradient>
-                    </Pressable>
-                    <View style={styles.savedLookbookFlags}>
-                      {(selectedLookbookOutfit.savedReason === 'bookmark' || selectedLookbookOutfit.savedReason === 'both') && (
-                        <View style={[styles.savedLookbookFlag, { backgroundColor: LUXURY_COLORS.gold + '25' }]}>
-                          <Feather name="bookmark" size={12} color={LUXURY_COLORS.gold} />
-                        </View>
-                      )}
-                      {(selectedLookbookOutfit.savedReason === 'love' || selectedLookbookOutfit.savedReason === 'both') && (
-                        <View style={[styles.savedLookbookFlag, { backgroundColor: LUXURY_COLORS.rose + '25' }]}>
-                          <Feather name="heart" size={12} color={LUXURY_COLORS.rose} />
-                        </View>
-                      )}
-                      <Pressable
-                        onPress={() => handleRemoveSavedLookbookOutfit(selectedLookbookOutfit.id)}
-                        style={({ pressed }) => [
-                          styles.unlikeButton,
-                          { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
-                        ]}
-                      >
-                        <Feather name="trash-2" size={14} color={LUXURY_COLORS.coral} />
-                      </Pressable>
-                    </View>
-                  </View>
-                  <ThemedText type="h3" style={styles.likedOutfitTitle}>
-                    {selectedLookbookOutfit.title || `Lookbook · Day ${selectedLookbookOutfit.dayNumber}`}
-                  </ThemedText>
-                  {(selectedLookbookOutfit.description || selectedLookbookOutfit.stylistNote) ? (
-                    <ThemedText type="small" style={styles.likedOutfitDesc}>
-                      {selectedLookbookOutfit.description || selectedLookbookOutfit.stylistNote}
-                    </ThemedText>
-                  ) : null}
-                  {renderSavedLookbookVisual(selectedLookbookOutfit)}
-                </View>
-              ) : null}
-
-              {selectedMixOutfit ? (
-                <View style={[styles.likedOutfitCard, styles.likedOutfitCardVisual, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
-                  <View style={styles.likedOutfitHeader}>
-                    <LinearGradient
-                      colors={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.likedOutfitBadge}
-                    >
-                      <Feather name="layers" size={10} color="#FFFFFF" />
-                      <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10 }}>
-                        My Outfit
-                      </ThemedText>
-                    </LinearGradient>
-                    <Pressable
-                      onPress={async () => {
-                        try {
-                          await apiService.deleteMixAndMatchOutfit(String(selectedMixOutfit.id));
-                          setSavedMixAndMatchOutfits((prev) => prev.filter((o) => o.id !== selectedMixOutfit.id));
-                          setSelectedOutfitId((current) =>
-                            current === `mix-${selectedMixOutfit.id}` ? null : current,
-                          );
-                        } catch {
-                          // Keep UI unchanged if delete fails
-                        }
-                      }}
-                      style={({ pressed }) => [
-                        styles.unlikeButton,
-                        { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
-                      ]}
-                    >
-                      <Feather name="trash-2" size={14} color={LUXURY_COLORS.rose} />
-                    </Pressable>
-                  </View>
-                  {selectedMixOutfit.tags?.includes('loved') ? (
-                    <View style={[styles.savedLookbookFlag, { backgroundColor: LUXURY_COLORS.rose + '25', alignSelf: 'flex-start', marginBottom: Spacing.xs }]}>
-                      <Feather name="heart" size={12} color={LUXURY_COLORS.rose} />
-                      <ThemedText type="caption" style={{ color: LUXURY_COLORS.rose, fontWeight: '600' }}>Loved</ThemedText>
-                    </View>
-                  ) : null}
-                  <ThemedText type="h3" style={styles.likedOutfitTitle}>
-                    {selectedMixOutfit.name}
-                  </ThemedText>
-                  {(selectedMixOutfit.description || selectedMixOutfit.occasion) ? (
-                    <ThemedText type="small" style={styles.likedOutfitDesc}>
-                      {selectedMixOutfit.description?.trim() || selectedMixOutfit.occasion}
-                    </ThemedText>
-                  ) : null}
-                  {renderSavedMixVisual(selectedMixOutfit)}
-                </View>
-              ) : null}
             </View>
           ) : (
             <View style={styles.emptyState}>
@@ -747,6 +650,115 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
         ) : null}
         </View>
       </ScreenScrollView>
+
+      <SavedOutfitDetailModal
+        visible={showOutfitDetailModal && Boolean(selectedLookbookOutfit || selectedMixOutfit)}
+        onClose={() => setShowOutfitDetailModal(false)}
+      >
+        {selectedLookbookOutfit ? (
+          <View style={[styles.likedOutfitCard, styles.likedOutfitCardVisual, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
+            <View style={styles.likedOutfitHeader}>
+              <Pressable onPress={handleOpenLookbook}>
+                <LinearGradient
+                  colors={[LUXURY_COLORS.coral, '#C46A4F']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.likedOutfitBadge}
+                >
+                  <Feather name="book-open" size={10} color="#FFFFFF" />
+                  <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10 }}>
+                    My Lookbook · Day {selectedLookbookOutfit.dayNumber}
+                  </ThemedText>
+                </LinearGradient>
+              </Pressable>
+              <View style={styles.savedLookbookFlags}>
+                {(selectedLookbookOutfit.savedReason === 'bookmark' || selectedLookbookOutfit.savedReason === 'both') && (
+                  <View style={[styles.savedLookbookFlag, { backgroundColor: LUXURY_COLORS.gold + '25' }]}>
+                    <Feather name="bookmark" size={12} color={LUXURY_COLORS.gold} />
+                  </View>
+                )}
+                {(selectedLookbookOutfit.savedReason === 'love' || selectedLookbookOutfit.savedReason === 'both') && (
+                  <View style={[styles.savedLookbookFlag, { backgroundColor: LUXURY_COLORS.rose + '25' }]}>
+                    <Feather name="heart" size={12} color={LUXURY_COLORS.rose} />
+                  </View>
+                )}
+                <Pressable
+                  onPress={() => {
+                    handleRemoveSavedLookbookOutfit(selectedLookbookOutfit.id);
+                    setShowOutfitDetailModal(false);
+                  }}
+                  style={({ pressed }) => [
+                    styles.unlikeButton,
+                    { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
+                  ]}
+                >
+                  <Feather name="trash-2" size={14} color={LUXURY_COLORS.coral} />
+                </Pressable>
+              </View>
+            </View>
+            <ThemedText type="h3" style={styles.likedOutfitTitle}>
+              {selectedLookbookOutfit.title || `Lookbook · Day ${selectedLookbookOutfit.dayNumber}`}
+            </ThemedText>
+            {(selectedLookbookOutfit.description || selectedLookbookOutfit.stylistNote) ? (
+              <ThemedText type="small" style={styles.likedOutfitDesc}>
+                {selectedLookbookOutfit.description || selectedLookbookOutfit.stylistNote}
+              </ThemedText>
+            ) : null}
+            {renderSavedLookbookVisual(selectedLookbookOutfit)}
+          </View>
+        ) : null}
+
+        {selectedMixOutfit ? (
+          <View style={[styles.likedOutfitCard, styles.likedOutfitCardVisual, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
+            <View style={styles.likedOutfitHeader}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.likedOutfitBadge}
+              >
+                <Feather name="layers" size={10} color="#FFFFFF" />
+                <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10 }}>
+                  My Outfit
+                </ThemedText>
+              </LinearGradient>
+              <Pressable
+                onPress={async () => {
+                  try {
+                    await apiService.deleteMixAndMatchOutfit(String(selectedMixOutfit.id));
+                    setSavedMixAndMatchOutfits((prev) => prev.filter((o) => o.id !== selectedMixOutfit.id));
+                    setSelectedOutfitId(null);
+                    setShowOutfitDetailModal(false);
+                  } catch {
+                    // Keep UI unchanged if delete fails
+                  }
+                }}
+                style={({ pressed }) => [
+                  styles.unlikeButton,
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', opacity: pressed ? 0.7 : 1 },
+                ]}
+              >
+                <Feather name="trash-2" size={14} color={LUXURY_COLORS.rose} />
+              </Pressable>
+            </View>
+            {selectedMixOutfit.tags?.includes('loved') ? (
+              <View style={[styles.savedLookbookFlag, { backgroundColor: LUXURY_COLORS.rose + '25', alignSelf: 'flex-start', marginBottom: Spacing.xs }]}>
+                <Feather name="heart" size={12} color={LUXURY_COLORS.rose} />
+                <ThemedText type="caption" style={{ color: LUXURY_COLORS.rose, fontWeight: '600' }}>Loved</ThemedText>
+              </View>
+            ) : null}
+            <ThemedText type="h3" style={styles.likedOutfitTitle}>
+              {selectedMixOutfit.name}
+            </ThemedText>
+            {(selectedMixOutfit.description || selectedMixOutfit.occasion) ? (
+              <ThemedText type="small" style={styles.likedOutfitDesc}>
+                {selectedMixOutfit.description?.trim() || selectedMixOutfit.occasion}
+              </ThemedText>
+            ) : null}
+            {renderSavedMixVisual(selectedMixOutfit)}
+          </View>
+        ) : null}
+      </SavedOutfitDetailModal>
     </View>
   );
 }

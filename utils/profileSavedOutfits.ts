@@ -3,13 +3,13 @@ import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import type { SavedOutfitTableRow } from '@/components/outfit/SavedOutfitsTable';
 import { resolveDFYItemImageUri, type RawDFYOutfitItem } from '@/utils/dfyOutfitImages';
 import { sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
+import { buildWardrobeImageProxyUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
 
 export type MixAndMatchSavedOutfit = {
   id: string;
   name: string;
   description?: string | null;
   occasion?: string;
-  tags?: string[];
   tags?: string[];
   items?: Array<{
     id: string;
@@ -37,8 +37,53 @@ function mixOccasionLabel(outfit: MixAndMatchSavedOutfit): string {
   if (outfit.occasion) {
     return outfit.occasion.replace(/-/g, ' ');
   }
-  const occasionTag = outfit.tags?.find((tag) => tag !== 'mix-and-match');
+  const occasionTag = outfit.tags?.find((tag) => tag !== 'mix-and-match' && tag !== 'loved');
   return occasionTag ? occasionTag.replace(/-/g, ' ') : 'Custom';
+}
+
+function resolveMixItemImageUri(
+  itemId: string,
+  apiItem: { imageUri?: string | null; imageUrl?: string | null } | undefined,
+  wardrobe: WardrobeItem | undefined,
+): string | null {
+  if (wardrobe) {
+    const wardrobeUri = resolveWardrobeImageUri(wardrobe);
+    if (wardrobeUri) return wardrobeUri;
+  }
+
+  const apiUri = apiItem?.imageUri || apiItem?.imageUrl;
+  if (typeof apiUri === 'string' && apiUri.length > 0 && !apiUri.startsWith('data:')) {
+    return apiUri;
+  }
+
+  if (itemId) {
+    return buildWardrobeImageProxyUrl(itemId);
+  }
+
+  return null;
+}
+
+function resolveMixOutfitItems(
+  outfit: MixAndMatchSavedOutfit,
+  wardrobeItems: WardrobeItem[],
+): Array<{ id: string; name: string; category?: string; imageUri: string | null }> {
+  const rawItems = outfit.items || [];
+  const itemIds = rawItems.length > 0
+    ? rawItems.map((item) => String(item.id))
+    : (outfit.wardrobe_item_ids || []).map((id) => String(id));
+
+  const uniqueIds = [...new Set(itemIds.filter(Boolean))];
+
+  return uniqueIds.map((id) => {
+    const apiItem = rawItems.find((row) => String(row.id) === id);
+    const wardrobe = wardrobeItems.find((w) => String(w.id) === id);
+    return {
+      id,
+      name: apiItem?.name || wardrobe?.name || 'Item',
+      category: apiItem?.category || wardrobe?.category,
+      imageUri: resolveMixItemImageUri(id, apiItem, wardrobe),
+    };
+  });
 }
 
 export function buildSavedOutfitTableRows(
@@ -69,22 +114,20 @@ export function buildSavedOutfitTableRows(
   });
 
   const mixRows: SavedOutfitTableRow[] = mixOutfits.map((outfit) => {
-    const rawItems = outfit.items || [];
+    const resolvedItems = resolveMixOutfitItems(outfit, wardrobeItems);
     const ordered = sortOutfitItemsByVisualOrder(
-      rawItems.map((item) => ({
-        id: String(item.id),
+      resolvedItems.map((item) => ({
+        id: item.id,
         name: item.name,
         category: item.category,
       })),
     );
     const previewItems = ordered.map((slot) => {
-      const item = rawItems.find((row) => String(row.id) === String(slot.id));
-      const wardrobe = wardrobeItems.find((w) => String(w.id) === String(slot.id));
-      const imageUri = item?.imageUri || item?.imageUrl || wardrobe?.imageUri || wardrobe?.enhancedImageUri || null;
+      const item = resolvedItems.find((row) => String(row.id) === String(slot.id));
       return {
         id: String(slot.id),
         name: item?.name || slot.name || 'Item',
-        imageUri,
+        imageUri: item?.imageUri || null,
       };
     });
 
@@ -94,7 +137,7 @@ export function buildSavedOutfitTableRows(
       id: `mix-${outfit.id}`,
       title: outfit.name || 'My Outfit',
       description: outfit.description?.trim() || occasionLabel,
-      itemCount: rawItems.length,
+      itemCount: resolvedItems.length,
       badgeLabel: outfit.tags?.includes('loved') ? 'Loved Outfit' : 'My Outfit',
       badgeColors: outfit.tags?.includes('loved')
         ? (['#E8B4B8', '#DB2777'] as const)
@@ -123,3 +166,5 @@ export function findMixOutfitByRowId(
   const id = rowId.replace('mix-', '');
   return mixOutfits.find((outfit) => String(outfit.id) === id) || null;
 }
+
+export { resolveMixOutfitItems, resolveMixItemImageUri };
