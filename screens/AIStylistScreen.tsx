@@ -18,10 +18,10 @@ import {
   Alert,
   Linking,
   ScrollView,
+  KeyboardAvoidingView,
   Modal,
+  Keyboard,
 } from 'react-native';
-import { KeyboardStickyView, useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -46,14 +46,11 @@ import Animated, {
   withSpring,
   cancelAnimation,
 } from 'react-native-reanimated';
-// Input uses KeyboardStickyView (absolute bottom) so it tracks the keyboard without extra gap.
+// KeyboardAvoidingView from react-native is used instead of react-native-keyboard-controller
 
 import { ThemedText } from '@/components/ThemedText';
-import { OutfitPiecesVisual } from '@/components/OutfitPiecesVisual';
-import { WardrobeItemImage } from '@/components/WardrobeItemImage';
 import { Card } from '@/components/Card';
 import { LimitHitUpgradePrompt } from '@/components/LimitHitUpgradePrompt';
-import { PersonalStylistVoicePanel } from '@/components/PersonalStylistVoicePanel';
 import { Spacing, BorderRadius, Typography, LuxuryColors as ThemeLuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -61,30 +58,15 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import { useWardrobe, WardrobeItem, ClothingOccasion, ClothingSeason } from '@/contexts/WardrobeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation, CommonActions, useRoute, RouteProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { HeaderHeightContext } from '@react-navigation/elements';
 import { apiService } from '@/services/ApiService';
 import { useVoiceSettings, VoiceId, StylistId } from '@/contexts/VoiceSettingsContext';
-import { useVoiceCredits } from '@/hooks/useVoiceCredits';
 import * as FileSystem from 'expo-file-system/legacy';
 import Constants from 'expo-constants';
 import { getStylistForUser, getStylistGreeting, PersonalStylist } from '@/services/PersonalStylistService';
 import type { SharedValue } from 'react-native-reanimated';
 import type { UserStylistStackParamList } from '@/navigation/UserStylistStackNavigator';
-import {
-  buildWardrobeVisualFromChat,
-  capWardrobeVisualForAccess,
-  inferOutfitCountFromText,
-  normalizeWardrobeVisual,
-  splitIntoOutfitSections,
-  wardrobeVisualFromOutfitSuggestion,
-  type WardrobeVisualPayload,
-} from '@/utils/wardrobeMentionMatcher';
-import { OccasionOutfitChips } from '@/components/outfit/OccasionOutfitChips';
-import { getOccasionLabel, type OutfitOccasionId } from '@/constants/outfitOccasions';
-import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
-import { enrichWardrobeItemForDisplay, normalizeRemoteApiUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
 
 interface WaveformBarProps {
   bar: SharedValue<number>;
@@ -109,8 +91,6 @@ const WaveformBar = ({ bar, color, style }: WaveformBarProps) => {
 };
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-/** Width available for outfit stack inside assistant row (avatar + padding). */
-const WARDROBE_CHAT_CANVAS_WIDTH = SCREEN_WIDTH - Spacing.xl * 2 - 32 - Spacing.sm;
 const INPUT_CONTAINER_HEIGHT = 80;
 const TAB_BAR_HEIGHT = 56;
 
@@ -147,7 +127,6 @@ interface ChatMessage {
     occasion: string;
     reason: string;
   };
-  wardrobeVisual?: WardrobeVisualPayload | null;
 }
 
 function normalizeChatMessage(raw: unknown): ChatMessage | null {
@@ -188,93 +167,7 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
     }
   }
 
-  if (message.wardrobeVisual && typeof message.wardrobeVisual === 'object') {
-    const visual = message.wardrobeVisual;
-    if (visual.layout === 'multi' && Array.isArray(visual.outfits)) {
-      const outfits = visual.outfits
-        .filter((outfit) => outfit && typeof outfit === 'object' && Array.isArray(outfit.pieces))
-        .map((outfit) => ({
-          title: typeof outfit.title === 'string' ? outfit.title : null,
-          sectionIndex: typeof outfit.sectionIndex === 'number' ? outfit.sectionIndex : 0,
-          pieces: outfit.pieces.filter((piece) => piece && typeof piece === 'object'),
-        }))
-        .filter((outfit) => outfit.pieces.length > 0);
-
-      if (outfits.length > 0) {
-        normalized.wardrobeVisual = { layout: 'multi', outfits };
-      }
-    } else {
-      const pieces = Array.isArray(visual.pieces)
-        ? visual.pieces.filter((piece) => piece && typeof piece === 'object')
-        : [];
-      if (pieces.length > 0) {
-        normalized.wardrobeVisual = {
-          layout: visual.layout === 'highlight' ? 'highlight' : 'stacked',
-          pieces,
-        };
-      }
-    }
-  }
-
   return normalized;
-}
-
-function attachWardrobeVisualToMessage(
-  message: ChatMessage,
-  userMessage: string,
-  response: {
-    content: string;
-    wardrobeVisual?: WardrobeVisualPayload | null;
-  },
-  wardrobeItems: WardrobeItem[],
-  subscriptionTier?: string | null,
-): ChatMessage {
-  const rawVisual =
-    response.wardrobeVisual
-    ?? buildWardrobeVisualFromChat(userMessage, response.content, wardrobeItems, subscriptionTier);
-
-  const clientVisual = normalizeWardrobeVisual(
-    rawVisual ? capWardrobeVisualForAccess(rawVisual, subscriptionTier) : null,
-  );
-  const serverVisual = normalizeWardrobeVisual(response.wardrobeVisual ?? null);
-  const serverHasImages = (serverVisual?.pieces ?? []).some((piece) => piece?.imageUrl);
-  const clientHasImages = (clientVisual?.pieces ?? []).some((piece) => piece?.imageUrl);
-
-  const wardrobeVisual = (serverHasImages && !clientHasImages)
-    ? serverVisual
-    : (clientVisual ?? serverVisual);
-
-  const hasVisual = Boolean(
-    wardrobeVisual
-    && (
-      (wardrobeVisual.layout === 'multi' && wardrobeVisual.outfits?.length)
-      || wardrobeVisual.pieces?.length
-    ),
-  );
-  if (!wardrobeVisual || !hasVisual) return message;
-
-  const enriched: ChatMessage = {
-    ...message,
-    wardrobeVisual,
-  };
-
-  const allPieces = wardrobeVisual.layout === 'multi'
-    ? (wardrobeVisual.outfits ?? []).flatMap((outfit) => outfit.pieces)
-    : (wardrobeVisual.pieces ?? []);
-
-  const matchedItems = allPieces
-    .map((piece) => wardrobeItems.find((item) => String(item.id) === String(piece.wardrobeItemId)))
-    .filter((item): item is WardrobeItem => Boolean(item));
-
-  if (matchedItems.length > 0) {
-    enriched.outfitSuggestion = {
-      items: matchedItems,
-      occasion: '',
-      reason: '',
-    };
-  }
-
-  return enriched;
 }
 
 interface QuickPrompt {
@@ -285,6 +178,7 @@ interface QuickPrompt {
 }
 
 const QUICK_PROMPTS: QuickPrompt[] = [
+  { id: 'occasion', label: 'Outfit for Today', prompt: 'What should I wear today?', icon: 'sun' },
   { id: 'work', label: 'Work Outfit', prompt: 'Suggest a professional outfit for work', icon: 'briefcase' },
   { id: 'date', label: 'Date Night', prompt: 'Help me put together a date night outfit', icon: 'heart' },
   { id: 'weekend', label: 'Weekend Look', prompt: 'What casual outfit would you recommend for the weekend?', icon: 'coffee' },
@@ -1250,49 +1144,21 @@ function generateAIResponse(
   };
 }
 
-function inferWardrobeVisualLabel(priorUserContent = ''): string {
-  const lower = priorUserContent.toLowerCase();
-  if (/\btoday\b/.test(lower) || /what should i wear/.test(lower)) return "Today's outfit";
-  if (/\bwork\b|professional|office/.test(lower)) return 'Work outfit';
-  if (/date night|date-night/.test(lower)) return 'Date night look';
-  if (/\bweekend\b|casual/.test(lower)) return 'Weekend look';
-  if (/favourite|favorite/.test(lower)) return 'Your favourite look';
-  if (/party|event|wedding/.test(lower)) return 'Event outfit';
-  return 'From your wardrobe';
-}
-
-function messageHasWardrobeVisual(message: ChatMessage): boolean {
-  const visual = normalizeWardrobeVisual(message.wardrobeVisual);
-  if (visual?.layout === 'multi' && visual.outfits?.length) return true;
-  if (visual?.pieces?.length) return true;
-  if (message.outfitSuggestion?.items?.length) return true;
-  return false;
-}
-
 export default function AIStylistScreen() {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const { t, currentLanguage } = useTranslations();
   const { limits, tier } = useSubscription();
   const { items: wardrobeItems } = useWardrobe();
   const { user } = useAuth();
   const { settings: voiceSettings, getVoiceForStylist } = useVoiceSettings();
-  const { hasCredits: hasVoiceCredits, isUnlimited: hasUnlimitedVoice, refreshBalance: refreshVoiceCredits } = useVoiceCredits();
   const route = useRoute<RouteProp<UserStylistStackParamList, 'AIStylist'>>();
   const pendingInitialPromptRef = useRef(route.params?.initialPrompt);
   const initialPromptSentRef = useRef(false);
   const tabBarHeightContext = useContext(BottomTabBarHeightContext);
-  const insets = useSafeAreaInsets();
-  const tabBarHeight: number =
-    typeof tabBarHeightContext === 'number' && tabBarHeightContext > 0
-      ? tabBarHeightContext
-      : TAB_BAR_HEIGHT + insets.bottom;
+  const tabBarHeight: number = typeof tabBarHeightContext === 'number' ? tabBarHeightContext : 0;
   const headerHeightContext = useContext(HeaderHeightContext);
   const headerHeight: number = typeof headerHeightContext === 'number' ? headerHeightContext : 0;
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const inputBottomPadStyle = useAnimatedStyle(() => ({
-    paddingBottom: keyboardHeight.value === 0 ? tabBarHeight : 0,
-  }));
-  const navigation = useNavigation<NativeStackNavigationProp<UserStylistStackParamList>>();
+  const navigation = useNavigation();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
   
   const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
@@ -1322,7 +1188,6 @@ export default function AIStylistScreen() {
   const [messagesToday, setMessagesToday] = useState(0);
   const [limitsLoaded, setLimitsLoaded] = useState(false);
   const [showQuickPrompts, setShowQuickPrompts] = useState(true);
-  const [generatingOccasionId, setGeneratingOccasionId] = useState<string | null>(null);
   const [messageFeedback, setMessageFeedback] = useState<Record<string, 'helpful' | 'not_helpful' | null>>({});
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackMessageId, setFeedbackMessageId] = useState<string | null>(null);
@@ -1334,22 +1199,12 @@ export default function AIStylistScreen() {
   const [detectedMood, setDetectedMood] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isPlayingTTS, setIsPlayingTTS] = useState(false);
-  const [ttsEnabled, setTtsEnabled] = useState(false);
-  const [chatMode, setChatMode] = useState<'text' | 'voice'>('text');
+  const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const ttsPlayerRef = useRef<AudioPlayer | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isRecordingActiveRef = useRef(false);
-  const isMountedRef = useRef(true);
-
-  const listBottomInset = useMemo(
-    () =>
-      INPUT_CONTAINER_HEIGHT
-      + (showQuickPrompts && !isTyping && messages.length <= 1 ? 160 : 0)
-      + tabBarHeight
-      + Spacing.md,
-    [showQuickPrompts, isTyping, messages.length, tabBarHeight],
-  );
   
   const pulseScale = useSharedValue(1);
   const waveformBars = [
@@ -1385,75 +1240,34 @@ export default function AIStylistScreen() {
       })
     );
   }, [navigation]);
-
-  const navigateToWeatherOutfits = useCallback(() => {
-    navigation.navigate('WeatherOutfit');
-  }, [navigation]);
-
-  const wardrobeImageFingerprint = useMemo(
-    () => wardrobeItems
-      .map((item) => `${item.id}:${resolveWardrobeImageUri(item)}`)
-      .join('|'),
-    [wardrobeItems],
-  );
-
-  useEffect(() => {
-    if (wardrobeItems.length === 0) return;
-
-    setMessages((prev) => {
-      let changed = false;
-      const next = prev.map((msg, index) => {
-        if (msg.role !== 'assistant') return msg;
-
-        const priorUser = [...prev.slice(0, index)].reverse().find((entry) => entry.role === 'user');
-        const rebuilt = buildWardrobeVisualFromChat(
-          priorUser?.content || '',
-          msg.content,
-          wardrobeItems,
-          user?.subscriptionTier,
-        );
-        const serverVisual = normalizeWardrobeVisual(msg.wardrobeVisual);
-        const rebuiltVisual = normalizeWardrobeVisual(
-          capWardrobeVisualForAccess(rebuilt, user?.subscriptionTier),
-        );
-        const visual = rebuiltVisual
-          ?? serverVisual
-          ?? null;
-        if (!visual) return msg;
-
-        const existing = serverVisual;
-        if (existing?.layout === 'multi' && (existing.outfits?.length ?? 0) >= 2) return msg;
-        if (existing?.pieces?.length && !rebuiltVisual) return msg;
-
-        const existingHasImages = (existing?.pieces ?? []).some((piece) => piece?.imageUrl);
-        const rebuiltHasImages = (rebuiltVisual?.pieces ?? []).some((piece) => piece?.imageUrl);
-        if (existingHasImages && !rebuiltHasImages) return msg;
-
-        changed = true;
-        return { ...msg, wardrobeVisual: visual };
-      });
-
-      return changed ? next : prev;
-    });
-  }, [wardrobeImageFingerprint, wardrobeItems, user?.subscriptionTier]);
   
   useEffect(() => {
-    isMountedRef.current = true;
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setIsKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setIsKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+  
+  useEffect(() => {
     loadChatHistory();
     loadDailyMessageCount();
     checkAudioPermission();
     return () => {
-      isMountedRef.current = false;
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
-        recordingTimerRef.current = null;
       }
       cancelAnimation(pulseScale);
       waveformBars.forEach((bar) => cancelAnimation(bar));
-      if (isRecordingActiveRef.current) {
-        isRecordingActiveRef.current = false;
-        audioRecorder.stop().catch(() => {});
-      }
+      stopRecording(true);
       stopTTSPlayback();
     };
   }, []);
@@ -1518,10 +1332,8 @@ export default function AIStylistScreen() {
 
   const playTTSAudio = async (text: string) => {
     if (!ttsEnabled || !voiceSettings.ttsEnabled || Platform.OS === 'web') return;
-    if (!hasVoiceCredits && !hasUnlimitedVoice) return;
     
     try {
-      if (!isMountedRef.current) return;
       setIsPlayingTTS(true);
       
       if (ttsPlayerRef.current) {
@@ -1529,7 +1341,7 @@ export default function AIStylistScreen() {
           ttsPlayerRef.current.pause();
           ttsPlayerRef.current.remove();
         } catch {
-          // Player native object may already be released.
+          // Player may already be released.
         }
         ttsPlayerRef.current = null;
       }
@@ -1544,10 +1356,7 @@ export default function AIStylistScreen() {
         language: effectiveLanguage,
       });
 
-      if (!isMountedRef.current) return;
-
       if (response.success && response.audio?.audioBuffer) {
-        refreshVoiceCredits();
         await setAudioModeAsync({
           allowsRecording: false,
           playsInSilentMode: true,
@@ -1561,14 +1370,6 @@ export default function AIStylistScreen() {
         const subscription = player.addListener('playbackStatusUpdate', (status) => {
           if (!status.didJustFinish) return;
           subscription.remove();
-          if (!isMountedRef.current) {
-            try {
-              player.remove();
-            } catch {
-              // ignore
-            }
-            return;
-          }
           setIsPlayingTTS(false);
           try {
             player.remove();
@@ -1583,9 +1384,7 @@ export default function AIStylistScreen() {
       }
     } catch (error) {
       console.log('TTS playback failed:', error);
-      if (isMountedRef.current) {
-        setIsPlayingTTS(false);
-      }
+      setIsPlayingTTS(false);
     }
   };
 
@@ -1596,18 +1395,14 @@ export default function AIStylistScreen() {
           ttsPlayerRef.current.pause();
           ttsPlayerRef.current.remove();
         } catch {
-          // Player native object may already be released.
+          // Player may already be released.
         }
         ttsPlayerRef.current = null;
       }
-      if (isMountedRef.current) {
-        setIsPlayingTTS(false);
-      }
+      setIsPlayingTTS(false);
     } catch (error) {
       console.log('Error stopping TTS:', error);
-      if (isMountedRef.current) {
-        setIsPlayingTTS(false);
-      }
+      setIsPlayingTTS(false);
     }
   };
 
@@ -1728,13 +1523,7 @@ export default function AIStylistScreen() {
         return;
       }
 
-      let uri: string | null = null;
-      try {
-        uri = audioRecorder.uri ?? null;
-      } catch {
-        return;
-      }
-
+      const uri = audioRecorder.uri ?? null;
       const actualDurationSec = Math.ceil(actualDurationMs / 1000);
       const minDurationMs = 300;
 
@@ -1847,18 +1636,12 @@ export default function AIStylistScreen() {
         setDetectedMood(response.mood.mood);
       }
 
-      const assistantMessage = attachWardrobeVisualToMessage(
-        {
-          id: `msg_${Date.now()}_assistant`,
-          role: 'assistant',
-          content: response.content,
-          timestamp: new Date().toISOString(),
-        },
-        messageToSend,
-        response,
-        wardrobeItems,
-        user?.subscriptionTier,
-      );
+      const assistantMessage: ChatMessage = {
+        id: `msg_${Date.now()}_assistant`,
+        role: 'assistant',
+        content: response.content,
+        timestamp: new Date().toISOString(),
+      };
 
       const finalMessages = [...updatedMessages, assistantMessage];
       setMessages(finalMessages);
@@ -1988,7 +1771,7 @@ export default function AIStylistScreen() {
         quality: 0.7,
       });
       
-      if (!result.canceled && result.assets && result.assets[0]) {
+      if (!result.cancelled && result.assets && result.assets[0]) {
         setSelectedImageUri(result.assets[0].uri);
       }
     } catch (error) {
@@ -2125,18 +1908,12 @@ export default function AIStylistScreen() {
         setDetectedMood(response.mood.mood);
       }
       
-      const assistantMessage = attachWardrobeVisualToMessage(
-        {
-          id: `msg_${Date.now()}_assistant`,
-          role: 'assistant',
-          content: response.content,
-          timestamp: new Date().toISOString(),
-        },
-        text.trim(),
-        response,
-        wardrobeItems,
-        user?.subscriptionTier,
-      );
+      const assistantMessage: ChatMessage = {
+        id: `msg_${Date.now()}_assistant`,
+        role: 'assistant',
+        content: response.content,
+        timestamp: new Date().toISOString(),
+      };
       
       const finalMessages = [...updatedMessages, assistantMessage];
       setMessages(finalMessages);
@@ -2203,95 +1980,6 @@ export default function AIStylistScreen() {
 
   const handleQuickPrompt = (prompt: string) => {
     sendMessage(prompt);
-  };
-
-  const handleOccasionOutfitGenerate = async (occasionId: OutfitOccasionId) => {
-    if (!canSendMessage() || generatingOccasionId) return;
-
-    const label = getOccasionLabel(occasionId);
-    const userText = `Create a ${label.toLowerCase()} from my wardrobe`;
-
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-
-    const userMessage: ChatMessage = {
-      id: `msg_${Date.now()}_user`,
-      role: 'user',
-      content: userText,
-      timestamp: new Date().toISOString(),
-    };
-
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    setShowQuickPrompts(false);
-    setGeneratingOccasionId(occasionId);
-    setIsTyping(true);
-
-    await incrementDailyMessages();
-
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-
-    try {
-      const generated = await generateWardrobeOutfit({
-        occasionType: occasionId,
-        wardrobeItems,
-        stylistId: stylist.id,
-        saveToCalendar: false,
-      });
-
-      const content = generated.stylistMessage
-        || `Here's your ${label.toLowerCase()} — styled from pieces you already own.`;
-
-      const wardrobeVisual = wardrobeVisualFromOutfitSuggestion(generated.items);
-      const cappedVisual = wardrobeVisual
-        ? capWardrobeVisualForAccess(wardrobeVisual, user?.subscriptionTier)
-        : null;
-
-      const assistantMessage: ChatMessage = {
-        id: `msg_${Date.now()}_assistant`,
-        role: 'assistant',
-        content,
-        timestamp: new Date().toISOString(),
-        wardrobeVisual: cappedVisual ?? undefined,
-        outfitSuggestion: generated.items.length
-          ? { items: generated.items, occasion: label, reason: '' }
-          : undefined,
-      };
-
-      const finalMessages = [...updatedMessages, assistantMessage];
-      setMessages(finalMessages);
-      await saveChatHistory(finalMessages);
-
-      if (voiceSettings.autoPlayResponses && ttsEnabled) {
-        playTTSAudio(content);
-      }
-
-      if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    } catch (error: unknown) {
-      const message = error instanceof Error
-        ? error.message
-        : 'Unable to generate outfit. Please try again.';
-      const assistantMessage: ChatMessage = {
-        id: `msg_${Date.now()}_assistant`,
-        role: 'assistant',
-        content: message,
-        timestamp: new Date().toISOString(),
-      };
-      const finalMessages = [...updatedMessages, assistantMessage];
-      setMessages(finalMessages);
-      await saveChatHistory(finalMessages);
-    } finally {
-      setGeneratingOccasionId(null);
-      setIsTyping(false);
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
   };
 
   const handleQuickFeedback = async (messageId: string, messageContent: string, helpful: boolean) => {
@@ -2372,274 +2060,9 @@ export default function AIStylistScreen() {
     });
   };
 
-  const renderWardrobeVisual = (message: ChatMessage, label = 'From your wardrobe') => {
-    const visual = normalizeWardrobeVisual(message.wardrobeVisual);
-    if (!visual) {
-      const legacyItems = message.outfitSuggestion?.items;
-      if (!legacyItems?.length) return null;
-      const legacyVisual = wardrobeVisualFromOutfitSuggestion(legacyItems);
-      if (!legacyVisual) return null;
-      return renderWardrobeVisual({ ...message, wardrobeVisual: legacyVisual }, label);
-    }
-
-    if (visual.layout === 'highlight' && visual.pieces?.length === 1) {
-      const piece = visual.pieces[0];
-      const wardrobeItem = wardrobeItems.find((item) => String(item.id) === String(piece.wardrobeItemId));
-      const serverImageUrl = normalizeRemoteApiUrl(piece.imageUrl) || piece.imageUrl;
-      let displayItem: WardrobeItem | null = wardrobeItem ? enrichWardrobeItemForDisplay(wardrobeItem) as WardrobeItem : null;
-
-      if (displayItem && !resolveWardrobeImageUri(displayItem) && serverImageUrl) {
-        displayItem = {
-          ...displayItem,
-          imageUri: serverImageUrl,
-          enhancedImageUri: serverImageUrl,
-          imageProcessed: true,
-        };
-      }
-
-      if (!displayItem && serverImageUrl) {
-        displayItem = {
-          id: String(piece.wardrobeItemId || piece.name),
-          userId: '',
-          imageUri: serverImageUrl,
-          enhancedImageUri: serverImageUrl,
-          imageProcessed: true,
-          category: 'tops',
-          color: 'multicolor',
-          name: piece.name || 'Item',
-          seasons: ['all-season'],
-          occasions: ['everyday'],
-          timesWorn: 0,
-          isFavorite: false,
-          createdAt: '',
-          updatedAt: '',
-        };
-      }
-
-      if (!displayItem) return null;
-
-      return (
-        <View style={styles.wardrobeVisualBlock}>
-          <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
-          <ThemedText style={styles.wardrobeVisualLabel}>{label}</ThemedText>
-          <View style={[styles.wardrobeHighlightFrame, { backgroundColor: isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF' }]}>
-            <WardrobeItemImage
-              item={displayItem}
-              style={styles.wardrobeHighlightImage}
-              processed
-              contentFit="contain"
-              preferCover={false}
-            />
-          </View>
-          <ThemedText style={styles.wardrobeVisualName}>{piece.name}</ThemedText>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.wardrobeVisualBlock}>
-        <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
-        <ThemedText style={styles.wardrobeVisualLabel}>{label}</ThemedText>
-        <OutfitPiecesVisual
-          pieces={visual.pieces ?? []}
-          wardrobeItems={wardrobeItems}
-          label=""
-          large
-          canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
-        />
-      </View>
-    );
-  };
-
-  const renderAssistantContent = (message: ChatMessage, messageIndex: number) => {
-    const priorUser = [...messages.slice(0, messageIndex)].reverse().find((entry) => entry.role === 'user');
-    const outfitCount = inferOutfitCountFromText(message.content);
-
-    let visual = normalizeWardrobeVisual(message.wardrobeVisual);
-    if (!visual && wardrobeItems.length > 0) {
-      visual = normalizeWardrobeVisual(
-        capWardrobeVisualForAccess(
-          buildWardrobeVisualFromChat(
-            priorUser?.content || '',
-            message.content,
-            wardrobeItems,
-            user?.subscriptionTier,
-          ),
-          user?.subscriptionTier,
-        ),
-      );
-    }
-
-    if (outfitCount >= 2 && wardrobeItems.length > 0) {
-      const rebuilt = normalizeWardrobeVisual(
-        capWardrobeVisualForAccess(
-          buildWardrobeVisualFromChat(
-            priorUser?.content || '',
-            message.content,
-            wardrobeItems,
-            user?.subscriptionTier,
-          ),
-          user?.subscriptionTier,
-        ),
-      );
-      if (rebuilt?.layout === 'multi') {
-        visual = rebuilt;
-      }
-    }
-
-    const renderOutfitVisual = (
-      outfit: NonNullable<WardrobeVisualPayload['outfits']>[number],
-      fallbackLabel: string,
-    ) => {
-      if (!outfit.pieces.length) return null;
-      const outfitLabel = outfit.title || fallbackLabel;
-
-      if (outfit.pieces.length === 1) {
-        const piece = outfit.pieces[0];
-        const wardrobeItem = wardrobeItems.find((item) => String(item.id) === String(piece.wardrobeItemId));
-        const displayItem: WardrobeItem | null = wardrobeItem || (piece.imageUrl ? {
-          id: String(piece.wardrobeItemId || piece.name),
-          userId: '',
-          imageUri: piece.imageUrl,
-          enhancedImageUri: piece.imageUrl,
-          imageProcessed: true,
-          category: 'tops',
-          color: 'multicolor',
-          name: piece.name || 'Item',
-          seasons: ['all-season'],
-          occasions: ['everyday'],
-          timesWorn: 0,
-          isFavorite: false,
-          createdAt: '',
-          updatedAt: '',
-        } : null);
-
-        if (!displayItem) return null;
-
-        return (
-          <View style={styles.wardrobeVisualBlock}>
-            <ThemedText style={styles.wardrobeVisualLabel}>{outfitLabel}</ThemedText>
-            <View style={[styles.wardrobeHighlightFrame, { backgroundColor: isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF' }]}>
-              <WardrobeItemImage
-                item={displayItem}
-                style={styles.wardrobeHighlightImage}
-                processed
-                contentFit="contain"
-                preferCover={false}
-              />
-            </View>
-            <ThemedText style={styles.wardrobeVisualName}>{piece.name}</ThemedText>
-          </View>
-        );
-      }
-
-      return (
-        <View style={styles.wardrobeVisualBlock}>
-          <OutfitPiecesVisual
-            pieces={outfit.pieces}
-            wardrobeItems={wardrobeItems}
-            label={outfitLabel}
-            large
-            canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
-          />
-        </View>
-      );
-    };
-
-    if (visual?.layout === 'multi' && visual.outfits && visual.outfits.length >= 2) {
-      const sections = splitIntoOutfitSections(message.content);
-      const outfitBySection = new Map(
-        visual.outfits.map((outfit) => [outfit.sectionIndex, outfit]),
-      );
-      const canInterleave = sections.length >= 2
-        && visual.outfits.some((outfit) => outfitBySection.has(outfit.sectionIndex));
-
-      if (canInterleave) {
-        return (
-          <>
-            {sections.map((section, sectionIndex) => {
-              const outfit = outfitBySection.get(sectionIndex);
-              const outfitNumber = outfit
-                ? visual.outfits!.findIndex((entry) => entry.sectionIndex === sectionIndex) + 1
-                : 0;
-
-              return (
-                <View key={`section-${sectionIndex}`} style={sectionIndex > 0 ? styles.outfitSectionGap : undefined}>
-                  <ThemedText style={styles.messageText}>
-                    {renderMarkdownText(section)}
-                  </ThemedText>
-                  {outfit ? renderOutfitVisual(outfit, `Outfit ${outfitNumber}`) : null}
-                </View>
-              );
-            })}
-          </>
-        );
-      }
-
-      return (
-        <>
-          <ThemedText style={styles.messageText}>
-            {renderMarkdownText(message.content)}
-          </ThemedText>
-          {visual.outfits.map((outfit, index) => (
-            <View key={`outfit-${outfit.sectionIndex}-${index}`}>
-              {renderOutfitVisual(outfit, `Outfit ${index + 1}`)}
-            </View>
-          ))}
-        </>
-      );
-    }
-
-    if (outfitCount >= 2 && visual?.layout !== 'multi' && !(visual?.pieces?.length)) {
-      return (
-        <ThemedText style={styles.messageText}>
-          {renderMarkdownText(message.content)}
-        </ThemedText>
-      );
-    }
-
-    const sections = splitIntoOutfitSections(message.content);
-    const isSingleOutfitWithFollowUp =
-      visual
-      && visual.layout !== 'multi'
-      && (visual.pieces?.length ?? 0) > 0
-      && sections.length >= 2
-      && outfitCount < 2;
-
-    if (isSingleOutfitWithFollowUp) {
-      return (
-        <>
-          <ThemedText style={styles.messageText}>
-            {renderMarkdownText(sections[0])}
-          </ThemedText>
-          {renderWardrobeVisual(
-            { ...message, wardrobeVisual: visual },
-            inferWardrobeVisualLabel(priorUser?.content || ''),
-          )}
-          {sections.slice(1).map((section, sectionIndex) => (
-            <ThemedText key={`follow-up-${sectionIndex}`} style={styles.messageText}>
-              {renderMarkdownText(section)}
-            </ThemedText>
-          ))}
-        </>
-      );
-    }
-
-    return (
-      <>
-        {renderWardrobeVisual(
-          { ...message, wardrobeVisual: visual },
-          inferWardrobeVisualLabel(priorUser?.content || ''),
-        )}
-        <ThemedText style={styles.messageText}>
-          {renderMarkdownText(message.content)}
-        </ThemedText>
-      </>
-    );
-  };
-
   const renderMessage = ({ item, index }: { item: ChatMessage; index: number }) => {
     const isUser = item.role === 'user';
+    const outfitItems = item.outfitSuggestion?.items;
     
     return (
       <View
@@ -2662,25 +2085,17 @@ export default function AIStylistScreen() {
             styles.messageBubble,
             isUser 
               ? [styles.userBubble, { backgroundColor: theme.link }]
-              : [
-                  styles.assistantBubble,
-                  { backgroundColor: theme.backgroundSecondary },
-                  !isUser && messageHasWardrobeVisual(item) ? styles.messageBubbleWardrobe : null,
-                ],
+              : [styles.assistantBubble, { backgroundColor: theme.backgroundSecondary }],
           ]}
         >
-          {isUser ? (
-            <ThemedText
-              style={[
-                styles.messageText,
-                { color: '#FFFFFF' },
-              ]}
-            >
-              {renderMarkdownText(item.content)}
-            </ThemedText>
-          ) : (
-            renderAssistantContent(item, index)
-          )}
+          <ThemedText
+            style={[
+              styles.messageText,
+              isUser ? { color: '#FFFFFF' } : null,
+            ]}
+          >
+            {renderMarkdownText(item.content)}
+          </ThemedText>
           
           {item.imageUri && (
             <Image
@@ -2689,7 +2104,32 @@ export default function AIStylistScreen() {
               resizeMode="cover"
             />
           )}
-
+          
+          {Array.isArray(outfitItems) && outfitItems.length > 0 ? (
+            <View style={styles.outfitSuggestionContainer}>
+              <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
+              <ThemedText style={styles.outfitTitle}>{t('aiStylist.suggestedOutfit')}</ThemedText>
+              <View style={styles.outfitItemsRow}>
+                {outfitItems.slice(0, 4).map((wardrobeItem, itemIndex) => (
+                  <View key={wardrobeItem.id || `${item.id}-outfit-${itemIndex}`} style={styles.outfitItemContainer}>
+                    {wardrobeItem.imageUri ? (
+                      <Image
+                        source={{ uri: wardrobeItem.imageUri }}
+                        style={[styles.outfitItemImage, { backgroundColor: theme.backgroundTertiary }]}
+                      />
+                    ) : (
+                      <View style={[styles.outfitItemPlaceholder, { backgroundColor: theme.backgroundTertiary }]}>
+                        <Feather name="image" size={20} color={theme.tabIconDefault} />
+                      </View>
+                    )}
+                    <ThemedText style={styles.outfitItemName} numberOfLines={1}>
+                      {wardrobeItem.name}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
         </View>
         
         {isUser ? (
@@ -2896,42 +2336,30 @@ export default function AIStylistScreen() {
               ) : null}
             </View>
             <ThemedText style={[styles.headerSubtitle, { color: theme.tabIconDefault }]}>
-              {chatMode === 'voice' ? 'Voice mode — spoken replies' : 'Stylist Chat'}
+              Your Personal Stylist
             </ThemedText>
           </View>
         </View>
         
         <View style={styles.headerActions}>
-          <Pressable
-            onPress={() => setChatMode((m) => (m === 'text' ? 'voice' : 'text'))}
-            style={[styles.ttsButton, chatMode === 'voice' && { backgroundColor: theme.link + '20' }]}
-          >
-            <Feather
-              name={chatMode === 'voice' ? 'message-circle' : 'headphones'}
-              size={20}
-              color={chatMode === 'voice' ? theme.link : theme.tabIconDefault}
-            />
-          </Pressable>
-          {chatMode === 'text' && (
-            isPlayingTTS ? (
-              <Pressable 
-                onPress={stopTTSPlayback} 
-                style={[styles.ttsButton, { backgroundColor: theme.link + '20' }]}
-              >
-                <ActivityIndicator size="small" color={theme.link} />
-              </Pressable>
-            ) : (
-              <Pressable 
-                onPress={() => setTtsEnabled(!ttsEnabled)} 
-                style={styles.ttsButton}
-              >
-                <Feather 
-                  name={ttsEnabled ? "volume-2" : "volume-x"} 
-                  size={20} 
-                  color={ttsEnabled ? theme.link : theme.tabIconDefault} 
-                />
-              </Pressable>
-            )
+          {isPlayingTTS ? (
+            <Pressable 
+              onPress={stopTTSPlayback} 
+              style={[styles.ttsButton, { backgroundColor: theme.link + '20' }]}
+            >
+              <ActivityIndicator size="small" color={theme.link} />
+            </Pressable>
+          ) : (
+            <Pressable 
+              onPress={() => setTtsEnabled(!ttsEnabled)} 
+              style={styles.ttsButton}
+            >
+              <Feather 
+                name={ttsEnabled ? "volume-2" : "volume-x"} 
+                size={20} 
+                color={ttsEnabled ? theme.link : theme.tabIconDefault} 
+              />
+            </Pressable>
           )}
           <Pressable onPress={clearChat} style={styles.clearButton}>
             <Feather name="refresh-cw" size={20} color={theme.tabIconDefault} />
@@ -3001,7 +2429,7 @@ export default function AIStylistScreen() {
           </View>
         </View>
       ) : null}
-      <View style={{ height: Spacing.md }} />
+      <View style={{ height: INPUT_CONTAINER_HEIGHT + (showQuickPrompts && !isTyping && messages.length <= 1 ? 100 : 0) + Spacing.xl }} />
     </>
   );
 
@@ -3087,14 +2515,8 @@ export default function AIStylistScreen() {
       >
         {showQuickPrompts && !isTyping && messages.length <= 1 ? (
           <View style={styles.quickPromptsInline}>
-            <OccasionOutfitChips
-              generatingOccasionId={generatingOccasionId}
-              disabled={!canSendMessage() || Boolean(generatingOccasionId)}
-              onWeatherPress={navigateToWeatherOutfits}
-              onOccasionPress={handleOccasionOutfitGenerate}
-            />
-            <ScrollView
-              horizontal
+            <ScrollView 
+              horizontal 
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.quickPromptsScrollContent}
             >
@@ -3219,41 +2641,13 @@ export default function AIStylistScreen() {
     );
   };
   
-  const handleVoiceExchange = useCallback((exchange: { userText: string; assistantText: string }) => {
-    const now = new Date().toISOString();
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `msg_${Date.now()}_user`,
-        role: 'user',
-        content: exchange.userText,
-        timestamp: now,
-      },
-      {
-        id: `msg_${Date.now()}_assistant`,
-        role: 'assistant',
-        content: exchange.assistantText,
-        timestamp: now,
-      },
-    ]);
-    setShowQuickPrompts(false);
-  }, []);
-
   return (
     <>
-      {chatMode === 'voice' ? (
-        <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-          <View style={{ paddingTop: headerHeight + Spacing.md, paddingHorizontal: Spacing.lg }}>
-            {renderHeader()}
-          </View>
-          <PersonalStylistVoicePanel
-            stylist={stylist}
-            effectiveLanguage={effectiveLanguage}
-            onExchange={handleVoiceExchange}
-          />
-        </View>
-      ) : (
-      <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+      <KeyboardAvoidingView 
+        style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
+      >
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -3264,23 +2658,27 @@ export default function AIStylistScreen() {
           ListFooterComponent={renderFooter}
           contentContainerStyle={[
             styles.listContent,
-            {
+            { 
               paddingTop: headerHeight + Spacing.md,
-              paddingBottom: listBottomInset,
-            },
+              paddingBottom: Spacing.xl
+            }
           ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          automaticallyAdjustKeyboardInsets
           style={styles.flatList}
         />
-        <KeyboardStickyView offset={{ closed: 0, opened: 0 }} style={styles.inputSticky}>
-          <Animated.View style={[inputBottomPadStyle, { backgroundColor: theme.backgroundDefault }]}>
-            {renderInputBar()}
-          </Animated.View>
-        </KeyboardStickyView>
-      </View>
-      )}
+        <View 
+          style={[
+            styles.inputBarFixed, 
+            { 
+              paddingBottom: isKeyboardVisible ? Spacing.xs : tabBarHeight + Spacing.md,
+              backgroundColor: theme.backgroundDefault,
+            }
+          ]}
+        >
+          {renderInputBar()}
+        </View>
+      </KeyboardAvoidingView>
       {renderFeedbackModal()}
     </>
   );
@@ -3293,11 +2691,8 @@ const styles = StyleSheet.create({
   flatList: {
     flex: 1,
   },
-  inputSticky: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+  inputBarFixed: {
+    width: '100%',
   },
   listContent: {
     paddingHorizontal: 0,
@@ -3512,12 +2907,6 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     borderRadius: BorderRadius.lg,
   },
-  messageBubbleWardrobe: {
-    maxWidth: WARDROBE_CHAT_CANVAS_WIDTH + Spacing.lg * 2,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    overflow: 'visible',
-  },
   userBubble: {
     borderBottomRightRadius: Spacing.xs,
   },
@@ -3532,38 +2921,6 @@ const styles = StyleSheet.create({
     width: 200,
     height: 250,
     borderRadius: BorderRadius.md,
-  },
-  wardrobeVisualBlock: {
-    marginBottom: Spacing.md,
-    marginTop: Spacing.sm,
-  },
-  outfitSectionGap: {
-    marginTop: Spacing.md,
-  },
-  wardrobeVisualLabel: {
-    ...Typography.small,
-    fontWeight: '600',
-    marginBottom: Spacing.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  wardrobeHighlightFrame: {
-    borderRadius: BorderRadius.lg,
-    overflow: 'visible',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 280,
-    paddingVertical: Spacing.sm,
-  },
-  wardrobeHighlightImage: {
-    width: '96%',
-    height: 260,
-  },
-  wardrobeVisualName: {
-    ...Typography.small,
-    marginTop: Spacing.sm,
-    textAlign: 'center',
-    fontWeight: '600',
   },
   outfitSuggestionContainer: {
     marginTop: Spacing.md,
