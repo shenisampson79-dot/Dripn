@@ -129,7 +129,10 @@ class SupportService {
     };
   }
 
-  async sendMessage(userMessage: string): Promise<SupportMessage> {
+  async sendMessage(
+    userMessage: string,
+    options?: { fromQuickAction?: boolean },
+  ): Promise<SupportMessage> {
     const userMsg: SupportMessage = {
       id: generateId(),
       role: 'user',
@@ -138,9 +141,12 @@ class SupportService {
     };
     this.chatHistory.push(userMsg);
 
-    const troubleshootingMatch = QUICK_TROUBLESHOOTING.find(
-      t => userMessage.toLowerCase().includes(t.label.toLowerCase().split(' ')[0])
-    );
+    // Only use canned troubleshooting when the user tapped a quick-action chip
+    // (exact label). Fuzzy matching on first words caused false hits — e.g.
+    // "refer the app" matched "App is running slow" because both contain "app".
+    const troubleshootingMatch = options?.fromQuickAction
+      ? QUICK_TROUBLESHOOTING.find(t => t.label === userMessage)
+      : undefined;
 
     let responseContent: string;
 
@@ -168,9 +174,6 @@ class SupportService {
         return this.getMockResponse(userMessage);
       }
 
-      const stylistName = this.stylist?.name || 'Ruby';
-      const personality = this.stylist?.personality || 'warm and helpful';
-
       const chatHistory = this.chatHistory.slice(-10).map(m => ({
         role: m.role,
         content: m.content,
@@ -179,8 +182,8 @@ class SupportService {
       const result = await apiService.sendSupportMessage({
         message: userMessage,
         chatHistory,
-        stylistName,
-        stylistPersonality: personality,
+        stylistName: 'Julia',
+        stylistPersonality: 'julia',
       });
 
       return result.response;
@@ -194,8 +197,17 @@ class SupportService {
     const lowerMessage = userMessage.toLowerCase();
     const signOff = 'Happy to help!';
 
+    if (
+      lowerMessage.includes('referral') ||
+      lowerMessage.includes('refer a friend') ||
+      lowerMessage.includes('refer the app') ||
+      (lowerMessage.includes('refer') && lowerMessage.includes('friend'))
+    ) {
+      return `Great question about referrals! Share your personal code from Settings > Invite Friends.\n\nWhen a friend joins with your code:\n- You earn bonus AI styling requests\n- You get a 10% discount on your subscription\n- Your friend gets +20 styling requests and a 10% welcome discount\n\nTap the gift icon in Settings to share your code. ${signOff}`;
+    }
+
     if (lowerMessage.includes('subscription') || lowerMessage.includes('plan') || lowerMessage.includes('upgrade')) {
-      return `Great question about subscriptions! Dripn offers two tiers:\n\n- **Free**: Basic features with limited AI advice\n- **Premium (Personal Stylist)**: Unlimited features, priority support, video sessions with stylists, and exclusive trend insights\n\nYou can upgrade anytime in Settings > Subscription. ${signOff}`;
+      return `Dripn has three tiers:\n\n- **Free**: Try the stylist — limited daily decisions and wardrobe items\n- **Personal Stylist** (~$9.99/mo): Unlimited daily decisions, more wardrobe space, AI chat, voice comments\n- **Stylist Unlimited** (~$19.99/mo): Everything unlimited — outfit calendar, event planning, priority support\n\nSee current pricing in Settings > Subscription. ${signOff}`;
     }
 
     if (lowerMessage.includes('stylist') || lowerMessage.includes('video call')) {

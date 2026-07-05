@@ -41,6 +41,8 @@ import { PersonalStylist } from '@/services/PersonalStylistService';
 import { currencyService } from '@/services/CurrencyService';
 
 const INPUT_CONTAINER_HEIGHT = 80;
+const INPUT_MIN_HEIGHT = 44;
+const INPUT_MAX_HEIGHT = 120;
 
 export default function SupportScreen() {
   const { theme } = useTheme();
@@ -52,6 +54,7 @@ export default function SupportScreen() {
 
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [inputText, setInputText] = useState('');
+  const [inputHeight, setInputHeight] = useState(INPUT_MIN_HEIGHT);
   const [isLoading, setIsLoading] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -107,6 +110,7 @@ export default function SupportScreen() {
 
     const userMessage = inputText.trim();
     setInputText('');
+    setInputHeight(INPUT_MIN_HEIGHT);
     setShowQuickActions(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -149,7 +153,9 @@ export default function SupportScreen() {
 
     setIsLoading(true);
     try {
-      const response = await supportService.sendMessage(action.label);
+      const response = await supportService.sendMessage(action.label, {
+        fromQuickAction: true,
+      });
       setMessages(prev => [...prev, response]);
       scrollToEnd();
     } catch (error) {
@@ -488,7 +494,7 @@ export default function SupportScreen() {
         renderItem={renderMessage}
         contentContainerStyle={[
           styles.messagesList,
-          { paddingBottom: Spacing.xl },
+          { paddingBottom: Math.max(Spacing.xl, inputHeight + Spacing.lg) },
         ]}
         showsVerticalScrollIndicator={false}
         onContentSizeChange={scrollToEnd}
@@ -535,15 +541,20 @@ export default function SupportScreen() {
               {
                 backgroundColor: theme.backgroundSecondary,
                 color: theme.text,
+                height: Math.max(INPUT_MIN_HEIGHT, Math.min(inputHeight, INPUT_MAX_HEIGHT)),
               },
             ]}
             placeholder="Type your message..."
             placeholderTextColor={theme.tabIconDefault}
             value={inputText}
             onChangeText={setInputText}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-            multiline={false}
+            onContentSizeChange={(e) => {
+              setInputHeight(e.nativeEvent.contentSize.height);
+            }}
+            multiline
+            blurOnSubmit={false}
+            scrollEnabled={inputHeight >= INPUT_MAX_HEIGHT}
+            textAlignVertical="top"
           />
           <Pressable
             onPress={handleSend}
@@ -686,7 +697,7 @@ const styles = StyleSheet.create({
   },
   inputRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.md,
     gap: Spacing.sm,
@@ -708,9 +719,12 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 44,
+    minHeight: INPUT_MIN_HEIGHT,
+    maxHeight: INPUT_MAX_HEIGHT,
     borderRadius: 22,
     paddingHorizontal: Spacing.lg,
+    paddingTop: Platform.OS === 'ios' ? 12 : 10,
+    paddingBottom: Platform.OS === 'ios' ? 12 : 10,
     fontSize: Typography.body.fontSize,
   },
   sendButton: {
