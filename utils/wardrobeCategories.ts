@@ -247,11 +247,11 @@ export const WARDROBE_CATEGORY_TABS: WardrobeCategoryTab[] = [
   { key: 'dresses', icon: 'human-female', iconSet: 'material', translationKey: 'wardrobe.categoryDresses' },
   { key: 'outerwear', icon: 'cloud', iconSet: 'feather', translationKey: 'wardrobe.categoryOuterwear' },
   { key: 'shoes', icon: 'shoe-formal', iconSet: 'material', translationKey: 'wardrobe.categoryShoes' },
-  { key: 'bags', icon: 'briefcase', iconSet: 'material', translationKey: 'wardrobe.categoryBags' },
-  { key: 'accessories', icon: 'watch', iconSet: 'material', translationKey: 'wardrobe.categoryAccessories' },
   { key: 'activewear_tops', icon: 'run-fast', iconSet: 'material', translationKey: 'wardrobe.categoryActivewearTops' },
   { key: 'activewear_bottoms', icon: 'run', iconSet: 'material', translationKey: 'wardrobe.categoryActivewearBottoms' },
   { key: 'formal', icon: 'bow-tie', iconSet: 'material', translationKey: 'wardrobe.categoryFormal' },
+  { key: 'bags', icon: 'briefcase', iconSet: 'material', translationKey: 'wardrobe.categoryBags' },
+  { key: 'accessories', icon: 'watch', iconSet: 'material', translationKey: 'wardrobe.categoryAccessories' },
 ];
 
 export function getWardrobeCategoryTabs(gender: PresentationGender): WardrobeCategoryTab[] {
@@ -273,12 +273,12 @@ export function getManualAddCategoryTabs(gender: PresentationGender): Array<{
     ...(isMale ? [] : [{ key: 'dresses' as ClothingCategory, icon: 'human-female', iconSet: 'material' as const }]),
     { key: 'outerwear', icon: 'cloud', iconSet: 'feather' },
     { key: 'shoes', icon: isMale ? 'shoe-formal' : 'shoe-heel', iconSet: 'material' },
-    { key: 'bags', icon: isMale ? 'briefcase' : 'bag-personal', iconSet: 'material' },
-    { key: 'accessories', icon: isMale ? 'watch' : 'necklace', iconSet: 'material' },
     { key: 'activewear_tops', icon: 'run-fast', iconSet: 'material' },
     { key: 'activewear_bottoms', icon: 'dumbbell', iconSet: 'material' },
+    { key: 'formal', icon: 'bow-tie', iconSet: 'material' },
+    { key: 'bags', icon: isMale ? 'briefcase' : 'bag-personal', iconSet: 'material' },
+    { key: 'accessories', icon: isMale ? 'watch' : 'necklace', iconSet: 'material' },
     { key: 'swimwear', icon: 'swim', iconSet: 'material' },
     { key: 'sleepwear', icon: 'bed', iconSet: 'material' },
-    { key: 'formal', icon: 'bow-tie', iconSet: 'material' },
   ];
 }
