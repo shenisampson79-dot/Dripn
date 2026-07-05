@@ -56,15 +56,6 @@ const getFeatures = (t: any): StylistFeature[] => [
     category: "stylist",
   },
   {
-    id: "voice-chat",
-    title: t?.stylistHub?.voiceChat || "Voice Chat",
-    description: t?.stylistHub?.voiceChatDesc || "Talk to Ruby or Max",
-    icon: "headphones",
-    screen: "VoiceConversation",
-    gradientKey: "accent",
-    category: "stylist",
-  },
-  {
     id: "outfit-calendar",
     title: t?.stylistHub?.outfitCalendar || "Outfit Calendar",
     description: t?.stylistHub?.outfitCalendarDesc || "Plan your looks ahead",
@@ -106,7 +97,7 @@ const getFeatures = (t: any): StylistFeature[] => [
     description: "Discover your palette",
     icon: "droplet",
     screen: "ColourInsights",
-    gradientKey: "jewel",
+    gradientKey: "accent",
     category: "tools",
   },
 ];
@@ -120,7 +111,7 @@ const getGradientColors = (key: GradientKey, palette: any): readonly [string, st
     accent: palette.gradientAccent,
     warm: palette.gradientWarm,
     cool: palette.gradientCool,
-    jewel: ['#9B7EBD', '#6B4E8D'],
+    jewel: palette.gradientJewel ?? palette.gradientAccent,
   };
   return gradientMap[key];
 };
@@ -142,12 +133,12 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
         if (stored) {
           setTilesOrder(JSON.parse(stored));
         } else {
-          const defaultOrder = ["ai-stylist", "voice-chat", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules"];
+          const defaultOrder = ["ai-stylist", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules", "colour-insights"];
           setTilesOrder(defaultOrder);
         }
       } catch (error) {
         console.error("Failed to load tiles order:", error);
-        const defaultOrder = ["ai-stylist", "voice-chat", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules"];
+        const defaultOrder = ["ai-stylist", "outfit-calendar", "weather-outfit", "fashion-blog", "style-rules", "colour-insights"];
         setTilesOrder(defaultOrder);
       }
     };
