@@ -240,6 +240,11 @@ export async function hydrateUserProfileAfterAuth(
 
   merged = applyOnboardingProfile(merged, onboardingProfile);
 
+  const mappedGender = mapServerGenderToAppGender(merged.gender as string | null | undefined);
+  if (mappedGender) {
+    merged.gender = mappedGender;
+  }
+
   merged.id = baseProfile.id;
   if (options.preserveLocalEmail) {
     merged.email = options.preserveLocalEmail;
