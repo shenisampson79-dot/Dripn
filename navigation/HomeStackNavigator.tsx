@@ -5,7 +5,7 @@ import PostDetailScreen from "@/screens/PostDetailScreen";
 import SubscriptionScreen from "@/screens/SubscriptionScreen";
 import { HeaderTitle } from "@/components/HeaderTitle";
 import { useTheme } from "@/hooks/useTheme";
-import { getCommonScreenOptions } from "@/navigation/screenOptions";
+import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 
 export type HomeStackParamList = {
   Home: undefined;
@@ -41,11 +41,7 @@ export default function HomeStackNavigator() {
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
-        options={{
-          title: "Subscription",
-          headerShown: false,
-          presentation: "modal",
-        }}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: "Subscription" })}
       />
     </Stack.Navigator>
   );

@@ -37,7 +37,7 @@ import AdminDashboardScreen from "@/screens/AdminDashboardScreen";
 import AnalyticsDashboard from "@/screens/AnalyticsDashboard";
 import FeedbackScreen from "@/screens/FeedbackScreen";
 import { useTheme } from "@/hooks/useTheme";
-import { getCommonScreenOptions } from "@/navigation/screenOptions";
+import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
 import type { SubscriptionTier } from "@/contexts/AuthContext";
 
@@ -119,10 +119,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
-        options={{
-          title: "Subscription",
-          headerShown: false,
-        }}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: "Subscription" })}
       />
       <Stack.Screen
         name="SubscriptionSuccess"
@@ -151,10 +148,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
       <Stack.Screen
         name="StyleExplorer"
         component={StyleExplorerScreen}
-        options={{
-          title: "Explore Styles",
-          headerShown: false,
-        }}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: "Style Theme" })}
       />
       <Stack.Screen
         name="PrivacyPolicy"
@@ -224,10 +218,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
       <Stack.Screen
         name="Support"
         component={SupportScreen}
-        options={{
-          title: "Support",
-          headerShown: false,
-        }}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: "Chat with Julia" })}
       />
       <Stack.Screen
         name="FeatureSuggestions"
@@ -388,10 +379,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
       <Stack.Screen
         name="Feedback"
         component={FeedbackScreen}
-        options={{
-          title: "Send Feedback",
-          headerShown: false,
-        }}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: "Send Feedback" })}
       />
     </Stack.Navigator>
   );

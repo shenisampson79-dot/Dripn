@@ -188,14 +188,6 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
         style={StyleSheet.absoluteFill}
       />
       <ScreenKeyboardAwareScrollView style={{ backgroundColor: 'transparent' }}>
-        <View style={styles.header}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Feather name="chevron-left" size={24} color="#FFFFFF" />
-          </Pressable>
-          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>Send Feedback</ThemedText>
-          <View style={{ width: 40 }} />
-        </View>
-
         <View style={styles.introSection}>
           <ThemedText type="body" style={styles.introText}>
             Help us improve Dripn! Your feedback is invaluable for making the app better for everyone.
@@ -357,21 +349,6 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.md,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   introSection: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,

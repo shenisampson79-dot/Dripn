@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, Alert } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeOut, SlideInRight, SlideOutLeft } from "react-native-reanimated";
@@ -12,6 +11,7 @@ import { Card } from "@/components/Card";
 import { LinearGradient } from "expo-linear-gradient";
 import { Spacing, BorderRadius, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useScreenInsets } from "@/hooks/useScreenInsets";
 import { useAuth, Gender } from "@/contexts/AuthContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
@@ -290,7 +290,7 @@ type StyleExplorerScreenProps = {
 };
 
 export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenProps) {
-  const insets = useSafeAreaInsets();
+  const { paddingTop, paddingBottom } = useScreenInsets();
   const { theme } = useTheme();
   const { user, updateProfile } = useAuth();
   
@@ -334,15 +334,7 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
   };
 
   return (
-    <ThemedView style={[styles.container, { paddingTop: insets.top + Spacing.md }]}>
-      <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={theme.text} />
-        </Pressable>
-        <ThemedText type="h2" style={styles.headerTitle}>Explore Styles</ThemedText>
-        <View style={styles.backButton} />
-      </View>
-      
+    <ThemedView style={[styles.container, { paddingTop }]}>
       <ThemedText type="body" style={styles.subtitle}>
         Discover and switch to a style that matches your vibe
       </ThemedText>
@@ -441,7 +433,7 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
         </Animated.View>
       </ScrollView>
       
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
+      <View style={[styles.footer, { paddingBottom }]}>
         {selectedStyle === user?.stylePreference ? (
           <View style={[styles.currentStyleBanner, { backgroundColor: theme.backgroundSecondary }]}>
             <Feather name="check-circle" size={20} color={theme.link} />
@@ -465,22 +457,6 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    textAlign: "center",
   },
   subtitle: {
     textAlign: "center",

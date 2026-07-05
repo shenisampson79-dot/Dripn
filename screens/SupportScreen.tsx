@@ -25,7 +25,6 @@ import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
-import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TAB_BAR_HEIGHT = 56;
@@ -50,7 +49,6 @@ export default function SupportScreen() {
   const { paddingTop, paddingBottom } = useScreenInsets();
   const safeAreaInsets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
-  const navigation = useNavigation();
 
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -455,16 +453,6 @@ export default function SupportScreen() {
     >
       <View style={styles.headerContainer}>
         <View style={styles.headerLeft}>
-          <Pressable 
-            onPress={() => navigation.goBack()} 
-            hitSlop={12}
-            style={({ pressed }) => [
-              styles.backButton,
-              { opacity: pressed ? 0.7 : 1 }
-            ]}
-          >
-            <Feather name="arrow-left" size={24} color={theme.text} />
-          </Pressable>
           {stylist ? (
             <View
               style={[
@@ -603,10 +591,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-  },
-  backButton: {
-    padding: Spacing.xs,
-    marginRight: Spacing.sm,
   },
   headerAvatar: {
     width: 44,

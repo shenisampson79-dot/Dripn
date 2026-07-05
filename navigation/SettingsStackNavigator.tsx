@@ -20,7 +20,7 @@ import DFYComparisonScreen from "@/screens/DFYComparisonScreen";
 import DFYStylePlanScreen from "@/screens/DFYStylePlanScreen";
 import AnalyticsDashboard from "@/screens/AnalyticsDashboard";
 import { useTheme } from "@/hooks/useTheme";
-import { getCommonScreenOptions } from "@/navigation/screenOptions";
+import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
 
 export type SettingsStackParamList = {
@@ -82,10 +82,7 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
-        options={{
-          title: "Subscription",
-          headerShown: false,
-        }}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: "Subscription" })}
       />
       <Stack.Screen
         name="EditProfile"
@@ -97,10 +94,7 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
       <Stack.Screen
         name="StyleExplorer"
         component={StyleExplorerScreen}
-        options={{
-          title: "Explore Styles",
-          headerShown: false,
-        }}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: "Style Theme" })}
       />
       <Stack.Screen
         name="LogoPreview"
@@ -122,10 +116,7 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
       <Stack.Screen
         name="Support"
         component={SupportScreen}
-        options={{
-          title: "Support",
-          headerShown: false,
-        }}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: "Chat with Julia" })}
       />
       <Stack.Screen
         name="FeatureSuggestions"
@@ -168,10 +159,7 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
       <Stack.Screen
         name="Feedback"
         component={FeedbackScreen}
-        options={{
-          title: "Send Feedback",
-          headerShown: false,
-        }}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: "Send Feedback" })}
       />
       <Stack.Screen
         name="CommunityVoting"

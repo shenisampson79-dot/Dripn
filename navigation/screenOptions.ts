@@ -34,3 +34,14 @@ export const getCommonScreenOptions = ({
     backgroundColor: theme.backgroundRoot,
   },
 });
+
+/** Standard stack header for screens opened from Settings (matches Edit Profile). */
+export const getSettingsChildScreenOptions = ({
+  theme,
+  isDark,
+  title,
+}: ScreenOptionsParams & { title: string }): NativeStackNavigationOptions => ({
+  ...getCommonScreenOptions({ theme, isDark }),
+  title,
+  headerShown: true,
+});
