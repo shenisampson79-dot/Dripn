@@ -14,7 +14,14 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { WardrobeItemImage } from "@/components/WardrobeItemImage";
-import { wardrobeImageBackground } from "@/utils/wardrobeImage";
+import { onboardingProfileService, type OnboardingProfile } from '@/services/OnboardingProfileService';
+import {
+  countItemsForWardrobeCategory,
+  getWardrobeCategoryTabs,
+  itemMatchesWardrobeCategory,
+  resolveUserPresentationGender,
+} from '@/utils/wardrobeCategories';
+import { isDurableWardrobeCdnUrl, isProxyWardrobeImageUri, wardrobeProcessedTileBackground, wardrobeTileBackground } from "@/utils/wardrobeImage";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
@@ -33,9 +40,16 @@ import { useTranslations } from "@/contexts/TranslationContext";
 import { dfyService, DFYAccessStatus } from "@/services/DFYService";
 import apiService from "@/services/ApiService";
 import type { WardrobeStackParamList } from "@/navigation/WardrobeStackNavigator";
+import { OccasionPickerList } from '@/components/outfit/OccasionPickerList';
+import { GeneratedOutfitModal, type GeneratedOutfitModalData } from '@/components/outfit/GeneratedOutfitModal';
+import type { OutfitOccasionId } from '@/constants/outfitOccasions';
+import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const ITEM_SIZE = (SCREEN_WIDTH - Spacing.xl * 2 - Spacing.md) / 2;
+const GRID_GAP = Spacing.md;
+const ITEM_WIDTH = (SCREEN_WIDTH - Spacing.lg * 2 - GRID_GAP) / 2;
+const ITEM_HEIGHT = Math.round(ITEM_WIDTH * 1.34);
+const TAB_BAR_HEIGHT = 56;
 
 const getMinimalistCategoryColors = (): Record<string, { gradient: readonly [string, string]; icon: string }> => ({
   'all': { gradient: ['#C9A87C', '#A88B5C'] as const, icon: 'grid' },
@@ -69,31 +83,13 @@ type WardrobeScreenProps = {
   navigation: NativeStackNavigationProp<WardrobeStackParamList, "Wardrobe">;
 };
 
-const CATEGORY_KEYS: Array<{ key: ClothingCategory | 'all'; icon: string; iconSet: 'feather' | 'material'; translationKey: string }> = [
-  { key: 'all', icon: 'grid', iconSet: 'feather', translationKey: 'wardrobe.categoryAll' },
-  { key: 'tops', icon: 'tshirt-crew', iconSet: 'material', translationKey: 'wardrobe.categoryTops' },
-  { key: 'bottoms', icon: 'layers', iconSet: 'feather', translationKey: 'wardrobe.categoryBottoms' },
-  { key: 'dresses', icon: 'human-female', iconSet: 'material', translationKey: 'wardrobe.categoryDresses' },
-  { key: 'outerwear', icon: 'cloud', iconSet: 'feather', translationKey: 'wardrobe.categoryOuterwear' },
-  { key: 'shoes', icon: 'shoe-formal', iconSet: 'material', translationKey: 'wardrobe.categoryShoes' },
-  { key: 'bags', icon: 'briefcase', iconSet: 'material', translationKey: 'wardrobe.categoryBags' },
-  { key: 'accessories', icon: 'watch', iconSet: 'material', translationKey: 'wardrobe.categoryAccessories' },
-  { key: 'activewear_tops', icon: 'run-fast', iconSet: 'material', translationKey: 'wardrobe.categoryActivewearTops' },
-  { key: 'activewear_bottoms', icon: 'run', iconSet: 'material', translationKey: 'wardrobe.categoryActivewearBottoms' },
-  { key: 'formal', icon: 'bow-tie', iconSet: 'material', translationKey: 'wardrobe.categoryFormal' },
-];
-
 export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { colorScheme, palette } = useColorScheme();
   const { translations, t } = useTranslations();
-  const ALL_CATEGORY_OPTIONS = useMemo(
-    () => CATEGORY_KEYS.map(({ key, icon, iconSet, translationKey }) => ({ key, icon, iconSet, label: t(translationKey) })),
-    [t]
-  );
-  const { items, isLoading, deleteItem, toggleItemFavorite, markItemWorn, updateItem, reloadWardrobe } = useWardrobe();
+  const { items, isLoading, deleteItem, deleteItems, toggleItemFavorite, markItemWorn, updateItem, reloadWardrobe, fixBackgroundsFromCache, wardrobePhotosUnavailable, backgroundRemovalProgress } = useWardrobe();
   
   const CATEGORY_COLORS = colorScheme === 'minimalist' 
     ? getMinimalistCategoryColors() 
@@ -120,12 +116,45 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const [showGeneratedOutfitModal, setShowGeneratedOutfitModal] = useState(false);
   const [isGeneratingOutfit, setIsGeneratingOutfit] = useState(false);
   const [generatingOccasion, setGeneratingOccasion] = useState<string | null>(null);
-  const [generatedOutfit, setGeneratedOutfit] = useState<any>(null);
+  const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfitModalData | null>(null);
   const [isReprocessingBg, setIsReprocessingBg] = useState(false);
   const [isReprocessingAll, setIsReprocessingAll] = useState(false);
   const [batchBgProgress, setBatchBgProgress] = useState<{ processed: number; total: number; failed: number } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [onboardingProfile, setOnboardingProfile] = useState<OnboardingProfile | null>(null);
   const bgPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const presentationGender = useMemo(
+    () => resolveUserPresentationGender(user, onboardingProfile),
+    [user, onboardingProfile],
+  );
+
+  const CATEGORY_OPTIONS = useMemo(
+    () =>
+      getWardrobeCategoryTabs(presentationGender).map(({ key, icon, iconSet, translationKey }) => ({
+        key,
+        icon,
+        iconSet,
+        label: t(translationKey),
+      })),
+    [presentationGender, t],
+  );
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const option of CATEGORY_OPTIONS) {
+      counts[option.key] = countItemsForWardrobeCategory(items, option.key, presentationGender);
+    }
+    return counts;
+  }, [CATEGORY_OPTIONS, items, presentationGender]);
+
+  const filteredItems = useMemo(
+    () => items.filter((item) => itemMatchesWardrobeCategory(item, selectedCategory, presentationGender)),
+    [items, selectedCategory, presentationGender],
+  );
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -191,6 +220,30 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
 
   useFocusEffect(
     useCallback(() => {
+      onboardingProfileService.getProfile().then(async (profile) => {
+        if (!profile.quizGender && user?.gender === 'man') {
+          const updated = await onboardingProfileService.saveProfile({ quizGender: 'male' });
+          setOnboardingProfile(updated);
+        } else if (!profile.quizGender && user?.gender === 'woman') {
+          const updated = await onboardingProfileService.saveProfile({ quizGender: 'female' });
+          setOnboardingProfile(updated);
+        } else {
+          setOnboardingProfile(profile);
+        }
+      }).catch(() => {});
+
+      apiService.fetchStyleProfile().then(async (styleProfile) => {
+        const raw = String(styleProfile?.gender || '').toLowerCase();
+        if (!raw) return;
+        const profile = await onboardingProfileService.getProfile();
+        if (profile.quizGender) return;
+        if (['man', 'male', 'men', 'm'].includes(raw)) {
+          setOnboardingProfile(await onboardingProfileService.saveProfile({ quizGender: 'male' }));
+        } else if (['woman', 'female', 'women', 'f'].includes(raw)) {
+          setOnboardingProfile(await onboardingProfileService.saveProfile({ quizGender: 'female' }));
+        }
+      }).catch(() => {});
+
       const loadDFYAccess = async () => {
         if (user?.id) {
           const access = await dfyService.getDFYAccessStatus(user.id);
@@ -215,16 +268,14 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         .catch(() => {});
 
       return () => stopBgPolling();
-    }, [user?.id, startBgPolling, stopBgPolling, reloadWardrobe])
+    }, [user?.id, user?.gender, startBgPolling, stopBgPolling, reloadWardrobe])
   );
 
-  const CATEGORY_OPTIONS = user?.gender === 'man' 
-    ? ALL_CATEGORY_OPTIONS.filter(cat => cat.key !== 'dresses')
-    : ALL_CATEGORY_OPTIONS;
-
-  const filteredItems = selectedCategory === 'all' 
-    ? items 
-    : items.filter(item => item.category === selectedCategory);
+  useEffect(() => {
+    if (selectedCategory === 'dresses' && presentationGender === 'male') {
+      setSelectedCategory('all');
+    }
+  }, [presentationGender, selectedCategory]);
 
   const handleAddItem = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -254,6 +305,33 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       } catch (_) {}
     }
     setShowAIOutfitModal(true);
+  };
+
+  const handleOccasionOutfitGenerate = async (occasionId: OutfitOccasionId) => {
+    try {
+      setIsGeneratingOutfit(true);
+      setGeneratingOccasion(occasionId);
+      const generated = await generateWardrobeOutfit({
+        occasionType: occasionId,
+        wardrobeItems: items,
+        stylistId: user?.stylistPreferences?.selectedStylistId || 'ruby',
+        saveToCalendar: true,
+        calendarDate: new Date().toISOString().split('T')[0],
+      });
+      setGeneratedOutfit({
+        items: generated.items,
+        stylistMessage: generated.stylistMessage,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowAIOutfitModal(false);
+      setShowGeneratedOutfitModal(true);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unable to generate outfit. Please try again.';
+      Alert.alert('Generation Failed', message);
+    } finally {
+      setIsGeneratingOutfit(false);
+      setGeneratingOccasion(null);
+    }
   };
 
   const handleItemPress = (item: WardrobeItem) => {
@@ -349,48 +427,109 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const handleReprocessAllBackgrounds = () => {
     Alert.alert(
       'Fix All Backgrounds',
-      'This removes backgrounds from all items that still need it. Processing runs in the background (several items at once) — you can keep using the app and pull to refresh to see updates.',
+      'This uploads photos from your device, removes backgrounds, and applies a white backdrop. It may take a few minutes for many items.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Fix All',
           onPress: async () => {
             setIsReprocessingAll(true);
-            setBatchBgProgress(null);
+            setBatchBgProgress({ processed: 0, total: items.length, failed: 0 });
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
             try {
-              const result = await apiService.reprocessAllBackgrounds();
-              if (result.success) {
-                if (result.message && !result.started && !result.inProgress && result.total === 0) {
-                  setIsReprocessingAll(false);
-                  Alert.alert('Done', result.message);
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  return;
-                }
-
-                if (result.inProgress) {
-                  setBatchBgProgress({
-                    processed: result.processed + result.failed,
-                    total: result.total,
-                    failed: result.failed,
-                  });
-                  startBgPolling();
-                  Alert.alert(
-                    'Processing started',
-                    result.message || `Processing ${result.total} items in the background.`
-                  );
-                }
+              const result = await fixBackgroundsFromCache((progress) => {
+                setBatchBgProgress(progress);
+              });
+              setBatchBgProgress({
+                processed: result.fixed + result.failed,
+                total: result.fixed + result.failed + result.skipped,
+                failed: result.failed,
+              });
+              await reloadWardrobe();
+              if (result.fixed > 0) {
+                Alert.alert(
+                  'Backgrounds updated',
+                  `Removed backgrounds on ${result.fixed} item${result.fixed !== 1 ? 's' : ''}.${result.failed > 0 ? ` ${result.failed} could not be processed (photo unreadable or AI service error).` : ''}${result.noLocal > 0 ? ` ${result.noLocal} skipped — no photo on this device.` : ''}`
+                );
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              } else if (result.failed > 0) {
+                Alert.alert(
+                  'Background removal unavailable',
+                  'Could not remove backgrounds. The server may need Replicate configured — try again later or contact support.'
+                );
+              } else if (result.noLocal > 0 || (result.fixed === 0 && result.failed === 0)) {
+                Alert.alert(
+                  'Photos need to be re-added',
+                  `The original photos are not on this phone anymore, and the server copies have expired (${result.noLocal} item${result.noLocal !== 1 ? 's' : ''}).\n\nTap + at the bottom, open an item, and add a new photo — or delete and re-add each piece.`
+                );
+              } else {
+                Alert.alert('Done', 'All items already have processed backgrounds.');
               }
             } catch (error) {
+              Alert.alert('Error', 'Failed to process backgrounds. Please try again.');
+            } finally {
               setIsReprocessingAll(false);
               setBatchBgProgress(null);
-              Alert.alert('Error', 'Failed to process backgrounds. Please try again.');
             }
           },
         },
       ]
     );
   };
+
+  const exitSelectionMode = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const toggleItemSelection = useCallback((id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAllVisible = useCallback(() => {
+    const visibleIds = filteredItems.map((item) => String(item.id));
+    setSelectedIds((prev) => {
+      const allSelected = visibleIds.every((id) => prev.has(id));
+      if (allSelected) return new Set();
+      return new Set(visibleIds);
+    });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, [filteredItems]);
+
+  const handleBulkDelete = useCallback(() => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    Alert.alert(
+      'Delete Items',
+      `Delete ${ids.length} item${ids.length !== 1 ? 's' : ''} from your wardrobe? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setIsBulkDeleting(true);
+            try {
+              await deleteItems(ids);
+              exitSelectionMode();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } catch {
+              Alert.alert('Error', 'Failed to delete items. Please try again.');
+            } finally {
+              setIsBulkDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [selectedIds, deleteItems, exitSelectionMode]);
 
   const renderCategoryTab = useCallback(({ item }: { item: typeof CATEGORY_OPTIONS[0] }) => {
     const isSelected = selectedCategory === item.key;
@@ -417,7 +556,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               <Feather name={item.icon as any} size={14} color="#FFFFFF" />
             )}
             <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-              {item.label}
+              {item.label} ({categoryCounts[item.key] ?? 0})
             </ThemedText>
           </LinearGradient>
         ) : (
@@ -427,66 +566,90 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             ) : (
               <Feather name={item.icon as any} size={14} color={theme.tabIconDefault} />
             )}
-            <ThemedText type="caption">{item.label}</ThemedText>
+            <ThemedText type="caption">
+              {item.label} ({categoryCounts[item.key] ?? 0})
+            </ThemedText>
           </View>
         )}
       </Pressable>
     );
-  }, [selectedCategory, theme, isDark]);
+  }, [selectedCategory, theme, isDark, categoryCounts]);
 
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
-    const hasProcessedImage = item.imageProcessed || item.aiAnalyzed;
+    const hasProcessedImage = item.imageProcessed === true;
     const categoryColors = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['all'];
-    const imageBackground = wardrobeImageBackground(isDark, item);
+    const tileBackground = hasProcessedImage
+      ? wardrobeProcessedTileBackground()
+      : wardrobeTileBackground(isDark);
+    const isSelected = selectedIds.has(String(item.id));
     
     return (
       <Pressable
-        onPress={() => handleItemPress(item)}
+        onPress={() => {
+          if (selectionMode) {
+            toggleItemSelection(String(item.id));
+          } else {
+            handleItemPress(item);
+          }
+        }}
+        onLongPress={() => {
+          if (!selectionMode) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            setSelectionMode(true);
+            setSelectedIds(new Set([String(item.id)]));
+          }
+        }}
         style={({ pressed }) => [
           styles.itemCard,
           {
             opacity: pressed ? 0.9 : 1,
             transform: [{ scale: pressed ? 0.98 : 1 }],
+            borderWidth: selectionMode && isSelected ? 3 : 0,
+            borderColor: selectionMode && isSelected ? LUXURY_COLORS.gold : 'transparent',
           },
         ]}
       >
-        <View style={[styles.itemImageWrapper, imageBackground ? { backgroundColor: imageBackground } : null]}>
+        <View style={[styles.itemImageWrapper, { backgroundColor: tileBackground }]}>
           <WardrobeItemImage
             item={item}
             style={styles.itemImage}
             processed={hasProcessedImage}
-            transition={200}
+            preferCover={!hasProcessedImage}
+            showLoading
+            transition={280}
+            tileBackgroundColor={tileBackground}
           />
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.6)']}
-            style={styles.itemOverlay}
-          />
-          <View style={styles.itemInfoOverlay}>
-            <ThemedText type="caption" numberOfLines={1} style={styles.itemNameOverlay}>
-              {item.name}
-            </ThemedText>
-            <ThemedText type="caption" style={styles.itemWornText}>
-              Worn {item.timesWorn}x
-            </ThemedText>
+          {selectionMode ? (
+            <View style={[styles.selectionBadge, isSelected ? styles.selectionBadgeActive : null]}>
+              {isSelected ? <Feather name="check" size={14} color="#FFFFFF" /> : null}
+            </View>
+          ) : null}
+          {item.isFavorite ? (
+            <LinearGradient
+              colors={[LUXURY_COLORS.rose, LUXURY_COLORS.coral]}
+              style={styles.favoriteIndicator}
+            >
+              <Feather name="heart" size={10} color="#FFFFFF" />
+            </LinearGradient>
+          ) : null}
+          <View style={styles.categoryIndicator}>
+            <LinearGradient
+              colors={categoryColors.gradient}
+              style={styles.categoryDot}
+            />
           </View>
         </View>
-        {item.isFavorite ? (
-          <LinearGradient
-            colors={[LUXURY_COLORS.rose, LUXURY_COLORS.coral]}
-            style={styles.favoriteIndicator}
-          >
-            <Feather name="heart" size={10} color="#FFFFFF" />
-          </LinearGradient>
-        ) : null}
-        <View style={styles.categoryIndicator}>
-          <LinearGradient
-            colors={categoryColors.gradient}
-            style={styles.categoryDot}
-          />
+        <View style={styles.itemMeta}>
+          <ThemedText type="small" numberOfLines={2} style={styles.itemNameBelow}>
+            {item.name}
+          </ThemedText>
+          <ThemedText type="caption" style={styles.itemWornBelow}>
+            Worn {item.timesWorn}x
+          </ThemedText>
         </View>
       </Pressable>
     );
-  }, [theme, isDark]);
+  }, [theme, isDark, selectionMode, selectedIds, toggleItemSelection, handleItemPress, CATEGORY_COLORS, LUXURY_COLORS.gold]);
 
   const renderEmptyCategoryState = () => {
     const categoryLabel = CATEGORY_OPTIONS.find(c => c.key === selectedCategory)?.label || selectedCategory;
@@ -626,15 +789,23 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               <>
                 <View style={[
                   styles.modalImageWrapper,
-                  wardrobeImageBackground(isDark, selectedItem)
-                    ? { backgroundColor: wardrobeImageBackground(isDark, selectedItem) }
-                    : null,
+                  {
+                    backgroundColor: selectedItem.imageProcessed || selectedItem.aiAnalyzed
+                      ? wardrobeProcessedTileBackground()
+                      : wardrobeTileBackground(isDark),
+                  },
                 ]}>
                   <WardrobeItemImage
                     item={selectedItem}
                     style={styles.modalImage}
                     processed={!!(selectedItem.imageProcessed || selectedItem.aiAnalyzed)}
+                    preferCover={!(selectedItem.imageProcessed || selectedItem.aiAnalyzed)}
                     transition={300}
+                    tileBackgroundColor={
+                      selectedItem.imageProcessed || selectedItem.aiAnalyzed
+                        ? wardrobeProcessedTileBackground()
+                        : wardrobeTileBackground(isDark)
+                    }
                   />
                 </View>
 
@@ -775,7 +946,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     </Pressable>
                   </LinearGradient>
 
-                  {!selectedItem.imageUri?.includes('/api/wardrobe/') && !selectedItem.imageUri?.startsWith('https://replicate.delivery/') ? (
+                  {selectedItem.imageUri && !isProxyWardrobeImageUri(selectedItem.imageUri) && !isDurableWardrobeCdnUrl(selectedItem.imageUri) ? (
                     <Pressable
                       onPress={() => handleReprocessBackground(selectedItem)}
                       disabled={isReprocessingBg}
@@ -839,6 +1010,33 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       />
       <View style={[styles.headerGradient, { paddingTop: insets.top + Spacing.md }]}>
         <View style={styles.headerTop}>
+          {selectionMode ? (
+            <>
+              <Pressable
+                onPress={exitSelectionMode}
+                style={styles.headerTextButton}
+              >
+                <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Cancel</ThemedText>
+              </Pressable>
+              <View style={styles.headerTitleContainer}>
+                <ThemedText type="h3" style={{ color: '#FFFFFF' }}>
+                  {selectedIds.size} Selected
+                </ThemedText>
+              </View>
+              <Pressable
+                onPress={handleBulkDelete}
+                disabled={selectedIds.size === 0 || isBulkDeleting}
+                style={[styles.headerTextButton, selectedIds.size === 0 ? { opacity: 0.45 } : null]}
+              >
+                {isBulkDeleting ? (
+                  <ActivityIndicator size="small" color="#FF8A8A" />
+                ) : (
+                  <ThemedText type="body" style={{ color: '#FF8A8A', fontWeight: '700' }}>Delete</ThemedText>
+                )}
+              </Pressable>
+            </>
+          ) : (
+            <>
           <Pressable
             onPress={() => navigation.goBack()}
             style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
@@ -854,37 +1052,66 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             </View>
           </View>
           <View style={styles.headerActions}>
-            <Pressable
-              onPress={handleRefresh}
-              disabled={isRefreshing}
-              style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
-            >
-              {isRefreshing ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Feather name="refresh-cw" size={20} color="#FFFFFF" />
-              )}
-            </Pressable>
-            <Pressable
-              onPress={handleReprocessAllBackgrounds}
-              disabled={isReprocessingAll}
-              style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
-            >
-              {isReprocessingAll ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Feather name="scissors" size={20} color="#FFFFFF" />
-              )}
-            </Pressable>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setSelectionMode(true);
+                  }}
+                  style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
+                >
+                  <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>Select</ThemedText>
+                </Pressable>
+                <Pressable
+                  onPress={handleRefresh}
+                  disabled={isRefreshing}
+                  style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
+                >
+                  {isRefreshing ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Feather name="refresh-cw" size={20} color="#FFFFFF" />
+                  )}
+                </Pressable>
+                <Pressable
+                  onPress={handleReprocessAllBackgrounds}
+                  disabled={isReprocessingAll}
+                  style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
+                >
+                  {isReprocessingAll ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Feather name="scissors" size={20} color="#FFFFFF" />
+                  )}
+                </Pressable>
           </View>
+            </>
+          )}
         </View>
 
-        {batchBgProgress && isReprocessingAll ? (
+        {selectionMode ? (
+          <View style={styles.selectionHeaderActions}>
+            <Pressable onPress={toggleSelectAllVisible} style={styles.selectAllChip}>
+              <Feather name="check-square" size={16} color="#FFFFFF" />
+              <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600', marginLeft: Spacing.xs }}>
+                {filteredItems.length > 0 && filteredItems.every((item) => selectedIds.has(String(item.id)))
+                  ? 'Deselect All'
+                  : 'Select All'}
+              </ThemedText>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {(batchBgProgress && isReprocessingAll) || backgroundRemovalProgress?.active ? (
           <View style={[styles.batchProgressBanner, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
             <ActivityIndicator size="small" color="#FFFFFF" />
             <ThemedText type="caption" style={{ color: '#FFFFFF', marginLeft: Spacing.sm }}>
-              Removing backgrounds {batchBgProgress.processed}/{batchBgProgress.total}
-              {batchBgProgress.failed > 0 ? ` (${batchBgProgress.failed} failed)` : ''}
+              Removing backgrounds{' '}
+              {backgroundRemovalProgress?.active
+                ? `${backgroundRemovalProgress.processed}/${backgroundRemovalProgress.total}`
+                : `${batchBgProgress?.processed ?? 0}/${batchBgProgress?.total ?? 0}`}
+              {(backgroundRemovalProgress?.failed || batchBgProgress?.failed || 0) > 0
+                ? ` (${backgroundRemovalProgress?.failed ?? batchBgProgress?.failed ?? 0} failed)`
+                : ''}
             </ThemedText>
           </View>
         ) : null}
@@ -1025,7 +1252,13 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         columnWrapperStyle={styles.gridRow}
         contentContainerStyle={[
           styles.gridContent,
-          { paddingBottom: insets.bottom + Spacing.xl },
+          {
+            paddingBottom:
+              insets.bottom +
+              TAB_BAR_HEIGHT +
+              Spacing.xl +
+              (selectionMode ? 88 : 0),
+          },
         ]}
         showsVerticalScrollIndicator={false}
         alwaysBounceVertical
@@ -1039,8 +1272,23 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           />
         }
         ListEmptyComponent={renderListEmptyComponent}
+        ListHeaderComponent={
+          wardrobePhotosUnavailable && filteredItems.length > 0 ? (
+            <View style={[styles.photoRepairBanner, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+              <Feather name="alert-circle" size={18} color={isDark ? '#F5C16C' : '#B45309'} />
+              <View style={{ flex: 1 }}>
+                <ThemedText type="body" style={{ fontWeight: '700', marginBottom: 4 }}>
+                  Photos missing
+                </ThemedText>
+                <ThemedText type="small" style={{ opacity: 0.75, lineHeight: 18 }}>
+                  Photos in your iPhone gallery are separate from Dripn. If originals were cleared from app storage, tap an item and re-attach its photo — or use + to add again.
+                </ThemedText>
+              </View>
+            </View>
+          ) : null
+        }
         ListFooterComponent={
-          filteredItems.length > 0 ? (
+          filteredItems.length > 0 && !selectionMode ? (
             <View style={[styles.actionBar, { backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.8)' }]}>
               <Pressable
                 onPress={handleAICreateOutfit}
@@ -1079,6 +1327,41 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           ) : null
         }
       />
+
+      {selectionMode ? (
+        <View
+          style={[
+            styles.selectionToolbar,
+            {
+              bottom: TAB_BAR_HEIGHT + insets.bottom,
+              paddingBottom: Spacing.md,
+              backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF',
+            },
+          ]}
+        >
+          <View>
+            <ThemedText type="body" style={{ fontWeight: '700' }}>
+              {selectedIds.size} selected
+            </ThemedText>
+          </View>
+          <Pressable
+            onPress={handleBulkDelete}
+            disabled={selectedIds.size === 0 || isBulkDeleting}
+            style={[styles.selectionDeleteButton, selectedIds.size === 0 ? { opacity: 0.4 } : null]}
+          >
+            {isBulkDeleting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Feather name="trash-2" size={18} color="#FFFFFF" />
+                <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '700', marginLeft: Spacing.sm }}>
+                  Delete ({selectedIds.size})
+                </ThemedText>
+              </>
+            )}
+          </Pressable>
+        </View>
+      ) : null}
 
       {renderItemModal()}
 
@@ -1167,88 +1450,15 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               </Pressable>
             )}
 
-            <View style={styles.aiOutfitOptions}>
-              <ThemedText type="body" style={{ marginBottom: Spacing.md, fontWeight: '600' }}>
-                Generate Outfits For:
-              </ThemedText>
-              
-              {[
-                { id: 'todays_look', icon: 'sun', label: 'Today\'s Look', desc: 'Based on weather & your calendar' },
-                { id: 'work_outfit', icon: 'briefcase', label: 'Work Outfit', desc: 'Professional & polished' },
-                { id: 'date_night', icon: 'heart', label: 'Date Night', desc: 'Stylish & confident' },
-                { id: 'casual_day', icon: 'coffee', label: 'Casual Day', desc: 'Comfortable & effortless' },
-                { id: 'weekend', icon: 'sunset', label: 'Weekend', desc: 'Relaxed & put-together' },
-                { id: 'smart_casual', icon: 'layers', label: 'Smart Casual', desc: 'Elevated everyday style' },
-                { id: 'gym', icon: 'activity', label: 'Gym', desc: 'Functional & stylish' },
-                { id: 'evening_out', icon: 'star', label: 'Evening Out', desc: 'Elevated & memorable' },
-                { id: 'travel', icon: 'navigation', label: 'Travel', desc: 'Comfortable yet stylish' },
-              ].map((option) => (
-                <Pressable
-                  key={option.id}
-                  disabled={isGeneratingOutfit}
-                  onPress={async () => {
-                    try {
-                      setIsGeneratingOutfit(true);
-                      setGeneratingOccasion(option.id);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                      
-                      const result = await apiService.generateOutfit({
-                        occasionType: option.id as any,
-                        stylistId: user?.stylistPreferences?.selectedStylistId || 'ruby',
-                        saveToCalendar: true,
-                        calendarDate: new Date().toISOString().split('T')[0],
-                        localItems: items.map(i => ({
-                          id: i.id,
-                          name: i.name,
-                          category: i.category,
-                          color: i.color,
-                          imageUri: i.imageUri,
-                        })),
-                      });
-                      
-                      if (result.success && result.outfit) {
-                        setGeneratedOutfit(result.outfit);
-                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                        setShowAIOutfitModal(false);
-                        // Show the outfit directly instead of going to calendar
-                        setShowGeneratedOutfitModal(true);
-                      }
-                    } catch (error: any) {
-                      Alert.alert(
-                        'Generation Failed',
-                        error.message || 'Unable to generate outfit. Please try again.'
-                      );
-                    } finally {
-                      setIsGeneratingOutfit(false);
-                      setGeneratingOccasion(null);
-                    }
-                  }}
-                  style={({ pressed }) => [
-                    styles.aiOutfitOptionCard,
-                    { 
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                      opacity: pressed || (isGeneratingOutfit && generatingOccasion !== option.id) ? 0.5 : 1,
-                    }
-                  ]}
-                >
-                  <LinearGradient
-                    colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-                    style={styles.aiOutfitOptionIcon}
-                  >
-                    <Feather name={option.icon as any} size={18} color="#FFFFFF" />
-                  </LinearGradient>
-                  <View style={{ flex: 1, marginLeft: Spacing.md }}>
-                    <ThemedText type="body" style={{ fontWeight: '600' }}>{option.label}</ThemedText>
-                    <ThemedText type="small" style={{ color: theme.tabIconDefault }}>{option.desc}</ThemedText>
-                  </View>
-                  {generatingOccasion === option.id ? (
-                    <ActivityIndicator size="small" color={LUXURY_COLORS.violet} />
-                  ) : (
-                    <Feather name="chevron-right" size={20} color={theme.tabIconDefault} />
-                  )}
-                </Pressable>
-              ))}
-            </View>
+            <OccasionPickerList
+              generatingOccasionId={generatingOccasion}
+              disabled={isGeneratingOutfit}
+              onWeatherPress={() => {
+                setShowAIOutfitModal(false);
+                navigation.navigate('WeatherOutfit');
+              }}
+              onSelect={handleOccasionOutfitGenerate}
+            />
 
             <View style={styles.styleDNASection}>
               <ThemedText type="small" style={{ color: theme.tabIconDefault, textAlign: 'center' }}>
@@ -1276,63 +1486,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         </View>
       </Modal>
 
-      {/* Generated Outfit Display Modal */}
-      <Modal
+      <GeneratedOutfitModal
         visible={showGeneratedOutfitModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowGeneratedOutfitModal(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowGeneratedOutfitModal(false)}
-        >
-          <Pressable style={styles.outfitModalContent} onPress={e => e.stopPropagation()}>
-            <View style={styles.outfitModalHeader}>
-              <Pressable onPress={() => setShowGeneratedOutfitModal(false)}>
-                <Feather name="x" size={24} color={theme.text} />
-              </Pressable>
-              <ThemedText type="h2">Your Perfect Outfit</ThemedText>
-              <View style={{ width: 24 }} />
-            </View>
-
-            <ScrollView style={styles.outfitItemsScroll} contentContainerStyle={styles.outfitItemsContainer}>
-              {generatedOutfit?.items && generatedOutfit.items.map((item: WardrobeItem, idx: number) => (
-                <View key={idx} style={styles.generatedOutfitItem}>
-                  {item.imageUri ? (
-                    <Image source={{ uri: item.imageUri }} style={styles.generatedOutfitItemImage} />
-                  ) : (
-                    <View style={[styles.generatedOutfitItemImage, { backgroundColor: getColorHex(item.color) }]} />
-                  )}
-                  <View style={styles.generatedOutfitItemInfo}>
-                    <ThemedText type="body" numberOfLines={1}>{item.name}</ThemedText>
-                    <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
-                      {item.category}
-                    </ThemedText>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-
-            {generatedOutfit?.stylistMessage && (
-              <View style={styles.outfitStylistMessage}>
-                <ThemedText style={{ fontSize: 14, fontStyle: 'italic', color: theme.tabIconDefault }}>
-                  "{generatedOutfit.stylistMessage}"
-                </ThemedText>
-              </View>
-            )}
-
-            <Pressable 
-              style={({ pressed }) => [styles.outfitModalButton, pressed && { opacity: 0.7 }]}
-              onPress={() => setShowGeneratedOutfitModal(false)}
-            >
-              <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                Got it!
-              </ThemedText>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        outfit={generatedOutfit}
+        onClose={() => setShowGeneratedOutfitModal(false)}
+      />
     </View>
   );
 }
@@ -1452,50 +1610,114 @@ const styles = StyleSheet.create({
   },
   gridContent: {
     flexGrow: 1,
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
   },
   gridRow: {
     justifyContent: "space-between",
     marginBottom: Spacing.md,
   },
-  itemCard: {
-    width: ITEM_SIZE,
+  photoRepairBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    padding: Spacing.md,
     borderRadius: BorderRadius.lg,
-    overflow: "hidden",
+    marginBottom: Spacing.md,
+  },
+  itemCard: {
+    width: ITEM_WIDTH,
+    borderRadius: BorderRadius.lg,
+  },
+  selectionBadge: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  selectionBadgeActive: {
+    backgroundColor: '#C9A87C',
+    borderColor: '#FFFFFF',
+  },
+  headerTextButton: {
+    minWidth: 64,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectionHeaderActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
+  selectAllChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  selectionToolbar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    elevation: 12,
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+  },
+  selectionDeleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E05252',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
   },
   itemImageWrapper: {
-    width: "100%",
-    height: ITEM_SIZE + 20,
+    width: '100%',
+    height: ITEM_HEIGHT,
     borderRadius: BorderRadius.lg,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   itemImage: {
     width: "100%",
     height: "100%",
   },
-  itemOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
+  itemMeta: {
+    paddingTop: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    minHeight: 42,
   },
-  itemInfoOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: Spacing.sm,
-  },
-  itemNameOverlay: {
+  itemNameBelow: {
     color: '#FFFFFF',
-    fontWeight: "600",
-    marginBottom: 2,
+    fontWeight: '600',
+    lineHeight: 18,
   },
-  itemWornText: {
-    color: 'rgba(255,255,255,0.7)',
+  itemWornBelow: {
+    color: 'rgba(255,255,255,0.72)',
     fontSize: 11,
+    marginTop: 2,
+    lineHeight: 14,
   },
   favoriteIndicator: {
     position: "absolute",
@@ -1871,54 +2093,68 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
   outfitModalContent: {
     position: 'absolute',
     bottom: 0,
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.95)',
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     maxHeight: '85%',
     paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xl,
   },
   outfitModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   outfitItemsScroll: {
-    maxHeight: 300,
+    flexGrow: 0,
+    flexShrink: 1,
   },
   outfitItemsContainer: {
     paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
   },
   generatedOutfitItem: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: Spacing.md,
     paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(0,0,0,0.1)',
   },
-  generatedOutfitItemImage: {
-    width: 60,
-    height: 60,
+  generatedOutfitItemImageWrap: {
+    width: 80,
+    height: 80,
     borderRadius: BorderRadius.md,
+    overflow: 'hidden',
     marginRight: Spacing.md,
+  },
+  generatedOutfitItemImage: {
+    width: '100%',
+    height: '100%',
   },
   generatedOutfitItemInfo: {
     flex: 1,
   },
   outfitStylistMessage: {
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+  },
+  outfitModalFooter: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
-    marginVertical: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.08)',
   },
   outfitModalButton: {
-    marginHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.lg,
     backgroundColor: LuxuryColors.violet,

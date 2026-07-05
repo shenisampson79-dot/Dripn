@@ -3,6 +3,14 @@ import type { WardrobeItem } from '@/contexts/WardrobeContext';
 
 const HTTP_PREFIX = /^https?:\/\//i;
 
+export function normalizeRemoteApiUrl(url?: string | null): string | undefined {
+  if (typeof url !== 'string' || !url) return undefined;
+  if (/^http:\/\/(.*\.onrender\.com|dripn-server)/i.test(url)) {
+    return url.replace(/^http:\/\//i, 'https://');
+  }
+  return url;
+}
+
 export function isRemoteImageUri(uri?: string | null): uri is string {
   return typeof uri === 'string' && HTTP_PREFIX.test(uri);
 }
@@ -11,8 +19,38 @@ export function isProxyWardrobeImageUri(uri?: string | null): boolean {
   return typeof uri === 'string' && uri.includes('/api/wardrobe/') && uri.endsWith('/image');
 }
 
+/** Permanent CDN URLs for bg-removed cutouts (not raw originals). */
+export function isProcessedWardrobeCdnUrl(uri: string): boolean {
+  if (uri.includes('replicate.delivery') || uri.includes('replicate.com')) return true;
+  if (uri.includes('res.cloudinary.com')) return /_processed(\.|\/|$)/i.test(uri);
+  return false;
+}
+
+/** Permanent CDN URLs that do not expire (Cloudinary) or legacy Replicate delivery. */
+export function isDurableWardrobeCdnUrl(uri: string): boolean {
+  return (
+    uri.includes('res.cloudinary.com') ||
+    uri.includes('replicate.delivery') ||
+    uri.includes('replicate.com')
+  );
+}
+
 export function buildWardrobeImageProxyUrl(itemId: string | number): string {
   return `${API_URL}/api/wardrobe/${itemId}/image`;
+}
+
+/** Indyx-style white tile for clothing cut-outs — always white, even in dark mode. */
+export const WARDROBE_CUTOUT_TILE_BG = '#FFFFFF';
+export const WARDROBE_TILE_BG_LIGHT = '#FFFFFF';
+export const WARDROBE_TILE_BG_DARK = '#2C2C2E';
+
+export function wardrobeTileBackground(isDark: boolean): string {
+  return isDark ? WARDROBE_TILE_BG_DARK : WARDROBE_TILE_BG_LIGHT;
+}
+
+/** Processed / bg-removed items always sit on a white product tile. */
+export function wardrobeProcessedTileBackground(): string {
+  return WARDROBE_CUTOUT_TILE_BG;
 }
 
 type ImageFields = Pick<
@@ -20,33 +58,136 @@ type ImageFields = Pick<
   'id' | 'imageUri' | 'enhancedImageUri' | 'originalImageUri' | 'imageProcessed' | 'aiAnalyzed'
 >;
 
+export function listWardrobeImageUris(item: ImageFields): string[] {
+  const uris: string[] = [];
+  const add = (uri?: string | null) => {
+    if (typeof uri !== 'string' || !uri.trim()) return;
+    const normalized = uri.trim();
+    if (!uris.includes(normalized)) uris.push(normalized);
+  };
+
+  const primary = resolveWardrobeImageUri(item);
+  add(primary);
+
+  if (item.imageProcessed && item.id) {
+    add(buildWardrobeImageProxyUrl(item.id));
+  }
+
+  for (const uri of [item.enhancedImageUri, item.imageUri]) {
+    if (uri && !isProxyWardrobeImageUri(uri)) add(uri);
+  }
+  add(item.originalImageUri);
+  for (const uri of [item.enhancedImageUri, item.imageUri]) {
+    add(uri);
+  }
+  if (item.id) add(buildWardrobeImageProxyUrl(item.id));
+  return uris;
+}
+
 export function resolveWardrobeImageUri(item: ImageFields): string {
   const candidates = [
     item.enhancedImageUri,
     item.imageUri,
-    item.originalImageUri,
   ].filter((uri): uri is string => typeof uri === 'string' && uri.length > 0);
 
-  const remote = candidates.find(isRemoteImageUri);
-  if (remote) return remote;
+  const localOriginal =
+    typeof item.originalImageUri === 'string' && item.originalImageUri.length > 0
+      ? item.originalImageUri
+      : '';
+  if (localOriginal && !isRemoteImageUri(localOriginal) && !itemHasProcessedCutout(item)) {
+    return localOriginal;
+  }
+
+  const localFromCandidates = candidates.find((uri) => !isRemoteImageUri(uri));
+  if (localFromCandidates && !itemHasProcessedCutout(item)) return localFromCandidates;
+
+  if (itemHasProcessedCutout(item) && item.id) {
+    const proxy = candidates.find(isProxyWardrobeImageUri);
+    if (proxy) return proxy;
+    const processedCdn = candidates.find(
+      (uri) => isRemoteImageUri(uri) && isProcessedWardrobeCdnUrl(uri),
+    );
+    if (processedCdn) return processedCdn;
+    return buildWardrobeImageProxyUrl(item.id);
+  }
+
+  if (item.id) {
+    const proxy = candidates.find(isProxyWardrobeImageUri);
+    if (proxy) return proxy;
+    if (candidates.length > 0) {
+      return buildWardrobeImageProxyUrl(item.id);
+    }
+  }
+
+  const durableCdn = candidates.find(
+    (uri) => isRemoteImageUri(uri) && !isProxyWardrobeImageUri(uri) && isDurableWardrobeCdnUrl(uri),
+  );
+  if (durableCdn) return durableCdn;
+
+  const remoteCdn = candidates.find(
+    (uri) => isRemoteImageUri(uri) && !isProxyWardrobeImageUri(uri),
+  );
+  if (remoteCdn) return remoteCdn;
 
   if (candidates[0]) return candidates[0];
 
-  if (item.id && item.imageProcessed) {
+  if (item.id) {
     return buildWardrobeImageProxyUrl(item.id);
   }
 
   return '';
 }
 
+export function itemHasProcessedCutout(item: ImageFields): boolean {
+  if (item.imageProcessed || item.aiAnalyzed) return true;
+  return [item.enhancedImageUri, item.imageUri].some(
+    (uri) => typeof uri === 'string' && (isProxyWardrobeImageUri(uri) || isProcessedWardrobeCdnUrl(uri)),
+  );
+}
+
+/** Outfit stacks / lookbook — always prefer bg-removed cutouts over carpet originals. */
+export function enrichWardrobeItemForOutfitVisual(item: ImageFields): ImageFields {
+  if (itemHasProcessedCutout(item)) {
+    const uri = resolveWardrobeImageUri(item);
+    if (!uri) return item;
+    return {
+      ...item,
+      imageUri: uri,
+      enhancedImageUri: item.enhancedImageUri || uri,
+      imageProcessed: true,
+    };
+  }
+  return enrichWardrobeItemForDisplay(item);
+}
+
 export function resolveWardrobeFallbackUri(
-  item: Pick<WardrobeItem, 'id' | 'imageUri' | 'enhancedImageUri' | 'originalImageUri'>,
+  item: Pick<WardrobeItem, 'id' | 'imageUri' | 'enhancedImageUri' | 'originalImageUri' | 'imageProcessed'>,
   primaryUri: string,
 ): string | undefined {
-  const fallbacks = [item.originalImageUri, item.imageUri, item.enhancedImageUri].filter(
-    (uri): uri is string => typeof uri === 'string' && uri.length > 0 && uri !== primaryUri,
+  const primaryIsProcessed =
+    item.imageProcessed || isProxyWardrobeImageUri(primaryUri);
+
+  if (primaryIsProcessed) {
+    const localFallback = [item.originalImageUri, item.imageUri, item.enhancedImageUri].find(
+      (uri): uri is string =>
+        typeof uri === 'string' &&
+        uri.length > 0 &&
+        uri !== primaryUri &&
+        !isRemoteImageUri(uri),
+    );
+    if (localFallback) return localFallback;
+    return undefined;
+  }
+
+  const remoteFallbacks = [item.enhancedImageUri, item.imageUri, item.originalImageUri].filter(
+    (uri): uri is string =>
+      typeof uri === 'string' &&
+      uri.length > 0 &&
+      uri !== primaryUri &&
+      isRemoteImageUri(uri),
   );
-  if (fallbacks[0]) return fallbacks[0];
+  if (remoteFallbacks[0]) return remoteFallbacks[0];
+
   if (item.id && !isProxyWardrobeImageUri(primaryUri)) {
     return buildWardrobeImageProxyUrl(item.id);
   }
@@ -58,23 +199,59 @@ export function wardrobeImageContentFit(
   usingFallback: boolean,
   preferCover = false,
 ): 'contain' | 'cover' {
+  if (item.imageProcessed || item.aiAnalyzed) return 'contain';
   if (preferCover || usingFallback) return 'cover';
-  return item.imageProcessed || item.aiAnalyzed ? 'contain' : 'cover';
+  return 'cover';
+}
+
+/** Prefer on-device photos for chat/outfit visuals when available. */
+export function enrichWardrobeItemForDisplay(item: ImageFields): ImageFields {
+  if (itemHasProcessedCutout(item)) {
+    const uri = resolveWardrobeImageUri(item);
+    if (!uri) return item;
+    return {
+      ...item,
+      imageUri: uri,
+      enhancedImageUri: item.enhancedImageUri || uri,
+      imageProcessed: true,
+    };
+  }
+
+  const localUri = listWardrobeImageUris(item).find((uri) => !isRemoteImageUri(uri));
+  if (localUri) {
+    return {
+      ...item,
+      imageUri: localUri,
+      enhancedImageUri: item.enhancedImageUri && !isProxyWardrobeImageUri(item.enhancedImageUri)
+        ? item.enhancedImageUri
+        : localUri,
+      imageProcessed: false,
+    };
+  }
+
+  const uri = resolveWardrobeImageUri(item);
+  if (!uri) return item;
+  if (item.imageUri === uri && item.enhancedImageUri) return item;
+  return {
+    ...item,
+    imageUri: uri,
+    enhancedImageUri: item.enhancedImageUri || uri,
+    imageProcessed: item.imageProcessed,
+  };
 }
 
 export function wardrobeImageBackground(
   isDark: boolean,
   item: Pick<WardrobeItem, 'imageProcessed' | 'aiAnalyzed' | 'imageUri'>,
   uri?: string,
-): string | undefined {
-  const activeUri = uri || item.imageUri || '';
-  const showProcessedBg =
-    item.imageProcessed ||
-    item.aiAnalyzed ||
-    isProxyWardrobeImageUri(activeUri);
+): string {
+  return wardrobeTileBackground(isDark);
+}
 
-  if (!showProcessedBg) return undefined;
-  return isDark ? '#2C2C2E' : '#EBEBEF';
+function isStoredWardrobeImageUrl(url: unknown): url is string {
+  if (typeof url !== 'string' || !url) return false;
+  if (url.startsWith('data:')) return url.length > 128;
+  return isRemoteImageUri(url) && !isProxyWardrobeImageUri(url);
 }
 
 export function itemLikelyHasWardrobePhoto(row: {
@@ -86,10 +263,14 @@ export function itemLikelyHasWardrobePhoto(row: {
   background_removed?: boolean;
 }): boolean {
   return !!(
-    row.processedImageUrl ||
-    row.processed_image_url ||
-    row.imageUrl ||
-    row.image_url ||
+    isStoredWardrobeImageUrl(row.processedImageUrl) ||
+    isStoredWardrobeImageUrl(row.processed_image_url) ||
+    isStoredWardrobeImageUrl(row.imageUrl) ||
+    isStoredWardrobeImageUrl(row.image_url) ||
+    isProxyWardrobeImageUri(row.processedImageUrl) ||
+    isProxyWardrobeImageUri(row.processed_image_url) ||
+    isProxyWardrobeImageUri(row.imageUrl) ||
+    isProxyWardrobeImageUri(row.image_url) ||
     row.backgroundRemoved ||
     row.background_removed
   );
