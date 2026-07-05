@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { StyleSheet, View, Pressable, Alert, Dimensions, Platform } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useNavigationState } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as WebBrowser from "expo-web-browser";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
@@ -222,6 +224,7 @@ const getTierIcon = (tier?: SubscriptionTier): "award" | "star" | "message-circl
 
 export default function SubscriptionScreen({ navigation, route }: SubscriptionScreenProps & { route: any }) {
   const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { user, refreshSubscriptionFromBackend } = useAuth();
   const { referralCode } = useSubscription();
   const scrollViewRef = useRef<any>(null);
@@ -229,6 +232,14 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const checkoutInProgressRef = useRef(false);
 
   const normalizedTier = normalizeTier(user?.subscriptionTier);
+  const previousRouteName = useNavigationState((state) => {
+    const index = state.index;
+    return index > 0 ? state.routes[index - 1]?.name : null;
+  });
+  const backLabel =
+    previousRouteName === 'Settings' ? 'Settings'
+    : previousRouteName === 'Profile' ? 'Profile'
+    : 'Back';
   const currentTierAccent = getCurrentTierAccent(normalizedTier, isDark);
   const currentTierMutedLabel = isDark ? 'rgba(255,255,255,0.65)' : 'rgba(26,26,46,0.6)';
   
@@ -550,7 +561,10 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           colors={plan.gradientColors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.planGradient}
+          style={[
+            styles.planGradient,
+            plan.popular && isCurrent && styles.planGradientWithCurrentRibbon,
+          ]}
         >
           {plan.popular ? (
             <LinearGradient
@@ -579,7 +593,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 {plan.name}
               </ThemedText>
             </View>
-            {isCurrent ? (
+            {isCurrent && !plan.popular ? (
               <View style={[styles.currentBadge, { backgroundColor: LUXURY_COLORS.emerald }]}>
                 <ThemedText type="caption" style={styles.currentText}>
                   Current
@@ -587,6 +601,14 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               </View>
             ) : null}
           </View>
+
+          {isCurrent && plan.popular ? (
+            <View style={[styles.currentBadge, styles.currentBadgeBelowPopular, { backgroundColor: LUXURY_COLORS.emerald }]}>
+              <ThemedText type="caption" style={styles.currentText}>
+                Current
+              </ThemedText>
+            </View>
+          ) : null}
 
           <View style={styles.priceContainer}>
             <ThemedText
@@ -707,6 +729,29 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
   return (
     <ScreenScrollView ref={scrollViewRef} style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}>
+      <View style={[styles.topNav, { paddingTop: insets.top + Spacing.sm }]}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={({ pressed }) => [styles.backToSettings, pressed && { opacity: 0.85 }]}
+        >
+          <LinearGradient
+            colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.backToSettingsGradient}
+          >
+            <Feather name="arrow-left" size={16} color={LUXURY_COLORS.midnight} />
+            <ThemedText type="caption" style={styles.backToSettingsText}>
+              {backLabel}
+            </ThemedText>
+          </LinearGradient>
+        </Pressable>
+        <ThemedText type="h3" style={styles.topNavTitle}>
+          Subscription
+        </ThemedText>
+        <View style={styles.topNavSpacer} />
+      </View>
+
       <LinearGradient
         colors={isDark 
           ? [LUXURY_COLORS.deepViolet, LUXURY_COLORS.berry, '#0D0B09'] 
@@ -1070,9 +1115,44 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 }
 
 const styles = StyleSheet.create({
+  topNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.xs,
+  },
+  backToSettings: {
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  backToSettingsGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+  },
+  backToSettingsText: {
+    color: LUXURY_COLORS.midnight,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  topNavTitle: {
+    fontWeight: '700',
+  },
+  topNavSpacer: {
+    minWidth: 96,
+  },
   heroGradient: {
     marginHorizontal: -Spacing.lg,
-    marginTop: -Spacing.lg,
+    marginTop: 0,
     paddingTop: Spacing["2xl"],
     paddingBottom: Spacing["2xl"],
     paddingHorizontal: Spacing.lg,
@@ -1303,6 +1383,9 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     borderRadius: BorderRadius.lg,
   },
+  planGradientWithCurrentRibbon: {
+    paddingTop: Spacing.lg + 30,
+  },
   planHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -1335,6 +1418,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: BorderRadius.full,
+  },
+  currentBadgeBelowPopular: {
+    position: 'absolute',
+    top: 38,
+    right: Spacing.lg,
+    zIndex: 11,
   },
   currentText: {
     color: "#FFFFFF",

@@ -121,6 +121,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         component={SubscriptionScreen}
         options={{
           title: "Subscription",
+          headerShown: false,
           presentation: "modal",
         }}
       />

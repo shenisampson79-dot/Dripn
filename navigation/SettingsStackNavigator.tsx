@@ -84,6 +84,7 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         component={SubscriptionScreen}
         options={{
           title: "Subscription",
+          headerShown: false,
           presentation: "modal",
         }}
       />

@@ -581,42 +581,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <LinearGradient
-            colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-            style={styles.sectionIcon}
-          >
-            <Feather name="bell" size={12} color="#FFFFFF" />
-          </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.notifications')}</ThemedText>
-        </View>
-        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
-          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-              style={styles.settingIconGradient}
-            >
-              <Feather name="users" size={16} color="#FFFFFF" />
-            </LinearGradient>
-            <View style={styles.settingContent}>
-              <ThemedText type="body" style={styles.settingTitle}>
-                {t('settings.communityVoting')}
-              </ThemedText>
-              <ThemedText type="small" style={styles.settingSubtitle}>
-                {t('settings.communityVotingDesc')}
-              </ThemedText>
-            </View>
-            <Switch
-              value={notificationPrefs.communityVoting}
-              onValueChange={(value) => updatePreferences({ communityVoting: value })}
-              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.violet }}
-              thumbColor={notificationPrefs.communityVoting ? "#FFFFFF" : "#F4F4F4"}
-            />
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <LinearGradient
             colors={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
             style={styles.sectionIcon}
           >
@@ -709,15 +673,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             theme={theme}
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-          />
-          <SettingItem
-            icon="cpu"
-            title={t('settings.aiFeatureLab')}
-            subtitle={t('settings.aiFeatureLabSubtitle')}
-            onPress={() => navigation.navigate("FeatureSuggestions")}
-            theme={theme}
-            isDark={isDark}
-            iconGradient={[LUXURY_COLORS.coral, '#C46A4F']}
           />
           <SettingItem
             icon="edit-3"
@@ -918,15 +873,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               onPress={() => navigation.navigate("LogoPreview")}
               theme={theme}
               isDark={isDark}
-            />
-            <SettingItem
-              icon="users"
-              title="Community Vote Preview"
-              subtitle="View voting screen as a member"
-              onPress={() => navigation.navigate("CommunityVoting", { session: null })}
-              theme={theme}
-              isDark={isDark}
-              iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
             />
           </View>
         </View>
