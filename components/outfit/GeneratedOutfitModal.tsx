@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Dimensions, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,6 +9,9 @@ import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import { CATEGORY_LABELS, type WardrobeItem } from '@/contexts/WardrobeContext';
 import { useTheme } from '@/hooks/useTheme';
 import { wardrobeProcessedTileBackground, wardrobeTileBackground } from '@/utils/wardrobeImage';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const ITEM_IMAGE_HEIGHT = Math.min(176, Math.round(SCREEN_WIDTH * 0.42));
 
 export type GeneratedOutfitModalData = {
   items: WardrobeItem[];
@@ -52,7 +55,16 @@ export function GeneratedOutfitModal({ visible, outfit, onClose }: Props) {
                 : wardrobeTileBackground(isDark);
 
               return (
-                <View key={`${item.id}-${idx}`} style={styles.row}>
+                <View
+                  key={`${item.id}-${idx}`}
+                  style={[
+                    styles.card,
+                    {
+                      borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                    },
+                  ]}
+                >
                   <View style={[styles.imageWrap, { backgroundColor: tileBackground }]}>
                     <WardrobeItemImage
                       item={item}
@@ -63,7 +75,9 @@ export function GeneratedOutfitModal({ visible, outfit, onClose }: Props) {
                     />
                   </View>
                   <View style={styles.info}>
-                    <ThemedText type="body" numberOfLines={2}>{item.name}</ThemedText>
+                    <ThemedText type="body" numberOfLines={2} style={styles.itemName}>
+                      {item.name}
+                    </ThemedText>
                     <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
                       {CATEGORY_LABELS[item.category] || item.category}
                     </ThemedText>
@@ -123,28 +137,29 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.sm,
+    gap: Spacing.md,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    paddingBottom: Spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+  card: {
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
   },
   imageWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: BorderRadius.md,
+    width: '100%',
+    height: ITEM_IMAGE_HEIGHT,
     overflow: 'hidden',
-    marginRight: Spacing.md,
   },
   image: {
     width: '100%',
     height: '100%',
   },
   info: {
-    flex: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+  },
+  itemName: {
+    fontWeight: '600',
+    marginBottom: 2,
   },
   stylistMessage: {
     paddingTop: Spacing.sm,
