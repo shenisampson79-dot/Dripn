@@ -575,6 +575,50 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     );
   }, [selectedCategory, theme, isDark, categoryCounts]);
 
+  const renderQuickActionsBar = useCallback(() => (
+    <View style={styles.quickActionsBar}>
+      <Pressable
+        onPress={handleAICreateOutfit}
+        style={({ pressed }) => [styles.quickActionChip, pressed && { opacity: 0.85 }]}
+      >
+        <Feather name="zap" size={15} color="#FFFFFF" />
+        <ThemedText type="caption" style={styles.quickActionLabel} numberOfLines={1}>
+          AI Outfit
+        </ThemedText>
+      </Pressable>
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          navigation.navigate('OutfitBuilder');
+        }}
+        style={({ pressed }) => [styles.quickActionChip, pressed && { opacity: 0.85 }]}
+      >
+        <Feather name="shuffle" size={15} color="#FFFFFF" />
+        <ThemedText type="caption" style={styles.quickActionLabel} numberOfLines={1}>
+          Outfit Mix
+        </ThemedText>
+      </Pressable>
+      <Pressable
+        onPress={handleQuickAdd}
+        style={({ pressed }) => [styles.quickActionChip, pressed && { opacity: 0.85 }]}
+      >
+        <Feather name="layers" size={15} color="#FFFFFF" />
+        <ThemedText type="caption" style={styles.quickActionLabel} numberOfLines={1}>
+          Bulk Add
+        </ThemedText>
+      </Pressable>
+      <Pressable
+        onPress={handleAddItem}
+        style={({ pressed }) => [styles.quickActionChip, styles.quickActionChipPrimary, pressed && { opacity: 0.9 }]}
+      >
+        <Feather name="plus" size={15} color={LUXURY_COLORS.midnight} />
+        <ThemedText type="caption" style={[styles.quickActionLabel, styles.quickActionLabelPrimary]} numberOfLines={1}>
+          Add Item
+        </ThemedText>
+      </Pressable>
+    </View>
+  ), [handleAICreateOutfit, handleQuickAdd, handleAddItem, navigation, LUXURY_COLORS.midnight]);
+
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
     const hasProcessedImage = item.imageProcessed === true;
     const categoryColors = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['all'];
@@ -1061,28 +1105,6 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                 >
                   <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>Select</ThemedText>
                 </Pressable>
-                <Pressable
-                  onPress={handleRefresh}
-                  disabled={isRefreshing}
-                  style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
-                >
-                  {isRefreshing ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Feather name="refresh-cw" size={20} color="#FFFFFF" />
-                  )}
-                </Pressable>
-                <Pressable
-                  onPress={handleReprocessAllBackgrounds}
-                  disabled={isReprocessingAll}
-                  style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
-                >
-                  {isReprocessingAll ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Feather name="scissors" size={20} color="#FFFFFF" />
-                  )}
-                </Pressable>
           </View>
             </>
           )}
@@ -1098,8 +1120,34 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                   : 'Select All'}
               </ThemedText>
             </Pressable>
+            <View style={styles.selectionUtilityActions}>
+              <Pressable
+                onPress={handleRefresh}
+                disabled={isRefreshing}
+                style={[styles.utilityIconButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
+              >
+                {isRefreshing ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Feather name="refresh-cw" size={18} color="#FFFFFF" />
+                )}
+              </Pressable>
+              <Pressable
+                onPress={handleReprocessAllBackgrounds}
+                disabled={isReprocessingAll}
+                style={[styles.utilityIconButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
+              >
+                {isReprocessingAll ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Feather name="scissors" size={18} color="#FFFFFF" />
+                )}
+              </Pressable>
+            </View>
           </View>
-        ) : null}
+        ) : (
+          renderQuickActionsBar()
+        )}
 
         {(batchBgProgress && isReprocessingAll) || backgroundRemovalProgress?.active ? (
           <View style={[styles.batchProgressBanner, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
@@ -1284,45 +1332,6 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                   Photos in your iPhone gallery are separate from Dripn. If originals were cleared from app storage, tap an item and re-attach its photo — or use + to add again.
                 </ThemedText>
               </View>
-            </View>
-          ) : null
-        }
-        ListFooterComponent={
-          filteredItems.length > 0 && !selectionMode ? (
-            <View style={[styles.actionBar, { backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.8)' }]}>
-              <Pressable
-                onPress={handleAICreateOutfit}
-                style={[styles.actionBarButton, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
-              >
-                <Feather name="zap" size={20} color={LUXURY_COLORS.coral} />
-                <ThemedText type="caption" style={styles.actionBarLabel}>AI Outfit</ThemedText>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  navigation.navigate('OutfitBuilder');
-                }}
-                style={[styles.actionBarButton, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
-              >
-                <Feather name="shuffle" size={20} color={LUXURY_COLORS.teal} />
-                <ThemedText type="caption" style={styles.actionBarLabel}>Outfit Mix</ThemedText>
-              </Pressable>
-              <Pressable
-                onPress={handleQuickAdd}
-                style={[styles.actionBarButton, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}
-              >
-                <Feather name="layers" size={20} color={LUXURY_COLORS.violet} />
-                <ThemedText type="caption" style={styles.actionBarLabel}>Bulk Add</ThemedText>
-              </Pressable>
-              <LinearGradient
-                colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-                style={styles.actionBarButton}
-              >
-                <Pressable onPress={handleAddItem} style={styles.fabInner}>
-                  <Feather name="plus" size={20} color={LUXURY_COLORS.midnight} />
-                  <ThemedText type="caption" style={[styles.actionBarLabel, { color: LUXURY_COLORS.midnight }]}>Add Item</ThemedText>
-                </Pressable>
-              </LinearGradient>
             </View>
           ) : null
         }
@@ -1539,7 +1548,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   headerActions: {
     flexDirection: 'row',
@@ -1656,8 +1665,51 @@ const styles = StyleSheet.create({
   },
   selectionHeaderActions: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: Spacing.sm,
+  },
+  selectionUtilityActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  utilityIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionsBar: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  quickActionChip: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: 2,
+    borderRadius: BorderRadius.md,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    minHeight: 52,
+  },
+  quickActionChipPrimary: {
+    backgroundColor: '#F5E6D3',
+  },
+  quickActionLabel: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 10,
+    textAlign: 'center',
+  },
+  quickActionLabelPrimary: {
+    color: LuxuryColors.midnight,
   },
   selectAllChip: {
     flexDirection: 'row',
@@ -1792,36 +1844,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.full,
     borderWidth: 2,
-  },
-  actionBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.lg,
-    marginHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    gap: Spacing.sm,
-  },
-  actionBarButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.xs,
-    minWidth: 70,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  actionBarLabel: {
-    marginTop: 4,
-    textAlign: 'center',
-    opacity: 0.8,
   },
   fabContainer: {
     position: "absolute",
