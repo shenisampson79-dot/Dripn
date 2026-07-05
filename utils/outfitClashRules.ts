@@ -1,4 +1,8 @@
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
+import {
+  isIntentionalSmartCasualTrainerLook,
+  type RegionalStyleContext,
+} from '@/utils/outfitRegionalContext';
 
 /** 1 = athletic · 2 = casual · 3 = smart casual · 4 = business · 5 = formal */
 export type FormalityTier = 1 | 2 | 3 | 4 | 5;
@@ -43,6 +47,8 @@ export type OutfitContext = {
   maxTier: FormalityTier;
   minTier: FormalityTier;
   tierSpread: number;
+  regional: RegionalStyleContext | null;
+  isSmartCasualLook: boolean;
   has: (flag: keyof ItemSignals) => boolean;
   any: (flag: keyof ItemSignals) => boolean;
 };
@@ -183,11 +189,15 @@ export function classifyItem(item: WardrobeItem): ItemSignals {
   };
 }
 
-export function buildOutfitContext(items: WardrobeItem[]): OutfitContext {
+export function buildOutfitContext(
+  items: WardrobeItem[],
+  regional: RegionalStyleContext | null = null,
+): OutfitContext {
   const signals = items.map(classifyItem);
   const tiers = signals.map((s) => s.formalityTier);
   const maxTier = Math.max(...tiers, 1) as FormalityTier;
   const minTier = Math.min(...tiers, 5) as FormalityTier;
+  const isSmartCasualLook = isIntentionalSmartCasualTrainerLook(items, regional);
 
   return {
     items,
@@ -196,6 +206,8 @@ export function buildOutfitContext(items: WardrobeItem[]): OutfitContext {
     maxTier,
     minTier,
     tierSpread: maxTier - minTier,
+    regional,
+    isSmartCasualLook,
     has: (flag) => signals.every((s) => s[flag]),
     any: (flag) => signals.some((s) => s[flag]),
   };
@@ -300,7 +312,7 @@ const CLASH_RULES: Array<{
     penalty: 78,
     hint: 'Blazer, shorts & trainers — formality lanes mixed',
     severity: 'major',
-    when: (ctx) => ctx.any('isBlazer') && ctx.any('isShorts') && ctx.any('isCasualTrainer'),
+    when: (ctx) => !ctx.isSmartCasualLook && ctx.any('isBlazer') && ctx.any('isShorts') && ctx.any('isCasualTrainer'),
   },
   {
     id: 'blazer_shorts',
@@ -335,7 +347,9 @@ const CLASH_RULES: Array<{
     penalty: 70,
     hint: 'Trainers with suit-level formality',
     severity: 'major',
-    when: (ctx) => ctx.any('isCasualTrainer') && (ctx.any('isSuitPiece') || (ctx.any('isBlazer') && ctx.any('isTie'))),
+    when: (ctx) => !ctx.isSmartCasualLook
+      && ctx.any('isCasualTrainer')
+      && (ctx.any('isSuitPiece') || (ctx.any('isBlazer') && ctx.any('isTie'))),
   },
   {
     id: 'hoodie_formal_trousers',
@@ -351,7 +365,11 @@ const CLASH_RULES: Array<{
     penalty: 52,
     hint: 'Blazer + trainers skew casual — chinos and loafers elevate this',
     severity: 'moderate',
-    when: (ctx) => ctx.any('isBlazer') && ctx.any('isCasualTrainer') && !ctx.any('isJeans') && !ctx.any('isAthleticTop'),
+    when: (ctx) => !ctx.isSmartCasualLook
+      && ctx.any('isBlazer')
+      && ctx.any('isCasualTrainer')
+      && !ctx.any('isJeans')
+      && !ctx.any('isAthleticTop'),
   },
   {
     id: 'shorts_formal_shoes',
@@ -372,7 +390,7 @@ const CLASH_RULES: Array<{
     penalty: 56,
     hint: 'Formality mismatch across the outfit — pieces sit too far apart',
     severity: 'moderate',
-    when: (ctx) => ctx.tierSpread >= 3 && !ctx.any('isBlazer'),
+    when: (ctx) => !ctx.isSmartCasualLook && ctx.tierSpread >= 3 && !ctx.any('isBlazer'),
   },
   {
     id: 'tier_spread_2_athletic_formal',
@@ -424,17 +442,23 @@ const CLASH_RULES: Array<{
   },
 ];
 
-export function detectOutfitClashes(items: WardrobeItem[]): OutfitClash | null {
-  const matched = detectAllOutfitClashes(items);
+export function detectOutfitClashes(
+  items: WardrobeItem[],
+  regional: RegionalStyleContext | null = null,
+): OutfitClash | null {
+  const matched = detectAllOutfitClashes(items, regional);
   if (matched.length === 0) return null;
   return matched[0];
 }
 
 /** All clash rules that match, sorted by severity then penalty (highest first). */
-export function detectAllOutfitClashes(items: WardrobeItem[]): OutfitClash[] {
+export function detectAllOutfitClashes(
+  items: WardrobeItem[],
+  regional: RegionalStyleContext | null = null,
+): OutfitClash[] {
   if (items.length < 2) return [];
 
-  const ctx = buildOutfitContext(items);
+  const ctx = buildOutfitContext(items, regional);
   const matched = CLASH_RULES.filter((rule) => rule.when(ctx));
   if (matched.length === 0) return [];
 
@@ -460,10 +484,14 @@ export function detectAllOutfitClashes(items: WardrobeItem[]): OutfitClash[] {
 }
 
 /** Secondary clashes add small extra penalties (capped). */
-export function collectSecondaryClashPenalty(items: WardrobeItem[], primary: OutfitClash | null): number {
+export function collectSecondaryClashPenalty(
+  items: WardrobeItem[],
+  primary: OutfitClash | null,
+  regional: RegionalStyleContext | null = null,
+): number {
   if (items.length < 2) return 0;
 
-  const ctx = buildOutfitContext(items);
+  const ctx = buildOutfitContext(items, regional);
   const matched = CLASH_RULES.filter((rule) => rule.when(ctx));
   if (matched.length <= 1) return 0;
 

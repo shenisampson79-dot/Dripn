@@ -60,6 +60,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useWardrobe, WardrobeItem, ClothingOccasion, ClothingSeason } from '@/contexts/WardrobeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { normalizeCountryCode } from '@/utils/outfitRegionalContext';
 import { useNavigation, CommonActions, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
@@ -1274,7 +1275,7 @@ export default function AIStylistScreen() {
   const { t, currentLanguage } = useTranslations();
   const { limits, tier } = useSubscription();
   const { items: wardrobeItems } = useWardrobe();
-  const { user } = useAuth();
+  const { user, actualCountry } = useAuth();
   const { settings: voiceSettings, getVoiceForStylist } = useVoiceSettings();
   const { hasCredits: hasVoiceCredits, isUnlimited: hasUnlimitedVoice, refreshBalance: refreshVoiceCredits } = useVoiceCredits();
   const route = useRoute<RouteProp<UserStylistStackParamList, 'AIStylist'>>();
@@ -1816,6 +1817,16 @@ export default function AIStylistScreen() {
       }));
       
       const mappedGenderVoice = user?.gender === 'man' ? 'male' : user?.gender === 'woman' ? 'female' : user?.gender || 'unspecified';
+      let locationDataVoice: { lat?: number; lon?: number; location?: string } = {};
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+          locationDataVoice = { lat: loc.coords.latitude, lon: loc.coords.longitude };
+        }
+      } catch {
+        // optional
+      }
       const response = await apiService.sendStylistMessage({
         stylistId: stylist.id,
         messages: chatHistory,
@@ -1824,11 +1835,17 @@ export default function AIStylistScreen() {
         userGender: mappedGenderVoice,
         subscriptionTier: tier,
         language: effectiveLanguage,
+        ...locationDataVoice,
+        location: user?.country || actualCountry || undefined,
+        countryCode: normalizeCountryCode(actualCountry || user?.actualCountry || user?.country) || undefined,
         userProfile: {
           ...(user?.profileData || {}),
           gender: mappedGenderVoice,
           name: user?.name,
-          country: user?.country,
+          country: user?.country || actualCountry,
+          actualCountry: actualCountry || user?.actualCountry,
+          countryCode: normalizeCountryCode(actualCountry || user?.actualCountry || user?.country),
+          preferredStyles: user?.onboardingProfile?.likedStyles || user?.extendedPreferences?.culturalStyle?.preferredStyles,
           skinUndertone: user?.skinUndertone,
           bodyType: user?.bodyShape,
           bodyMeasurements: user?.bodyMeasurements,
@@ -2094,11 +2111,16 @@ export default function AIStylistScreen() {
         subscriptionTier: tier,
         language: effectiveLanguage,
         ...locationData,
+        location: user?.country || actualCountry || locationData.location,
+        countryCode: normalizeCountryCode(actualCountry || user?.actualCountry || user?.country) || undefined,
         userProfile: {
           ...(user?.profileData || {}),
           gender: mappedGenderText,
           name: user?.name,
-          country: user?.country,
+          country: user?.country || actualCountry,
+          actualCountry: actualCountry || user?.actualCountry,
+          countryCode: normalizeCountryCode(actualCountry || user?.actualCountry || user?.country),
+          preferredStyles: user?.onboardingProfile?.likedStyles || user?.extendedPreferences?.culturalStyle?.preferredStyles,
           skinUndertone: user?.skinUndertone,
           bodyType: user?.bodyShape,
           bodyMeasurements: user?.bodyMeasurements,
@@ -2240,6 +2262,7 @@ export default function AIStylistScreen() {
         wardrobeItems,
         stylistId: stylist.id,
         saveToCalendar: false,
+        user,
       });
 
       const content = generated.stylistMessage

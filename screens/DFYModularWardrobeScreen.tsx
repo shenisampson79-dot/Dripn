@@ -25,6 +25,7 @@ import { useWardrobe, WardrobeItem, ClothingCategory, CATEGORY_LABELS } from "@/
 import { useScreenInsets } from "@/hooks/useScreenInsets";
 import apiService from "@/services/ApiService";
 import { computeLocalOutfitScore, mergeOutfitScores } from "@/utils/outfitCompatibilityScore";
+import { resolveRegionalStyleContext } from "@/utils/outfitRegionalContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const ITEM_SIZE = 100;
@@ -65,7 +66,11 @@ type SelectedItems = {
 
 export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardrobeScreenProps) {
   const { theme, isDark } = useTheme();
-  const { user } = useAuth();
+  const { user, actualCountry } = useAuth();
+  const regionalContext = React.useMemo(
+    () => resolveRegionalStyleContext(user),
+    [user, actualCountry],
+  );
   const { items } = useWardrobe();
   const insets = useSafeAreaInsets();
   const { paddingBottom: tabAwarePaddingBottom } = useScreenInsets();
@@ -169,7 +174,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
       return;
     }
 
-    const local = computeLocalOutfitScore(selected);
+    const local = computeLocalOutfitScore(selected, regionalContext);
     setCompatibilityScore(local.score);
     setCompatibilityVerdict(local.hint);
     setCompatibilityAnalysis(null);
@@ -186,6 +191,9 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
         items: itemIds,
         stylistId: 'ruby',
         occasion: 'casual-hangout',
+        countryCode: regionalContext.countryCode || undefined,
+        preferredStyles: regionalContext.styleTags,
+        location: user?.country || actualCountry || undefined,
       });
 
       if (result.success && result.score !== undefined) {
@@ -197,6 +205,8 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
           analysis: result.analysis,
           explanations: result.explanations,
           improvements: result.improvements,
+        }, {
+          allowsSmartCasualTrainers: regionalContext.allowsSmartCasualTrainers,
         });
         setCompatibilityScore(merged.score);
         setCompatibilityVerdict(merged.headline || merged.hint);

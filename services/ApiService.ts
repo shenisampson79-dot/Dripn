@@ -1400,6 +1400,7 @@ class ApiService {
     lat?: number;
     lon?: number;
     location?: string;
+    countryCode?: string;
   }): Promise<{
     content: string;
     wardrobeVisual?: {
@@ -3534,6 +3535,8 @@ class ApiService {
     saveToCalendar?: boolean;
     calendarDate?: string;
     localItems?: Array<{ id: string; name: string; category: string; color?: string; imageUri?: string }>;
+    countryCode?: string;
+    preferredStyles?: string[];
   }) {
     return this.request<{
       success: boolean;
@@ -3785,6 +3788,8 @@ class ApiService {
     lat?: number;
     lon?: number;
     location?: string;
+    countryCode?: string;
+    preferredStyles?: string[];
   }) {
     return this.request<{
       success: boolean;

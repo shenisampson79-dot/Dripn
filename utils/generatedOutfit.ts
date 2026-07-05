@@ -1,9 +1,11 @@
 import type { OutfitOccasionId } from '@/constants/outfitOccasions';
 import type { WardrobeItem, ClothingCategory } from '@/contexts/WardrobeContext';
+import type { UserProfile } from '@/contexts/AuthContext';
+import type { OnboardingProfile } from '@/services/OnboardingProfileService';
 import { completeOutfitItemIds } from '@/utils/completeOutfit';
 import { orderItemIdsByVisualOrder } from '@/utils/outfitItemOrder';
+import { resolveRegionalStyleContext } from '@/utils/outfitRegionalContext';
 import apiService from '@/services/ApiService';
-
 export type GeneratedOutfitApiItem = {
   id: string | number;
   name?: string;
@@ -74,14 +76,19 @@ export async function generateWardrobeOutfit(params: {
   stylistId?: string;
   saveToCalendar?: boolean;
   calendarDate?: string;
+  user?: UserProfile | null;
+  onboardingProfile?: OnboardingProfile | null;
 }): Promise<GeneratedOutfitDisplay & { raw: Awaited<ReturnType<typeof apiService.generateOutfit>> }> {
-  const { occasionType, wardrobeItems, stylistId, saveToCalendar, calendarDate } = params;
+  const { occasionType, wardrobeItems, stylistId, saveToCalendar, calendarDate, user, onboardingProfile } = params;
+  const regional = resolveRegionalStyleContext(user, onboardingProfile);
 
   const result = await apiService.generateOutfit({
     occasionType,
     stylistId,
     saveToCalendar,
     calendarDate,
+    countryCode: regional.countryCode || undefined,
+    preferredStyles: regional.styleTags,
     localItems: wardrobeItems.map((i) => ({
       id: i.id,
       name: i.name,

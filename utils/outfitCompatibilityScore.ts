@@ -1,4 +1,6 @@
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
+import type { RegionalStyleContext } from '@/utils/outfitRegionalContext';
+import { isIntentionalSmartCasualTrainerLook } from '@/utils/outfitRegionalContext';
 import {
   clashToScore,
   collectSecondaryClashPenalty,
@@ -57,7 +59,10 @@ const CASUAL_CATEGORIES = new Set([
   'activewear', 'activewear_tops', 'activewear_bottoms', 'sleepwear', 'swimwear',
 ]);
 
-export function computeLocalOutfitScore(selected: WardrobeItem[]): OutfitScoreResult {
+export function computeLocalOutfitScore(
+  selected: WardrobeItem[],
+  regional: RegionalStyleContext | null = null,
+): OutfitScoreResult {
   if (selected.length === 0) {
     return { score: 0, hint: 'Swipe rows to build a look' };
   }
@@ -66,9 +71,9 @@ export function computeLocalOutfitScore(selected: WardrobeItem[]): OutfitScoreRe
     return { score: 28, hint: 'Add more pieces to score the outfit' };
   }
 
-  const primaryClash = detectOutfitClashes(selected);
+  const primaryClash = detectOutfitClashes(selected, regional);
   if (primaryClash) {
-    const extra = collectSecondaryClashPenalty(selected, primaryClash);
+    const extra = collectSecondaryClashPenalty(selected, primaryClash, regional);
     const score = clashToScore(primaryClash.penalty, extra);
     return {
       score,
@@ -124,17 +129,26 @@ export function computeLocalOutfitScore(selected: WardrobeItem[]): OutfitScoreRe
   const variance = fingerprint.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 9;
   score += variance - 4;
 
+  if (isIntentionalSmartCasualTrainerLook(selected, regional)) {
+    score += 14;
+  }
+
   score = Math.max(5, Math.min(100, Math.round(score)));
+
+  const smartCasualHint = isIntentionalSmartCasualTrainerLook(selected, regional)
+    ? 'Smart-casual look — tailored pieces with fashion trainers read intentional'
+    : scoreHintForValue(score);
 
   return {
     score,
-    hint: scoreHintForValue(score),
+    hint: smartCasualHint,
   };
 }
 
 export function mergeOutfitScores(
   local: OutfitScoreResult,
   api: OutfitApiScoreResult | null,
+  options?: { allowsSmartCasualTrainers?: boolean },
 ): MergedOutfitScore {
   if (!api || typeof api.score !== 'number' || Number.isNaN(api.score)) {
     return {
@@ -153,13 +167,16 @@ export function mergeOutfitScores(
   const apiFallback = api.usedFallback === true || (aiScore === 50 && !api.verdict && !violations.length);
   const localIsClash = localScoreLooksLikeClash(local.score, local.hint);
   const fatalOrMajor = local.severity === 'fatal' || local.severity === 'major';
+  const regionalSmartCasual = options?.allowsSmartCasualTrainers
+    && (local.clashId === 'blazer_trainers' || local.severity === 'moderate')
+    && !fatalOrMajor;
 
   let finalScore: number;
   if (apiFallback) {
     finalScore = local.score;
   } else if (hasHardCap || fatalOrMajor) {
     finalScore = Math.min(aiScore, local.score, fatalOrMajor ? 35 : 40);
-  } else if (localIsClash) {
+  } else if (localIsClash && !regionalSmartCasual) {
     finalScore = Math.min(aiScore, local.score);
   } else {
     const blended = Math.round((aiScore * 0.45) + (local.score * 0.55));

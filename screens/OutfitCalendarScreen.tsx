@@ -42,6 +42,7 @@ import {
   type OutfitOccasionId,
 } from '@/constants/outfitOccasions';
 import { resolveGeneratedOutfitItemIds } from '@/utils/generatedOutfit';
+import { resolveRegionalStyleContext } from '@/utils/outfitRegionalContext';
 import { orderItemIdsByVisualOrder, sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
 
 type OutfitCalendarScreenProps = {
@@ -399,9 +400,12 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         const occasionType = occasionTypes[i % occasionTypes.length];
         
         try {
+          const regional = resolveRegionalStyleContext(user);
           const result = await apiService.generateOutfit({
             occasionType,
             stylistId: user?.stylistPreferences?.selectedStylistId || 'ruby',
+            countryCode: regional.countryCode || undefined,
+            preferredStyles: regional.styleTags,
             localItems: items.map(i => ({
               id: String(i.id),
               name: i.name,

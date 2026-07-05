@@ -31,8 +31,12 @@ import { ThemedView } from '@/components/ThemedView';
 import { Spacing, BorderRadius, LuxuryColors } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useWardrobe, WardrobeItem, ClothingCategory, PlannedEventType } from '@/contexts/WardrobeContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { onboardingProfileService, type OnboardingProfile } from '@/services/OnboardingProfileService';
 import { apiService } from '@/services/ApiService';
 import { computeLocalOutfitScore, mergeOutfitScores } from '@/utils/outfitCompatibilityScore';
+import { resolveRegionalStyleContext } from '@/utils/outfitRegionalContext';
+import * as Location from 'expo-location';
 import {
   getOutfitReelImageScale,
   OUTFIT_REEL_CENTER_RATIO,
@@ -218,6 +222,31 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     TAB_BAR_HEIGHT + insets.bottom,
   ) + Spacing.lg;
   const { items, reloadWardrobe } = useWardrobe();
+  const { user, actualCountry } = useAuth();
+  const [onboardingProfile, setOnboardingProfile] = useState<OnboardingProfile | null>(null);
+  const scoringLocationRef = useRef<{ lat?: number; lon?: number }>({});
+
+  const regionalContext = useMemo(
+    () => resolveRegionalStyleContext(user, onboardingProfile),
+    [user, onboardingProfile, actualCountry],
+  );
+
+  useEffect(() => {
+    onboardingProfileService.getProfile().then(setOnboardingProfile).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+        scoringLocationRef.current = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+      } catch {
+        // Location is optional for scoring.
+      }
+    })();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -321,7 +350,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
   );
 
   useEffect(() => {
-    const local = computeLocalOutfitScore(selectedWardrobeItems);
+    const local = computeLocalOutfitScore(selectedWardrobeItems, regionalContext);
     setStyleScore(local.score);
     setStyleHint(local.hint);
     setAiScoreApplied(false);
@@ -337,6 +366,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     const requestId = ++scoreRequestRef.current;
     setIsAiScoring(true);
     const itemIdsForRequest = selectedWardrobeItems.map((item) => item.id);
+    const { lat, lon } = scoringLocationRef.current;
 
     const timer = setTimeout(async () => {
       try {
@@ -344,6 +374,11 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
           items: itemIdsForRequest,
           stylistId: 'ruby',
           occasion: OCCASION_SCORE_MAP[eventType] || 'casual-hangout',
+          countryCode: regionalContext.countryCode || undefined,
+          preferredStyles: regionalContext.styleTags,
+          lat,
+          lon,
+          location: user?.country || actualCountry || undefined,
         });
 
         if (scoreRequestRef.current !== requestId) return;
@@ -359,6 +394,8 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
             explanations: result.explanations,
             improvements: result.improvements,
             dimensions: result.dimensions,
+          }, {
+            allowsSmartCasualTrainers: regionalContext.allowsSmartCasualTrainers,
           });
           setStyleScore(merged.score);
           setStyleHint(merged.hint);
@@ -377,7 +414,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
     }, 900);
 
     return () => clearTimeout(timer);
-  }, [selectionKey, eventType, items]);
+  }, [selectionKey, eventType, items, regionalContext, user?.country, actualCountry]);
 
   const handleClear = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

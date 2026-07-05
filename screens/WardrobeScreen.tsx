@@ -317,6 +317,8 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         stylistId: user?.stylistPreferences?.selectedStylistId || 'ruby',
         saveToCalendar: true,
         calendarDate: new Date().toISOString().split('T')[0],
+        user,
+        onboardingProfile,
       });
       setGeneratedOutfit({
         items: generated.items,
