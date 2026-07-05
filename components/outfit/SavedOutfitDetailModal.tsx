@@ -25,7 +25,7 @@ export function SavedOutfitDetailModal({ visible, onClose, children }: Props) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  const sheetHeight = Math.min(windowHeight * 0.82, windowHeight - insets.top - Spacing.lg);
+  const sheetHeight = Math.min(windowHeight * 0.88, windowHeight - insets.top - Spacing.md);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>

@@ -38,12 +38,14 @@ import {
 import { resolveWardrobeImageUri } from "@/utils/wardrobeImage";
 import { resolveDFYItemImageUri, RawDFYOutfitItem } from "@/utils/dfyOutfitImages";
 import { sortOutfitItemsByVisualOrder } from "@/utils/outfitItemOrder";
+import { computeOutfitVisualScaleForModal } from "@/utils/outfitVisualScale";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
 import apiService from "@/services/ApiService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SAVED_LOOKBOOK_CARD_WIDTH = SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md * 2;
+const MODAL_OUTFIT_CANVAS_WIDTH = SCREEN_WIDTH - Spacing.lg * 4 - Spacing.md * 2;
 
 type ProfileScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "Profile">;
@@ -240,7 +242,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     }
   };
 
-  const renderSavedLookbookVisual = (outfit: SavedLookbookOutfit) => {
+  const renderSavedLookbookVisual = (
+    outfit: SavedLookbookOutfit,
+    options?: { forModal?: boolean },
+  ) => {
     const orderedItems = sortOutfitItemsByVisualOrder(outfit.items || []);
     const pieces: OutfitPieceVisual[] = orderedItems
       .map((item) => {
@@ -263,20 +268,26 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
       );
     }
 
+    const forModal = options?.forModal;
+
     return (
-      <View style={styles.savedLookbookVisualBlock}>
+      <View style={[styles.savedLookbookVisualBlock, forModal && styles.savedLookbookVisualBlockModal]}>
         <OutfitPiecesVisual
           pieces={pieces}
           wardrobeItems={wardrobeItems}
           label=""
           large
-          canvasWidth={SAVED_LOOKBOOK_CARD_WIDTH}
+          canvasWidth={forModal ? MODAL_OUTFIT_CANVAS_WIDTH : SAVED_LOOKBOOK_CARD_WIDTH}
+          visualScale={forModal ? computeOutfitVisualScaleForModal(pieces.length) : undefined}
         />
       </View>
     );
   };
 
-  const renderSavedMixVisual = (outfit: MixAndMatchSavedOutfit) => {
+  const renderSavedMixVisual = (
+    outfit: MixAndMatchSavedOutfit,
+    options?: { forModal?: boolean },
+  ) => {
     const resolvedItems = resolveMixOutfitItems(outfit, wardrobeItems);
     const orderedItems = sortOutfitItemsByVisualOrder(
       resolvedItems.map((item) => ({
@@ -307,14 +318,17 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
       );
     }
 
+    const forModal = options?.forModal;
+
     return (
-      <View style={styles.savedLookbookVisualBlock}>
+      <View style={[styles.savedLookbookVisualBlock, forModal && styles.savedLookbookVisualBlockModal]}>
         <OutfitPiecesVisual
           pieces={pieces}
           wardrobeItems={wardrobeItems}
           label=""
           large
-          canvasWidth={SAVED_LOOKBOOK_CARD_WIDTH}
+          canvasWidth={forModal ? MODAL_OUTFIT_CANVAS_WIDTH : SAVED_LOOKBOOK_CARD_WIDTH}
+          visualScale={forModal ? computeOutfitVisualScaleForModal(pieces.length) : undefined}
         />
       </View>
     );
@@ -704,7 +718,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 {selectedLookbookOutfit.description || selectedLookbookOutfit.stylistNote}
               </ThemedText>
             ) : null}
-            {renderSavedLookbookVisual(selectedLookbookOutfit)}
+            <ThemedText type="caption" style={[styles.outfitVisualSectionLabel, { color: theme.tabIconDefault }]}>
+              Full outfit
+            </ThemedText>
+            {renderSavedLookbookVisual(selectedLookbookOutfit, { forModal: true })}
           </View>
         ) : null}
 
@@ -755,7 +772,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 {selectedMixOutfit.description?.trim() || selectedMixOutfit.occasion}
               </ThemedText>
             ) : null}
-            {renderSavedMixVisual(selectedMixOutfit)}
+            <ThemedText type="caption" style={[styles.outfitVisualSectionLabel, { color: theme.tabIconDefault }]}>
+              Full outfit
+            </ThemedText>
+            {renderSavedMixVisual(selectedMixOutfit, { forModal: true })}
           </View>
         ) : null}
       </SavedOutfitDetailModal>
@@ -1071,7 +1091,7 @@ const styles = StyleSheet.create({
   },
   likedOutfitCard: {
     padding: Spacing.md,
-    overflow: "hidden",
+    overflow: "visible",
     borderRadius: BorderRadius.lg,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1125,6 +1145,18 @@ const styles = StyleSheet.create({
     width: '100%',
     overflow: 'visible',
     marginBottom: -Spacing.md,
+  },
+  savedLookbookVisualBlockModal: {
+    alignItems: 'center',
+    marginBottom: 0,
+    paddingVertical: Spacing.sm,
+  },
+  outfitVisualSectionLabel: {
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   savedLookbookVisualEmpty: {
     width: '100%',

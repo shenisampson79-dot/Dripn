@@ -225,6 +225,8 @@ type Props = {
   compact?: boolean;
   large?: boolean;
   canvasWidth?: number;
+  /** Shrinks layer sizes proportionally (e.g. fit full outfit in a detail modal). */
+  visualScale?: number;
 };
 
 export function OutfitPiecesVisual({
@@ -234,9 +236,10 @@ export function OutfitPiecesVisual({
   compact = false,
   large = false,
   canvasWidth,
+  visualScale,
 }: Props) {
   const { isDark } = useTheme();
-  const scale = compact ? 0.72 : 1;
+  const sizeScale = compact ? 0.72 : (visualScale ?? 1);
   const effectiveCanvasWidth = canvasWidth ?? CANVAS_WIDTH;
 
   const { stack, accessories } = useMemo(
@@ -248,13 +251,15 @@ export function OutfitPiecesVisual({
 
   const layerHeight = (slot: LayerSlot) => {
     const base = large ? LAYER_HEIGHT_LARGE[slot] : LAYER_HEIGHT[slot];
-    return Math.round(base * scale);
+    return Math.round(base * sizeScale);
   };
   const layerWidth = (slot: LayerSlot) => {
     const base = large ? LAYER_WIDTH_LARGE[slot] : LAYER_WIDTH[slot];
     return base * (compact ? 0.94 : 1);
   };
-  const stackOverlap = compact ? 30 : large ? STACK_OVERLAP_LARGE : STACK_OVERLAP;
+  const stackOverlap = Math.round(
+    (compact ? 30 : large ? STACK_OVERLAP_LARGE : STACK_OVERLAP) * sizeScale,
+  );
 
   const canvasHeight =
     stack.reduce((sum, layer, index) => {
