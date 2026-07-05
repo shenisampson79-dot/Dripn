@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, View, Pressable, Alert, Dimensions, Platform } from "react-native";
+import { StyleSheet, View, Pressable, Alert, Dimensions, Platform, ActivityIndicator } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -411,28 +411,17 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         Platform.OS === 'web'
           ? 'https://dripnapp.com/subscription'
           : 'dripn://subscription';
-      const response = await apiService.openBillingPortal(returnUrl);
+
+      let response = await apiService.openBillingPortal(returnUrl);
+
+      if (response.mode !== 'portal' && !response.url) {
+        await apiService.verifySubscription().catch(() => {});
+        response = await apiService.openBillingPortal(returnUrl);
+      }
 
       if (response.mode === 'portal' && response.url) {
         await openExternalUrl(response.url);
         refreshSubscriptionFromBackend().catch(() => {});
-        return;
-      }
-
-      const needsInAppUpgrade =
-        response.mode === 'in_app' ||
-        response.action === 'subscription' ||
-        normalizedTier === 'free' ||
-        status?.isTrial ||
-        !status?.hasStripeBilling;
-
-      if (needsInAppUpgrade) {
-        scrollToPlans(
-          response.message ||
-            (status?.isTrial
-              ? 'Your free trial does not have a Stripe billing account yet. Choose a paid plan below to subscribe and manage billing.'
-              : 'Pick a plan below to upgrade and manage billing.'),
-        );
         return;
       }
 
@@ -442,7 +431,22 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         return;
       }
 
-      scrollToPlans('Pick a plan below to upgrade and manage billing.');
+      const isPaidTier = normalizedTier !== 'free';
+      if (isPaidTier && !status?.isTrial) {
+        Alert.alert(
+          'Billing unavailable',
+          response.message ||
+            'We could not open the Stripe billing portal for your account. If you subscribed recently, try again in a moment or contact support.',
+        );
+        return;
+      }
+
+      scrollToPlans(
+        response.message ||
+          (status?.isTrial
+            ? 'Your free trial does not have a Stripe billing account yet. Choose a paid plan below to subscribe and manage billing.'
+            : 'Pick a plan below to upgrade and manage billing.'),
+      );
     } catch (error: unknown) {
       console.error("Billing portal error:", error);
       Alert.alert(
@@ -790,12 +794,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               {getTierDisplayName(normalizedTier)}
             </ThemedText>
           </View>
-        {normalizedTier !== 'free' ? (
-          <View style={[styles.tierBadge, { backgroundColor: currentTierAccent + '20' }]}>
-            <Feather name="check" size={14} color={currentTierAccent} />
-            <ThemedText type="caption" style={{ color: currentTierAccent, fontWeight: '600' }}>Active</ThemedText>
-          </View>
-        ) : null}
         </View>
         <View style={styles.manageActions}>
           <Pressable 
@@ -813,6 +811,9 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             <ThemedText type="body" style={{ color: currentTierAccent, fontWeight: '600' }}>
               {normalizedTier === 'free' ? 'Upgrade / Manage Billing' : 'Manage Billing'}
             </ThemedText>
+            {isProcessing ? (
+              <ActivityIndicator size="small" color={currentTierAccent} style={{ marginLeft: Spacing.sm }} />
+            ) : null}
           </Pressable>
           {normalizedTier !== 'free' ? (
             <Pressable
@@ -897,12 +898,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         }}
       >
         <ThemedText type="h2" style={styles.sectionTitle}>Choose Your Plan</ThemedText>
-        <View style={styles.urgencyRow}>
-          <Feather name="trending-up" size={14} color={LUXURY_COLORS.gold} />
-          <ThemedText type="small" style={styles.urgencyText}>
-            Most users upgrade within 7 days
-          </ThemedText>
-        </View>
         {PLANS.map(renderPlanCard)}
       </View>
 
@@ -1201,14 +1196,6 @@ const styles = StyleSheet.create({
   currentTierText: {
     flex: 1,
   },
-  tierBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.full,
-  },
   manageActions: {
     marginTop: Spacing.md,
     gap: Spacing.sm,
@@ -1242,18 +1229,6 @@ const styles = StyleSheet.create({
   },
   plansContainer: {
     marginBottom: Spacing.lg,
-  },
-  urgencyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-  },
-  urgencyText: {
-    color: LUXURY_COLORS.deepGold,
-    fontWeight: '600',
-    fontStyle: 'italic',
   },
   starterBadge: {
     position: "absolute",
