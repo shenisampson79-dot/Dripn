@@ -85,7 +85,6 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         options={{
           title: "Subscription",
           headerShown: false,
-          presentation: "modal",
         }}
       />
       <Stack.Screen
@@ -101,7 +100,6 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         options={{
           title: "Explore Styles",
           headerShown: false,
-          presentation: "modal",
         }}
       />
       <Stack.Screen

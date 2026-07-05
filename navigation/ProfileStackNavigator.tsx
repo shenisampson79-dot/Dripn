@@ -122,7 +122,6 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         options={{
           title: "Subscription",
           headerShown: false,
-          presentation: "modal",
         }}
       />
       <Stack.Screen
@@ -155,7 +154,6 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         options={{
           title: "Explore Styles",
           headerShown: false,
-          presentation: "modal",
         }}
       />
       <Stack.Screen
