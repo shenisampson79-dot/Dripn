@@ -710,6 +710,7 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     alignItems: "center",
+    marginBottom: Spacing.lg,
   },
   avatarRing: {
     width: 110,
@@ -755,6 +756,7 @@ const styles = StyleSheet.create({
   badgesContainer: {
     flexDirection: "row",
     gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   subscriptionBadge: {
     paddingVertical: 4,
@@ -811,6 +813,7 @@ const styles = StyleSheet.create({
   },
   actionsSection: {
     paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
     marginBottom: Spacing.xl,
     gap: Spacing.sm,
   },
