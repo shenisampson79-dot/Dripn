@@ -1,11 +1,20 @@
 import React, { useEffect } from "react";
 import { Platform, StyleProp, View, ViewStyle, StyleSheet } from "react-native";
-import { VideoView, useVideoPlayer } from "expo-video";
 
 type LoopingBackgroundVideoProps = {
   source: number;
   style?: StyleProp<ViewStyle>;
 };
+
+type VideoModule = typeof import("expo-video");
+
+let expoVideo: VideoModule | null = null;
+
+try {
+  expoVideo = require("expo-video") as VideoModule;
+} catch {
+  expoVideo = null;
+}
 
 const configureBackgroundPlayer = (videoPlayer: { loop: boolean; muted: boolean; play: () => void }) => {
   videoPlayer.loop = true;
@@ -13,7 +22,17 @@ const configureBackgroundPlayer = (videoPlayer: { loop: boolean; muted: boolean;
   videoPlayer.play();
 };
 
+function VideoFallback({ style }: { style?: StyleProp<ViewStyle> }) {
+  return (
+    <View
+      style={[styles.fallback, style ?? StyleSheet.absoluteFillObject]}
+      pointerEvents="none"
+    />
+  );
+}
+
 function LoopingBackgroundVideoWeb({ source }: { source: number }) {
+  const { VideoView, useVideoPlayer } = expoVideo!;
   const foregroundPlayer = useVideoPlayer(source, configureBackgroundPlayer);
   const backdropPlayer = useVideoPlayer(source, configureBackgroundPlayer);
 
@@ -54,6 +73,7 @@ function LoopingBackgroundVideoNative({
   source: number;
   style?: StyleProp<ViewStyle>;
 }) {
+  const { VideoView, useVideoPlayer } = expoVideo!;
   const player = useVideoPlayer(source, configureBackgroundPlayer);
 
   return (
@@ -71,6 +91,10 @@ function LoopingBackgroundVideoNative({
 }
 
 export function LoopingBackgroundVideo({ source, style }: LoopingBackgroundVideoProps) {
+  if (!expoVideo) {
+    return <VideoFallback style={style} />;
+  }
+
   if (Platform.OS === "web") {
     return <LoopingBackgroundVideoWeb source={source} />;
   }
@@ -81,6 +105,9 @@ const styles = StyleSheet.create({
   container: {
     overflow: "hidden",
     backgroundColor: "#000",
+  },
+  fallback: {
+    backgroundColor: "#0a0a0a",
   },
   webContainer: {
     position: "fixed",
