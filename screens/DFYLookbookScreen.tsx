@@ -23,6 +23,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWardrobe } from "@/contexts/WardrobeContext";
 import { dfyService, DFYOutfit, DFYLiteDelivery, StylistId } from "@/services/DFYService";
+import { SaveOutfitPromptModal, type SaveOutfitIntent } from "@/components/outfit/SaveOutfitPromptModal";
 import { apiService } from "@/services/ApiService";
 import { weatherService } from "@/services/WeatherService";
 import {
@@ -73,6 +74,8 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   const [delivery, setDelivery] = useState<DFYLiteDelivery | null>(null);
   const [selectedOutfit, setSelectedOutfit] = useState<DFYOutfit | null>(null);
   const [showOutfitModal, setShowOutfitModal] = useState(false);
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [savePromptIntent, setSavePromptIntent] = useState<SaveOutfitIntent>('love');
   const [currentDay, setCurrentDay] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
@@ -349,14 +352,52 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     setShowOutfitModal(true);
   };
 
+  const applyLookbookOutfitMeta = async (
+    name: string,
+    description?: string,
+    options?: { loved?: boolean; bookmark?: boolean },
+  ) => {
+    if (!selectedOutfit || !delivery) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    const updatedOutfits = delivery.outfits.map((o) =>
+      o.id === selectedOutfit.id
+        ? {
+            ...o,
+            title: name,
+            description: description || o.description,
+            userReaction: options?.loved ? 'love' as const : o.userReaction,
+            saved: options?.bookmark ? true : (options?.loved ? true : o.saved),
+          }
+        : o,
+    );
+
+    const updatedDelivery = { ...delivery, outfits: updatedOutfits };
+    await dfyService.saveDFYDelivery(updatedDelivery);
+    setDelivery(updatedDelivery);
+    const updated = updatedOutfits.find((o) => o.id === selectedOutfit.id) || null;
+    setSelectedOutfit(updated);
+  };
+
+  const openSavePrompt = (intent: SaveOutfitIntent) => {
+    if (!selectedOutfit) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSavePromptIntent(intent);
+    setShowSavePrompt(true);
+  };
+
   const handleReaction = async (reaction: 'love' | 'not-me') => {
     if (!selectedOutfit || !delivery) return;
+    if (reaction === 'love') {
+      openSavePrompt('love');
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
     const updatedOutfits = delivery.outfits.map(o =>
       o.id === selectedOutfit.id ? { ...o, userReaction: reaction } : o
     );
-    
+
     const updatedDelivery = { ...delivery, outfits: updatedOutfits };
     await dfyService.saveDFYDelivery(updatedDelivery);
     setDelivery(updatedDelivery);
@@ -364,17 +405,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
   };
 
   const handleSaveOutfit = async () => {
-    if (!selectedOutfit || !delivery) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
-    const updatedOutfits = delivery.outfits.map(o =>
-      o.id === selectedOutfit.id ? { ...o, saved: true } : o
-    );
-    
-    const updatedDelivery = { ...delivery, outfits: updatedOutfits };
-    await dfyService.saveDFYDelivery(updatedDelivery);
-    setDelivery(updatedDelivery);
-    setSelectedOutfit({ ...selectedOutfit, saved: true });
+    openSavePrompt('save');
   };
 
   const getDaysRemaining = (): number => {
@@ -834,6 +865,21 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       />
 
       {renderOutfitModal()}
+
+      <SaveOutfitPromptModal
+        visible={showSavePrompt}
+        intent={savePromptIntent}
+        wardrobeItemIds={selectedOutfit?.items?.map((item) => String(item.id)) || ['lookbook']}
+        defaultTitle={selectedOutfit?.title || `Day ${selectedOutfit?.dayNumber || ''} look`}
+        defaultDescription={selectedOutfit?.description || selectedOutfit?.stylistNote}
+        onClose={() => setShowSavePrompt(false)}
+        onCustomSave={async ({ name, description }) => {
+          await applyLookbookOutfitMeta(name, description, {
+            loved: savePromptIntent === 'love',
+            bookmark: savePromptIntent === 'save',
+          });
+        }}
+      />
     </View>
   );
 }

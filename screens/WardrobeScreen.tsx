@@ -43,6 +43,7 @@ import type { WardrobeStackParamList } from "@/navigation/WardrobeStackNavigator
 import { OccasionPickerList } from '@/components/outfit/OccasionPickerList';
 import { GeneratedOutfitModal, type GeneratedOutfitModalData } from '@/components/outfit/GeneratedOutfitModal';
 import type { OutfitOccasionId } from '@/constants/outfitOccasions';
+import { getOccasionLabel } from '@/constants/outfitOccasions';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -117,6 +118,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const [isGeneratingOutfit, setIsGeneratingOutfit] = useState(false);
   const [generatingOccasion, setGeneratingOccasion] = useState<string | null>(null);
   const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfitModalData | null>(null);
+  const [generatedOutfitMeta, setGeneratedOutfitMeta] = useState<{ occasion: string; title: string } | null>(null);
   const [isReprocessingBg, setIsReprocessingBg] = useState(false);
   const [isReprocessingAll, setIsReprocessingAll] = useState(false);
   const [batchBgProgress, setBatchBgProgress] = useState<{ processed: number; total: number; failed: number } | null>(null);
@@ -323,6 +325,10 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       setGeneratedOutfit({
         items: generated.items,
         stylistMessage: generated.stylistMessage,
+      });
+      setGeneratedOutfitMeta({
+        occasion: occasionId,
+        title: getOccasionLabel(occasionId),
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowAIOutfitModal(false);
@@ -1500,6 +1506,8 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       <GeneratedOutfitModal
         visible={showGeneratedOutfitModal}
         outfit={generatedOutfit}
+        occasion={generatedOutfitMeta?.occasion || 'custom'}
+        defaultTitle={generatedOutfitMeta?.title || 'My Outfit'}
         onClose={() => setShowGeneratedOutfitModal(false)}
       />
     </View>

@@ -3969,6 +3969,7 @@ class ApiService {
     occasion: string;
     wardrobeItemIds: string[];
     notes?: string;
+    loved?: boolean;
     calendarDate?: string; // ISO date string — pins to calendar in same call
   }) {
     return this.request<{
@@ -3989,6 +3990,7 @@ class ApiService {
         name: string;
         description?: string | null;
         occasion?: string;
+        tags?: string[];
         items: Array<{
           id: string;
           name: string;

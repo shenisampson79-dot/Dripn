@@ -1,8 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { OutfitSaveActions } from '@/components/outfit/OutfitSaveActions';
 import { WardrobeItemImage } from '@/components/WardrobeItemImage';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
@@ -19,36 +21,56 @@ export type GeneratedOutfitModalData = {
 type Props = {
   visible: boolean;
   outfit: GeneratedOutfitModalData | null;
+  occasion?: string;
+  defaultTitle?: string;
   onClose: () => void;
 };
 
-const HEADER_BLOCK = 52;
-const FOOTER_BLOCK = 88;
-
-export function GeneratedOutfitModal({ visible, outfit, onClose }: Props) {
+export function GeneratedOutfitModal({
+  visible,
+  outfit,
+  occasion = 'custom',
+  defaultTitle = 'My Outfit',
+  onClose,
+}: Props) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
+  const [savedThisSession, setSavedThisSession] = useState(false);
 
   const orderedItems = useMemo(
     () => sortOutfitItemsByVisualOrder(outfit?.items || []),
     [outfit?.items],
   );
 
-  const scrollMaxHeight = Math.max(
-    180,
-    windowHeight * 0.85 - HEADER_BLOCK - FOOTER_BLOCK - insets.bottom,
+  const wardrobeItemIds = useMemo(
+    () => orderedItems.map((item) => String(item.id)).filter(Boolean),
+    [orderedItems],
   );
 
+  const sheetHeight = Math.min(windowHeight * 0.9, windowHeight - insets.top - Spacing.md);
+
+  const handleClose = () => {
+    setSavedThisSession(false);
+    onClose();
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable
-          style={[styles.sheet, { backgroundColor: isDark ? theme.backgroundDefault : '#FFFFFF' }]}
-          onPress={(e) => e.stopPropagation()}
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+      <View style={styles.overlay}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+        <View
+          style={[
+            styles.sheet,
+            {
+              height: sheetHeight,
+              backgroundColor: isDark ? theme.backgroundDefault : '#FFFFFF',
+              paddingBottom: Math.max(insets.bottom, Spacing.md),
+            },
+          ]}
         >
           <View style={styles.header}>
-            <Pressable onPress={onClose}>
+            <Pressable onPress={handleClose} hitSlop={8}>
               <Feather name="x" size={24} color={theme.text} />
             </Pressable>
             <ThemedText type="h2">Your Perfect Outfit</ThemedText>
@@ -56,12 +78,23 @@ export function GeneratedOutfitModal({ visible, outfit, onClose }: Props) {
           </View>
 
           <ScrollView
-            style={[styles.scroll, { maxHeight: scrollMaxHeight }]}
+            style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={orderedItems.length > 4}
-            nestedScrollEnabled
+            showsVerticalScrollIndicator
+            keyboardShouldPersistTaps="handled"
             bounces
           >
+            {outfit?.stylistMessage ? (
+              <View style={[styles.stylistMessage, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
+                <ThemedText type="caption" style={{ color: theme.tabIconDefault, fontWeight: '700', marginBottom: 4 }}>
+                  Why this works
+                </ThemedText>
+                <ThemedText style={{ fontSize: 14, lineHeight: 20, color: theme.text }}>
+                  {outfit.stylistMessage}
+                </ThemedText>
+              </View>
+            ) : null}
+
             {orderedItems.map((item, idx) => {
               const hasProcessedImage = item.imageProcessed === true;
               const tileBackground = hasProcessedImage
@@ -89,28 +122,40 @@ export function GeneratedOutfitModal({ visible, outfit, onClose }: Props) {
                 </View>
               );
             })}
-
-            {outfit?.stylistMessage ? (
-              <View style={styles.stylistMessage}>
-                <ThemedText style={{ fontSize: 14, fontStyle: 'italic', color: theme.tabIconDefault }}>
-                  "{outfit.stylistMessage}"
-                </ThemedText>
-              </View>
-            ) : null}
           </ScrollView>
 
-          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
+          <View style={styles.footer}>
+            {!savedThisSession ? (
+              <OutfitSaveActions
+                wardrobeItemIds={wardrobeItemIds}
+                defaultTitle={defaultTitle}
+                defaultDescription={outfit?.stylistMessage}
+                occasion={occasion}
+                onSaved={() => setSavedThisSession(true)}
+              />
+            ) : (
+              <View style={styles.savedHint}>
+                <Feather name="check-circle" size={16} color={LuxuryColors.emerald} />
+                <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
+                  Saved — find it in Profile → Saved Outfits
+                </ThemedText>
+              </View>
+            )}
+
             <Pressable
               style={({ pressed }) => [styles.button, pressed && { opacity: 0.7 }]}
-              onPress={onClose}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                handleClose();
+              }}
             >
               <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
                 Got it!
               </ThemedText>
             </Pressable>
           </View>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -122,11 +167,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    maxHeight: '85%',
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     paddingTop: Spacing.lg,
-    flexDirection: 'column',
   },
   header: {
     flexDirection: 'row',
@@ -136,12 +179,16 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   scroll: {
-    flexGrow: 0,
-    flexShrink: 1,
+    flex: 1,
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
+    paddingBottom: Spacing.lg,
+  },
+  stylistMessage: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
   },
   row: {
     flexDirection: 'row',
@@ -165,15 +212,19 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
   },
-  stylistMessage: {
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
-  },
   footer: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(0,0,0,0.08)',
+    gap: Spacing.sm,
+  },
+  savedHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
   },
   button: {
     paddingVertical: Spacing.lg,

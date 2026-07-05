@@ -705,6 +705,12 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                       <Feather name="trash-2" size={14} color={LUXURY_COLORS.rose} />
                     </Pressable>
                   </View>
+                  {selectedMixOutfit.tags?.includes('loved') ? (
+                    <View style={[styles.savedLookbookFlag, { backgroundColor: LUXURY_COLORS.rose + '25', alignSelf: 'flex-start', marginBottom: Spacing.xs }]}>
+                      <Feather name="heart" size={12} color={LUXURY_COLORS.rose} />
+                      <ThemedText type="caption" style={{ color: LUXURY_COLORS.rose, fontWeight: '600' }}>Loved</ThemedText>
+                    </View>
+                  ) : null}
                   <ThemedText type="h3" style={styles.likedOutfitTitle}>
                     {selectedMixOutfit.name}
                   </ThemedText>

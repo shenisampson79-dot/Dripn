@@ -10,6 +10,7 @@ export type MixAndMatchSavedOutfit = {
   description?: string | null;
   occasion?: string;
   tags?: string[];
+  tags?: string[];
   items?: Array<{
     id: string;
     name: string;
@@ -94,8 +95,10 @@ export function buildSavedOutfitTableRows(
       title: outfit.name || 'My Outfit',
       description: outfit.description?.trim() || occasionLabel,
       itemCount: rawItems.length,
-      badgeLabel: 'My Outfit',
-      badgeColors: ['#E8B4B8', '#8B2F39'] as const,
+      badgeLabel: outfit.tags?.includes('loved') ? 'Loved Outfit' : 'My Outfit',
+      badgeColors: outfit.tags?.includes('loved')
+        ? (['#E8B4B8', '#DB2777'] as const)
+        : (['#E8B4B8', '#8B2F39'] as const),
       previewItems: previewFromItems(previewItems),
     };
   });

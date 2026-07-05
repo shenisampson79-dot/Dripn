@@ -50,6 +50,7 @@ import Animated, {
 
 import { ThemedText } from '@/components/ThemedText';
 import { OutfitPiecesVisual } from '@/components/OutfitPiecesVisual';
+import { OutfitSaveActions } from '@/components/outfit/OutfitSaveActions';
 import { WardrobeItemImage } from '@/components/WardrobeItemImage';
 import { Card } from '@/components/Card';
 import { LimitHitUpgradePrompt } from '@/components/LimitHitUpgradePrompt';
@@ -85,6 +86,7 @@ import {
 import { OccasionOutfitChips } from '@/components/outfit/OccasionOutfitChips';
 import { getOccasionLabel, type OutfitOccasionId } from '@/constants/outfitOccasions';
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
+import { occasionSlugFromLabel, wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
 import { enrichWardrobeItemForDisplay, normalizeRemoteApiUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
 
 interface WaveformBarProps {
@@ -2395,6 +2397,22 @@ export default function AIStylistScreen() {
     });
   };
 
+  const renderOutfitSaveActions = (
+    message: ChatMessage,
+    pieceIds: string[],
+    titleOverride?: string,
+  ) => {
+    if (pieceIds.length < 2) return null;
+    return (
+      <OutfitSaveActions
+        wardrobeItemIds={pieceIds}
+        defaultTitle={titleOverride || message.outfitSuggestion?.occasion || 'My Outfit'}
+        defaultDescription={message.content}
+        occasion={occasionSlugFromLabel(message.outfitSuggestion?.occasion)}
+      />
+    );
+  };
+
   const renderWardrobeVisual = (message: ChatMessage, label = 'From your wardrobe') => {
     const visual = normalizeWardrobeVisual(message.wardrobeVisual);
     if (!visual) {
@@ -2470,6 +2488,7 @@ export default function AIStylistScreen() {
           large
           canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
         />
+        {renderOutfitSaveActions(message, wardrobeIdsFromPieces(visual.pieces ?? []))}
       </View>
     );
   };
@@ -2513,6 +2532,7 @@ export default function AIStylistScreen() {
     const renderOutfitVisual = (
       outfit: NonNullable<WardrobeVisualPayload['outfits']>[number],
       fallbackLabel: string,
+      parentMessage: ChatMessage,
     ) => {
       if (!outfit.pieces.length) return null;
       const outfitLabel = outfit.title || fallbackLabel;
@@ -2565,6 +2585,7 @@ export default function AIStylistScreen() {
             large
             canvasWidth={WARDROBE_CHAT_CANVAS_WIDTH}
           />
+          {renderOutfitSaveActions(parentMessage, wardrobeIdsFromPieces(outfit.pieces), outfitLabel)}
         </View>
       );
     };
@@ -2591,7 +2612,7 @@ export default function AIStylistScreen() {
                   <ThemedText style={styles.messageText}>
                     {renderMarkdownText(section)}
                   </ThemedText>
-                  {outfit ? renderOutfitVisual(outfit, `Outfit ${outfitNumber}`) : null}
+                  {outfit ? renderOutfitVisual(outfit, `Outfit ${outfitNumber}`, message) : null}
                 </View>
               );
             })}
@@ -2606,7 +2627,7 @@ export default function AIStylistScreen() {
           </ThemedText>
           {visual.outfits.map((outfit, index) => (
             <View key={`outfit-${outfit.sectionIndex}-${index}`}>
-              {renderOutfitVisual(outfit, `Outfit ${index + 1}`)}
+              {renderOutfitVisual(outfit, `Outfit ${index + 1}`, message)}
             </View>
           ))}
         </>
