@@ -26,11 +26,11 @@ export function getDfyBenefitTitle(benefit: DfySubscriptionBenefit): string {
 export function getDfyBenefitSubtitle(benefit: DfySubscriptionBenefit): string {
   switch (benefit) {
     case 'styling_sprint':
-      return '5–7 ready-to-wear looks for your next trip or event (14-day styling window).';
+      return 'Try a Styling Sprint once with your plan — 5–7 looks for your next trip or event.';
     case 'full_wardrobe_setup':
-      return 'Digitise your wardrobe and remix outfits — choose a quick start or full setup.';
+      return 'Try Full Wardrobe Setup once — quick start or full digitise, then pay for more.';
     default:
-      return 'Included with Personal Stylist and Stylist Unlimited.';
+      return 'One included stylist setup with Personal Stylist or Stylist Unlimited.';
   }
 }
 
@@ -43,22 +43,6 @@ export function isDfyTierAllowedForSubscription(
   if (benefit === 'none') return false;
   if (benefit === 'styling_sprint') return dfyTier === 'lite';
   return dfyTier === 'lite' || dfyTier === 'core';
-}
-
-export function getCurrentDfyActivationPeriodKey(date = new Date()): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
-
-/** First day of next calendar month — when the included activation resets. */
-export function getNextIncludedActivationResetDate(date = new Date()): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 1);
-}
-
-export function formatIncludedActivationResetLabel(date = new Date()): string {
-  return getNextIncludedActivationResetDate(date).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-  });
 }
 
 export function getDfyPathLabel(tier: DFYTier): string {

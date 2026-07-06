@@ -416,7 +416,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {isPaidAddOn
-              ? 'One-time purchase — starts immediately after payment. Your next included setup still resets on the 1st.'
+              ? 'One-time purchase — starts immediately after payment.'
               : 'One solves now. The other solves every time after.'}
           </ThemedText>
 

@@ -88,7 +88,7 @@ const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
   personal_stylist: [
     { text: "Unlimited stylist decisions", included: true, bold: true },
     { text: "Compare up to 3 options", included: true, bold: true },
-    { text: "Styling Sprint included (1/month)", included: true, bold: true },
+    { text: "One included Styling Sprint (trial)", included: true, bold: true },
     { text: "Decision history & wardrobe memory", included: true },
     { text: "Wardrobe-aware recommendations", included: true },
     { text: "75 wardrobe items", included: true },
@@ -97,7 +97,7 @@ const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
   ],
   stylist_unlimited: [
     { text: "Everything in Personal Stylist", included: true, bold: true },
-    { text: "Full Wardrobe Setup included (1/month)", included: true, bold: true },
+    { text: "One included Full Wardrobe Setup (trial)", included: true, bold: true },
     { text: "Outfit calendar & event planning", included: true, bold: true },
     { text: "Unlimited wardrobe & try-on", included: true },
     { text: "Priority photo processing", included: true },
@@ -1000,13 +1000,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.75)' }}>
                   {dfyBenefit === 'none'
                     ? 'Personal Stylist · Styling Sprint · Unlimited · Full Setup'
-                    : `Included with ${subscriptionTierDisplayName(normalizedTier)} · 1 activation/month`}
+                    : `Included with ${subscriptionTierDisplayName(normalizedTier)} · one-time trial`}
                 </ThemedText>
               </View>
             </View>
             <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(255,255,255,0.9)' }]}>
               {dfyBenefit === 'none'
-                ? 'Subscribe to unlock your monthly stylist-led wardrobe kickstart. Personal Stylist gets Quick Start; Unlimited lets you choose Quick Start or Full Setup.'
+                ? 'Subscribe to unlock one included stylist setup. Personal Stylist gets Quick Start; Unlimited lets you choose Quick Start or Full Setup. More runs are paid add-ons.'
                 : dfyBenefit === 'styling_sprint'
                   ? '5–7 ready-to-wear looks for your next trip or event. Upload outfit photos and Julia styles you in a 14-day sprint.'
                   : 'Digitise your wardrobe for long-term remixing. Choose Quick Start for a fast win or Full Setup to map up to 30 items.'}
@@ -1016,8 +1016,8 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 ? [
                     "Personal Stylist → Styling Sprint (Quick Start)",
                     "Stylist Unlimited → Full Wardrobe Setup",
-                    "One included activation per month",
-                    "No separate DFY purchase at launch",
+                    "One included setup per subscription (trial)",
+                    "Additional setups available to purchase",
                   ]
                 : dfyBenefit === 'styling_sprint'
                   ? [

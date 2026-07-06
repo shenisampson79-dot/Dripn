@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StylistId } from '@/contexts/AuthContext';
 import {
-  getCurrentDfyActivationPeriodKey,
   getDfyBenefitForSubscription,
   isDfyTierAllowedForSubscription,
 } from '@/utils/dfyEntitlements';
@@ -130,13 +129,13 @@ const DFY_DELIVERY_KEY = '@dripn_dfy_delivery';
 const DFY_ACTIVATIONS_KEY = '@dripn_dfy_activations';
 const COLD_OPEN_KEY = '@dripn_cold_open';
 
-export type DfyActivationBlockCode = 'no_benefit' | 'active_window' | 'monthly_cap';
+export type DfyActivationBlockCode = 'no_benefit' | 'active_window' | 'included_used';
 
 export interface DfyActivationRecord {
   periodKey: string;
   tier: DFYTier;
   activatedAt: string;
-  source: 'subscription_included';
+  source: 'subscription_included' | 'paid_purchase';
 }
 
 const OBJECTION_RESPONSES: DFYObjectionResponse[] = [
@@ -421,15 +420,12 @@ class DFYService {
     return `${DFY_ACTIVATIONS_KEY}_${userId}`;
   }
 
-  async getActivationForPeriod(
-    userId: string,
-    periodKey = getCurrentDfyActivationPeriodKey(),
-  ): Promise<DfyActivationRecord | null> {
+  async getIncludedActivation(userId: string): Promise<DfyActivationRecord | null> {
     try {
       const raw = await AsyncStorage.getItem(this.activationsStorageKey(userId));
       if (!raw) return null;
       const records = JSON.parse(raw) as DfyActivationRecord[];
-      return records.find((record) => record.periodKey === periodKey) ?? null;
+      return records.find((record) => record.source === 'subscription_included') ?? null;
     } catch {
       return null;
     }
@@ -442,7 +438,7 @@ class DFYService {
     allowed: boolean;
     reason?: string;
     usedTier?: DFYTier;
-    blockCode?: 'no_benefit' | 'active_window' | 'monthly_cap';
+    blockCode?: DfyActivationBlockCode;
   }> {
     const benefit = getDfyBenefitForSubscription(subscriptionTier);
     if (benefit === 'none') {
@@ -462,13 +458,13 @@ class DFYService {
       };
     }
 
-    const used = await this.getActivationForPeriod(userId);
+    const used = await this.getIncludedActivation(userId);
     if (used) {
       return {
         allowed: false,
-        blockCode: 'monthly_cap',
+        blockCode: 'included_used',
         usedTier: used.tier,
-        reason: `You've already used your included setup this month (${used.tier === 'lite' ? 'Quick Start' : 'Full Setup'}).`,
+        reason: `You've already used your included setup (${used.tier === 'lite' ? 'Quick Start' : 'Full Setup'}). Purchase another to continue.`,
       };
     }
 
@@ -476,17 +472,16 @@ class DFYService {
   }
 
   async recordSubscriptionActivation(userId: string, tier: DFYTier): Promise<void> {
-    const periodKey = getCurrentDfyActivationPeriodKey();
     const raw = await AsyncStorage.getItem(this.activationsStorageKey(userId));
     const records: DfyActivationRecord[] = raw ? JSON.parse(raw) : [];
-    const withoutPeriod = records.filter((record) => record.periodKey !== periodKey);
-    withoutPeriod.push({
-      periodKey,
+    const paidOnly = records.filter((record) => record.source !== 'subscription_included');
+    paidOnly.push({
+      periodKey: 'included_trial',
       tier,
       activatedAt: new Date().toISOString(),
       source: 'subscription_included',
     });
-    await AsyncStorage.setItem(this.activationsStorageKey(userId), JSON.stringify(withoutPeriod));
+    await AsyncStorage.setItem(this.activationsStorageKey(userId), JSON.stringify(paidOnly));
   }
 
   async activateIncludedSetup(

@@ -27,7 +27,6 @@ import {
   getDfyPathDescription,
   getDfyPathLabel,
   subscriptionTierDisplayName,
-  formatIncludedActivationResetLabel,
 } from "@/utils/dfyEntitlements";
 import { navigateAfterDfyActivation } from "@/utils/dfyNavigation";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
@@ -58,8 +57,8 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   const subscriptionTier = normalizeSubscriptionTier(user?.subscriptionTier);
   const benefit = getDfyBenefitForSubscription(subscriptionTier);
   const benefitTitle = getDfyBenefitTitle(benefit);
-  const includedBlocked = activationBlockCode === 'monthly_cap' || activationBlockCode === 'active_window';
-  const showPaidAddOn = activationBlockCode === 'monthly_cap' && benefit !== 'none';
+  const includedBlocked = activationBlockCode === 'included_used' || activationBlockCode === 'active_window';
+  const showPaidAddOn = activationBlockCode === 'included_used' && benefit !== 'none';
 
   useEffect(() => {
     currencyService.initialize().then(() => {
@@ -191,15 +190,15 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
 
   const renderPaidAddOnSection = () => (
     <View style={styles.paidAddOnSection}>
-      <ThemedText type="h4" style={styles.sectionTitle}>Need another setup now?</ThemedText>
+      <ThemedText type="h4" style={styles.sectionTitle}>Purchase another setup</ThemedText>
       <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
-        Your included activation resets on {formatIncludedActivationResetLabel()}. Purchase an extra run to start straight away.
+        Your one included setup has been used. Additional runs are one-time purchases.
       </ThemedText>
       {renderPaidAddOnCard('lite')}
       {benefit === 'full_wardrobe_setup' || benefit === 'styling_sprint' ? renderPaidAddOnCard('core') : null}
       {benefit === 'styling_sprint' ? (
         <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
-          Full Setup is also included monthly on Stylist Unlimited — or buy it once here.
+          Full Setup is included with Stylist Unlimited, or buy it here anytime.
         </ThemedText>
       ) : null}
     </View>
@@ -282,16 +281,13 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           {activationBlockedReason ? (
             <ThemedText type="small" style={[styles.blockedText, { color: theme.tabIconDefault }]}>
               {activationBlockedReason}
-              {activationBlockCode === 'monthly_cap'
-                ? ` Next included setup: ${formatIncludedActivationResetLabel()}.`
-                : ''}
             </ThemedText>
           ) : null}
           {!showPaidAddOn ? renderPathCard('lite') : null}
           {showPaidAddOn ? renderPaidAddOnSection() : (
             <>
               <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
-                One included activation per month. Want the full wardrobe system? Upgrade to Stylist Unlimited.
+                One included setup with your plan. Want the full wardrobe system? Upgrade to Stylist Unlimited.
               </ThemedText>
               <Pressable onPress={() => navigation.navigate('Subscription', { highlightPlan: 'stylist_unlimited' })}>
                 <ThemedText type="small" style={{ color: theme.link, textAlign: 'center' }}>
@@ -307,14 +303,11 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
         <View style={styles.pathSection}>
           <ThemedText type="h4" style={styles.sectionTitle}>How do you want to start?</ThemedText>
           <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
-            One included activation per month — pick the path that fits right now.
+            One included setup with your plan — pick the path for your trial run.
           </ThemedText>
           {activationBlockedReason ? (
             <ThemedText type="small" style={[styles.blockedText, { color: theme.tabIconDefault }]}>
               {activationBlockedReason}
-              {activationBlockCode === 'monthly_cap'
-                ? ` Next included setup: ${formatIncludedActivationResetLabel()}.`
-                : ''}
             </ThemedText>
           ) : null}
           {!showPaidAddOn ? (
