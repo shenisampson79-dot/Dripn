@@ -13,11 +13,19 @@ import { Spacing, BorderRadius, SubscriptionColors, LuxuryColors, ScreenGradient
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useReferral } from "@/contexts/ReferralContext";
 import { normalizeSubscriptionTier, tierToBillingPlan, getBillingPlanDisplayName } from "@/utils/subscriptionTier";
+import {
+  getDfyBenefitForSubscription,
+  getDfyBenefitTitle,
+  getDfyBenefitSubtitle,
+  subscriptionTierDisplayName,
+} from "@/utils/dfyEntitlements";
 import { TIER_MATRIX } from "@/utils/tierMatrix";
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
 import { getErrorMessage, openExternalUrl } from "@/utils/openExternalUrl";
+import { isDevTestingModeEnabled } from "@/utils/devTesting";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -80,6 +88,7 @@ const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
   personal_stylist: [
     { text: "Unlimited stylist decisions", included: true, bold: true },
     { text: "Compare up to 3 options", included: true, bold: true },
+    { text: "Styling Sprint included (1/month)", included: true, bold: true },
     { text: "Decision history & wardrobe memory", included: true },
     { text: "Wardrobe-aware recommendations", included: true },
     { text: "75 wardrobe items", included: true },
@@ -88,6 +97,7 @@ const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
   ],
   stylist_unlimited: [
     { text: "Everything in Personal Stylist", included: true, bold: true },
+    { text: "Full Wardrobe Setup included (1/month)", included: true, bold: true },
     { text: "Outfit calendar & event planning", included: true, bold: true },
     { text: "Unlimited wardrobe & try-on", included: true },
     { text: "Priority photo processing", included: true },
@@ -223,12 +233,17 @@ const getTierIcon = (tier?: SubscriptionTier): "award" | "star" | "message-circl
 export default function SubscriptionScreen({ navigation, route }: SubscriptionScreenProps & { route: any }) {
   const { theme, isDark } = useTheme();
   const { user, refreshSubscriptionFromBackend } = useAuth();
-  const { referralCode } = useSubscription();
+  const { referralCode: subscriptionReferralCode } = useSubscription();
+  const { referralCode, shareReferral } = useReferral();
+  const displayReferralCode = referralCode || subscriptionReferralCode;
   const scrollViewRef = useRef<any>(null);
   const plansSectionY = useRef(0);
   const checkoutInProgressRef = useRef(false);
 
   const normalizedTier = normalizeTier(user?.subscriptionTier);
+  const dfyBenefit = getDfyBenefitForSubscription(normalizedTier);
+  const dfyBenefitTitle = getDfyBenefitTitle(dfyBenefit);
+  const dfyBenefitSubtitle = getDfyBenefitSubtitle(dfyBenefit);
   const currentTierAccent = getCurrentTierAccent(normalizedTier, isDark);
   const currentTierMutedLabel = isDark ? 'rgba(255,255,255,0.65)' : 'rgba(26,26,46,0.6)';
   
@@ -247,12 +262,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     personal_stylist: "£95.99",
     stylist_unlimited: "£179.99",
   });
-  const [dfyPrices, setDfyPrices] = useState<{ outfit_setup: string; wardrobe_setup: string }>({
-    outfit_setup: "£19.99",
-    wardrobe_setup: "£39.99",
-  });
   const [winbackOffer50, setWinbackOffer50] = useState(false);
   const [winbackPausePrompt, setWinbackPausePrompt] = useState(false);
+  const [devTestingMode, setDevTestingMode] = useState(false);
+
+  useEffect(() => {
+    isDevTestingModeEnabled().then(setDevTestingMode).catch(() => {});
+  }, []);
   const [winbackBanner, setWinbackBanner] = useState<string | null>(null);
   const [upgradeHint, setUpgradeHint] = useState<string | null>(null);
   const [highlightPlans, setHighlightPlans] = useState(false);
@@ -307,7 +323,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       await currencyService.initialize();
       setLocalizedPrices(currencyService.getLocalizedPrices());
       setYearlyPrices(currencyService.getYearlyPrices());
-      setDfyPrices(currencyService.getDFYPrices());
     };
     initCurrency();
   }, []);
@@ -400,10 +415,27 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     setTimeout(() => setHighlightPlans(false), 3000);
   };
 
+  const handleShareReferral = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const success = await shareReferral();
+    if (!success) {
+      Alert.alert("Sharing failed", "Could not open the share menu. Please try again.");
+    }
+  };
+
   const handleManageSubscription = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsProcessing(true);
     try {
+      const devTesting = devTestingMode || (await isDevTestingModeEnabled().catch(() => false));
+      if (devTesting) {
+        Alert.alert(
+          'Testing mode',
+          'Your plan is unlocked locally for testing — there is no Stripe billing account on this login.\n\nManage Billing opens Stripe’s secure portal to update your card, billing address, download invoices, and change payment details. That only works after you subscribe through a real checkout.\n\nTo try billing: pick a plan below and complete checkout, or turn off testing mode in Settings → Development.',
+        );
+        return;
+      }
+
       await apiService.verifySubscription().catch(() => {});
 
       const status = await apiService.getSubscriptionStatus().catch(() => null);
@@ -434,18 +466,16 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       const isPaidTier = normalizedTier !== 'free';
       if (isPaidTier && !status?.isTrial) {
         Alert.alert(
-          'Billing unavailable',
-          response.message ||
-            'We could not open the Stripe billing portal for your account. If you subscribed recently, try again in a moment or contact support.',
+          'No billing account linked',
+          'Manage Billing opens Stripe’s secure portal where you can update your card, billing address, download invoices, and manage your subscription.\n\nWe couldn’t find a billing account for this login yet. If you subscribed recently, wait a moment and try again. Otherwise choose a plan below to subscribe.',
         );
         return;
       }
 
       scrollToPlans(
-        response.message ||
-          (status?.isTrial
-            ? 'Your free trial does not have a Stripe billing account yet. Choose a paid plan below to subscribe and manage billing.'
-            : 'Pick a plan below to upgrade and manage billing.'),
+        status?.isTrial
+          ? 'Subscribe below to set up billing — then Manage Billing will open your Stripe portal.'
+          : 'Choose a plan below to subscribe. After checkout, Manage Billing opens Stripe for card and invoice updates.',
       );
     } catch (error: unknown) {
       console.error("Billing portal error:", error);
@@ -816,17 +846,11 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             ) : null}
           </Pressable>
           {normalizedTier !== 'free' ? (
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                navigation.navigate('CancelSubscription');
-              }}
-              style={styles.cancelLink}
-            >
-              <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-                Cancel subscription
-              </ThemedText>
-            </Pressable>
+            <ThemedText type="caption" style={[styles.billingHint, { color: theme.tabIconDefault }]}>
+              {devTestingMode
+                ? 'Testing mode — no Stripe billing linked. Subscribe below to use the real billing portal.'
+                : 'Opens Stripe to update your card, billing address, and invoices.'}
+            </ThemedText>
           ) : null}
         </View>
       </View>
@@ -902,7 +926,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       </View>
 
 
-      <View style={[styles.referralSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+      <Pressable
+        onPress={handleShareReferral}
+        style={({ pressed }) => [
+          styles.referralSection,
+          { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', opacity: pressed ? 0.85 : 1 },
+        ]}
+      >
         <LinearGradient
           colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
           start={{ x: 0, y: 0 }}
@@ -914,116 +944,95 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         <View style={styles.referralContent}>
           <ThemedText type="h3">Invite Friends</ThemedText>
           <ThemedText type="small" style={{ opacity: 0.7 }}>
-            Share your code and both get a free month
+            Tap to share — you both get a free month
           </ThemedText>
         </View>
         <View style={[styles.referralCode, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-          <ThemedText type="h3" style={{ letterSpacing: 3, color: LUXURY_COLORS.teal }}>{referralCode}</ThemedText>
+          <ThemedText type="h3" style={{ letterSpacing: 3, color: LUXURY_COLORS.teal }}>{displayReferralCode}</ThemedText>
         </View>
-      </View>
+        <Feather name="share-2" size={20} color={LUXURY_COLORS.teal} />
+      </Pressable>
 
       <View style={styles.dfySection}>
         <View style={styles.dfySectionHeader}>
           <ThemedText type="h2" style={styles.sectionTitle}>
-            Done-For-You Setup
+            Included Stylist Setup
           </ThemedText>
           <ThemedText type="body" style={styles.dfySectionSubtitle}>
-            One solves now. The other solves every time after.
+            {dfyBenefit === 'none'
+              ? 'Every paid plan includes a done-for-you wardrobe kickstart — no separate purchase.'
+              : dfyBenefitSubtitle}
           </ThemedText>
         </View>
 
-        <Pressable style={styles.dfyCardWrapper}>
+        <Pressable
+          style={styles.dfyCardWrapper}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            navigation.navigate('DFYStart');
+          }}
+        >
           <LinearGradient
-            colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+            colors={
+              dfyBenefit === 'full_wardrobe_setup'
+                ? [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
+                : dfyBenefit === 'styling_sprint'
+                  ? [LUXURY_COLORS.teal, LUXURY_COLORS.emerald]
+                  : [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]
+            }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.dfyCard, styles.dfyCardFeatured]}
-          >
-            <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(26,26,46,0.3)' }]}>
-              <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>Structural</ThemedText>
-            </View>
-            <View style={styles.dfyCardHeader}>
-              <View style={[styles.dfyBadge, { backgroundColor: 'rgba(26,26,46,0.2)' }]}>
-                <Feather name="grid" size={18} color={LUXURY_COLORS.midnight} />
-              </View>
-              <View style={styles.dfyCardTitleContainer}>
-                <ThemedText type="h3" style={{ color: LUXURY_COLORS.midnight }}>Core Wardrobe Setup</ThemedText>
-                <ThemedText type="caption" style={{ color: 'rgba(26,26,46,0.6)' }}>One-time purchase</ThemedText>
-              </View>
-            </View>
-            <View style={styles.dfyPriceRow}>
-              <ThemedText type="h1" style={[styles.dfyPrice, { color: LUXURY_COLORS.midnight }]}>{dfyPrices.wardrobe_setup}</ThemedText>
-            </View>
-            <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(26,26,46,0.85)' }]}>
-              Solve the system, not the moment. Photograph individual items and I'll organise your wardrobe so decisions get easier every time.
-            </ThemedText>
-            <View style={styles.dfyFeatures}>
-              {[
-                "You photograph individual items",
-                "Up to 30 wardrobe items",
-                "Proper categorisation & tagging",
-                "Wardrobe saved forever",
-                "30 days of active styling",
-                "Dynamic outfit generation",
-                "Swap & remix any piece",
-                "Less repetition, more variety",
-              ].map((feature, idx) => (
-                <View key={idx} style={styles.dfyFeatureRow}>
-                  <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(26,26,46,0.15)' }]}>
-                    <Feather name="check" size={12} color={LUXURY_COLORS.midnight} />
-                  </View>
-                  <ThemedText type="small" style={{ color: LUXURY_COLORS.midnight }}>{feature}</ThemedText>
-                </View>
-              ))}
-            </View>
-            <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(26,26,46,0.2)' }]}>
-              <Pressable 
-                style={styles.dfyButtonInner}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  navigation.navigate('DFYComparison' as any, { selectedTier: 'core', autoCheckout: true });
-                }}
-              >
-                <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '600' }}>Build my wardrobe</ThemedText>
-              </Pressable>
-            </View>
-          </LinearGradient>
-        </Pressable>
-
-        <Pressable style={styles.dfyCardWrapper}>
-          <LinearGradient
-            colors={[LUXURY_COLORS.coral, '#C46A4F']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.dfyCard}
+            style={[styles.dfyCard, dfyBenefit === 'full_wardrobe_setup' && styles.dfyCardFeatured]}
           >
             <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>Tactical</ThemedText>
+              <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                {dfyBenefit === 'none' ? 'Included with plan' : 'Your benefit'}
+              </ThemedText>
             </View>
             <View style={styles.dfyCardHeader}>
               <View style={[styles.dfyBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                <Feather name="package" size={18} color="#FFFFFF" />
+                <Feather name="gift" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.dfyCardTitleContainer}>
-                <ThemedText type="h3" style={{ color: '#FFFFFF' }}>Outfit-Based Setup</ThemedText>
-                <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.7)' }}>One-time purchase</ThemedText>
+                <ThemedText type="h3" style={{ color: '#FFFFFF' }}>
+                  {dfyBenefit === 'none' ? 'Styling Sprint & Full Wardrobe Setup' : dfyBenefitTitle}
+                </ThemedText>
+                <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                  {dfyBenefit === 'none'
+                    ? 'Personal Stylist · Styling Sprint · Unlimited · Full Setup'
+                    : `Included with ${subscriptionTierDisplayName(normalizedTier)} · 1 activation/month`}
+                </ThemedText>
               </View>
             </View>
-            <View style={styles.dfyPriceRow}>
-              <ThemedText type="h1" style={[styles.dfyPrice, { color: '#FFFFFF' }]}>{dfyPrices.outfit_setup}</ThemedText>
-            </View>
             <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(255,255,255,0.9)' }]}>
-              Solve a specific problem, once. Upload photos of your outfits and I'll turn them into ready-to-wear looks for one occasion.
+              {dfyBenefit === 'none'
+                ? 'Subscribe to unlock your monthly stylist-led wardrobe kickstart. Personal Stylist gets Quick Start; Unlimited lets you choose Quick Start or Full Setup.'
+                : dfyBenefit === 'styling_sprint'
+                  ? '5–7 ready-to-wear looks for your next trip or event. Upload outfit photos and Julia styles you in a 14-day sprint.'
+                  : 'Digitise your wardrobe for long-term remixing. Choose Quick Start for a fast win or Full Setup to map up to 30 items.'}
             </ThemedText>
             <View style={styles.dfyFeatures}>
-              {[
-                "You upload outfit photos",
-                "5-7 core outfits with rotations",
-                "One occasion (work, holiday, event)",
-                "14-day access window",
-                "Stylist-led adjustments only",
-                "Save outfits as static cards",
-              ].map((feature, idx) => (
+              {(dfyBenefit === 'none'
+                ? [
+                    "Personal Stylist → Styling Sprint (Quick Start)",
+                    "Stylist Unlimited → Full Wardrobe Setup",
+                    "One included activation per month",
+                    "No separate DFY purchase at launch",
+                  ]
+                : dfyBenefit === 'styling_sprint'
+                  ? [
+                      "5–7 outfit photos",
+                      "14-day styling window",
+                      "Ready-to-wear look cards",
+                      "Stylist-led adjustments",
+                    ]
+                  : [
+                      "Quick Start or Full Setup path",
+                      "Up to 30 wardrobe items (Full Setup)",
+                      "30-day active styling window",
+                      "Swap & remix outfits",
+                    ]
+              ).map((feature, idx) => (
                 <View key={idx} style={styles.dfyFeatureRow}>
                   <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                     <Feather name="check" size={12} color="#FFFFFF" />
@@ -1031,27 +1040,12 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                   <ThemedText type="small" style={{ color: '#FFFFFF' }}>{feature}</ThemedText>
                 </View>
               ))}
-              {[
-                "No wardrobe creation",
-                "No individual item editing",
-              ].map((feature, idx) => (
-                <View key={`excluded-${idx}`} style={styles.dfyFeatureRow}>
-                  <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                    <Feather name="x" size={12} color="rgba(255,255,255,0.4)" />
-                  </View>
-                  <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.5)' }}>{feature}</ThemedText>
-                </View>
-              ))}
             </View>
             <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-              <Pressable 
-                style={styles.dfyButtonInner}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  navigation.navigate('DFYComparison' as any, { selectedTier: 'lite', autoCheckout: true });
-                }}
-              >
-                <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Style me for this</ThemedText>
+              <Pressable style={styles.dfyButtonInner}>
+                <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
+                  {dfyBenefit === 'none' ? "See what's included" : 'Start my setup'}
+                </ThemedText>
               </Pressable>
             </View>
           </LinearGradient>
@@ -1060,17 +1054,31 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
       <View style={styles.finePrint}>
         <ThemedText type="small" style={styles.finePrintText}>
-          Subscriptions auto-renew until canceled. You can{' '}
+          Subscriptions auto-renew each billing period until you cancel below. By subscribing, you agree to our{' '}
           <ThemedText
             type="small"
             style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
-            onPress={() => navigation.navigate('CancelSubscription')}
+            onPress={() => navigation.navigate('TermsOfService')}
           >
-            cancel anytime
+            Terms of Service
           </ThemedText>
-          {' '}in your account settings. By subscribing, you agree to our Terms of Service.
+          .
         </ThemedText>
       </View>
+
+      {normalizedTier !== 'free' ? (
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            navigation.navigate('CancelSubscription');
+          }}
+          style={styles.cancelFooterLink}
+        >
+          <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+            Cancel subscription
+          </ThemedText>
+        </Pressable>
+      ) : null}
     </ScreenScrollView>
   );
 }
@@ -1209,9 +1217,16 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     borderWidth: 1,
   },
-  cancelLink: {
+  cancelFooterLink: {
     alignItems: 'center',
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.lg,
+    paddingBottom: Spacing.xl,
+    marginTop: Spacing.sm,
+  },
+  billingHint: {
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: Spacing.sm,
   },
   upgradeHintBanner: {
     flexDirection: 'row',

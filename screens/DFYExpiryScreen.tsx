@@ -62,7 +62,7 @@ export default function DFYExpiryScreen({ navigation }: DFYExpiryScreenProps) {
 
   const handleUpgradeToCore = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate('DFYComparison');
+    navigation.navigate('DFYStart');
   };
 
   const handleRenew = () => {

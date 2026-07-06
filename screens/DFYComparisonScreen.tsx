@@ -32,6 +32,8 @@ import { useTheme } from "@/hooks/useTheme";
 import { dfyService, DFYTier, DFYComparisonTier } from "@/services/DFYService";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/ApiService";
+import { getDfyBenefitForSubscription } from "@/utils/dfyEntitlements";
+import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -61,7 +63,11 @@ const DFY_PRODUCT_IDS: Record<DFYTier, string> = {
 
 export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenProps) {
   const route = useRoute();
-  const routeParams = route.params as { selectedTier?: DFYTier; autoCheckout?: boolean } | undefined;
+  const routeParams = route.params as {
+    selectedTier?: DFYTier;
+    autoCheckout?: boolean;
+    paidAddOn?: boolean;
+  } | undefined;
   const { theme, isDark } = useTheme();
   const { user, refreshSubscriptionFromBackend } = useAuth();
   const insets = useSafeAreaInsets();
@@ -71,14 +77,26 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const tiers = dfyService.getComparisonTiers();
+  const subscriptionTier = normalizeSubscriptionTier(user?.subscriptionTier);
+  const includedBenefit = getDfyBenefitForSubscription(subscriptionTier);
+  const isPaidAddOn = Boolean(routeParams?.paidAddOn);
   
   const liteGlow = useSharedValue(0);
   const coreGlow = useSharedValue(0);
   const liteScale = useSharedValue(1);
   const coreScale = useSharedValue(1);
 
-  // Auto-start checkout if routed from subscription screen with autoCheckout flag
+  // Bundled subscribers use DFYStart — unless they're buying an extra paid setup (Plan B).
   useEffect(() => {
+    if (isPaidAddOn) return;
+    if (includedBenefit !== 'none') {
+      navigation.replace('DFYStart');
+    }
+  }, [includedBenefit, isPaidAddOn, navigation]);
+
+  // Auto-start checkout for paid add-on or legacy free-user flow
+  useEffect(() => {
+    if (!isPaidAddOn && includedBenefit !== 'none') return;
     if (routeParams?.autoCheckout && routeParams?.selectedTier) {
       const timer = setTimeout(() => {
         if (user?.email) {
@@ -89,7 +107,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
       }, 300); // Small delay to ensure screen is rendered
       return () => clearTimeout(timer);
     }
-  }, [routeParams?.autoCheckout]);
+  }, [routeParams?.autoCheckout, includedBenefit, isPaidAddOn]);
 
   const handleTierSelect = (tierId: DFYTier) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -127,6 +145,10 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
 
   const handleContinue = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (!isPaidAddOn && includedBenefit !== 'none') {
+      navigation.navigate('DFYStart');
+      return;
+    }
     if (user?.email) {
       startCheckout(user.email);
     } else {
@@ -193,7 +215,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
               Alert.alert(
                 'Payment Successful!',
                 `Your Core Wardrobe setup is confirmed. Let's get started!`,
-                [{ text: 'Continue', onPress: () => navigation.navigate('DFYCoreUpload' as any) }]
+                [{ text: 'Continue', onPress: () => navigation.navigate('DFYUpload', { type: 'core' }) }]
               );
             }
           } else if (url.includes('cancel') || url.includes('payment-cancelled')) {
@@ -390,10 +412,12 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
 
         <View style={styles.content}>
           <ThemedText type="h1" style={styles.title}>
-            How would you like me to style you?
+            {isPaidAddOn ? 'Purchase another setup' : 'How would you like me to style you?'}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
-            One solves now. The other solves every time after.
+            {isPaidAddOn
+              ? 'One-time purchase — starts immediately after payment. Your next included setup still resets on the 1st.'
+              : 'One solves now. The other solves every time after.'}
           </ThemedText>
 
           <View style={styles.tiersContainer}>
@@ -432,7 +456,9 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
               ) : (
                 <>
                   <ThemedText type="body" style={styles.continueButtonText}>
-                    {selectedTier === 'lite' ? 'Purchase & Style' : 'Purchase & Build'}
+                    {isPaidAddOn
+                      ? (selectedTier === 'lite' ? 'Purchase Quick Start' : 'Purchase Full Setup')
+                      : (selectedTier === 'lite' ? 'Purchase & Style' : 'Purchase & Build')}
                   </ThemedText>
                   <Feather
                     name="arrow-right"

@@ -465,23 +465,23 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
                 <Feather name="unlock" size={32} color={LUXURY_COLORS.midnight} />
               </View>
               <ThemedText type="h2" style={styles.upgradeTitle}>
-                Unlock with Core
+                Unlock Full Setup
               </ThemedText>
               <ThemedText style={styles.upgradeDescription}>
                 {upgradeFeature === 'swap_item' 
-                  ? "Swapping individual items requires your full wardrobe mapped. With Core, I can break down every piece and rebuild outfits your way."
-                  : "Creating remixes needs your full wardrobe in the system. Core gives you unlimited combinations from all your pieces."
+                  ? "Swapping individual items requires your full wardrobe mapped. With Full Setup, I can break down every piece and rebuild outfits your way."
+                  : "Creating remixes needs your full wardrobe in the system. Full Setup gives you unlimited combinations from all your pieces."
                 }
               </ThemedText>
               <Pressable 
                 onPress={() => {
                   setShowUpgradeModal(false);
-                  navigation.navigate('DFYComparison');
+                  navigation.navigate('DFYStart');
                 }}
                 style={styles.upgradeButton}
               >
                 <ThemedText type="body" style={styles.upgradeButtonText}>
-                  Upgrade to Core - £39.99
+                  Start Full Setup
                 </ThemedText>
               </Pressable>
               <Pressable 

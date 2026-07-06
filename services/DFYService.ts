@@ -1,5 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StylistId } from '@/contexts/AuthContext';
+import {
+  getCurrentDfyActivationPeriodKey,
+  getDfyBenefitForSubscription,
+  isDfyTierAllowedForSubscription,
+} from '@/utils/dfyEntitlements';
 
 export type { StylistId };
 
@@ -122,7 +127,17 @@ export interface UpgradePathTrigger {
 
 const DFY_ACCESS_KEY = '@dripn_dfy_access';
 const DFY_DELIVERY_KEY = '@dripn_dfy_delivery';
+const DFY_ACTIVATIONS_KEY = '@dripn_dfy_activations';
 const COLD_OPEN_KEY = '@dripn_cold_open';
+
+export type DfyActivationBlockCode = 'no_benefit' | 'active_window' | 'monthly_cap';
+
+export interface DfyActivationRecord {
+  periodKey: string;
+  tier: DFYTier;
+  activatedAt: string;
+  source: 'subscription_included';
+}
 
 const OBJECTION_RESPONSES: DFYObjectionResponse[] = [
   {
@@ -400,6 +415,103 @@ class DFYService {
       startDate,
       expiryDate,
     }));
+  }
+
+  private activationsStorageKey(userId: string): string {
+    return `${DFY_ACTIVATIONS_KEY}_${userId}`;
+  }
+
+  async getActivationForPeriod(
+    userId: string,
+    periodKey = getCurrentDfyActivationPeriodKey(),
+  ): Promise<DfyActivationRecord | null> {
+    try {
+      const raw = await AsyncStorage.getItem(this.activationsStorageKey(userId));
+      if (!raw) return null;
+      const records = JSON.parse(raw) as DfyActivationRecord[];
+      return records.find((record) => record.periodKey === periodKey) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  async canUseIncludedActivation(
+    userId: string,
+    subscriptionTier: string | null | undefined,
+  ): Promise<{
+    allowed: boolean;
+    reason?: string;
+    usedTier?: DFYTier;
+    blockCode?: 'no_benefit' | 'active_window' | 'monthly_cap';
+  }> {
+    const benefit = getDfyBenefitForSubscription(subscriptionTier);
+    if (benefit === 'none') {
+      return {
+        allowed: false,
+        blockCode: 'no_benefit',
+        reason: 'Upgrade to Personal Stylist or Stylist Unlimited to unlock your included setup.',
+      };
+    }
+
+    const active = await this.checkDFYAccess(userId);
+    if (active.hasAccess) {
+      return {
+        allowed: false,
+        blockCode: 'active_window',
+        reason: 'You already have an active styling window. Open your plan to continue.',
+      };
+    }
+
+    const used = await this.getActivationForPeriod(userId);
+    if (used) {
+      return {
+        allowed: false,
+        blockCode: 'monthly_cap',
+        usedTier: used.tier,
+        reason: `You've already used your included setup this month (${used.tier === 'lite' ? 'Quick Start' : 'Full Setup'}).`,
+      };
+    }
+
+    return { allowed: true };
+  }
+
+  async recordSubscriptionActivation(userId: string, tier: DFYTier): Promise<void> {
+    const periodKey = getCurrentDfyActivationPeriodKey();
+    const raw = await AsyncStorage.getItem(this.activationsStorageKey(userId));
+    const records: DfyActivationRecord[] = raw ? JSON.parse(raw) : [];
+    const withoutPeriod = records.filter((record) => record.periodKey !== periodKey);
+    withoutPeriod.push({
+      periodKey,
+      tier,
+      activatedAt: new Date().toISOString(),
+      source: 'subscription_included',
+    });
+    await AsyncStorage.setItem(this.activationsStorageKey(userId), JSON.stringify(withoutPeriod));
+  }
+
+  async activateIncludedSetup(
+    userId: string,
+    tier: DFYTier,
+    subscriptionTier: string | null | undefined,
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!isDfyTierAllowedForSubscription(subscriptionTier, tier)) {
+      return {
+        success: false,
+        error:
+          tier === 'core'
+            ? 'Full Setup is included with Stylist Unlimited. Upgrade to unlock it.'
+            : 'This setup path is not included on your current plan.',
+      };
+    }
+
+    const eligibility = await this.canUseIncludedActivation(userId, subscriptionTier);
+    if (!eligibility.allowed) {
+      return { success: false, error: eligibility.reason };
+    }
+
+    await this.recordSubscriptionActivation(userId, tier);
+    await this.activateDFYAccess(userId, tier);
+    return { success: true };
   }
 
   async clearDFYAccess(userId: string): Promise<void> {

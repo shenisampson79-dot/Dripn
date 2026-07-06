@@ -108,7 +108,7 @@ export default function ColdOpenScreen({ navigation }: ColdOpenScreenProps) {
     };
 
     await dfyService.saveColdOpenFlow(flow);
-    navigation.navigate('DFYComparison');
+    navigation.navigate('DFYStart');
   };
 
   const handleSkipStruggle = () => {

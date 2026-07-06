@@ -27,8 +27,10 @@ import PartnerScreen from "@/screens/PartnerScreen";
 import HelpScreen from "@/screens/HelpScreen";
 import ColdOpenScreen from "@/screens/ColdOpenScreen";
 import DFYComparisonScreen from "@/screens/DFYComparisonScreen";
+import DFYStartScreen from "@/screens/DFYStartScreen";
 import DFYStylePlanScreen from "@/screens/DFYStylePlanScreen";
 import DFYExpiryScreen from "@/screens/DFYExpiryScreen";
+import DFYUploadScreen from "@/screens/DFYUploadScreen";
 import AskStylistScreen from "@/screens/AskStylistScreen";
 import CancelSubscriptionScreen from "@/screens/CancelSubscriptionScreen";
 import SubscriptionSuccessScreen from "@/screens/SubscriptionSuccessScreen";
@@ -75,9 +77,11 @@ export type ProfileStackParamList = {
   Partner: undefined;
   Help: undefined;
   ColdOpen: undefined;
-  DFYComparison: undefined;
+  DFYComparison: { selectedTier?: 'lite' | 'core'; autoCheckout?: boolean; paidAddOn?: boolean } | undefined;
+  DFYStart: undefined;
   DFYStylePlan: undefined;
   DFYExpiry: undefined;
+  DFYUpload: { type: "outfit" | "core" };
   AskStylist: undefined;
   CancelSubscription: undefined;
   BodyMeasurements: undefined;
@@ -315,6 +319,22 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
           title: "Choose Your Setup",
           headerShown: false,
           presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="DFYStart"
+        component={DFYStartScreen}
+        options={{
+          title: "Stylist Setup",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="DFYUpload"
+        component={DFYUploadScreen}
+        options={{
+          title: "Upload Wardrobe",
+          headerShown: false,
         }}
       />
       <Stack.Screen

@@ -17,7 +17,9 @@ import BodyMeasurementsScreen from "@/screens/BodyMeasurementsScreen";
 import FeedbackScreen from "@/screens/FeedbackScreen";
 import CommunityVotingScreen from "@/screens/CommunityVotingScreen";
 import DFYComparisonScreen from "@/screens/DFYComparisonScreen";
+import DFYStartScreen from "@/screens/DFYStartScreen";
 import DFYStylePlanScreen from "@/screens/DFYStylePlanScreen";
+import DFYUploadScreen from "@/screens/DFYUploadScreen";
 import AnalyticsDashboard from "@/screens/AnalyticsDashboard";
 import { useTheme } from "@/hooks/useTheme";
 import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
@@ -40,8 +42,10 @@ export type SettingsStackParamList = {
   BodyMeasurements: undefined;
   Feedback: undefined;
   CommunityVoting: { session: any };
-  DFYComparison: { selectedTier?: string; autoCheckout?: boolean };
+  DFYComparison: { selectedTier?: 'lite' | 'core'; autoCheckout?: boolean; paidAddOn?: boolean };
+  DFYStart: undefined;
   DFYStylePlan: { tier?: string };
+  DFYUpload: { type: "outfit" | "core" };
   AnalyticsDashboard: undefined;
 };
 
@@ -177,6 +181,22 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
           title: "Done-For-You Style",
           headerShown: false,
           presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="DFYStart"
+        component={DFYStartScreen}
+        options={{
+          title: "Stylist Setup",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="DFYUpload"
+        component={DFYUploadScreen}
+        options={{
+          title: "Upload Wardrobe",
+          headerShown: false,
         }}
       />
       <Stack.Screen
