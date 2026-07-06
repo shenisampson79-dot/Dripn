@@ -55,7 +55,7 @@ export default function DFYExpiryScreen({ navigation }: DFYExpiryScreenProps) {
     setAccessStatus(status);
     
     if (status.tier) {
-      const flow = dfyService.getExpiryFlow(status.tier, status.daysRemaining);
+      const flow = dfyService.getExpiryFlow(status.tier, status.daysRemaining, status.windowDays);
       setExpiryFlow(flow);
     }
   };

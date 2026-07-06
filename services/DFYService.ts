@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StylistId } from '@/contexts/AuthContext';
 import {
   getDfyBenefitForSubscription,
+  getIncludedStylingWindowDays,
   isDfyTierAllowedForSubscription,
 } from '@/utils/dfyEntitlements';
 
@@ -111,6 +112,7 @@ export interface DFYAccessStatus {
   hasAccess: boolean;
   tier: DFYTier | null;
   daysRemaining: number;
+  windowDays: number;
   startDate: string | null;
   expiryDate: string | null;
   showNudge: boolean;
@@ -348,6 +350,7 @@ class DFYService {
           hasAccess: false,
           tier: null,
           daysRemaining: 0,
+          windowDays: 0,
           startDate: null,
           expiryDate: null,
           showNudge: false,
@@ -359,32 +362,28 @@ class DFYService {
       const now = new Date();
       const expiry = new Date(access.expiryDate);
       const daysRemaining = Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-      
+      const windowDays: number =
+        access.windowDays ?? (access.tier === 'lite' ? 14 : 30);
+
       let nudgeType: 'day12' | 'day25' | 'expired' | null = null;
       let showNudge = false;
 
-      if (access.tier === 'lite') {
-        if (daysRemaining === 0) {
-          nudgeType = 'expired';
-          showNudge = true;
-        } else if (daysRemaining <= 2) {
-          nudgeType = 'day12';
-          showNudge = true;
-        }
-      } else if (access.tier === 'core') {
-        if (daysRemaining === 0) {
-          nudgeType = 'expired';
-          showNudge = true;
-        } else if (daysRemaining <= 5) {
-          nudgeType = 'day25';
-          showNudge = true;
-        }
+      if (daysRemaining === 0) {
+        nudgeType = 'expired';
+        showNudge = true;
+      } else if (windowDays <= 14 && daysRemaining <= 2) {
+        nudgeType = 'day12';
+        showNudge = true;
+      } else if (windowDays > 14 && daysRemaining <= 5) {
+        nudgeType = 'day25';
+        showNudge = true;
       }
 
       return {
         hasAccess: daysRemaining > 0,
         tier: access.tier,
         daysRemaining,
+        windowDays,
         startDate: access.startDate,
         expiryDate: access.expiryDate,
         showNudge,
@@ -396,23 +395,25 @@ class DFYService {
         hasAccess: false,
         tier: null,
         daysRemaining: 0,
+        windowDays: 0,
         startDate: null,
         expiryDate: null,
         showNudge: false,
         nudgeType: null,
       };
-    }
-  }
-
-  async activateDFYAccess(userId: string, tier: DFYTier): Promise<void> {
+    userId: string,
+    tier: DFYTier,
+    options?: { windowDays?: number },
+  ): Promise<void> {
     const startDate = new Date().toISOString();
-    const days = tier === 'lite' ? 14 : 30;
-    const expiryDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    const windowDays = options?.windowDays ?? (tier === 'lite' ? 14 : 30);
+    const expiryDate = new Date(Date.now() + windowDays * 24 * 60 * 60 * 1000).toISOString();
 
     await AsyncStorage.setItem(`${DFY_ACCESS_KEY}_${userId}`, JSON.stringify({
       tier,
       startDate,
       expiryDate,
+      windowDays,
     }));
   }
 
@@ -505,7 +506,8 @@ class DFYService {
     }
 
     await this.recordSubscriptionActivation(userId, tier);
-    await this.activateDFYAccess(userId, tier);
+    const windowDays = getIncludedStylingWindowDays(subscriptionTier, tier);
+    await this.activateDFYAccess(userId, tier, { windowDays });
     return { success: true };
   }
 
@@ -616,26 +618,20 @@ class DFYService {
     return OBJECTION_RESPONSES;
   }
 
-  getExpiryFlow(tier: DFYTier, daysRemaining: number): DFYExpiryFlow {
+  getExpiryFlow(tier: DFYTier, daysRemaining: number, windowDays?: number): DFYExpiryFlow {
+    const effectiveWindowDays = windowDays ?? (tier === 'lite' ? 14 : 30);
     let nudgeType: 'day12' | 'day25' | 'expired' | null = null;
     let showNudgeBanner = false;
 
-    if (tier === 'lite') {
-      if (daysRemaining === 0) {
-        nudgeType = 'expired';
-        showNudgeBanner = true;
-      } else if (daysRemaining <= 2) {
-        nudgeType = 'day12';
-        showNudgeBanner = true;
-      }
-    } else {
-      if (daysRemaining === 0) {
-        nudgeType = 'expired';
-        showNudgeBanner = true;
-      } else if (daysRemaining <= 5) {
-        nudgeType = 'day25';
-        showNudgeBanner = true;
-      }
+    if (daysRemaining === 0) {
+      nudgeType = 'expired';
+      showNudgeBanner = true;
+    } else if (effectiveWindowDays <= 14 && daysRemaining <= 2) {
+      nudgeType = 'day12';
+      showNudgeBanner = true;
+    } else if (effectiveWindowDays > 14 && daysRemaining <= 5) {
+      nudgeType = 'day25';
+      showNudgeBanner = true;
     }
 
     return {

@@ -137,7 +137,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
             </ThemedText>
           </View>
           <ThemedText type="body" style={styles.pathDescription}>
-            {getDfyPathDescription(tier)}
+            {getDfyPathDescription(tier, benefit)}
           </ThemedText>
           <View style={styles.pathCtaRow}>
             <ThemedText type="small" style={styles.pathCtaText}>
@@ -192,7 +192,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
     <View style={styles.paidAddOnSection}>
       <ThemedText type="h4" style={styles.sectionTitle}>Purchase another setup</ThemedText>
       <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
-        Your one included setup has been used. Additional runs are one-time purchases.
+        You've used your included setup — you can always run another whenever you need one.
       </ThemedText>
       {renderPaidAddOnCard('lite')}
       {benefit === 'full_wardrobe_setup' || benefit === 'styling_sprint' ? renderPaidAddOnCard('core') : null}
@@ -228,7 +228,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
         </ThemedText>
         <ThemedText type="body" style={[styles.heroSubtitle, { color: theme.tabIconDefault }]}>
           {benefit === 'none'
-            ? 'Personal Stylist includes a Styling Sprint. Stylist Unlimited includes Full Wardrobe Setup with a quick or full path.'
+            ? 'Personal Stylist comes with a Styling Sprint. Stylist Unlimited includes a full wardrobe setup — quick win or the whole closet.'
             : getDfyBenefitSubtitle(benefit)}
         </ThemedText>
       </View>
@@ -287,7 +287,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           {showPaidAddOn ? renderPaidAddOnSection() : (
             <>
               <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
-                One included setup with your plan. Want the full wardrobe system? Upgrade to Stylist Unlimited.
+                Your plan includes one setup. Ready for the full wardrobe experience? Stylist Unlimited has you.
               </ThemedText>
               <Pressable onPress={() => navigation.navigate('Subscription', { highlightPlan: 'stylist_unlimited' })}>
                 <ThemedText type="small" style={{ color: theme.link, textAlign: 'center' }}>
@@ -303,7 +303,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
         <View style={styles.pathSection}>
           <ThemedText type="h4" style={styles.sectionTitle}>How do you want to start?</ThemedText>
           <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
-            One included setup with your plan — pick the path for your trial run.
+            You're covered — choose how you want to begin.
           </ThemedText>
           {activationBlockedReason ? (
             <ThemedText type="small" style={[styles.blockedText, { color: theme.tabIconDefault }]}>
@@ -318,7 +318,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           ) : null}
           {showPaidAddOn ? renderPaidAddOnSection() : (
             <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
-              Quick Start is great for a fast win. Full Setup digitises your wardrobe for long-term remixing.
+              Quick Start is a fast win when you're short on time. Full Setup is for when you want your whole closet digitised.
             </ThemedText>
           )}
         </View>

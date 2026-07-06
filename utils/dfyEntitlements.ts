@@ -26,12 +26,23 @@ export function getDfyBenefitTitle(benefit: DfySubscriptionBenefit): string {
 export function getDfyBenefitSubtitle(benefit: DfySubscriptionBenefit): string {
   switch (benefit) {
     case 'styling_sprint':
-      return 'Try a Styling Sprint once with your plan — 5–7 looks for your next trip or event.';
+      return "We've saved a Styling Sprint for you — a handful of looks for that trip or event you've got coming up.";
     case 'full_wardrobe_setup':
-      return 'Try Full Wardrobe Setup once — quick start or full digitise, then pay for more.';
+      return "We've saved this for you — quick start or full digitise, let's get your wardrobe working for real life.";
     default:
-      return 'One included stylist setup with Personal Stylist or Stylist Unlimited.';
+      return 'Your stylist can set up your wardrobe for you — included with Personal Stylist or Stylist Unlimited.';
   }
+}
+
+/** Active styling window for a subscriber's included activation. */
+export function getIncludedStylingWindowDays(
+  subscriptionTier: string | null | undefined,
+  dfyTier: DFYTier,
+): number {
+  const benefit = getDfyBenefitForSubscription(subscriptionTier);
+  if (benefit === 'full_wardrobe_setup') return 30;
+  if (benefit === 'styling_sprint') return 14;
+  return dfyTier === 'lite' ? 14 : 30;
 }
 
 /** Whether this DFY path is allowed for the subscriber's included benefit. */
@@ -49,9 +60,14 @@ export function getDfyPathLabel(tier: DFYTier): string {
   return tier === 'lite' ? 'Quick Start' : 'Full Setup';
 }
 
-export function getDfyPathDescription(tier: DFYTier): string {
+export function getDfyPathDescription(
+  tier: DFYTier,
+  benefit: DfySubscriptionBenefit = 'none',
+): string {
   if (tier === 'lite') {
-    return '5–7 outfit photos · fast win · 14-day styling sprint';
+    const windowLabel =
+      benefit === 'full_wardrobe_setup' ? '30-day styling window' : '14-day styling sprint';
+    return `5–7 outfit photos · fast win · ${windowLabel}`;
   }
   return 'Up to 30 items · wardrobe saved forever · 30-day active styling';
 }
