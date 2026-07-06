@@ -341,6 +341,11 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     });
   };
 
+  const handleStartIncludedDfy = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    navigation.navigate('DFYStart');
+  };
+
   // Scroll to DFY section if navigated from upgrade flow
   useEffect(() => {
     if (route?.params?.scrollToDFY && scrollViewRef.current) {
@@ -981,10 +986,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
         <Pressable
           style={styles.dfyCardWrapper}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            navigation.navigate('DFYStart');
-          }}
+          onPress={handleStartIncludedDfy}
         >
           <LinearGradient
             colors={
@@ -1056,7 +1058,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               ))}
             </View>
             <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-              <Pressable style={styles.dfyButtonInner}>
+              <Pressable style={styles.dfyButtonInner} onPress={handleStartIncludedDfy}>
                 <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
                   {dfyBenefit === 'none' ? "See what's included" : 'Start my setup'}
                 </ThemedText>
