@@ -129,8 +129,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                   user?.email === 'sheni_sampson@yahoo.co.uk' ||
                   user?.role === 'admin';
 
-  // Testing toggles — visible in dev builds and for admin accounts
-  const showTestingTools = __DEV__ || isAdmin;
+  // Testing toggles — dev builds only (never in production)
+  const showTestingTools = __DEV__;
   
   // Dynamic colors from palette
   const LUXURY_COLORS = {

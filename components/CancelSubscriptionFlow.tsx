@@ -252,7 +252,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
     const targetTier = normalizeSubscriptionTier(plan);
     setIsProcessing(true);
     try {
-      const devTesting = await isDevTestingModeEnabled();
+      const devTesting = __DEV__ && (await isDevTestingModeEnabled());
       const currentRank = TIER_RANK[normalizedTier] ?? 0;
       const targetRank = TIER_RANK[targetTier] ?? 0;
 

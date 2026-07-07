@@ -3,7 +3,7 @@
     "name": "Dripn",
     "slug": "dripn",
     "version": "1.0.0",
-    "description": "Dripn is your personal fashion advisor powered by AI and real professional stylists. Get instant outfit advice, book live video styling sessions with certified stylists, and connect with a vibrant fashion community. Discover trending styles from top influencers worldwide, receive daily style tips featuring exclusive bargains from luxury and household brands, and explore local events with personalized outfit suggestions. Whether you love luxury, streetwear, boho, or smart casual, Dripn delivers personalized recommendations, size-inclusive styling, voice comments, and shoppable content. Join millions of fashion enthusiasts sharing outfits, voting on looks, and elevating their style game every day. Style that flows.",
+    "description": "Dripn is your AI-powered personal stylist. Get outfit advice from photo uploads, build a digital wardrobe, and explore style inspiration tailored to your preferences. Features include AI styling chat, outfit builder, weather-based suggestions, community voting on looks, shoppable product links, and optional subscription plans with added benefits. Size-inclusive guidance for casual, professional, and special-occasion dressing. Style that flows.",
     "orientation": "portrait",
     "icon": "./assets/images/dripn-logo-icon.png",
     "scheme": "dripn",
@@ -18,7 +18,8 @@
         "NSCameraUsageDescription": "Dripn needs camera access to take outfit photos for style advice.",
         "NSPhotoLibraryUsageDescription": "Dripn needs photo library access to select outfit images for style advice.",
         "NSMicrophoneUsageDescription": "Dripn needs microphone access to record voice comments and video calls with stylists.",
-        "NSLocationWhenInUseUsageDescription": "Dripn uses your location to find local stores and fashion trends."
+        "NSLocationWhenInUseUsageDescription": "Dripn uses your location to show local weather for outfit suggestions, nearby fashion events, and region-relevant style trends.",
+        "NSUserNotificationsUsageDescription": "Dripn sends notifications for style reminders, community feedback on your outfits, subscription updates, and personalized styling tips."
       },
       "config": {
         "usesNonExemptEncryption": false,

@@ -1031,6 +1031,18 @@ class ApiService {
     });
   }
 
+  async reportContent(data: {
+    contentType: 'post' | 'comment' | 'user';
+    contentId: string;
+    reason: string;
+    details?: string;
+  }) {
+    return this.request<{ success: boolean; reportId?: string; message: string }>('/api/content/report', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async trackInteraction(data: {
     interactionType: 'like' | 'dislike' | 'view' | 'save' | 'share' | 'comment';
     targetType: 'post' | 'outfit' | 'event' | 'offer';

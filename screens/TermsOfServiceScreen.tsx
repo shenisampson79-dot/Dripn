@@ -143,7 +143,10 @@ export default function TermsOfServiceScreen() {
             4.2 Billing
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            Paid subscriptions are billed in advance on a monthly or annual basis. Payments are processed securely through Stripe. By subscribing, you authorize us to charge your payment method.
+            Paid subscriptions are billed in advance on a monthly or annual basis. On iOS, subscriptions and in-app purchases are processed through the Apple App Store (in-app purchase support is rolling out). On web and Android, payments are processed securely through Stripe. By subscribing, you authorize us to charge your payment method through the applicable platform.
+          </ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>
+            One-time purchases (such as Done-For-You styling setups) follow the same platform rules: App Store on iOS when available, otherwise Stripe on web.
           </ThemedText>
 
           <ThemedText type="h4" style={styles.subsectionTitle}>

@@ -309,21 +309,30 @@ export function PostsProvider({ children }: { children: ReactNode }) {
           await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(postsWithGender));
         }
         setPosts(postsWithGender);
-      } else {
+      } else if (__DEV__) {
         setPosts(SAMPLE_POSTS);
         await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(SAMPLE_POSTS));
+      } else {
+        setPosts([]);
       }
 
       if (commentsData) {
         setComments(JSON.parse(commentsData));
-      } else {
+      } else if (__DEV__) {
         setComments(SAMPLE_COMMENTS);
         await AsyncStorage.setItem(COMMENTS_STORAGE_KEY, JSON.stringify(SAMPLE_COMMENTS));
+      } else {
+        setComments([]);
       }
     } catch (error) {
       console.error('Failed to load posts:', error);
-      setPosts(SAMPLE_POSTS);
-      setComments(SAMPLE_COMMENTS);
+      if (__DEV__) {
+        setPosts(SAMPLE_POSTS);
+        setComments(SAMPLE_COMMENTS);
+      } else {
+        setPosts([]);
+        setComments([]);
+      }
     } finally {
       setIsLoading(false);
     }

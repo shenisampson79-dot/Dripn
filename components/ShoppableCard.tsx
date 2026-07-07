@@ -170,6 +170,9 @@ export function ShoppableCard({ product, compact = false, onPress }: ShoppableCa
             Shop Now
           </ThemedText>
         </Pressable>
+        <ThemedText type="caption" style={[styles.affiliateDisclosure, { color: theme.tabIconDefault }]}>
+          Dripn may earn a commission if you purchase through this link, at no extra cost to you.
+        </ThemedText>
       </View>
     </Pressable>
   );
@@ -288,6 +291,13 @@ const styles = StyleSheet.create({
   shopButtonText: {
     color: "#FFFFFF",
     fontWeight: "600",
+  },
+  affiliateDisclosure: {
+    marginTop: Spacing.sm,
+    fontSize: 10,
+    lineHeight: 14,
+    textAlign: "center",
+    opacity: 0.7,
   },
   compactCard: {
     flexDirection: "row",

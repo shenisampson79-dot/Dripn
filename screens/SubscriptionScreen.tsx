@@ -446,7 +446,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsProcessing(true);
     try {
-      const devTesting = devTestingMode || (await isDevTestingModeEnabled().catch(() => false));
+      const devTesting = __DEV__ && (devTestingMode || (await isDevTestingModeEnabled().catch(() => false)));
       if (devTesting) {
         Alert.alert(
           'Testing mode',
@@ -1016,7 +1016,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.75)' }}>
                   {dfyBenefit === 'none'
                     ? 'Personal Stylist · Styling Sprint · Unlimited · Full Setup'
-                    : `Included with ${subscriptionTierDisplayName(normalizedTier)} · one-time trial`}
+                    : `Included DFY setup with ${subscriptionTierDisplayName(normalizedTier)} (not a subscription free trial)`}
                 </ThemedText>
               </View>
             </View>
@@ -1074,7 +1074,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             Purchase Additional Setup
           </ThemedText>
           <ThemedText type="body" style={styles.dfySectionSubtitle}>
-            After your included trial, or anytime you want an extra run — one-time purchases via Stripe.
+            After your included DFY setup benefit is used, or anytime you want an extra run — one-time purchases via Stripe (App Store on iOS, coming soon).
           </ThemedText>
         </View>
 
@@ -1217,6 +1217,14 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             onPress={() => navigation.navigate('TermsOfService')}
           >
             Terms of Service
+          </ThemedText>
+          {' '}and{' '}
+          <ThemedText
+            type="small"
+            style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
+            onPress={() => navigation.navigate('PrivacyPolicy')}
+          >
+            Privacy Policy
           </ThemedText>
           .
         </ThemedText>

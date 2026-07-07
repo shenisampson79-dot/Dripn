@@ -211,7 +211,7 @@ class SupportService {
     }
 
     if (lowerMessage.includes('stylist') || lowerMessage.includes('video call')) {
-      return `Premium members get exclusive access to real-life stylist video sessions! That's 4 one-hour sessions per month with professional fashion stylists.\n\nTo access this, you'll need to upgrade to Premium tier. Once subscribed, you can book sessions from your Profile screen. ${signOff}`;
+      return `Stylist Unlimited members can start peer video calls with other members from the VIP Members screen when the feature is available in your region.\n\nUpgrade to Stylist Unlimited in Settings > Subscription to unlock member video calling. ${signOff}`;
     }
 
     if (lowerMessage.includes('wardrobe') || lowerMessage.includes('closet')) {

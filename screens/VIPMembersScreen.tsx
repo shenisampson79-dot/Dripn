@@ -60,11 +60,11 @@ export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) 
   const handleCall = async (member: VIPMember) => {
     if (!limits.canMakeVideoCalls) {
       Alert.alert(
-        'VIP Feature',
-        'Video calling is exclusively available for VIP members. Upgrade to VIP to connect with other VIP members through video calls.',
+        'Stylist Unlimited Feature',
+        'Member video calling is available on the Stylist Unlimited plan. Upgrade to connect with other members through video calls.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'View VIP', onPress: () => navigation.navigate('Subscription') },
+          { text: 'View Plans', onPress: () => navigation.navigate('Subscription') },
         ]
       );
       return;
@@ -109,7 +109,7 @@ export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) 
       <View style={[styles.infoCard, { backgroundColor: theme.link + '15' }]}>
         <Feather name="info" size={16} color={theme.link} />
         <ThemedText type="small" style={{ flex: 1, marginLeft: Spacing.sm, opacity: 0.8 }}>
-          Start a video call with another VIP member. Calls are hosted exclusively on Dripn.
+          Start a video call with another Stylist Unlimited member. Calls are hosted on Dripn.
         </ThemedText>
       </View>
     </>
@@ -229,19 +229,19 @@ export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) 
                 <Feather name="video" size={48} color={theme.link} />
               </View>
               <ThemedText type="h2" style={{ textAlign: 'center', marginTop: Spacing.lg }}>
-                VIP Video Calling
+                Member Video Calling
               </ThemedText>
               <ThemedText
                 type="body"
                 style={{ textAlign: 'center', opacity: 0.7, marginTop: Spacing.sm }}
               >
-                Connect with fellow VIP members through exclusive video calls. Share style tips, get outfit feedback, and build your fashion network.
+                Stylist Unlimited members can connect with other members through video calls — share style tips, get outfit feedback, and build your fashion network.
               </ThemedText>
               <Button
                 onPress={() => navigation.navigate('Subscription')}
                 style={[styles.upgradeButton, { backgroundColor: theme.link }]}
               >
-                Upgrade to VIP
+                Upgrade to Stylist Unlimited
               </Button>
             </View>
           </>

@@ -438,7 +438,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userData) {
         const localUser = JSON.parse(userData);
         localUser.subscriptionTier = normalizeSubscriptionTier(localUser.subscriptionTier);
-        if (await isDevTestingModeEnabled()) {
+        if (__DEV__ && (await isDevTestingModeEnabled())) {
           localUser.subscriptionTier = 'stylist_unlimited';
         }
         setUser(localUser);
@@ -466,7 +466,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               ...hydrated,
               hasSeenTour,
             };
-            if (await isDevTestingModeEnabled()) {
+            if (__DEV__ && (await isDevTestingModeEnabled())) {
               updatedUser.subscriptionTier = 'stylist_unlimited';
             }
             await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
@@ -884,7 +884,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshSubscriptionFromBackend = useCallback(async (sessionId?: string) => {
     if (!user) return;
-    if (await isDevTestingModeEnabled()) return;
+    if (__DEV__ && (await isDevTestingModeEnabled())) return;
     try {
       // First try direct verification (checks Stripe directly, bypasses webhook delays)
       let subStatus = await apiService.verifySubscription(sessionId).catch(async () => {

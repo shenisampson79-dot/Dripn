@@ -636,7 +636,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
     
     Alert.alert(
       `Get the ${look.styleName} Look`,
-      `${priceLabel} alternatives (Total: ${formatPrice(totalPrice)}):\n\n${items.map(item => `${item.name}\n${formatPrice(item.price)} at ${item.store}`).join("\n\n")}`,
+      `${priceLabel} alternatives (Total: ${formatPrice(totalPrice)}):\n\n${items.map(item => `${item.name}\n${formatPrice(item.price)} at ${item.store}`).join("\n\n")}\n\n—\nDripn may earn a commission on purchases made through retailer links.`,
       [
         { text: "Close", style: "cancel" },
         { 

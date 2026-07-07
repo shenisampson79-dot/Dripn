@@ -424,7 +424,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
         </LinearGradient>
         <ThemedText type="h1" style={styles.title}>AI Body Scanner</ThemedText>
         <ThemedText style={[styles.subtitle, { color: theme.tabIconDefault }]}>
-          Advanced GPT-5.2 Vision analysis for precise body measurements and proportions
+          AI-assisted estimates of body proportions from a full-body photo — helpful for fit guidance, not a substitute for professional measuring.
         </ThemedText>
       </View>
 
@@ -597,7 +597,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
             </View>
             <ThemedText type="small" style={{ color: theme.tabIconDefault, lineHeight: 20 }}>
               Your body scan photos are processed securely and never stored on our servers. 
-              Only your measurements are saved locally on your device.
+              Only your measurements are saved locally on your device. Estimates may vary — use manual entry if you need exact sizing for tailoring.
             </ThemedText>
           </Card>
         </>

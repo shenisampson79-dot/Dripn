@@ -6,6 +6,7 @@ import { BlurView } from "expo-blur";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { apiService } from "@/services/ApiService";
 
 const REPORT_REASONS = [
   { id: "spam", label: "Spam or misleading", icon: "alert-circle" as const },
@@ -35,18 +36,28 @@ export function ReportModal({ visible, onClose, contentType, contentId }: Report
     }
 
     setIsSubmitting(true);
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setIsSubmitting(false);
-    setSelectedReason(null);
-    onClose();
-    
-    Alert.alert(
-      "Report Submitted",
-      "Thank you for helping keep Dripn safe. Our team will review this content.",
-      [{ text: "OK" }]
-    );
+
+    try {
+      await apiService.reportContent({
+        contentType,
+        contentId,
+        reason: selectedReason,
+      });
+
+      setSelectedReason(null);
+      onClose();
+
+      Alert.alert(
+        "Report Submitted",
+        "Thank you for helping keep Dripn safe. Our team will review this content.",
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not submit your report. Please try again.";
+      Alert.alert("Report Failed", message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
@@ -92,7 +103,7 @@ export function ReportModal({ visible, onClose, contentType, contentId }: Report
                       backgroundColor:
                         selectedReason === reason.id
                           ? theme.link + "20"
-                          : theme.background,
+                          : theme.backgroundDefault,
                       borderColor:
                         selectedReason === reason.id
                           ? theme.link
@@ -133,7 +144,7 @@ export function ReportModal({ visible, onClose, contentType, contentId }: Report
                 style={({ pressed }) => [
                   styles.cancelButton,
                   {
-                    backgroundColor: theme.background,
+                    backgroundColor: theme.backgroundDefault,
                     borderColor: theme.tabIconDefault,
                     opacity: pressed ? 0.8 : 1,
                   },

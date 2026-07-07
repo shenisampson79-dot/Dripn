@@ -119,7 +119,13 @@ export default function CommunityVotingScreen({ navigation, route }: any) {
   const [hasVoted, setHasVoted] = useState(false);
   const [votingResult, setVotingResult] = useState<VotingResult | null>(null);
 
-  const session: VotingSession = route.params?.session || PREVIEW_SESSION;
+  const session: VotingSession = route.params?.session || (__DEV__ ? PREVIEW_SESSION : {
+    ...PREVIEW_SESSION,
+    id: "empty_session",
+    outfitOptions: [],
+    context: "No active voting session.",
+  });
+  const isPreviewSession = !route.params?.session;
   const stylistId = user?.stylistPreferences?.selectedStylistId;
   const reasons = CommunityVotingService.getVotingReasons();
 
@@ -384,6 +390,15 @@ export default function CommunityVotingScreen({ navigation, route }: any) {
       ]}
       showsVerticalScrollIndicator={false}
     >
+      {isPreviewSession ? (
+        <View style={[styles.previewBanner, { backgroundColor: theme.link + "15" }]}>
+          <Feather name="info" size={14} color={theme.link} />
+          <ThemedText type="small" style={{ color: theme.link, flex: 1 }}>
+            {__DEV__ ? "Preview session — sample data for testing." : "Demo preview — not a live community vote."}
+          </ThemedText>
+        </View>
+      ) : null}
+
       <View style={styles.contextCard}>
         {session.occasion ? (
           <View style={styles.occasionBadge}>
@@ -553,6 +568,14 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
+  },
+  previewBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
   },
   contextCard: {
     padding: Spacing.lg,

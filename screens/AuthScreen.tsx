@@ -40,6 +40,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
 
   const isSignup = mode === "signup";
 
@@ -146,6 +147,11 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
     if (isSignup && password.length < 6) {
       setErrorMessage('Password must be at least 6 characters');
+      return;
+    }
+
+    if (isSignup && !ageConfirmed) {
+      setErrorMessage('Please confirm you are at least 13 years old to create an account.');
       return;
     }
 
@@ -348,6 +354,27 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
             </View>
           ) : null}
 
+          {isSignup ? (
+            <Pressable
+              onPress={() => setAgeConfirmed((prev) => !prev)}
+              style={({ pressed }) => [
+                styles.ageConfirmRow,
+                { opacity: pressed ? 0.8 : 1 },
+              ]}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: ageConfirmed }}
+            >
+              <Feather
+                name={ageConfirmed ? "check-square" : "square"}
+                size={20}
+                color={ageConfirmed ? theme.link : theme.tabIconDefault}
+              />
+              <ThemedText type="small" style={styles.ageConfirmText}>
+                I confirm that I am at least 13 years old
+              </ThemedText>
+            </Pressable>
+          ) : null}
+
           <Button onPress={handleSubmit} disabled={isAuthenticating} style={styles.submitButton}>
             {isAuthenticating ? (
               <ActivityIndicator color="#FFFFFF" />
@@ -494,6 +521,16 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: Spacing.md,
+  },
+  ageConfirmRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  ageConfirmText: {
+    flex: 1,
+    lineHeight: 20,
   },
   switchMode: {
     alignItems: "center",

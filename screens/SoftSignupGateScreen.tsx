@@ -52,7 +52,7 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
       console.log("Failed to track gate response");
     }
 
-    navigation.navigate("Auth", { mode: "login" });
+    navigation.navigate("GuestBrowse");
   };
 
   const getContextMessage = () => {
@@ -156,7 +156,11 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
 
           <Pressable onPress={handleContinueWithoutSaving} style={styles.secondaryButton}>
             <ThemedText type="body" style={styles.secondaryButtonText}>
-              {fromPath === "second_opinion_urgent" ? "Maybe later" : "Continue without saving"}
+              {fromPath === "second_opinion_urgent"
+                ? "Maybe later"
+                : fromPath === "browsing" || fromPath === "farewell"
+                  ? "Browse as guest"
+                  : "Continue without saving"}
             </ThemedText>
           </Pressable>
         </Animated.View>
