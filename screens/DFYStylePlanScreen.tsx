@@ -6,6 +6,7 @@ import {
   TextInput,
   Modal,
   Dimensions,
+  Alert,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFocusEffect, useRoute } from "@react-navigation/native";
@@ -231,6 +232,19 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
       };
       return updated;
     });
+
+    if (reaction === 'love') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        'Saved to Profile',
+        'This look appears in Saved Outfits on your Profile.',
+      );
+    } else if (reaction === 'not-me') {
+      Alert.alert(
+        'Noted',
+        'We saved your preference on this device.',
+      );
+    }
   };
 
   const handleAdjust = () => {
@@ -257,6 +271,11 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
     
     setShowAdjustModal(false);
     setAdjustmentText("");
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert(
+      'Note saved',
+      'Your adjustment note is saved on this device. It is not sent to your stylist yet.',
+    );
   };
 
   const handleSave = async () => {
@@ -483,7 +502,10 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
                 style={styles.coreActionButton}
               >
                 <Feather name="refresh-cw" size={16} color="rgba(255,255,255,0.5)" />
-                <ThemedText type="small" style={styles.coreActionText}>Swap item</ThemedText>
+                <View style={styles.coreActionTextBlock}>
+                  <ThemedText type="small" style={styles.coreActionText}>Replace one piece</ThemedText>
+                  <ThemedText type="small" style={styles.coreActionSubtext}>Swap a single item</ThemedText>
+                </View>
                 <View style={styles.coreBadge}>
                   <ThemedText type="small" style={styles.coreBadgeText}>Core</ThemedText>
                 </View>
@@ -493,7 +515,10 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
                 style={styles.coreActionButton}
               >
                 <Feather name="shuffle" size={16} color="rgba(255,255,255,0.5)" />
-                <ThemedText type="small" style={styles.coreActionText}>Remix</ThemedText>
+                <View style={styles.coreActionTextBlock}>
+                  <ThemedText type="small" style={styles.coreActionText}>New combinations</ThemedText>
+                  <ThemedText type="small" style={styles.coreActionSubtext}>Remix the whole look</ThemedText>
+                </View>
                 <View style={styles.coreBadge}>
                   <ThemedText type="small" style={styles.coreBadgeText}>Core</ThemedText>
                 </View>
@@ -793,9 +818,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.md,
   },
-  coreActionText: {
-    color: 'rgba(255,255,255,0.5)',
+  coreActionTextBlock: {
     flex: 1,
+  },
+  coreActionText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+  },
+  coreActionSubtext: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 11,
+    marginTop: 2,
   },
   coreBadge: {
     backgroundColor: LUXURY_COLORS.gold,
