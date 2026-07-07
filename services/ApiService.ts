@@ -3442,9 +3442,13 @@ class ApiService {
       outfits?: Array<{
         id: string;
         day?: number;
+        dayNumber?: number;
         title?: string;
         stylistNote?: string;
         weatherNote?: string;
+        userReaction?: 'love' | 'not-me' | null;
+        adjustmentRequest?: string;
+        saved?: boolean;
         items: Array<{
           id: string | number;
           name: string;
@@ -3456,6 +3460,42 @@ class ApiService {
         }>;
       }>;
     }>('/api/dfy/lite/lookbook');
+  }
+
+  async submitDFYOutfitReaction(data: {
+    outfitId: string;
+    reaction: 'love' | 'not-me' | null;
+    source?: string;
+    dayNumber?: number;
+    stylistId?: string;
+    outfitData?: {
+      title?: string;
+      occasion?: string;
+      items?: Array<{ id?: string | number; name?: string; category?: string; color?: string }>;
+    };
+  }) {
+    return this.request<{ success: boolean }>('/api/dfy/outfit-reaction', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async submitDFYAdjustmentRequest(data: {
+    outfitId: string;
+    notes: string;
+    source?: string;
+    dayNumber?: number;
+    stylistId?: string;
+    outfitData?: {
+      title?: string;
+      occasion?: string;
+      items?: Array<{ id?: string | number; name?: string; category?: string; color?: string }>;
+    };
+  }) {
+    return this.request<{ success: boolean }>('/api/dfy/adjustment-request', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   async generateDFYLookbook(data: {

@@ -6,7 +6,6 @@ import {
   TextInput,
   Modal,
   Dimensions,
-  Alert,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFocusEffect, useRoute } from "@react-navigation/native";
@@ -21,6 +20,7 @@ import { DFYOutfitVisual } from "@/components/outfit/DFYOutfitVisual";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { useWardrobe } from "@/contexts/WardrobeContext";
 import { 
   dfyService, 
@@ -73,6 +73,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
   const routeParams = route.params as DfyStylePlanParams | undefined;
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const { items: wardrobeItems } = useWardrobe();
   const insets = useSafeAreaInsets();
   
@@ -103,8 +104,9 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
       stylistNote: o.stylistNote || o.notes,
       weatherNote: o.weatherNote,
       stylistId: (o.stylistId || stylistId) as StylistId,
-      userReaction: null,
-      saved: false,
+      userReaction: o.userReaction ?? null,
+      adjustmentRequest: o.adjustmentRequest,
+      saved: o.saved ?? o.userReaction === 'love',
     }));
 
   const mergeApiOutfitsIntoDelivery = (
@@ -120,6 +122,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
         dayNumber: slot.dayNumber,
         title: slot.title,
         userReaction: slot.userReaction ?? source.userReaction ?? null,
+        adjustmentRequest: slot.adjustmentRequest ?? source.adjustmentRequest,
         saved: slot.saved ?? source.saved ?? false,
       };
     });
@@ -216,11 +219,18 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
 
   const currentOutfit = delivery?.outfits[currentOutfitIndex];
 
+  const advanceToNextOutfit = (fromIndex: number) => {
+    if (!delivery) return;
+    const nextIndex = (fromIndex + 1) % delivery.outfits.length;
+    setCurrentOutfitIndex(nextIndex);
+    persistCurrentDay(nextIndex);
+  };
+
   const handleReaction = async (reaction: 'love' | 'not-me' | null) => {
     if (!user?.id || !currentOutfit) return;
     
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await dfyService.updateOutfitReaction(user.id, currentOutfit.id, reaction);
+    await dfyService.updateOutfitReaction(user.id, currentOutfit.id, reaction, undefined, currentOutfit);
     
     setDelivery(prev => {
       if (!prev) return prev;
@@ -229,21 +239,18 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
       updated.outfits[currentOutfitIndex] = {
         ...updated.outfits[currentOutfitIndex],
         userReaction: reaction,
+        ...(reaction === 'love' ? { saved: true } : {}),
       };
       return updated;
     });
 
     if (reaction === 'love') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        'Saved to Profile',
-        'This look appears in Saved Outfits on your Profile.',
-      );
+      showToast('Saved to Profile', 'success');
+      advanceToNextOutfit(currentOutfitIndex);
     } else if (reaction === 'not-me') {
-      Alert.alert(
-        'Noted',
-        'We saved your preference on this device.',
-      );
+      showToast('Preference saved — your stylist is learning', 'info');
+      advanceToNextOutfit(currentOutfitIndex);
     }
   };
 
@@ -256,7 +263,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
     if (!user?.id || !currentOutfit || !adjustmentText.trim()) return;
     
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await dfyService.updateOutfitReaction(user.id, currentOutfit.id, null, adjustmentText);
+    await dfyService.submitOutfitAdjustment(user.id, currentOutfit.id, adjustmentText.trim(), currentOutfit);
     
     setDelivery(prev => {
       if (!prev) return prev;
@@ -264,7 +271,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
       updated.outfits = [...prev.outfits];
       updated.outfits[currentOutfitIndex] = {
         ...updated.outfits[currentOutfitIndex],
-        adjustmentRequest: adjustmentText,
+        adjustmentRequest: adjustmentText.trim(),
       };
       return updated;
     });
@@ -272,10 +279,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
     setShowAdjustModal(false);
     setAdjustmentText("");
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert(
-      'Note saved',
-      'Your adjustment note is saved on this device. It is not sent to your stylist yet.',
-    );
+    showToast('Sent to your stylist', 'success');
   };
 
   const handleSave = async () => {

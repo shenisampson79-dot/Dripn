@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StylistId } from '@/contexts/AuthContext';
+import { apiService } from '@/services/ApiService';
 import {
   getDfyBenefitForSubscription,
   getIncludedStylingWindowDays,
@@ -609,7 +610,8 @@ class DFYService {
     userId: string, 
     outfitId: string, 
     reaction: 'love' | 'not-me' | null,
-    adjustmentRequest?: string
+    adjustmentRequest?: string,
+    outfit?: DFYOutfit,
   ): Promise<void> {
     const delivery = await this.getDFYDelivery(userId);
     if (!delivery) return;
@@ -623,6 +625,81 @@ class DFYService {
     }
 
     await this.saveDFYDelivery(delivery);
+
+    const outfitPayload = outfit || delivery.outfits[outfitIndex];
+    if (reaction !== undefined && reaction !== null) {
+      void this.syncOutfitReactionToServer(outfitPayload, reaction);
+    } else if (reaction === null && !adjustmentRequest) {
+      void this.syncOutfitReactionToServer(outfitPayload, null);
+    }
+    if (adjustmentRequest) {
+      void this.syncAdjustmentToServer(outfitPayload, adjustmentRequest);
+    }
+  }
+
+  async submitOutfitAdjustment(
+    userId: string,
+    outfitId: string,
+    notes: string,
+    outfit?: DFYOutfit,
+  ): Promise<void> {
+    const delivery = await this.getDFYDelivery(userId);
+    if (!delivery) return;
+
+    const outfitIndex = delivery.outfits.findIndex((o) => o.id === outfitId);
+    if (outfitIndex === -1) return;
+
+    delivery.outfits[outfitIndex].adjustmentRequest = notes;
+    await this.saveDFYDelivery(delivery);
+
+    const outfitPayload = outfit || delivery.outfits[outfitIndex];
+    void this.syncAdjustmentToServer(outfitPayload, notes);
+  }
+
+  private buildOutfitPayload(outfit: DFYOutfit) {
+    return {
+      title: outfit.title,
+      occasion: outfit.occasion,
+      items: outfit.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        color: item.color,
+      })),
+    };
+  }
+
+  async syncOutfitReactionToServer(
+    outfit: DFYOutfit,
+    reaction: 'love' | 'not-me' | null,
+  ): Promise<void> {
+    try {
+      await apiService.submitDFYOutfitReaction({
+        outfitId: outfit.id,
+        reaction,
+        source: 'style_plan',
+        dayNumber: outfit.dayNumber,
+        stylistId: outfit.stylistId,
+        outfitData: this.buildOutfitPayload(outfit),
+      });
+    } catch (error) {
+      console.warn('[DFYService] Reaction sync failed (saved locally):', error);
+    }
+  }
+
+  async syncAdjustmentToServer(outfit: DFYOutfit, notes: string): Promise<void> {
+    try {
+      await apiService.submitDFYAdjustmentRequest({
+        outfitId: outfit.id,
+        notes,
+        source: 'style_plan',
+        dayNumber: outfit.dayNumber,
+        stylistId: outfit.stylistId,
+        outfitData: this.buildOutfitPayload(outfit),
+      });
+    } catch (error) {
+      console.warn('[DFYService] Adjustment sync failed (saved locally):', error);
+    }
   }
 
   async toggleOutfitSaved(userId: string, outfitId: string): Promise<void> {
