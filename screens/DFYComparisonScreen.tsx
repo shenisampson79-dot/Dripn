@@ -283,8 +283,13 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           ]}
         >
           <View style={styles.tierHeader}>
-            <View>
+            <View style={styles.tierHeaderLeft}>
               <View style={styles.tierNameRow}>
+                {isSelected ? (
+                  <View style={styles.selectedBadge}>
+                    <Feather name="check" size={14} color={isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold} />
+                  </View>
+                ) : null}
                 <ThemedText type="h2" style={styles.tierName}>
                   {tier.name}
                 </ThemedText>
@@ -300,33 +305,14 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
               <ThemedText style={styles.tierTagline}>{tier.tagline}</ThemedText>
             </View>
             <View style={styles.priceContainer}>
-              <ThemedText type="h1" style={styles.tierPrice}>{tier.price}</ThemedText>
+              <ThemedText type="h1" style={styles.tierPrice} numberOfLines={1}>
+                {tier.price}
+              </ThemedText>
               <ThemedText type="small" style={styles.priceSubtext}>one-time</ThemedText>
             </View>
           </View>
 
           <ThemedText style={styles.tierDescription}>{tier.description}</ThemedText>
-
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Feather name="calendar" size={16} color="#FFFFFF" />
-              <ThemedText type="small" style={styles.statText}>
-                {tier.deliveryDays} days
-              </ThemedText>
-            </View>
-            <View style={styles.statItem}>
-              <Feather name="layers" size={16} color="#FFFFFF" />
-              <ThemedText type="small" style={styles.statText}>
-                {tier.outfitCount} outfits
-              </ThemedText>
-            </View>
-            <View style={styles.statItem}>
-              <Feather name="camera" size={16} color="#FFFFFF" />
-              <ThemedText type="small" style={styles.statText}>
-                {tier.photoType === 'outfit' ? 'Outfit photos' : 'Item photos'}
-              </ThemedText>
-            </View>
-          </View>
 
           <View style={styles.featuresContainer}>
             {tier.features.map((feature, index) => (
@@ -372,12 +358,6 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
               {isSelected ? 'Selected' : 'Select this option'}
             </ThemedText>
           </Pressable>
-
-          {isSelected ? (
-            <View style={styles.selectedIndicator}>
-              <Feather name="check" size={20} color={isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold} />
-            </View>
-          ) : null}
         </LinearGradient>
       </Animated.View>
     );
@@ -412,11 +392,11 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
 
         <View style={styles.content}>
           <ThemedText type="h1" style={styles.title}>
-            {isPaidAddOn ? 'Purchase another setup' : 'How would you like me to style you?'}
+            {isPaidAddOn ? 'Choose your setup' : 'How would you like me to style you?'}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {isPaidAddOn
-              ? 'One-time purchase — starts immediately after payment.'
+              ? 'Pick the path that fits — your styling starts right after checkout.'
               : 'One solves now. The other solves every time after.'}
           </ThemedText>
 
@@ -457,7 +437,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
                 <>
                   <ThemedText type="body" style={styles.continueButtonText}>
                     {isPaidAddOn
-                      ? (selectedTier === 'lite' ? 'Purchase Quick Start' : 'Purchase Full Setup')
+                      ? (selectedTier === 'lite' ? 'Start Quick Setup' : 'Start Full Setup')
                       : (selectedTier === 'lite' ? 'Purchase & Style' : 'Purchase & Build')}
                   </ThemedText>
                   <Feather
@@ -619,11 +599,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: Spacing.md,
+    gap: Spacing.md,
+  },
+  tierHeaderLeft: {
+    flex: 1,
+    minWidth: 0,
   },
   tierNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: Spacing.sm,
+  },
+  selectedBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tierName: {
     color: '#FFFFFF',
@@ -643,10 +637,12 @@ const styles = StyleSheet.create({
   },
   priceContainer: {
     alignItems: 'flex-end',
+    flexShrink: 0,
+    minWidth: 72,
   },
   tierPrice: {
     color: '#FFFFFF',
-    fontSize: 28,
+    fontSize: 26,
   },
   priceSubtext: {
     color: 'rgba(255,255,255,0.6)',
@@ -654,22 +650,6 @@ const styles = StyleSheet.create({
   tierDescription: {
     color: 'rgba(255,255,255,0.8)',
     marginBottom: Spacing.md,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
-    marginBottom: Spacing.md,
-    paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.15)',
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  statText: {
-    color: '#FFFFFF',
   },
   featuresContainer: {
     gap: Spacing.sm,
@@ -686,17 +666,6 @@ const styles = StyleSheet.create({
   featureTextDisabled: {
     color: 'rgba(255,255,255,0.4)',
     textDecorationLine: 'line-through',
-  },
-  selectedIndicator: {
-    position: 'absolute',
-    top: Spacing.md,
-    right: Spacing.md,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   comparisonNote: {
     flexDirection: 'row',
