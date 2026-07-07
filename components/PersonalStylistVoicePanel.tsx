@@ -8,6 +8,8 @@ import {
   Pressable,
   ActivityIndicator,
   ScrollView,
+  Modal,
+  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -69,10 +71,18 @@ export function PersonalStylistVoicePanel({
   const {
     hasCredits,
     isUnlimited,
+    remainingCredits,
+    packages,
+    isPurchasing,
+    purchaseVoiceCredits,
+    getPackagePriceLabel,
+    useAppleIAP,
     isLoading: creditsLoading,
     updateBalance,
     refreshBalance,
   } = useVoiceCredits();
+
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
 
   const gradientColors: readonly [string, string] =
     stylist.id === 'ruby'
@@ -258,6 +268,29 @@ export function PersonalStylistVoicePanel({
     }
   };
 
+  const handleBuyCredits = async (packageId: string) => {
+    try {
+      const result = await purchaseVoiceCredits(packageId);
+      setShowCreditsModal(false);
+      setError(null);
+      const added = 'creditsAdded' in (result || {}) ? (result as { creditsAdded?: number }).creditsAdded : undefined;
+      Alert.alert(
+        'Credits added',
+        added && added > 0
+          ? `${added} voice credits are now on your account.`
+          : 'Your voice credit balance has been updated.',
+      );
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'cancelled' in error && (error as { cancelled?: boolean }).cancelled) {
+        return;
+      }
+      Alert.alert(
+        'Purchase failed',
+        error instanceof Error ? error.message : 'Could not complete purchase. Please try again.',
+      );
+    }
+  };
+
   const stateLabel =
     conversationState === 'listening'
       ? 'Listening… tap when done'
@@ -354,13 +387,93 @@ export function PersonalStylistVoicePanel({
         </Pressable>
 
         {!isUnlimited && !creditsLoading ? (
-          <ThemedText type="caption" style={{ color: theme.tabIconDefault, textAlign: 'center' }}>
-            {hasCredits
-              ? 'Each spoken reply uses one voice session from your plan.'
-              : 'Voice sessions used up — switch to Chat for unlimited text.'}
-          </ThemedText>
+          <View style={styles.creditsRow}>
+            <ThemedText type="caption" style={{ color: theme.tabIconDefault, textAlign: 'center', flex: 1 }}>
+              {hasCredits
+                ? `${remainingCredits} voice credit${remainingCredits === 1 ? '' : 's'} left — each spoken reply uses one.`
+                : 'Out of voice credits. Buy a pack or switch to Chat for unlimited text.'}
+            </ThemedText>
+            <Pressable
+              onPress={() => setShowCreditsModal(true)}
+              style={({ pressed }) => [
+                styles.buyCreditsButton,
+                { backgroundColor: theme.link, opacity: pressed ? 0.85 : 1 },
+              ]}
+            >
+              <ThemedText style={styles.buyCreditsText}>Buy credits</ThemedText>
+            </Pressable>
+          </View>
         ) : null}
       </View>
+
+      {showCreditsModal ? (
+        <Modal transparent visible animationType="fade" onRequestClose={() => setShowCreditsModal(false)}>
+          <Pressable
+            style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+            onPress={() => setShowCreditsModal(false)}
+          >
+            <Pressable
+              style={[styles.creditsModal, { backgroundColor: theme.backgroundDefault }]}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View style={styles.modalHeader}>
+                <Feather name="zap" size={20} color={theme.link} />
+                <ThemedText type="h3" style={styles.modalTitle}>Voice credits</ThemedText>
+                <Pressable onPress={() => setShowCreditsModal(false)}>
+                  <Feather name="x" size={20} color={theme.tabIconDefault} />
+                </Pressable>
+              </View>
+              <ThemedText style={[styles.modalText, { color: theme.tabIconDefault }]}>
+                {useAppleIAP
+                  ? 'Purchases are handled by the App Store. Credits are stored on your Dripn account — Restore Purchases does not re-grant consumables.'
+                  : 'Add voice message credits to your account. Purchased credits never expire.'}
+              </ThemedText>
+              <View style={styles.packageList}>
+                {packages.map((pkg) => (
+                  <Pressable
+                    key={pkg.id}
+                    disabled={isPurchasing}
+                    onPress={() => handleBuyCredits(pkg.id)}
+                    style={({ pressed }) => [
+                      styles.packageItem,
+                      {
+                        backgroundColor: theme.backgroundSecondary,
+                        opacity: pressed || isPurchasing ? 0.75 : 1,
+                        borderWidth: pkg.popular ? 1 : 0,
+                        borderColor: pkg.popular ? theme.link : 'transparent',
+                      },
+                    ]}
+                  >
+                    {pkg.popular ? (
+                      <View style={[styles.popularBadge, { backgroundColor: theme.link }]}>
+                        <ThemedText style={styles.popularText}>BEST VALUE</ThemedText>
+                      </View>
+                    ) : null}
+                    <View style={styles.packageName}>
+                      <ThemedText type="body" style={{ fontWeight: '600' }}>{pkg.description}</ThemedText>
+                      <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
+                        {pkg.credits} credits
+                      </ThemedText>
+                    </View>
+                    <ThemedText style={[styles.packagePrice, { color: theme.link }]}>
+                      {getPackagePriceLabel(pkg.id, pkg.priceLabel)}
+                    </ThemedText>
+                  </Pressable>
+                ))}
+              </View>
+              {isPurchasing ? (
+                <ActivityIndicator color={theme.link} style={{ marginBottom: Spacing.md }} />
+              ) : null}
+              <Pressable
+                onPress={() => setShowCreditsModal(false)}
+                style={[styles.closeModalButton, { borderColor: theme.border }]}
+              >
+                <ThemedText>Close</ThemedText>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
     </View>
   );
 }
@@ -409,5 +522,81 @@ const styles = StyleSheet.create({
     borderRadius: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  creditsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  buyCreditsButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+  },
+  buyCreditsText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  creditsModal: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    flex: 1,
+  },
+  modalText: {
+    marginBottom: Spacing.md,
+    lineHeight: 20,
+  },
+  packageList: {
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  packageItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
+  },
+  popularBadge: {
+    position: 'absolute',
+    top: -8,
+    right: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  popularText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  packageName: {
+    flex: 1,
+  },
+  packagePrice: {
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  closeModalButton: {
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
   },
 });
