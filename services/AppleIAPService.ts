@@ -37,12 +37,6 @@ export const APPLE_DFY_PRODUCT_IDS = {
   core: 'com.dripn.dfy.core',
 } as const;
 
-/** App Store Connect DFY non-consumable product IDs */
-export const APPLE_DFY_PRODUCT_IDS = {
-  lite: 'com.dripn.dfy.lite',
-  core: 'com.dripn.dfy.core',
-} as const;
-
 /** App Store Connect voice credit consumables — must match server VOICE_CREDIT_PACKAGES */
 export const APPLE_VOICE_PRODUCT_IDS = {
   small: 'com.dripn.voice.credits_10',
@@ -373,6 +367,34 @@ function latestDfyProductId(customerInfo: CustomerInfo): string | null {
   return APPLE_DFY_PRODUCT_IDS[dfyTier];
 }
 
+function findOriginalTransactionId(customerInfo: CustomerInfo, productId?: string | null): string | null {
+  if (productId && customerInfo.subscriptionsByProductIdentifier?.[productId]) {
+    const sub = customerInfo.subscriptionsByProductIdentifier[productId];
+    if (sub.storeTransactionId) return sub.storeTransactionId;
+  }
+
+  for (const sub of Object.values(customerInfo.subscriptionsByProductIdentifier || {})) {
+    if (sub.isActive && sub.storeTransactionId) {
+      return sub.storeTransactionId;
+    }
+  }
+
+  for (const ent of Object.values(customerInfo.entitlements.active)) {
+    const pid = ent.productIdentifier;
+    const sub = customerInfo.subscriptionsByProductIdentifier?.[pid];
+    if (sub?.storeTransactionId) return sub.storeTransactionId;
+  }
+
+  const voiceTxns = customerInfo.nonSubscriptionTransactions.filter((txn) =>
+    isVoiceProductId(txn.productIdentifier),
+  );
+  const dfyTxns = customerInfo.nonSubscriptionTransactions.filter((txn) =>
+    txn.productIdentifier.includes('dfy'),
+  );
+  const latestTxn = voiceTxns[0] || dfyTxns[0] || customerInfo.nonSubscriptionTransactions[0];
+  return latestTxn?.transactionIdentifier ?? null;
+}
+
 /** Serialize CustomerInfo for subscription server sync */
 export function serializeCustomerInfoForSync(customerInfo: CustomerInfo) {
   const activeEntitlements = Object.entries(customerInfo.entitlements.active).map(([id, ent]) => ({
@@ -391,7 +413,7 @@ export function serializeCustomerInfoForSync(customerInfo: CustomerInfo) {
     appUserId: customerInfo.originalAppUserId,
     activeEntitlements,
     latestProductId,
-    originalTransactionId: null,
+    originalTransactionId: findOriginalTransactionId(customerInfo, latestProductId),
     managementURL: customerInfo.managementURL,
     tier: resolveTierFromCustomerInfo(customerInfo),
   };
@@ -411,7 +433,9 @@ export function serializeDfyCustomerInfoForSync(customerInfo: CustomerInfo) {
 
   const dfyTier = resolveDfyTierFromCustomerInfo(customerInfo);
   const latestProductId = latestDfyProductId(customerInfo);
-  const latestTxn = customerInfo.nonSubscriptionTransactions[0];
+  const latestTxn = customerInfo.nonSubscriptionTransactions.find((txn) =>
+    txn.productIdentifier.includes('dfy'),
+  ) || customerInfo.nonSubscriptionTransactions[0];
 
   return {
     appUserId: customerInfo.originalAppUserId,
@@ -419,7 +443,8 @@ export function serializeDfyCustomerInfoForSync(customerInfo: CustomerInfo) {
     latestProductId,
     tier: dfyTier,
     productId: latestProductId,
-    originalTransactionId: latestTxn?.transactionIdentifier ?? null,
+    originalTransactionId: latestTxn?.transactionIdentifier
+      ?? findOriginalTransactionId(customerInfo, latestProductId),
   };
 }
 

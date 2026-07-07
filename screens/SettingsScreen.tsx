@@ -20,6 +20,7 @@ import { useColorScheme, ColorSchemeMode } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { getBillingPlanDisplayName, normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 import { isDevTestingModeEnabled, setDevTestingModeEnabled } from "@/utils/devTesting";
+import { shouldUseAppleIAP } from "@/utils/platformPayments";
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -287,9 +288,13 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   };
 
   const handleDeleteAccount = () => {
+    const appleBillingWarning = shouldUseAppleIAP()
+      ? '\n\nIf you have an active Apple subscription, cancel it first in iOS Settings → Apple ID → Subscriptions. Apple subscriptions cannot be cancelled through this app.'
+      : '';
+
     Alert.alert(
       "Delete Account",
-      "Are you sure you want to delete your account? This action cannot be undone.",
+      `Are you sure you want to delete your account? This action cannot be undone.${appleBillingWarning}`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -298,7 +303,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           onPress: () => {
             Alert.alert(
               "Confirm Deletion",
-              "This will permanently delete all your data, posts, and comments. Are you absolutely sure?",
+              `This will permanently delete all your data, posts, and comments. Are you absolutely sure?${appleBillingWarning}`,
               [
                 { text: "Cancel", style: "cancel" },
                 {
@@ -306,10 +311,11 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                   style: "destructive",
                   onPress: async () => {
                     try {
-                      // Call the delete account endpoint
                       const result = await apiService.deleteAccount();
                       if (result.success) {
-                        // Log out after successful deletion
+                        if (result.appleSubscriptionNotice) {
+                          Alert.alert('Account Deleted', result.appleSubscriptionNotice);
+                        }
                         await logout();
                       }
                     } catch (error) {

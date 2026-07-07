@@ -208,10 +208,12 @@ Add both to the RevenueCat default offering (or a `dfy` offering) as non-subscri
 
 ### Still TODO (post–Phase 1)
 
-- [ ] Direct App Store Server API receipt validation (currently trusts client sync + RevenueCat webhook)
-- [ ] Stripe webhook ignore for `billing_platform=apple` users
-- [ ] Delete-account Apple subscription revoke path
+- [x] Direct App Store Server API receipt validation (RevenueCat REST + optional App Store Server API)
+- [x] Stripe webhook ignore for `billing_platform=apple` users
+- [x] Delete-account Apple subscription revoke path (RevenueCat subscriber delete + user notice)
 - [x] Phase 3 voice consumables
+- [x] DFY refund/revoke webhook handling
+- [x] DFY add-on purchase record for subscribers (preserves subscription tier)
 
 ## 6. Estimated File Touch List
 

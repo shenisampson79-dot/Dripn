@@ -281,8 +281,9 @@ class ApiService {
     return this.request<{
       success: boolean;
       message: string;
+      appleSubscriptionNotice?: string;
     }>('/api/auth/delete-account', {
-      method: 'DELETE',
+      method: 'POST',
     });
   }
 
