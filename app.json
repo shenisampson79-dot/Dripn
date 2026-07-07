@@ -86,8 +86,7 @@
         }
       ],
       "expo-audio",
-      "expo-apple-authentication",
-      "react-native-purchases"
+      "expo-apple-authentication"
     ],
     "jsEngine": "hermes",
     "experiments": {
