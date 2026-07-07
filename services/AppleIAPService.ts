@@ -1,6 +1,6 @@
 /**
  * Apple In-App Purchase service via RevenueCat (react-native-purchases).
- * Phase 1: subscriptions — Phase 2: DFY one-time purchases.
+ * Phase 1: subscriptions — Phase 2: DFY — Phase 3: voice credit consumables.
  * See docs/IAP_MIGRATION_PLAN.md
  */
 
@@ -37,8 +37,31 @@ export const APPLE_DFY_PRODUCT_IDS = {
   core: 'com.dripn.dfy.core',
 } as const;
 
+/** App Store Connect DFY non-consumable product IDs */
+export const APPLE_DFY_PRODUCT_IDS = {
+  lite: 'com.dripn.dfy.lite',
+  core: 'com.dripn.dfy.core',
+} as const;
+
+/** App Store Connect voice credit consumables — must match server VOICE_CREDIT_PACKAGES */
+export const APPLE_VOICE_PRODUCT_IDS = {
+  small: 'com.dripn.voice.credits_10',
+  medium: 'com.dripn.voice.credits_25',
+  large: 'com.dripn.voice.credits_50',
+  xlarge: 'com.dripn.voice.credits_100',
+} as const;
+
+/** Credit amount per Apple voice product */
+export const APPLE_VOICE_PRODUCT_TO_CREDITS: Record<string, number> = {
+  'com.dripn.voice.credits_10': 10,
+  'com.dripn.voice.credits_25': 25,
+  'com.dripn.voice.credits_50': 50,
+  'com.dripn.voice.credits_100': 100,
+};
+
 export type IAPSubscriptionTier = keyof typeof APPLE_SUBSCRIPTION_PRODUCT_IDS;
 export type IAPDFYTier = keyof typeof APPLE_DFY_PRODUCT_IDS;
+export type VoiceCreditPackId = keyof typeof APPLE_VOICE_PRODUCT_IDS;
 
 export interface SubscriptionPriceInfo {
   tier: IAPSubscriptionTier;
@@ -53,13 +76,22 @@ export interface DFYPriceInfo {
   priceString: string;
 }
 
+export interface VoiceCreditPriceInfo {
+  packId: VoiceCreditPackId;
+  productId: string;
+  credits: number;
+  priceString: string;
+}
+
 export interface AppleIAPService {
   isAvailable(): boolean;
   configure(appUserId: string): Promise<void>;
   getSubscriptionPrices(): Promise<SubscriptionPriceInfo[]>;
   getDFYPrices(): Promise<DFYPriceInfo[]>;
+  getVoiceCreditPrices(): Promise<VoiceCreditPriceInfo[]>;
   purchaseSubscription(tier: IAPSubscriptionTier, interval: SubscriptionInterval): Promise<CustomerInfo>;
   purchaseDFY(tier: IAPDFYTier): Promise<CustomerInfo>;
+  purchaseVoiceCredits(packId: VoiceCreditPackId): Promise<CustomerInfo>;
   restorePurchases(): Promise<CustomerInfo>;
   getCustomerInfo(): Promise<CustomerInfo>;
 }
@@ -77,6 +109,25 @@ function productIdFor(tier: IAPSubscriptionTier, interval: SubscriptionInterval)
 
 function dfyProductIdFor(tier: IAPDFYTier): string {
   return APPLE_DFY_PRODUCT_IDS[tier];
+}
+
+function voiceProductIdFor(packId: VoiceCreditPackId): string {
+  return APPLE_VOICE_PRODUCT_IDS[packId];
+}
+
+export function creditsForVoiceProductId(productId: string): number | null {
+  const direct = APPLE_VOICE_PRODUCT_TO_CREDITS[productId];
+  if (direct) return direct;
+  const match = productId.match(/voice\.(?:credits_)?(\d+)/i);
+  if (match) {
+    const parsed = parseInt(match[1], 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+  return null;
+}
+
+export function isVoiceProductId(productId: string): boolean {
+  return creditsForVoiceProductId(productId) != null;
 }
 
 function findPackageByProductId(
@@ -162,6 +213,31 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     return results;
   }
 
+  async getVoiceCreditPrices(): Promise<VoiceCreditPriceInfo[]> {
+    if (!this.isAvailable()) return [];
+
+    const productIds = Object.values(APPLE_VOICE_PRODUCT_IDS);
+    const storeProducts = await Purchases.getProducts(productIds);
+    const productById = new Map(storeProducts.map((product) => [product.identifier, product]));
+    const results: VoiceCreditPriceInfo[] = [];
+
+    for (const packId of Object.keys(APPLE_VOICE_PRODUCT_IDS) as VoiceCreditPackId[]) {
+      const productId = voiceProductIdFor(packId);
+      const storeProduct = productById.get(productId);
+      const priceString = storeProduct?.priceString;
+      if (priceString) {
+        results.push({
+          packId,
+          productId,
+          credits: APPLE_VOICE_PRODUCT_TO_CREDITS[productId] ?? 0,
+          priceString,
+        });
+      }
+    }
+
+    return results;
+  }
+
   private async purchaseProductById(productId: string): Promise<CustomerInfo> {
     const offerings = await Purchases.getOfferings();
     const pkg = findPackageByProductId(offerings, productId);
@@ -175,7 +251,7 @@ class RevenueCatAppleIAPService implements AppleIAPService {
       const products = await Purchases.getProducts([productId]);
       const product = products[0];
       if (!product) {
-        throw new Error(`DFY product not found for ${productId}. Check RevenueCat / App Store Connect.`);
+        throw new Error(`Product not found for ${productId}. Check RevenueCat / App Store Connect.`);
       }
 
       const { customerInfo } = await Purchases.purchaseStoreProduct(product);
@@ -225,6 +301,15 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     }
 
     const productId = dfyProductIdFor(tier);
+    return this.purchaseProductById(productId);
+  }
+
+  async purchaseVoiceCredits(packId: VoiceCreditPackId): Promise<CustomerInfo> {
+    if (!this.isAvailable()) {
+      throw new Error('Apple IAP is not available on this platform');
+    }
+
+    const productId = voiceProductIdFor(packId);
     return this.purchaseProductById(productId);
   }
 
@@ -334,6 +419,31 @@ export function serializeDfyCustomerInfoForSync(customerInfo: CustomerInfo) {
     latestProductId,
     tier: dfyTier,
     productId: latestProductId,
+    originalTransactionId: latestTxn?.transactionIdentifier ?? null,
+  };
+}
+
+/**
+ * Serialize CustomerInfo for voice credit consumable server sync.
+ * Consumables are not restored via Apple — credits live on the server account.
+ */
+export function serializeVoiceCustomerInfoForSync(
+  customerInfo: CustomerInfo,
+  packId?: VoiceCreditPackId,
+) {
+  const voiceTxns = customerInfo.nonSubscriptionTransactions.filter((txn) =>
+    isVoiceProductId(txn.productIdentifier),
+  );
+  const latestTxn = voiceTxns[0] || customerInfo.nonSubscriptionTransactions[0];
+  const productId = latestTxn?.productIdentifier
+    || (packId ? voiceProductIdFor(packId) : null);
+  const credits = productId ? creditsForVoiceProductId(productId) : null;
+
+  return {
+    appUserId: customerInfo.originalAppUserId,
+    productId,
+    credits,
+    packId: packId ?? null,
     originalTransactionId: latestTxn?.transactionIdentifier ?? null,
   };
 }

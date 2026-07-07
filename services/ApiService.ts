@@ -1710,24 +1710,71 @@ class ApiService {
 
   async getVoiceCreditPackages() {
     return this.request<{
+      success?: boolean;
       packages: Array<{
         id: string;
-        name: string;
         credits: number;
-        price: number;
+        priceGBP?: number;
+        priceLabel?: string;
+        description?: string;
+        discountedPrice?: number;
+        name?: string;
+        price?: number;
         currency?: string;
         popular?: boolean;
       }>;
+      userTier?: string;
+      creditPrice?: number;
     }>('/api/voice-credits/packages');
   }
 
   async purchaseVoiceCredits(packageId: string) {
     return this.request<{
+      success?: boolean;
       checkoutUrl: string;
       sessionId: string;
+      credits?: number;
+      amount?: number;
     }>('/api/voice-credits/purchase', {
       method: 'POST',
       body: JSON.stringify({ packageId }),
+    });
+  }
+
+  async confirmVoiceCreditsPurchase(sessionId: string) {
+    return this.request<{
+      success: boolean;
+      creditsAdded: number;
+      newBalance: {
+        remaining: number | string;
+        purchasedCredits: number;
+      };
+    }>('/api/voice-credits/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId }),
+    });
+  }
+
+  async syncAppleVoicePurchase(payload: {
+    productId?: string | null;
+    credits?: number | null;
+    packId?: string | null;
+    originalTransactionId?: string | null;
+    customerInfo?: Record<string, unknown>;
+  }) {
+    return this.request<{
+      success: boolean;
+      creditsAdded: number;
+      alreadySynced?: boolean;
+      billingPlatform?: string;
+      productId?: string;
+      newBalance: {
+        remaining: number | string;
+        purchasedCredits: number;
+      };
+    }>('/api/voice/apple/sync', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
   }
 

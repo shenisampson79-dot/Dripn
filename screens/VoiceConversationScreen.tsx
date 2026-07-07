@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { StyleSheet, View, Text, Pressable, Animated, ActivityIndicator, Platform, ScrollView, Image, Alert } from "react-native";
+import { StyleSheet, View, Text, Pressable, Animated, ActivityIndicator, Platform, ScrollView, Image, Alert, Modal } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -87,9 +87,16 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
     hasCredits, 
     isUnlimited, 
     isFreeUser,
+    remainingCredits,
+    packages,
+    isPurchasing,
+    purchaseVoiceCredits,
+    getPackagePriceLabel,
+    useAppleIAP,
     updateBalance,
     refreshBalance,
   } = useVoiceCredits();
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
   const messagesScrollRef = useRef<ScrollView>(null);
   const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
   const stylistName = stylist.name;
@@ -447,6 +454,28 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
     }
   };
 
+  const handleBuyCredits = async (packageId: string) => {
+    try {
+      const result = await purchaseVoiceCredits(packageId);
+      setShowCreditsModal(false);
+      const added = 'creditsAdded' in (result || {}) ? (result as { creditsAdded?: number }).creditsAdded : undefined;
+      Alert.alert(
+        'Credits added',
+        added && added > 0
+          ? `${added} voice credits are now on your account.`
+          : 'Your voice credit balance has been updated.',
+      );
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'cancelled' in error && (error as { cancelled?: boolean }).cancelled) {
+        return;
+      }
+      Alert.alert(
+        'Purchase failed',
+        error instanceof Error ? error.message : 'Could not complete purchase. Please try again.',
+      );
+    }
+  };
+
   // Helper to parse markdown bold text
   const renderMarkdownText = (text: string, textColor: string) => {
     const parts = text.split(/(\*\*[^*]+\*\*)/);
@@ -744,7 +773,105 @@ export default function VoiceConversationScreen({ navigation }: VoiceConversatio
               Ask about outfit ideas, color matching, styling tips, or fashion advice
             </ThemedText>
           </View>
+
+          {!isUnlimited ? (
+            <View style={styles.creditsRow}>
+              <Feather name="zap" size={14} color={theme.tabIconDefault} />
+              <ThemedText style={[styles.creditsText, { color: theme.tabIconDefault }]}>
+                {remainingCredits} voice credit{remainingCredits === 1 ? '' : 's'} left
+              </ThemedText>
+              <Pressable
+                onPress={() => setShowCreditsModal(true)}
+                style={({ pressed }) => [
+                  styles.buyCreditsButton,
+                  { backgroundColor: theme.link, opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                <ThemedText style={[styles.buyCreditsText, { color: '#FFFFFF' }]}>
+                  Buy credits
+                </ThemedText>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {!hasCredits && !isUnlimited ? (
+            <View style={[styles.lowCreditsWarning, { backgroundColor: theme.backgroundSecondary }]}>
+              <Feather name="alert-circle" size={14} color={theme.warning} />
+              <ThemedText style={[styles.lowCreditsText, { color: theme.tabIconDefault }]}>
+                Out of voice credits. Buy a pack or upgrade for more spoken replies.
+              </ThemedText>
+            </View>
+          ) : null}
         </View>
+      ) : null}
+
+      {showCreditsModal ? (
+        <Modal transparent visible animationType="fade" onRequestClose={() => setShowCreditsModal(false)}>
+          <Pressable
+            style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+            onPress={() => setShowCreditsModal(false)}
+          >
+            <Pressable
+              style={[styles.creditsModal, { backgroundColor: theme.backgroundDefault }]}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View style={styles.modalHeader}>
+                <Feather name="zap" size={20} color={theme.link} />
+                <ThemedText type="h3" style={styles.modalTitle}>Voice credits</ThemedText>
+                <Pressable onPress={() => setShowCreditsModal(false)}>
+                  <Feather name="x" size={20} color={theme.tabIconDefault} />
+                </Pressable>
+              </View>
+              <ThemedText style={[styles.modalText, { color: theme.tabIconDefault }]}>
+                {useAppleIAP
+                  ? 'Purchases are handled by the App Store. Credits are stored on your Dripn account — Restore Purchases does not re-grant consumables.'
+                  : 'Add voice message credits to your account. Purchased credits never expire.'}
+              </ThemedText>
+              <View style={styles.packageList}>
+                {packages.map((pkg) => (
+                  <Pressable
+                    key={pkg.id}
+                    disabled={isPurchasing}
+                    onPress={() => handleBuyCredits(pkg.id)}
+                    style={({ pressed }) => [
+                      styles.packageItem,
+                      {
+                        backgroundColor: theme.backgroundSecondary,
+                        opacity: pressed || isPurchasing ? 0.75 : 1,
+                        borderWidth: pkg.popular ? 1 : 0,
+                        borderColor: pkg.popular ? theme.link : 'transparent',
+                      },
+                    ]}
+                  >
+                    {pkg.popular ? (
+                      <View style={[styles.popularBadge, { backgroundColor: theme.link }]}>
+                        <ThemedText style={styles.popularText}>BEST VALUE</ThemedText>
+                      </View>
+                    ) : null}
+                    <View style={styles.packageName}>
+                      <ThemedText type="body" style={{ fontWeight: '600' }}>{pkg.description}</ThemedText>
+                      <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
+                        {pkg.credits} credits
+                      </ThemedText>
+                    </View>
+                    <ThemedText style={[styles.packagePrice, { color: theme.link }]}>
+                      {getPackagePriceLabel(pkg.id, pkg.priceLabel)}
+                    </ThemedText>
+                  </Pressable>
+                ))}
+              </View>
+              {isPurchasing ? (
+                <ActivityIndicator color={theme.link} style={{ marginBottom: Spacing.md }} />
+              ) : null}
+              <Pressable
+                onPress={() => setShowCreditsModal(false)}
+                style={[styles.closeModalButton, { borderColor: theme.border }]}
+              >
+                <ThemedText>Close</ThemedText>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
       ) : null}
     </ThemedView>
   );

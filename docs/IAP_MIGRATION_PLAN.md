@@ -22,10 +22,12 @@ This document outlines the phased migration from Stripe/WebBrowser checkout to A
 
 ### Voice credits (consumable)
 
-| Product ID | Type | Notes |
-|---|---|---|
-| `com.dripn.voice.credits_10` | Consumable | 10 TTS/voice comment credits |
-| `com.dripn.voice.credits_50` | Consumable | 50 credits pack |
+| Product ID | Type | Credits | Stripe package |
+|---|---|---|---|
+| `com.dripn.voice.credits_10` | Consumable | 10 | `small` |
+| `com.dripn.voice.credits_25` | Consumable | 25 | `medium` |
+| `com.dripn.voice.credits_50` | Consumable | 50 | `large` |
+| `com.dripn.voice.credits_100` | Consumable | 100 | `xlarge` |
 
 Create all products in App Store Connect → Subscriptions / In-App Purchases, with localized display names matching in-app copy.
 
@@ -65,9 +67,59 @@ RevenueCat reduces server receipt-validation complexity and aligns with phased r
 |---|---|---|
 | **1** | Subscriptions (Personal Stylist + Stylist Unlimited) | RevenueCat entitlements match `subscriptionTier`; restore works |
 | **2** | DFY one-time SKUs | Post-purchase unlock via server webhook |
-| **3** | Voice credit consumables | Credit balance sync + receipt consume |
+| **3** | Voice credit consumables | Credit balance sync + receipt consume | **Done** |
 
 Do **not** ship Stripe checkout on iOS production builds after Phase 1 is live.
+
+## 10. Phase 3 Completion Notes (Voice Credit Consumables)
+
+**Status: Implemented (client + server) — all IAP phases complete**
+
+### What shipped
+
+| Area | Implementation |
+|---|---|
+| `AppleIAPService.ts` | `purchaseVoiceCredits(packId)`, `getVoiceCreditPrices()`, `serializeVoiceCustomerInfoForSync` |
+| `useVoiceCredits.ts` | iOS production uses Apple IAP; Stripe on web/Android; sync + balance refresh |
+| `VoiceConversationScreen.tsx` | Buy credits modal with App Store prices when available |
+| Server sync | `POST /api/voice/apple/sync` — idempotent credit grant via `voice_credit_purchases` table |
+| Server webhook | `POST /api/webhooks/revenuecat` — handles consumable voice product IDs |
+| Stripe block | `POST /api/voice-credits/purchase` returns 400 when `billing_platform=apple` |
+
+### Consumables vs Restore Purchases
+
+Apple **does not restore consumables** via Restore Purchases. Voice credits live on the **server account** (`voice_credits.purchased_credits`). After login, balance syncs from `GET /api/voice-credits/balance`. Duplicate grants are prevented by unique `apple_transaction_id` in `voice_credit_purchases`.
+
+### App Store Connect — create these products
+
+| Product ID | Type | Credits | RevenueCat |
+|---|---|---|---|
+| `com.dripn.voice.credits_10` | Consumable | 10 | Add to default offering (no entitlement) |
+| `com.dripn.voice.credits_25` | Consumable | 25 | Add to default offering |
+| `com.dripn.voice.credits_50` | Consumable | 50 | Add to default offering |
+| `com.dripn.voice.credits_100` | Consumable | 100 | Add to default offering |
+
+### Sandbox testing (voice credits)
+
+1. Create consumable IAPs in App Store Connect with IDs above
+2. Add products to RevenueCat project (consumables — no entitlement mapping required)
+3. Set `EXPO_PUBLIC_FORCE_APPLE_IAP=true` for dev builds or use production iOS build
+4. Sign in with Sandbox Apple ID on device
+5. Open Voice Conversation → **Buy credits** → purchase a pack
+6. Confirm `POST /api/voice/apple/sync` returns `creditsAdded` and balance updates
+7. Repeat same sandbox purchase with a new transaction — credits add again
+8. Re-sync same `originalTransactionId` — server returns `alreadySynced: true` (no double credit)
+9. **Restore Purchases** does not re-grant consumables — verify balance still correct after re-login
+
+### IAP migration summary (Phases 1–3)
+
+| Phase | Product type | Client | Server sync route |
+|---|---|---|---|
+| 1 | Subscriptions | `purchaseSubscription` | `POST /api/subscription/apple/sync` |
+| 2 | DFY non-consumable | `purchaseDFY` | `POST /api/dfy/apple/sync` |
+| 3 | Voice consumable | `purchaseVoiceCredits` | `POST /api/voice/apple/sync` |
+
+All phases use RevenueCat on iOS production; Stripe remains on web/Android.
 
 ## 9. Phase 2 Completion Notes (DFY One-Time)
 
@@ -106,7 +158,7 @@ Add both to the RevenueCat default offering (or a `dfy` offering) as non-subscri
 
 ### Still TODO (post–Phase 2)
 
-- [ ] Phase 3 voice credit consumables
+- [x] Phase 3 voice credit consumables
 - [ ] DFY refund handling (revoke entitlement without breaking active subscription tier)
 - [ ] Separate DFY purchase record from subscription tier for subscriber add-on purchases
 
@@ -159,7 +211,7 @@ Add both to the RevenueCat default offering (or a `dfy` offering) as non-subscri
 - [ ] Direct App Store Server API receipt validation (currently trusts client sync + RevenueCat webhook)
 - [ ] Stripe webhook ignore for `billing_platform=apple` users
 - [ ] Delete-account Apple subscription revoke path
-- [ ] Phase 3 voice consumables
+- [x] Phase 3 voice consumables
 
 ## 6. Estimated File Touch List
 
