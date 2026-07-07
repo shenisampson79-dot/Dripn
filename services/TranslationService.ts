@@ -186,8 +186,6 @@ export interface StylistHubTranslations {
   customizeLayout?: string;
   personalStylist: string;
   personalStylistDesc: string;
-  voiceChat: string;
-  voiceChatDesc: string;
   outfitCalendar: string;
   outfitCalendarDesc: string;
   weatherOutfits: string;
@@ -445,8 +443,6 @@ const DEFAULT_TRANSLATIONS: Translations = {
     styleToolsSubtitle: 'Your personal fashion assistant',
     personalStylist: 'Stylist Chat',
     personalStylistDesc: 'Chat, photos & wardrobe advice',
-    voiceChat: 'Voice Chat',
-    voiceChatDesc: 'Talk to Ruby or Max',
     outfitCalendar: 'Outfit Calendar',
     outfitCalendarDesc: 'Plan your looks ahead',
     weatherOutfits: 'Weather Outfits',
@@ -760,7 +756,6 @@ const LOCAL_TRANSLATIONS: Record<string, Record<string, string>> = {
     'stylistHub.screenTitle': 'Estilista', 'stylistHub.styleToolsTitle': 'Herramientas de estilo',
     'stylistHub.styleToolsSubtitle': 'Tu asistente de moda personal',
     'stylistHub.personalStylist': 'Chat de estilista', 'stylistHub.personalStylistDesc': 'Chat, fotos y consejos de armario',
-    'stylistHub.voiceChat': 'Chat de voz', 'stylistHub.voiceChatDesc': 'Habla con Ruby o Max',
     'stylistHub.outfitCalendar': 'Calendario de outfits', 'stylistHub.outfitCalendarDesc': 'Planifica tus looks con antelación',
     'stylistHub.weatherOutfits': 'Outfits según el clima', 'stylistHub.weatherOutfitsDesc': 'Vístete según la previsión',
     'stylistHub.blog': 'Blog', 'stylistHub.blogDesc': 'Consejos y guías de moda',

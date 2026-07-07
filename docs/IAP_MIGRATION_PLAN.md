@@ -81,7 +81,7 @@ Do **not** ship Stripe checkout on iOS production builds after Phase 1 is live.
 |---|---|
 | `AppleIAPService.ts` | `purchaseVoiceCredits(packId)`, `getVoiceCreditPrices()`, `serializeVoiceCustomerInfoForSync` |
 | `useVoiceCredits.ts` | iOS production uses Apple IAP; Stripe on web/Android; sync + balance refresh |
-| `VoiceConversationScreen.tsx` | Buy credits modal with App Store prices when available |
+| AI Stylist → Voice mode (`PersonalStylistVoicePanel`) | Buy credits modal with App Store prices when available |
 | Server sync | `POST /api/voice/apple/sync` — idempotent credit grant via `voice_credit_purchases` table |
 | Server webhook | `POST /api/webhooks/revenuecat` — handles consumable voice product IDs |
 | Stripe block | `POST /api/voice-credits/purchase` returns 400 when `billing_platform=apple` |

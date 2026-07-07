@@ -5,7 +5,6 @@ import StyleShuffleScreen from "@/screens/StyleShuffleScreen";
 import VisualSearchScreen from "@/screens/VisualSearchScreen";
 import StylistHubScreen from "@/screens/StylistHubScreen";
 import DreamOutfitGeneratorScreen from "@/screens/DreamOutfitGeneratorScreen";
-import VoiceConversationScreen from "@/screens/VoiceConversationScreen";
 import SocialStyleSyncScreen from "@/screens/SocialStyleSyncScreen";
 import WardrobeScreen from "@/screens/WardrobeScreen";
 import AddWardrobeItemScreen from "@/screens/AddWardrobeItemScreen";
@@ -30,7 +29,6 @@ export type UserStylistStackParamList = {
   StyleShuffle: undefined;
   VisualSearch: undefined;
   DreamOutfitGenerator: undefined;
-  VoiceConversation: undefined;
   Wardrobe: undefined;
   AddWardrobeItem: undefined;
   BulkWardrobeUpload: undefined;
@@ -81,11 +79,6 @@ export default function UserStylistStackNavigator() {
         name="DreamOutfitGenerator"
         component={DreamOutfitGeneratorScreen}
         options={{ headerTitle: "Dream Outfit Generator" }}
-      />
-      <Stack.Screen
-        name="VoiceConversation"
-        component={VoiceConversationScreen}
-        options={{ headerTitle: "Voice Chat" }}
       />
       <Stack.Screen
         name="Wardrobe"
