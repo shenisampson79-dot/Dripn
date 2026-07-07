@@ -1,6 +1,7 @@
 /**
  * Apple In-App Purchase service via RevenueCat (react-native-purchases).
- * Phase 1: subscriptions only — see docs/IAP_MIGRATION_PLAN.md
+ * Phase 1: subscriptions — Phase 2: DFY one-time purchases.
+ * See docs/IAP_MIGRATION_PLAN.md
  */
 
 import { Platform } from 'react-native';
@@ -13,6 +14,7 @@ import Purchases, {
 } from 'react-native-purchases';
 
 import type { SubscriptionTier } from '@/contexts/AuthContext';
+import type { DFYTier } from '@/services/DFYService';
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
 
 export type SubscriptionInterval = 'monthly' | 'yearly';
@@ -29,7 +31,14 @@ export const APPLE_SUBSCRIPTION_PRODUCT_IDS = {
   },
 } as const;
 
+/** App Store Connect DFY non-consumable product IDs */
+export const APPLE_DFY_PRODUCT_IDS = {
+  lite: 'com.dripn.dfy.lite',
+  core: 'com.dripn.dfy.core',
+} as const;
+
 export type IAPSubscriptionTier = keyof typeof APPLE_SUBSCRIPTION_PRODUCT_IDS;
+export type IAPDFYTier = keyof typeof APPLE_DFY_PRODUCT_IDS;
 
 export interface SubscriptionPriceInfo {
   tier: IAPSubscriptionTier;
@@ -38,11 +47,19 @@ export interface SubscriptionPriceInfo {
   priceString: string;
 }
 
+export interface DFYPriceInfo {
+  tier: IAPDFYTier;
+  productId: string;
+  priceString: string;
+}
+
 export interface AppleIAPService {
   isAvailable(): boolean;
   configure(appUserId: string): Promise<void>;
   getSubscriptionPrices(): Promise<SubscriptionPriceInfo[]>;
+  getDFYPrices(): Promise<DFYPriceInfo[]>;
   purchaseSubscription(tier: IAPSubscriptionTier, interval: SubscriptionInterval): Promise<CustomerInfo>;
+  purchaseDFY(tier: IAPDFYTier): Promise<CustomerInfo>;
   restorePurchases(): Promise<CustomerInfo>;
   getCustomerInfo(): Promise<CustomerInfo>;
 }
@@ -56,6 +73,10 @@ function productIdFor(tier: IAPSubscriptionTier, interval: SubscriptionInterval)
   return interval === 'yearly'
     ? APPLE_SUBSCRIPTION_PRODUCT_IDS[tier].yearly
     : APPLE_SUBSCRIPTION_PRODUCT_IDS[tier].monthly;
+}
+
+function dfyProductIdFor(tier: IAPDFYTier): string {
+  return APPLE_DFY_PRODUCT_IDS[tier];
 }
 
 function findPackageByProductId(
@@ -118,6 +139,57 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     return results;
   }
 
+  async getDFYPrices(): Promise<DFYPriceInfo[]> {
+    if (!this.isAvailable()) return [];
+
+    const offerings = await Purchases.getOfferings();
+    const productIds = Object.values(APPLE_DFY_PRODUCT_IDS);
+    const storeProducts = await Purchases.getProducts(productIds);
+    const productById = new Map(storeProducts.map((product) => [product.identifier, product]));
+
+    const results: DFYPriceInfo[] = [];
+
+    for (const tier of Object.keys(APPLE_DFY_PRODUCT_IDS) as IAPDFYTier[]) {
+      const productId = dfyProductIdFor(tier);
+      const pkg = findPackageByProductId(offerings, productId);
+      const storeProduct = productById.get(productId);
+      const priceString = pkg?.product.priceString || storeProduct?.priceString;
+      if (priceString) {
+        results.push({ tier, productId, priceString });
+      }
+    }
+
+    return results;
+  }
+
+  private async purchaseProductById(productId: string): Promise<CustomerInfo> {
+    const offerings = await Purchases.getOfferings();
+    const pkg = findPackageByProductId(offerings, productId);
+
+    try {
+      if (pkg) {
+        const { customerInfo } = await Purchases.purchasePackage(pkg);
+        return customerInfo;
+      }
+
+      const products = await Purchases.getProducts([productId]);
+      const product = products[0];
+      if (!product) {
+        throw new Error(`DFY product not found for ${productId}. Check RevenueCat / App Store Connect.`);
+      }
+
+      const { customerInfo } = await Purchases.purchaseStoreProduct(product);
+      return customerInfo;
+    } catch (error) {
+      if (isUserCancelledPurchase(error)) {
+        const cancelled = new Error('Purchase cancelled');
+        (cancelled as Error & { cancelled?: boolean }).cancelled = true;
+        throw cancelled;
+      }
+      throw error;
+    }
+  }
+
   async purchaseSubscription(
     tier: IAPSubscriptionTier,
     interval: SubscriptionInterval,
@@ -147,6 +219,15 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     }
   }
 
+  async purchaseDFY(tier: IAPDFYTier): Promise<CustomerInfo> {
+    if (!this.isAvailable()) {
+      throw new Error('Apple IAP is not available on this platform');
+    }
+
+    const productId = dfyProductIdFor(tier);
+    return this.purchaseProductById(productId);
+  }
+
   async restorePurchases(): Promise<CustomerInfo> {
     if (!this.isAvailable()) {
       throw new Error('Apple IAP is not available on this platform');
@@ -169,7 +250,6 @@ export function resolveTierFromCustomerInfo(customerInfo: CustomerInfo): Subscri
   if (active.stylist_unlimited?.isActive) return 'stylist_unlimited';
   if (active.personal_stylist?.isActive) return 'personal_stylist';
 
-  // Fallback: inspect active subscriptions by product ID
   const activeProductIds = Object.values(customerInfo.entitlements.active)
     .map((e) => e.productIdentifier)
     .filter(Boolean);
@@ -182,7 +262,33 @@ export function resolveTierFromCustomerInfo(customerInfo: CustomerInfo): Subscri
   return 'free';
 }
 
-/** Serialize CustomerInfo for server sync */
+/** Map RevenueCat entitlements / purchases to DFY tier when present */
+export function resolveDfyTierFromCustomerInfo(customerInfo: CustomerInfo): DFYTier | null {
+  const active = customerInfo.entitlements.active;
+
+  if (active.dfy_core?.isActive) return 'core';
+  if (active.dfy_lite?.isActive) return 'lite';
+
+  const ownedProductIds = [
+    ...Object.values(customerInfo.entitlements.active).map((e) => e.productIdentifier),
+    ...customerInfo.nonSubscriptionTransactions.map((txn) => txn.productIdentifier),
+  ].filter(Boolean);
+
+  for (const productId of ownedProductIds) {
+    if (productId === APPLE_DFY_PRODUCT_IDS.core || productId.includes('dfy.core')) return 'core';
+    if (productId === APPLE_DFY_PRODUCT_IDS.lite || productId.includes('dfy.lite')) return 'lite';
+  }
+
+  return null;
+}
+
+function latestDfyProductId(customerInfo: CustomerInfo): string | null {
+  const dfyTier = resolveDfyTierFromCustomerInfo(customerInfo);
+  if (!dfyTier) return null;
+  return APPLE_DFY_PRODUCT_IDS[dfyTier];
+}
+
+/** Serialize CustomerInfo for subscription server sync */
 export function serializeCustomerInfoForSync(customerInfo: CustomerInfo) {
   const activeEntitlements = Object.entries(customerInfo.entitlements.active).map(([id, ent]) => ({
     id,
@@ -203,6 +309,32 @@ export function serializeCustomerInfoForSync(customerInfo: CustomerInfo) {
     originalTransactionId: null,
     managementURL: customerInfo.managementURL,
     tier: resolveTierFromCustomerInfo(customerInfo),
+  };
+}
+
+/** Serialize CustomerInfo for DFY one-time server sync */
+export function serializeDfyCustomerInfoForSync(customerInfo: CustomerInfo) {
+  const activeEntitlements = Object.entries(customerInfo.entitlements.active).map(([id, ent]) => ({
+    id,
+    productIdentifier: ent.productIdentifier,
+    isActive: ent.isActive,
+    willRenew: ent.willRenew,
+    expirationDate: ent.expirationDate,
+    originalPurchaseDate: ent.originalPurchaseDate,
+    store: ent.store,
+  }));
+
+  const dfyTier = resolveDfyTierFromCustomerInfo(customerInfo);
+  const latestProductId = latestDfyProductId(customerInfo);
+  const latestTxn = customerInfo.nonSubscriptionTransactions[0];
+
+  return {
+    appUserId: customerInfo.originalAppUserId,
+    activeEntitlements,
+    latestProductId,
+    tier: dfyTier,
+    productId: latestProductId,
+    originalTransactionId: latestTxn?.transactionIdentifier ?? null,
   };
 }
 

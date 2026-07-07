@@ -34,6 +34,8 @@ import {
 import { navigateAfterDfyActivation } from "@/utils/dfyNavigation";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 import { currencyService } from "@/services/CurrencyService";
+import { appleIAPService } from "@/services/AppleIAPService";
+import { shouldUseAppleIAP } from "@/utils/platformPayments";
 
 type DFYStartScreenProps = {
   navigation: NativeStackNavigationProp<Record<string, object | undefined>>;
@@ -56,6 +58,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   const [activationBlockedReason, setActivationBlockedReason] = useState<string | null>(null);
   const [activationBlockCode, setActivationBlockCode] = useState<DfyActivationBlockCode | null>(null);
   const [dfyPrices, setDfyPrices] = useState({ outfit_setup: '£19.99', wardrobe_setup: '£39.99' });
+  const useAppleIAP = shouldUseAppleIAP();
 
   const subscriptionTier = normalizeSubscriptionTier(user?.subscriptionTier);
   const benefit = getDfyBenefitForSubscription(subscriptionTier);
@@ -77,11 +80,29 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
 
   useEffect(() => {
     const initCurrency = async () => {
+      if (useAppleIAP && user?.id) {
+        try {
+          await appleIAPService.configure(user.id);
+          const iapPrices = await appleIAPService.getDFYPrices();
+          if (iapPrices.length > 0) {
+            const litePrice = iapPrices.find((entry) => entry.tier === 'lite')?.priceString;
+            const corePrice = iapPrices.find((entry) => entry.tier === 'core')?.priceString;
+            setDfyPrices({
+              outfit_setup: litePrice || '£19.99',
+              wardrobe_setup: corePrice || '£39.99',
+            });
+            return;
+          }
+        } catch (error) {
+          console.warn('[DFYStart] Apple DFY price fetch failed:', error);
+        }
+      }
+
       await currencyService.initialize();
       setDfyPrices(currencyService.getDFYPrices());
     };
     initCurrency().catch(() => {});
-  }, []);
+  }, [useAppleIAP, user?.id]);
 
   const refreshState = useCallback(async () => {
     if (!user?.id) return;
@@ -129,7 +150,11 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
 
   const openPaidCheckout = (tier: DFYTier) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate('DFYComparison', { selectedTier: tier, paidAddOn: true });
+    navigation.navigate('DFYComparison', {
+      selectedTier: tier,
+      paidAddOn: true,
+      autoCheckout: useAppleIAP,
+    });
   };
 
   const renderPathCard = (

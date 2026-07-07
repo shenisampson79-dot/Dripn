@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   TextInput,
   Modal,
-  Platform,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useRoute } from "@react-navigation/native";
@@ -34,6 +33,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/ApiService";
 import { getDfyBenefitForSubscription } from "@/utils/dfyEntitlements";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
+import {
+  appleIAPService,
+  serializeDfyCustomerInfoForSync,
+  type IAPDFYTier,
+} from "@/services/AppleIAPService";
+import { shouldUseAppleIAP } from "@/utils/platformPayments";
+import { currencyService } from "@/services/CurrencyService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -121,10 +127,18 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
-  const tiers = dfyService.getComparisonTiers();
+  const [tierPrices, setTierPrices] = useState<Record<DFYTier, string>>({
+    lite: '£19.99',
+    core: '£39.99',
+  });
+  const tiers = dfyService.getComparisonTiers().map((tier) => ({
+    ...tier,
+    price: tierPrices[tier.id] || tier.price,
+  }));
   const subscriptionTier = normalizeSubscriptionTier(user?.subscriptionTier);
   const includedBenefit = getDfyBenefitForSubscription(subscriptionTier);
   const isPaidAddOn = Boolean(routeParams?.paidAddOn);
+  const useAppleIAP = shouldUseAppleIAP();
   
   const liteGlow = useSharedValue(0);
   const coreGlow = useSharedValue(0);
@@ -139,20 +153,62 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     }
   }, [includedBenefit, isPaidAddOn, navigation]);
 
+  useEffect(() => {
+    const loadPrices = async () => {
+      if (useAppleIAP && user?.id) {
+        try {
+          await appleIAPService.configure(user.id);
+          const iapPrices = await appleIAPService.getDFYPrices();
+          if (iapPrices.length > 0) {
+            setTierPrices((prev) => {
+              const next = { ...prev };
+              for (const entry of iapPrices) {
+                next[entry.tier] = entry.priceString;
+              }
+              return next;
+            });
+            return;
+          }
+        } catch (error) {
+          console.warn('[DFYComparison] Apple DFY price fetch failed:', error);
+        }
+      }
+
+      try {
+        await currencyService.initialize();
+        const fallback = currencyService.getDFYPrices();
+        setTierPrices({
+          lite: fallback.outfit_setup,
+          core: fallback.wardrobe_setup,
+        });
+      } catch {
+        // Keep default GBP strings
+      }
+    };
+
+    loadPrices().catch(() => {});
+  }, [useAppleIAP, user?.id]);
+
   // Auto-start checkout for paid add-on or legacy free-user flow
   useEffect(() => {
     if (!isPaidAddOn && includedBenefit !== 'none') return;
     if (routeParams?.autoCheckout && routeParams?.selectedTier) {
       const timer = setTimeout(() => {
+        if (useAppleIAP) {
+          if (user?.id) {
+            startAppleCheckout();
+          }
+          return;
+        }
         if (user?.email) {
           startCheckout(user.email);
         } else {
           setShowEmailModal(true);
         }
-      }, 300); // Small delay to ensure screen is rendered
+      }, 300);
       return () => clearTimeout(timer);
     }
-  }, [routeParams?.autoCheckout, includedBenefit, isPaidAddOn]);
+  }, [routeParams?.autoCheckout, includedBenefit, isPaidAddOn, useAppleIAP, user?.id, user?.email]);
 
   const handleTierSelect = (tierId: DFYTier) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -192,6 +248,14 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (!isPaidAddOn && includedBenefit !== 'none') {
       navigation.navigate('DFYStart');
+      return;
+    }
+    if (useAppleIAP) {
+      if (!user?.id) {
+        Alert.alert('Sign in required', 'Please sign in to purchase with the App Store.');
+        return;
+      }
+      startAppleCheckout();
       return;
     }
     if (user?.email) {
@@ -243,6 +307,83 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     }
   };
 
+  const completeDfyPurchaseSuccess = async () => {
+    try {
+      await apiService.generateDFYDelivery({ tier: selectedTier, stylistId: 'ruby' });
+    } catch (e) {
+      console.log('DFY delivery generation will continue async', e);
+    }
+    refreshSubscriptionFromBackend().catch(() => {});
+    showDfyPaymentSuccess();
+  };
+
+  const startAppleCheckout = async () => {
+    if (!user?.id) {
+      Alert.alert('Sign in required', 'Please sign in to purchase with the App Store.');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await appleIAPService.configure(user.id);
+      const customerInfo = await appleIAPService.purchaseDFY(selectedTier as IAPDFYTier);
+      const syncPayload = serializeDfyCustomerInfoForSync(customerInfo);
+      if (!syncPayload.tier) {
+        throw new Error('DFY purchase could not be verified. Please try Restore Purchases or contact support.');
+      }
+      await apiService.syncAppleDFYPurchase(syncPayload);
+      await completeDfyPurchaseSuccess();
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'cancelled' in error && (error as { cancelled?: boolean }).cancelled) {
+        Alert.alert(
+          'Purchase Cancelled',
+          'You can complete your purchase at any time.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      console.error('DFY Apple IAP error:', error);
+      Alert.alert(
+        'Payment Error',
+        error instanceof Error ? error.message : 'Failed to complete App Store purchase. Please try again.'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRestoreDfyPurchases = async () => {
+    if (!user?.id) {
+      Alert.alert('Sign in required', 'Please sign in to restore purchases.');
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      await appleIAPService.configure(user.id);
+      const customerInfo = await appleIAPService.restorePurchases();
+      const syncPayload = serializeDfyCustomerInfoForSync(customerInfo);
+      if (!syncPayload.tier) {
+        Alert.alert('No DFY purchase found', 'No DFY setup purchase was found for this Apple ID.');
+        return;
+      }
+      await apiService.syncAppleDFYPurchase(syncPayload);
+      await refreshSubscriptionFromBackend();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        'Restored',
+        'Your DFY setup purchase has been restored.',
+        [{ text: 'Continue', onPress: () => showDfyPaymentSuccess() }]
+      );
+    } catch (error: unknown) {
+      Alert.alert(
+        'Restore Failed',
+        error instanceof Error ? error.message : 'Could not restore purchases.'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const startCheckout = async (checkoutEmail: string) => {
     setIsProcessing(true);
     
@@ -257,13 +398,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
       const outcome = await resolveDfyCheckoutOutcome(result, response.sessionId, checkoutEmail);
 
       if (outcome === 'success') {
-        try {
-          await apiService.generateDFYDelivery({ tier: selectedTier, stylistId: 'ruby' });
-        } catch (e) {
-          console.log('DFY delivery generation will continue async', e);
-        }
-        refreshSubscriptionFromBackend().catch(() => {});
-        showDfyPaymentSuccess();
+        await completeDfyPurchaseSuccess();
       } else if (outcome === 'failed') {
         Alert.alert(
           'Payment Not Completed',
@@ -493,6 +628,21 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
               )}
             </Pressable>
           </LinearGradient>
+          {useAppleIAP ? (
+            <Pressable
+              onPress={handleRestoreDfyPurchases}
+              disabled={isProcessing}
+              style={({ pressed }) => [
+                styles.restorePurchasesButton,
+                { opacity: pressed ? 0.85 : 1 },
+              ]}
+            >
+              <Feather name="refresh-cw" size={16} color="rgba(255,255,255,0.7)" />
+              <ThemedText type="small" style={styles.restorePurchasesText}>
+                Restore Purchases
+              </ThemedText>
+            </Pressable>
+          ) : null}
         </View>
       </ScreenScrollView>
 
@@ -737,6 +887,17 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  restorePurchasesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingTop: Spacing.md,
+  },
+  restorePurchasesText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,

@@ -24,7 +24,7 @@ import {
 import { TIER_MATRIX } from "@/utils/tierMatrix";
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
-import { appleIAPService, serializeCustomerInfoForSync, type IAPSubscriptionTier } from "@/services/AppleIAPService";
+import { appleIAPService, serializeCustomerInfoForSync, serializeDfyCustomerInfoForSync, type IAPSubscriptionTier } from "@/services/AppleIAPService";
 import { shouldUseAppleIAP } from "@/utils/platformPayments";
 import { getErrorMessage, openExternalUrl } from "@/utils/openExternalUrl";
 import { isDevTestingModeEnabled } from "@/utils/devTesting";
@@ -413,15 +413,29 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       if (!user?.id) throw new Error('Sign in to restore purchases');
       await appleIAPService.configure(user.id);
       const customerInfo = await appleIAPService.restorePurchases();
-      const syncPayload = serializeCustomerInfoForSync(customerInfo);
-      if (syncPayload.tier === 'free') {
-        Alert.alert('No subscription found', 'No active App Store subscription was found for this account.');
+      const subscriptionPayload = serializeCustomerInfoForSync(customerInfo);
+      const dfyPayload = serializeDfyCustomerInfoForSync(customerInfo);
+
+      let restoredSomething = false;
+
+      if (subscriptionPayload.tier !== 'free') {
+        await apiService.syncAppleSubscription(subscriptionPayload);
+        restoredSomething = true;
+      }
+
+      if (dfyPayload.tier) {
+        await apiService.syncAppleDFYPurchase(dfyPayload);
+        restoredSomething = true;
+      }
+
+      if (!restoredSomething) {
+        Alert.alert('No purchases found', 'No active App Store subscription or DFY setup was found for this account.');
         return;
       }
-      await apiService.syncAppleSubscription(syncPayload);
+
       await refreshSubscriptionFromBackend();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Restored', 'Your App Store subscription has been restored.');
+      Alert.alert('Restored', 'Your App Store purchases have been restored.');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Could not restore purchases';
       Alert.alert('Restore failed', message);

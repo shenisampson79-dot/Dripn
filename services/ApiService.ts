@@ -1911,6 +1911,25 @@ class ApiService {
     });
   }
 
+  async syncAppleDFYPurchase(payload: {
+    tier?: 'lite' | 'core';
+    productId?: string;
+    originalTransactionId?: string;
+    customerInfo?: Record<string, unknown>;
+  }) {
+    return this.request<{
+      success: boolean;
+      tier: 'lite' | 'core' | null;
+      plan?: string;
+      tierName?: string;
+      billingPlatform?: string;
+      alreadySynced?: boolean;
+    }>('/api/dfy/apple/sync', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   async createBillingCheckout(plan: string) {
     return this.request<{ checkoutUrl: string; sessionId: string; plan: string }>('/api/billing/checkout', {
       method: 'POST',

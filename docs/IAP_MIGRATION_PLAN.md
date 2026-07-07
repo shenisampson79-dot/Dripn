@@ -13,12 +13,12 @@ This document outlines the phased migration from Stripe/WebBrowser checkout to A
 | `com.dripn.stylist_unlimited.monthly` | Auto-renewable | `stylist_unlimited` | ~$19.99/mo |
 | `com.dripn.stylist_unlimited.annual` | Auto-renewable | `stylist_unlimited` | Annual discount |
 
-### DFY one-time (non-consumable or consumable per Apple guidance)
+### DFY one-time (non-consumable)
 
-| Product ID | Type | Maps to |
-|---|---|---|
-| `com.dripn.dfy.styling_sprint` | Non-consumable | DFY Lite / Quick Start |
-| `com.dripn.dfy.wardrobe_setup` | Non-consumable | DFY Core / Full Setup |
+| Product ID | Type | Maps to | RevenueCat entitlement |
+|---|---|---|---|
+| `com.dripn.dfy.lite` | Non-consumable | DFY Lite / Quick Start (`outfit_setup`) | `dfy_lite` |
+| `com.dripn.dfy.core` | Non-consumable | DFY Core / Full Setup (`core_wardrobe`) | `dfy_core` |
 
 ### Voice credits (consumable)
 
@@ -69,6 +69,47 @@ RevenueCat reduces server receipt-validation complexity and aligns with phased r
 
 Do **not** ship Stripe checkout on iOS production builds after Phase 1 is live.
 
+## 9. Phase 2 Completion Notes (DFY One-Time)
+
+**Status: Implemented (client + server)**
+
+### What shipped
+
+| Area | Implementation |
+|---|---|
+| `AppleIAPService.ts` | `purchaseDFY(tier)`, `getDFYPrices()`, `serializeDfyCustomerInfoForSync`, DFY restore via `restorePurchases()` |
+| `DFYComparisonScreen.tsx` | iOS production uses Apple IAP instead of Stripe WebBrowser; App Store prices; Restore Purchases |
+| `DFYStartScreen.tsx` | App Store DFY prices on paid add-on cards; auto-checkout on iOS routes to IAP |
+| `SubscriptionScreen.tsx` | Restore Purchases also syncs DFY non-consumables |
+| Server sync | `POST /api/dfy/apple/sync` — maps product/entitlement → `outfit_setup` / `core_wardrobe` via `handleOneTimePurchase` |
+| Server webhook | `POST /api/webhooks/revenuecat` — handles `INITIAL_PURCHASE` / `NON_RENEWING_PURCHASE` for DFY product IDs |
+| Stripe block | `POST /api/checkout/dfy/create-session` returns 400 when `billing_platform=apple` |
+
+### App Store Connect — create these products
+
+| Product ID | Type | RevenueCat entitlement | Server plan |
+|---|---|---|---|
+| `com.dripn.dfy.lite` | Non-consumable | `dfy_lite` | `outfit_setup` |
+| `com.dripn.dfy.core` | Non-consumable | `dfy_core` | `core_wardrobe` |
+
+Add both to the RevenueCat default offering (or a `dfy` offering) as non-subscription products.
+
+### Sandbox testing (DFY)
+
+1. Create non-consumable IAPs in App Store Connect with IDs above
+2. Map to RevenueCat entitlements `dfy_lite` and `dfy_core`
+3. Set `EXPO_PUBLIC_FORCE_APPLE_IAP=true` for dev builds or use production iOS build
+4. Sign in with Sandbox Apple ID on device
+5. From DFY Comparison (or paid add-on on DFY Start), purchase Quick Start or Full Setup
+6. Confirm `POST /api/dfy/apple/sync` returns `tier: lite` or `core`
+7. Test Restore Purchases on DFY Comparison or Subscription screen after reinstall
+
+### Still TODO (post–Phase 2)
+
+- [ ] Phase 3 voice credit consumables
+- [ ] DFY refund handling (revoke entitlement without breaking active subscription tier)
+- [ ] Separate DFY purchase record from subscription tier for subscriber add-on purchases
+
 ## 8. Phase 1 Completion Notes (Subscriptions)
 
 **Status: Implemented (client + server scaffolding)**
@@ -118,7 +159,7 @@ Do **not** ship Stripe checkout on iOS production builds after Phase 1 is live.
 - [ ] Direct App Store Server API receipt validation (currently trusts client sync + RevenueCat webhook)
 - [ ] Stripe webhook ignore for `billing_platform=apple` users
 - [ ] Delete-account Apple subscription revoke path
-- [ ] Phase 2 DFY one-time IAP, Phase 3 voice consumables
+- [ ] Phase 3 voice consumables
 
 ## 6. Estimated File Touch List
 
