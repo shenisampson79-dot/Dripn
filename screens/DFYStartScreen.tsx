@@ -224,11 +224,11 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
             </ThemedText>
           </View>
           <ThemedText type="body" style={styles.pathDescription}>
-            {getDfyPathDescription(tier)} · one-time purchase
+            {getDfyPathDescription(tier)} · one-time
           </ThemedText>
           <View style={styles.pathCtaRow}>
             <ThemedText type="small" style={styles.pathCtaText}>
-              Purchase now
+              {isLite ? 'Look ready — purchase' : 'Dress better — purchase'}
             </ThemedText>
             <Feather name="arrow-right" size={16} color="#FFFFFF" />
           </View>
@@ -241,7 +241,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
     <View style={styles.paidAddOnSection}>
       <ThemedText type="h4" style={styles.sectionTitle}>Purchase another setup</ThemedText>
       <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
-        You've used your included setup — you can always run another whenever you need one.
+        You've used your included setup — run another whenever you want to look and feel your best.
       </ThemedText>
       {renderPaidAddOnCard('lite')}
       {benefit === 'full_wardrobe_setup' || benefit === 'styling_sprint' ? renderPaidAddOnCard('core') : null}

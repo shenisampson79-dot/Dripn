@@ -123,11 +123,15 @@ export function getDfyPathDescription(
   benefit: DfySubscriptionBenefit = 'none',
 ): string {
   if (tier === 'lite') {
-    const windowLabel =
-      benefit === 'full_wardrobe_setup' ? '30-day styling window' : '14-day styling sprint';
-    return `5–7 outfit photos · fast win · ${windowLabel}`;
+    if (benefit === 'styling_sprint' || benefit === 'full_wardrobe_setup') {
+      return 'Feel confident fast — styled looks for one occasion';
+    }
+    return 'Look ready for your trip or event — less outfit stress';
   }
-  return 'Up to 30 items · wardrobe saved forever · 30-day active styling';
+  if (benefit === 'full_wardrobe_setup') {
+    return 'Dress with ease — your whole closet, organised and styled';
+  }
+  return 'Save time every morning — your wardrobe, working for you';
 }
 
 export function subscriptionTierDisplayName(tier?: SubscriptionTier | string | null): string {

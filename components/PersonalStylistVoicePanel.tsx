@@ -55,6 +55,20 @@ function getMimeTypeFromUri(uri: string): 'audio/m4a' | 'audio/webm' | 'audio/wa
 
 const TAB_BAR_HEIGHT = 56;
 
+/** Benefit-led labels for buy-credits modal (matches ASC metadata tone). */
+const VOICE_PACK_DISPLAY: Record<string, { label: string; subtitle: string }> = {
+  small: { label: 'Quick top-up', subtitle: 'Keep chatting hands-free' },
+  medium: { label: 'Keep the conversation going', subtitle: 'Less typing, more ease' },
+  large: { label: 'Hands-free styling help', subtitle: 'Best value per spoken reply' },
+  xlarge: { label: 'Talk through style with ease', subtitle: 'Most credits — best value' },
+};
+
+function getVoicePackDisplay(packageId: string, fallbackDescription: string, credits: number) {
+  const mapped = VOICE_PACK_DISPLAY[packageId];
+  if (mapped) return mapped;
+  return { label: fallbackDescription, subtitle: `${credits} spoken replies` };
+}
+
 export function PersonalStylistVoicePanel({
   stylist,
   effectiveLanguage,
@@ -135,7 +149,7 @@ export function PersonalStylistVoicePanel({
       }
 
       if (!hasCredits && !isUnlimited) {
-        throw new Error('Spoken reply limit reached for this month. Switch to Chat mode for unlimited text.');
+        throw new Error("You've used this month's spoken replies. Add a credit pack to keep chatting hands-free — or switch to Chat for unlimited text.");
       }
 
       await audioRecorder.stop();
@@ -163,7 +177,7 @@ export function PersonalStylistVoicePanel({
         });
 
         if (response.voiceCreditsExhausted) {
-          throw new Error(response.message || 'Spoken reply limit reached.');
+          throw new Error(response.message || "You've used your spoken replies for now. Add credits or switch to Chat.");
         }
 
         if (response.success !== false && response.aiResponse) {
@@ -194,7 +208,7 @@ export function PersonalStylistVoicePanel({
         });
 
         if (chatResponse.voiceCreditsExhausted) {
-          setError(chatResponse.voiceError?.message || 'Spoken reply limit reached — text reply only.');
+          setError(chatResponse.voiceError?.message || "Spoken replies used up — text reply below. Add credits anytime to keep talking.");
         }
         if (chatResponse.voiceCredits) {
           updateBalance(chatResponse.voiceCredits);
@@ -230,7 +244,7 @@ export function PersonalStylistVoicePanel({
     if (conversationState !== 'idle' || creditsLoading) return;
 
     if (!hasCredits && !isUnlimited) {
-      setError('Spoken reply limit reached. Use Chat mode for unlimited text conversations.');
+      setError("You've used your spoken replies. Add a credit pack or switch to Chat for unlimited text.");
       return;
     }
 
@@ -390,8 +404,8 @@ export function PersonalStylistVoicePanel({
           <View style={styles.creditsRow}>
             <ThemedText type="caption" style={{ color: theme.tabIconDefault, textAlign: 'center', flex: 1 }}>
               {hasCredits
-                ? `${remainingCredits} voice credit${remainingCredits === 1 ? '' : 's'} left — each spoken reply uses one.`
-                : 'Out of voice credits. Buy a pack or switch to Chat for unlimited text.'}
+                ? `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left — each one uses a credit.`
+                : 'Monthly spoken replies used up — add a pack or switch to Chat for unlimited text.'}
             </ThemedText>
             <Pressable
               onPress={() => setShowCreditsModal(true)}
@@ -418,18 +432,20 @@ export function PersonalStylistVoicePanel({
             >
               <View style={styles.modalHeader}>
                 <Feather name="zap" size={20} color={theme.link} />
-                <ThemedText type="h3" style={styles.modalTitle}>Voice credits</ThemedText>
+                <ThemedText type="h3" style={styles.modalTitle}>Keep the conversation going</ThemedText>
                 <Pressable onPress={() => setShowCreditsModal(false)}>
                   <Feather name="x" size={20} color={theme.tabIconDefault} />
                 </Pressable>
               </View>
               <ThemedText style={[styles.modalText, { color: theme.tabIconDefault }]}>
                 {useAppleIAP
-                  ? 'Purchases are handled by the App Store. Credits are stored on your Dripn account — Restore Purchases does not re-grant consumables.'
-                  : 'Add voice message credits to your account. Purchased credits never expire.'}
+                  ? "You've hit your monthly spoken-reply allowance — add a pack to keep chatting hands-free. Purchases are handled by the App Store; credits stay on your Dripn account."
+                  : "You've hit your monthly spoken-reply allowance — add credits to keep chatting hands-free. Purchased credits never expire."}
               </ThemedText>
               <View style={styles.packageList}>
-                {packages.map((pkg) => (
+                {packages.map((pkg) => {
+                  const display = getVoicePackDisplay(pkg.id, pkg.description, pkg.credits);
+                  return (
                   <Pressable
                     key={pkg.id}
                     disabled={isPurchasing}
@@ -450,16 +466,17 @@ export function PersonalStylistVoicePanel({
                       </View>
                     ) : null}
                     <View style={styles.packageName}>
-                      <ThemedText type="body" style={{ fontWeight: '600' }}>{pkg.description}</ThemedText>
+                      <ThemedText type="body" style={{ fontWeight: '600' }}>{display.label}</ThemedText>
                       <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
-                        {pkg.credits} credits
+                        {display.subtitle} · {pkg.credits} credits
                       </ThemedText>
                     </View>
                     <ThemedText style={[styles.packagePrice, { color: theme.link }]}>
                       {getPackagePriceLabel(pkg.id, pkg.priceLabel)}
                     </ThemedText>
                   </Pressable>
-                ))}
+                  );
+                })}
               </View>
               {isPurchasing ? (
                 <ActivityIndicator color={theme.link} style={{ marginBottom: Spacing.md }} />

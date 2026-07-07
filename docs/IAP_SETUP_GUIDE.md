@@ -15,12 +15,12 @@ Complete setup guide for all **10** in-app purchase products used by Dripn (Styl
 | 2 | `com.dripn.personal_stylist.annual` | Auto-renewable subscription | Year of Style Confidence | Save 20% — confident looks all year long | **£95.99/yr** (~20% off monthly) | `dripn_subscriptions` | `personal_stylist` | **SubscriptionScreen** — same tier, annual billing |
 | 3 | `com.dripn.stylist_unlimited.monthly` | Auto-renewable subscription | Plan Ahead, Dress Better | Less fatigue — always know what to wear | **£19.99/mo** | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — life planning, less decision fatigue |
 | 4 | `com.dripn.stylist_unlimited.annual` | Auto-renewable subscription | Your Best-Dressed Year | Save 20% — plan ahead, stress less all year | **£191.99/yr** (~20% off monthly) | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — same tier, annual billing |
-| 5 | `com.dripn.dfy.lite` | Non-consumable | Outfit-Based Setup (DFY Lite) | **£19.99** one-time | — | `dfy_lite` | **DFYComparisonScreen** / **DFYStartScreen** — Quick Start / occasion outfit setup |
-| 6 | `com.dripn.dfy.core` | Non-consumable | Core Wardrobe Setup (DFY Core) | **£39.99** one-time | — | `dfy_core` | **DFYComparisonScreen** / **DFYStartScreen** — full wardrobe foundation (up to 30 items) |
-| 7 | `com.dripn.voice.credits_10` | Consumable | 10 Voice Messages | **£1.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`small` pack) |
-| 8 | `com.dripn.voice.credits_25` | Consumable | 25 Voice Messages | **£2.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`medium` pack) |
-| 9 | `com.dripn.voice.credits_50` | Consumable | 50 Voice Messages | **£4.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`large` pack) |
-| 10 | `com.dripn.voice.credits_100` | Consumable | 100 Voice Messages | **£7.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`xlarge` pack) |
+| 5 | `com.dripn.dfy.lite` | Non-consumable | Styling Sprint — Look Ready | Confident looks for your next occasion | **£19.99** one-time | — | `dfy_lite` | **DFYComparisonScreen** / **DFYStartScreen** — Styling Sprint / Quick Start |
+| 6 | `com.dripn.dfy.core` | Non-consumable | Full Setup — Dress with Ease | Know what to wear — less daily stress | **£39.99** one-time | — | `dfy_core` | **DFYComparisonScreen** / **DFYStartScreen** — Full Wardrobe Setup |
+| 7 | `com.dripn.voice.credits_10` | Consumable | 10 Spoken Style Replies | Keep the conversation going hands-free | **£1.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`small` pack) |
+| 8 | `com.dripn.voice.credits_25` | Consumable | 25 Spoken Style Replies | More voice chats — less typing, more ease | **£2.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`medium` pack) |
+| 9 | `com.dripn.voice.credits_50` | Consumable | 50 Spoken Style Replies | Hands-free styling help when you need it | **£4.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`large` pack) |
+| 10 | `com.dripn.voice.credits_100` | Consumable | 100 Spoken Style Replies | Best value — talk through style with ease | **£7.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`xlarge` pack) |
 
 ### Price sources (server code)
 
@@ -53,6 +53,40 @@ Copy into each product's **Subscription Localization** fields:
 **`com.dripn.stylist_unlimited.annual`**
 - Display name: `Your Best-Dressed Year`
 - Description: `Save 20% — plan ahead, stress less all year`
+
+### App Store Connect — DFY paste blocks (English U.K.)
+
+Copy into each **Non-Consumable** product's localization fields:
+
+**`com.dripn.dfy.lite`**
+- Display name: `Styling Sprint — Look Ready` (27 chars)
+- Description: `Confident looks for your next occasion` (38 chars)
+
+**`com.dripn.dfy.core`**
+- Display name: `Full Setup — Dress with Ease` (28 chars)
+- Description: `Know what to wear — less daily stress` (39 chars)
+
+### App Store Connect — voice paste blocks (English U.K.)
+
+Copy into each **Consumable** product's localization fields:
+
+**`com.dripn.voice.credits_10`**
+- Display name: `10 Spoken Style Replies` (23 chars)
+- Description: `Keep the conversation going hands-free` (39 chars)
+
+**`com.dripn.voice.credits_25`**
+- Display name: `25 Spoken Style Replies` (23 chars)
+- Description: `More voice chats — less typing, more ease` (41 chars)
+
+**`com.dripn.voice.credits_50`**
+- Display name: `50 Spoken Style Replies` (23 chars)
+- Description: `Hands-free styling help when you need it` (41 chars)
+
+**`com.dripn.voice.credits_100`**
+- Display name: `100 Spoken Style Replies` (24 chars)
+- Description: `Best value — talk through style with ease` (42 chars)
+
+> Full reference with quick-copy block: [`IAP_ASC_PASTE_BLOCKS_DFY_VOICE.md`](./IAP_ASC_PASTE_BLOCKS_DFY_VOICE.md)
 
 ### Important naming note
 
@@ -113,10 +147,10 @@ The server accepts these aliases but the app uses the 10 IDs above:
 
 | Product ID | Display name | Price (UK) |
 |------------|--------------|------------|
-| `com.dripn.dfy.lite` | Outfit-Based Setup | £19.99 |
-| `com.dripn.dfy.core` | Core Wardrobe Setup | £39.99 |
+| `com.dripn.dfy.lite` | Styling Sprint — Look Ready | £19.99 |
+| `com.dripn.dfy.core` | Full Setup — Dress with Ease | £39.99 |
 
-2. Add localized descriptions (24-hour / 24–48-hour delivery copy from `DFY_PRODUCTS`).
+2. Add localized descriptions from §1 DFY paste blocks (benefit-led; ≤30 / ≤45 chars).
 3. Add review screenshot from **DFYComparisonScreen** or **DFYStartScreen**.
 
 ### C. Create 4 consumable voice products
@@ -125,10 +159,12 @@ The server accepts these aliases but the app uses the 10 IDs above:
 
 | Product ID | Display name | Credits | Price (UK) |
 |------------|--------------|---------|------------|
-| `com.dripn.voice.credits_10` | 10 Voice Messages | 10 | £1.00 |
-| `com.dripn.voice.credits_25` | 25 Voice Messages | 25 | £2.00 |
-| `com.dripn.voice.credits_50` | 50 Voice Messages | 50 | £4.00 |
-| `com.dripn.voice.credits_100` | 100 Voice Messages | 100 | £7.00 |
+| `com.dripn.voice.credits_10` | 10 Spoken Style Replies | 10 | £1.00 |
+| `com.dripn.voice.credits_25` | 25 Spoken Style Replies | 25 | £2.00 |
+| `com.dripn.voice.credits_50` | 50 Spoken Style Replies | 50 | £4.00 |
+| `com.dripn.voice.credits_100` | 100 Spoken Style Replies | 100 | £7.00 |
+
+2. Add localized descriptions from §1 voice paste blocks (benefit-led; ≤30 / ≤45 chars).
 
 2. Add review screenshot from **AI Stylist → Voice mode** → Buy credits modal.
 

@@ -586,10 +586,10 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           <View style={styles.comparisonNote}>
             <Feather name="info" size={16} color="rgba(255,255,255,0.5)" />
             <ThemedText type="small" style={styles.comparisonNoteText}>
-              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Core Wardrobe</ThemedText>
-              {" "}is structural - I learn everything you own.{" "}
-              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Outfit-Based</ThemedText>
-              {" "}is tactical - solve this moment, once.
+              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Full Setup</ThemedText>
+              {" "}dresses you every day after.{" "}
+              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Styling Sprint</ThemedText>
+              {" "}gets you ready for right now.
             </ThemedText>
           </View>
         </View>
@@ -617,7 +617,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
                   <ThemedText type="body" style={styles.continueButtonText}>
                     {isPaidAddOn
                       ? (selectedTier === 'lite' ? 'Start Quick Setup' : 'Start Full Setup')
-                      : (selectedTier === 'lite' ? 'Purchase & Style' : 'Purchase & Build')}
+                      : (selectedTier === 'lite' ? 'Look Ready — Purchase' : 'Dress Better — Purchase')}
                   </ThemedText>
                   <Feather
                     name="arrow-right"
