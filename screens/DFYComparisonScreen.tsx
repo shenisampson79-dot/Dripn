@@ -61,6 +61,51 @@ const DFY_PRODUCT_IDS: Record<DFYTier, string> = {
   core: 'core_wardrobe',
 };
 
+type DfyCheckoutOutcome = 'success' | 'cancelled' | 'failed';
+
+function getBrowserReturnUrl(result: WebBrowser.WebBrowserResult): string {
+  return 'url' in result ? String((result as { url?: string }).url || '') : '';
+}
+
+function isDfyCancelUrl(url: string): boolean {
+  return url.includes('cancel') || url.includes('payment-cancelled');
+}
+
+function isDfySuccessUrl(url: string): boolean {
+  return url.includes('success') || url.includes('payment-success');
+}
+
+async function resolveDfyCheckoutOutcome(
+  result: WebBrowser.WebBrowserResult,
+  sessionId: string,
+  checkoutEmail: string,
+): Promise<DfyCheckoutOutcome> {
+  const returnUrl = getBrowserReturnUrl(result);
+
+  if (isDfyCancelUrl(returnUrl)) {
+    return 'cancelled';
+  }
+
+  const urlSessionId = returnUrl.match(/session_id=([^&]+)/)?.[1];
+  const verifySessionId = urlSessionId || sessionId;
+
+  try {
+    const verification = await apiService.verifyDFYPayment(verifySessionId, checkoutEmail);
+    if (verification.paid) {
+      return 'success';
+    }
+    if (isDfySuccessUrl(returnUrl)) {
+      return 'failed';
+    }
+  } catch {
+    if (isDfySuccessUrl(returnUrl)) {
+      return 'failed';
+    }
+  }
+
+  return 'cancelled';
+}
+
 export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenProps) {
   const route = useRoute();
   const routeParams = route.params as {
@@ -171,77 +216,66 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     startCheckout(trimmedEmail);
   };
 
+  const showDfyPaymentSuccess = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (selectedTier === 'lite') {
+      Alert.alert(
+        'Payment Successful!',
+        'Your Outfit-Based setup is confirmed. Want ongoing styling advice from your personal AI stylist?',
+        [
+          {
+            text: 'Get Personal Stylist',
+            onPress: () => navigation.navigate('Subscription' as any, { highlightPlan: 'personal_stylist' }),
+          },
+          {
+            text: 'Continue Setup',
+            onPress: () => navigation.navigate('DFYStylePlan'),
+            style: 'cancel',
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        'Payment Successful!',
+        `Your Core Wardrobe setup is confirmed. Let's get started!`,
+        [{ text: 'Continue', onPress: () => navigation.navigate('DFYUpload', { type: 'core' }) }]
+      );
+    }
+  };
+
   const startCheckout = async (checkoutEmail: string) => {
     setIsProcessing(true);
     
     try {
       const response = await apiService.createDFYCheckoutSession(checkoutEmail, selectedTier);
       
-      if (response.checkoutUrl) {
-        const result = await WebBrowser.openBrowserAsync(response.checkoutUrl);
-        
-        if (result.type === 'cancel') {
-          const url = (result as any).url || '';
-          if (url.includes('success') || url.includes('payment-success')) {
-            try {
-              const sessionId = url.match(/session_id=([^&]+)/)?.[1];
-              if (sessionId) {
-                await apiService.verifyDFYPayment(sessionId, checkoutEmail);
-                // Generate 30 outfits after successful payment verification
-                await apiService.generateDFYDelivery({ tier: selectedTier, stylistId: 'ruby' });
-              }
-            } catch (e) {
-              console.log('DFY verification will happen async', e);
-            }
-            refreshSubscriptionFromBackend().catch(() => {});
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            if (selectedTier === 'lite') {
-              Alert.alert(
-                'Payment Successful!',
-                'Your Outfit-Based setup is confirmed. Want ongoing styling advice from your personal AI stylist?',
-                [
-                  {
-                    text: 'Get Personal Stylist',
-                    onPress: () => navigation.navigate('Subscription' as any, { highlightPlan: 'personal_stylist' }),
-                  },
-                  {
-                    text: 'Continue Setup',
-                    onPress: () => navigation.navigate('DFYStylePlan'),
-                    style: 'cancel',
-                  },
-                ]
-              );
-            } else {
-              Alert.alert(
-                'Payment Successful!',
-                `Your Core Wardrobe setup is confirmed. Let's get started!`,
-                [{ text: 'Continue', onPress: () => navigation.navigate('DFYUpload', { type: 'core' }) }]
-              );
-            }
-          } else if (url.includes('cancel') || url.includes('payment-cancelled')) {
-            Alert.alert(
-              'Checkout Cancelled',
-              'You can complete your purchase at any time.',
-              [{ text: 'OK' }]
-            );
-          } else {
-            refreshSubscriptionFromBackend().catch(() => {});
-            Alert.alert(
-              'Checkout Complete',
-              'If your payment was successful, your DFY setup will be activated shortly.',
-              [{ text: 'OK' }]
-            );
-          }
-        } else if (result.type === 'dismiss') {
-          refreshSubscriptionFromBackend().catch(() => {});
-          Alert.alert(
-            'Checkout Complete',
-            'If your payment was successful, your DFY setup will be activated shortly.',
-            [{ text: 'OK' }]
-          );
-        }
-      } else {
+      if (!response.checkoutUrl || !response.sessionId) {
         throw new Error('No checkout URL received');
+      }
+
+      const result = await WebBrowser.openBrowserAsync(response.checkoutUrl);
+      const outcome = await resolveDfyCheckoutOutcome(result, response.sessionId, checkoutEmail);
+
+      if (outcome === 'success') {
+        try {
+          await apiService.generateDFYDelivery({ tier: selectedTier, stylistId: 'ruby' });
+        } catch (e) {
+          console.log('DFY delivery generation will continue async', e);
+        }
+        refreshSubscriptionFromBackend().catch(() => {});
+        showDfyPaymentSuccess();
+      } else if (outcome === 'failed') {
+        Alert.alert(
+          'Payment Not Completed',
+          'Your payment could not be verified. Please try again or contact support if you were charged.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert(
+          'Checkout Cancelled',
+          'You can complete your purchase at any time.',
+          [{ text: 'OK' }]
+        );
       }
     } catch (error: any) {
       console.error('DFY checkout error:', error);

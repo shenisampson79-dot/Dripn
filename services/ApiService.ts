@@ -1777,9 +1777,11 @@ class ApiService {
     }
     return this.request<{
       success: boolean;
-      verified: boolean;
-      packageType: string;
-      email: string;
+      paid: boolean;
+      productId?: string;
+      productName?: string;
+      isPreSignup?: boolean;
+      sessionId?: string;
     }>('/api/checkout/dfy/verify', {
       method: 'POST',
       headers,
