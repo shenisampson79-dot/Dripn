@@ -272,18 +272,22 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           },
         ]}
       >
-        <LinearGradient
-          colors={isLite 
-            ? [LUXURY_COLORS.teal, LUXURY_COLORS.emerald]
-            : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
-          }
-          style={[
-            styles.tierCardGradient,
-            isSelected && styles.tierCardSelected,
-          ]}
+        <Pressable
+          onPress={() => handleTierSelect(tier.id)}
+          accessibilityRole="button"
+          accessibilityState={{ selected: isSelected }}
         >
-          <View style={styles.tierHeader}>
-            <View style={styles.tierHeaderLeft}>
+          <LinearGradient
+            colors={isLite 
+              ? [LUXURY_COLORS.teal, LUXURY_COLORS.emerald]
+              : [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
+            }
+            style={[
+              styles.tierCardGradient,
+              isSelected && styles.tierCardSelected,
+            ]}
+          >
+            <View style={styles.tierHeader}>
               <View style={styles.tierNameRow}>
                 {isSelected ? (
                   <View style={styles.selectedBadge}>
@@ -302,63 +306,69 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
                   </ThemedText>
                 </View>
               </View>
+
+              <View style={styles.priceContainer}>
+                <ThemedText
+                  style={styles.tierPrice}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
+                  {tier.price}
+                </ThemedText>
+                <ThemedText type="small" style={styles.priceSubtext}>one-time</ThemedText>
+              </View>
+
               <ThemedText style={styles.tierTagline}>{tier.tagline}</ThemedText>
             </View>
-            <View style={styles.priceContainer}>
-              <ThemedText type="h1" style={styles.tierPrice} numberOfLines={1}>
-                {tier.price}
-              </ThemedText>
-              <ThemedText type="small" style={styles.priceSubtext}>one-time</ThemedText>
+
+            <ThemedText style={styles.tierDescription}>{tier.description}</ThemedText>
+
+            <View style={styles.featuresContainer}>
+              {tier.features.map((feature, index) => (
+                <View key={index} style={styles.featureRow}>
+                  <Feather
+                    name={feature.included ? "check-circle" : "x-circle"}
+                    size={16}
+                    color={feature.included ? "#FFFFFF" : "rgba(255,255,255,0.4)"}
+                  />
+                  <ThemedText
+                    type="small"
+                    style={[
+                      styles.featureText,
+                      !feature.included && styles.featureTextDisabled,
+                    ]}
+                  >
+                    {feature.text}
+                  </ThemedText>
+                </View>
+              ))}
             </View>
-          </View>
 
-          <ThemedText style={styles.tierDescription}>{tier.description}</ThemedText>
-
-          <View style={styles.featuresContainer}>
-            {tier.features.map((feature, index) => (
-              <View key={index} style={styles.featureRow}>
-                <Feather
-                  name={feature.included ? "check-circle" : "x-circle"}
-                  size={16}
-                  color={feature.included ? "#FFFFFF" : "rgba(255,255,255,0.4)"}
-                />
-                <ThemedText
-                  type="small"
-                  style={[
-                    styles.featureText,
-                    !feature.included && styles.featureTextDisabled,
-                  ]}
-                >
-                  {feature.text}
-                </ThemedText>
-              </View>
-            ))}
-          </View>
-
-          <Pressable
-            onPress={() => handleTierSelect(tier.id)}
-            style={[
-              styles.selectButton,
-              isSelected && styles.selectButtonSelected,
-              { backgroundColor: isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.2)' }
-            ]}
-          >
-            <Feather 
-              name={isSelected ? "check-circle" : "circle"} 
-              size={18} 
-              color={isSelected ? (isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold) : '#FFFFFF'} 
-            />
-            <ThemedText 
-              type="body" 
+            <View
               style={[
-                styles.selectButtonText,
-                { color: isSelected ? (isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold) : '#FFFFFF' }
+                styles.selectButton,
+                isSelected && styles.selectButtonSelected,
+                { backgroundColor: isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.2)' }
               ]}
             >
-              {isSelected ? 'Selected' : 'Select this option'}
-            </ThemedText>
-          </Pressable>
-        </LinearGradient>
+              <Feather 
+                name={isSelected ? "check-circle" : "circle"} 
+                size={18} 
+                color={isSelected ? (isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold) : '#FFFFFF'} 
+              />
+              <ThemedText 
+                type="body" 
+                style={[
+                  styles.selectButtonText,
+                  { color: isSelected ? (isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold) : '#FFFFFF' }
+                ]}
+              >
+                {isSelected ? 'Selected' : 'Select this option'}
+              </ThemedText>
+            </View>
+          </LinearGradient>
+        </Pressable>
       </Animated.View>
     );
   };
@@ -595,15 +605,8 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
   },
   tierHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: Spacing.md,
-    gap: Spacing.md,
-  },
-  tierHeaderLeft: {
-    flex: 1,
-    minWidth: 0,
+    gap: Spacing.xs,
   },
   tierNameRow: {
     flexDirection: 'row',
@@ -637,12 +640,14 @@ const styles = StyleSheet.create({
   },
   priceContainer: {
     alignItems: 'flex-end',
-    flexShrink: 0,
-    minWidth: 72,
+    alignSelf: 'flex-end',
+    maxWidth: '100%',
   },
   tierPrice: {
     color: '#FFFFFF',
-    fontSize: 26,
+    fontSize: 24,
+    fontWeight: '700',
+    flexShrink: 1,
   },
   priceSubtext: {
     color: 'rgba(255,255,255,0.6)',
