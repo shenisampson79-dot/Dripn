@@ -51,7 +51,7 @@ export default function DFYExpiryScreen({ navigation }: DFYExpiryScreenProps) {
   const loadExpiryData = async () => {
     if (!user?.id) return;
     
-    const status = await dfyService.checkDFYAccess(user.id);
+    const status = await dfyService.checkDFYAccess(user.id, user.subscriptionTier);
     setAccessStatus(status);
     
     if (status.tier) {

@@ -34,6 +34,21 @@ export function getDfyBenefitSubtitle(benefit: DfySubscriptionBenefit): string {
   }
 }
 
+/** Hero copy when the user already has an active styling window. */
+export function getDfyActiveWindowSubtitle(tier: DFYTier): string {
+  if (tier === 'lite') {
+    return "You're in your Quick Start styling window — pick up where you left off and keep your looks coming.";
+  }
+  return "You're in your Full Setup styling window — pick up where you left off and keep digitising your wardrobe.";
+}
+
+export function formatDfyDaysRemaining(daysRemaining: number, windowDays: number): string {
+  if (windowDays > 0) {
+    return `${daysRemaining} of ${windowDays} day${windowDays === 1 ? '' : 's'} left`;
+  }
+  return `${daysRemaining} day${daysRemaining === 1 ? '' : 's'} left`;
+}
+
 /** Active styling window for a subscriber's included activation. */
 export function getIncludedStylingWindowDays(
   subscriptionTier: string | null | undefined,

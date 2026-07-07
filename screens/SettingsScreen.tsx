@@ -195,7 +195,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const loadDFYAccess = async () => {
     if (!user?.id) return;
     try {
-      const status = await dfyService.getDFYAccessStatus(user.id);
+      const status = await dfyService.getDFYAccessStatus(user.id, user.subscriptionTier);
       setDfyAccess(status);
     } catch (error) {
       console.error('Error loading DFY access:', error);

@@ -332,11 +332,81 @@ class DFYService {
     }
   }
 
-  async getDFYAccessStatus(userId: string): Promise<DFYAccessStatus> {
-    return this.checkDFYAccess(userId);
+  async getDFYAccessStatus(
+    userId: string,
+    subscriptionTier?: string | null,
+  ): Promise<DFYAccessStatus> {
+    return this.checkDFYAccess(userId, subscriptionTier);
   }
 
-  async checkDFYAccess(userId: string): Promise<DFYAccessStatus> {
+  private inferWindowDaysFromDates(
+    startDate: string,
+    expiryDate: string,
+    tier: DFYTier,
+  ): number {
+    const start = new Date(startDate);
+    const expiry = new Date(expiryDate);
+    const days = Math.round((expiry.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return days > 0 ? days : (tier === 'lite' ? 14 : 30);
+  }
+
+  private async maybeMigrateIncludedWindow(
+    userId: string,
+    access: { tier: DFYTier; startDate: string; expiryDate: string; windowDays?: number },
+    subscriptionTier?: string | null,
+  ): Promise<{ tier: DFYTier; startDate: string; expiryDate: string; windowDays: number }> {
+    const included = await this.getIncludedActivation(userId);
+    if (!included || included.source !== 'subscription_included' || !access.startDate) {
+      const windowDays =
+        access.windowDays ?? this.inferWindowDaysFromDates(access.startDate, access.expiryDate, access.tier);
+      return { ...access, windowDays };
+    }
+
+    const expectedWindowDays = getIncludedStylingWindowDays(subscriptionTier, access.tier);
+    const currentWindowDays =
+      access.windowDays ?? this.inferWindowDaysFromDates(access.startDate, access.expiryDate, access.tier);
+
+    if (currentWindowDays >= expectedWindowDays) {
+      return { ...access, windowDays: currentWindowDays };
+    }
+
+    const start = new Date(access.startDate);
+    const newExpiryDate = new Date(
+      start.getTime() + expectedWindowDays * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const migrated = {
+      tier: access.tier,
+      startDate: access.startDate,
+      expiryDate: newExpiryDate,
+      windowDays: expectedWindowDays,
+    };
+
+    await AsyncStorage.setItem(`${DFY_ACCESS_KEY}_${userId}`, JSON.stringify(migrated));
+
+    const delivery = await this.getDFYDelivery(userId);
+    if (delivery && delivery.tier === access.tier) {
+      if (delivery.tier === 'lite') {
+        await this.saveDFYDelivery({
+          ...delivery,
+          expiryDate: newExpiryDate,
+          totalDays: expectedWindowDays,
+        } as DFYLiteDelivery);
+      } else {
+        await this.saveDFYDelivery({
+          ...delivery,
+          expiryDate: newExpiryDate,
+          totalDays: expectedWindowDays,
+        } as DFYCoreDelivery);
+      }
+    }
+
+    return migrated;
+  }
+
+  async checkDFYAccess(
+    userId: string,
+    subscriptionTier?: string | null,
+  ): Promise<DFYAccessStatus> {
     try {
       const accessData = await AsyncStorage.getItem(`${DFY_ACCESS_KEY}_${userId}`);
       if (!accessData) {
@@ -352,12 +422,12 @@ class DFYService {
         };
       }
 
-      const access = JSON.parse(accessData);
+      const storedAccess = JSON.parse(accessData);
+      const access = await this.maybeMigrateIncludedWindow(userId, storedAccess, subscriptionTier);
       const now = new Date();
       const expiry = new Date(access.expiryDate);
       const daysRemaining = Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-      const windowDays: number =
-        access.windowDays ?? (access.tier === 'lite' ? 14 : 30);
+      const windowDays: number = access.windowDays;
 
       let nudgeType: 'day12' | 'day25' | 'expired' | null = null;
       let showNudge = false;
@@ -448,7 +518,7 @@ class DFYService {
       };
     }
 
-    const active = await this.checkDFYAccess(userId);
+    const active = await this.checkDFYAccess(userId, subscriptionTier);
     if (active.hasAccess) {
       return {
         allowed: false,

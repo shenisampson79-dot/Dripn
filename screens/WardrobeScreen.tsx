@@ -248,7 +248,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
 
       const loadDFYAccess = async () => {
         if (user?.id) {
-          const access = await dfyService.getDFYAccessStatus(user.id);
+          const access = await dfyService.getDFYAccessStatus(user.id, user.subscriptionTier);
           setDfyAccess(access);
         }
       };
@@ -302,7 +302,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     // Always refresh DFY access status right before opening the modal
     if (user?.id) {
       try {
-        const access = await dfyService.getDFYAccessStatus(user.id);
+        const access = await dfyService.getDFYAccessStatus(user.id, user.subscriptionTier);
         setDfyAccess(access);
       } catch (_) {}
     }

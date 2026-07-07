@@ -24,6 +24,8 @@ import {
   getDfyBenefitForSubscription,
   getDfyBenefitTitle,
   getDfyBenefitSubtitle,
+  getDfyActiveWindowSubtitle,
+  formatDfyDaysRemaining,
   getDfyPathDescription,
   getDfyPathLabel,
   subscriptionTierDisplayName,
@@ -68,7 +70,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
 
   const refreshState = useCallback(async () => {
     if (!user?.id) return;
-    const access = await dfyService.checkDFYAccess(user.id);
+    const access = await dfyService.checkDFYAccess(user.id, subscriptionTier);
     setAccessStatus(access);
     const eligibility = await dfyService.canUseIncludedActivation(user.id, subscriptionTier);
     setActivationBlockedReason(eligibility.allowed ? null : eligibility.reason ?? null);
@@ -234,9 +236,11 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           {benefit === 'none' ? 'Unlock your stylist setup' : `Included with ${subscriptionTierDisplayName(subscriptionTier)}`}
         </ThemedText>
         <ThemedText type="body" style={[styles.heroSubtitle, { color: theme.tabIconDefault }]}>
-          {benefit === 'none'
-            ? 'Personal Stylist comes with a Styling Sprint. Stylist Unlimited includes a full wardrobe setup — quick win or the whole closet.'
-            : getDfyBenefitSubtitle(benefit)}
+          {accessStatus?.hasAccess && accessStatus.tier
+            ? getDfyActiveWindowSubtitle(accessStatus.tier)
+            : benefit === 'none'
+              ? 'Personal Stylist comes with a Styling Sprint. Stylist Unlimited includes a full wardrobe setup — quick win or the whole closet.'
+              : getDfyBenefitSubtitle(benefit)}
         </ThemedText>
       </View>
 
@@ -248,8 +252,8 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
               Active styling window
             </ThemedText>
             <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-              {accessStatus.daysRemaining} day{accessStatus.daysRemaining === 1 ? '' : 's'} left ·{' '}
-              {accessStatus.tier === 'lite' ? 'Quick Start' : 'Full Setup'}
+              {formatDfyDaysRemaining(accessStatus.daysRemaining, accessStatus.windowDays)} ·{' '}
+              {getDfyPathLabel(accessStatus.tier)}
             </ThemedText>
           </View>
           <Button onPress={continueActivePlan} style={styles.continueButton}>

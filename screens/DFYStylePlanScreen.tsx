@@ -139,7 +139,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
     }
 
     if (existingDelivery?.tier !== 'lite') {
-      const status = await dfyService.checkDFYAccess(user.id);
+      const status = await dfyService.checkDFYAccess(user.id, user.subscriptionTier);
       setAccessStatus(status);
       return;
     }
@@ -180,7 +180,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
       await dfyService.saveDFYDelivery(hydrated);
     }
 
-    const status = await dfyService.checkDFYAccess(user.id);
+    const status = await dfyService.checkDFYAccess(user.id, user.subscriptionTier);
     setAccessStatus(status);
   };
 
