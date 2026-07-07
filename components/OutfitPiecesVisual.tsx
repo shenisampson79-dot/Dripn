@@ -99,7 +99,9 @@ function getPieceSlot(piece: OutfitPieceVisual, item?: WardrobeItem | null): Lay
   if (['bottom', 'trousers', 'pants', 'jeans', 'skirt'].includes(role) || ['bottoms', 'activewear_bottoms'].includes(category)) {
     return 'bottom';
   }
-  if (['shoes', 'footwear', 'trainers', 'boots', 'sneakers'].includes(role) || category === 'shoes') return 'shoes';
+  if (['shoes', 'footwear', 'trainers', 'boots', 'sneakers'].includes(role) || ['shoes', 'footwear'].includes(category)) {
+    return 'shoes';
+  }
   if (['accessory', 'accessories', 'bag'].includes(role) || ['bags', 'accessories'].includes(category)) return 'accessory';
   if (['top', 'shirt', 'blouse', 'sweater'].includes(role) || ['tops', 'activewear_tops', 'formal'].includes(category)) {
     return 'top';

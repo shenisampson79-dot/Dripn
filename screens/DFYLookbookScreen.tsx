@@ -18,6 +18,7 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/ThemedText";
+import { DFYOutfitVisual } from "@/components/outfit/DFYOutfitVisual";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
@@ -420,59 +421,15 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     ? STYLIST_COLORS[delivery.outfits[0].stylistId]
     : STYLIST_COLORS.ruby;
 
-  const renderOutfitVisual = (outfit: DFYOutfit, height: number = 220) => {
-    const colors = outfit.stylistId ? STYLIST_COLORS[outfit.stylistId] : STYLIST_COLORS.ruby;
-    const orderedItems = sortOutfitItemsByVisualOrder(outfit.items || []);
-    const itemsWithImages = orderedItems
-      .map((item) => ({
-        item,
-        uri: resolveDFYItemImageUri(item as RawDFYOutfitItem),
-      }))
-      .filter((entry): entry is { item: typeof outfit.items[0]; uri: string } => Boolean(entry.uri));
-
-    // Show the user's actual wardrobe pieces — not AI-generated flat lays
-    if (itemsWithImages.length >= 2) {
-      const photos = itemsWithImages.slice(0, 4);
-      const halfH = height / 2;
-      const halfW = CARD_WIDTH / 2;
-      return (
-        <View style={{ width: '100%', height, flexDirection: 'row', flexWrap: 'wrap' }}>
-          {photos.map(({ item, uri }) => (
-            <Image
-              key={item.id}
-              source={{ uri }}
-              style={{ width: halfW, height: photos.length <= 2 ? height : halfH }}
-              contentFit="contain"
-            />
-          ))}
-        </View>
-      );
-    }
-
-    if (itemsWithImages.length === 1) {
-      return (
-        <Image
-          source={{ uri: itemsWithImages[0].uri }}
-          style={{ width: '100%', height }}
-          contentFit="contain"
-        />
-      );
-    }
-
-    return (
-      <LinearGradient
-        colors={[colors.gradient[0] + '50', colors.gradient[1] + '30', colors.gradient[0] + '50']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ width: '100%', height, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.lg }}
-      >
-        <Feather name="image" size={28} color={colors.accent} />
-        <ThemedText type="caption" style={{ color: colors.accent, marginTop: Spacing.sm, opacity: 0.9, textAlign: 'center' }}>
-          {outfit.items?.length ? 'Wardrobe photos loading…' : 'Outfit pieces coming soon'}
-        </ThemedText>
-      </LinearGradient>
-    );
-  };
+  const renderOutfitVisual = (outfit: DFYOutfit, height: number = 220) => (
+    <DFYOutfitVisual
+      outfit={outfit}
+      wardrobeItems={wardrobeItems}
+      canvasWidth={CARD_WIDTH}
+      minHeight={height}
+      emptyMessage={outfit.items?.length ? 'Wardrobe photos loading…' : 'Outfit pieces coming soon'}
+    />
+  );
 
   const renderOutfitCard = useCallback(({ item, index }: { item: DFYOutfit; index: number }) => {
     const isCurrentDay = item.dayNumber === currentDay;
@@ -633,7 +590,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
             renderItem={() => (
               <>
                 {/* Main outfit visual */}
-                <View style={[styles.outfitDetailImage, { overflow: 'hidden', borderRadius: BorderRadius.lg, backgroundColor: isDark ? '#1A1A2E' : '#F8F4F0' }]}>
+                <View style={[styles.outfitDetailImage, { overflow: 'hidden', borderRadius: BorderRadius.lg, backgroundColor: '#FFFFFF' }]}>
                   {renderOutfitVisual(selectedOutfit, 300)}
                 </View>
 
@@ -950,6 +907,7 @@ const styles = StyleSheet.create({
     width: '100%',
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#FFFFFF',
   },
   imageBottomFade: {
     position: 'absolute',

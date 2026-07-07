@@ -1,7 +1,13 @@
+import type { OutfitPieceVisual } from '@/components/OutfitPiecesVisual';
 import { WardrobeItem } from '@/contexts/WardrobeContext';
 import { DFYLiteDelivery, DFYOccasion, DFYOutfit, DFYOutfitItem, StylistId } from '@/services/DFYService';
 import { DailyForecast, DailyForecastDay } from '@/services/WeatherService';
-import { normalizeRemoteApiUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
+import {
+  buildWardrobeImageProxyUrl,
+  enrichWardrobeItemForOutfitVisual,
+  normalizeRemoteApiUrl,
+  resolveWardrobeImageUri,
+} from '@/utils/wardrobeImage';
 
 export type RawDFYOutfitItem = DFYOutfitItem & {
   imageUrl?: string | null;
@@ -25,23 +31,69 @@ export function resolveDFYItemImageUri(
 
   if (wardrobeItem) {
     const uri = resolveWardrobeImageUri(wardrobeItem);
-    return uri || undefined;
+    if (uri) return uri;
+  }
+
+  if (item.id) {
+    return buildWardrobeImageProxyUrl(item.id);
   }
 
   return undefined;
+}
+
+export function findWardrobeItemForDFYOutfitItem(
+  item: DFYOutfitItem,
+  wardrobeItems: WardrobeItem[],
+): WardrobeItem | undefined {
+  const byId = wardrobeItems.find((w) => String(w.id) === String(item.id));
+  if (byId) return byId;
+
+  const norm = String(item.name || '').toLowerCase().trim();
+  if (!norm) return undefined;
+
+  return (
+    wardrobeItems.find((w) => w.name?.toLowerCase().trim() === norm)
+    || wardrobeItems.find((w) => norm.includes(w.name?.toLowerCase().trim() || ''))
+    || wardrobeItems.find((w) => (w.name?.toLowerCase() || '').includes(norm.slice(0, 24)))
+  );
+}
+
+export function dfyOutfitItemsToVisualPieces(
+  items: DFYOutfitItem[],
+  wardrobeItems: WardrobeItem[],
+): OutfitPieceVisual[] {
+  return items.map((item) => {
+    const wardrobe = findWardrobeItemForDFYOutfitItem(item, wardrobeItems);
+    const processedUri = wardrobe
+      ? enrichWardrobeItemForOutfitVisual(wardrobe).imageUri
+      : resolveDFYItemImageUri(item as RawDFYOutfitItem, wardrobe);
+    const serverUri =
+      normalizeRemoteApiUrl(item.processedImageUrl)
+      || normalizeRemoteApiUrl(item.imageUrl)
+      || item.imageUri;
+    const imageUrl = processedUri || serverUri || (item.id ? buildWardrobeImageProxyUrl(item.id) : undefined);
+
+    return {
+      wardrobeItemId: wardrobe ? wardrobe.id : item.id,
+      name: item.name,
+      category: item.category || wardrobe?.category,
+      imageUrl,
+    };
+  });
 }
 
 export function enrichOutfitWithWardrobeImages(
   outfit: DFYOutfit,
   wardrobeItems: WardrobeItem[],
 ): DFYOutfit {
-  const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
-
   return {
     ...outfit,
     items: (outfit.items || []).map((item) => {
-      const wardrobe = byId.get(String(item.id));
-      const imageUri = resolveDFYItemImageUri(item as RawDFYOutfitItem, wardrobe);
+      const wardrobe = findWardrobeItemForDFYOutfitItem(item, wardrobeItems);
+      let imageUri = resolveDFYItemImageUri(item as RawDFYOutfitItem, wardrobe);
+      if (!imageUri && item.id) {
+        imageUri = buildWardrobeImageProxyUrl(item.id);
+      }
       return imageUri ? { ...item, imageUri } : item;
     }),
   };

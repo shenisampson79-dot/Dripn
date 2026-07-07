@@ -10,13 +10,13 @@ import {
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
+import { DFYOutfitVisual } from "@/components/outfit/DFYOutfitVisual";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,13 +31,10 @@ import {
 import { apiService } from "@/services/ApiService";
 import {
   enrichDeliveryWithWardrobeImages,
-  resolveDFYItemImageUri,
-  RawDFYOutfitItem,
   fillEmptyLookbookSlots,
   countFilledLookbookDays,
   ensureLookbookOutfitsHaveFootwear,
 } from "@/utils/dfyOutfitImages";
-import { sortOutfitItemsByVisualOrder } from "@/utils/outfitItemOrder";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
@@ -277,62 +274,14 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
     }
   };
 
-  const renderOutfitVisual = (outfit: DFYOutfit, height: number = 300) => {
-    const orderedItems = sortOutfitItemsByVisualOrder(outfit.items || []);
-    const itemsWithImages = orderedItems
-      .map((item) => ({
-        item,
-        uri: resolveDFYItemImageUri(item as RawDFYOutfitItem),
-      }))
-      .filter((entry): entry is { item: typeof outfit.items[0]; uri: string } => Boolean(entry.uri));
-
-    if (itemsWithImages.length >= 2) {
-      const photos = itemsWithImages.slice(0, 4);
-      const halfH = height / 2;
-      const halfW = CARD_WIDTH / 2;
-      return (
-        <View style={{ width: '100%', height, flexDirection: 'row', flexWrap: 'wrap' }}>
-          {photos.map(({ item, uri }) => (
-            <Image
-              key={item.id}
-              source={{ uri }}
-              style={{ width: halfW, height: photos.length <= 2 ? height : halfH }}
-              contentFit="contain"
-            />
-          ))}
-        </View>
-      );
-    }
-
-    if (itemsWithImages.length === 1) {
-      return (
-        <Image
-          source={{ uri: itemsWithImages[0].uri }}
-          style={{ width: '100%', height }}
-          contentFit="contain"
-        />
-      );
-    }
-
-    if (outfit.imageUri) {
-      return (
-        <Image
-          source={{ uri: outfit.imageUri }}
-          style={{ width: '100%', height }}
-          contentFit="contain"
-        />
-      );
-    }
-
-    return (
-      <View style={[styles.outfitImagePlaceholder, { height }]}>
-        <Feather name="image" size={48} color="rgba(255,255,255,0.3)" />
-        <ThemedText style={styles.placeholderText}>
-          {outfit.items?.length ? 'Wardrobe photos loading…' : 'Outfit photo will appear here'}
-        </ThemedText>
-      </View>
-    );
-  };
+  const renderOutfitVisual = (outfit: DFYOutfit) => (
+    <DFYOutfitVisual
+      outfit={outfit}
+      wardrobeItems={wardrobeItems}
+      canvasWidth={CARD_WIDTH}
+      minHeight={300}
+    />
+  );
 
   if (!delivery || !currentOutfit) {
     return (
@@ -399,7 +348,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
 
         <View style={styles.content}>
           <View style={styles.outfitCard}>
-            {renderOutfitVisual(currentOutfit, 300)}
+            {renderOutfitVisual(currentOutfit)}
           </View>
 
           <View style={styles.outfitInfo}>
@@ -722,19 +671,10 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing["2xl"],
   },
   outfitCard: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#FFFFFF',
     borderRadius: BorderRadius.xl,
     overflow: 'hidden',
     marginBottom: Spacing.lg,
-  },
-  outfitImagePlaceholder: {
-    height: 300,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.md,
-  },
-  placeholderText: {
-    color: 'rgba(255,255,255,0.4)',
   },
   outfitInfo: {
     marginBottom: Spacing.lg,
