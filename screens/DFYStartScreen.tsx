@@ -76,9 +76,11 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   const showPaidAddOn = activationBlockCode === 'included_used' && benefit !== 'none';
 
   useEffect(() => {
-    currencyService.initialize().then(() => {
+    const initCurrency = async () => {
+      await currencyService.initialize();
       setDfyPrices(currencyService.getDFYPrices());
-    }).catch(() => {});
+    };
+    initCurrency().catch(() => {});
   }, []);
 
   const refreshState = useCallback(async () => {

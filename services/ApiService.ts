@@ -1774,10 +1774,11 @@ class ApiService {
         id: string;
         name: string;
         price: string;
-        priceAmount: number;
+        priceAmount?: number;
+        amount?: number;
         currency: string;
-        features: string[];
-        type: 'lite' | 'core';
+        features?: string[];
+        type?: 'lite' | 'core' | 'one_time';
       }>;
     }>('/api/checkout/dfy/products');
   }
@@ -1817,16 +1818,27 @@ class ApiService {
       plans: Array<{
         id: string;
         name: string;
+        tier?: string;
+        legacy?: boolean;
         monthlyPrice: string;
         monthlyPriceAmount: number;
         yearlyPrice: string;
         yearlyPriceAmount: number;
-        yearlySavings: string;
+        yearlySavings?: string;
+        yearlySaving?: string;
         currency: string;
         features: string[];
         popular?: boolean;
+        recommended?: boolean;
       }>;
     }>('/api/subscription/plans');
+  }
+
+  async getDfyComparison() {
+    return this.request<{
+      liteCard?: { price?: string };
+      coreCard?: { price?: string };
+    }>('/api/dfy/comparison');
   }
 
   async getSubscriptionStatus() {
