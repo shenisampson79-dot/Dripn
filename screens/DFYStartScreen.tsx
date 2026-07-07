@@ -81,9 +81,16 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
     }, [refreshState]),
   );
 
-  const continueActivePlan = () => {
-    if (!accessStatus?.tier) return;
-    navigateAfterDfyActivation(navigation, accessStatus.tier);
+  const continueActivePlan = async () => {
+    if (!accessStatus?.tier || !user?.id) return;
+    let initialDay: number | undefined;
+    if (accessStatus.tier === 'lite') {
+      const delivery = await dfyService.getDFYDelivery(user.id);
+      if (delivery && delivery.tier === 'lite' && delivery.currentDay > 0) {
+        initialDay = delivery.currentDay;
+      }
+    }
+    navigateAfterDfyActivation(navigation, accessStatus.tier, { initialDay });
   };
 
   const startIncludedSetup = async (tier: DFYTier) => {

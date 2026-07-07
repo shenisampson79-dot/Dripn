@@ -8,7 +8,7 @@ import {
   Dimensions,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useRoute } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -35,6 +35,11 @@ import {
   countFilledLookbookDays,
   ensureLookbookOutfitsHaveFootwear,
 } from "@/utils/dfyOutfitImages";
+import {
+  navigateToCoreFeatureUpgrade,
+  outfitIndexForDay,
+  type DfyStylePlanParams,
+} from "@/utils/dfyNavigation";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
@@ -59,6 +64,8 @@ type DFYStylePlanScreenProps = {
 };
 
 export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenProps) {
+  const route = useRoute();
+  const routeParams = route.params as DfyStylePlanParams | undefined;
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
   const { items: wardrobeItems } = useWardrobe();
@@ -160,9 +167,16 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
     }
 
     const hydrated = hydrateDelivery(liteDelivery);
-    setDelivery(hydrated);
+    const resumeDay = routeParams?.initialDay ?? hydrated.currentDay ?? 1;
+    const resumeIndex = outfitIndexForDay(hydrated.outfits.length, resumeDay);
+    const withCurrentDay =
+      resumeDay !== hydrated.currentDay ? { ...hydrated, currentDay: resumeDay } : hydrated;
+    setCurrentOutfitIndex(resumeIndex);
+    setDelivery(withCurrentDay);
 
-    if (JSON.stringify(hydrated.outfits) !== beforeJson) {
+    if (JSON.stringify(withCurrentDay.outfits) !== beforeJson || resumeDay !== hydrated.currentDay) {
+      await dfyService.saveDFYDelivery(withCurrentDay);
+    } else if (JSON.stringify(hydrated.outfits) !== beforeJson) {
       await dfyService.saveDFYDelivery(hydrated);
     }
 
@@ -265,14 +279,29 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
     setShowUpgradeModal(true);
   };
 
+  const persistCurrentDay = (index: number) => {
+    if (!delivery || !user?.id) return;
+    const dayNumber = delivery.outfits[index]?.dayNumber ?? index + 1;
+    if (delivery.currentDay === dayNumber) return;
+    const updated = { ...delivery, currentDay: dayNumber };
+    setDelivery(updated);
+    void dfyService.saveDFYDelivery(updated);
+  };
+
   const navigateOutfit = (direction: 'prev' | 'next') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (direction === 'prev' && currentOutfitIndex > 0) {
-      setCurrentOutfitIndex(prev => prev - 1);
+      const nextIndex = currentOutfitIndex - 1;
+      setCurrentOutfitIndex(nextIndex);
+      persistCurrentDay(nextIndex);
     } else if (direction === 'next' && delivery && currentOutfitIndex < delivery.outfits.length - 1) {
-      setCurrentOutfitIndex(prev => prev + 1);
+      const nextIndex = currentOutfitIndex + 1;
+      setCurrentOutfitIndex(nextIndex);
+      persistCurrentDay(nextIndex);
     }
   };
+
+  const needsCoreUpgrade = accessStatus?.hasAccess && accessStatus.tier === 'lite';
 
   const renderOutfitVisual = (outfit: DFYOutfit) => (
     <DFYOutfitVisual
@@ -592,12 +621,12 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
               <Pressable 
                 onPress={() => {
                   setShowUpgradeModal(false);
-                  navigation.navigate('DFYStart');
+                  navigateToCoreFeatureUpgrade(navigation, accessStatus);
                 }}
                 style={styles.upgradeButton}
               >
                 <ThemedText type="body" style={styles.upgradeButtonText}>
-                  Start Full Setup
+                  {needsCoreUpgrade ? 'Upgrade to Full Setup' : 'Start Full Setup'}
                 </ThemedText>
               </Pressable>
               <Pressable 

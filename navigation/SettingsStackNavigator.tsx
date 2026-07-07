@@ -44,7 +44,7 @@ export type SettingsStackParamList = {
   CommunityVoting: { session: any };
   DFYComparison: { selectedTier?: 'lite' | 'core'; autoCheckout?: boolean; paidAddOn?: boolean };
   DFYStart: undefined;
-  DFYStylePlan: { tier?: string };
+  DFYStylePlan: { tier?: string; initialDay?: number } | undefined;
   DFYUpload: { type: "outfit" | "core" };
   AnalyticsDashboard: undefined;
 };

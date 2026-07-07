@@ -79,7 +79,7 @@ export type ProfileStackParamList = {
   ColdOpen: undefined;
   DFYComparison: { selectedTier?: 'lite' | 'core'; autoCheckout?: boolean; paidAddOn?: boolean } | undefined;
   DFYStart: undefined;
-  DFYStylePlan: undefined;
+  DFYStylePlan: { initialDay?: number } | undefined;
   DFYExpiry: undefined;
   DFYUpload: { type: "outfit" | "core" };
   AskStylist: undefined;
