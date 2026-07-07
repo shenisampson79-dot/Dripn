@@ -9,12 +9,12 @@ Complete setup guide for all **10** in-app purchase products used by Dripn (Styl
 
 ## 1. The 10 Products Table
 
-| # | Product ID | Type | Display Name Suggestion | UK Price Target (GBP) | Subscription Group | RevenueCat Entitlement | App Feature |
-|---|------------|------|-------------------------|----------------------|--------------------|------------------------|-------------|
-| 1 | `com.dripn.personal_stylist.monthly` | Auto-renewable subscription | Personal Stylist (Monthly) | **£9.99/mo** | `dripn_subscriptions` | `personal_stylist` | **SubscriptionScreen** — entry subscription tier (unlimited stylist decisions, wardrobe-aware advice) |
-| 2 | `com.dripn.personal_stylist.annual` | Auto-renewable subscription | Personal Stylist (Annual) | **£95.99/yr** (~20% off monthly) | `dripn_subscriptions` | `personal_stylist` | **SubscriptionScreen** — same tier, annual billing |
-| 3 | `com.dripn.stylist_unlimited.monthly` | Auto-renewable subscription | Stylist Unlimited (Monthly) | **£19.99/mo** | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — top tier (outfit calendar, unlimited wardrobe, priority processing) |
-| 4 | `com.dripn.stylist_unlimited.annual` | Auto-renewable subscription | Stylist Unlimited (Annual) | **£191.99/yr** (~20% off monthly) | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — same tier, annual billing |
+| # | Product ID | Type | Display Name (UK, ≤30) | Description (UK, ≤45) | UK Price Target (GBP) | Subscription Group | RevenueCat Entitlement | App Feature |
+|---|------------|------|------------------------|----------------------|----------------------|--------------------|------------------------|-------------|
+| 1 | `com.dripn.personal_stylist.monthly` | Auto-renewable subscription | Look Better Every Day | Feel confident — less outfit stress | **£9.99/mo** | `dripn_subscriptions` | `personal_stylist` | **SubscriptionScreen** — daily styling confidence, faster decisions |
+| 2 | `com.dripn.personal_stylist.annual` | Auto-renewable subscription | Year of Style Confidence | Save 20% — confident looks all year long | **£95.99/yr** (~20% off monthly) | `dripn_subscriptions` | `personal_stylist` | **SubscriptionScreen** — same tier, annual billing |
+| 3 | `com.dripn.stylist_unlimited.monthly` | Auto-renewable subscription | Plan Ahead, Dress Better | Less fatigue — always know what to wear | **£19.99/mo** | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — life planning, less decision fatigue |
+| 4 | `com.dripn.stylist_unlimited.annual` | Auto-renewable subscription | Your Best-Dressed Year | Save 20% — plan ahead, stress less all year | **£191.99/yr** (~20% off monthly) | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — same tier, annual billing |
 | 5 | `com.dripn.dfy.lite` | Non-consumable | Outfit-Based Setup (DFY Lite) | **£19.99** one-time | — | `dfy_lite` | **DFYComparisonScreen** / **DFYStartScreen** — Quick Start / occasion outfit setup |
 | 6 | `com.dripn.dfy.core` | Non-consumable | Core Wardrobe Setup (DFY Core) | **£39.99** one-time | — | `dfy_core` | **DFYComparisonScreen** / **DFYStartScreen** — full wardrobe foundation (up to 30 items) |
 | 7 | `com.dripn.voice.credits_10` | Consumable | 10 Voice Messages | **£1.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`small` pack) |
@@ -33,6 +33,26 @@ Complete setup guide for all **10** in-app purchase products used by Dripn (Styl
 | Voice packs | `VOICE_CREDIT_PACKAGES` | £1.00 / £2.00 / £4.00 / £7.00 |
 
 In App Store Connect, pick the **UK price tier** that matches these GBP amounts (Apple tiers may not match penny-perfect in every territory — UK is the primary reference).
+
+### App Store Connect — subscription paste blocks (English U.K.)
+
+Copy into each product's **Subscription Localization** fields:
+
+**`com.dripn.personal_stylist.monthly`**
+- Display name: `Look Better Every Day`
+- Description: `Feel confident — less outfit stress`
+
+**`com.dripn.personal_stylist.annual`**
+- Display name: `Year of Style Confidence`
+- Description: `Save 20% — confident looks all year long`
+
+**`com.dripn.stylist_unlimited.monthly`**
+- Display name: `Plan Ahead, Dress Better`
+- Description: `Less fatigue — always know what to wear`
+
+**`com.dripn.stylist_unlimited.annual`**
+- Display name: `Your Best-Dressed Year`
+- Description: `Save 20% — plan ahead, stress less all year`
 
 ### Important naming note
 
@@ -82,7 +102,7 @@ The server accepts these aliases but the app uses the 10 IDs above:
 
 4. For each subscription, configure:
    - **Subscription prices:** UK → £9.99 / £95.99 / £19.99 / £191.99 (add other territories as needed).
-   - **Localization:** display name + description matching in-app copy (e.g. "Unlimited stylist decisions, wardrobe-aware advice").
+   - **Localization (English U.K.):** paste display name + description from the table in §1 (benefit-led copy; ≤30 / ≤45 chars).
    - **Review information:** screenshot of the Subscription paywall (`SubscriptionScreen`).
    - **Subscription group level:** set rank so `stylist_unlimited` is higher than `personal_stylist` (upgrade path).
    - **Family Sharing:** your choice (typically off for this model).
@@ -115,9 +135,24 @@ The server accepts these aliases but the app uses the 10 IDs above:
 ### D. Localization & pricing notes
 
 - Add at least **English (U.K.)** localization for every product (name + description).
-- Use the same marketing language as Stripe/web copy where possible.
+- Use benefit-led marketing language (outcomes, confidence, time saved) — see **Copy principles** below.
 - Set **United Kingdom** pricing first, then propagate or customize other storefronts.
 - Annual subs should reflect ~20% savings vs 12× monthly (matches `BILLING_PLANS` yearly amounts).
+
+### Copy principles (App Store Connect metadata)
+
+Write IAP display names and descriptions for **outcomes**, not feature specs. Apple subscribers buy how they'll feel and what they'll gain — not internal product mechanics.
+
+| Do | Don't |
+|----|-------|
+| Look better, feel confident, save time | "Unlimited wardrobe", "priority processing", "bulk upload" |
+| Less outfit stress, less decision fatigue | Feature lists or dev jargon |
+| Honest savings paired with a benefit ("Save 20% — confident looks all year") | Dry price-only copy ("Save £X" with no emotional hook) |
+| Accurate claims only | "Millions of users", "certified stylists", unverifiable superlatives |
+
+**Field limits (subscriptions):** Display name ≤ **30** characters · Description ≤ **45** characters (English U.K.).
+
+**Apply the same mindset to DFY and voice products** when localizing in App Store Connect — e.g. "Ready for your trip in days" beats "5–7 outfit photos, 14-day window".
 
 ### E. Sandbox tester setup
 

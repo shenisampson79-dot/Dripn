@@ -88,23 +88,23 @@ const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
     { text: "Outfit calendar", included: false },
   ],
   personal_stylist: [
-    { text: "Unlimited stylist decisions", included: true, bold: true },
-    { text: "Compare up to 3 options", included: true, bold: true },
-    { text: "One included Styling Sprint (trial)", included: true, bold: true },
-    { text: "Decision history & wardrobe memory", included: true },
-    { text: "Wardrobe-aware recommendations", included: true },
-    { text: "75 wardrobe items", included: true },
-    { text: "Voice styling sessions", included: true },
-    { text: "Outfit calendar", included: false },
+    { text: "Never second-guess what to wear", included: true, bold: true },
+    { text: "Pick the best option — every time", included: true, bold: true },
+    { text: "Kickstart with an included styling sprint", included: true, bold: true },
+    { text: "Remember what worked — and what didn't", included: true },
+    { text: "Advice that knows your wardrobe", included: true },
+    { text: "Build a wardrobe that works together", included: true },
+    { text: "Talk to your stylist by voice", included: true },
+    { text: "Plan outfits weeks ahead", included: false },
   ],
   stylist_unlimited: [
     { text: "Everything in Personal Stylist", included: true, bold: true },
-    { text: "One included Full Wardrobe Setup (trial)", included: true, bold: true },
-    { text: "Outfit calendar & event planning", included: true, bold: true },
-    { text: "Unlimited wardrobe & try-on", included: true },
-    { text: "Priority photo processing", included: true },
-    { text: "Bulk upload (20 items)", included: true },
-    { text: "Priority support", included: true },
+    { text: "Full wardrobe setup included to start", included: true, bold: true },
+    { text: "Plan ahead — always know what to wear", included: true, bold: true },
+    { text: "Your whole wardrobe, always on hand", included: true },
+    { text: "Faster photos — less waiting around", included: true },
+    { text: "Add pieces in one go, effortlessly", included: true },
+    { text: "Help when you need it, first in line", included: true },
   ],
 };
 
@@ -113,23 +113,23 @@ const getPlanMetadata = (isYearly: boolean): Record<DisplayTier, { name: string;
   personal_stylist: {
     name: "Personal Stylist",
     period: isYearly ? "/year" : "/month",
-    description: TIER_MATRIX.personal_stylist.jobToBeDone,
-    tagline: "Decide faster, every day",
+    description: "Look better every day with less outfit stress",
+    tagline: "Feel confident before you walk out the door",
+    popular: true,
   },
   stylist_unlimited: {
     name: "Stylist Unlimited",
     period: isYearly ? "/year" : "/month",
-    description: TIER_MATRIX.stylist_unlimited.jobToBeDone,
-    popular: true,
+    description: "Save time planning — dress with ease all year",
     bestValue: true,
-    tagline: "Plan your style life — calendar, packing, priority speed",
+    tagline: "Less decision fatigue, more time looking great",
   },
 });
 
 const PLAN_SAVINGS: Record<DisplayTier, { save: string; yearlyEquiv?: string; badge?: string; altSuffix?: string }> = {
   free: { save: '' },
   personal_stylist: { save: '£23.89', altSuffix: 'Save 20%' },
-  stylist_unlimited: { save: '£47.89', altSuffix: 'Save 20%', yearlyEquiv: 'save £4/month vs monthly billing', badge: 'Save 20%' },
+  stylist_unlimited: { save: '£47.89', altSuffix: 'Save 20%', yearlyEquiv: 'less stress all year — save £4/month', badge: 'Save 20%' },
 };
 
 const buildPlanPricing = (
@@ -169,7 +169,7 @@ interface LocalizedPrices {
 
 const getLocalizedPlans = (monthlyPrices: LocalizedPrices, yearlyPrices: LocalizedPrices, isYearly: boolean): Plan[] => {
   const metadata = getPlanMetadata(isYearly);
-  const planOrder: DisplayTier[] = ['stylist_unlimited', 'personal_stylist'];
+  const planOrder: DisplayTier[] = ['personal_stylist', 'stylist_unlimited'];
 
   const planConfigs: Record<DisplayTier, Omit<Plan, 'price' | 'altPrice' | 'savingsLabel' | 'period'>> = {
     free: {
@@ -197,7 +197,6 @@ const getLocalizedPlans = (monthlyPrices: LocalizedPrices, yearlyPrices: Localiz
       features: PLAN_FEATURES.stylist_unlimited,
       gradientColors: [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const,
       accentColor: LUXURY_COLORS.midnight,
-      popular: true,
       bestValue: true,
       anchorStyle: 'highlight',
     },
@@ -904,10 +903,10 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             </LinearGradient>
           </View>
           <ThemedText type="h1" style={styles.heroTitle}>
-            Pick Your Stylist Level
+            Look Better, Stress Less
           </ThemedText>
           <ThemedText type="body" style={styles.heroSubtitle}>
-            Free to try · Personal Stylist for daily decisions · Unlimited for planning
+            Your AI stylist for everyday confidence — or full life planning
           </ThemedText>
         </View>
       </LinearGradient>
