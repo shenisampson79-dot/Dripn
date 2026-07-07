@@ -575,6 +575,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       await saveUserLocalOnly(userProfile);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.';
+      throw new Error(errorMessage);
     } finally {
       setIsAuthenticating(false);
     }
