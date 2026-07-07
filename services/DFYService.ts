@@ -401,6 +401,10 @@ class DFYService {
         showNudge: false,
         nudgeType: null,
       };
+    }
+  }
+
+  async activateDFYAccess(
     userId: string,
     tier: DFYTier,
     options?: { windowDays?: number },

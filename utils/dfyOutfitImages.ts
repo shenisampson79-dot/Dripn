@@ -1,7 +1,7 @@
 import { WardrobeItem } from '@/contexts/WardrobeContext';
 import { DFYLiteDelivery, DFYOccasion, DFYOutfit, DFYOutfitItem, StylistId } from '@/services/DFYService';
 import { DailyForecast, DailyForecastDay } from '@/services/WeatherService';
-import { resolveWardrobeImageUri } from '@/utils/wardrobeImage';
+import { normalizeRemoteApiUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
 
 export type RawDFYOutfitItem = DFYOutfitItem & {
   imageUrl?: string | null;
@@ -17,7 +17,8 @@ export function resolveDFYItemImageUri(
 ): string | undefined {
   if (item.imageUri) return item.imageUri;
 
-  const serverUrl = item.processedImageUrl || item.imageUrl;
+  const serverUrl =
+    normalizeRemoteApiUrl(item.processedImageUrl) || normalizeRemoteApiUrl(item.imageUrl);
   if (typeof serverUrl === 'string' && serverUrl.length > 0) {
     return serverUrl;
   }

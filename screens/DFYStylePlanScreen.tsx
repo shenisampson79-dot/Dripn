@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -8,7 +8,9 @@ import {
   Dimensions,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,14 +20,27 @@ import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWardrobe } from "@/contexts/WardrobeContext";
 import { 
   dfyService, 
   DFYOutfit, 
   DFYLiteDelivery,
   DFYAccessStatus,
+  StylistId,
 } from "@/services/DFYService";
+import { apiService } from "@/services/ApiService";
+import {
+  enrichDeliveryWithWardrobeImages,
+  resolveDFYItemImageUri,
+  RawDFYOutfitItem,
+  fillEmptyLookbookSlots,
+  countFilledLookbookDays,
+  ensureLookbookOutfitsHaveFootwear,
+} from "@/utils/dfyOutfitImages";
+import { sortOutfitItemsByVisualOrder } from "@/utils/outfitItemOrder";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -49,6 +64,7 @@ type DFYStylePlanScreenProps = {
 export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenProps) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
+  const { items: wardrobeItems } = useWardrobe();
   const insets = useSafeAreaInsets();
   
   const [delivery, setDelivery] = useState<DFYLiteDelivery | null>(null);
@@ -59,29 +75,128 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState("");
 
-  useEffect(() => {
-    loadDelivery();
-  }, []);
+  const mapApiOutfitsToDelivery = (rawOutfits: any[], stylistId: StylistId): DFYOutfit[] =>
+    rawOutfits.map((o, idx) => ({
+      id: o.id || `outfit_${idx + 1}`,
+      dayNumber: o.day || o.dayNumber || idx + 1,
+      title: o.title || (idx === 0 ? "Today's Look" : `Day ${idx + 1} Look`),
+      description: o.description || o.stylistNote || '',
+      items: (o.items || []).map((it: any) => ({
+        id: String(it.id),
+        name: it.name || '',
+        category: it.category || '',
+        color: it.color || '',
+        imageUrl: it.imageUrl,
+        processedImageUrl: it.processedImageUrl,
+        imageUri: it.imageUri || it.processedImageUrl || it.imageUrl || undefined,
+      })),
+      occasion: o.occasion || 'casual',
+      stylistNote: o.stylistNote || o.notes,
+      weatherNote: o.weatherNote,
+      stylistId: (o.stylistId || stylistId) as StylistId,
+      userReaction: null,
+      saved: false,
+    }));
+
+  const mergeApiOutfitsIntoDelivery = (
+    existing: DFYLiteDelivery,
+    mappedOutfits: DFYOutfit[],
+  ): DFYOutfit[] =>
+    existing.outfits.map((slot, idx) => {
+      const source = mappedOutfits[idx] ?? mappedOutfits.find((o) => o.dayNumber === slot.dayNumber);
+      if (!source?.items?.length) return slot;
+      return {
+        ...source,
+        id: slot.id,
+        dayNumber: slot.dayNumber,
+        title: slot.title,
+        userReaction: slot.userReaction ?? source.userReaction ?? null,
+        saved: slot.saved ?? source.saved ?? false,
+      };
+    });
+
+  const hydrateDelivery = useCallback(
+    (base: DFYLiteDelivery): DFYLiteDelivery =>
+      enrichDeliveryWithWardrobeImages(
+        ensureLookbookOutfitsHaveFootwear(base, wardrobeItems),
+        wardrobeItems,
+      ),
+    [wardrobeItems],
+  );
 
   const loadDelivery = async () => {
     if (!user?.id) return;
-    
+
+    const stylistId = user.stylistPreferences?.selectedStylistId || 'ruby';
     let existingDelivery = await dfyService.getDFYDelivery(user.id);
-    
+
     if (!existingDelivery) {
-      existingDelivery = await dfyService.createMockLiteDelivery(
-        user.id, 
-        user.stylistPreferences?.selectedStylistId || 'ruby'
-      );
+      existingDelivery = await dfyService.createMockLiteDelivery(user.id, stylistId);
     }
-    
-    if (existingDelivery?.tier === 'lite') {
-      setDelivery(existingDelivery as DFYLiteDelivery);
+
+    if (existingDelivery?.tier !== 'lite') {
+      const status = await dfyService.checkDFYAccess(user.id);
+      setAccessStatus(status);
+      return;
     }
-    
+
+    let liteDelivery = existingDelivery as DFYLiteDelivery;
+    const beforeJson = JSON.stringify(liteDelivery.outfits);
+
+    if (countFilledLookbookDays(liteDelivery) < (liteDelivery.totalDays || 14)) {
+      try {
+        const remote = await apiService.getDFYLookbook();
+        if (remote.success && remote.outfits && remote.outfits.length > 0) {
+          const mapped = mapApiOutfitsToDelivery(remote.outfits, stylistId);
+          liteDelivery = {
+            ...liteDelivery,
+            outfits: mergeApiOutfitsIntoDelivery(liteDelivery, mapped),
+          };
+        }
+      } catch (err) {
+        console.log('[DFYStylePlan] Remote lookbook fetch failed:', err);
+      }
+    }
+
+    if (wardrobeItems.length >= 2) {
+      liteDelivery = fillEmptyLookbookSlots(liteDelivery, wardrobeItems, stylistId, null);
+    }
+
+    const hydrated = hydrateDelivery(liteDelivery);
+    setDelivery(hydrated);
+
+    if (JSON.stringify(hydrated.outfits) !== beforeJson) {
+      await dfyService.saveDFYDelivery(hydrated);
+    }
+
     const status = await dfyService.checkDFYAccess(user.id);
     setAccessStatus(status);
   };
+
+  useEffect(() => {
+    void loadDelivery();
+  }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadDelivery();
+    }, [user?.id, wardrobeItems.length]),
+  );
+
+  useEffect(() => {
+    if (!delivery || wardrobeItems.length === 0) return;
+    const hydrated = hydrateDelivery(delivery);
+    const gainedImages = hydrated.outfits.some((outfit, idx) =>
+      outfit.items.some((item, itemIdx) => {
+        const prev = delivery.outfits[idx]?.items[itemIdx];
+        return item.imageUri && !prev?.imageUri;
+      }),
+    );
+    if (gainedImages) {
+      setDelivery(hydrated);
+      void dfyService.saveDFYDelivery(hydrated);
+    }
+  }, [wardrobeItems, delivery, hydrateDelivery]);
 
   const currentOutfit = delivery?.outfits[currentOutfitIndex];
 
@@ -162,6 +277,63 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
     }
   };
 
+  const renderOutfitVisual = (outfit: DFYOutfit, height: number = 300) => {
+    const orderedItems = sortOutfitItemsByVisualOrder(outfit.items || []);
+    const itemsWithImages = orderedItems
+      .map((item) => ({
+        item,
+        uri: resolveDFYItemImageUri(item as RawDFYOutfitItem),
+      }))
+      .filter((entry): entry is { item: typeof outfit.items[0]; uri: string } => Boolean(entry.uri));
+
+    if (itemsWithImages.length >= 2) {
+      const photos = itemsWithImages.slice(0, 4);
+      const halfH = height / 2;
+      const halfW = CARD_WIDTH / 2;
+      return (
+        <View style={{ width: '100%', height, flexDirection: 'row', flexWrap: 'wrap' }}>
+          {photos.map(({ item, uri }) => (
+            <Image
+              key={item.id}
+              source={{ uri }}
+              style={{ width: halfW, height: photos.length <= 2 ? height : halfH }}
+              contentFit="contain"
+            />
+          ))}
+        </View>
+      );
+    }
+
+    if (itemsWithImages.length === 1) {
+      return (
+        <Image
+          source={{ uri: itemsWithImages[0].uri }}
+          style={{ width: '100%', height }}
+          contentFit="contain"
+        />
+      );
+    }
+
+    if (outfit.imageUri) {
+      return (
+        <Image
+          source={{ uri: outfit.imageUri }}
+          style={{ width: '100%', height }}
+          contentFit="contain"
+        />
+      );
+    }
+
+    return (
+      <View style={[styles.outfitImagePlaceholder, { height }]}>
+        <Feather name="image" size={48} color="rgba(255,255,255,0.3)" />
+        <ThemedText style={styles.placeholderText}>
+          {outfit.items?.length ? 'Wardrobe photos loading…' : 'Outfit photo will appear here'}
+        </ThemedText>
+      </View>
+    );
+  };
+
   if (!delivery || !currentOutfit) {
     return (
       <View style={{ flex: 1, backgroundColor: LUXURY_COLORS.obsidian }}>
@@ -227,12 +399,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
 
         <View style={styles.content}>
           <View style={styles.outfitCard}>
-            <View style={styles.outfitImagePlaceholder}>
-              <Feather name="image" size={48} color="rgba(255,255,255,0.3)" />
-              <ThemedText style={styles.placeholderText}>
-                Outfit photo will appear here
-              </ThemedText>
-            </View>
+            {renderOutfitVisual(currentOutfit, 300)}
           </View>
 
           <View style={styles.outfitInfo}>
