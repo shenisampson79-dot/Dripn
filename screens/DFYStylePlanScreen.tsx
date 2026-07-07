@@ -40,6 +40,10 @@ import {
   outfitIndexForDay,
   type DfyStylePlanParams,
 } from "@/utils/dfyNavigation";
+import {
+  getDfyCoreFeaturePaywallCopy,
+  type DfyCoreFeature,
+} from "@/utils/dfyEntitlements";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
@@ -77,7 +81,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [adjustmentText, setAdjustmentText] = useState("");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [upgradeFeature, setUpgradeFeature] = useState("");
+  const [upgradeFeature, setUpgradeFeature] = useState<DfyCoreFeature>("swap_item");
 
   const mapApiOutfitsToDelivery = (rawOutfits: any[], stylistId: StylistId): DFYOutfit[] =>
     rawOutfits.map((o, idx) => ({
@@ -273,7 +277,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
     });
   };
 
-  const handleCoreFeatureRequest = (feature: string) => {
+  const handleCoreFeatureRequest = (feature: DfyCoreFeature) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setUpgradeFeature(feature);
     setShowUpgradeModal(true);
@@ -302,6 +306,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
   };
 
   const needsCoreUpgrade = accessStatus?.hasAccess && accessStatus.tier === 'lite';
+  const coreFeaturePaywall = getDfyCoreFeaturePaywallCopy(upgradeFeature, needsCoreUpgrade);
 
   const renderOutfitVisual = (outfit: DFYOutfit) => (
     <DFYOutfitVisual
@@ -610,13 +615,10 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
                 <Feather name="unlock" size={32} color={LUXURY_COLORS.midnight} />
               </View>
               <ThemedText type="h2" style={styles.upgradeTitle}>
-                Unlock Full Setup
+                {coreFeaturePaywall.title}
               </ThemedText>
               <ThemedText style={styles.upgradeDescription}>
-                {upgradeFeature === 'swap_item' 
-                  ? "Swapping individual items requires your full wardrobe mapped. With Full Setup, I can break down every piece and rebuild outfits your way."
-                  : "Creating remixes needs your full wardrobe in the system. Full Setup gives you unlimited combinations from all your pieces."
-                }
+                {coreFeaturePaywall.description}
               </ThemedText>
               <Pressable 
                 onPress={() => {
@@ -626,7 +628,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
                 style={styles.upgradeButton}
               >
                 <ThemedText type="body" style={styles.upgradeButtonText}>
-                  {needsCoreUpgrade ? 'Upgrade to Full Setup' : 'Start Full Setup'}
+                  {coreFeaturePaywall.cta}
                 </ThemedText>
               </Pressable>
               <Pressable 

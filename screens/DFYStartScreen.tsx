@@ -24,6 +24,7 @@ import {
   getDfyBenefitForSubscription,
   getDfyBenefitTitle,
   getDfyBenefitSubtitle,
+  getDfyActivePathTitle,
   getDfyActiveWindowSubtitle,
   formatDfyDaysRemaining,
   getDfyPathDescription,
@@ -59,6 +60,18 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   const subscriptionTier = normalizeSubscriptionTier(user?.subscriptionTier);
   const benefit = getDfyBenefitForSubscription(subscriptionTier);
   const benefitTitle = getDfyBenefitTitle(benefit);
+  const hasActiveWindow = Boolean(accessStatus?.hasAccess && accessStatus.tier);
+  const activeTier = accessStatus?.tier;
+  const headerTitle = hasActiveWindow && activeTier
+    ? getDfyActivePathTitle(activeTier)
+    : benefit === 'none'
+      ? 'Done-For-You Setup'
+      : benefitTitle;
+  const heroTitle = hasActiveWindow && activeTier
+    ? getDfyActivePathTitle(activeTier)
+    : benefit === 'none'
+      ? 'Unlock your stylist setup'
+      : `Included with ${subscriptionTierDisplayName(subscriptionTier)}`;
   const includedBlocked = activationBlockCode === 'included_used' || activationBlockCode === 'active_window';
   const showPaidAddOn = activationBlockCode === 'included_used' && benefit !== 'none';
 
@@ -220,7 +233,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           <Feather name="arrow-left" size={22} color={theme.text} />
         </Pressable>
         <ThemedText type="h3" style={styles.headerTitle}>
-          {benefit === 'none' ? 'Done-For-You Setup' : benefitTitle}
+          {headerTitle}
         </ThemedText>
         <View style={styles.backButton} />
       </View>
@@ -233,7 +246,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           <Feather name="gift" size={28} color={LUXURY_COLORS.midnight} />
         </LinearGradient>
         <ThemedText type="h2" style={styles.heroTitle}>
-          {benefit === 'none' ? 'Unlock your stylist setup' : `Included with ${subscriptionTierDisplayName(subscriptionTier)}`}
+          {heroTitle}
         </ThemedText>
         <ThemedText type="body" style={[styles.heroSubtitle, { color: theme.tabIconDefault }]}>
           {accessStatus?.hasAccess && accessStatus.tier
@@ -312,9 +325,9 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
 
       {benefit === 'full_wardrobe_setup' && !accessStatus?.hasAccess ? (
         <View style={styles.pathSection}>
-          <ThemedText type="h4" style={styles.sectionTitle}>How do you want to start?</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>Choose your included path</ThemedText>
           <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
-            You're covered — choose how you want to begin.
+            Your plan includes one setup — pick Quick Start or Full Setup to begin.
           </ThemedText>
           {activationBlockedReason ? (
             <ThemedText type="small" style={[styles.blockedText, { color: theme.tabIconDefault }]}>

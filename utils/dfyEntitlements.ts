@@ -28,7 +28,7 @@ export function getDfyBenefitSubtitle(benefit: DfySubscriptionBenefit): string {
     case 'styling_sprint':
       return "We've saved a Styling Sprint for you — a handful of looks for that trip or event you've got coming up.";
     case 'full_wardrobe_setup':
-      return "We've saved this for you — quick start or full digitise, let's get your wardrobe working for real life.";
+      return "Your plan includes one setup — choose Quick Start for a fast win, or Full Setup to digitise your whole closet.";
     default:
       return 'Your stylist can set up your wardrobe for you — included with Personal Stylist or Stylist Unlimited.';
   }
@@ -73,6 +73,49 @@ export function isDfyTierAllowedForSubscription(
 
 export function getDfyPathLabel(tier: DFYTier): string {
   return tier === 'lite' ? 'Quick Start' : 'Full Setup';
+}
+
+/** Title for the user's currently active DFY path (not the subscription marketing benefit name). */
+export function getDfyActivePathTitle(tier: DFYTier): string {
+  return getDfyPathLabel(tier);
+}
+
+export type DfyCoreFeature = 'swap_item' | 'remix';
+
+export function getDfyCoreFeaturePaywallCopy(
+  feature: DfyCoreFeature,
+  onQuickStart: boolean,
+): { title: string; description: string; cta: string } {
+  if (onQuickStart) {
+    if (feature === 'swap_item') {
+      return {
+        title: "Quick Start doesn't include swap",
+        description:
+          'Swapping items needs your full wardrobe mapped. Upgrade to Full Setup to remix pieces your way.',
+        cta: 'Upgrade to Full Setup',
+      };
+    }
+    return {
+      title: "Quick Start doesn't include remix",
+      description:
+        'Remixing outfits needs your full wardrobe in the system. Upgrade to Full Setup for unlimited combinations.',
+      cta: 'Upgrade to Full Setup',
+    };
+  }
+  if (feature === 'swap_item') {
+    return {
+      title: 'Unlock Full Setup',
+      description:
+        'Swapping individual items requires your full wardrobe mapped. With Full Setup, I can break down every piece and rebuild outfits your way.',
+      cta: 'Start Full Setup',
+    };
+  }
+  return {
+    title: 'Unlock Full Setup',
+    description:
+      'Creating remixes needs your full wardrobe in the system. Full Setup gives you unlimited combinations from all your pieces.',
+    cta: 'Start Full Setup',
+  };
 }
 
 export function getDfyPathDescription(
