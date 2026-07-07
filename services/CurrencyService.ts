@@ -34,7 +34,7 @@ interface DfyPrices {
 
 const DEFAULT_SUBSCRIPTION_PRICES: SubscriptionPrices = {
   personal_stylist: { monthly: 9.99, yearly: 95.99 },
-  stylist_unlimited: { monthly: 19.99, yearly: 179.99 },
+  stylist_unlimited: { monthly: 19.99, yearly: 191.99 },
 };
 
 const DEFAULT_DFY_PRICES: DfyPrices = {

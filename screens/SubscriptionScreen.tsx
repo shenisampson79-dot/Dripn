@@ -129,7 +129,7 @@ const getPlanMetadata = (isYearly: boolean): Record<DisplayTier, { name: string;
 const PLAN_SAVINGS: Record<DisplayTier, { save: string; yearlyEquiv?: string; badge?: string; altSuffix?: string }> = {
   free: { save: '' },
   personal_stylist: { save: '£23.89', altSuffix: 'Save 20%' },
-  stylist_unlimited: { save: '£60', yearlyEquiv: 'only £4.99/month extra vs monthly', badge: '2 months free' },
+  stylist_unlimited: { save: '£47.89', altSuffix: 'Save 20%', yearlyEquiv: 'save £4/month vs monthly billing', badge: 'Save 20%' },
 };
 
 const buildPlanPricing = (
@@ -262,7 +262,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const [yearlyPrices, setYearlyPrices] = useState<LocalizedPrices>({
     free: "Free",
     personal_stylist: "£95.99",
-    stylist_unlimited: "£179.99",
+    stylist_unlimited: "£191.99",
   });
   const [dfyPrices, setDfyPrices] = useState<{ outfit_setup: string; wardrobe_setup: string }>({
     outfit_setup: "£19.99",

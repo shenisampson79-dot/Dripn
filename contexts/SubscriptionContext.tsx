@@ -188,7 +188,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
 // Yearly pricing (Stripe product IDs unchanged)
 export const YEARLY_PRICING: Record<string, { productId: string; price: number }> = {
   personal_stylist: { productId: 'style_chat_yearly', price: 95.99 },
-  stylist_unlimited: { productId: 'stylist_unlimited_yearly', price: 179.99 },
+  stylist_unlimited: { productId: 'stylist_unlimited_yearly', price: 191.99 },
 };
 
 const createDefaultUsage = (): UsageStats => ({
