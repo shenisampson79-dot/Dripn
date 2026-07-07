@@ -69,6 +69,57 @@ RevenueCat reduces server receipt-validation complexity and aligns with phased r
 
 Do **not** ship Stripe checkout on iOS production builds after Phase 1 is live.
 
+## 8. Phase 1 Completion Notes (Subscriptions)
+
+**Status: Implemented (client + server scaffolding)**
+
+### What shipped
+
+| Area | Implementation |
+|---|---|
+| Client SDK | `react-native-purchases` + Expo config plugin in `app.json` |
+| `AppleIAPService.ts` | RevenueCat configure, `purchaseSubscription`, `restorePurchases`, `getCustomerInfo`, App Store price fetch |
+| `platformPayments.ts` | `shouldUseAppleIAP()` = iOS && !`__DEV__` (override: `EXPO_PUBLIC_FORCE_APPLE_IAP=true`) |
+| `SubscriptionScreen.tsx` | iOS production uses IAP; Restore Purchases button; App Store pricing; Stripe unchanged on web/Android |
+| Server sync | `POST /api/subscription/apple/sync` — maps product/entitlement → `subscription_tier`, sets `billing_platform=apple` |
+| Server webhook | `POST /api/webhooks/revenuecat` — handles INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION |
+| DB columns | `billing_platform`, `apple_original_transaction_id`, `apple_product_id` on `users` |
+
+### App Store Connect — create these products
+
+**Subscription group:** `dripn_subscriptions`
+
+| Product ID | Type | RevenueCat entitlement | Server plan |
+|---|---|---|---|
+| `com.dripn.personal_stylist.monthly` | Auto-renewable | `personal_stylist` | `style_chat` |
+| `com.dripn.personal_stylist.annual` | Auto-renewable | `personal_stylist` | `style_chat` |
+| `com.dripn.stylist_unlimited.monthly` | Auto-renewable | `stylist_unlimited` | `stylist_unlimited` |
+| `com.dripn.stylist_unlimited.annual` | Auto-renewable | `stylist_unlimited` | `stylist_unlimited` |
+
+### RevenueCat dashboard setup
+
+1. Create iOS app linked to bundle ID `com.dripn.app`
+2. Add products above; map to entitlements `personal_stylist` and `stylist_unlimited`
+3. Create default offering with monthly + annual packages per tier
+4. Copy iOS public API key → `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` (StyleWise)
+5. Configure webhook URL → `https://<server>/api/webhooks/revenuecat` with `REVENUECAT_WEBHOOK_SECRET`
+
+### Sandbox testing
+
+1. Create Sandbox Apple ID in App Store Connect → Users and Access → Sandbox
+2. Set `EXPO_PUBLIC_FORCE_APPLE_IAP=true` in StyleWise `.env` for dev builds **or** use a production iOS build
+3. Sign in to the sandbox Apple ID on device: Settings → App Store → Sandbox Account
+4. Build with EAS/dev client (IAP requires native build — not Expo Go)
+5. Subscribe on Subscription screen → confirm tier updates via `POST /api/subscription/apple/sync`
+6. Test Restore Purchases with the same Apple ID on a fresh login
+
+### Still TODO (post–Phase 1)
+
+- [ ] Direct App Store Server API receipt validation (currently trusts client sync + RevenueCat webhook)
+- [ ] Stripe webhook ignore for `billing_platform=apple` users
+- [ ] Delete-account Apple subscription revoke path
+- [ ] Phase 2 DFY one-time IAP, Phase 3 voice consumables
+
 ## 6. Estimated File Touch List
 
 ### Client (StyleWise)

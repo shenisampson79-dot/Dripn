@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, View, Pressable, Alert, Dimensions, Platform, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Pressable, Alert, Dimensions, Platform, ActivityIndicator, Linking } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -24,6 +24,8 @@ import {
 import { TIER_MATRIX } from "@/utils/tierMatrix";
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
+import { appleIAPService, serializeCustomerInfoForSync, type IAPSubscriptionTier } from "@/services/AppleIAPService";
+import { shouldUseAppleIAP } from "@/utils/platformPayments";
 import { getErrorMessage, openExternalUrl } from "@/utils/openExternalUrl";
 import { isDevTestingModeEnabled } from "@/utils/devTesting";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -269,10 +271,43 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const [winbackOffer50, setWinbackOffer50] = useState(false);
   const [winbackPausePrompt, setWinbackPausePrompt] = useState(false);
   const [devTestingMode, setDevTestingMode] = useState(false);
+  const useAppleIAP = shouldUseAppleIAP();
 
   useEffect(() => {
     isDevTestingModeEnabled().then(setDevTestingMode).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!useAppleIAP || !user?.id) return;
+
+    const initAppleIAP = async () => {
+      try {
+        await appleIAPService.configure(user.id);
+        const prices = await appleIAPService.getSubscriptionPrices();
+        if (prices.length === 0) return;
+
+        const monthlyUpdates: Partial<LocalizedPrices> = {};
+        const yearlyUpdates: Partial<LocalizedPrices> = {};
+        for (const entry of prices) {
+          if (entry.interval === 'monthly') {
+            monthlyUpdates[entry.tier] = entry.priceString;
+          } else {
+            yearlyUpdates[entry.tier] = entry.priceString;
+          }
+        }
+        if (Object.keys(monthlyUpdates).length > 0) {
+          setLocalizedPrices((prev) => ({ ...prev, ...monthlyUpdates }));
+        }
+        if (Object.keys(yearlyUpdates).length > 0) {
+          setYearlyPrices((prev) => ({ ...prev, ...yearlyUpdates }));
+        }
+      } catch (error) {
+        console.warn('[Subscription] Apple IAP price load failed:', error);
+      }
+    };
+
+    initAppleIAP();
+  }, [useAppleIAP, user?.id]);
   const [winbackBanner, setWinbackBanner] = useState<string | null>(null);
   const [upgradeHint, setUpgradeHint] = useState<string | null>(null);
   const [highlightPlans, setHighlightPlans] = useState(false);
@@ -357,6 +392,44 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
   const PLANS = getLocalizedPlans(localizedPrices, yearlyPrices, isYearly);
 
+  const completeApplePurchase = async (tier: IAPSubscriptionTier, interval: 'monthly' | 'yearly', planName: string) => {
+    const customerInfo = await appleIAPService.purchaseSubscription(tier, interval);
+    const syncPayload = serializeCustomerInfoForSync(customerInfo);
+    await apiService.syncAppleSubscription(syncPayload);
+    await refreshSubscriptionFromBackend();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert(
+      "Subscription Active",
+      `Your ${planName} subscription is now active.`,
+      [{ text: "OK", onPress: () => navigation.goBack() }],
+    );
+  };
+
+  const handleRestorePurchases = async () => {
+    if (!useAppleIAP) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsProcessing(true);
+    try {
+      if (!user?.id) throw new Error('Sign in to restore purchases');
+      await appleIAPService.configure(user.id);
+      const customerInfo = await appleIAPService.restorePurchases();
+      const syncPayload = serializeCustomerInfoForSync(customerInfo);
+      if (syncPayload.tier === 'free') {
+        Alert.alert('No subscription found', 'No active App Store subscription was found for this account.');
+        return;
+      }
+      await apiService.syncAppleSubscription(syncPayload);
+      await refreshSubscriptionFromBackend();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Restored', 'Your App Store subscription has been restored.');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Could not restore purchases';
+      Alert.alert('Restore failed', message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleSelectPlan = async (planId: SubscriptionTier) => {
     if (checkoutInProgressRef.current || isProcessing) return;
     if (planId === normalizeTier(user?.subscriptionTier)) return;
@@ -381,6 +454,23 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       } else {
         const billingCycle = isYearly ? 'yearly' : 'monthly';
         const planName = PLANS.find(p => p.id === planId)?.name ?? planId;
+
+        if (useAppleIAP && (planId === 'personal_stylist' || planId === 'stylist_unlimited')) {
+          if (!user?.id) {
+            throw new Error('Sign in to subscribe');
+          }
+          await appleIAPService.configure(user.id);
+          try {
+            await completeApplePurchase(planId as IAPSubscriptionTier, billingCycle, planName);
+          } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'cancelled' in error && (error as { cancelled?: boolean }).cancelled) {
+              return;
+            }
+            throw error;
+          }
+          return;
+        }
+
         const billingPlan = tierToBillingPlan(planId);
 
         const checkout = await apiService.createSubscriptionCheckout(billingPlan, billingCycle);
@@ -446,6 +536,16 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsProcessing(true);
     try {
+      if (useAppleIAP && normalizedTier !== 'free') {
+        try {
+          const Purchases = (await import('react-native-purchases')).default;
+          await Purchases.showManageSubscriptions();
+        } catch {
+          await Linking.openURL('https://apps.apple.com/account/subscriptions');
+        }
+        return;
+      }
+
       const devTesting = __DEV__ && (devTestingMode || (await isDevTestingModeEnabled().catch(() => false)));
       if (devTesting) {
         Alert.alert(
@@ -858,7 +958,9 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           >
             <Feather name="settings" size={16} color={currentTierAccent} />
             <ThemedText type="body" style={{ color: currentTierAccent, fontWeight: '600' }}>
-              {normalizedTier === 'free' ? 'Upgrade / Manage Billing' : 'Manage Billing'}
+              {normalizedTier === 'free'
+                ? (useAppleIAP ? 'Upgrade / Manage' : 'Upgrade / Manage Billing')
+                : (useAppleIAP ? 'Manage Subscription' : 'Manage Billing')}
             </ThemedText>
             {isProcessing ? (
               <ActivityIndicator size="small" color={currentTierAccent} style={{ marginLeft: Spacing.sm }} />
@@ -866,9 +968,11 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           </Pressable>
           {normalizedTier !== 'free' ? (
             <ThemedText type="caption" style={[styles.billingHint, { color: theme.tabIconDefault }]}>
-              {devTestingMode
-                ? 'Testing mode — no Stripe billing linked. Subscribe below to use the real billing portal.'
-                : 'Opens Stripe to update your card, billing address, and invoices.'}
+              {useAppleIAP
+                ? 'Opens App Store subscription settings.'
+                : devTestingMode
+                  ? 'Testing mode — no Stripe billing linked. Subscribe below to use the real billing portal.'
+                  : 'Opens Stripe to update your card, billing address, and invoices.'}
             </ThemedText>
           ) : null}
         </View>
@@ -943,6 +1047,22 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         <ThemedText type="h2" style={styles.sectionTitle}>Choose Your Plan</ThemedText>
         {PLANS.map(renderPlanCard)}
       </View>
+
+      {useAppleIAP ? (
+        <Pressable
+          onPress={handleRestorePurchases}
+          disabled={isProcessing}
+          style={({ pressed }) => [
+            styles.restorePurchasesButton,
+            { opacity: pressed ? 0.85 : 1, borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' },
+          ]}
+        >
+          <Feather name="refresh-cw" size={16} color={LUXURY_COLORS.teal} />
+          <ThemedText type="body" style={{ color: LUXURY_COLORS.teal, fontWeight: '600' }}>
+            {isProcessing ? 'Restoring...' : 'Restore Purchases'}
+          </ThemedText>
+        </Pressable>
+      ) : null}
 
 
       <Pressable
@@ -1210,7 +1330,9 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
       <View style={styles.finePrint}>
         <ThemedText type="small" style={styles.finePrintText}>
-          Subscriptions auto-renew each billing period until you cancel below. By subscribing, you agree to our{' '}
+          {useAppleIAP
+            ? 'Subscriptions auto-renew through your Apple ID until cancelled in Settings → Subscriptions. Payment is charged to your Apple ID account. By subscribing, you agree to our '
+            : 'Subscriptions auto-renew each billing period until you cancel below. By subscribing, you agree to our '}
           <ThemedText
             type="small"
             style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
@@ -1408,6 +1530,16 @@ const styles = StyleSheet.create({
   },
   plansContainer: {
     marginBottom: Spacing.lg,
+  },
+  restorePurchasesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
   },
   starterBadge: {
     position: "absolute",

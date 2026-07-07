@@ -1894,6 +1894,23 @@ class ApiService {
     });
   }
 
+  async syncAppleSubscription(payload: {
+    tier?: string;
+    productId?: string;
+    originalTransactionId?: string;
+    customerInfo?: Record<string, unknown>;
+  }) {
+    return this.request<{
+      success: boolean;
+      tier: string;
+      tierName?: string;
+      billingPlatform?: string;
+    }>('/api/subscription/apple/sync', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   async createBillingCheckout(plan: string) {
     return this.request<{ checkoutUrl: string; sessionId: string; plan: string }>('/api/billing/checkout', {
       method: 'POST',
