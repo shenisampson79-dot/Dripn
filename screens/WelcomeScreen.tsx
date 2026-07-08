@@ -73,32 +73,32 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
         <View style={styles.featuresContainer}>
           <FeatureItem
             icon="zap"
-            title="Look sharp in seconds"
-            description="We decide what you wear — no more closet spirals"
+            title="Stop guessing what to wear"
+            description="Get the right outfit — instantly."
             theme={theme}
             isDark={isDark}
             palette={palette}
           />
           <FeatureItem
             icon="message-circle"
-            title="Your stylist decides"
-            description="Chat when you want — but the outfit answer comes first"
+            title="Just talk to your stylist"
+            description="Natural voice chat. Like having someone there with you."
             theme={theme}
             isDark={isDark}
             palette={palette}
           />
           <FeatureItem
             icon="users"
-            title="Better dressed than your friends"
-            description="Quiet confidence — look put-together without trying"
+            title="Look good every day"
+            description="No stress. No second-guessing."
             theme={theme}
             isDark={isDark}
             palette={palette}
           />
           <FeatureItem
             icon="grid"
-            title="Can't dress? We got you"
-            description="Zero taste required — we teach you by deciding for you"
+            title="Make your wardrobe work"
+            description="Everything organised. Everything usable."
             theme={theme}
             isDark={isDark}
             palette={palette}
