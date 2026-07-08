@@ -340,13 +340,13 @@ class StylistUpgradeService {
         tiers: [
           {
             id: "core",
-            name: "Core Wardrobe Setup",
+            name: "Full Wardrobe Setup",
             capabilities: ["Full wardrobe visibility", "Item-level recommendations", "Outfit combinations", "Seasonal planning"],
             limitations: [],
           },
           {
             id: "outfit",
-            name: "Outfit-Based Setup",
+            name: "Occasion Ready",
             capabilities: ["AI learns your style", "Quick recommendations", "Occasion-based advice"],
             limitations: ["Limited wardrobe visibility", "No item-level suggestions"],
           },

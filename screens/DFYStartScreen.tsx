@@ -279,7 +279,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           {accessStatus?.hasAccess && accessStatus.tier
             ? getDfyActiveWindowSubtitle(accessStatus.tier)
             : benefit === 'none'
-              ? 'Personal Stylist comes with a Styling Sprint. Stylist Unlimited includes a full wardrobe setup — quick win or the whole closet.'
+              ? 'Personal Stylist comes with Occasion Ready. Stylist Unlimited includes a full wardrobe setup — quick win or the whole closet.'
               : getDfyBenefitSubtitle(benefit)}
         </ThemedText>
       </View>
@@ -311,7 +311,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           >
             <ThemedText type="h4">Personal Stylist</ThemedText>
             <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-              Includes Styling Sprint (Quick Start)
+              Includes Occasion Ready (Quick Start)
             </ThemedText>
           </Pressable>
           <Pressable

@@ -15,8 +15,8 @@ Complete setup guide for all **10** in-app purchase products used by Dripn (Styl
 | 2 | `com.dripn.personal_stylist.annual` | Auto-renewable subscription | Year of Style Confidence | Save 20% — confident looks all year long | **£95.99/yr** (~20% off monthly) | `dripn_subscriptions` | `personal_stylist` | **SubscriptionScreen** — same tier, annual billing |
 | 3 | `com.dripn.stylist_unlimited.monthly` | Auto-renewable subscription | Plan Ahead, Dress Better | Less fatigue — always know what to wear | **£19.99/mo** | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — life planning, less decision fatigue |
 | 4 | `com.dripn.stylist_unlimited.annual` | Auto-renewable subscription | Your Best-Dressed Year | Save 20% — plan ahead, stress less all year | **£191.99/yr** (~20% off monthly) | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — same tier, annual billing |
-| 5 | `com.dripn.dfy.lite` | Non-consumable | Styling Sprint — Look Ready | Confident looks for your next occasion | **£19.99** one-time | — | `dfy_lite` | **DFYComparisonScreen** / **DFYStartScreen** — Styling Sprint / Quick Start |
-| 6 | `com.dripn.dfy.core` | Non-consumable | Full Setup — Dress with Ease | Know what to wear — less daily stress | **£39.99** one-time | — | `dfy_core` | **DFYComparisonScreen** / **DFYStartScreen** — Full Wardrobe Setup |
+| 5 | `com.dripn.dfy.lite` | Non-consumable | Occasion Ready | Feel confident for what's coming up | **£19.99** one-time | — | `dfy_lite` | **DFYComparisonScreen** / **DFYStartScreen** — Occasion Ready / Quick Start |
+| 6 | `com.dripn.dfy.core` | Non-consumable | Full Wardrobe Setup | Less stress — know what to wear every day | **£39.99** one-time | — | `dfy_core` | **DFYComparisonScreen** / **DFYStartScreen** — Full Wardrobe Setup / Full Setup |
 | 7 | `com.dripn.voice.credits_10` | Consumable | 10 Spoken Style Replies | Keep the conversation going hands-free | **£1.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`small` pack) |
 | 8 | `com.dripn.voice.credits_25` | Consumable | 25 Spoken Style Replies | More voice chats — less typing, more ease | **£2.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`medium` pack) |
 | 9 | `com.dripn.voice.credits_50` | Consumable | 50 Spoken Style Replies | Hands-free styling help when you need it | **£4.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`large` pack) |
@@ -59,12 +59,12 @@ Copy into each product's **Subscription Localization** fields:
 Copy into each **Non-Consumable** product's localization fields:
 
 **`com.dripn.dfy.lite`**
-- Display name: `Styling Sprint — Look Ready` (27 chars)
-- Description: `Confident looks for your next occasion` (38 chars)
+- Display name: `Occasion Ready` (14 chars)
+- Description: `Feel confident for what's coming up` (35 chars)
 
 **`com.dripn.dfy.core`**
-- Display name: `Full Setup — Dress with Ease` (28 chars)
-- Description: `Know what to wear — less daily stress` (39 chars)
+- Display name: `Full Wardrobe Setup` (20 chars)
+- Description: `Less stress — know what to wear every day` (41 chars)
 
 ### App Store Connect — voice paste blocks (English U.K.)
 
@@ -147,8 +147,8 @@ The server accepts these aliases but the app uses the 10 IDs above:
 
 | Product ID | Display name | Price (UK) |
 |------------|--------------|------------|
-| `com.dripn.dfy.lite` | Styling Sprint — Look Ready | £19.99 |
-| `com.dripn.dfy.core` | Full Setup — Dress with Ease | £39.99 |
+| `com.dripn.dfy.lite` | Occasion Ready | £19.99 |
+| `com.dripn.dfy.core` | Full Wardrobe Setup | £39.99 |
 
 2. Add localized descriptions from §1 DFY paste blocks (benefit-led; ≤30 / ≤45 chars).
 3. Add review screenshot from **DFYComparisonScreen** or **DFYStartScreen**.
@@ -234,8 +234,8 @@ RevenueCat → **Entitlements** → create exactly these four:
 |----------------|---------|
 | `personal_stylist` | Personal Stylist / Style Chat subscription |
 | `stylist_unlimited` | Stylist Unlimited subscription |
-| `dfy_lite` | DFY Outfit-Based Setup (one-time) |
-| `dfy_core` | DFY Core Wardrobe Setup (one-time) |
+| `dfy_lite` | DFY Occasion Ready (one-time) |
+| `dfy_core` | DFY Full Wardrobe Setup (one-time) |
 
 Voice consumables get **no entitlement**.
 

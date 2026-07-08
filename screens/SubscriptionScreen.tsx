@@ -1144,11 +1144,11 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               </View>
               <View style={styles.dfyCardTitleContainer}>
                 <ThemedText type="h3" style={{ color: '#FFFFFF' }}>
-                  {dfyBenefit === 'none' ? 'Styling Sprint & Full Wardrobe Setup' : dfyBenefitTitle}
+                  {dfyBenefit === 'none' ? 'Occasion Ready & Full Wardrobe Setup' : dfyBenefitTitle}
                 </ThemedText>
                 <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.75)' }}>
                   {dfyBenefit === 'none'
-                    ? 'Personal Stylist · Styling Sprint · Unlimited · Full Setup'
+                    ? 'Personal Stylist · Occasion Ready · Unlimited · Full Setup'
                     : `Included DFY setup with ${subscriptionTierDisplayName(normalizedTier)} (not a subscription free trial)`}
                 </ThemedText>
               </View>
@@ -1163,7 +1163,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             <View style={styles.dfyFeatures}>
               {(dfyBenefit === 'none'
                 ? [
-                    "Personal Stylist → Styling Sprint (Quick Start)",
+                    "Personal Stylist → Occasion Ready (Quick Start)",
                     "Stylist Unlimited → Full Wardrobe Setup",
                     "One included setup per subscription (trial)",
                     "Additional setups available to purchase",
@@ -1228,7 +1228,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 <Feather name="grid" size={18} color={LUXURY_COLORS.midnight} />
               </View>
               <View style={styles.dfyCardTitleContainer}>
-                <ThemedText type="h3" style={{ color: LUXURY_COLORS.midnight }}>Core Wardrobe Setup</ThemedText>
+                <ThemedText type="h3" style={{ color: LUXURY_COLORS.midnight }}>Full Wardrobe Setup</ThemedText>
                 <ThemedText type="caption" style={{ color: 'rgba(26,26,46,0.6)' }}>One-time purchase</ThemedText>
               </View>
             </View>
@@ -1287,7 +1287,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 <Feather name="package" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.dfyCardTitleContainer}>
-                <ThemedText type="h3" style={{ color: '#FFFFFF' }}>Outfit-Based Setup</ThemedText>
+                <ThemedText type="h3" style={{ color: '#FFFFFF' }}>Occasion Ready</ThemedText>
                 <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.7)' }}>One-time purchase</ThemedText>
               </View>
             </View>

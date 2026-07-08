@@ -217,7 +217,7 @@ const OBJECTION_RESPONSES: DFYObjectionResponse[] = [
 const COMPARISON_TIERS: DFYComparisonTier[] = [
   {
     id: 'core',
-    name: 'Full Setup',
+    name: 'Full Wardrobe Setup',
     tagline: 'Less stress — know what to wear every day.',
     price: '£39.99',
     mentalModel: 'structural',
@@ -236,7 +236,7 @@ const COMPARISON_TIERS: DFYComparisonTier[] = [
   },
   {
     id: 'lite',
-    name: 'Styling Sprint',
+    name: 'Occasion Ready',
     tagline: 'Feel confident for your next occasion.',
     price: '£19.99',
     mentalModel: 'tactical',

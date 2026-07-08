@@ -39,7 +39,7 @@ interface SetupOptionsResponse {
 const DEFAULT_TIERS: DfyTier[] = [
   {
     id: "core",
-    title: "Core Wardrobe Setup",
+    title: "Full Wardrobe Setup",
     tagline: "Build a system that generates unlimited outfits (keep forever).",
     price: "£39.99",
     turnaround: "Ready in 24-48h",
@@ -51,7 +51,7 @@ const DEFAULT_TIERS: DfyTier[] = [
   },
   {
     id: "outfit",
-    title: "Outfit-Based Setup",
+    title: "Occasion Ready",
     tagline: "Ready-to-wear looks for a trip or event (14 days).",
     price: "£19.99",
     turnaround: "Ready in 24h",

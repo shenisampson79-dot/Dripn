@@ -896,7 +896,7 @@ export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScre
             {totalDays}-Day Calendar
           </ThemedText>
           <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.7)' }}>
-            {tier === 'lite' ? 'Outfit-Based Setup' : 'Core Wardrobe Setup'}
+            {tier === 'lite' ? 'Occasion Ready' : 'Full Wardrobe Setup'}
           </ThemedText>
         </View>
         <Pressable 

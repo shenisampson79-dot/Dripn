@@ -697,7 +697,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
                 <View style={[styles.infoNote, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
                   <Feather name="info" size={16} color={theme.tabIconDefault} />
                   <ThemedText type="small" style={{ flex: 1, marginLeft: Spacing.sm, opacity: 0.7 }}>
-                    This is a stylist-led outfit. If you'd like to swap items yourself, consider upgrading to Core Wardrobe.
+                    This is a stylist-led outfit. If you'd like to swap items yourself, consider upgrading to Full Wardrobe Setup.
                   </ThemedText>
                 </View>
               </>
@@ -729,7 +729,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
             No lookbook yet
           </ThemedText>
           <ThemedText style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: Spacing.sm }}>
-            Purchase Outfit-Based Setup to get your personalized 14-day style plan
+            Purchase Occasion Ready to get your personalized 14-day style plan
           </ThemedText>
         </View>
       </View>

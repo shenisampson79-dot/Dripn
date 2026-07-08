@@ -1437,7 +1437,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     <Feather name="check" size={14} color="#FFFFFF" />
                   </LinearGradient>
                   <ThemedText type="body" style={{ marginLeft: Spacing.sm, fontWeight: '600' }}>
-                    {dfyAccess.tier === 'core' ? 'Core Wardrobe' : 'Outfit-Based'} Active
+                    {dfyAccess.tier === 'core' ? 'Full Wardrobe Setup' : 'Occasion Ready'} Active
                   </ThemedText>
                 </View>
                 <ThemedText type="small" style={{ color: theme.tabIconDefault, marginTop: Spacing.xs }}>

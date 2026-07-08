@@ -811,7 +811,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                 <ThemedText type="small" style={styles.settingSubtitle}>
                   {dfyAccess?.tier === 'lite' && dfyAccess?.hasAccess
                     ? `${dfyAccess.daysRemaining}d remaining`
-                    : 'Test Outfit-Based Setup (14-day lookbook)'}
+                    : 'Test Occasion Ready (14-day lookbook)'}
                 </ThemedText>
               </View>
               <Switch
@@ -836,7 +836,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                 <ThemedText type="small" style={styles.settingSubtitle}>
                   {dfyAccess?.tier === 'core' && dfyAccess?.hasAccess
                     ? `${dfyAccess.daysRemaining}d remaining`
-                    : 'Test Core Wardrobe Setup (30-day modular wardrobe)'}
+                    : 'Test Full Wardrobe Setup (30-day modular wardrobe)'}
                 </ThemedText>
               </View>
               <Switch

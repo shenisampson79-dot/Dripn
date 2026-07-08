@@ -15,7 +15,7 @@ export function getDfyBenefitForSubscription(tier?: string | null): DfySubscript
 export function getDfyBenefitTitle(benefit: DfySubscriptionBenefit): string {
   switch (benefit) {
     case 'styling_sprint':
-      return 'Styling Sprint';
+      return 'Occasion Ready';
     case 'full_wardrobe_setup':
       return 'Full Wardrobe Setup';
     default:
@@ -26,7 +26,7 @@ export function getDfyBenefitTitle(benefit: DfySubscriptionBenefit): string {
 export function getDfyBenefitSubtitle(benefit: DfySubscriptionBenefit): string {
   switch (benefit) {
     case 'styling_sprint':
-      return "We've saved a Styling Sprint for you — a handful of looks for that trip or event you've got coming up.";
+      return "We've saved Occasion Ready for you — a handful of looks for that trip or event you've got coming up.";
     case 'full_wardrobe_setup':
       return "Your plan includes one setup — choose Quick Start for a fast win, or Full Setup to digitise your whole closet.";
     default:

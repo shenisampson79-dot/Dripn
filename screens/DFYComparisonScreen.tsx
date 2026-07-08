@@ -285,7 +285,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     if (selectedTier === 'lite') {
       Alert.alert(
         'Payment Successful!',
-        'Your Outfit-Based setup is confirmed. Want ongoing styling advice from your personal AI stylist?',
+        'Your Occasion Ready setup is confirmed. Want ongoing styling advice from your personal AI stylist?',
         [
           {
             text: 'Get Personal Stylist',
@@ -301,7 +301,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     } else {
       Alert.alert(
         'Payment Successful!',
-        `Your Core Wardrobe setup is confirmed. Let's get started!`,
+        `Your Full Wardrobe Setup is confirmed. Let's get started!`,
         [{ text: 'Continue', onPress: () => navigation.navigate('DFYUpload', { type: 'core' }) }]
       );
     }
@@ -588,7 +588,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
             <ThemedText type="small" style={styles.comparisonNoteText}>
               <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Full Setup</ThemedText>
               {" "}dresses you every day after.{" "}
-              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Styling Sprint</ThemedText>
+              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Occasion Ready</ThemedText>
               {" "}gets you ready for right now.
             </ThemedText>
           </View>
