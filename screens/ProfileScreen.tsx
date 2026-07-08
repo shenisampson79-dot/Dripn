@@ -706,7 +706,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               >
                 <ActivityIndicator size="large" color={LUXURY_COLORS.midnight} />
               </LinearGradient>
-              <ThemedText type="body" style={styles.emptySubtitle}>
+              <ThemedText type="body" style={[styles.emptySubtitle, { color: 'rgba(255,255,255,0.72)' }]}>
                 {t('profile.loadingOutfits')}
               </ThemedText>
             </View>
@@ -734,10 +734,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                   <Feather name="bookmark" size={28} color={LUXURY_COLORS.midnight} />
                 </LinearGradient>
               </LinearGradient>
-              <ThemedText type="h3" style={styles.emptyTitle}>
+              <ThemedText type="h3" style={[styles.emptyTitle, { color: '#FFFFFF' }]}>
                 {t('profile.noLikedOutfits')}
               </ThemedText>
-              <ThemedText type="body" style={styles.emptySubtitle}>
+              <ThemedText type="body" style={[styles.emptySubtitle, { color: 'rgba(255,255,255,0.72)' }]}>
                 {t('profile.noLikedOutfitsHint')}
               </ThemedText>
             </View>
@@ -1099,10 +1099,12 @@ const styles = StyleSheet.create({
   },
   savedOutfitsSectionTitle: {
     fontWeight: '700',
+    color: '#FFFFFF',
   },
   contentSection: {
     minHeight: 200,
     paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
   },
   postsContainer: {
     gap: Spacing.lg,

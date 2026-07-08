@@ -32,9 +32,21 @@ type Props = {
 const ROW_HEIGHT_ESTIMATE = 88;
 const HEADER_HEIGHT = 36;
 const MAX_VISIBLE_ROWS = 6;
+const CARD_BG = '#FFFFFF';
+const TITLE_COLOR = '#1A1A2E';
+const MUTED_COLOR = '#5A5268';
+const CARD_BORDER = 'rgba(0,0,0,0.06)';
+const ROW_DIVIDER = 'rgba(0,0,0,0.08)';
+const cardElevation = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.08,
+  shadowRadius: 8,
+  elevation: 2,
+};
 
 export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const { height: windowHeight } = useWindowDimensions();
 
   if (outfits.length === 0) return null;
@@ -49,16 +61,17 @@ export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
       style={[
         styles.table,
         {
-          borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+          borderColor: CARD_BORDER,
+          backgroundColor: CARD_BG,
+          ...cardElevation,
         },
       ]}
     >
-      <View style={[styles.tableHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
-        <ThemedText type="caption" style={[styles.headerCell, styles.titleCol, { color: theme.tabIconDefault }]}>
+      <View style={[styles.tableHeader, { borderBottomColor: ROW_DIVIDER }]}>
+        <ThemedText type="caption" style={[styles.headerCell, styles.titleCol, { color: MUTED_COLOR }]}>
           Outfit ({outfits.length})
         </ThemedText>
-        <ThemedText type="caption" style={[styles.headerCell, styles.previewCol, { color: theme.tabIconDefault }]}>
+        <ThemedText type="caption" style={[styles.headerCell, styles.previewCol, { color: MUTED_COLOR }]}>
           Preview
         </ThemedText>
       </View>
@@ -84,10 +97,10 @@ export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
                 styles.row,
                 index < outfits.length - 1 && {
                   borderBottomWidth: StyleSheet.hairlineWidth,
-                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                  borderBottomColor: ROW_DIVIDER,
                 },
                 selected && {
-                  backgroundColor: isDark ? 'rgba(201,168,124,0.12)' : 'rgba(201,168,124,0.14)',
+                  backgroundColor: 'rgba(201,168,124,0.14)',
                 },
                 pressed && { opacity: 0.85 },
               ]}
@@ -103,10 +116,10 @@ export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
                     {outfit.badgeLabel}
                   </ThemedText>
                 </LinearGradient>
-                <ThemedText type="body" style={styles.rowTitle} numberOfLines={1}>
+                <ThemedText type="body" style={[styles.rowTitle, { color: TITLE_COLOR }]} numberOfLines={1}>
                   {outfit.title}
                 </ThemedText>
-                <ThemedText type="caption" style={{ color: theme.tabIconDefault }} numberOfLines={2}>
+                <ThemedText type="caption" style={{ color: MUTED_COLOR }} numberOfLines={2}>
                   {outfit.description || `${outfit.itemCount} items`}
                 </ThemedText>
               </View>
@@ -116,12 +129,12 @@ export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
                   {thumbs.map((item) => (
                     <View
                       key={item.id}
-                      style={[styles.thumb, { backgroundColor: wardrobeTileBackground(isDark) }]}
+                      style={[styles.thumb, { backgroundColor: wardrobeTileBackground(false) }]}
                     >
                       {item.imageUri ? (
                         <Image source={{ uri: item.imageUri }} style={styles.thumbImage} contentFit="contain" />
                       ) : (
-                        <Feather name="image" size={14} color={theme.tabIconDefault} />
+                        <Feather name="image" size={14} color={MUTED_COLOR} />
                       )}
                     </View>
                   ))}
@@ -129,7 +142,7 @@ export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
                 <Feather
                   name="chevron-right"
                   size={18}
-                  color={selected ? theme.link : theme.tabIconDefault}
+                  color={selected ? theme.link : MUTED_COLOR}
                 />
               </View>
             </Pressable>
@@ -138,7 +151,7 @@ export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
       </ScrollView>
 
       {outfits.length > MAX_VISIBLE_ROWS ? (
-        <ThemedText type="caption" style={[styles.scrollHint, { color: theme.tabIconDefault }]}>
+        <ThemedText type="caption" style={[styles.scrollHint, { color: MUTED_COLOR }]}>
           Scroll the list to browse all {outfits.length} outfits
         </ThemedText>
       ) : null}
@@ -149,7 +162,7 @@ export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
 const styles = StyleSheet.create({
   table: {
     borderRadius: BorderRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     overflow: 'hidden',
   },
   tableHeader: {
