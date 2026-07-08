@@ -219,6 +219,17 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     emerald: palette.emerald,
   };
 
+  const styleProfileCardBackground = isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF';
+  const styleProfileCardTitleColor = isDark ? LUXURY_COLORS.midnight : theme.text;
+  const styleProfileCardMutedColor = isDark ? '#5A5268' : theme.tabIconDefault;
+  const styleProfileCardChevronColor = isDark ? '#7A7280' : theme.tabIconDefault;
+
+  const voiceCreditsBarBackground = isDark ? 'rgba(13, 11, 9, 0.62)' : 'rgba(26, 22, 18, 0.52)';
+  const voiceCreditsBarBorder = 'rgba(255, 255, 255, 0.14)';
+  const voiceCreditsTitleColor = '#FFFFFF';
+  const voiceCreditsSubtitleColor = 'rgba(255, 255, 255, 0.72)';
+  const voiceCreditsChevronColor = 'rgba(255, 255, 255, 0.72)';
+
   const likedOutfits: SavedLookbookOutfit[] = savedLookbookOutfits;
 
   const savedOutfitRows = useMemo(
@@ -490,7 +501,8 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             style={({ pressed }) => [
               styles.voiceCreditsButton,
               {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+                backgroundColor: voiceCreditsBarBackground,
+                borderColor: voiceCreditsBarBorder,
                 opacity: pressed ? 0.85 : 1,
               },
             ]}
@@ -502,10 +514,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               <Feather name="headphones" size={18} color="#FFFFFF" />
             </LinearGradient>
             <View style={styles.voiceCreditsContent}>
-              <ThemedText type="body" style={{ fontWeight: '600', color: theme.text }}>
+              <ThemedText type="body" style={{ fontWeight: '600', color: voiceCreditsTitleColor }}>
                 {shouldShowBuyPacks ? 'Top up voice replies' : 'Voice replies'}
               </ThemedText>
-              <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+              <ThemedText type="small" style={{ color: voiceCreditsSubtitleColor }}>
                 {voiceCreditsLoading
                   ? 'Loading balance…'
                   : weekendUnlimitedActive
@@ -515,7 +527,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                       : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left`}
               </ThemedText>
             </View>
-            <Feather name="chevron-right" size={18} color={theme.tabIconDefault} />
+            <Feather name="chevron-right" size={18} color={voiceCreditsChevronColor} />
           </Pressable>
         ) : null}
 
@@ -552,7 +564,11 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             onPress={() => navigation.navigate("StyleDNA")}
             style={({ pressed }) => [
               styles.styleProfileCard,
-              { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', opacity: pressed ? 0.8 : 1 }
+              {
+                backgroundColor: styleProfileCardBackground,
+                borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.06)',
+                opacity: pressed ? 0.8 : 1,
+              },
             ]}
           >
             <LinearGradient
@@ -562,25 +578,29 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               <Feather name="git-branch" size={20} color="#FFFFFF" />
             </LinearGradient>
             <View style={styles.styleProfileCardContent}>
-              <ThemedText type="body" style={styles.styleProfileCardTitle}>{translations.profile.styleDna}</ThemedText>
+              <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileCardTitleColor }]}>{translations.profile.styleDna}</ThemedText>
               {ownedWardrobeItems.length > 0 ? (
                 <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.teal }]}>
                   {wardrobeDominantStyle || 'AI Analysed'}
                 </ThemedText>
               ) : (
-                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: theme.tabIconDefault }]}>
+                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileCardMutedColor }]}>
                   Add items to your wardrobe
                 </ThemedText>
               )}
             </View>
-            <Feather name="chevron-right" size={18} color={theme.tabIconDefault} />
+            <Feather name="chevron-right" size={18} color={styleProfileCardChevronColor} />
           </Pressable>
 
           <Pressable
             onPress={() => navigation.navigate("ColorAnalysis")}
             style={({ pressed }) => [
               styles.styleProfileCard,
-              { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', opacity: pressed ? 0.8 : 1 }
+              {
+                backgroundColor: styleProfileCardBackground,
+                borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.06)',
+                opacity: pressed ? 0.8 : 1,
+              },
             ]}
           >
             <LinearGradient
@@ -590,7 +610,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               <Feather name="droplet" size={20} color="#FFFFFF" />
             </LinearGradient>
             <View style={styles.styleProfileCardContent}>
-              <ThemedText type="body" style={styles.styleProfileCardTitle}>{translations.profile.colorAnalysis}</ThemedText>
+              <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileCardTitleColor }]}>{translations.profile.colorAnalysis}</ThemedText>
               {hasColorAnalysis && bodyProfile?.colorSeason ? (
                 <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.teal }]}>
                   {bodyProfile.colorSeason.season.charAt(0).toUpperCase() + bodyProfile.colorSeason.season.slice(1)}{bodyProfile.colorSeason.subtype ? ` · ${bodyProfile.colorSeason.subtype}` : ''}
@@ -600,19 +620,23 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                   {user.skinUndertone.charAt(0).toUpperCase() + user.skinUndertone.slice(1)} undertone
                 </ThemedText>
               ) : (
-                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: theme.tabIconDefault }]}>
+                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileCardMutedColor }]}>
                   Take a selfie to discover your season
                 </ThemedText>
               )}
             </View>
-            <Feather name="chevron-right" size={18} color={theme.tabIconDefault} />
+            <Feather name="chevron-right" size={18} color={styleProfileCardChevronColor} />
           </Pressable>
 
           <Pressable
             onPress={() => navigation.navigate("BodyScanner")}
             style={({ pressed }) => [
               styles.styleProfileCard,
-              { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF', opacity: pressed ? 0.8 : 1 }
+              {
+                backgroundColor: styleProfileCardBackground,
+                borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.06)',
+                opacity: pressed ? 0.8 : 1,
+              },
             ]}
           >
             <LinearGradient
@@ -622,18 +646,18 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               <Feather name="maximize" size={20} color="#FFFFFF" />
             </LinearGradient>
             <View style={styles.styleProfileCardContent}>
-              <ThemedText type="body" style={styles.styleProfileCardTitle}>{translations.profile.bodyProfile}</ThemedText>
+              <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileCardTitleColor }]}>{translations.profile.bodyProfile}</ThemedText>
               {(hasBodyProfile && bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown') || (user?.bodyShape && String(user.bodyShape) !== 'unknown') ? (
                 <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.teal }]}>
                   {((bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown' ? bodyProfile.bodyShape : user?.bodyShape) as string || '').split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} shape
                 </ThemedText>
               ) : (
-                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: theme.tabIconDefault }]}>
+                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileCardMutedColor }]}>
                   Scan or enter your measurements
                 </ThemedText>
               )}
             </View>
-            <Feather name="chevron-right" size={18} color={theme.tabIconDefault} />
+            <Feather name="chevron-right" size={18} color={styleProfileCardChevronColor} />
           </Pressable>
         </View>
 
@@ -968,14 +992,16 @@ const styles = StyleSheet.create({
   voiceCreditsButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    gap: Spacing.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    gap: Spacing.sm,
   },
   voiceCreditsIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1006,7 +1032,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
     gap: Spacing.md,
   },
   styleProfileCardIcon: {
