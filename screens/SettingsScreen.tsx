@@ -165,6 +165,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     usageLabel,
     shouldShowBuyPacks,
     isLoading: voiceCreditsLoading,
+    weekendUnlimitedActive,
+    weekendExpiryLabel,
   } = useVoiceCredits();
 
   const ALL_COUNTRIES = [
@@ -605,16 +607,18 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.voiceAndLanguage')}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
-          {(hasMonthlyAllowance || shouldShowBuyPacks || remainingCredits > 0) ? (
+          {(hasMonthlyAllowance || shouldShowBuyPacks || remainingCredits > 0 || weekendUnlimitedActive) ? (
             <SettingItem
               icon="zap"
-              title={shouldShowBuyPacks ? 'Top up voice replies' : 'Voice replies'}
+              title={weekendUnlimitedActive ? 'Weekend voice active' : shouldShowBuyPacks ? 'Top up voice replies' : 'Voice replies'}
               subtitle={
                 voiceCreditsLoading
                   ? 'Loading balance…'
-                  : usageLabel
-                    ? `${usageLabel} this month`
-                    : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} available`
+                  : weekendUnlimitedActive
+                    ? `Expires ${weekendExpiryLabel}`
+                    : usageLabel
+                      ? `${usageLabel} this month`
+                      : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} available`
               }
               onPress={() => setShowVoiceCreditsModal(true)}
               theme={theme}

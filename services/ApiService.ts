@@ -1707,6 +1707,8 @@ class ApiService {
         monthlyRemaining: number;
         purchasedCredits: number;
         isUnlimited: boolean;
+        weekendUnlimitedActive?: boolean;
+        weekendUnlimitedExpiresAt?: string | null;
         softCapWarning?: 'usage_high' | 'approaching_limit' | null;
       };
       tier: string;
@@ -1729,6 +1731,7 @@ class ApiService {
         price?: number;
         currency?: string;
         popular?: boolean;
+        weekendUnlimited?: boolean;
       }>;
       userTier?: string;
       creditPrice?: number;
@@ -1752,9 +1755,13 @@ class ApiService {
     return this.request<{
       success: boolean;
       creditsAdded: number;
+      weekendUnlimited?: boolean;
+      weekendUnlimitedExpiresAt?: string | null;
       newBalance: {
         remaining: number | string;
         purchasedCredits: number;
+        weekendUnlimitedActive?: boolean;
+        weekendUnlimitedExpiresAt?: string | null;
       };
     }>('/api/voice-credits/confirm', {
       method: 'POST',
@@ -1775,9 +1782,13 @@ class ApiService {
       alreadySynced?: boolean;
       billingPlatform?: string;
       productId?: string;
+      weekendUnlimited?: boolean;
+      weekendUnlimitedExpiresAt?: string | null;
       newBalance: {
         remaining: number | string;
         purchasedCredits: number;
+        weekendUnlimitedActive?: boolean;
+        weekendUnlimitedExpiresAt?: string | null;
       };
     }>('/api/voice/apple/sync', {
       method: 'POST',

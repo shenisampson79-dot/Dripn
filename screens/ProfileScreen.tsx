@@ -77,6 +77,8 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     usageLabel,
     shouldShowBuyPacks,
     isLoading: voiceCreditsLoading,
+    weekendUnlimitedActive,
+    weekendExpiryLabel,
   } = useVoiceCredits();
 
   // Derive Style DNA from wardrobe items — same logic as StyleDNAScreen
@@ -482,7 +484,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           </Pressable>
         </LinearGradient>
 
-        {(hasMonthlyAllowance || shouldShowBuyPacks || remainingCredits > 0) ? (
+        {(hasMonthlyAllowance || shouldShowBuyPacks || remainingCredits > 0 || weekendUnlimitedActive) ? (
           <Pressable
             onPress={() => setShowVoiceCreditsModal(true)}
             style={({ pressed }) => [
@@ -506,9 +508,11 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
                 {voiceCreditsLoading
                   ? 'Loading balance…'
-                  : usageLabel
-                    ? `${usageLabel} this month`
-                    : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left`}
+                  : weekendUnlimitedActive
+                    ? `Weekend voice active — expires ${weekendExpiryLabel}`
+                    : usageLabel
+                      ? `${usageLabel} this month`
+                      : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left`}
               </ThemedText>
             </View>
             <Feather name="chevron-right" size={18} color={theme.tabIconDefault} />

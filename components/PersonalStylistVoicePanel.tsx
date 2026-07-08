@@ -77,6 +77,8 @@ export function PersonalStylistVoicePanel({
     isLoading: creditsLoading,
     updateBalance,
     refreshBalance,
+    weekendUnlimitedActive,
+    weekendExpiryLabel,
   } = useVoiceCredits();
 
   const [showCreditsModal, setShowCreditsModal] = useState(false);
@@ -367,11 +369,13 @@ export function PersonalStylistVoicePanel({
         {hasMonthlyAllowance && !creditsLoading ? (
           <View style={styles.creditsRow}>
             <ThemedText type="caption" style={{ color: theme.tabIconDefault, textAlign: 'center', flex: 1 }}>
-              {usageLabel
-                ? `${usageLabel} this month`
-                : hasCredits
-                  ? `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left`
-                  : 'Monthly spoken replies used up — add a top-up pack or switch to Chat for unlimited text.'}
+              {weekendUnlimitedActive
+                ? `Weekend voice active — expires ${weekendExpiryLabel}`
+                : usageLabel
+                  ? `${usageLabel} this month`
+                  : hasCredits
+                    ? `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left`
+                    : 'Monthly spoken replies used up — try Weekend Unlimited or add a credit pack.'}
             </ThemedText>
             {shouldShowBuyPacks ? (
               <Pressable

@@ -40,19 +40,26 @@ export const APPLE_DFY_PRODUCT_IDS = {
 
 /** App Store Connect voice credit consumables — must match server VOICE_CREDIT_PACKAGES */
 export const APPLE_VOICE_PRODUCT_IDS = {
-  small: 'com.dripn.voice.credits_10',
-  medium: 'com.dripn.voice.credits_40',
-  large: 'com.dripn.voice.credits_80',
-  xlarge: 'com.dripn.voice.credits_150',
+  boost: 'com.dripn.voice.boost.30',
+  pro: 'com.dripn.voice.pro.80',
+  weekend: 'com.dripn.voice.weekend_unlimited',
 } as const;
+
+/** Weekend unlimited consumables (48h voice) */
+export const APPLE_WEEKEND_UNLIMITED_PRODUCT_IDS = [
+  'com.dripn.voice.weekend_unlimited',
+  'com.dripn.voice.unlimited.weekend',
+] as const;
 
 /** Credit amount per Apple voice product */
 export const APPLE_VOICE_PRODUCT_TO_CREDITS: Record<string, number> = {
+  'com.dripn.voice.boost.30': 30,
+  'com.dripn.voice.pro.80': 80,
+  // Legacy ASC product IDs (old 4-pack — still honoured server-side)
   'com.dripn.voice.credits_10': 10,
   'com.dripn.voice.credits_40': 40,
   'com.dripn.voice.credits_80': 80,
   'com.dripn.voice.credits_150': 150,
-  // Legacy ASC product IDs (old credit tiers — map to new amounts)
   'com.dripn.voice.credits_25': 40,
   'com.dripn.voice.credits_50': 80,
   'com.dripn.voice.credits_100': 150,
@@ -80,6 +87,7 @@ export interface VoiceCreditPriceInfo {
   productId: string;
   credits: number;
   priceString: string;
+  weekendUnlimited?: boolean;
 }
 
 export interface AppleIAPService {
@@ -114,9 +122,27 @@ function voiceProductIdFor(packId: VoiceCreditPackId): string {
   return APPLE_VOICE_PRODUCT_IDS[packId];
 }
 
+export function isWeekendUnlimitedProductId(productId: string): boolean {
+  if (APPLE_WEEKEND_UNLIMITED_PRODUCT_IDS.includes(productId as typeof APPLE_WEEKEND_UNLIMITED_PRODUCT_IDS[number])) {
+    return true;
+  }
+  return /weekend_unlimited|unlimited\.weekend/i.test(productId);
+}
+
 export function creditsForVoiceProductId(productId: string): number | null {
+  if (isWeekendUnlimitedProductId(productId)) return null;
   const direct = APPLE_VOICE_PRODUCT_TO_CREDITS[productId];
   if (direct) return direct;
+  const boostMatch = productId.match(/voice\.boost\.(\d+)/i);
+  if (boostMatch) {
+    const parsed = parseInt(boostMatch[1], 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+  const proMatch = productId.match(/voice\.pro\.(\d+)/i);
+  if (proMatch) {
+    const parsed = parseInt(proMatch[1], 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
   const match = productId.match(/voice\.(?:credits_)?(\d+)/i);
   if (match) {
     const parsed = parseInt(match[1], 10);
@@ -126,7 +152,7 @@ export function creditsForVoiceProductId(productId: string): number | null {
 }
 
 export function isVoiceProductId(productId: string): boolean {
-  return creditsForVoiceProductId(productId) != null;
+  return isWeekendUnlimitedProductId(productId) || creditsForVoiceProductId(productId) != null;
 }
 
 function findPackageByProductId(
@@ -225,12 +251,14 @@ class RevenueCatAppleIAPService implements AppleIAPService {
       const storeProduct = productById.get(productId);
       const priceString = storeProduct?.priceString
         ?? formatVoicePricePence(VOICE_PACK_PRICE_PENCE[packId]);
+      const weekendUnlimited = packId === 'weekend';
       if (priceString) {
         results.push({
           packId,
           productId,
-          credits: APPLE_VOICE_PRODUCT_TO_CREDITS[productId] ?? 0,
+          credits: weekendUnlimited ? 0 : (APPLE_VOICE_PRODUCT_TO_CREDITS[productId] ?? 0),
           priceString,
+          weekendUnlimited,
         });
       }
     }
@@ -468,13 +496,15 @@ export function serializeVoiceCustomerInfoForSync(
   const latestTxn = voiceTxns[0] || customerInfo.nonSubscriptionTransactions[0];
   const productId = latestTxn?.productIdentifier
     || (packId ? voiceProductIdFor(packId) : null);
-  const credits = productId ? creditsForVoiceProductId(productId) : null;
+  const weekendUnlimited = productId ? isWeekendUnlimitedProductId(productId) : packId === 'weekend';
+  const credits = weekendUnlimited ? null : (productId ? creditsForVoiceProductId(productId) : null);
 
   return {
     appUserId: customerInfo.originalAppUserId,
     productId,
     credits,
     packId: packId ?? null,
+    weekendUnlimited,
     originalTransactionId: latestTxn?.transactionIdentifier ?? null,
   };
 }

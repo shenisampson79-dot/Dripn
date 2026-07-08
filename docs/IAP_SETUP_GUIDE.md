@@ -1,13 +1,13 @@
 # Dripn IAP Setup Guide — App Store Connect + RevenueCat
 
-Complete setup guide for all **10** in-app purchase products used by Dripn (StyleWise iOS + Dripn-Server). Product IDs are exact strings from `AppleIAPService.ts` and `appleIAPService.js`.
+Complete setup guide for all **9** in-app purchase products used by Dripn (StyleWise iOS + Dripn-Server). Product IDs are exact strings from `AppleIAPService.ts` and `appleIAPService.js`.
 
 **Bundle ID:** `com.dripn.app`  
 **Subscription group reference name:** `dripn_subscriptions`
 
 ---
 
-## 1. The 10 Products Table
+## 1. The 9 Products Table
 
 | # | Product ID | Type | Display Name (UK, ≤30) | Description (UK, ≤45) | UK Price Target (GBP) | Subscription Group | RevenueCat Entitlement | App Feature |
 |---|------------|------|------------------------|----------------------|----------------------|--------------------|------------------------|-------------|
@@ -17,10 +17,9 @@ Complete setup guide for all **10** in-app purchase products used by Dripn (Styl
 | 4 | `com.dripn.stylist_unlimited.annual` | Auto-renewable subscription | Your Best-Dressed Year | Save 20% — plan ahead, stress less all year | **£191.99/yr** (~20% off monthly) | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — same tier, annual billing |
 | 5 | `com.dripn.dfy.lite` | Non-consumable | Occasion Ready | Feel confident for what's coming up | **£19.99** one-time | — | `dfy_lite` | **DFYComparisonScreen** / **DFYStartScreen** — Occasion Ready / Quick Start |
 | 6 | `com.dripn.dfy.core` | Non-consumable | Full Wardrobe Setup | Less stress — know what to wear every day | **£39.99** one-time | — | `dfy_core` | **DFYComparisonScreen** / **DFYStartScreen** — Full Wardrobe Setup / Full Setup |
-| 7 | `com.dripn.voice.credits_10` | Consumable | Quick Top-Up | Get instant voice styling advice | **£1.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`small` pack) |
-| 8 | `com.dripn.voice.credits_40` | Consumable | Keep It Going | Talk through your outfit decisions | **£3.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`medium` pack) |
-| 9 | `com.dripn.voice.credits_80` | Consumable | In the Zone | Your stylist, whenever you need it | **£5.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`large` pack, Best Value) |
-| 10 | `com.dripn.voice.credits_150` | Consumable | All In | Maximum credits — stylist on demand | **£8.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`xlarge` pack) |
+| 7 | `com.dripn.voice.boost.30` | Consumable | Voice Boost | For when you want more personalised advice | **£2.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`boost` pack) |
+| 8 | `com.dripn.voice.pro.80` | Consumable | Pro Pack | Perfect for daily outfit planning | **£5.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`pro` pack, Most Popular) |
+| 9 | `com.dripn.voice.weekend_unlimited` | Consumable | Weekend Unlimited | Get styled for every event this weekend | **£8.99** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`weekend` pack, 48h unlimited) |
 
 ### Price sources (server code)
 
@@ -30,7 +29,7 @@ Complete setup guide for all **10** in-app purchase products used by Dripn (Styl
 | Stylist Unlimited monthly/annual | `BILLING_PLANS.stylist_unlimited` | £19.99 / £191.99 |
 | DFY Lite | `BILLING_PLANS.outfit_setup` | £19.99 |
 | DFY Core | `BILLING_PLANS.core_wardrobe` | £39.99 |
-| Voice packs | `VOICE_CREDIT_PACKAGES` | £1.00 / £3.00 / £5.00 / £8.00 |
+| Voice packs | `VOICE_CREDIT_PACKAGES` | £2.99 / £5.99 / £8.99 |
 
 In App Store Connect, pick the **UK price tier** that matches these GBP amounts (Apple tiers may not match penny-perfect in every territory — UK is the primary reference).
 
@@ -70,23 +69,19 @@ Copy into each **Non-Consumable** product's localization fields:
 
 Copy into each **Consumable** product's localization fields:
 
-**`com.dripn.voice.credits_10`**
-- Display name: `Quick Top-Up` (12 chars)
-- Description: `Get instant voice styling advice` (32 chars)
+**`com.dripn.voice.boost.30`**
+- Display name: `Voice Boost` (11 chars)
+- Description: `For when you want more personalised advice` (42 chars)
 
-**`com.dripn.voice.credits_40`**
-- Display name: `Keep It Going` (13 chars)
-- Description: `Talk through your outfit decisions` (33 chars)
+**`com.dripn.voice.pro.80`**
+- Display name: `Pro Pack` (8 chars)
+- Description: `Perfect for daily outfit planning` (33 chars)
 
-**`com.dripn.voice.credits_80`**
-- Display name: `In the Zone` (11 chars)
-- Description: `Your stylist, whenever you need it` (34 chars)
+**`com.dripn.voice.weekend_unlimited`**
+- Display name: `Weekend Unlimited` (17 chars)
+- Description: `Get styled for every event this weekend` (39 chars)
 
-**`com.dripn.voice.credits_150`**
-- Display name: `All In` (6 chars)
-- Description: `Maximum credits — stylist on demand` (35 chars)
-
-> Legacy IDs `credits_25`, `credits_50`, `credits_100` are still honoured server-side (40 / 80 / 150 credits). Create the four canonical IDs above in ASC for new products.
+> **Legacy voice IDs** (`credits_10`, `credits_40`, `credits_80`, `credits_150`, `credits_25`, `credits_50`, `credits_100`) remain honoured server-side for existing purchases. Create the three canonical IDs above in ASC for new submissions.
 
 > Full reference with quick-copy block: [`IAP_ASC_PASTE_BLOCKS_DFY_VOICE.md`](./IAP_ASC_PASTE_BLOCKS_DFY_VOICE.md)
 
@@ -155,16 +150,15 @@ The server accepts these aliases but the app uses the 10 IDs above:
 2. Add localized descriptions from §1 DFY paste blocks (benefit-led; ≤30 / ≤45 chars).
 3. Add review screenshot from **DFYComparisonScreen** or **DFYStartScreen**.
 
-### C. Create 4 consumable voice products
+### C. Create 3 consumable voice products
 
 1. **In-App Purchases** → **+** → **Consumable**.
 
-| Product ID | Display name | Credits | Price (UK) |
-|------------|--------------|---------|------------|
-| `com.dripn.voice.credits_10` | Quick Top-Up | 10 | £1.00 |
-| `com.dripn.voice.credits_40` | Keep It Going | 40 | £3.00 |
-| `com.dripn.voice.credits_80` | In the Zone | 80 | £5.00 |
-| `com.dripn.voice.credits_150` | All In | 150 | £8.00 |
+| Product ID | Display name | What user gets | Price (UK) |
+|------------|--------------|----------------|------------|
+| `com.dripn.voice.boost.30` | Voice Boost | 30 spoken replies | £2.99 |
+| `com.dripn.voice.pro.80` | Pro Pack | 80 spoken replies | £5.99 |
+| `com.dripn.voice.weekend_unlimited` | Weekend Unlimited | Unlimited voice for 48 hours | £8.99 |
 
 2. Add localized descriptions from §1 voice paste blocks (benefit-led; ≤30 / ≤45 chars).
 
@@ -208,7 +202,7 @@ Write IAP display names and descriptions for **outcomes**, not feature specs. Ap
 3. Workflow:
    - Upload iOS build via EAS/Xcode.
    - Create App Store version → select build.
-   - Under **In-App Purchases and Subscriptions**, add all 10 products to the version.
+   - Under **In-App Purchases and Subscriptions**, add all 9 products to the version.
    - Submit for review.
 4. First subscription group submission may take longer; allow 24–48+ hours.
 
@@ -253,10 +247,9 @@ RevenueCat → **Products** → for each App Store product, attach the entitleme
 | `com.dripn.stylist_unlimited.annual` | `stylist_unlimited` |
 | `com.dripn.dfy.lite` | `dfy_lite` |
 | `com.dripn.dfy.core` | `dfy_core` |
-| `com.dripn.voice.credits_10` | *(none — consumable)* |
-| `com.dripn.voice.credits_40` | *(none)* |
-| `com.dripn.voice.credits_80` | *(none)* |
-| `com.dripn.voice.credits_150` | *(none)* |
+| `com.dripn.voice.boost.30` | *(none — consumable)* |
+| `com.dripn.voice.pro.80` | *(none)* |
+| `com.dripn.voice.weekend_unlimited` | *(none — sets 48h unlimited on server)* |
 
 ### D. Create offering(s)
 
@@ -275,14 +268,13 @@ The app reads **`offerings.current`** and matches packages by **product identifi
 | `stylist_unlimited_annual` | `com.dripn.stylist_unlimited.annual` |
 | `dfy_lite` | `com.dripn.dfy.lite` |
 | `dfy_core` | `com.dripn.dfy.core` |
-| `voice_10` | `com.dripn.voice.credits_10` |
-| `voice_40` | `com.dripn.voice.credits_40` |
-| `voice_80` | `com.dripn.voice.credits_80` |
-| `voice_150` | `com.dripn.voice.credits_150` |
+| `voice_boost` | `com.dripn.voice.boost.30` |
+| `voice_pro` | `com.dripn.voice.pro.80` |
+| `voice_weekend` | `com.dripn.voice.weekend_unlimited` |
 
 3. Mark this offering as **Current**.
 
-> **Note:** Subscriptions **must** be in the current offering or `purchaseSubscription()` throws. DFY and voice can fall back to `purchaseStoreProduct()`, but putting all 10 in the default offering is simplest.
+> **Note:** Subscriptions **must** be in the current offering or `purchaseSubscription()` throws. DFY and voice can fall back to `purchaseStoreProduct()`, but putting all 9 in the default offering is simplest.
 
 **Optional separate `dfy` offering:** Not required by code — the app only uses `offerings.current`. A separate offering is fine for dashboard organization if you still set one offering as Current with all needed products.
 
@@ -383,7 +375,7 @@ The app calls `Purchases.configure({ apiKey, appUserID: appUserId })` with the *
 | Public vs secret key swapped | SDK configure fails or security risk | `appl_` in app, `sk_` on server only |
 | Expecting Restore to re-grant voice credits | Credits missing after reinstall | Normal — consumables aren't restored; balance comes from `GET /api/voice-credits/balance` |
 | IAPs not attached to app version at submit | IAPs stuck "Missing Metadata" or not reviewable | Attach all 10 to the App Store version before submit |
-| Creating legacy product IDs (`voice.10`, `dfy.styling_sprint`) | App won't find them | Use only the 10 canonical IDs |
+| Creating legacy product IDs (`voice.10`, `dfy.styling_sprint`) | App won't find them | Use only the 9 canonical IDs |
 | Confusing `personal_stylist` product with legacy £14.99 Stripe plan | Wrong price tier in App Store | Personal Stylist IAP = **£9.99** (`style_chat` plan) |
 
 ---
@@ -399,10 +391,9 @@ DFY (non-consumable):
   com.dripn.dfy.lite  →  plan: outfit_setup   →  entitlement: dfy_lite
   com.dripn.dfy.core  →  plan: core_wardrobe  →  entitlement: dfy_core
 
-Voice (consumable — server credits, no entitlement):
-  com.dripn.voice.credits_10   →  10 credits   (pack: small)
-  com.dripn.voice.credits_40   →  40 credits   (pack: medium)
-  com.dripn.voice.credits_80   →  80 credits   (pack: large, Best Value)
-  com.dripn.voice.credits_150  →  150 credits  (pack: xlarge)
-  Legacy: credits_25 → 40 · credits_50 → 80 · credits_100 → 150
+Voice (consumable — server credits or 48h unlimited, no entitlement):
+  com.dripn.voice.boost.30          →  30 credits   (pack: boost)
+  com.dripn.voice.pro.80            →  80 credits   (pack: pro, Most Popular)
+  com.dripn.voice.weekend_unlimited →  48h unlimited voice (pack: weekend)
+  Legacy: credits_10/40/80/150, credits_25/50/100, voice.10/.30/.60 still honoured
 ```

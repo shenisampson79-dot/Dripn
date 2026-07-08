@@ -22,12 +22,13 @@ This document outlines the phased migration from Stripe/WebBrowser checkout to A
 
 ### Voice credits (consumable)
 
-| Product ID | Type | Credits | Stripe package |
+| Product ID | Type | What user gets | Stripe package |
 |---|---|---|---|
-| `com.dripn.voice.credits_10` | Consumable | 10 | `small` |
-| `com.dripn.voice.credits_25` | Consumable | 25 | `medium` |
-| `com.dripn.voice.credits_50` | Consumable | 50 | `large` |
-| `com.dripn.voice.credits_100` | Consumable | 100 | `xlarge` |
+| `com.dripn.voice.boost.30` | Consumable | 30 spoken replies | `boost` |
+| `com.dripn.voice.pro.80` | Consumable | 80 spoken replies | `pro` |
+| `com.dripn.voice.weekend_unlimited` | Consumable | Unlimited voice for 48 hours | `weekend` |
+
+Legacy IDs (`credits_10`, `credits_40`, etc.) remain honoured server-side for existing purchases.
 
 Create all products in App Store Connect → Subscriptions / In-App Purchases, with localized display names matching in-app copy.
 

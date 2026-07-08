@@ -106,7 +106,7 @@ Overflow packs when the monthly spoken-reply allowance is used — tone is helpf
 
 
 
-### `com.dripn.voice.credits_10` — £1.00
+### `com.dripn.voice.boost.30` — £2.99
 
 
 
@@ -114,11 +114,11 @@ Overflow packs when the monthly spoken-reply allowance is used — tone is helpf
 
 
 
-- **Display name:** `Quick Top-Up` **(12 chars)**
+- **Display name:** `Voice Boost` **(11 chars)**
 
 
 
-- **Description:** `Get instant voice styling advice` **(32 chars)**
+- **Description:** `For when you want more personalised advice` **(42 chars)**
 
 
 
@@ -126,7 +126,7 @@ Overflow packs when the monthly spoken-reply allowance is used — tone is helpf
 
 
 
-### `com.dripn.voice.credits_40` — £3.00
+### `com.dripn.voice.pro.80` — £5.99
 
 
 
@@ -134,11 +134,11 @@ Overflow packs when the monthly spoken-reply allowance is used — tone is helpf
 
 
 
-- **Display name:** `Keep It Going` **(13 chars)**
+- **Display name:** `Pro Pack` **(8 chars)**
 
 
 
-- **Description:** `Talk through your outfit decisions` **(33 chars)**
+- **Description:** `Perfect for daily outfit planning` **(33 chars)**
 
 
 
@@ -146,7 +146,7 @@ Overflow packs when the monthly spoken-reply allowance is used — tone is helpf
 
 
 
-### `com.dripn.voice.credits_80` — £5.00
+### `com.dripn.voice.weekend_unlimited` — £8.99
 
 
 
@@ -154,11 +154,11 @@ Overflow packs when the monthly spoken-reply allowance is used — tone is helpf
 
 
 
-- **Display name:** `In the Zone` **(11 chars)**
+- **Display name:** `Weekend Unlimited` **(17 chars)**
 
 
 
-- **Description:** `Your stylist, whenever you need it` **(34 chars)**
+- **Description:** `Get styled for every event this weekend` **(39 chars)**
 
 
 
@@ -166,7 +166,6 @@ Overflow packs when the monthly spoken-reply allowance is used — tone is helpf
 
 
 
-### `com.dripn.voice.credits_150` — £8.00
 
 
 
@@ -174,11 +173,9 @@ Overflow packs when the monthly spoken-reply allowance is used — tone is helpf
 
 
 
-- **Display name:** `All In` **(6 chars)**
 
 
 
-- **Description:** `Maximum credits — stylist on demand` **(35 chars)**
 
 
 
@@ -186,7 +183,7 @@ Overflow packs when the monthly spoken-reply allowance is used — tone is helpf
 
 
 
-> **Legacy product IDs** (`credits_25`, `credits_50`, `credits_100`) remain supported server-side and map to 40 / 80 / 150 credits. Prefer creating the four canonical IDs above in App Store Connect for new submissions.
+> **Legacy product IDs** (`credits_10`, `credits_40`, `credits_80`, `credits_150`, `credits_25`, `credits_50`, `credits_100`) remain supported server-side. Create the three canonical IDs above in App Store Connect for new submissions.
 
 
 
@@ -202,7 +199,7 @@ Overflow packs when the monthly spoken-reply allowance is used — tone is helpf
 
 
 
-## Quick copy (all six)
+## Quick copy (DFY + voice)
 
 
 
@@ -246,31 +243,15 @@ Description: Less stress — know what to wear every day
 
 
 
-com.dripn.voice.credits_10
+com.dripn.voice.boost.30
 
 
 
-Display name: Quick Top-Up
+Display name: Voice Boost
 
 
 
-Description: Get instant voice styling advice
-
-
-
-
-
-
-
-com.dripn.voice.credits_40
-
-
-
-Display name: Keep It Going
-
-
-
-Description: Talk through your outfit decisions
+Description: For when you want more personalised advice
 
 
 
@@ -278,15 +259,15 @@ Description: Talk through your outfit decisions
 
 
 
-com.dripn.voice.credits_80
+com.dripn.voice.pro.80
 
 
 
-Display name: In the Zone
+Display name: Pro Pack
 
 
 
-Description: Your stylist, whenever you need it
+Description: Perfect for daily outfit planning
 
 
 
@@ -294,19 +275,23 @@ Description: Your stylist, whenever you need it
 
 
 
-com.dripn.voice.credits_150
+com.dripn.voice.weekend_unlimited
 
 
 
-Display name: All In
+Display name: Weekend Unlimited
 
 
 
-Description: Maximum credits — stylist on demand
+Description: Get styled for every event this weekend
 
 
 
 ```
+
+
+
+
 
 
 
