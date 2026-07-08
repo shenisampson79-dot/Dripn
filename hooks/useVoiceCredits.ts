@@ -24,7 +24,7 @@ import { shouldUseAppleIAP } from '@/utils/platformPayments';
 
 import { useAuth } from '@/contexts/AuthContext';
 
-import { formatVoicePricePence, VOICE_PACK_PRICE_PENCE, formatWeekendExpiry } from '@/utils/voiceCreditPacks';
+import { formatVoicePricePence, VOICE_PACK_PRICE_PENCE, formatWeekendExpiry, sortVoiceCreditPacks } from '@/utils/voiceCreditPacks';
 
 
 
@@ -366,13 +366,7 @@ export function useVoiceCredits() {
 
       }));
 
-      const prioritizeWeekend = (list: VoiceCreditPackage[]) => {
-        const weekend = list.find((p) => p.id === 'weekend');
-        const rest = list.filter((p) => p.id !== 'weekend');
-        return weekend ? [weekend, ...rest] : list;
-      };
-
-      setPackages(prioritizeWeekend(mapped));
+      setPackages(sortVoiceCreditPacks(mapped));
 
     } catch (error) {
 
@@ -742,12 +736,10 @@ export function useVoiceCredits() {
 
   }, [credits?.softCapWarning, hasMonthlyAllowance, normalizedTier, remainingCredits, weekendUnlimitedActive]);
 
-  const displayPackages = useMemo(() => {
-    if (!shouldShowBuyPacks && !isStylistUnlimited) return packages;
-    const weekend = packages.find((p) => p.id === 'weekend');
-    const rest = packages.filter((p) => p.id !== 'weekend');
-    return weekend ? [weekend, ...rest] : packages;
-  }, [isStylistUnlimited, packages, shouldShowBuyPacks]);
+  const displayPackages = useMemo(
+    () => sortVoiceCreditPacks(packages),
+    [packages],
+  );
 
 
 

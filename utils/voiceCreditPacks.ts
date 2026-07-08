@@ -2,8 +2,23 @@
 export const VOICE_PACK_DISPLAY: Record<string, { label: string; subtitle: string }> = {
   boost: { label: 'Voice Boost', subtitle: 'For when you want more personalised advice' },
   pro: { label: 'Pro Pack', subtitle: 'Perfect for daily outfit planning' },
-  weekend: { label: 'Weekend Unlimited', subtitle: 'Get styled for every event this weekend' },
+  weekend: { label: 'Weekend Unlimited', subtitle: 'Unlimited voice for 48 hours' },
 };
+
+/** Display order in the buy-credits modal: Weekend → Pro (most popular) → Boost */
+export const VOICE_PACK_DISPLAY_ORDER = ['weekend', 'pro', 'boost'] as const;
+
+const VOICE_PACK_ORDER_RANK: Record<string, number> = Object.fromEntries(
+  VOICE_PACK_DISPLAY_ORDER.map((id, index) => [id, index]),
+);
+
+export function sortVoiceCreditPacks<T extends { id: string }>(list: T[]): T[] {
+  return [...list].sort((a, b) => {
+    const aRank = VOICE_PACK_ORDER_RANK[a.id] ?? VOICE_PACK_DISPLAY_ORDER.length;
+    const bRank = VOICE_PACK_ORDER_RANK[b.id] ?? VOICE_PACK_DISPLAY_ORDER.length;
+    return aRank - bRank;
+  });
+}
 
 /** Pack prices in pence — matches server VOICE_CREDIT_PACKAGES / ASC UK tier */
 export const VOICE_PACK_PRICE_PENCE: Record<string, number> = {
