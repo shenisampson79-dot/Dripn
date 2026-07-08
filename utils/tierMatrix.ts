@@ -83,8 +83,8 @@ export const TIER_MATRIX: Record<SubscriptionTier, TierFeatureMatrix> = {
 
   personal_stylist: {
     displayName: 'Personal Stylist',
-    tagline: 'Decide faster, daily',
-    jobToBeDone: 'Help me decide every day',
+    tagline: 'Look good in 30 seconds — every single day.',
+    jobToBeDone: 'Stop wasting time deciding what to wear',
     billingPlanId: 'style_chat',
     monthlyPriceUsd: 9.99,
 
@@ -119,8 +119,8 @@ export const TIER_MATRIX: Record<SubscriptionTier, TierFeatureMatrix> = {
 
   stylist_unlimited: {
     displayName: 'Stylist Unlimited',
-    tagline: 'Plan your style life',
-    jobToBeDone: 'Save my time — plan, pack, and prioritise',
+    tagline: 'Your entire wardrobe — organised, planned, handled.',
+    jobToBeDone: 'Never think about outfits again',
     billingPlanId: 'stylist_unlimited',
     monthlyPriceUsd: 19.99,
 

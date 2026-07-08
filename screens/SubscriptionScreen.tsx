@@ -70,6 +70,7 @@ interface Plan {
   bestValue?: boolean;
   starter?: boolean;
   tagline?: string;
+  footerLine?: string;
   gradientColors: readonly [string, string, ...string[]];
   accentColor: string;
   anchorStyle: 'highlight' | 'normal' | 'subtle';
@@ -88,43 +89,40 @@ const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
     { text: "Outfit calendar", included: false },
   ],
   personal_stylist: [
-    { text: "Never second-guess what to wear", included: true, bold: true },
-    { text: "Pick the best option — every time", included: true, bold: true },
-    { text: "Kickstart with an included styling sprint", included: true, bold: true },
-    { text: "Remember what worked — and what didn't", included: true },
-    { text: "Advice that knows your wardrobe", included: true },
-    { text: "Build a wardrobe that works together", included: true },
-    { text: "20 voice replies/month — talk to your stylist", included: true },
-    { text: "Plan outfits weeks ahead", included: false },
+    { text: "Get instant outfit decisions (no overthinking)", included: true },
+    { text: "Know what actually looks good on you", included: true },
+    { text: "Build confidence before you leave the house", included: true },
+    { text: "Voice your outfit and get instant answers", included: true },
+    { text: "Learn your style automatically over time", included: true },
   ],
   stylist_unlimited: [
     { text: "Everything in Personal Stylist", included: true, bold: true },
-    { text: "Full wardrobe setup included to start", included: true, bold: true },
-    { text: "Plan ahead — always know what to wear", included: true, bold: true },
-    { text: "100 voice replies/month — priority voice styling", included: true, bold: true },
-    { text: "Generous voice replies included", included: true },
-    { text: "Your whole wardrobe, always on hand", included: true },
-    { text: "Faster photos — less waiting around", included: true },
-    { text: "Add pieces in one go, effortlessly", included: true },
-    { text: "Help when you need it, first in line", included: true },
+    { text: "Plan outfits days or weeks ahead", included: true },
+    { text: "See your full wardrobe instantly", included: true },
+    { text: "Build a system that always works", included: true },
+    { text: "Talk to your stylist by voice, anytime", included: true },
+    { text: "Faster, smoother voice responses", included: true },
+    { text: "Priority performance + smoother experience", included: true },
   ],
 };
 
-const getPlanMetadata = (isYearly: boolean): Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean; bestValue?: boolean; tagline?: string }> => ({
+const getPlanMetadata = (isYearly: boolean): Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean; bestValue?: boolean; tagline?: string; footerLine?: string }> => ({
   free: { name: "Free", period: "forever", description: TIER_MATRIX.free.tagline },
   personal_stylist: {
     name: "Personal Stylist",
     period: isYearly ? "/year" : "/month",
-    description: "Look better every day with less outfit stress",
-    tagline: "Feel confident before you walk out the door",
+    description: "Stop wasting time deciding what to wear.",
+    tagline: "Look good in 30 seconds — every single day.",
+    footerLine: "Perfect if you want to look better without the effort",
     popular: true,
   },
   stylist_unlimited: {
     name: "Stylist Unlimited",
     period: isYearly ? "/year" : "/month",
-    description: "Save time planning — dress with ease all year",
+    description: "Never think about outfits again.",
     bestValue: true,
-    tagline: "Less decision fatigue, more time looking great",
+    tagline: "Your entire wardrobe — organised, planned, handled.",
+    footerLine: "For people who are done guessing and want full control",
   },
 });
 
@@ -847,6 +845,12 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               </View>
             ))}
           </View>
+
+          {plan.footerLine ? (
+            <ThemedText type="caption" style={styles.planFooterLine}>
+              {plan.footerLine}
+            </ThemedText>
+          ) : null}
 
           {isSelected && !isCurrent ? (
             <View style={[
@@ -1605,6 +1609,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.75)',
     fontStyle: 'italic',
     marginBottom: Spacing.md,
+  },
+  planFooterLine: {
+    color: 'rgba(255,255,255,0.65)',
+    fontStyle: 'italic',
+    marginTop: Spacing.md,
+    textAlign: 'center',
   },
   planCard: {
     borderRadius: BorderRadius.lg,
