@@ -219,10 +219,17 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     emerald: palette.emerald,
   };
 
-  const styleProfileCardBackground = isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF';
+  const styleProfileCardBackground = isDark ? '#FFFFFF' : '#FFFFFF';
   const styleProfileCardTitleColor = isDark ? LUXURY_COLORS.midnight : theme.text;
   const styleProfileCardMutedColor = isDark ? '#5A5268' : theme.tabIconDefault;
   const styleProfileCardChevronColor = isDark ? '#7A7280' : theme.tabIconDefault;
+  const styleProfileCardElevation = {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.2 : 0.08,
+    shadowRadius: 8,
+    elevation: isDark ? 4 : 2,
+  };
 
   const voiceCreditsBarBackground = isDark ? 'rgba(13, 11, 9, 0.62)' : 'rgba(26, 22, 18, 0.52)';
   const voiceCreditsBarBorder = 'rgba(255, 255, 255, 0.14)';
@@ -567,6 +574,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               {
                 backgroundColor: styleProfileCardBackground,
                 borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.06)',
+                ...styleProfileCardElevation,
                 opacity: pressed ? 0.8 : 1,
               },
             ]}
@@ -599,6 +607,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               {
                 backgroundColor: styleProfileCardBackground,
                 borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.06)',
+                ...styleProfileCardElevation,
                 opacity: pressed ? 0.8 : 1,
               },
             ]}
@@ -635,6 +644,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               {
                 backgroundColor: styleProfileCardBackground,
                 borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.06)',
+                ...styleProfileCardElevation,
                 opacity: pressed ? 0.8 : 1,
               },
             ]}
@@ -997,6 +1007,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     borderWidth: 1,
     gap: Spacing.sm,
+    minHeight: Spacing.buttonHeight,
   },
   voiceCreditsIcon: {
     width: 32,
