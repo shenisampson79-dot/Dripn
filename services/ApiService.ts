@@ -325,7 +325,7 @@ class ApiService {
     }
   }
 
-  async updateProfile(data: { displayName?: string; bio?: string; avatarUrl?: string }) {
+  async updateProfile(data: { displayName?: string; bio?: string; avatarUrl?: string | null }) {
     return this.request<any>('/api/auth/profile', {
       method: 'PUT',
       body: JSON.stringify(data),

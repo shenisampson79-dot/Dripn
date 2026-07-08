@@ -13,6 +13,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SizeRange, BodyShape, BudgetRange, DressCodePreference, SubcultureStyle, DressCodeStrictness, Gender, StylistId, VoicePitch } from "@/contexts/AuthContext";
 import { getAllStylists, getDefaultVoiceForStylist } from "@/services/PersonalStylistService";
 import { onboardingProfileService } from "@/services/OnboardingProfileService";
+import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 const GENDER_OPTIONS: { id: Gender; name: string }[] = [
@@ -161,6 +162,38 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
     }
   };
 
+  const handleRemovePhoto = () => {
+    Alert.alert(
+      "Remove profile photo?",
+      "Your profile will show the default avatar instead.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => setAvatar(null),
+        },
+      ],
+    );
+  };
+
+  const handleAvatarPress = () => {
+    if (avatar) {
+      Alert.alert(
+        "Profile Photo",
+        undefined,
+        [
+          { text: "Change Photo", onPress: handlePickImage },
+          { text: "Remove Photo", style: "destructive", onPress: handleRemovePhoto },
+          { text: "Cancel", style: "cancel" },
+        ],
+      );
+      return;
+    }
+
+    handlePickImage();
+  };
+
   const handleSave = async () => {
     if (!name.trim()) {
       Alert.alert("Error", "Please enter your name");
@@ -172,7 +205,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
       const stylistId = selectedStylistId || "ruby";
       await updateProfile({
         name: name.trim(),
-        avatar,
+        avatar: avatar || null,
         country,
         gender,
         sizeRange,
@@ -193,6 +226,14 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
           },
         },
       } as any);
+
+      if (!avatar) {
+        try {
+          await apiService.updateProfile({ avatarUrl: null });
+        } catch {
+          // Non-fatal — profileData sync still clears avatar in JSON profile
+        }
+      }
 
       if (gender === "man") {
         await onboardingProfileService.saveProfile({ quizGender: "male" });
@@ -225,7 +266,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
   return (
     <ScreenKeyboardAwareScrollView>
       <View style={styles.avatarSection}>
-        <Pressable onPress={handlePickImage}>
+        <Pressable onPress={handleAvatarPress}>
           <View style={[styles.avatarContainer, { backgroundColor: theme.backgroundDefault }]}>
             {avatar ? (
               <Image source={{ uri: avatar }} style={styles.avatar} />
