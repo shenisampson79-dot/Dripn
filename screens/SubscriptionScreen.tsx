@@ -93,7 +93,7 @@ const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
     { text: "Know what actually looks good on you", included: true },
     { text: "Build confidence before you leave the house", included: true },
     { text: "Voice your outfit and get instant answers", included: true },
-    { text: "Learn your style automatically over time", included: true },
+    { text: "Stylists learn your style over time", included: true },
   ],
   stylist_unlimited: [
     { text: "Everything in Personal Stylist", included: true, bold: true },
@@ -101,8 +101,6 @@ const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
     { text: "See your full wardrobe instantly", included: true },
     { text: "Build a system that always works", included: true },
     { text: "Talk to your stylist by voice, anytime", included: true },
-    { text: "Faster, smoother voice responses", included: true },
-    { text: "Priority performance + smoother experience", included: true },
   ],
 };
 
@@ -129,7 +127,7 @@ const getPlanMetadata = (isYearly: boolean): Record<DisplayTier, { name: string;
 const PLAN_SAVINGS: Record<DisplayTier, { save: string; yearlyEquiv?: string; badge?: string; altSuffix?: string }> = {
   free: { save: '' },
   personal_stylist: { save: '£23.89', altSuffix: 'Save 20%' },
-  stylist_unlimited: { save: '£47.89', altSuffix: 'Save 20%', yearlyEquiv: 'less stress all year — save £4/month', badge: 'Save 20%' },
+  stylist_unlimited: { save: '£47.89', altSuffix: 'Save 20%', badge: 'Save 20%' },
 };
 
 const buildPlanPricing = (
@@ -799,13 +797,9 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             </View>
           ) : null}
 
-          <ThemedText type="caption" style={styles.altPriceText}>
-            or {plan.altPrice}{plan.savingsLabel && !isYearly ? ` (${plan.savingsLabel})` : ''}
-          </ThemedText>
-
-          {isYearly && savingsInfo.yearlyEquiv ? (
-            <ThemedText type="caption" style={styles.yearlyEquivText}>
-              {savingsInfo.yearlyEquiv}
+          {!isYearly ? (
+            <ThemedText type="caption" style={styles.altPriceText}>
+              or {plan.altPrice}{plan.savingsLabel ? ` (${plan.savingsLabel})` : ''}
             </ThemedText>
           ) : null}
 
