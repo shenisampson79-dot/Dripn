@@ -235,7 +235,7 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
               <View style={styles.upgradeText}>
                 <ThemedText type="h3">Unlock All Deals</ThemedText>
                 <ThemedText type="small" style={{ opacity: 0.7 }}>
-                  Upgrade to Premium or VIP for exclusive luxury bargains up to 90% off
+                  Upgrade to Personal Stylist for exclusive luxury bargains up to 90% off
                 </ThemedText>
               </View>
             </View>

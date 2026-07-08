@@ -89,7 +89,7 @@ export default function VirtualTryOnScreen({ navigation, route }: VirtualTryOnSc
       Alert.alert(
         'Upgrade Required',
         tier === 'free' 
-          ? 'Virtual Try-On is available for Basic subscribers and above. Upgrade to try on clothes virtually!'
+          ? 'Virtual Try-On is available on Personal Stylist and above. Upgrade to try on clothes virtually!'
           : 'You have used all your virtual try-ons this month. Upgrade for more!',
         [
           { text: 'Cancel', style: 'cancel' },

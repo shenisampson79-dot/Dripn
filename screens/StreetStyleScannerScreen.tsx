@@ -385,7 +385,7 @@ export default function StreetStyleScannerScreen({ navigation }: StreetStyleScan
             Premium Feature
           </ThemedText>
           <ThemedText style={[styles.premiumDescription, { color: theme.tabIconDefault }]}>
-            Upgrade to Premium or VIP for unlimited outfit scanning with GPT-4 Vision
+            Upgrade to Personal Stylist for unlimited outfit scanning
           </ThemedText>
           <Pressable
             style={({ pressed }) => [

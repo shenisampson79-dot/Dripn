@@ -603,7 +603,7 @@ export default function VisualSearchScreen() {
             </View>
             <ThemedText style={styles.premiumTitle}>Subscription Required</ThemedText>
             <ThemedText style={[styles.premiumDescription, { color: theme.tabIconDefault }]}>
-              Upgrade to Basic or above to unlock AI-powered visual search and find similar items from top retailers
+              Upgrade to Personal Stylist to unlock AI-powered visual search and find similar items from top retailers
             </ThemedText>
             <Pressable
               onPress={navigateToSubscription}

@@ -209,7 +209,7 @@ export default function DreamOutfitGeneratorScreen({ navigation }: DreamOutfitGe
             Premium Feature
           </ThemedText>
           <ThemedText style={[styles.premiumDescription, { color: theme.tabIconDefault }]}>
-            Upgrade to Premium or VIP to generate unlimited AI-powered outfit visualizations using DALL-E
+            Upgrade to Personal Stylist to generate AI-powered outfit visualizations
           </ThemedText>
           <Pressable
             style={({ pressed }) => [

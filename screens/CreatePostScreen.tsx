@@ -78,7 +78,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
       const isVideo = asset.type === 'video';
       
       if (isVideo && !limits.canUploadVideo) {
-        Alert.alert("Upgrade Required", "Video uploads are available for Basic subscribers and above.");
+        Alert.alert("Upgrade Required", "Video uploads are available on Personal Stylist and above.");
         return;
       }
 
@@ -128,7 +128,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
 
   const handleRecordVideo = async () => {
     if (!limits.canUploadVideo) {
-      Alert.alert("Upgrade Required", "Video recording is available for Basic subscribers and above.", [
+      Alert.alert("Upgrade Required", "Video recording is available on Personal Stylist and above.", [
         { text: "Cancel", style: "cancel" },
         { text: "Upgrade", onPress: () => onClose() },
       ]);

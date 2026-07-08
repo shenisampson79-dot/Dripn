@@ -129,13 +129,13 @@ export default function TermsOfServiceScreen() {
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Free: Limited uploads and AI advice requests.
+              Free: Limited stylist decisions, wardrobe items, and AI chat.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Basic: Increased uploads and AI requests.
+              Personal Stylist: Unlimited decisions, wardrobe-aware advice, video posts, and extended AI chat.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Premium (Personal Stylist): Unlimited uploads, personal stylist chat, video posts, and exclusive features.
+              Stylist Unlimited: Everything in Personal Stylist plus outfit calendar, unlimited wardrobe, and planning tools.
             </ThemedText>
           </View>
 

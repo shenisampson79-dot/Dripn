@@ -746,9 +746,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         <View style={styles.limitInfo}>
           <Feather name="info" size={14} color="rgba(255,255,255,0.5)" />
           <ThemedText type="small" style={styles.limitText}>
-            {decisionService.getLimitCopy(user?.subscriptionTier || 'free').subtitle === "One decision a day, on me."
-              ? (translations.aiStylist?.oneDecisionDay || "One decision a day, on me.")
-              : decisionService.getLimitCopy(user?.subscriptionTier || 'free').subtitle}
+            {decisionService.getDecisionPickerFooterCopy()}
           </ThemedText>
         </View>
       ) : null}

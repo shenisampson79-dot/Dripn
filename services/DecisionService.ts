@@ -498,12 +498,18 @@ class DecisionService {
     return !FORBIDDEN_LANGUAGE.some(phrase => lowerResponse.includes(phrase));
   }
 
+  /** Free-tier upsell on the decision type picker — upgrade language only, never "included". */
+  getDecisionPickerFooterCopy(): string {
+    return 'Upgrade to Personal Stylist for unlimited decisions and 3-way shopping compare.';
+  }
+
+  /** Tier status copy for limit/paywall surfaces — not for the decision picker footer. */
   getLimitCopy(tier: SubscriptionTier): { title: string; subtitle: string } {
     const normalized = normalizeSubscriptionTier(tier);
     if (normalized === 'free') {
       return {
         title: '1 decision per day',
-        subtitle: 'Upgrade to Personal Stylist for unlimited decisions and 3-way shopping compare.',
+        subtitle: this.getDecisionPickerFooterCopy(),
       };
     }
     if (normalized === 'personal_stylist') {
@@ -514,7 +520,7 @@ class DecisionService {
     }
     return {
       title: 'Stylist Unlimited',
-      subtitle: 'Unlimited decisions — pick any question type below.',
+      subtitle: 'Unlimited decisions with full wardrobe and planning tools.',
     };
   }
 
