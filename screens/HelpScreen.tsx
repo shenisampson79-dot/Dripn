@@ -108,7 +108,7 @@ const FAQ_DATA: FAQCategory[] = [
       {
         id: 's1',
         question: 'What subscription plans are available?',
-        answer: 'We offer three plans: Free (1 stylist decision per day, 2-option shopping compare, up to 15 wardrobe items), Personal Stylist at £9.99 per month (unlimited decisions, 3-way compare, wardrobe-aware advice, decision history), and Stylist Unlimited at £19.99 per month (outfit calendar, unlimited wardrobe, priority processing, and full planning tools).',
+        answer: 'We offer three plans: Free (1 stylist decision per day, 2-option shopping compare, up to 15 wardrobe items), Personal Stylist at £9.99 per month (unlimited decisions, 3-way compare, wardrobe-aware advice, decision history), and Stylist Unlimited at £19.99 per month (outfit calendar, unlimited wardrobe, and full planning tools).',
       },
       {
         id: 's2',

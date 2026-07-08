@@ -177,7 +177,7 @@ Write IAP display names and descriptions for **outcomes**, not feature specs. Ap
 
 | Do | Don't |
 |----|-------|
-| Look better, feel confident, save time | "Unlimited wardrobe", "priority processing", "bulk upload" |
+| Look better, feel confident, save time | "Unlimited wardrobe", "outfit calendar", "bulk upload" |
 | Less outfit stress, less decision fatigue | Feature lists or dev jargon |
 | Honest savings paired with a benefit ("Save 20% — confident looks all year") | Dry price-only copy ("Save £X" with no emotional hook) |
 | Accurate claims only | "Millions of users", "certified stylists", unverifiable superlatives |

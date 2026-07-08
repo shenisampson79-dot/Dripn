@@ -135,7 +135,7 @@ export default function TermsOfServiceScreen() {
               Basic: Increased uploads and AI requests.
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Premium (Personal Stylist): Unlimited uploads, priority AI, video posts, personal stylist chat, and exclusive features.
+              Premium (Personal Stylist): Unlimited uploads, personal stylist chat, video posts, and exclusive features.
             </ThemedText>
           </View>
 

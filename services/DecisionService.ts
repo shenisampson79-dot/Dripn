@@ -514,7 +514,7 @@ class DecisionService {
     }
     return {
       title: 'Stylist Unlimited',
-      subtitle: 'Calendar, planning, and priority processing included.',
+      subtitle: 'Unlimited decisions — pick any question type below.',
     };
   }
 

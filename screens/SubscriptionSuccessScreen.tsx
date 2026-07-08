@@ -69,7 +69,7 @@ const TIER_CONTENT: Record<string, TierContent> = {
     checklist: [
       "Personal AI stylist with extended voice",
       "Full wardrobe analysis",
-      "Priority outfit recommendations",
+      "Unlimited stylist decisions",
       "Wardrobe-aware daily advice",
     ],
   },
@@ -79,7 +79,7 @@ const TIER_CONTENT: Record<string, TierContent> = {
     checklist: [
       "Outfit calendar & event planning",
       "Unlimited wardrobe & try-on",
-      "Priority photo processing",
+      "Bulk upload (20 items)",
       "Priority support",
     ],
   },
@@ -331,7 +331,7 @@ export default function SubscriptionSuccessScreen({ navigation, route }: Props) 
                 🚀 Go Unlimited
               </ThemedText>
               <ThemedText type="small" style={styles.upsellBody}>
-                Talk to your stylist by voice anytime — plus priority performance and VIP access
+                Outfit calendar, unlimited wardrobe, and VIP member access
               </ThemedText>
               <View style={styles.upsellCta}>
                 <ThemedText type="body" style={styles.upsellCtaText}>

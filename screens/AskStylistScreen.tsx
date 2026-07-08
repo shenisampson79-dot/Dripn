@@ -742,7 +742,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
         ))}
       </View>
 
-      {accessStatus ? (
+      {accessStatus && normalizeSubscriptionTier(user?.subscriptionTier) === 'free' ? (
         <View style={styles.limitInfo}>
           <Feather name="info" size={14} color="rgba(255,255,255,0.5)" />
           <ThemedText type="small" style={styles.limitText}>
