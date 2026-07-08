@@ -1279,7 +1279,7 @@ export default function AIStylistScreen() {
   const { items: wardrobeItems } = useWardrobe();
   const { user, actualCountry } = useAuth();
   const { settings: voiceSettings, getVoiceForStylist } = useVoiceSettings();
-  const { hasCredits: hasVoiceCredits, isUnlimited: hasUnlimitedVoice, refreshBalance: refreshVoiceCredits } = useVoiceCredits();
+  const { hasCredits: hasVoiceCredits, refreshBalance: refreshVoiceCredits } = useVoiceCredits();
   const route = useRoute<RouteProp<UserStylistStackParamList, 'AIStylist'>>();
   const pendingInitialPromptRef = useRef(route.params?.initialPrompt);
   const initialPromptSentRef = useRef(false);
@@ -1521,7 +1521,7 @@ export default function AIStylistScreen() {
 
   const playTTSAudio = async (text: string) => {
     if (!ttsEnabled || !voiceSettings.ttsEnabled || Platform.OS === 'web') return;
-    if (!hasVoiceCredits && !hasUnlimitedVoice) return;
+    if (!hasVoiceCredits) return;
     
     try {
       if (!isMountedRef.current) return;

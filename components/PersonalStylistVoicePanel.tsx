@@ -69,8 +69,11 @@ export function PersonalStylistVoicePanel({
   const controlsBottomPad = tabBarHeight + Spacing.lg;
   const {
     hasCredits,
-    isUnlimited,
     remainingCredits,
+    hasMonthlyAllowance,
+    usageLabel,
+    usageNudge,
+    shouldShowBuyPacks,
     isLoading: creditsLoading,
     updateBalance,
     refreshBalance,
@@ -128,8 +131,8 @@ export function PersonalStylistVoicePanel({
         throw new Error('Please sign in to use voice mode.');
       }
 
-      if (!hasCredits && !isUnlimited) {
-        throw new Error("You've used this month's spoken replies. Add a credit pack to keep chatting hands-free — or switch to Chat for unlimited text.");
+      if (!hasCredits) {
+        throw new Error("You've used this month's spoken replies. Add a top-up voice pack to keep chatting hands-free — or switch to Chat for unlimited text.");
       }
 
       await audioRecorder.stop();
@@ -223,8 +226,8 @@ export function PersonalStylistVoicePanel({
   const startListening = async () => {
     if (conversationState !== 'idle' || creditsLoading) return;
 
-    if (!hasCredits && !isUnlimited) {
-      setError("You've used your spoken replies. Add a credit pack or switch to Chat for unlimited text.");
+    if (!hasCredits) {
+      setError("You've used your spoken replies. Add a top-up voice pack or switch to Chat for unlimited text.");
       return;
     }
 
@@ -361,12 +364,33 @@ export function PersonalStylistVoicePanel({
           </LinearGradient>
         </Pressable>
 
-        {!isUnlimited && !creditsLoading ? (
+        {hasMonthlyAllowance && !creditsLoading ? (
+          <View style={styles.creditsRow}>
+            <ThemedText type="caption" style={{ color: theme.tabIconDefault, textAlign: 'center', flex: 1 }}>
+              {usageLabel
+                ? `${usageLabel} this month`
+                : hasCredits
+                  ? `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left`
+                  : 'Monthly spoken replies used up — add a top-up pack or switch to Chat for unlimited text.'}
+            </ThemedText>
+            {shouldShowBuyPacks ? (
+              <Pressable
+                onPress={() => setShowCreditsModal(true)}
+                style={({ pressed }) => [
+                  styles.buyCreditsButton,
+                  { backgroundColor: theme.link, opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                <ThemedText style={styles.buyCreditsText}>Top up</ThemedText>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : !hasMonthlyAllowance && !creditsLoading ? (
           <View style={styles.creditsRow}>
             <ThemedText type="caption" style={{ color: theme.tabIconDefault, textAlign: 'center', flex: 1 }}>
               {hasCredits
-                ? `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left — each one uses a credit.`
-                : 'Monthly spoken replies used up — add a pack or switch to Chat for unlimited text.'}
+                ? `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left`
+                : 'Add a voice pack to use hands-free spoken replies.'}
             </ThemedText>
             <Pressable
               onPress={() => setShowCreditsModal(true)}
@@ -378,6 +402,12 @@ export function PersonalStylistVoicePanel({
               <ThemedText style={styles.buyCreditsText}>Buy credits</ThemedText>
             </Pressable>
           </View>
+        ) : null}
+
+        {usageNudge ? (
+          <ThemedText type="caption" style={{ color: theme.link, textAlign: 'center', paddingHorizontal: Spacing.sm }}>
+            {usageNudge}
+          </ThemedText>
         ) : null}
       </View>
 

@@ -159,7 +159,13 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const [showVoiceCreditsModal, setShowVoiceCreditsModal] = useState(false);
-  const { remainingCredits, isUnlimited: hasUnlimitedVoice, isLoading: voiceCreditsLoading } = useVoiceCredits();
+  const {
+    remainingCredits,
+    hasMonthlyAllowance,
+    usageLabel,
+    shouldShowBuyPacks,
+    isLoading: voiceCreditsLoading,
+  } = useVoiceCredits();
 
   const ALL_COUNTRIES = [
     "Albania", "Andorra", "Antigua and Barbuda", "Argentina", "Armenia", "Australia",
@@ -599,14 +605,16 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.voiceAndLanguage')}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
-          {!hasUnlimitedVoice ? (
+          {(hasMonthlyAllowance || shouldShowBuyPacks || remainingCredits > 0) ? (
             <SettingItem
               icon="zap"
-              title="Buy voice credits"
+              title={shouldShowBuyPacks ? 'Top up voice replies' : 'Voice replies'}
               subtitle={
                 voiceCreditsLoading
                   ? 'Loading balance…'
-                  : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} available`
+                  : usageLabel
+                    ? `${usageLabel} this month`
+                    : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} available`
               }
               onPress={() => setShowVoiceCreditsModal(true)}
               theme={theme}

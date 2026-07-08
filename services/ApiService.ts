@@ -1660,9 +1660,12 @@ class ApiService {
       voiceCredits?: {
         remaining: number;
         monthlyAllowance: number;
+        monthlyHardCap?: number;
+        usedThisMonth?: number;
         monthlyRemaining: number;
         purchasedCredits: number;
         isUnlimited: boolean;
+        softCapWarning?: 'usage_high' | 'approaching_limit' | null;
       };
       voiceCreditsExhausted?: boolean;
       voiceError?: { code: string; message: string };
@@ -1699,10 +1702,12 @@ class ApiService {
       credits: {
         remaining: number;
         monthlyAllowance: number;
+        monthlyHardCap?: number;
         usedThisMonth: number;
         monthlyRemaining: number;
         purchasedCredits: number;
         isUnlimited: boolean;
+        softCapWarning?: 'usage_high' | 'approaching_limit' | null;
       };
       tier: string;
       tierName: string;

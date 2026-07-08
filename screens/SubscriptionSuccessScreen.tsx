@@ -331,7 +331,7 @@ export default function SubscriptionSuccessScreen({ navigation, route }: Props) 
                 🚀 Go Unlimited
               </ThemedText>
               <ThemedText type="small" style={styles.upsellBody}>
-                Unlock unlimited voice, video calls, and VIP access
+                Unlock 100 voice replies/month, video calls, and VIP access
               </ThemedText>
               <View style={styles.upsellCta}>
                 <ThemedText type="body" style={styles.upsellCtaText}>

@@ -136,7 +136,7 @@ export const TIER_MATRIX: Record<SubscriptionTier, TierFeatureMatrix> = {
 
     aiChatMessagesPerDay: 'unlimited',
     outfitSuggestionsPerDay: 'unlimited',
-    voiceCommentsPerMonth: 'unlimited',
+    voiceCommentsPerMonth: 100,
     virtualTryOnPerMonth: 'unlimited',
 
     hasOutfitCalendar: true,

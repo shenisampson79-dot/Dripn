@@ -71,7 +71,13 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const [selectedOutfitId, setSelectedOutfitId] = useState<string | null>(null);
   const [showOutfitDetailModal, setShowOutfitDetailModal] = useState(false);
   const [showVoiceCreditsModal, setShowVoiceCreditsModal] = useState(false);
-  const { remainingCredits, isUnlimited: hasUnlimitedVoice, isLoading: voiceCreditsLoading } = useVoiceCredits();
+  const {
+    remainingCredits,
+    hasMonthlyAllowance,
+    usageLabel,
+    shouldShowBuyPacks,
+    isLoading: voiceCreditsLoading,
+  } = useVoiceCredits();
 
   // Derive Style DNA from wardrobe items — same logic as StyleDNAScreen
   const ownedWardrobeItems = useMemo(() => wardrobeItems.filter(i => !i.origin || i.origin === 'owned'), [wardrobeItems]);
@@ -476,7 +482,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           </Pressable>
         </LinearGradient>
 
-        {!hasUnlimitedVoice ? (
+        {(hasMonthlyAllowance || shouldShowBuyPacks || remainingCredits > 0) ? (
           <Pressable
             onPress={() => setShowVoiceCreditsModal(true)}
             style={({ pressed }) => [
@@ -495,12 +501,14 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             </LinearGradient>
             <View style={styles.voiceCreditsContent}>
               <ThemedText type="body" style={{ fontWeight: '600', color: theme.text }}>
-                Buy voice credits
+                {shouldShowBuyPacks ? 'Top up voice replies' : 'Voice replies'}
               </ThemedText>
               <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
                 {voiceCreditsLoading
                   ? 'Loading balance…'
-                  : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left`}
+                  : usageLabel
+                    ? `${usageLabel} this month`
+                    : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left`}
               </ThemedText>
             </View>
             <Feather name="chevron-right" size={18} color={theme.tabIconDefault} />

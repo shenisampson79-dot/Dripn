@@ -38,7 +38,7 @@ export function VoiceCreditsPurchaseModal({
     useAppleIAP,
     isLoading,
     remainingCredits,
-    isUnlimited,
+    usageLabel,
     credits,
   } = useVoiceCredits();
 
@@ -67,10 +67,10 @@ export function VoiceCreditsPurchaseModal({
     }
   }, [onClose, onPurchaseSuccess, purchaseVoiceCredits]);
 
-  const balanceLabel = isUnlimited
-    ? 'Unlimited spoken replies on your plan'
-    : isLoading
-      ? 'Loading balance…'
+  const balanceLabel = isLoading
+    ? 'Loading balance…'
+    : usageLabel
+      ? `${usageLabel} this month`
       : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} available`;
 
   return (
@@ -95,7 +95,7 @@ export function VoiceCreditsPurchaseModal({
             <Feather name="headphones" size={16} color={theme.link} />
             <ThemedText type="small" style={{ color: theme.tabIconDefault, flex: 1 }}>
               {balanceLabel}
-              {!isUnlimited && credits?.purchasedCredits
+              {credits?.purchasedCredits
                 ? ` · ${credits.purchasedCredits} purchased`
                 : ''}
             </ThemedText>
@@ -103,8 +103,8 @@ export function VoiceCreditsPurchaseModal({
 
           <ThemedText style={[styles.modalText, { color: theme.tabIconDefault }]}>
             {useAppleIAP
-              ? 'Add a pack for hands-free spoken replies from your AI stylist. Purchases are handled by the App Store; credits stay on your Dripn account.'
-              : 'Add credits for hands-free spoken replies from your AI stylist. Purchased credits never expire.'}
+              ? 'Top-up voice packs for hands-free spoken replies from your AI stylist. Purchases are handled by the App Store; credits stay on your Dripn account.'
+              : 'Top-up voice packs for hands-free spoken replies from your AI stylist. Purchased credits never expire.'}
           </ThemedText>
 
           <View style={styles.packageList}>
