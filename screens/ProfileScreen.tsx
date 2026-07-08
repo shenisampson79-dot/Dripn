@@ -42,6 +42,8 @@ import { computeOutfitVisualScaleForModal } from "@/utils/outfitVisualScale";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import type { PortalMode } from "@/App";
 import apiService from "@/services/ApiService";
+import { VoiceCreditsPurchaseModal } from "@/components/VoiceCreditsPurchaseModal";
+import { useVoiceCredits } from "@/hooks/useVoiceCredits";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SAVED_LOOKBOOK_CARD_WIDTH = SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md * 2;
@@ -68,6 +70,8 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const [loadingSavedOutfits, setLoadingSavedOutfits] = useState(false);
   const [selectedOutfitId, setSelectedOutfitId] = useState<string | null>(null);
   const [showOutfitDetailModal, setShowOutfitDetailModal] = useState(false);
+  const [showVoiceCreditsModal, setShowVoiceCreditsModal] = useState(false);
+  const { remainingCredits, isUnlimited: hasUnlimitedVoice, isLoading: voiceCreditsLoading } = useVoiceCredits();
 
   // Derive Style DNA from wardrobe items — same logic as StyleDNAScreen
   const ownedWardrobeItems = useMemo(() => wardrobeItems.filter(i => !i.origin || i.origin === 'owned'), [wardrobeItems]);
@@ -472,6 +476,37 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           </Pressable>
         </LinearGradient>
 
+        {!hasUnlimitedVoice ? (
+          <Pressable
+            onPress={() => setShowVoiceCreditsModal(true)}
+            style={({ pressed }) => [
+              styles.voiceCreditsButton,
+              {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+              style={styles.voiceCreditsIcon}
+            >
+              <Feather name="headphones" size={18} color="#FFFFFF" />
+            </LinearGradient>
+            <View style={styles.voiceCreditsContent}>
+              <ThemedText type="body" style={{ fontWeight: '600', color: theme.text }}>
+                Buy voice credits
+              </ThemedText>
+              <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
+                {voiceCreditsLoading
+                  ? 'Loading balance…'
+                  : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left`}
+              </ThemedText>
+            </View>
+            <Feather name="chevron-right" size={18} color={theme.tabIconDefault} />
+          </Pressable>
+        ) : null}
+
         {isAdmin ? (
           <LinearGradient
             colors={[LUXURY_COLORS.midnight, '#1a1a2e']}
@@ -779,6 +814,11 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           </View>
         ) : null}
       </SavedOutfitDetailModal>
+
+      <VoiceCreditsPurchaseModal
+        visible={showVoiceCreditsModal}
+        onClose={() => setShowVoiceCreditsModal(false)}
+      />
     </View>
   );
 }
@@ -912,6 +952,24 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     marginBottom: Spacing.xl,
     gap: Spacing.sm,
+  },
+  voiceCreditsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.md,
+  },
+  voiceCreditsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceCreditsContent: {
+    flex: 1,
+    gap: 2,
   },
   styleProfileSection: {
     marginHorizontal: Spacing.lg,

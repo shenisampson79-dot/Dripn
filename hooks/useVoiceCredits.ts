@@ -11,6 +11,7 @@ import {
 } from '@/services/AppleIAPService';
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatVoicePricePence } from '@/utils/voiceCreditPacks';
 
 interface VoiceCreditsInternal {
   remaining: number;
@@ -68,8 +69,18 @@ const STYLIST_NUDGES: Record<StylistId, StylistNudge> = {
 };
 
 function formatPence(pricePence?: number): string {
-  if (pricePence == null) return '';
-  return `£${(pricePence / 100).toFixed(2)}`;
+  return formatVoicePricePence(pricePence);
+}
+
+function resolvePackagePriceLabel(pkg: {
+  priceLabel?: string;
+  priceGBP?: number;
+  discountedPrice?: number;
+  chargePence?: number;
+}): string {
+  const chargePence = pkg.chargePence ?? pkg.discountedPrice ?? pkg.priceGBP;
+  if (chargePence != null) return formatPence(chargePence);
+  return pkg.priceLabel || '—';
 }
 
 function getBrowserReturnUrl(result: WebBrowser.WebBrowserResult): string {
@@ -123,9 +134,9 @@ export function useVoiceCredits() {
         id: pkg.id,
         credits: pkg.credits,
         description: pkg.description || `${pkg.credits} voice messages`,
-        priceLabel: pkg.priceLabel || formatPence(pkg.discountedPrice ?? pkg.priceGBP) || '—',
+        priceLabel: resolvePackagePriceLabel(pkg),
         priceGBP: pkg.priceGBP,
-        discountedPrice: pkg.discountedPrice,
+        discountedPrice: pkg.discountedPrice ?? pkg.priceGBP,
         popular: pkg.id === 'large',
       }));
       setPackages(mapped);

@@ -1719,6 +1719,7 @@ class ApiService {
         priceLabel?: string;
         description?: string;
         discountedPrice?: number;
+        chargePence?: number;
         name?: string;
         price?: number;
         currency?: string;

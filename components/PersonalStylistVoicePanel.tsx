@@ -8,8 +8,6 @@ import {
   Pressable,
   ActivityIndicator,
   ScrollView,
-  Modal,
-  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,6 +27,7 @@ import { Spacing, BorderRadius } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useVoiceCredits } from '@/hooks/useVoiceCredits';
 import { apiService } from '@/services/ApiService';
+import { VoiceCreditsPurchaseModal } from '@/components/VoiceCreditsPurchaseModal';
 import type { PersonalStylist } from '@/services/PersonalStylistService';
 
 type ConversationState = 'idle' | 'listening' | 'processing' | 'speaking';
@@ -55,20 +54,6 @@ function getMimeTypeFromUri(uri: string): 'audio/m4a' | 'audio/webm' | 'audio/wa
 
 const TAB_BAR_HEIGHT = 56;
 
-/** Benefit-led labels for buy-credits modal (matches ASC metadata tone). */
-const VOICE_PACK_DISPLAY: Record<string, { label: string; subtitle: string }> = {
-  small: { label: 'Quick top-up', subtitle: 'Keep chatting hands-free' },
-  medium: { label: 'Keep the conversation going', subtitle: 'Less typing, more ease' },
-  large: { label: 'Hands-free styling help', subtitle: 'Best value per spoken reply' },
-  xlarge: { label: 'Talk through style with ease', subtitle: 'Most credits — best value' },
-};
-
-function getVoicePackDisplay(packageId: string, fallbackDescription: string, credits: number) {
-  const mapped = VOICE_PACK_DISPLAY[packageId];
-  if (mapped) return mapped;
-  return { label: fallbackDescription, subtitle: `${credits} spoken replies` };
-}
-
 export function PersonalStylistVoicePanel({
   stylist,
   effectiveLanguage,
@@ -86,11 +71,6 @@ export function PersonalStylistVoicePanel({
     hasCredits,
     isUnlimited,
     remainingCredits,
-    packages,
-    isPurchasing,
-    purchaseVoiceCredits,
-    getPackagePriceLabel,
-    useAppleIAP,
     isLoading: creditsLoading,
     updateBalance,
     refreshBalance,
@@ -282,27 +262,8 @@ export function PersonalStylistVoicePanel({
     }
   };
 
-  const handleBuyCredits = async (packageId: string) => {
-    try {
-      const result = await purchaseVoiceCredits(packageId);
-      setShowCreditsModal(false);
-      setError(null);
-      const added = 'creditsAdded' in (result || {}) ? (result as { creditsAdded?: number }).creditsAdded : undefined;
-      Alert.alert(
-        'Credits added',
-        added && added > 0
-          ? `${added} voice credits are now on your account.`
-          : 'Your voice credit balance has been updated.',
-      );
-    } catch (error: unknown) {
-      if (error && typeof error === 'object' && 'cancelled' in error && (error as { cancelled?: boolean }).cancelled) {
-        return;
-      }
-      Alert.alert(
-        'Purchase failed',
-        error instanceof Error ? error.message : 'Could not complete purchase. Please try again.',
-      );
-    }
+  const handleCreditsPurchased = () => {
+    setError(null);
   };
 
   const stateLabel =
@@ -421,75 +382,11 @@ export function PersonalStylistVoicePanel({
       </View>
 
       {showCreditsModal ? (
-        <Modal transparent visible animationType="fade" onRequestClose={() => setShowCreditsModal(false)}>
-          <Pressable
-            style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
-            onPress={() => setShowCreditsModal(false)}
-          >
-            <Pressable
-              style={[styles.creditsModal, { backgroundColor: theme.backgroundDefault }]}
-              onPress={(e) => e.stopPropagation()}
-            >
-              <View style={styles.modalHeader}>
-                <Feather name="zap" size={20} color={theme.link} />
-                <ThemedText type="h3" style={styles.modalTitle}>Keep the conversation going</ThemedText>
-                <Pressable onPress={() => setShowCreditsModal(false)}>
-                  <Feather name="x" size={20} color={theme.tabIconDefault} />
-                </Pressable>
-              </View>
-              <ThemedText style={[styles.modalText, { color: theme.tabIconDefault }]}>
-                {useAppleIAP
-                  ? "You've hit your monthly spoken-reply allowance — add a pack to keep chatting hands-free. Purchases are handled by the App Store; credits stay on your Dripn account."
-                  : "You've hit your monthly spoken-reply allowance — add credits to keep chatting hands-free. Purchased credits never expire."}
-              </ThemedText>
-              <View style={styles.packageList}>
-                {packages.map((pkg) => {
-                  const display = getVoicePackDisplay(pkg.id, pkg.description, pkg.credits);
-                  return (
-                  <Pressable
-                    key={pkg.id}
-                    disabled={isPurchasing}
-                    onPress={() => handleBuyCredits(pkg.id)}
-                    style={({ pressed }) => [
-                      styles.packageItem,
-                      {
-                        backgroundColor: theme.backgroundSecondary,
-                        opacity: pressed || isPurchasing ? 0.75 : 1,
-                        borderWidth: pkg.popular ? 1 : 0,
-                        borderColor: pkg.popular ? theme.link : 'transparent',
-                      },
-                    ]}
-                  >
-                    {pkg.popular ? (
-                      <View style={[styles.popularBadge, { backgroundColor: theme.link }]}>
-                        <ThemedText style={styles.popularText}>BEST VALUE</ThemedText>
-                      </View>
-                    ) : null}
-                    <View style={styles.packageName}>
-                      <ThemedText type="body" style={{ fontWeight: '600' }}>{display.label}</ThemedText>
-                      <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
-                        {display.subtitle} · {pkg.credits} credits
-                      </ThemedText>
-                    </View>
-                    <ThemedText style={[styles.packagePrice, { color: theme.link }]}>
-                      {getPackagePriceLabel(pkg.id, pkg.priceLabel)}
-                    </ThemedText>
-                  </Pressable>
-                  );
-                })}
-              </View>
-              {isPurchasing ? (
-                <ActivityIndicator color={theme.link} style={{ marginBottom: Spacing.md }} />
-              ) : null}
-              <Pressable
-                onPress={() => setShowCreditsModal(false)}
-                style={[styles.closeModalButton, { borderColor: theme.border }]}
-              >
-                <ThemedText>Close</ThemedText>
-              </Pressable>
-            </Pressable>
-          </Pressable>
-        </Modal>
+        <VoiceCreditsPurchaseModal
+          visible={showCreditsModal}
+          onClose={() => setShowCreditsModal(false)}
+          onPurchaseSuccess={handleCreditsPurchased}
+        />
       ) : null}
     </View>
   );
@@ -555,65 +452,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 13,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: Spacing.lg,
-  },
-  creditsModal: {
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  modalTitle: {
-    flex: 1,
-  },
-  modalText: {
-    marginBottom: Spacing.md,
-    lineHeight: 20,
-  },
-  packageList: {
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  packageItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.sm,
-  },
-  popularBadge: {
-    position: 'absolute',
-    top: -8,
-    right: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-  },
-  popularText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  packageName: {
-    flex: 1,
-  },
-  packagePrice: {
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  closeModalButton: {
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderWidth: 1,
-    borderRadius: BorderRadius.md,
   },
 });

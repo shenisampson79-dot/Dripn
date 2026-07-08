@@ -21,6 +21,8 @@ import { useTranslations } from "@/contexts/TranslationContext";
 import { getBillingPlanDisplayName, normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 import { isDevTestingModeEnabled, setDevTestingModeEnabled } from "@/utils/devTesting";
 import { shouldUseAppleIAP } from "@/utils/platformPayments";
+import { VoiceCreditsPurchaseModal } from "@/components/VoiceCreditsPurchaseModal";
+import { useVoiceCredits } from "@/hooks/useVoiceCredits";
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -156,6 +158,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const [testingModeEnabled, setTestingModeEnabled] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
+  const [showVoiceCreditsModal, setShowVoiceCreditsModal] = useState(false);
+  const { remainingCredits, isUnlimited: hasUnlimitedVoice, isLoading: voiceCreditsLoading } = useVoiceCredits();
 
   const ALL_COUNTRIES = [
     "Albania", "Andorra", "Antigua and Barbuda", "Argentina", "Armenia", "Australia",
@@ -595,6 +599,21 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.voiceAndLanguage')}</ThemedText>
         </View>
         <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
+          {!hasUnlimitedVoice ? (
+            <SettingItem
+              icon="zap"
+              title="Buy voice credits"
+              subtitle={
+                voiceCreditsLoading
+                  ? 'Loading balance…'
+                  : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} available`
+              }
+              onPress={() => setShowVoiceCreditsModal(true)}
+              theme={theme}
+              isDark={isDark}
+              iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+            />
+          ) : null}
           <SettingItem
             icon="fast-forward"
             title={t('settings.voiceSpeed')}
@@ -1106,6 +1125,11 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           </View>
         </Pressable>
       </Modal>
+
+      <VoiceCreditsPurchaseModal
+        visible={showVoiceCreditsModal}
+        onClose={() => setShowVoiceCreditsModal(false)}
+      />
       </ScreenScrollView>
     </View>
   );
