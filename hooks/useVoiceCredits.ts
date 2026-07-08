@@ -25,6 +25,7 @@ interface VoiceCreditsInternal {
 export interface VoiceCreditPackage {
   id: string;
   credits: number;
+  name?: string;
   description: string;
   priceLabel: string;
   priceGBP?: number;
@@ -133,11 +134,12 @@ export function useVoiceCredits() {
       const mapped = (response.packages || []).map((pkg) => ({
         id: pkg.id,
         credits: pkg.credits,
-        description: pkg.description || `${pkg.credits} voice messages`,
+        name: pkg.name,
+        description: pkg.description || pkg.name || `${pkg.credits} voice credits`,
         priceLabel: resolvePackagePriceLabel(pkg),
         priceGBP: pkg.priceGBP,
         discountedPrice: pkg.discountedPrice ?? pkg.priceGBP,
-        popular: pkg.id === 'large',
+        popular: pkg.popular ?? pkg.id === 'large',
       }));
       setPackages(mapped);
     } catch (error) {

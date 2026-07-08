@@ -40,17 +40,21 @@ export const APPLE_DFY_PRODUCT_IDS = {
 /** App Store Connect voice credit consumables — must match server VOICE_CREDIT_PACKAGES */
 export const APPLE_VOICE_PRODUCT_IDS = {
   small: 'com.dripn.voice.credits_10',
-  medium: 'com.dripn.voice.credits_25',
-  large: 'com.dripn.voice.credits_50',
-  xlarge: 'com.dripn.voice.credits_100',
+  medium: 'com.dripn.voice.credits_40',
+  large: 'com.dripn.voice.credits_80',
+  xlarge: 'com.dripn.voice.credits_150',
 } as const;
 
 /** Credit amount per Apple voice product */
 export const APPLE_VOICE_PRODUCT_TO_CREDITS: Record<string, number> = {
   'com.dripn.voice.credits_10': 10,
-  'com.dripn.voice.credits_25': 25,
-  'com.dripn.voice.credits_50': 50,
-  'com.dripn.voice.credits_100': 100,
+  'com.dripn.voice.credits_40': 40,
+  'com.dripn.voice.credits_80': 80,
+  'com.dripn.voice.credits_150': 150,
+  // Legacy ASC product IDs (old credit tiers — map to new amounts)
+  'com.dripn.voice.credits_25': 40,
+  'com.dripn.voice.credits_50': 80,
+  'com.dripn.voice.credits_100': 150,
 };
 
 export type IAPSubscriptionTier = keyof typeof APPLE_SUBSCRIPTION_PRODUCT_IDS;

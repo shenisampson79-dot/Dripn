@@ -17,10 +17,10 @@ Complete setup guide for all **10** in-app purchase products used by Dripn (Styl
 | 4 | `com.dripn.stylist_unlimited.annual` | Auto-renewable subscription | Your Best-Dressed Year | Save 20% — plan ahead, stress less all year | **£191.99/yr** (~20% off monthly) | `dripn_subscriptions` | `stylist_unlimited` | **SubscriptionScreen** — same tier, annual billing |
 | 5 | `com.dripn.dfy.lite` | Non-consumable | Occasion Ready | Feel confident for what's coming up | **£19.99** one-time | — | `dfy_lite` | **DFYComparisonScreen** / **DFYStartScreen** — Occasion Ready / Quick Start |
 | 6 | `com.dripn.dfy.core` | Non-consumable | Full Wardrobe Setup | Less stress — know what to wear every day | **£39.99** one-time | — | `dfy_core` | **DFYComparisonScreen** / **DFYStartScreen** — Full Wardrobe Setup / Full Setup |
-| 7 | `com.dripn.voice.credits_10` | Consumable | 10 Spoken Style Replies | Keep the conversation going hands-free | **£1.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`small` pack) |
-| 8 | `com.dripn.voice.credits_25` | Consumable | 25 Spoken Style Replies | More voice chats — less typing, more ease | **£2.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`medium` pack) |
-| 9 | `com.dripn.voice.credits_50` | Consumable | 50 Spoken Style Replies | Hands-free styling help when you need it | **£4.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`large` pack) |
-| 10 | `com.dripn.voice.credits_100` | Consumable | 100 Spoken Style Replies | Best value — talk through style with ease | **£7.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`xlarge` pack) |
+| 7 | `com.dripn.voice.credits_10` | Consumable | Quick Top-Up | Get instant voice styling advice | **£1.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`small` pack) |
+| 8 | `com.dripn.voice.credits_40` | Consumable | Keep It Going | Talk through your outfit decisions | **£2.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`medium` pack) |
+| 9 | `com.dripn.voice.credits_80` | Consumable | In the Zone | Your stylist, whenever you need it | **£4.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`large` pack, Best Value) |
+| 10 | `com.dripn.voice.credits_150` | Consumable | All In | Maximum credits — stylist on demand | **£7.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`xlarge` pack) |
 
 ### Price sources (server code)
 
@@ -71,20 +71,22 @@ Copy into each **Non-Consumable** product's localization fields:
 Copy into each **Consumable** product's localization fields:
 
 **`com.dripn.voice.credits_10`**
-- Display name: `10 Spoken Style Replies` (23 chars)
-- Description: `Keep the conversation going hands-free` (39 chars)
+- Display name: `Quick Top-Up` (12 chars)
+- Description: `Get instant voice styling advice` (32 chars)
 
-**`com.dripn.voice.credits_25`**
-- Display name: `25 Spoken Style Replies` (23 chars)
-- Description: `More voice chats — less typing, more ease` (41 chars)
+**`com.dripn.voice.credits_40`**
+- Display name: `Keep It Going` (13 chars)
+- Description: `Talk through your outfit decisions` (33 chars)
 
-**`com.dripn.voice.credits_50`**
-- Display name: `50 Spoken Style Replies` (23 chars)
-- Description: `Hands-free styling help when you need it` (41 chars)
+**`com.dripn.voice.credits_80`**
+- Display name: `In the Zone` (11 chars)
+- Description: `Your stylist, whenever you need it` (34 chars)
 
-**`com.dripn.voice.credits_100`**
-- Display name: `100 Spoken Style Replies` (24 chars)
-- Description: `Best value — talk through style with ease` (42 chars)
+**`com.dripn.voice.credits_150`**
+- Display name: `All In` (6 chars)
+- Description: `Maximum credits — stylist on demand` (35 chars)
+
+> Legacy IDs `credits_25`, `credits_50`, `credits_100` are still honoured server-side (40 / 80 / 150 credits). Create the four canonical IDs above in ASC for new products.
 
 > Full reference with quick-copy block: [`IAP_ASC_PASTE_BLOCKS_DFY_VOICE.md`](./IAP_ASC_PASTE_BLOCKS_DFY_VOICE.md)
 
@@ -159,10 +161,10 @@ The server accepts these aliases but the app uses the 10 IDs above:
 
 | Product ID | Display name | Credits | Price (UK) |
 |------------|--------------|---------|------------|
-| `com.dripn.voice.credits_10` | 10 Spoken Style Replies | 10 | £1.00 |
-| `com.dripn.voice.credits_25` | 25 Spoken Style Replies | 25 | £2.00 |
-| `com.dripn.voice.credits_50` | 50 Spoken Style Replies | 50 | £4.00 |
-| `com.dripn.voice.credits_100` | 100 Spoken Style Replies | 100 | £7.00 |
+| `com.dripn.voice.credits_10` | Quick Top-Up | 10 | £1.00 |
+| `com.dripn.voice.credits_40` | Keep It Going | 40 | £2.00 |
+| `com.dripn.voice.credits_80` | In the Zone | 80 | £4.00 |
+| `com.dripn.voice.credits_150` | All In | 150 | £7.00 |
 
 2. Add localized descriptions from §1 voice paste blocks (benefit-led; ≤30 / ≤45 chars).
 
@@ -252,9 +254,9 @@ RevenueCat → **Products** → for each App Store product, attach the entitleme
 | `com.dripn.dfy.lite` | `dfy_lite` |
 | `com.dripn.dfy.core` | `dfy_core` |
 | `com.dripn.voice.credits_10` | *(none — consumable)* |
-| `com.dripn.voice.credits_25` | *(none)* |
-| `com.dripn.voice.credits_50` | *(none)* |
-| `com.dripn.voice.credits_100` | *(none)* |
+| `com.dripn.voice.credits_40` | *(none)* |
+| `com.dripn.voice.credits_80` | *(none)* |
+| `com.dripn.voice.credits_150` | *(none)* |
 
 ### D. Create offering(s)
 
@@ -274,9 +276,9 @@ The app reads **`offerings.current`** and matches packages by **product identifi
 | `dfy_lite` | `com.dripn.dfy.lite` |
 | `dfy_core` | `com.dripn.dfy.core` |
 | `voice_10` | `com.dripn.voice.credits_10` |
-| `voice_25` | `com.dripn.voice.credits_25` |
-| `voice_50` | `com.dripn.voice.credits_50` |
-| `voice_100` | `com.dripn.voice.credits_100` |
+| `voice_40` | `com.dripn.voice.credits_40` |
+| `voice_80` | `com.dripn.voice.credits_80` |
+| `voice_150` | `com.dripn.voice.credits_150` |
 
 3. Mark this offering as **Current**.
 
@@ -398,8 +400,9 @@ DFY (non-consumable):
   com.dripn.dfy.core  →  plan: core_wardrobe  →  entitlement: dfy_core
 
 Voice (consumable — server credits, no entitlement):
-  com.dripn.voice.credits_10  →  10 credits  (pack: small)
-  com.dripn.voice.credits_25  →  25 credits  (pack: medium)
-  com.dripn.voice.credits_50  →  50 credits  (pack: large)
-  com.dripn.voice.credits_100 →  100 credits (pack: xlarge)
+  com.dripn.voice.credits_10   →  10 credits   (pack: small)
+  com.dripn.voice.credits_40   →  40 credits   (pack: medium)
+  com.dripn.voice.credits_80   →  80 credits   (pack: large, Best Value)
+  com.dripn.voice.credits_150  →  150 credits  (pack: xlarge)
+  Legacy: credits_25 → 40 · credits_50 → 80 · credits_100 → 150
 ```
