@@ -16,6 +16,7 @@ import Purchases, {
 import type { SubscriptionTier } from '@/contexts/AuthContext';
 import type { DFYTier } from '@/services/DFYService';
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
+import { formatVoicePricePence, VOICE_PACK_PRICE_PENCE } from '@/utils/voiceCreditPacks';
 
 export type SubscriptionInterval = 'monthly' | 'yearly';
 
@@ -222,7 +223,8 @@ class RevenueCatAppleIAPService implements AppleIAPService {
     for (const packId of Object.keys(APPLE_VOICE_PRODUCT_IDS) as VoiceCreditPackId[]) {
       const productId = voiceProductIdFor(packId);
       const storeProduct = productById.get(productId);
-      const priceString = storeProduct?.priceString;
+      const priceString = storeProduct?.priceString
+        ?? formatVoicePricePence(VOICE_PACK_PRICE_PENCE[packId]);
       if (priceString) {
         results.push({
           packId,

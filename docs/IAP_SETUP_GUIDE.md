@@ -18,9 +18,9 @@ Complete setup guide for all **10** in-app purchase products used by Dripn (Styl
 | 5 | `com.dripn.dfy.lite` | Non-consumable | Occasion Ready | Feel confident for what's coming up | **£19.99** one-time | — | `dfy_lite` | **DFYComparisonScreen** / **DFYStartScreen** — Occasion Ready / Quick Start |
 | 6 | `com.dripn.dfy.core` | Non-consumable | Full Wardrobe Setup | Less stress — know what to wear every day | **£39.99** one-time | — | `dfy_core` | **DFYComparisonScreen** / **DFYStartScreen** — Full Wardrobe Setup / Full Setup |
 | 7 | `com.dripn.voice.credits_10` | Consumable | Quick Top-Up | Get instant voice styling advice | **£1.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`small` pack) |
-| 8 | `com.dripn.voice.credits_40` | Consumable | Keep It Going | Talk through your outfit decisions | **£2.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`medium` pack) |
-| 9 | `com.dripn.voice.credits_80` | Consumable | In the Zone | Your stylist, whenever you need it | **£4.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`large` pack, Best Value) |
-| 10 | `com.dripn.voice.credits_150` | Consumable | All In | Maximum credits — stylist on demand | **£7.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`xlarge` pack) |
+| 8 | `com.dripn.voice.credits_40` | Consumable | Keep It Going | Talk through your outfit decisions | **£3.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`medium` pack) |
+| 9 | `com.dripn.voice.credits_80` | Consumable | In the Zone | Your stylist, whenever you need it | **£5.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`large` pack, Best Value) |
+| 10 | `com.dripn.voice.credits_150` | Consumable | All In | Maximum credits — stylist on demand | **£8.00** | — | **consumable — no entitlement** | **AI Stylist voice mode** — Buy credits modal (`xlarge` pack) |
 
 ### Price sources (server code)
 
@@ -30,7 +30,7 @@ Complete setup guide for all **10** in-app purchase products used by Dripn (Styl
 | Stylist Unlimited monthly/annual | `BILLING_PLANS.stylist_unlimited` | £19.99 / £191.99 |
 | DFY Lite | `BILLING_PLANS.outfit_setup` | £19.99 |
 | DFY Core | `BILLING_PLANS.core_wardrobe` | £39.99 |
-| Voice packs | `VOICE_CREDIT_PACKAGES` | £1.00 / £2.00 / £4.00 / £7.00 |
+| Voice packs | `VOICE_CREDIT_PACKAGES` | £1.00 / £3.00 / £5.00 / £8.00 |
 
 In App Store Connect, pick the **UK price tier** that matches these GBP amounts (Apple tiers may not match penny-perfect in every territory — UK is the primary reference).
 
@@ -162,9 +162,9 @@ The server accepts these aliases but the app uses the 10 IDs above:
 | Product ID | Display name | Credits | Price (UK) |
 |------------|--------------|---------|------------|
 | `com.dripn.voice.credits_10` | Quick Top-Up | 10 | £1.00 |
-| `com.dripn.voice.credits_40` | Keep It Going | 40 | £2.00 |
-| `com.dripn.voice.credits_80` | In the Zone | 80 | £4.00 |
-| `com.dripn.voice.credits_150` | All In | 150 | £7.00 |
+| `com.dripn.voice.credits_40` | Keep It Going | 40 | £3.00 |
+| `com.dripn.voice.credits_80` | In the Zone | 80 | £5.00 |
+| `com.dripn.voice.credits_150` | All In | 150 | £8.00 |
 
 2. Add localized descriptions from §1 voice paste blocks (benefit-led; ≤30 / ≤45 chars).
 

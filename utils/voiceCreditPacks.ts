@@ -6,6 +6,14 @@ export const VOICE_PACK_DISPLAY: Record<string, { label: string; subtitle: strin
   xlarge: { label: 'All In', subtitle: 'Maximum credits — stylist on demand' },
 };
 
+/** Pack prices in pence — matches server VOICE_CREDIT_PACKAGES / ASC UK tier */
+export const VOICE_PACK_PRICE_PENCE: Record<string, number> = {
+  small: 100,
+  medium: 300,
+  large: 500,
+  xlarge: 800,
+};
+
 export function getVoicePackDisplay(packageId: string, fallbackDescription: string, credits: number) {
   const mapped = VOICE_PACK_DISPLAY[packageId];
   if (mapped) return mapped;

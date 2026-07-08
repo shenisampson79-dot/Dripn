@@ -11,7 +11,7 @@ import {
 } from '@/services/AppleIAPService';
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatVoicePricePence } from '@/utils/voiceCreditPacks';
+import { formatVoicePricePence, VOICE_PACK_PRICE_PENCE } from '@/utils/voiceCreditPacks';
 
 interface VoiceCreditsInternal {
   remaining: number;
@@ -74,6 +74,7 @@ function formatPence(pricePence?: number): string {
 }
 
 function resolvePackagePriceLabel(pkg: {
+  id?: string;
   priceLabel?: string;
   priceGBP?: number;
   discountedPrice?: number;
@@ -81,6 +82,9 @@ function resolvePackagePriceLabel(pkg: {
 }): string {
   const chargePence = pkg.chargePence ?? pkg.discountedPrice ?? pkg.priceGBP;
   if (chargePence != null) return formatPence(chargePence);
+  if (pkg.id && VOICE_PACK_PRICE_PENCE[pkg.id] != null) {
+    return formatPence(VOICE_PACK_PRICE_PENCE[pkg.id]);
+  }
   return pkg.priceLabel || '—';
 }
 
