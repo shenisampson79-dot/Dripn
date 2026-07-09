@@ -16,6 +16,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type LeaderboardScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "Leaderboard">;
@@ -41,6 +42,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function LeaderboardScreen({ navigation }: LeaderboardScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [userStats, setUserStats] = useState<UserStats | null>(null);

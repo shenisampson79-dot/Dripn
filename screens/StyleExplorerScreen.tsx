@@ -22,6 +22,7 @@ import {
   resolveUserPresentationGender,
 } from "@/utils/wardrobeCategories";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const EDGY_FEMALE_IMAGE: ImageSourcePropType = require("../assets/images/styles/edgy/female/default.png");
 const EDGY_MALE_IMAGE: ImageSourcePropType = require("../assets/images/styles/edgy/male/default.png");
@@ -330,6 +331,7 @@ type StyleExplorerScreenProps = {
 export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenProps) {
   const { paddingTop, paddingBottom } = useScreenInsets();
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user, updateProfile } = useAuth();
   const [onboardingProfile, setOnboardingProfile] = useState<OnboardingProfile | null>(null);
 
@@ -395,7 +397,7 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
         [{ text: "Great!", onPress: () => navigation.goBack() }]
       );
     } catch (error) {
-      Alert.alert("Error", "Could not update your style. Please try again.");
+      Alert.alert(t('discover.error') || "Error", t('discover.couldNotUpdateYourStylePleaseTryAgain') || "Could not update your style. Please try again.");
     } finally {
       setIsUpdating(false);
     }

@@ -16,6 +16,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "expo-linear-gradient";
 import { useGamification } from "@/contexts/GamificationContext";
 import { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type NavigationProp = NativeStackNavigationProp<DiscoverStackParamList>;
 type RouteType = RouteProp<DiscoverStackParamList, "ChallengeSubmission">;
@@ -25,6 +26,7 @@ export default function ChallengeSubmissionScreen() {
   const route = useRoute<RouteType>();
   const { challengeId } = route.params;
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { challenges, submitChallengeEntry, joinChallenge } = useGamification();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -37,9 +39,7 @@ export default function ChallengeSubmissionScreen() {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert(
-        "Permission Required",
-        "Please allow access to your photo library to select an image."
+      Alert.alert(t('common.permissionRequired') || "Permission Required", t('common.pleaseAllowAccessToYourPhotoLibraryToSel') || "Please allow access to your photo library to select an image."
       );
       return;
     }
@@ -61,9 +61,7 @@ export default function ChallengeSubmissionScreen() {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert(
-        "Permission Required",
-        "Please allow access to your camera to take a photo."
+      Alert.alert(t('common.permissionRequired') || "Permission Required", t('common.pleaseAllowAccessToYourCameraToTakeAPhot') || "Please allow access to your camera to take a photo."
       );
       return;
     }
@@ -87,17 +85,17 @@ export default function ChallengeSubmissionScreen() {
 
   const handleSubmit = async () => {
     if (!imageUri) {
-      Alert.alert("Image Required", "Please add a photo of your outfit.");
+      Alert.alert(t('common.imageRequired') || "Image Required", t('common.pleaseAddAPhotoOfYourOutfit') || "Please add a photo of your outfit.");
       return;
     }
 
     if (!caption.trim()) {
-      Alert.alert("Caption Required", "Please add a caption for your entry.");
+      Alert.alert(t('common.captionRequired') || "Caption Required", t('common.pleaseAddACaptionForYourEntry') || "Please add a caption for your entry.");
       return;
     }
 
     if (!challenge) {
-      Alert.alert("Error", "Challenge not found.");
+      Alert.alert(t('common.error') || "Error", t('common.challengeNotFound') || "Challenge not found.");
       return;
     }
 
@@ -106,13 +104,11 @@ export default function ChallengeSubmissionScreen() {
       await joinChallenge(challengeId);
       await submitChallengeEntry(challengeId, imageUri, caption.trim());
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        "Entry Submitted",
-        "Your outfit has been submitted to the challenge. Good luck!",
+      Alert.alert(t('common.entrySubmitted') || "Entry Submitted", t('common.yourOutfitHasBeenSubmittedToTheChallenge') || "Your outfit has been submitted to the challenge. Good luck!",
         [{ text: "OK", onPress: () => navigation.goBack() }]
       );
     } catch (error) {
-      Alert.alert("Error", "Failed to submit entry. Please try again.");
+      Alert.alert(t('common.error') || "Error", t('common.failedToSubmitEntryPleaseTryAgain') || "Failed to submit entry. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -232,7 +228,7 @@ export default function ChallengeSubmissionScreen() {
           ]}
           value={caption}
           onChangeText={setCaption}
-          placeholder="Tell us about your outfit..."
+          placeholder={t('common.tellUsAboutYourOutfit') || "Tell us about your outfit..."}
           placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
           multiline
           maxLength={200}

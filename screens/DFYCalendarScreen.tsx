@@ -33,6 +33,7 @@ import {
 import { buildLocalAlternatives, DFYAlternativeOutfit } from '@/utils/dfyOutfitImages';
 import { enrichWardrobeItemForOutfitVisual } from '@/utils/wardrobeImage';
 import { OutfitPiecesVisual, OutfitPieceVisual } from '@/components/OutfitPiecesVisual';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -67,6 +68,7 @@ type DFYCalendarScreenProps = {
 export default function DFYCalendarScreen({ navigation, route }: DFYCalendarScreenProps) {
   const tier = route.params?.tier || 'lite';
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const { items: wardrobeItems } = useWardrobe();
   const insets = useSafeAreaInsets();

@@ -24,6 +24,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { apiService } from "@/services/ApiService";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GUEST_TOKEN_KEY = "@dripn_guest_token";
@@ -92,6 +93,7 @@ const STYLIST_GREETINGS: Record<string, string> = {
 
 export default function GuestBrowseScreen({ navigation }: { navigation: NavigationProp }) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
 
@@ -575,7 +577,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
             <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
               <TextInput
                 style={[styles.textInput, { color: theme.text }]}
-                placeholder="Ask about an outfit..."
+                placeholder={t('guest.askAboutAnOutfit') || "Ask about an outfit..."}
                 placeholderTextColor={theme.tabIconDefault}
                 value={inputText}
                 onChangeText={setInputText}

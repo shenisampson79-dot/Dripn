@@ -21,6 +21,7 @@ import aiFeatureSuggestionsService, {
   FeatureCategory,
 } from "@/services/AIFeatureSuggestionsService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type FeatureSuggestionsScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "FeatureSuggestions">;
@@ -258,6 +259,7 @@ export default function FeatureSuggestionsScreen({
   navigation,
 }: FeatureSuggestionsScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { tier } = useSubscription();
   const [suggestions, setSuggestions] = useState<FeatureSuggestion[]>([]);
   const [loading, setLoading] = useState(true);

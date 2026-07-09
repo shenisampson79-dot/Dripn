@@ -15,6 +15,7 @@ import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
 import { videoRandomizer } from "@/services/VideoRandomizerService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const SPACING_XXL = 32;
 
@@ -26,6 +27,7 @@ type SoftSignupGateScreenProps = {
 export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGateScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo({ tone: "confidence" }));
   const fromPath = route.params?.fromPath || "decide_for_me";
 

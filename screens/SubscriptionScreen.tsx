@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { StyleSheet, View, Pressable, Alert, Dimensions, Platform, ActivityIndicator, Linking } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -17,11 +17,8 @@ import { useReferral } from "@/contexts/ReferralContext";
 import { normalizeSubscriptionTier, tierToBillingPlan, getBillingPlanDisplayName } from "@/utils/subscriptionTier";
 import {
   getDfyBenefitForSubscription,
-  getDfyBenefitTitle,
-  getDfyBenefitSubtitle,
   subscriptionTierDisplayName,
 } from "@/utils/dfyEntitlements";
-import { TIER_MATRIX } from "@/utils/tierMatrix";
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
 import { appleIAPService, serializeCustomerInfoForSync, serializeDfyCustomerInfoForSync, type IAPSubscriptionTier } from "@/services/AppleIAPService";
@@ -29,6 +26,7 @@ import { shouldUseAppleIAP } from "@/utils/platformPayments";
 import { getErrorMessage, openExternalUrl } from "@/utils/openExternalUrl";
 import { isDevTestingModeEnabled } from "@/utils/devTesting";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -78,59 +76,60 @@ interface Plan {
 
 type DisplayTier = 'free' | 'personal_stylist' | 'stylist_unlimited';
 
-const PLAN_FEATURES: Record<DisplayTier, PlanFeature[]> = {
+const getPlanFeatures = (t: (key: string) => string): Record<DisplayTier, PlanFeature[]> => ({
   free: [
-    { text: "1 stylist decision per day", included: true },
-    { text: "Compare 2 shopping options", included: true },
-    { text: "Up to 15 wardrobe items", included: true },
-    { text: "Basic AI chat (10/day)", included: true },
-    { text: "Decision history", included: false },
-    { text: "Wardrobe-aware advice", included: false },
-    { text: "Outfit calendar", included: false },
+    { text: t('subscription.features.free.dailyDecision'), included: true },
+    { text: t('subscription.features.free.compareTwo'), included: true },
+    { text: t('subscription.features.free.wardrobe15'), included: true },
+    { text: t('subscription.features.free.basicChat'), included: true },
+    { text: t('subscription.features.free.decisionHistory'), included: false },
+    { text: t('subscription.features.free.wardrobeAdvice'), included: false },
+    { text: t('subscription.features.free.outfitCalendar'), included: false },
   ],
   personal_stylist: [
-    { text: "Get instant outfit decisions (no overthinking)", included: true },
-    { text: "Know what actually looks good on you", included: true },
-    { text: "Build confidence before you leave the house", included: true },
-    { text: "Voice your outfit and get instant answers", included: true },
-    { text: "Stylists learn your style over time", included: true },
+    { text: t('subscription.features.personalStylist.instantDecisions'), included: true },
+    { text: t('subscription.features.personalStylist.looksGood'), included: true },
+    { text: t('subscription.features.personalStylist.confidence'), included: true },
+    { text: t('subscription.features.personalStylist.voiceAnswers'), included: true },
+    { text: t('subscription.features.personalStylist.learnsStyle'), included: true },
   ],
   stylist_unlimited: [
-    { text: "Everything in Personal Stylist", included: true, bold: true },
-    { text: "Plan outfits days or weeks ahead", included: true },
-    { text: "See your full wardrobe instantly", included: true },
-    { text: "Build a system that always works", included: true },
-    { text: "Talk to your stylist by voice, anytime", included: true },
+    { text: t('subscription.features.stylistUnlimited.everythingPersonal'), included: true, bold: true },
+    { text: t('subscription.features.stylistUnlimited.planAhead'), included: true },
+    { text: t('subscription.features.stylistUnlimited.fullWardrobe'), included: true },
+    { text: t('subscription.features.stylistUnlimited.systemWorks'), included: true },
+    { text: t('subscription.features.stylistUnlimited.voiceAnytime'), included: true },
   ],
-};
+});
 
-const getPlanMetadata = (isYearly: boolean): Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean; bestValue?: boolean; tagline?: string; footerLine?: string }> => ({
-  free: { name: "Free", period: "forever", description: TIER_MATRIX.free.tagline },
+const getPlanMetadata = (t: (key: string) => string, isYearly: boolean): Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean; bestValue?: boolean; tagline?: string; footerLine?: string }> => ({
+  free: { name: t('subscription.plan.free.name'), period: t('subscription.plan.free.period'), description: t('subscription.plan.free.description') },
   personal_stylist: {
-    name: "Personal Stylist",
-    period: isYearly ? "/year" : "/month",
-    description: "Stop wasting time deciding what to wear.",
-    tagline: "Look good in 30 seconds — every single day.",
-    footerLine: "Perfect if you want to look better without the effort",
+    name: t('subscription.plan.personalStylist.name'),
+    period: isYearly ? t('subscription.period.year') : t('subscription.period.month'),
+    description: t('subscription.plan.personalStylist.description'),
+    tagline: t('subscription.plan.personalStylist.tagline'),
+    footerLine: t('subscription.plan.personalStylist.footerLine'),
     popular: true,
   },
   stylist_unlimited: {
-    name: "Stylist Unlimited",
-    period: isYearly ? "/year" : "/month",
-    description: "Never think about outfits again.",
+    name: t('subscription.plan.stylistUnlimited.name'),
+    period: isYearly ? t('subscription.period.year') : t('subscription.period.month'),
+    description: t('subscription.plan.stylistUnlimited.description'),
     bestValue: true,
-    tagline: "Your entire wardrobe — organised, planned, handled.",
-    footerLine: "For people who are done guessing and want full control",
+    tagline: t('subscription.plan.stylistUnlimited.tagline'),
+    footerLine: t('subscription.plan.stylistUnlimited.footerLine'),
   },
 });
 
-const PLAN_SAVINGS: Record<DisplayTier, { save: string; yearlyEquiv?: string; badge?: string; altSuffix?: string }> = {
+const getPlanSavings = (t: (key: string) => string): Record<DisplayTier, { save: string; yearlyEquiv?: string; badge?: string; altSuffix?: string }> => ({
   free: { save: '' },
-  personal_stylist: { save: '£23.89', altSuffix: 'Save 20%' },
-  stylist_unlimited: { save: '£47.89', altSuffix: 'Save 20%', badge: 'Save 20%' },
-};
+  personal_stylist: { save: '£23.89', altSuffix: t('subscription.save20Percent'), badge: t('subscription.save20Percent') },
+  stylist_unlimited: { save: '£47.89', altSuffix: t('subscription.save20Percent'), badge: t('subscription.save20Percent') },
+});
 
 const buildPlanPricing = (
+  t: (key: string) => string,
   displayTier: DisplayTier,
   monthlyPrices: LocalizedPrices,
   yearlyPrices: LocalizedPrices,
@@ -138,24 +137,24 @@ const buildPlanPricing = (
 ): { price: string; altPrice: string; savingsLabel: string; period: string } => {
   const monthly = monthlyPrices[displayTier];
   const yearly = yearlyPrices[displayTier];
-  const savings = PLAN_SAVINGS[displayTier];
+  const savings = getPlanSavings(t)[displayTier];
 
   if (isYearly) {
     const savePart = savings.altSuffix
-      ? `${savings.altSuffix} / ${savings.save} off`
-      : `Save ${savings.save}`;
+      ? `${savings.altSuffix} / ${savings.save} ${t('subscription.off')}`
+      : `${t('subscription.save')} ${savings.save}`;
     return {
       price: yearly,
-      altPrice: `${monthly}/month`,
+      altPrice: `${monthly}${t('subscription.perMonth')}`,
       savingsLabel: savePart,
-      period: '/year',
+      period: t('subscription.period.year'),
     };
   }
   return {
     price: monthly,
-    altPrice: `${yearly}/year`,
-    savingsLabel: savings.save ? `Save ${savings.save}` : '',
-    period: '/month',
+    altPrice: `${yearly}${t('subscription.perYear')}`,
+    savingsLabel: savings.save ? `${t('subscription.save')} ${savings.save}` : '',
+    period: t('subscription.period.month'),
   };
 };
 
@@ -165,8 +164,9 @@ interface LocalizedPrices {
   stylist_unlimited: string;
 }
 
-const getLocalizedPlans = (monthlyPrices: LocalizedPrices, yearlyPrices: LocalizedPrices, isYearly: boolean): Plan[] => {
-  const metadata = getPlanMetadata(isYearly);
+const getLocalizedPlans = (t: (key: string) => string, monthlyPrices: LocalizedPrices, yearlyPrices: LocalizedPrices, isYearly: boolean): Plan[] => {
+  const metadata = getPlanMetadata(t, isYearly);
+  const planFeatures = getPlanFeatures(t);
   const planOrder: DisplayTier[] = ['personal_stylist', 'stylist_unlimited'];
 
   const planConfigs: Record<DisplayTier, Omit<Plan, 'price' | 'altPrice' | 'savingsLabel' | 'period'>> = {
@@ -174,7 +174,7 @@ const getLocalizedPlans = (monthlyPrices: LocalizedPrices, yearlyPrices: Localiz
       id: 'free',
       displayTier: 'free',
       ...metadata.free,
-      features: PLAN_FEATURES.free,
+      features: planFeatures.free,
       gradientColors: ['#2A2A3E', '#1A1A2E'] as const,
       accentColor: LUXURY_COLORS.champagne,
       anchorStyle: 'subtle',
@@ -183,7 +183,7 @@ const getLocalizedPlans = (monthlyPrices: LocalizedPrices, yearlyPrices: Localiz
       id: 'personal_stylist',
       displayTier: 'personal_stylist',
       ...metadata.personal_stylist,
-      features: PLAN_FEATURES.personal_stylist,
+      features: planFeatures.personal_stylist,
       gradientColors: [LUXURY_COLORS.teal, LUXURY_COLORS.emerald] as const,
       accentColor: LUXURY_COLORS.champagne,
       anchorStyle: 'normal',
@@ -192,7 +192,7 @@ const getLocalizedPlans = (monthlyPrices: LocalizedPrices, yearlyPrices: Localiz
       id: 'stylist_unlimited',
       displayTier: 'stylist_unlimited',
       ...metadata.stylist_unlimited,
-      features: PLAN_FEATURES.stylist_unlimited,
+      features: planFeatures.stylist_unlimited,
       gradientColors: [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const,
       accentColor: LUXURY_COLORS.midnight,
       bestValue: true,
@@ -202,7 +202,7 @@ const getLocalizedPlans = (monthlyPrices: LocalizedPrices, yearlyPrices: Localiz
 
   return planOrder.map((displayTier) => {
     const config = planConfigs[displayTier];
-    const pricing = buildPlanPricing(displayTier, monthlyPrices, yearlyPrices, isYearly);
+    const pricing = buildPlanPricing(t, displayTier, monthlyPrices, yearlyPrices, isYearly);
     return { ...config, ...pricing };
   });
 };
@@ -231,6 +231,7 @@ const getTierIcon = (tier?: SubscriptionTier): "award" | "star" | "message-circl
 
 export default function SubscriptionScreen({ navigation, route }: SubscriptionScreenProps & { route: any }) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user, refreshSubscriptionFromBackend } = useAuth();
   const { referralCode: subscriptionReferralCode } = useSubscription();
   const { referralCode, shareReferral } = useReferral();
@@ -241,8 +242,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
   const normalizedTier = normalizeTier(user?.subscriptionTier);
   const dfyBenefit = getDfyBenefitForSubscription(normalizedTier);
-  const dfyBenefitTitle = getDfyBenefitTitle(dfyBenefit);
-  const dfyBenefitSubtitle = getDfyBenefitSubtitle(dfyBenefit);
   const currentTierAccent = getCurrentTierAccent(normalizedTier, isDark);
   const currentTierMutedLabel = isDark ? 'rgba(255,255,255,0.65)' : 'rgba(26,26,46,0.6)';
   
@@ -327,11 +326,11 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
       if (offer === "50" || cta === "resume_50") {
         setWinbackOffer50(true);
-        setWinbackBanner("Welcome back! Your exclusive 50% off your next month is ready.");
+        setWinbackBanner(t('subscription.winbackWelcome50'));
       }
       if (pause === "true" || cta === "pause") {
         setWinbackPausePrompt(true);
-        setWinbackBanner((prev) => prev ?? "You can pause your plan instead of cancelling — no charges while paused.");
+        setWinbackBanner((prev) => prev ?? t('subscription.winbackPauseBanner'));
       }
       if (cta === "downgrade") {
         setSelectedPlan("personal_stylist");
@@ -352,7 +351,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         window.history.replaceState({}, "", window.location.pathname);
       }
     }
-  }, [route?.params]);
+  }, [route?.params, t]);
 
   useEffect(() => {
     const initCurrency = async () => {
@@ -387,7 +386,11 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     }
   }, [route?.params?.scrollToDFY]);
 
-  const PLANS = getLocalizedPlans(localizedPrices, yearlyPrices, isYearly);
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: t('subscription.screenTitle') });
+  }, [navigation, t]);
+
+  const PLANS = getLocalizedPlans(t, localizedPrices, yearlyPrices, isYearly);
 
   const completeApplePurchase = async (tier: IAPSubscriptionTier, interval: 'monthly' | 'yearly', planName: string) => {
     const customerInfo = await appleIAPService.purchaseSubscription(tier, interval);
@@ -396,9 +399,9 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     await refreshSubscriptionFromBackend();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert(
-      "Subscription Active",
-      `Your ${planName} subscription is now active.`,
-      [{ text: "OK", onPress: () => navigation.goBack() }],
+      t('subscription.subscriptionActiveTitle'),
+      t('subscription.subscriptionActiveMessage').replace('{planName}', planName),
+      [{ text: t('common.ok'), onPress: () => navigation.goBack() }],
     );
   };
 
@@ -407,7 +410,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsProcessing(true);
     try {
-      if (!user?.id) throw new Error('Sign in to restore purchases');
+      if (!user?.id) throw new Error(t('subscription.signInToRestore'));
       await appleIAPService.configure(user.id);
       const customerInfo = await appleIAPService.restorePurchases();
       const subscriptionPayload = serializeCustomerInfoForSync(customerInfo);
@@ -426,16 +429,16 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       }
 
       if (!restoredSomething) {
-        Alert.alert('No purchases found', 'No active App Store subscription or DFY setup was found for this account.');
+        Alert.alert(t('subscription.noPurchasesTitle'), t('subscription.noPurchasesMessage'));
         return;
       }
 
       await refreshSubscriptionFromBackend();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Restored', 'Your App Store purchases have been restored.');
+      Alert.alert(t('subscription.restoredTitle'), t('subscription.restoredMessage'));
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Could not restore purchases';
-      Alert.alert('Restore failed', message);
+      const message = error instanceof Error ? error.message : t('subscription.restoreFailedMessage');
+      Alert.alert(t('subscription.restoreFailedTitle'), message);
     } finally {
       setIsProcessing(false);
     }
@@ -455,9 +458,9 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           await apiService.cancelSubscription();
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           Alert.alert(
-            "Subscription Cancelled",
-            "Your subscription will remain active until the end of the current billing period.",
-            [{ text: "OK", onPress: () => navigation.goBack() }]
+            t('subscription.cancelledTitle'),
+            t('subscription.cancelledMessage'),
+            [{ text: t('common.ok'), onPress: () => navigation.goBack() }]
           );
         } else {
           navigation.goBack();
@@ -468,7 +471,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
         if (useAppleIAP && (planId === 'personal_stylist' || planId === 'stylist_unlimited')) {
           if (!user?.id) {
-            throw new Error('Sign in to subscribe');
+            throw new Error(t('subscription.signInToSubscribe'));
           }
           await appleIAPService.configure(user.id);
           try {
@@ -486,7 +489,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
         const checkout = await apiService.createSubscriptionCheckout(billingPlan, billingCycle);
         if (!checkout.checkoutUrl) {
-          throw new Error('Unable to start checkout. Please try again.');
+          throw new Error(t('subscription.checkoutStartFailed'));
         }
 
         const result = await WebBrowser.openBrowserAsync(checkout.checkoutUrl);
@@ -496,25 +499,25 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           refreshSubscriptionFromBackend().catch(() => {});
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           Alert.alert(
-            "Almost there!",
-            `If you completed your payment, your ${planName} subscription will activate shortly. Tap "Refresh" to check now.`,
+            t('subscription.almostThereTitle'),
+            t('subscription.almostThereMessage').replace('{planName}', planName),
             [
               {
-                text: "Refresh",
+                text: t('subscription.refresh'),
                 onPress: async () => {
                   await refreshSubscriptionFromBackend().catch(() => {});
                   navigation.goBack();
                 },
               },
-              { text: "Done", onPress: () => navigation.goBack() },
+              { text: t('common.done'), onPress: () => navigation.goBack() },
             ]
           );
         }
       }
     } catch (error: any) {
       console.error("Subscription error:", error);
-      const errorMessage = error?.message || "Failed to open payment page. Please try again.";
-      Alert.alert("Error", errorMessage);
+      const errorMessage = error?.message || t('subscription.paymentPageFailed');
+      Alert.alert(t('common.error'), errorMessage);
     } finally {
       checkoutInProgressRef.current = false;
       setIsProcessing(false);
@@ -539,7 +542,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const success = await shareReferral();
     if (!success) {
-      Alert.alert("Sharing failed", "Could not open the share menu. Please try again.");
+      Alert.alert(t('subscription.sharingFailed'), t('subscription.sharingFailedMessage'));
     }
   };
 
@@ -559,10 +562,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
       const devTesting = __DEV__ && (devTestingMode || (await isDevTestingModeEnabled().catch(() => false)));
       if (devTesting) {
-        Alert.alert(
-          'Testing mode',
-          'Your plan is unlocked locally for testing — there is no Stripe billing account on this login.\n\nManage Billing opens Stripe’s secure portal to update your card, billing address, download invoices, and change payment details. That only works after you subscribe through a real checkout.\n\nTo try billing: pick a plan below and complete checkout, or turn off testing mode in Settings → Development.',
-        );
+        Alert.alert(t('subscription.testingModeTitle'), t('subscription.testingModeMessage'));
         return;
       }
 
@@ -595,23 +595,20 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
       const isPaidTier = normalizedTier !== 'free';
       if (isPaidTier && !status?.isTrial) {
-        Alert.alert(
-          'No billing account linked',
-          'Manage Billing opens Stripe’s secure portal where you can update your card, billing address, download invoices, and manage your subscription.\n\nWe couldn’t find a billing account for this login yet. If you subscribed recently, wait a moment and try again. Otherwise choose a plan below to subscribe.',
-        );
+        Alert.alert(t('subscription.noBillingAccountTitle'), t('subscription.noBillingAccountMessage'));
         return;
       }
 
       scrollToPlans(
         status?.isTrial
-          ? 'Subscribe below to set up billing — then Manage Billing will open your Stripe portal.'
-          : 'Choose a plan below to subscribe. After checkout, Manage Billing opens Stripe for card and invoice updates.',
+          ? t('subscription.upgradeHintTrial')
+          : t('subscription.upgradeHintSubscribe'),
       );
     } catch (error: unknown) {
       console.error("Billing portal error:", error);
       Alert.alert(
-        "Billing unavailable",
-        getErrorMessage(error, "Unable to open billing management. Please try again."),
+        t('subscription.billingUnavailableTitle'),
+        getErrorMessage(error, t('subscription.billingUnavailableMessage')),
       );
     } finally {
       setIsProcessing(false);
@@ -620,7 +617,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
   const handleApplyWinbackDiscount = async () => {
     if (normalizedTier === 'free') {
-      Alert.alert("Choose a plan", "Select a plan below to subscribe with your comeback offer.");
+      Alert.alert(t('subscription.choosePlanTitle'), t('subscription.choosePlanWinbackMessage'));
       return;
     }
     setIsProcessing(true);
@@ -632,13 +629,13 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refreshSubscriptionFromBackend().catch(() => {});
       Alert.alert(
-        "50% off applied!",
-        result.message || "50% off has been applied to your next billing cycle.",
-        [{ text: "Great!" }]
+        t('subscription.discountAppliedTitle'),
+        result.message || t('subscription.discountAppliedMessage'),
+        [{ text: t('subscription.great') }]
       );
       setWinbackOffer50(false);
     } catch (error: any) {
-      Alert.alert("Offer unavailable", error?.message || "Could not apply discount right now.");
+      Alert.alert(t('subscription.offerUnavailableTitle'), error?.message || t('subscription.offerUnavailableMessage'));
     } finally {
       setIsProcessing(false);
     }
@@ -646,7 +643,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
   const handleWinbackPause = async () => {
     if (normalizedTier === 'free') {
-      Alert.alert("Subscribe first", "Choose a plan below, then you can pause from billing settings.");
+      Alert.alert(t('subscription.subscribeFirstTitle'), t('subscription.subscribeFirstMessage'));
       return;
     }
     setIsProcessing(true);
@@ -657,10 +654,10 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refreshSubscriptionFromBackend().catch(() => {});
-      Alert.alert("Plan paused", result.message || "Your subscription is paused.", [{ text: "OK" }]);
+      Alert.alert(t('subscription.planPausedTitle'), result.message || t('subscription.planPausedMessage'), [{ text: t('common.ok') }]);
       setWinbackPausePrompt(false);
     } catch (error: any) {
-      Alert.alert("Error", error?.message || "Could not pause subscription.");
+      Alert.alert(t('common.error'), error?.message || t('subscription.pauseFailedMessage'));
     } finally {
       setIsProcessing(false);
     }
@@ -673,23 +670,86 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       await apiService.reactivateSubscription();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
-        "Subscription Reactivated",
-        "Your subscription has been reactivated and will continue as normal.",
-        [{ text: "OK" }]
+        t('subscription.reactivatedTitle'),
+        t('subscription.reactivatedMessage'),
+        [{ text: t('common.ok') }]
       );
     } catch (error: any) {
       console.error("Reactivation error:", error);
-      Alert.alert("Error", error.message || "Failed to reactivate subscription.");
+      Alert.alert(t('common.error'), error.message || t('subscription.reactivateFailedMessage'));
     } finally {
       setIsProcessing(false);
     }
   };
 
 
+  const getDfyBenefitDisplayTitle = () => {
+    if (dfyBenefit === 'none') return t('subscription.dfy.included.defaultTitle');
+    if (dfyBenefit === 'styling_sprint') return t('subscription.dfy.included.occasionReadyTitle');
+    return t('subscription.dfy.included.fullWardrobeTitle');
+  };
+
+  const getDfyBenefitDisplaySubtitle = () => {
+    if (dfyBenefit === 'none') return t('subscription.dfy.included.noneSubtitle');
+    if (dfyBenefit === 'styling_sprint') return t('subscription.dfy.included.sprintSubtitle');
+    return t('subscription.dfy.included.fullSubtitle');
+  };
+
+  const getDfyIncludedFeatureKeys = (): string[] => {
+    if (dfyBenefit === 'none') {
+      return [
+        'subscription.dfy.included.featureNone1',
+        'subscription.dfy.included.featureNone2',
+        'subscription.dfy.included.featureNone3',
+        'subscription.dfy.included.featureNone4',
+      ];
+    }
+    if (dfyBenefit === 'styling_sprint') {
+      return [
+        'subscription.dfy.included.featureSprint1',
+        'subscription.dfy.included.featureSprint2',
+        'subscription.dfy.included.featureSprint3',
+        'subscription.dfy.included.featureSprint4',
+      ];
+    }
+    return [
+      'subscription.dfy.included.featureFull1',
+      'subscription.dfy.included.featureFull2',
+      'subscription.dfy.included.featureFull3',
+      'subscription.dfy.included.featureFull4',
+    ];
+  };
+
+  const getWardrobeSetupFeatureKeys = () => [
+    'subscription.dfy.wardrobe.feature1',
+    'subscription.dfy.wardrobe.feature2',
+    'subscription.dfy.wardrobe.feature3',
+    'subscription.dfy.wardrobe.feature4',
+    'subscription.dfy.wardrobe.feature5',
+    'subscription.dfy.wardrobe.feature6',
+    'subscription.dfy.wardrobe.feature7',
+    'subscription.dfy.wardrobe.feature8',
+  ];
+
+  const getOccasionReadyFeatureKeys = () => [
+    'subscription.dfy.occasion.feature1',
+    'subscription.dfy.occasion.feature2',
+    'subscription.dfy.occasion.feature3',
+    'subscription.dfy.occasion.feature4',
+    'subscription.dfy.occasion.feature5',
+    'subscription.dfy.occasion.feature6',
+  ];
+
+  const getOccasionReadyExcludedKeys = () => [
+    'subscription.dfy.occasion.excluded1',
+    'subscription.dfy.occasion.excluded2',
+  ];
+
+
   const renderPlanCard = (plan: Plan) => {
     const isSelected = selectedPlan === plan.id;
     const isCurrent = plan.id === normalizedTier;
-    const savingsInfo = PLAN_SAVINGS[plan.displayTier];
+    const savingsInfo = getPlanSavings(t)[plan.displayTier];
     const anchorStyles = {
       highlight: { priceSize: 36, cardOpacity: 1, priceOpacity: 1 },
       normal: { priceSize: 30, cardOpacity: 1, priceOpacity: 1 },
@@ -727,7 +787,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               style={styles.popularBadge}
             >
               <ThemedText type="caption" style={styles.popularText}>
-                Most Popular
+                {t('subscription.mostPopular')}
               </ThemedText>
             </LinearGradient>
           ) : null}
@@ -735,7 +795,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           {plan.starter ? (
             <View style={styles.starterBadge}>
               <ThemedText type="caption" style={styles.starterText}>
-                Starter
+                {t('subscription.starter')}
               </ThemedText>
             </View>
           ) : null}
@@ -749,7 +809,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             {isCurrent && !plan.popular ? (
               <View style={[styles.currentBadge, { backgroundColor: LUXURY_COLORS.emerald }]}>
                 <ThemedText type="caption" style={styles.currentText}>
-                  Current
+                  {t('subscription.currentPlan')}
                 </ThemedText>
               </View>
             ) : null}
@@ -758,7 +818,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           {isCurrent && plan.popular ? (
             <View style={[styles.currentBadge, styles.currentBadgeBelowPopular, { backgroundColor: LUXURY_COLORS.emerald }]}>
               <ThemedText type="caption" style={styles.currentText}>
-                Current
+                {t('subscription.currentPlan')}
               </ThemedText>
             </View>
           ) : null}
@@ -799,7 +859,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
           {!isYearly ? (
             <ThemedText type="caption" style={styles.altPriceText}>
-              or {plan.altPrice}{plan.savingsLabel ? ` (${plan.savingsLabel})` : ''}
+              {t('subscription.orAltPrice')} {plan.altPrice}{plan.savingsLabel ? ` (${plan.savingsLabel})` : ''}
             </ThemedText>
           ) : null}
 
@@ -873,7 +933,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                   { color: plan.id === 'stylist_unlimited' ? '#FFFFFF' : LUXURY_COLORS.midnight }
                 ]}
               >
-                {isProcessing ? "Processing..." : `Start ${plan.name} Plan`}
+                {isProcessing ? t('subscription.processing') : t('subscription.startPlan').replace('{planName}', plan.name)}
               </ThemedText>
             </Pressable>
           ) : null}
@@ -903,10 +963,10 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             </LinearGradient>
           </View>
           <ThemedText type="h1" style={styles.heroTitle}>
-            Look Better, Stress Less
+            {t('subscription.heroTitle')}
           </ThemedText>
           <ThemedText type="body" style={styles.heroSubtitle}>
-            Your AI stylist for everyday confidence — or full life planning
+            {t('subscription.heroSubtitle')}
           </ThemedText>
         </View>
       </LinearGradient>
@@ -923,7 +983,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               style={[styles.winbackCta, { backgroundColor: LUXURY_COLORS.gold }]}
             >
               <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>
-                {isProcessing ? "Processing..." : "Apply 50% off now"}
+                {isProcessing ? t('subscription.processing') : t('subscription.apply50Off')}
               </ThemedText>
             </Pressable>
           ) : null}
@@ -934,7 +994,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               style={[styles.winbackCtaOutline, { borderColor: LUXURY_COLORS.gold }]}
             >
               <ThemedText type="body" style={{ color: LUXURY_COLORS.gold, fontWeight: '600' }}>
-                Pause my plan instead
+                {t('subscription.pausePlanInstead')}
               </ThemedText>
             </Pressable>
           ) : null}
@@ -951,7 +1011,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             />
           </View>
           <View style={styles.currentTierText}>
-            <ThemedText type="small" style={{ color: currentTierMutedLabel }}>You're on</ThemedText>
+            <ThemedText type="small" style={{ color: currentTierMutedLabel }}>{t('subscription.youreOn')}</ThemedText>
             <ThemedText type="h3">
               {getTierDisplayName(normalizedTier)}
             </ThemedText>
@@ -972,8 +1032,8 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             <Feather name="settings" size={16} color={currentTierAccent} />
             <ThemedText type="body" style={{ color: currentTierAccent, fontWeight: '600' }}>
               {normalizedTier === 'free'
-                ? (useAppleIAP ? 'Upgrade / Manage' : 'Upgrade / Manage Billing')
-                : (useAppleIAP ? 'Manage Subscription' : 'Manage Billing')}
+                ? (useAppleIAP ? t('subscription.upgradeManage') : t('subscription.upgradeManageBilling'))
+                : (useAppleIAP ? t('subscription.manageSubscription') : t('subscription.manageBilling'))}
             </ThemedText>
             {isProcessing ? (
               <ActivityIndicator size="small" color={currentTierAccent} style={{ marginLeft: Spacing.sm }} />
@@ -982,10 +1042,10 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           {normalizedTier !== 'free' ? (
             <ThemedText type="caption" style={[styles.billingHint, { color: theme.tabIconDefault }]}>
               {useAppleIAP
-                ? 'Opens App Store subscription settings.'
+                ? t('subscription.billingHintApple')
                 : devTestingMode
-                  ? 'Testing mode — no Stripe billing linked. Subscribe below to use the real billing portal.'
-                  : 'Opens Stripe to update your card, billing address, and invoices.'}
+                  ? t('subscription.billingHintTesting')
+                  : t('subscription.billingHintStripe')}
             </ThemedText>
           ) : null}
         </View>
@@ -1014,7 +1074,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               !isYearly && styles.billingToggleTextActive
             ]}
           >
-            Monthly
+            {t('subscription.billingMonthly')}
           </ThemedText>
         </Pressable>
         <Pressable
@@ -1033,11 +1093,11 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 isYearly && styles.billingToggleTextActive
               ]}
             >
-              Yearly
+              {t('subscription.billingYearly')}
             </ThemedText>
             <View style={[styles.savingsBadge, { backgroundColor: isYearly ? '#fff' : LUXURY_COLORS.emerald }]}>
               <ThemedText type="caption" style={[styles.savingsText, { color: isYearly ? LUXURY_COLORS.emerald : '#fff' }]}>
-                Save 20%
+                {t('subscription.save20Percent')}
               </ThemedText>
             </View>
           </View>
@@ -1057,7 +1117,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           plansSectionY.current = event.nativeEvent.layout.y;
         }}
       >
-        <ThemedText type="h2" style={styles.sectionTitle}>Choose Your Plan</ThemedText>
+        <ThemedText type="h2" style={styles.sectionTitle}>{t('subscription.chooseYourPlan')}</ThemedText>
         {PLANS.map(renderPlanCard)}
       </View>
 
@@ -1072,7 +1132,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         >
           <Feather name="refresh-cw" size={16} color={LUXURY_COLORS.teal} />
           <ThemedText type="body" style={{ color: LUXURY_COLORS.teal, fontWeight: '600' }}>
-            {isProcessing ? 'Restoring...' : 'Restore Purchases'}
+            {isProcessing ? t('subscription.restoring') : t('subscription.restorePurchases')}
           </ThemedText>
         </Pressable>
       ) : null}
@@ -1094,9 +1154,9 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           <Feather name="gift" size={20} color="#FFFFFF" />
         </LinearGradient>
         <View style={styles.referralContent}>
-          <ThemedText type="h3">Invite Friends</ThemedText>
+          <ThemedText type="h3">{t('subscription.inviteFriends')}</ThemedText>
           <ThemedText type="small" style={{ opacity: 0.7 }}>
-            Tap to share — you both get a free month
+            {t('subscription.inviteFriendsSubtitle')}
           </ThemedText>
         </View>
         <View style={[styles.referralCode, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
@@ -1108,12 +1168,10 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       <View style={styles.dfySection}>
         <View style={styles.dfySectionHeader}>
           <ThemedText type="h2" style={styles.sectionTitle}>
-            Included Stylist Setup
+            {t('subscription.dfy.includedSectionTitle')}
           </ThemedText>
           <ThemedText type="body" style={styles.dfySectionSubtitle}>
-            {dfyBenefit === 'none'
-              ? 'Every paid plan includes a done-for-you wardrobe kickstart — no separate purchase.'
-              : dfyBenefitSubtitle}
+            {dfyBenefit === 'none' ? t('subscription.dfy.includedSectionSubtitle') : getDfyBenefitDisplaySubtitle()}
           </ThemedText>
         </View>
 
@@ -1135,7 +1193,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           >
             <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
               <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                {dfyBenefit === 'none' ? 'Included with plan' : 'Your benefit'}
+                {dfyBenefit === 'none' ? t('subscription.dfy.includedWithPlan') : t('subscription.dfy.yourBenefit')}
               </ThemedText>
             </View>
             <View style={styles.dfyCardHeader}>
@@ -1144,56 +1202,36 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               </View>
               <View style={styles.dfyCardTitleContainer}>
                 <ThemedText type="h3" style={{ color: '#FFFFFF' }}>
-                  {dfyBenefit === 'none' ? 'Occasion Ready & Full Wardrobe Setup' : dfyBenefitTitle}
+                  {getDfyBenefitDisplayTitle()}
                 </ThemedText>
                 <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.75)' }}>
                   {dfyBenefit === 'none'
-                    ? 'Personal Stylist · Occasion Ready · Unlimited · Full Setup'
-                    : `Included DFY setup with ${subscriptionTierDisplayName(normalizedTier)} (not a subscription free trial)`}
+                    ? t('subscription.dfy.included.defaultCaption')
+                    : t('subscription.dfy.included.benefitCaption').replace('{tier}', subscriptionTierDisplayName(normalizedTier))}
                 </ThemedText>
               </View>
             </View>
             <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(255,255,255,0.9)' }]}>
               {dfyBenefit === 'none'
-                ? 'Subscribe to unlock one included stylist setup. Personal Stylist gets Quick Start; Unlimited lets you choose Quick Start or Full Setup. More runs are paid add-ons.'
+                ? t('subscription.dfy.included.noneDescription')
                 : dfyBenefit === 'styling_sprint'
-                  ? '5–7 ready-to-wear looks for your next trip or event. Upload outfit photos and Julia styles you in a 14-day sprint.'
-                  : 'Digitise your wardrobe for long-term remixing. Choose Quick Start for a fast win or Full Setup to map up to 30 items.'}
+                  ? t('subscription.dfy.included.sprintDescription')
+                  : t('subscription.dfy.included.fullDescription')}
             </ThemedText>
             <View style={styles.dfyFeatures}>
-              {(dfyBenefit === 'none'
-                ? [
-                    "Personal Stylist → Occasion Ready (Quick Start)",
-                    "Stylist Unlimited → Full Wardrobe Setup",
-                    "One included setup per subscription (trial)",
-                    "Additional setups available to purchase",
-                  ]
-                : dfyBenefit === 'styling_sprint'
-                  ? [
-                      "5–7 outfit photos",
-                      "14-day styling window",
-                      "Ready-to-wear look cards",
-                      "Stylist-led adjustments",
-                    ]
-                  : [
-                      "Quick Start or Full Setup path",
-                      "Up to 30 wardrobe items (Full Setup)",
-                      "30-day active styling window",
-                      "Swap & remix outfits",
-                    ]
-              ).map((feature, idx) => (
+              {getDfyIncludedFeatureKeys().map((featureKey, idx) => (
                 <View key={idx} style={styles.dfyFeatureRow}>
                   <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                     <Feather name="check" size={12} color="#FFFFFF" />
                   </View>
-                  <ThemedText type="small" style={{ color: '#FFFFFF' }}>{feature}</ThemedText>
+                  <ThemedText type="small" style={{ color: '#FFFFFF' }}>{t(featureKey)}</ThemedText>
                 </View>
               ))}
             </View>
             <View style={[styles.dfyButtonGradient, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
               <Pressable style={styles.dfyButtonInner} onPress={handleStartIncludedDfy}>
                 <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                  {dfyBenefit === 'none' ? "See what's included" : 'Start my setup'}
+                  {dfyBenefit === 'none' ? t('subscription.dfy.seeWhatsIncluded') : t('subscription.dfy.startMySetup')}
                 </ThemedText>
               </Pressable>
             </View>
@@ -1204,10 +1242,10 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       <View style={styles.dfySection}>
         <View style={styles.dfySectionHeader}>
           <ThemedText type="h2" style={styles.sectionTitle}>
-            Purchase Additional Setup
+            {t('subscription.dfy.paidSectionTitle')}
           </ThemedText>
           <ThemedText type="body" style={styles.dfySectionSubtitle}>
-            After your included DFY setup benefit is used, or anytime you want an extra run — one-time purchases via Stripe (App Store on iOS, coming soon).
+            {t('subscription.dfy.paidSectionSubtitle')}
           </ThemedText>
         </View>
 
@@ -1220,7 +1258,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           >
             <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(26,26,46,0.3)' }]}>
               <ThemedText type="caption" style={{ color: LUXURY_COLORS.midnight, fontWeight: '700' }}>
-                Structural
+                {t('subscription.dfy.structural')}
               </ThemedText>
             </View>
             <View style={styles.dfyCardHeader}>
@@ -1228,8 +1266,8 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 <Feather name="grid" size={18} color={LUXURY_COLORS.midnight} />
               </View>
               <View style={styles.dfyCardTitleContainer}>
-                <ThemedText type="h3" style={{ color: LUXURY_COLORS.midnight }}>Full Wardrobe Setup</ThemedText>
-                <ThemedText type="caption" style={{ color: 'rgba(26,26,46,0.6)' }}>One-time purchase</ThemedText>
+                <ThemedText type="h3" style={{ color: LUXURY_COLORS.midnight }}>{t('subscription.dfy.wardrobe.title')}</ThemedText>
+                <ThemedText type="caption" style={{ color: 'rgba(26,26,46,0.6)' }}>{t('subscription.dfy.oneTimePurchase')}</ThemedText>
               </View>
             </View>
             <View style={styles.dfyPriceRow}>
@@ -1238,24 +1276,15 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               </ThemedText>
             </View>
             <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(26,26,46,0.85)' }]}>
-              Solve the system, not the moment. Photograph individual items and I'll organise your wardrobe so decisions get easier every time.
+              {t('subscription.dfy.wardrobe.description')}
             </ThemedText>
             <View style={styles.dfyFeatures}>
-              {[
-                "You photograph individual items",
-                "Up to 30 wardrobe items",
-                "Proper categorisation & tagging",
-                "Wardrobe saved forever",
-                "30 days of active styling",
-                "Dynamic outfit generation",
-                "Swap & remix any piece",
-                "Less repetition, more variety",
-              ].map((feature, idx) => (
+              {getWardrobeSetupFeatureKeys().map((featureKey, idx) => (
                 <View key={idx} style={styles.dfyFeatureRow}>
                   <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(26,26,46,0.15)' }]}>
                     <Feather name="check" size={12} color={LUXURY_COLORS.midnight} />
                   </View>
-                  <ThemedText type="small" style={{ color: LUXURY_COLORS.midnight }}>{feature}</ThemedText>
+                  <ThemedText type="small" style={{ color: LUXURY_COLORS.midnight }}>{t(featureKey)}</ThemedText>
                 </View>
               ))}
             </View>
@@ -1265,7 +1294,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 onPress={() => openPaidDfyCheckout('core')}
               >
                 <ThemedText type="body" style={{ color: LUXURY_COLORS.midnight, fontWeight: '600' }}>
-                  Build my wardrobe
+                  {t('subscription.dfy.wardrobe.cta')}
                 </ThemedText>
               </Pressable>
             </View>
@@ -1280,15 +1309,15 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             style={styles.dfyCard}
           >
             <View style={[styles.dfyPopularBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>Tactical</ThemedText>
+              <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>{t('subscription.dfy.tactical')}</ThemedText>
             </View>
             <View style={styles.dfyCardHeader}>
               <View style={[styles.dfyBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                 <Feather name="package" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.dfyCardTitleContainer}>
-                <ThemedText type="h3" style={{ color: '#FFFFFF' }}>Occasion Ready</ThemedText>
-                <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.7)' }}>One-time purchase</ThemedText>
+                <ThemedText type="h3" style={{ color: '#FFFFFF' }}>{t('subscription.dfy.occasion.title')}</ThemedText>
+                <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.7)' }}>{t('subscription.dfy.oneTimePurchase')}</ThemedText>
               </View>
             </View>
             <View style={styles.dfyPriceRow}>
@@ -1297,33 +1326,23 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
               </ThemedText>
             </View>
             <ThemedText type="body" style={[styles.dfyDescription, { color: 'rgba(255,255,255,0.9)' }]}>
-              Solve a specific problem, once. Upload photos of your outfits and I'll turn them into ready-to-wear looks for one occasion.
+              {t('subscription.dfy.occasion.description')}
             </ThemedText>
             <View style={styles.dfyFeatures}>
-              {[
-                "You upload outfit photos",
-                "5-7 core outfits with rotations",
-                "One occasion (work, holiday, event)",
-                "14-day access window",
-                "Stylist-led adjustments only",
-                "Save outfits as static cards",
-              ].map((feature, idx) => (
+              {getOccasionReadyFeatureKeys().map((featureKey, idx) => (
                 <View key={idx} style={styles.dfyFeatureRow}>
                   <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                     <Feather name="check" size={12} color="#FFFFFF" />
                   </View>
-                  <ThemedText type="small" style={{ color: '#FFFFFF' }}>{feature}</ThemedText>
+                  <ThemedText type="small" style={{ color: '#FFFFFF' }}>{t(featureKey)}</ThemedText>
                 </View>
               ))}
-              {[
-                "No wardrobe creation",
-                "No individual item editing",
-              ].map((feature, idx) => (
+              {getOccasionReadyExcludedKeys().map((featureKey, idx) => (
                 <View key={`excluded-${idx}`} style={styles.dfyFeatureRow}>
                   <View style={[styles.dfyFeatureIcon, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
                     <Feather name="x" size={12} color="rgba(255,255,255,0.4)" />
                   </View>
-                  <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.5)' }}>{feature}</ThemedText>
+                  <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.5)' }}>{t(featureKey)}</ThemedText>
                 </View>
               ))}
             </View>
@@ -1333,7 +1352,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 onPress={() => openPaidDfyCheckout('lite')}
               >
                 <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                  Style me for this
+                  {t('subscription.dfy.occasion.cta')}
                 </ThemedText>
               </Pressable>
             </View>
@@ -1343,23 +1362,21 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
       <View style={styles.finePrint}>
         <ThemedText type="small" style={styles.finePrintText}>
-          {useAppleIAP
-            ? 'Subscriptions auto-renew through your Apple ID until cancelled in Settings → Subscriptions. Payment is charged to your Apple ID account. By subscribing, you agree to our '
-            : 'Subscriptions auto-renew each billing period until you cancel below. By subscribing, you agree to our '}
+          {useAppleIAP ? t('subscription.finePrintApple') : t('subscription.finePrintStripe')}
           <ThemedText
             type="small"
             style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
             onPress={() => navigation.navigate('TermsOfService')}
           >
-            Terms of Service
+            {t('subscription.termsOfService')}
           </ThemedText>
-          {' '}and{' '}
+          {' '}{t('subscription.finePrintAnd')}{' '}
           <ThemedText
             type="small"
             style={[styles.finePrintText, { color: theme.link, textDecorationLine: 'underline' }]}
             onPress={() => navigation.navigate('PrivacyPolicy')}
           >
-            Privacy Policy
+            {t('subscription.privacyPolicy')}
           </ThemedText>
           .
         </ThemedText>
@@ -1374,7 +1391,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
           style={styles.cancelFooterLink}
         >
           <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-            Cancel subscription
+            {t('subscription.cancelSubscription')}
           </ThemedText>
         </Pressable>
       ) : null}

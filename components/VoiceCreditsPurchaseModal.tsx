@@ -31,7 +31,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { Spacing, BorderRadius } from '@/constants/theme';
 
 import { useTheme } from '@/hooks/useTheme';
-
+import { useTranslations } from '@/contexts/TranslationContext';
 import { useVoiceCredits, isPurchaseCancelledError, getPurchaseErrorMessage } from '@/hooks/useVoiceCredits';
 
 import { getVoicePackDisplay } from '@/utils/voiceCreditPacks';
@@ -59,8 +59,8 @@ export function VoiceCreditsPurchaseModal({
   onPurchaseSuccess,
 
 }: VoiceCreditsPurchaseModalProps) {
-
   const { theme } = useTheme();
+  const { t } = useTranslations();
 
   const {
 
@@ -113,19 +113,12 @@ export function VoiceCreditsPurchaseModal({
       onPurchaseSuccess?.(added);
 
       Alert.alert(
-
-        isWeekend ? 'Weekend voice active' : 'Credits added',
-
+        isWeekend ? t('voiceCredits.weekendVoiceActive') : t('voiceCredits.creditsAdded'),
         isWeekend
-
-          ? 'Unlimited voice for the next 48 hours is now on your account.'
-
+          ? t('voiceCredits.weekendAddedMessage')
           : added && added > 0
-
-            ? `${added} voice credits are now on your account.`
-
-            : 'Your voice credit balance has been updated.',
-
+            ? `${added} ${t('voiceCredits.creditsAddedMessage')}`
+            : t('voiceCredits.balanceUpdated'),
       );
 
     } catch (error: unknown) {
@@ -140,27 +133,19 @@ export function VoiceCreditsPurchaseModal({
 
       if (!message) return;
 
-      Alert.alert('Purchase failed', message);
+      Alert.alert(t('voiceCredits.purchaseFailed'), message);
 
     }
 
-  }, [onClose, onPurchaseSuccess, purchaseVoiceCredits]);
-
-
+  }, [onClose, onPurchaseSuccess, purchaseVoiceCredits, t]);
 
   const balanceLabel = weekendUnlimitedActive
-
-    ? `Weekend voice active — expires ${weekendExpiryLabel}`
-
+    ? `${t('voiceCredits.weekendVoiceActive')} — ${t('voiceCredits.expires')} ${weekendExpiryLabel}`
     : isLoading
-
-      ? 'Loading balance…'
-
+      ? t('voiceCredits.loadingBalance')
       : usageLabel
-
-        ? `${usageLabel} this month`
-
-        : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} available`;
+        ? `${usageLabel} ${t('voiceCredits.thisMonth')}`
+        : `${remainingCredits} ${remainingCredits === 1 ? t('voiceCredits.spokenReply') : t('voiceCredits.spokenReplies')}`;
 
 
 
@@ -188,7 +173,7 @@ export function VoiceCreditsPurchaseModal({
 
             <Feather name="zap" size={20} color={theme.link} />
 
-            <ThemedText type="h3" style={styles.modalTitle}>Buy voice credits</ThemedText>
+            <ThemedText type="h3" style={styles.modalTitle}>{t('voiceCredits.buyTitle')}</ThemedText>
 
             <Pressable onPress={onClose} hitSlop={8}>
 
@@ -209,9 +194,7 @@ export function VoiceCreditsPurchaseModal({
               {balanceLabel}
 
               {!weekendUnlimitedActive && credits?.purchasedCredits
-
-                ? ` · ${credits.purchasedCredits} purchased`
-
+                ? ` · ${credits.purchasedCredits} ${t('voiceCredits.purchased')}`
                 : ''}
 
             </ThemedText>
@@ -223,14 +206,10 @@ export function VoiceCreditsPurchaseModal({
           <ThemedText style={[styles.modalText, { color: theme.tabIconDefault }]}>
 
             {shouldShowBuyPacks && !weekendUnlimitedActive
-
-              ? 'Need more voice styling? Pick a pack below.'
-
+              ? t('voiceCredits.needMore')
               : useAppleIAP
-
-                ? 'Top-up voice packs for hands-free spoken replies from your AI stylist. Purchases are handled by the App Store; credits stay on your Dripn account.'
-
-                : 'Top-up voice packs for hands-free spoken replies from your AI stylist. Purchased credits never expire.'}
+                ? t('voiceCredits.topUpApple')
+                : t('voiceCredits.topUpStripe')}
 
           </ThemedText>
 
@@ -243,10 +222,8 @@ export function VoiceCreditsPurchaseModal({
               const display = getVoicePackDisplay(pkg.id, pkg.description, pkg.credits, pkg.weekendUnlimited);
 
               const detailLabel = pkg.weekendUnlimited
-
-                ? 'Unlimited for 48 hours'
-
-                : `${pkg.credits} spoken replies`;
+                ? t('voiceCredits.unlimited48h')
+                : `${pkg.credits} ${t('voiceCredits.spokenReplies')}`;
 
               return (
 
@@ -282,7 +259,7 @@ export function VoiceCreditsPurchaseModal({
 
                     <View style={[styles.popularBadge, { backgroundColor: theme.link }]}>
 
-                      <ThemedText style={styles.popularText}>MOST POPULAR</ThemedText>
+                      <ThemedText style={styles.popularText}>{t('voiceCredits.mostPopular')}</ThemedText>
 
                     </View>
 
@@ -292,7 +269,7 @@ export function VoiceCreditsPurchaseModal({
 
                     <View style={[styles.popularBadge, { backgroundColor: '#F59E0B' }]}>
 
-                      <ThemedText style={styles.popularText}>48H UNLIMITED</ThemedText>
+                      <ThemedText style={styles.popularText}>{t('voiceCredits.unlimited48hBadge')}</ThemedText>
 
                     </View>
 
@@ -346,7 +323,7 @@ export function VoiceCreditsPurchaseModal({
 
           >
 
-            <ThemedText>Close</ThemedText>
+            <ThemedText>{t('common.cancel')}</ThemedText>
 
           </Pressable>
 

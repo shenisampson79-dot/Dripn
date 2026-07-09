@@ -16,6 +16,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type PriceCheckScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "PriceCheck">;
@@ -45,6 +46,7 @@ interface LeaderboardEntry {
 
 export default function PriceCheckScreen({ navigation }: PriceCheckScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const [round, setRound] = useState<PriceRound | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -95,13 +97,13 @@ export default function PriceCheckScreen({ navigation }: PriceCheckScreenProps) 
 
   const handleSubmitGuess = async () => {
     if (!user) {
-      Alert.alert("Sign In Required", "Please sign in to play.");
+      Alert.alert(t('common.signInRequired') || "Sign In Required", t('common.pleaseSignInToPlay') || "Please sign in to play.");
       return;
     }
 
     const guessValue = parseFloat(guessInput.replace(/[^0-9.]/g, ""));
     if (isNaN(guessValue) || guessValue <= 0) {
-      Alert.alert("Invalid Price", "Please enter a valid price.");
+      Alert.alert(t('common.invalidPrice') || "Invalid Price", t('common.pleaseEnterAValidPrice') || "Please enter a valid price.");
       return;
     }
 
@@ -317,7 +319,7 @@ export default function PriceCheckScreen({ navigation }: PriceCheckScreenProps) 
                     style={[styles.priceInput, { color: theme.text }]}
                     value={guessInput}
                     onChangeText={setGuessInput}
-                    placeholder="0.00"
+                    placeholder={t('common.000') || "0.00"}
                     placeholderTextColor={theme.tabIconDefault}
                     keyboardType="decimal-pad"
                     editable={!submitting}

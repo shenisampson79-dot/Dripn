@@ -11,6 +11,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from '@/constant
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslations } from "@/contexts/TranslationContext";
 import {
   useSustainability,
   getEcoRatingColor,
@@ -24,6 +25,7 @@ type TabType = 'dashboard' | 'brands' | 'tips';
 
 export default function SustainabilityScreen() {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const {
     sustainablePurchases,
@@ -625,7 +627,7 @@ export default function SustainabilityScreen() {
                 ]}
                 value={newGoalTitle}
                 onChangeText={setNewGoalTitle}
-                placeholder="e.g., Buy 5 sustainable items"
+                placeholder={t('common.egBuy5SustainableItems') || "e.g., Buy 5 sustainable items"}
                 placeholderTextColor={theme.tabIconDefault}
               />
 
@@ -643,7 +645,7 @@ export default function SustainabilityScreen() {
                 ]}
                 value={newGoalTarget}
                 onChangeText={setNewGoalTarget}
-                placeholder="e.g., 5"
+                placeholder={t('common.eg5') || "e.g., 5"}
                 placeholderTextColor={theme.tabIconDefault}
                 keyboardType="number-pad"
               />

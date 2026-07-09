@@ -15,6 +15,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "expo-linear-gradient";
 import { useGamification, ChallengeSubmission } from "@/contexts/GamificationContext";
 import { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type NavigationProp = NativeStackNavigationProp<DiscoverStackParamList>;
 type RouteType = RouteProp<DiscoverStackParamList, "ChallengeDetail">;
@@ -26,6 +27,7 @@ export default function ChallengeDetailScreen() {
   const route = useRoute<RouteType>();
   const { challengeId } = route.params;
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const {
     challenges,
     getChallengeSubmissions,
@@ -80,7 +82,7 @@ export default function ChallengeDetailScreen() {
 
   const handleVote = async (submissionId: string) => {
     if (hasVotedOnSubmission(submissionId)) {
-      Alert.alert("Already Voted", "You have already voted for this entry.");
+      Alert.alert(t('common.alreadyVoted') || "Already Voted", t('common.youHaveAlreadyVotedForThisEntry') || "You have already voted for this entry.");
       return;
     }
 
@@ -89,7 +91,7 @@ export default function ChallengeDetailScreen() {
       await voteOnSubmission(submissionId);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      Alert.alert("Error", "Failed to submit vote. Please try again.");
+      Alert.alert(t('common.error') || "Error", t('common.failedToSubmitVotePleaseTryAgain') || "Failed to submit vote. Please try again.");
     } finally {
       setVotingId(null);
     }

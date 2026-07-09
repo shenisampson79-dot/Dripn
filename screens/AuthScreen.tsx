@@ -111,9 +111,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
     if (provider === 'google') {
       if (isExpoGo && Platform.OS !== 'web') {
         setSocialLoading(null);
-        Alert.alert(
-          'Google Sign-In',
-          'Google Sign-In is available in the full Dripn app. For now, please use your email and password to sign in.',
+        Alert.alert(t('common.googleSignin') || "Google Sign-In", t('common.googleSigninIsAvailableInTheFullDripnApp') || "Google Sign-In is available in the full Dripn app. For now, please use your email and password to sign in.",
           [{ text: 'OK' }]
         );
         return;

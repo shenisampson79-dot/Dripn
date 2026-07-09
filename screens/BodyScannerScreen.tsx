@@ -35,6 +35,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useBodyProfile, BodyScanResult, BodyShape } from "@/contexts/BodyProfileContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
 import { getSettingsChildScreenOptions } from "@/navigation/screenOptions";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -70,6 +71,7 @@ const MEASUREMENT_LABELS: Record<string, string> = {
 
 export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { bodyProfile, scanBody, isScanning, hasBodyProfile, saveBodyProfile, error } = useBodyProfile();
   
   const [permission, requestPermission] = useCameraPermissions();
@@ -96,10 +98,10 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
       getSettingsChildScreenOptions({
         theme,
         isDark,
-        title: "Body Profile",
+        title: t('bodyScan.title'),
       }),
     );
-  }, [navigation, theme, isDark, showCamera]);
+  }, [navigation, theme, isDark, showCamera, t]);
 
   const handleTakePhoto = async () => {
     if (!cameraRef.current) return;
@@ -117,7 +119,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
       }
     } catch (err) {
       console.error("Failed to take photo:", err);
-      Alert.alert("Error", "Failed to capture photo. Please try again.");
+      Alert.alert(t('common.error'), t('bodyScan.captureFailed'));
     }
   };
 
@@ -135,7 +137,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
       }
     } catch (err) {
       console.error("Failed to pick image:", err);
-      Alert.alert("Error", "Failed to select image. Please try again.");
+      Alert.alert(t('bodyScan.error') || "Error", t('bodyScan.failedToSelectImagePleaseTryAgain') || "Failed to select image. Please try again.");
     }
   };
 
@@ -166,7 +168,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
       }
     } catch (err) {
       console.error("Failed to process image:", err);
-      Alert.alert("Error", "Failed to analyze image. Please try again.");
+      Alert.alert(t('bodyScan.error') || "Error", t('bodyScan.failedToAnalyzeImagePleaseTryAgain') || "Failed to analyze image. Please try again.");
     }
   };
 
@@ -223,7 +225,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
     });
 
     setManualMode(false);
-    Alert.alert("Saved", "Your body profile has been saved successfully.");
+    Alert.alert(t('bodyScan.saved') || "Saved", t('bodyScan.yourBodyProfileHasBeenSavedSuccessfully') || "Your body profile has been saved successfully.");
   };
 
   const renderMeasurementRow = (key: string, value: number | undefined) => {

@@ -22,6 +22,7 @@ import DFYStylePlanScreen from "@/screens/DFYStylePlanScreen";
 import DFYUploadScreen from "@/screens/DFYUploadScreen";
 import AnalyticsDashboard from "@/screens/AnalyticsDashboard";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
 
@@ -57,13 +58,14 @@ interface SettingsStackNavigatorProps {
 
 export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNavigatorProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
 
   return (
     <Stack.Navigator screenOptions={getCommonScreenOptions({ theme, isDark })}>
       <Stack.Screen
         name="Settings"
         options={{
-          title: "Settings",
+          title: t('settings.title'),
           headerShown: false,
         }}
       >
@@ -73,38 +75,38 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         name="PrivacyPolicy"
         component={PrivacyPolicyScreen}
         options={{
-          title: "Privacy Policy",
+          title: t('privacy.screenTitle'),
         }}
       />
       <Stack.Screen
         name="TermsOfService"
         component={TermsOfServiceScreen}
         options={{
-          title: "Terms of Service",
+          title: t('terms.screenTitle'),
         }}
       />
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
-        options={getSettingsChildScreenOptions({ theme, isDark, title: "Subscription" })}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') })}
       />
       <Stack.Screen
         name="EditProfile"
         component={EditProfileScreen}
         options={{
-          title: "Edit Profile",
+          title: t('settings.editProfile'),
         }}
       />
       <Stack.Screen
         name="StyleExplorer"
         component={StyleExplorerScreen}
-        options={getSettingsChildScreenOptions({ theme, isDark, title: "Style Theme" })}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: t('settings.styleTheme') })}
       />
       <Stack.Screen
         name="LogoPreview"
         component={LogoPreviewScreen}
         options={{
-          title: "Logo Preview",
+          title: t('common.logoPreview'),
           presentation: "modal",
         }}
       />
@@ -112,7 +114,7 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         name="OnboardingQuiz"
         component={OnboardingQuizScreen}
         options={{
-          title: "Style Quiz",
+          title: t('quiz.title'),
           headerShown: false,
           presentation: "modal",
         }}
@@ -120,13 +122,13 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
       <Stack.Screen
         name="Support"
         component={SupportScreen}
-        options={getSettingsChildScreenOptions({ theme, isDark, title: "Chat with Julia" })}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: t('settings.chatWithJulia') })}
       />
       <Stack.Screen
         name="FeatureSuggestions"
         component={FeatureSuggestionsScreen}
         options={{
-          title: "Feature Suggestions",
+          title: t('settings.aiFeatureLab'),
           headerShown: false,
         }}
       />
@@ -134,21 +136,21 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         name="Help"
         component={HelpScreen}
         options={{
-          title: "Help & FAQ",
+          title: t('help.screenTitle'),
         }}
       />
       <Stack.Screen
         name="Partner"
         component={PartnerScreen}
         options={{
-          title: "Partner With Us",
+          title: t('settings.partnerWithUs'),
         }}
       />
       <Stack.Screen
         name="CancelSubscription"
         component={CancelSubscriptionScreen}
         options={{
-          title: "Cancel Subscription",
+          title: t('subscription.cancelSubscription'),
           headerShown: false,
           presentation: "modal",
         }}
@@ -157,19 +159,19 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         name="BodyMeasurements"
         component={BodyMeasurementsScreen}
         options={{
-          title: "Body Measurements",
+          title: t('settings.bodyMeasurements'),
         }}
       />
       <Stack.Screen
         name="Feedback"
         component={FeedbackScreen}
-        options={getSettingsChildScreenOptions({ theme, isDark, title: "Send Feedback" })}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: t('feedback.screenTitle') })}
       />
       <Stack.Screen
         name="CommunityVoting"
         component={CommunityVotingScreen}
         options={{
-          title: "Community Vote",
+          title: t('navTitles.communityVote'),
           headerShown: false,
           presentation: "modal",
         }}
@@ -178,7 +180,7 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         name="DFYComparison"
         component={DFYComparisonScreen}
         options={{
-          title: "Done-For-You Style",
+          title: t('navTitles.doneForYouStyle'),
           headerShown: false,
           presentation: "modal",
         }}
@@ -187,7 +189,7 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         name="DFYStart"
         component={DFYStartScreen}
         options={{
-          title: "Stylist Setup",
+          title: t('dfy.start.headerDefault'),
           headerShown: false,
         }}
       />
@@ -195,7 +197,7 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         name="DFYUpload"
         component={DFYUploadScreen}
         options={{
-          title: "Upload Wardrobe",
+          title: t('navTitles.uploadWardrobe'),
           headerShown: false,
         }}
       />
@@ -203,7 +205,7 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         name="DFYStylePlan"
         component={DFYStylePlanScreen}
         options={{
-          title: "Your Style Plan",
+          title: t('navTitles.yourStylePlan'),
           headerShown: false,
           presentation: "modal",
         }}
@@ -212,7 +214,7 @@ export default function SettingsStackNavigator({ onOpenPortal }: SettingsStackNa
         name="AnalyticsDashboard"
         component={AnalyticsDashboard}
         options={{
-          title: "Analytics",
+          title: t('navTitles.analytics'),
           headerShown: false,
         }}
       />

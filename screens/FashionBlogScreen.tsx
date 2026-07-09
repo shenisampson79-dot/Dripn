@@ -24,6 +24,7 @@ import {
   prepareFallbackBlogPosts,
 } from "@/utils/fashionBlogUtils";
 import { getCurrentCalendarSeason, mapUserGenderToNewsletterFilter } from "@/utils/fashionSeason";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type FashionBlogScreenProps = {
   navigation: NativeStackNavigationProp<UserStylistStackParamList, "FashionBlog">;
@@ -485,6 +486,7 @@ function createFallbackBlogPosts(): BlogPost[] {
 
 export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -601,18 +603,14 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     if (!user?.email) {
-      Alert.alert(
-        "Email Required",
-        "Add an email address to your Dripn account to receive the weekly newsletter.",
+      Alert.alert(t('common.emailRequired') || "Email Required", t('common.addAnEmailAddressToYourDripnAccountToRec') || "Add an email address to your Dripn account to receive the weekly newsletter.",
         [{ text: "OK" }],
       );
       return;
     }
 
     if (!apiService.isConfigured()) {
-      Alert.alert(
-        "Connection Required",
-        "Connect to the internet to subscribe to the weekly newsletter.",
+      Alert.alert(t('common.connectionRequired') || "Connection Required", t('common.connectToTheInternetToSubscribeToTheWeek') || "Connect to the internet to subscribe to the weekly newsletter.",
         [{ text: "OK" }],
       );
       return;
@@ -643,9 +641,7 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
       );
     } catch (error) {
       console.log("Newsletter subscribe failed:", error);
-      Alert.alert(
-        "Subscription Failed",
-        "We couldn't save your subscription. Please try again later.",
+      Alert.alert(t('common.subscriptionFailed') || "Subscription Failed", t('common.weCouldn') || "We couldn"t save your subscription. Please try again later.",
         [{ text: "OK" }],
       );
     }
@@ -655,14 +651,12 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setReportingPostId(postId);
     
-    Alert.alert(
-      "Report Issue",
-      "What would you like to report?",
+    Alert.alert(t('common.reportIssue') || "Report Issue", t('common.whatWouldYouLikeToReport') || "What would you like to report?",
       [
         { text: "Typo or Error", onPress: () => submitReport(postId, "typo", "Typo or grammatical error reported") },
         { text: "Offensive Content", onPress: () => submitReport(postId, "offensive", "Content flagged as potentially offensive") },
         { text: "Inaccurate Information", onPress: () => submitReport(postId, "inaccurate", "Information reported as potentially inaccurate") },
-        { text: "Cancel", style: "cancel", onPress: () => setReportingPostId(null) }
+        { text: t('common.cancel'), style: "cancel", onPress: () => setReportingPostId(null) }
       ]
     );
   };
@@ -678,16 +672,12 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
         });
       }
       
-      Alert.alert(
-        "Report Submitted",
-        "Thank you for your feedback. Our team will review this content.",
+      Alert.alert(t('common.reportSubmitted') || "Report Submitted", t('common.thankYouForYourFeedbackOurTeamWillReview') || "Thank you for your feedback. Our team will review this content.",
         [{ text: "OK" }]
       );
     } catch (error) {
       console.log("Error submitting report:", error);
-      Alert.alert(
-        "Report Failed",
-        "We couldn't submit your report. Please try again later.",
+      Alert.alert(t('common.reportFailed') || "Report Failed", t('common.weCouldn') || "We couldn"t submit your report. Please try again later.",
         [{ text: "OK" }]
       );
     } finally {

@@ -23,6 +23,7 @@ import {
 } from "@/contexts/AuthContext";
 import { Switch } from "react-native";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type StyleQuizOnboardingScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "StyleQuizOnboarding">;
@@ -137,6 +138,7 @@ const TOTAL_STEPS = 13;
 export default function StyleQuizOnboardingScreen({ navigation }: StyleQuizOnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { completeQuiz, completeOnboarding, user } = useAuth();
 
   const [step, setStep] = useState(0);
@@ -678,7 +680,7 @@ export default function StyleQuizOnboardingScreen({ navigation }: StyleQuizOnboa
             color: theme.text,
           },
         ]}
-        placeholder="e.g., UK 12 or US 8 or M"
+        placeholder={t('onboarding.egUk12OrUs8OrM') || "e.g., UK 12 or US 8 or M"}
         placeholderTextColor={theme.tabIconDefault}
         value={dressSize}
         onChangeText={setDressSize}
@@ -813,7 +815,7 @@ export default function StyleQuizOnboardingScreen({ navigation }: StyleQuizOnboa
 
       <TextInput
         style={[styles.brandSearchInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }]}
-        placeholder="Search brands..."
+        placeholder={t('onboarding.searchBrands') || "Search brands..."}
         placeholderTextColor={theme.tabIconDefault}
         value={brandSearchQuery}
         onChangeText={setBrandSearchQuery}

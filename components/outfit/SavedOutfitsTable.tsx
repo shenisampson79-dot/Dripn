@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslations } from '@/contexts/TranslationContext';
 import { wardrobeTileBackground } from '@/utils/wardrobeImage';
 
 export type SavedOutfitTableRow = {
@@ -47,6 +48,7 @@ const cardElevation = {
 
 export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { height: windowHeight } = useWindowDimensions();
 
   if (outfits.length === 0) return null;
@@ -69,10 +71,10 @@ export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
     >
       <View style={[styles.tableHeader, { borderBottomColor: ROW_DIVIDER }]}>
         <ThemedText type="caption" style={[styles.headerCell, styles.titleCol, { color: MUTED_COLOR }]}>
-          Outfit ({outfits.length})
+          {t('savedOutfits.outfitColumn').replace('{count}', String(outfits.length))}
         </ThemedText>
         <ThemedText type="caption" style={[styles.headerCell, styles.previewCol, { color: MUTED_COLOR }]}>
-          Preview
+          {t('savedOutfits.previewColumn')}
         </ThemedText>
       </View>
 
@@ -87,7 +89,7 @@ export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
           const selected = outfit.id === selectedId;
           const thumbs = outfit.previewItems.length > 0
             ? outfit.previewItems.slice(0, 3)
-            : [{ id: 'placeholder', name: 'Item', imageUri: null }];
+            : [{ id: 'placeholder', name: t('savedOutfits.itemPlaceholder'), imageUri: null }];
 
           return (
             <Pressable
@@ -120,7 +122,7 @@ export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
                   {outfit.title}
                 </ThemedText>
                 <ThemedText type="caption" style={{ color: MUTED_COLOR }} numberOfLines={2}>
-                  {outfit.description || `${outfit.itemCount} items`}
+                  {outfit.description || t('savedOutfits.itemCount').replace('{count}', String(outfit.itemCount))}
                 </ThemedText>
               </View>
 
@@ -152,7 +154,7 @@ export function SavedOutfitsTable({ outfits, selectedId, onSelect }: Props) {
 
       {outfits.length > MAX_VISIBLE_ROWS ? (
         <ThemedText type="caption" style={[styles.scrollHint, { color: MUTED_COLOR }]}>
-          Scroll the list to browse all {outfits.length} outfits
+          {t('savedOutfits.scrollHint').replace('{count}', String(outfits.length))}
         </ThemedText>
       ) : null}
     </View>

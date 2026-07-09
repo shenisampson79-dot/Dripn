@@ -433,9 +433,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   };
 
   const handleReprocessAllBackgrounds = () => {
-    Alert.alert(
-      'Fix All Backgrounds',
-      'This uploads photos from your device, removes backgrounds, and applies a white backdrop. It may take a few minutes for many items.',
+    Alert.alert(t('wardrobe.fixAllBackgrounds') || "Fix All Backgrounds", t('wardrobe.thisUploadsPhotosFromYourDeviceRemovesBa') || "This uploads photos from your device, removes backgrounds, and applies a white backdrop. It may take a few minutes for many items.",
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -461,9 +459,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                 );
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               } else if (result.failed > 0) {
-                Alert.alert(
-                  'Background removal unavailable',
-                  'Could not remove backgrounds. The server may need Replicate configured — try again later or contact support.'
+                Alert.alert(t('wardrobe.backgroundRemovalUnavailable') || "Background removal unavailable", t('wardrobe.couldNotRemoveBackgroundsTheServerMayNee') || "Could not remove backgrounds. The server may need Replicate configured — try again later or contact support."
                 );
               } else if (result.noLocal > 0 || (result.fixed === 0 && result.failed === 0)) {
                 Alert.alert(

@@ -63,6 +63,7 @@ import {
   countWardrobeOutfitBasics,
   describeOutfitPlanningGap,
 } from "@/utils/wardrobeOutfitReadiness";
+import { useTranslations } from "@/contexts/TranslationContext";
 import {
   correctWardrobeImageOrientation,
   promptWardrobeOrientationReview,
@@ -91,6 +92,7 @@ const OCCASION_OPTIONS: ClothingOccasion[] = [
 
 export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const { addItem, items } = useWardrobe();
   const { user } = useAuth();
@@ -548,9 +550,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         );
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        Alert.alert(
-          "Analysis Issue",
-          "Could not analyze image. Please fill in the details manually.",
+        Alert.alert(t('wardrobe.analysisIssue') || "Analysis Issue", t('wardrobe.couldNotAnalyzeImagePleaseFillInTheDetai') || "Could not analyze image. Please fill in the details manually.",
           [{ text: "OK", style: "default" }]
         );
       }
@@ -571,7 +571,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       try {
         await Linking.openSettings();
       } catch (error) {
-        Alert.alert("Error", "Could not open settings. Please enable permissions manually.");
+        Alert.alert(t('wardrobe.error') || "Error", t('wardrobe.couldNotOpenSettingsPleaseEnablePermissi') || "Could not open settings. Please enable permissions manually.");
       }
     }
   };
@@ -581,16 +581,14 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
 
     if (!permissionResult.granted) {
       if (!permissionResult.canAskAgain && Platform.OS !== "web") {
-        Alert.alert(
-          "Permission Required",
-          "Photo library access was denied. Please enable it in Settings to add images.",
+        Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.photoLibraryAccessWasDeniedPleaseEnableI') || "Photo library access was denied. Please enable it in Settings to add images.",
           [
-            { text: "Cancel", style: "cancel" },
+            { text: t('common.cancel'), style: "cancel" },
             { text: "Open Settings", onPress: openSettings },
           ]
         );
       } else {
-        Alert.alert("Permission Required", "Please allow access to your photo library to add images.");
+        Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.pleaseAllowAccessToYourPhotoLibraryToAdd') || "Please allow access to your photo library to add images.");
       }
       return;
     }
@@ -613,16 +611,14 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
 
     if (!permissionResult.granted) {
       if (!permissionResult.canAskAgain && Platform.OS !== "web") {
-        Alert.alert(
-          "Permission Required",
-          "Camera access was denied. Please enable it in Settings to take photos.",
+        Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.cameraAccessWasDeniedPleaseEnableItInSet') || "Camera access was denied. Please enable it in Settings to take photos.",
           [
-            { text: "Cancel", style: "cancel" },
+            { text: t('common.cancel'), style: "cancel" },
             { text: "Open Settings", onPress: openSettings },
           ]
         );
       } else {
-        Alert.alert("Permission Required", "Please allow access to your camera to take photos.");
+        Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.pleaseAllowAccessToYourCameraToTakePhoto') || "Please allow access to your camera to take photos.");
       }
       return;
     }
@@ -675,28 +671,28 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       return;
     }
     if (!name.trim()) {
-      Alert.alert("Missing Name", "Please give your item a name.");
+      Alert.alert(t('wardrobe.missingName') || "Missing Name", t('wardrobe.pleaseGiveYourItemAName') || "Please give your item a name.");
       return;
     }
     if (!category) {
-      Alert.alert("Missing Category", "Please select a category for your item.");
+      Alert.alert(t('wardrobe.missingCategory') || "Missing Category", t('wardrobe.pleaseSelectACategoryForYourItem') || "Please select a category for your item.");
       return;
     }
     if (!color) {
-      Alert.alert("Missing Color", "Please select a primary color for your item.");
+      Alert.alert(t('wardrobe.missingColor') || "Missing Color", t('wardrobe.pleaseSelectAPrimaryColorForYourItem') || "Please select a primary color for your item.");
       return;
     }
     if (seasons.length === 0) {
-      Alert.alert("Missing Season", "Please select at least one season for your item.");
+      Alert.alert(t('wardrobe.missingSeason') || "Missing Season", t('wardrobe.pleaseSelectAtLeastOneSeasonForYourItem') || "Please select at least one season for your item.");
       return;
     }
     if (occasions.length === 0) {
-      Alert.alert("Missing Occasion", "Please select at least one occasion for your item.");
+      Alert.alert(t('wardrobe.missingOccasion') || "Missing Occasion", t('wardrobe.pleaseSelectAtLeastOneOccasionForYourIte') || "Please select at least one occasion for your item.");
       return;
     }
 
     if (!imageUri) {
-      Alert.alert("Missing Photo", "Please add a photo for your item.");
+      Alert.alert(t('wardrobe.missingPhoto') || "Missing Photo", t('wardrobe.pleaseAddAPhotoForYourItem') || "Please add a photo for your item.");
       return;
     }
 
@@ -731,7 +727,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         Alert.alert(
           'Saved to Inspiration',
           `${itemLabel} has been added to your style inspiration board.`,
-          [{ text: 'Done', onPress: () => navigation.goBack() }],
+          [{ text: t('common.done'), onPress: () => navigation.goBack() }],
         );
         return;
       }
@@ -769,7 +765,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         [{ text: 'Keep Building', onPress: () => navigation.goBack() }],
       );
     } catch (error) {
-      Alert.alert("Error", "Failed to add item to wardrobe. Please try again.");
+      Alert.alert(t('wardrobe.error') || "Error", t('wardrobe.failedToAddItemToWardrobePleaseTryAgain') || "Failed to add item to wardrobe. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -957,7 +953,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
               <View style={[styles.tipsSectionInline, { backgroundColor: theme.backgroundSecondary }]}>
                 <UploadGuideComparisonTable
                   compact
-                  title="Photo tips for best results"
+                  title={t('wardrobe.photoTipsForBestResults') || "Photo tips for best results"}
                   rows={clothingPhotoTips}
                 />
                 <Pressable onPress={() => setShowPhotoTips(true)} style={styles.seeAllTipsLink}>
@@ -1025,7 +1021,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
           <TextInput
             value={name}
             onChangeText={setName}
-            placeholder="e.g. Blue Denim Jacket"
+            placeholder={t('wardrobe.egBlueDenimJacket') || "e.g. Blue Denim Jacket"}
             placeholderTextColor={theme.tabIconDefault}
             style={[
               styles.textInput,
@@ -1173,7 +1169,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
           <TextInput
             value={brand}
             onChangeText={setBrand}
-            placeholder="e.g. Zara, H&M, Nike"
+            placeholder={t('wardrobe.egZaraHmNike') || "e.g. Zara, H&M, Nike"}
             placeholderTextColor={theme.tabIconDefault}
             style={[
               styles.textInput,
@@ -1190,7 +1186,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
           <TextInput
             value={notes}
             onChangeText={setNotes}
-            placeholder="Any additional notes about this item..."
+            placeholder={t('wardrobe.anyAdditionalNotesAboutThisItem') || "Any additional notes about this item..."}
             placeholderTextColor={theme.tabIconDefault}
             multiline
             numberOfLines={3}

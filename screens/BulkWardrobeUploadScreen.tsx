@@ -52,6 +52,7 @@ import {
 } from "@/services/WardrobeDigitizationService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { prepareWardrobeImagesFromPickerAssets, rotateWardrobeImage } from "@/utils/wardrobeImageOrientation";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 function yieldToUi(): Promise<void> {
   return new Promise((resolve) => {
@@ -79,6 +80,7 @@ interface PendingItem extends DetectedGarment {
 
 export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUploadScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { limits } = useSubscription();
@@ -213,16 +215,14 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
       if (!permissionResult.canAskAgain && Platform.OS !== 'web') {
-        Alert.alert(
-          "Permission Required",
-          "Please allow access to your photo library in Settings to upload clothes.",
+        Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.pleaseAllowAccessToYourPhotoLibraryInSet') || "Please allow access to your photo library in Settings to upload clothes.",
           [
-            { text: "Cancel", style: "cancel" },
+            { text: t('common.cancel'), style: "cancel" },
             { text: "Open Settings", onPress: openAppSettings },
           ]
         );
       } else {
-        Alert.alert("Permission Required", "Please allow access to your photo library.");
+        Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.pleaseAllowAccessToYourPhotoLibrary') || "Please allow access to your photo library.");
       }
       return;
     }
@@ -271,16 +271,14 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     if (!permissionResult.granted) {
       if (!permissionResult.canAskAgain && Platform.OS !== 'web') {
-        Alert.alert(
-          "Permission Required",
-          "Please allow camera access in Settings to take photos of your clothes.",
+        Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.pleaseAllowCameraAccessInSettingsToTakeP') || "Please allow camera access in Settings to take photos of your clothes.",
           [
-            { text: "Cancel", style: "cancel" },
+            { text: t('common.cancel'), style: "cancel" },
             { text: "Open Settings", onPress: openAppSettings },
           ]
         );
       } else {
-        Alert.alert("Permission Required", "Please allow access to your camera.");
+        Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.pleaseAllowAccessToYourCamera') || "Please allow access to your camera.");
       }
       return;
     }
@@ -314,16 +312,14 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
       if (!permissionResult.canAskAgain && Platform.OS !== 'web') {
-        Alert.alert(
-          "Permission Required",
-          "Please allow access to your photo library in Settings to upload clothes.",
+        Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.pleaseAllowAccessToYourPhotoLibraryInSet') || "Please allow access to your photo library in Settings to upload clothes.",
           [
-            { text: "Cancel", style: "cancel" },
+            { text: t('common.cancel'), style: "cancel" },
             { text: "Open Settings", onPress: openAppSettings },
           ]
         );
       } else {
-        Alert.alert("Permission Required", "Please allow access to your photo library.");
+        Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.pleaseAllowAccessToYourPhotoLibrary') || "Please allow access to your photo library.");
       }
       return;
     }
@@ -373,9 +369,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         setPendingItems(items);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
-        Alert.alert(
-          "No Items Detected",
-          "Could not detect clothing items in this image. Try a clearer photo or add details manually.",
+        Alert.alert(t('wardrobe.noItemsDetected') || "No Items Detected", t('wardrobe.couldNotDetectClothingItemsInThisImageTr') || "Could not detect clothing items in this image. Try a clearer photo or add details manually.",
           [
             { text: "Try Again", style: "cancel" },
             { text: "Add Manually", onPress: () => navigation.navigate("AddWardrobeItem") },
@@ -383,7 +377,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         );
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to analyze image. Please try again.");
+      Alert.alert(t('wardrobe.error') || "Error", t('wardrobe.failedToAnalyzeImagePleaseTryAgain') || "Failed to analyze image. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -506,15 +500,11 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       if (quotaExceeded) {
-        Alert.alert(
-          "AI Credits Exhausted",
-          "Your OpenAI API quota has been exceeded. Please top up your OpenAI account at platform.openai.com/billing to continue using AI analysis.",
+        Alert.alert(t('wardrobe.aiCreditsExhausted') || "AI Credits Exhausted", t('wardrobe.yourOpenaiApiQuotaHasBeenExceededPleaseT') || "Your OpenAI API quota has been exceeded. Please top up your OpenAI account at platform.openai.com/billing to continue using AI analysis.",
           [{ text: "OK", style: "cancel" }]
         );
       } else if (authRequired) {
-        Alert.alert(
-          "Session Expired",
-          "Please sign out and sign back in, then try your upload again.",
+        Alert.alert(t('wardrobe.sessionExpired') || "Session Expired", t('wardrobe.pleaseSignOutAndSignBackInThenTryYourUpl') || "Please sign out and sign back in, then try your upload again.",
           [{ text: "OK", style: "cancel" }]
         );
       } else {
@@ -524,7 +514,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           failure.message,
           [
             { text: "Try Again", onPress: () => processBulkImages(imageUris, true) },
-            { text: "Cancel", style: "cancel" },
+            { text: t('common.cancel'), style: "cancel" },
           ]
         );
       }
@@ -577,11 +567,11 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           setPendingItems(items);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } else {
-          Alert.alert("Could Not Extract", "Unable to extract product information from this screenshot.");
+          Alert.alert(t('wardrobe.couldNotExtract') || "Could Not Extract", t('wardrobe.unableToExtractProductInformationFromThi') || "Unable to extract product information from this screenshot.");
         }
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to process screenshot. Please try again.");
+      Alert.alert(t('wardrobe.error') || "Error", t('wardrobe.failedToProcessScreenshotPleaseTryAgain') || "Failed to process screenshot. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -597,7 +587,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
 
   const handleProcessUrl = async () => {
     if (!urlInput.trim()) {
-      Alert.alert("Enter URL", "Please enter or paste a product URL.");
+      Alert.alert(t('wardrobe.enterUrl') || "Enter URL", t('wardrobe.pleaseEnterOrPasteAProductUrl') || "Please enter or paste a product URL.");
       return;
     }
 
@@ -627,14 +617,12 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         setPendingItems([item]);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
-        Alert.alert(
-          "Could Not Extract",
-          "Unable to extract product information from this URL. Try copying the full product page content instead.",
+        Alert.alert(t('wardrobe.couldNotExtract') || "Could Not Extract", t('wardrobe.unableToExtractProductInformationFromThi') || "Unable to extract product information from this URL. Try copying the full product page content instead.",
           [{ text: "OK" }]
         );
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to process URL. Please try again.");
+      Alert.alert(t('wardrobe.error') || "Error", t('wardrobe.failedToProcessUrlPleaseTryAgain') || "Failed to process URL. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -660,7 +648,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
   const handleSaveSelected = async () => {
     const selectedItems = pendingItems.filter(item => item.selected);
     if (selectedItems.length === 0) {
-      Alert.alert("No Items Selected", "Please select at least one item to add.");
+      Alert.alert(t('wardrobe.noItemsSelected') || "No Items Selected", t('wardrobe.pleaseSelectAtLeastOneItemToAdd') || "Please select at least one item to add.");
       return;
     }
 
@@ -693,7 +681,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
 
   const saveItems = async (itemsToSave: PendingItem[]) => {
     if (itemsToSave.length === 0) {
-      Alert.alert("No Items to Add", "All selected items are already in your wardrobe.");
+      Alert.alert(t('wardrobe.noItemsToAdd') || "No Items to Add", t('wardrobe.allSelectedItemsAreAlreadyInYourWardrobe') || "All selected items are already in your wardrobe.");
       return;
     }
 
@@ -732,7 +720,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       savedCount > 0
         ? `Successfully added ${savedCount} item${savedCount > 1 ? 's' : ''}. Background removal will continue while you use the app — check your wardrobe for progress.`
         : `Could not add items. Please try again.`,
-      [{ text: "Done", onPress: () => navigation.goBack() }]
+      [{ text: t('common.done'), onPress: () => navigation.goBack() }]
     );
   };
 
@@ -783,7 +771,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       <View style={[styles.tipsSection, { backgroundColor: theme.backgroundSecondary }]}>
         <UploadGuideComparisonTable
           compact
-          title="Photo tips for best results"
+          title={t('wardrobe.photoTipsForBestResults') || "Photo tips for best results"}
           rows={clothingPhotoTips}
         />
 
@@ -810,7 +798,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         <TextInput
           value={urlInput}
           onChangeText={setUrlInput}
-          placeholder="https://example.com/product..."
+          placeholder={t('wardrobe.httpsexamplecomproduct') || "https://example.com/product..."}
           placeholderTextColor={theme.tabIconDefault}
           style={[styles.urlInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
           autoCapitalize="none"
@@ -1064,7 +1052,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
             <TextInput
               value={editName}
               onChangeText={setEditName}
-              placeholder="Enter item name"
+              placeholder={t('wardrobe.enterItemName') || "Enter item name"}
               placeholderTextColor={theme.tabIconDefault}
               style={[styles.editInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
             />

@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { Spacing, BorderRadius } from '@/constants/theme';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 interface NamePronunciationPromptProps {
   memberName: string;
@@ -26,12 +27,13 @@ export function NamePronunciationPrompt({
   onDismiss,
 }: NamePronunciationPromptProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundSecondary }]}>
       <View style={styles.header}>
         <ThemedText type="h4" style={styles.title}>
-          Name Pronunciation Check
+          {t('onboarding.namePronunciationTitle') || 'Name Pronunciation Check'}
         </ThemedText>
         {onDismiss && (
           <Pressable onPress={onDismiss} hitSlop={8}>
@@ -41,7 +43,8 @@ export function NamePronunciationPrompt({
       </View>
       
       <ThemedText type="body" style={[styles.question, { color: theme.tabIconDefault }]}>
-        Did {stylistName} pronounce "{memberName}" correctly?
+        {t('onboarding.namePronunciationQuestion')?.replace('{stylist}', stylistName).replace('{name}', memberName)
+          || `Did ${stylistName} pronounce "${memberName}" correctly?`}
       </ThemedText>
       
       <View style={styles.buttonRow}>
@@ -58,7 +61,7 @@ export function NamePronunciationPrompt({
         >
           <Feather name="check" size={18} color="#FFFFFF" />
           <ThemedText type="body" style={styles.buttonText}>
-            Yes, perfect!
+            {t('onboarding.namePronunciationYes') || 'Yes, perfect!'}
           </ThemedText>
         </Pressable>
         
@@ -76,13 +79,13 @@ export function NamePronunciationPrompt({
         >
           <Feather name="x" size={18} color={theme.text} />
           <ThemedText type="body" style={[styles.buttonText, { color: theme.text }]}>
-            Not quite
+            {t('onboarding.namePronunciationNo') || 'Not quite'}
           </ThemedText>
         </Pressable>
       </View>
       
       <ThemedText type="caption" style={[styles.hint, { color: theme.tabIconDefault }]}>
-        If incorrect, we'll use friendly terms like "bella" or "amigo" instead
+        {t('onboarding.namePronunciationHint') || `If incorrect, we'll use friendly terms like "bella" or "amigo" instead`}
       </ThemedText>
     </View>
   );

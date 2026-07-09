@@ -12,6 +12,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type WardrobeSetupOption = "diy" | "later" | "dfy";
 
@@ -44,6 +45,7 @@ const SETUP_OPTIONS: { id: WardrobeSetupOption; title: string; description: stri
 export default function WardrobeSetupScreen({ navigation, onComplete }: WardrobeSetupScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const [selectedOption, setSelectedOption] = useState<WardrobeSetupOption | null>(null);
 

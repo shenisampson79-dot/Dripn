@@ -24,6 +24,7 @@ import {
 } from "@/services/BargainsService";
 import { shareDeal, getDealShareMessage, DealShareInfo, ShareResult } from "@/services/SharingService";
 import type { BargainsStackParamList } from "@/navigation/BargainsStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type BargainsScreenProps = {
   navigation: NativeStackNavigationProp<BargainsStackParamList, 'Bargains'>;
@@ -31,6 +32,7 @@ type BargainsScreenProps = {
 
 export default function BargainsScreen({ navigation }: BargainsScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const { addToWishlist, wishlistItems, unreadAlertsCount } = useWishlist();
   const { getBrandEcoRating } = useSustainability();
@@ -94,7 +96,7 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
     setShareModalVisible(false);
     setSelectedDealForShare(null);
     if (result.success) {
-      Alert.alert("Shared", "Deal shared successfully!");
+      Alert.alert(t('bargains.shared') || "Shared", t('bargains.dealSharedSuccessfully') || "Deal shared successfully!");
     } else if (result.error) {
       Alert.alert("Share Failed", result.error);
     }
@@ -109,14 +111,12 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
       await Clipboard.setStringAsync(message);
       setShareModalVisible(false);
       setSelectedDealForShare(null);
-      Alert.alert(
-        "Copied to Clipboard",
-        "Deal details copied! You can now paste this in any chat or message to share with other members.\n\nDirect messaging feature coming soon!"
+      Alert.alert(t('bargains.copiedToClipboard') || "Copied to Clipboard", t('bargains.dealDetailsCopiedYouCanNowPasteThisInAny') || "Deal details copied! You can now paste this in any chat or message to share with other members.\n\nDirect messaging feature coming soon!"
       );
     } catch (error) {
       setShareModalVisible(false);
       setSelectedDealForShare(null);
-      Alert.alert("Error", "Failed to copy to clipboard. Please try again.");
+      Alert.alert(t('bargains.error') || "Error", t('bargains.failedToCopyToClipboardPleaseTryAgain') || "Failed to copy to clipboard. Please try again.");
     }
   };
 

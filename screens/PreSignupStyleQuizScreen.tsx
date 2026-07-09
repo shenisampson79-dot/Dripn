@@ -24,6 +24,7 @@ import {
 import { preSignupQuizService, type QuizCompletionSummary } from '@/services/PreSignupQuizService';
 import { apiService } from '@/services/ApiService';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
@@ -38,6 +39,7 @@ function defaultQuizGender(userGender: string | null | undefined): QuizOutfitGen
 }
 
 export default function PreSignupStyleQuizScreen({ navigation }: Props) {
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [quizGender, setQuizGender] = useState<QuizOutfitGender>(() =>

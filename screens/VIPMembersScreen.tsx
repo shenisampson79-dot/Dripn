@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import apiService from "@/services/ApiService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 interface VIPMember {
   id: string;
@@ -28,6 +29,7 @@ type VIPMembersScreenProps = {
 
 export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { limits, tier } = useSubscription();
 
   const [members, setMembers] = useState<VIPMember[]>([]);
@@ -59,11 +61,9 @@ export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) 
 
   const handleCall = async (member: VIPMember) => {
     if (!limits.canMakeVideoCalls) {
-      Alert.alert(
-        'Stylist Unlimited Feature',
-        'Member video calling is available on the Stylist Unlimited plan. Upgrade to connect with other members through video calls.',
+      Alert.alert(t('subscription.stylistUnlimitedFeature') || "Stylist Unlimited Feature", t('subscription.memberVideoCallingIsAvailableOnTheStylis') || "Member video calling is available on the Stylist Unlimited plan. Upgrade to connect with other members through video calls.",
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           { text: 'View Plans', onPress: () => navigation.navigate('Subscription') },
         ]
       );

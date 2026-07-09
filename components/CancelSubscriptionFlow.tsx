@@ -18,6 +18,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, LuxuryColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { normalizeSubscriptionTier, getBillingPlanDisplayName, type BillingPlanId } from "@/utils/subscriptionTier";
 import { isDevTestingModeEnabled } from "@/utils/devTesting";
 import { apiService } from "@/services/ApiService";
@@ -120,7 +121,33 @@ type CancelSubscriptionFlowProps = {
 
 export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscriptionFlowProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user, refreshSubscriptionFromBackend, updateProfile } = useAuth();
+
+  const cancelReasons: { value: CancelReason; label: string }[] = [
+    { value: "too-expensive", label: t('subscription.cancel.reasonTooExpensive') },
+    { value: "not-using", label: t('subscription.cancel.reasonNotUsing') },
+    { value: "not-seeing-value", label: t('subscription.cancel.reasonNotSeeingValue') },
+    { value: "just-testing", label: t('subscription.cancel.reasonJustTesting') },
+    { value: "other", label: t('subscription.cancel.reasonOther') },
+  ];
+
+  const tierLosses: Record<string, string[]> = {
+    free: [],
+    personal_stylist: [
+      t('subscription.cancel.lossVoiceConversations'),
+      t('subscription.cancel.lossExtendedWardrobe'),
+      t('subscription.cancel.lossOutfitCalendar'),
+      t('subscription.cancel.lossSmartSuggestions'),
+    ],
+    stylist_unlimited: [
+      t('subscription.cancel.lossUnlimitedVoice'),
+      t('subscription.cancel.lossVideoCalls'),
+      t('subscription.cancel.lossVipAccess'),
+      t('subscription.cancel.lossWhiteGlove'),
+      t('subscription.cancel.lossUnlimitedEverything'),
+    ],
+  };
 
   const [step, setStep] = useState(1);
   const [selectedReason, setSelectedReason] = useState<CancelReason | null>(null);
@@ -161,7 +188,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
 
   const normalizedTier = normalizeSubscriptionTier(user?.subscriptionTier);
   const tierName = getBillingPlanDisplayName(user?.subscriptionTier);
-  const losses = TIER_LOSSES[normalizedTier] ?? TIER_LOSSES.subscription;
+  const losses = tierLosses[normalizedTier] ?? tierLosses.personal_stylist;
 
   const handleKeepSubscription = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -196,20 +223,20 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refreshSubscriptionFromBackend().catch(() => {});
       Alert.alert(
-        "Discount applied!",
-        result.message || `${result.discountPercent ?? 30}% off has been applied to your next billing cycle.`,
-        [{ text: "Great!", onPress: handleKeepSubscription }]
+        t('subscription.cancel.discountAppliedTitle'),
+        result.message || t('subscription.cancel.discountAppliedMessage').replace('{percent}', String(result.discountPercent ?? 30)),
+        [{ text: t('subscription.cancel.great'), onPress: handleKeepSubscription }]
       );
     } catch (error: any) {
-      const msg = error?.message || "Could not apply discount.";
+      const msg = error?.message || t('subscription.cancel.discountFailed');
       if (msg.includes("not available") || msg.includes("DISCOUNT_NOT_CONFIGURED")) {
         Alert.alert(
-          "Offer unavailable",
-          "The discount offer isn't available right now. You can still manage billing or contact support.",
-          [{ text: "OK" }]
+          t('subscription.cancel.offerUnavailableTitle'),
+          t('subscription.cancel.offerUnavailableMessage'),
+          [{ text: t('common.done') }]
         );
       } else {
-        Alert.alert("Error", msg);
+        Alert.alert(t('common.error'), msg);
       }
     } finally {
       setIsProcessing(false);
@@ -229,12 +256,12 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refreshSubscriptionFromBackend().catch(() => {});
       Alert.alert(
-        "Plan paused",
-        result.message || "Your subscription is paused. You won't be charged until you resume.",
-        [{ text: "OK", onPress: handleKeepSubscription }]
+        t('subscription.cancel.planPausedTitle'),
+        result.message || t('subscription.cancel.planPausedMessage'),
+        [{ text: t('common.done'), onPress: handleKeepSubscription }]
       );
     } catch (error: any) {
-      Alert.alert("Error", error?.message || "Could not pause subscription.");
+      Alert.alert(t('common.error'), error?.message || t('subscription.cancel.pauseFailed'));
     } finally {
       setIsProcessing(false);
     }
@@ -399,7 +426,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
       </ThemedText>
 
       <View style={styles.reasonsContainer}>
-        {CANCEL_REASONS.map((reason) => {
+        {cancelReasons.map((reason) => {
           const isSelected = selectedReason === reason.value;
           return (
             <Pressable

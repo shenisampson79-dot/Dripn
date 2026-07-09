@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { apiService } from "@/services/ApiService";
 import { getCurrentCalendarSeason, getCurrentFashionYear } from "@/utils/fashionSeason";
+import { useTranslations } from "@/contexts/TranslationContext";
 import {
   buildOfflineColorOfTheYear,
   buildOfflineSeasonalPalette,
@@ -59,6 +60,7 @@ interface PersonalizedColor {
 export default function ColourInsightsScreen() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { t } = useTranslations();
 
   const [colorOfTheYear, setColorOfTheYear] = useState<ColorOfTheYear | null>(null);
   const [seasonalPalette, setSeasonalPalette] = useState<ColorTrend[]>([]);

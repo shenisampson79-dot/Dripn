@@ -20,6 +20,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import apiService from "@/services/ApiService";
 import * as FileSystem from 'expo-file-system/legacy';
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type StreetStyleScannerScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "StreetStyleScanner">;
@@ -45,6 +46,7 @@ interface OutfitAnalysis {
 
 export default function StreetStyleScannerScreen({ navigation }: StreetStyleScannerScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { tier } = useSubscription();
   const [permission, requestPermission] = useCameraPermissions();
   

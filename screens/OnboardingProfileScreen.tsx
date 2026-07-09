@@ -18,6 +18,7 @@ import {
   DressFor,
 } from '@/services/OnboardingProfileService';
 import { videoRandomizer } from '@/services/VideoRandomizerService';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'OnboardingProfile'>;
@@ -70,6 +71,7 @@ const DRESS_FOR_OPTIONS: {
 export default function OnboardingProfileScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const [step, setStep] = useState(0);
   const [identity, setIdentity] = useState<StyleIdentity | null>(null);
   const [dressFor, setDressFor] = useState<DressFor | null>(null);

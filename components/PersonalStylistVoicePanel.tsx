@@ -29,6 +29,7 @@ import { useVoiceCredits } from '@/hooks/useVoiceCredits';
 import { apiService } from '@/services/ApiService';
 import { VoiceCreditsPurchaseModal } from '@/components/VoiceCreditsPurchaseModal';
 import type { PersonalStylist } from '@/services/PersonalStylistService';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type ConversationState = 'idle' | 'listening' | 'processing' | 'speaking';
 
@@ -60,6 +61,7 @@ export function PersonalStylistVoicePanel({
   onExchange,
 }: PersonalStylistVoicePanelProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const tabBarHeightContext = useContext(BottomTabBarHeightContext);
   const tabBarHeight =

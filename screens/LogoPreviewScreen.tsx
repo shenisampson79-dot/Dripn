@@ -5,6 +5,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const logoIconWhite = require("../assets/images/dripn-logo-icon.png");
 const logoIconGold = require("../assets/images/dripn-logo-gold.png");
@@ -13,6 +14,7 @@ const logoIconGoldCream = require("../assets/images/dripn-logo-gold-exact-cream.
 export default function LogoPreviewScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslations();
 
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top + Spacing.xl }]}>

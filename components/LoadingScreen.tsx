@@ -3,9 +3,11 @@ import { View, StyleSheet, Image } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { useTheme } from '@/hooks/useTheme';
 import { Spacing } from '@/constants/theme';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 export function LoadingScreen() {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
@@ -18,7 +20,7 @@ export function LoadingScreen() {
       />
       
       <ThemedText style={[styles.tagline, { color: theme.tabIconDefault }]}>
-        Style that flows
+        {t('common.tagline') || 'Style that flows'}
       </ThemedText>
     </View>
   );

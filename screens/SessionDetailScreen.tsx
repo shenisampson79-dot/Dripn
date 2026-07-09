@@ -13,6 +13,7 @@ import { ScreenKeyboardAwareScrollView } from "@/components/ScreenKeyboardAwareS
 import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useStylistAuth, VIPSession } from "@/contexts/StylistAuthContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type SessionDetailScreenProps = {
   navigation: NativeStackNavigationProp<any>;
@@ -24,6 +25,7 @@ export default function SessionDetailScreen({ navigation, route, onExit }: Sessi
   const { sessionId } = route.params;
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { getSession, completeSession, updateSessionNotes } = useStylistAuth();
 
   const [session, setSession] = useState<VIPSession | null>(null);
@@ -66,11 +68,9 @@ export default function SessionDetailScreen({ navigation, route, onExit }: Sessi
   };
 
   const handleCompleteSession = async () => {
-    Alert.alert(
-      'Complete Session',
-      'Are you sure you want to mark this session as completed?',
+    Alert.alert(t('common.completeSession') || "Complete Session", t('common.areYouSureYouWantToMarkThisSessionAsComp') || "Are you sure you want to mark this session as completed?",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
           text: 'Complete',
           onPress: async () => {
@@ -306,7 +306,7 @@ export default function SessionDetailScreen({ navigation, route, onExit }: Sessi
             ]}
             value={notes}
             onChangeText={setNotes}
-            placeholder="Enter your session notes here..."
+            placeholder={t('common.enterYourSessionNotesHere') || "Enter your session notes here..."}
             placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
             multiline
             numberOfLines={6}

@@ -11,6 +11,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useSocial } from "@/contexts/SocialContext";
 import { getAllDiscoverableUsers, getDiscoverableUserCountries, UserSummary } from "@/contexts/SocialContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type DiscoverPeopleScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "DiscoverPeople">;
@@ -28,6 +29,7 @@ const formatNumber = (num: number): string => {
 
 export default function DiscoverPeopleScreen({ navigation }: DiscoverPeopleScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { sendFriendRequest, followUser, isFriend, hasPendingRequestTo, isFollowing } = useSocial();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
@@ -178,7 +180,7 @@ export default function DiscoverPeopleScreen({ navigation }: DiscoverPeopleScree
           <Feather name="search" size={20} color={theme.tabIconDefault} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Search by name..."
+            placeholder={t('discover.searchByName') || "Search by name..."}
             placeholderTextColor={theme.tabIconDefault}
             value={searchQuery}
             onChangeText={setSearchQuery}

@@ -13,6 +13,7 @@ import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useGamification, StyleChallenge } from "@/contexts/GamificationContext";
 import { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type NavigationProp = NativeStackNavigationProp<DiscoverStackParamList>;
 
@@ -21,6 +22,7 @@ type FilterType = "active" | "past" | "all";
 export default function StyleChallengesScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { challenges, getChallengeSubmissions, isLoading } = useGamification();
   const [filter, setFilter] = useState<FilterType>("active");
 

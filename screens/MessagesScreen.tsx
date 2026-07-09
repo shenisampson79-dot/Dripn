@@ -13,6 +13,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import { useMessaging, Conversation } from "@/contexts/MessagingContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type MessagesScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "Messages">;
@@ -44,6 +45,7 @@ function getInitials(name: string): string {
 
 export default function MessagesScreen({ navigation }: MessagesScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { 
     conversations, 
     isLoading, 
@@ -103,7 +105,7 @@ export default function MessagesScreen({ navigation }: MessagesScreenProps) {
                 "Unblock User",
                 `Are you sure you want to unblock ${conversation.participantName}?`,
                 [
-                  { text: "Cancel", style: "cancel" },
+                  { text: t('common.cancel'), style: "cancel" },
                   { 
                     text: "Unblock", 
                     onPress: () => unblockUser(conversation.participantId)
@@ -115,7 +117,7 @@ export default function MessagesScreen({ navigation }: MessagesScreenProps) {
                 "Block User",
                 `Are you sure you want to block ${conversation.participantName}? You will no longer receive messages from them.`,
                 [
-                  { text: "Cancel", style: "cancel" },
+                  { text: t('common.cancel'), style: "cancel" },
                   { 
                     text: "Block", 
                     style: "destructive",
@@ -130,11 +132,9 @@ export default function MessagesScreen({ navigation }: MessagesScreenProps) {
           text: "Delete Conversation",
           style: "destructive",
           onPress: () => {
-            Alert.alert(
-              "Delete Conversation",
-              "Are you sure you want to delete this conversation? This cannot be undone.",
+            Alert.alert(t('common.deleteConversation') || "Delete Conversation", t('common.areYouSureYouWantToDeleteThisConversatio') || "Are you sure you want to delete this conversation? This cannot be undone.",
               [
-                { text: "Cancel", style: "cancel" },
+                { text: t('common.cancel'), style: "cancel" },
                 { 
                   text: "Delete", 
                   style: "destructive",
@@ -144,7 +144,7 @@ export default function MessagesScreen({ navigation }: MessagesScreenProps) {
             );
           },
         },
-        { text: "Cancel", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
       ]
     );
   };

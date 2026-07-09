@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, useLayoutEffect } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -19,6 +19,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { apiService } from "@/services/ApiService";
 import {
   BillingPlanId,
@@ -38,9 +39,6 @@ const LUXURY_COLORS = {
   champagne: "#F5E6D3",
 };
 
-const PRIMARY_PROMPT = "Build me a clean everyday outfit based on my style";
-const GUIDED_PROMPT = "Create a smart casual outfit for this weekend";
-
 const POLL_ATTEMPTS = 3;
 const POLL_INTERVAL_MS = 5000;
 const AUTO_NAV_DELAY_MS = 1500;
@@ -52,62 +50,65 @@ type TierContent = {
   checklist: string[];
 };
 
-const TIER_CONTENT: Record<string, TierContent> = {
-  style_chat: {
-    headline: "Your Personal Stylist is ready",
-    subtext: "Unlimited decisions and wardrobe-aware advice are unlocked",
-    checklist: [
-      "Unlimited stylist decisions",
-      "3-way shopping compare",
-      "Decision history & wardrobe memory",
-      "Voice styling sessions",
-    ],
-  },
-  personal_stylist: {
-    headline: "Your personalised looks are ready",
-    subtext: "Ruby, Max, Ace, or Ivy — your AI stylist is waiting",
-    checklist: [
-      "Personal AI stylist with extended voice",
-      "Full wardrobe analysis",
-      "Unlimited stylist decisions",
-      "Wardrobe-aware daily advice",
-    ],
-  },
-  stylist_unlimited: {
-    headline: "Full access unlocked — no limits",
-    subtext: "Plan, pack, and prioritise with Stylist Unlimited",
-    checklist: [
-      "Outfit calendar & event planning",
-      "Unlimited wardrobe & try-on",
-      "Bulk upload (20 items)",
-      "Priority support",
-    ],
-  },
-  core_wardrobe: {
-    headline: "Your core wardrobe setup is confirmed",
-    subtext: "Our stylists will build your foundation wardrobe",
-    checklist: [
-      "Expert-curated core pieces",
-      "Personalised wardrobe blueprint",
-      "Mix-and-match outfit foundations",
-      "One-time professional setup",
-    ],
-  },
-  outfit_setup: {
-    headline: "Your outfit setup is confirmed",
-    subtext: "Tailored looks built around your lifestyle",
-    checklist: [
-      "Occasion-ready outfit plans",
-      "Stylist-selected combinations",
-      "Shoppable recommendations",
-      "One-time professional setup",
-    ],
-  },
-};
+function getTierContent(t: (key: string) => string): Record<string, TierContent> {
+  return {
+    style_chat: {
+      headline: t('subscription.success.styleChat.headline'),
+      subtext: t('subscription.success.styleChat.subtext'),
+      checklist: [
+        t('subscription.success.styleChat.check1'),
+        t('subscription.success.styleChat.check2'),
+        t('subscription.success.styleChat.check3'),
+        t('subscription.success.styleChat.check4'),
+      ],
+    },
+    personal_stylist: {
+      headline: t('subscription.success.personalStylist.headline'),
+      subtext: t('subscription.success.personalStylist.subtext'),
+      checklist: [
+        t('subscription.success.personalStylist.check1'),
+        t('subscription.success.personalStylist.check2'),
+        t('subscription.success.personalStylist.check3'),
+        t('subscription.success.personalStylist.check4'),
+      ],
+    },
+    stylist_unlimited: {
+      headline: t('subscription.success.stylistUnlimited.headline'),
+      subtext: t('subscription.success.stylistUnlimited.subtext'),
+      checklist: [
+        t('subscription.success.stylistUnlimited.check1'),
+        t('subscription.success.stylistUnlimited.check2'),
+        t('subscription.success.stylistUnlimited.check3'),
+        t('subscription.success.stylistUnlimited.check4'),
+      ],
+    },
+    core_wardrobe: {
+      headline: t('subscription.success.coreWardrobe.headline'),
+      subtext: t('subscription.success.coreWardrobe.subtext'),
+      checklist: [
+        t('subscription.success.coreWardrobe.check1'),
+        t('subscription.success.coreWardrobe.check2'),
+        t('subscription.success.coreWardrobe.check3'),
+        t('subscription.success.coreWardrobe.check4'),
+      ],
+    },
+    outfit_setup: {
+      headline: t('subscription.success.outfitSetup.headline'),
+      subtext: t('subscription.success.outfitSetup.subtext'),
+      checklist: [
+        t('subscription.success.outfitSetup.check1'),
+        t('subscription.success.outfitSetup.check2'),
+        t('subscription.success.outfitSetup.check3'),
+        t('subscription.success.outfitSetup.check4'),
+      ],
+    },
+  };
+}
 
 function resolveBillingPlan(plan?: string | null): BillingPlanId {
   if (!plan || plan === "free") return "style_chat";
-  if (plan in TIER_CONTENT) return plan as BillingPlanId;
+  const tierContentKeys = ['style_chat', 'personal_stylist', 'stylist_unlimited', 'core_wardrobe', 'outfit_setup'];
+  if (plan in Object.fromEntries(tierContentKeys.map(k => [k, true]))) return plan as BillingPlanId;
   const tier = normalizeSubscriptionTier(plan);
   const billing = tierToBillingPlan(tier);
   return billing === "free" ? "style_chat" : billing;
@@ -131,6 +132,11 @@ export default function SubscriptionSuccessScreen({ navigation, route }: Props) 
   const { theme } = useTheme();
   const { user, refreshSubscriptionFromBackend } = useAuth();
   const { tier } = useSubscription();
+  const { t } = useTranslations();
+
+  const tierContent = getTierContent(t);
+  const primaryPrompt = t('subscription.success.primaryPrompt');
+  const guidedPrompt = t('subscription.success.guidedPrompt');
 
   const [loading, setLoading] = useState(true);
   const [resolvedPlan, setResolvedPlan] = useState<BillingPlanId>("style_chat");
@@ -139,6 +145,10 @@ export default function SubscriptionSuccessScreen({ navigation, route }: Props) 
   const autoNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sessionId = route.params?.sessionId ?? getSessionIdFromWeb();
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: t('subscription.success.screenTitle') });
+  }, [navigation, t]);
 
   const markInteraction = useCallback(() => {
     userInteractedRef.current = true;
@@ -219,16 +229,16 @@ export default function SubscriptionSuccessScreen({ navigation, route }: Props) 
 
     autoNavTimerRef.current = setTimeout(() => {
       if (!userInteractedRef.current) {
-        goToAIStylist(PRIMARY_PROMPT);
+        goToAIStylist(primaryPrompt);
       }
     }, AUTO_NAV_DELAY_MS);
 
     return () => {
       if (autoNavTimerRef.current) clearTimeout(autoNavTimerRef.current);
     };
-  }, [loading, goToAIStylist]);
+  }, [loading, goToAIStylist, primaryPrompt]);
 
-  const content = TIER_CONTENT[resolvedPlan];
+  const content = tierContent[resolvedPlan];
   const planName = getBillingPlanDisplayName(resolvedPlan);
   const showUpsell = resolvedPlan !== "stylist_unlimited";
 
@@ -237,7 +247,7 @@ export default function SubscriptionSuccessScreen({ navigation, route }: Props) 
       <View style={[styles.loadingContainer, { backgroundColor: theme.backgroundRoot }]}>
         <ActivityIndicator size="large" color={LUXURY_COLORS.gold} />
         <ThemedText type="body" style={styles.loadingText}>
-          Activating your upgrade…
+          {t('subscription.success.activating')}
         </ThemedText>
       </View>
     );
@@ -253,7 +263,7 @@ export default function SubscriptionSuccessScreen({ navigation, route }: Props) 
           style={styles.heroCard}
         >
           <ThemedText type="h2" style={styles.heroTitle}>
-            ✅ You're all set. Your style upgrade is live.
+            {t('subscription.success.heroTitle')}
           </ThemedText>
           <ThemedText type="body" style={styles.heroSubtext}>
             {content.headline}
@@ -269,15 +279,15 @@ export default function SubscriptionSuccessScreen({ navigation, route }: Props) 
               if (Platform.OS !== "web") {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               }
-              goToAIStylist(PRIMARY_PROMPT);
+              goToAIStylist(primaryPrompt);
             }}
           >
-            🔥 Start Styling Now
+            {t('subscription.success.startStylingNow')}
           </Button>
         </View>
 
         <Pressable
-          onPress={() => goToAIStylist(GUIDED_PROMPT)}
+          onPress={() => goToAIStylist(guidedPrompt)}
           style={({ pressed }) => [
             styles.guidedCard,
             {
@@ -290,16 +300,16 @@ export default function SubscriptionSuccessScreen({ navigation, route }: Props) 
           <Feather name="zap" size={18} color={LUXURY_COLORS.gold} />
           <View style={styles.guidedTextWrap}>
             <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-              Try this first
+              {t('subscription.success.tryThisFirst')}
             </ThemedText>
-            <ThemedText type="body">{GUIDED_PROMPT}</ThemedText>
+            <ThemedText type="body">{guidedPrompt}</ThemedText>
           </View>
           <Feather name="chevron-right" size={20} color={theme.textSecondary} />
         </Pressable>
 
         <View style={[styles.checklistCard, { backgroundColor: theme.backgroundDefault }]}>
           <ThemedText type="h3" style={styles.checklistTitle}>
-            What's unlocked
+            {t('subscription.success.whatsUnlocked')}
           </ThemedText>
           {content.checklist.map((item) => (
             <View key={item} style={styles.checklistRow}>
@@ -328,14 +338,14 @@ export default function SubscriptionSuccessScreen({ navigation, route }: Props) 
               style={styles.upsellGradient}
             >
               <ThemedText type="h3" style={styles.upsellTitle}>
-                🚀 Go Unlimited
+                {t('subscription.success.goUnlimited')}
               </ThemedText>
               <ThemedText type="small" style={styles.upsellBody}>
-                Outfit calendar, unlimited wardrobe, and VIP member access
+                {t('subscription.success.goUnlimitedBody')}
               </ThemedText>
               <View style={styles.upsellCta}>
                 <ThemedText type="body" style={styles.upsellCtaText}>
-                  Upgrade now
+                  {t('subscription.success.upgradeNow')}
                 </ThemedText>
                 <Feather name="arrow-right" size={18} color={LUXURY_COLORS.midnight} />
               </View>
@@ -346,12 +356,12 @@ export default function SubscriptionSuccessScreen({ navigation, route }: Props) 
         <View style={[styles.socialProof, { backgroundColor: theme.backgroundDefault }]}>
           <Feather name="users" size={20} color={LUXURY_COLORS.violet} />
           <ThemedText type="body" style={styles.socialProofText}>
-            Join 1,000+ users improving their style daily
+            {t('subscription.success.socialProof')}
           </ThemedText>
         </View>
 
         <ThemedText type="small" style={[styles.urgency, { color: theme.textSecondary }]}>
-          🔥 Most users upgrade within their first week
+          {t('subscription.success.urgency')}
         </ThemedText>
 
         <View style={styles.footerSpacer} />
@@ -363,7 +373,7 @@ export default function SubscriptionSuccessScreen({ navigation, route }: Props) 
           { backgroundColor: theme.backgroundRoot, borderTopColor: theme.border },
         ]}
       >
-        <Button onPress={() => goToAIStylist(PRIMARY_PROMPT)}>Start Styling →</Button>
+        <Button onPress={() => goToAIStylist(primaryPrompt)}>{t('subscription.success.startStylingFooter')}</Button>
       </View>
     </View>
   );

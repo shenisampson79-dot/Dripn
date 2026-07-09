@@ -1565,7 +1565,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
       <TextInput
         ref={contextInputRef}
         style={styles.contextInput}
-        placeholder="Add any extra details (optional)"
+        placeholder={t('common.addAnyExtraDetailsOptional') || "Add any extra details (optional)"}
         placeholderTextColor="rgba(255,255,255,0.4)"
         value={contextNotes}
         onChangeText={setContextNotes}

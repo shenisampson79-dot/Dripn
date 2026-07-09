@@ -3164,7 +3164,7 @@ export default function AIStylistScreen() {
         ) : null}
         {limitReached ? (
           <LimitHitUpgradePrompt
-            title="Daily message limit reached"
+            title={t('common.dailyMessageLimitReached') || "Daily message limit reached"}
             message="Upgrade to Personal Stylist for unlimited AI styling conversations."
             ctaLabel="Upgrade"
             onUpgrade={navigateToSubscription}

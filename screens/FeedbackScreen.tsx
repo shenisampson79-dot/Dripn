@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useLayoutEffect } from "react";
 import { StyleSheet, View, Pressable, TextInput, Alert, ActivityIndicator, Platform } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -12,6 +12,7 @@ import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
@@ -31,20 +32,24 @@ interface CategoryOption {
   icon: keyof typeof Feather.glyphMap;
 }
 
-const FEEDBACK_TYPES: FeedbackOption[] = [
-  { type: "bug", label: "Bug Report", icon: "alert-circle", description: "Something isn't working" },
-  { type: "feature", label: "Feature Request", icon: "zap", description: "Suggest an improvement" },
-  { type: "general", label: "General Feedback", icon: "message-circle", description: "Share your thoughts" },
-  { type: "rating", label: "Rate Experience", icon: "star", description: "Rate your overall experience" },
-];
+function getFeedbackTypes(t: (key: string) => string): FeedbackOption[] {
+  return [
+    { type: "bug", label: t('feedback.type.bug.label'), icon: "alert-circle", description: t('feedback.type.bug.description') },
+    { type: "feature", label: t('feedback.type.feature.label'), icon: "zap", description: t('feedback.type.feature.description') },
+    { type: "general", label: t('feedback.type.general.label'), icon: "message-circle", description: t('feedback.type.general.description') },
+    { type: "rating", label: t('feedback.type.rating.label'), icon: "star", description: t('feedback.type.rating.description') },
+  ];
+}
 
-const CATEGORIES: CategoryOption[] = [
-  { category: "scanner", label: "Wardrobe Scanner", icon: "camera" },
-  { category: "chat", label: "AI Stylist Chat", icon: "message-square" },
-  { category: "login", label: "Login / Account", icon: "user" },
-  { category: "wardrobe", label: "Wardrobe", icon: "grid" },
-  { category: "other", label: "Other", icon: "more-horizontal" },
-];
+function getCategories(t: (key: string) => string): CategoryOption[] {
+  return [
+    { category: "scanner", label: t('feedback.category.scanner'), icon: "camera" },
+    { category: "chat", label: t('feedback.category.chat'), icon: "message-square" },
+    { category: "login", label: t('feedback.category.login'), icon: "user" },
+    { category: "wardrobe", label: t('feedback.category.wardrobe'), icon: "grid" },
+    { category: "other", label: t('feedback.category.other'), icon: "more-horizontal" },
+  ];
+}
 
 type FeedbackScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "Feedback">;
@@ -53,6 +58,10 @@ type FeedbackScreenProps = {
 export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
   const { theme, isDark } = useTheme();
   const { palette } = useColorScheme();
+  const { t } = useTranslations();
+
+  const feedbackTypes = getFeedbackTypes(t);
+  const categories = getCategories(t);
 
   const LUXURY_COLORS = {
     gold: palette.gold,
@@ -75,6 +84,10 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
   const [rating, setRating] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: t('feedback.screenTitle') });
+  }, [navigation, t]);
+
   const getDeviceInfo = (): string => {
     const osName = Platform.OS === 'ios' ? 'iOS' : 'Android';
     const osVersion = Platform.Version;
@@ -86,25 +99,36 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
     return Constants.expoConfig?.version || "1.0.0";
   };
 
+  const getRatingLabel = (value: number): string => {
+    switch (value) {
+      case 5: return t('feedback.rating.excellent');
+      case 4: return t('feedback.rating.great');
+      case 3: return t('feedback.rating.good');
+      case 2: return t('feedback.rating.fair');
+      case 1: return t('feedback.rating.poor');
+      default: return '';
+    }
+  };
+
   const handleSubmit = async () => {
     if (!feedbackType) {
-      Alert.alert("Required", "Please select a feedback type.");
+      Alert.alert(t('feedback.requiredTitle'), t('feedback.requiredType'));
       return;
     }
     if (!category) {
-      Alert.alert("Required", "Please select a category.");
+      Alert.alert(t('feedback.requiredTitle'), t('feedback.requiredCategory'));
       return;
     }
     if (!title.trim()) {
-      Alert.alert("Required", "Please enter a title for your feedback.");
+      Alert.alert(t('feedback.requiredTitle'), t('feedback.requiredTitleField'));
       return;
     }
     if (!description.trim()) {
-      Alert.alert("Required", "Please describe your feedback in detail.");
+      Alert.alert(t('feedback.requiredTitle'), t('feedback.requiredDescription'));
       return;
     }
     if (feedbackType === "rating" && rating === 0) {
-      Alert.alert("Required", "Please select a rating.");
+      Alert.alert(t('feedback.requiredTitle'), t('feedback.requiredRating'));
       return;
     }
 
@@ -127,9 +151,9 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
 
       if (response.success) {
         Alert.alert(
-          "Thank You!",
-          response.message || "Your feedback has been submitted successfully.",
-          [{ text: "OK", onPress: () => navigation.goBack() }]
+          t('feedback.thankYouTitle'),
+          response.message || t('feedback.thankYouMessage'),
+          [{ text: t('common.ok'), onPress: () => navigation.goBack() }]
         );
       } else {
         throw new Error("Submission failed");
@@ -137,8 +161,8 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
     } catch (error) {
       console.error("Feedback submission error:", error);
       Alert.alert(
-        "Submission Failed",
-        "We couldn't submit your feedback. Please try again later."
+        t('feedback.submissionFailedTitle'),
+        t('feedback.submissionFailedMessage')
       );
     } finally {
       setIsSubmitting(false);
@@ -149,7 +173,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
     return (
       <View style={styles.ratingContainer}>
         <ThemedText type="body" style={styles.ratingLabel}>
-          How would you rate your experience?
+          {t('feedback.ratingPrompt')}
         </ThemedText>
         <View style={styles.starsContainer}>
           {[1, 2, 3, 4, 5].map((star) => (
@@ -169,7 +193,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
         </View>
         {rating > 0 && (
           <ThemedText type="small" style={[styles.ratingText, { color: LUXURY_COLORS.gold }]}>
-            {rating === 5 ? "Excellent!" : rating === 4 ? "Great!" : rating === 3 ? "Good" : rating === 2 ? "Fair" : "Poor"}
+            {getRatingLabel(rating)}
           </ThemedText>
         )}
       </View>
@@ -190,16 +214,16 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
       <ScreenKeyboardAwareScrollView style={{ backgroundColor: 'transparent' }}>
         <View style={styles.introSection}>
           <ThemedText type="body" style={styles.introText}>
-            Help us improve Dripn! Your feedback is invaluable for making the app better for everyone.
+            {t('feedback.intro')}
           </ThemedText>
         </View>
 
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>
-            What type of feedback?
+            {t('feedback.whatType')}
           </ThemedText>
           <View style={styles.optionsGrid}>
-            {FEEDBACK_TYPES.map((option) => (
+            {feedbackTypes.map((option) => (
               <Pressable
                 key={option.type}
                 onPress={() => setFeedbackType(option.type)}
@@ -234,10 +258,10 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
 
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>
-            Which area?
+            {t('feedback.whichArea')}
           </ThemedText>
           <View style={styles.categoriesRow}>
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <Pressable
                 key={cat.category}
                 onPress={() => setCategory(cat.category)}
@@ -273,7 +297,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
 
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>
-            Title
+            {t('feedback.titleLabel')}
           </ThemedText>
           <TextInput
             style={[
@@ -283,7 +307,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
                 color: theme.text,
               },
             ]}
-            placeholder="Brief summary of your feedback"
+            placeholder={t('feedback.titlePlaceholder')}
             placeholderTextColor={theme.tabIconDefault}
             value={title}
             onChangeText={setTitle}
@@ -293,7 +317,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
 
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>
-            Description
+            {t('feedback.descriptionLabel')}
           </ThemedText>
           <TextInput
             style={[
@@ -303,7 +327,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
                 color: theme.text,
               },
             ]}
-            placeholder="Please describe in detail..."
+            placeholder={t('feedback.descriptionPlaceholder')}
             placeholderTextColor={theme.tabIconDefault}
             value={description}
             onChangeText={setDescription}
@@ -331,7 +355,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
               <>
                 <Feather name="send" size={18} color="#FFFFFF" />
                 <ThemedText type="body" style={styles.submitText}>
-                  Submit Feedback
+                  {t('feedback.submit')}
                 </ThemedText>
               </>
             )}
@@ -340,7 +364,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
 
         <View style={styles.footer}>
           <ThemedText type="caption" style={styles.footerText}>
-            Your feedback helps us build a better Dripn experience. All submissions are reviewed by our team.
+            {t('feedback.footer')}
           </ThemedText>
         </View>
       </ScreenKeyboardAwareScrollView>

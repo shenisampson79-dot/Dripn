@@ -17,6 +17,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type MixMatchScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "MixMatch">;
@@ -47,6 +48,7 @@ interface Entry {
 
 export default function MixMatchScreen({ navigation }: MixMatchScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
@@ -109,7 +111,7 @@ export default function MixMatchScreen({ navigation }: MixMatchScreenProps) {
 
   const handleSubmitEntry = async () => {
     if (!user) {
-      Alert.alert("Sign In Required", "Please sign in to submit an entry.");
+      Alert.alert(t('common.signInRequired') || "Sign In Required", t('common.pleaseSignInToSubmitAnEntry') || "Please sign in to submit an entry.");
       return;
     }
 
@@ -128,7 +130,7 @@ export default function MixMatchScreen({ navigation }: MixMatchScreenProps) {
 
       const imageBase64 = result.assets[0].base64;
       if (!imageBase64) {
-        Alert.alert("Error", "Failed to process image");
+        Alert.alert(t('common.error') || "Error", t('common.failedToProcessImage') || "Failed to process image");
         return;
       }
 
@@ -142,7 +144,7 @@ export default function MixMatchScreen({ navigation }: MixMatchScreenProps) {
       });
 
       if (response.success) {
-        Alert.alert("Success", "Your entry has been submitted!");
+        Alert.alert(t('common.success') || "Success", t('common.yourEntryHasBeenSubmitted') || "Your entry has been submitted!");
         setSelectedChallenge(prev => prev ? { ...prev, hasSubmitted: true } : null);
         await fetchEntries(selectedChallenge.id);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -156,7 +158,7 @@ export default function MixMatchScreen({ navigation }: MixMatchScreenProps) {
 
   const handleVote = async (entryId: string) => {
     if (!user) {
-      Alert.alert("Sign In Required", "Please sign in to vote.");
+      Alert.alert(t('common.signInRequired') || "Sign In Required", t('common.pleaseSignInToVote') || "Please sign in to vote.");
       return;
     }
 

@@ -25,6 +25,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useBodyProfile, BodyShape } from "@/contexts/BodyProfileContext";
 import { useScreenInsets } from "@/hooks/useScreenInsets";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -84,6 +85,7 @@ const CATEGORIES: { key: ClothingCategory; label: string; icon: keyof typeof Fea
 
 export default function PersonalizedWardrobeFilterScreen({ navigation }: PersonalizedWardrobeFilterScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { bodyProfile, hasBodyProfile } = useBodyProfile();
   const { paddingTop, paddingBottom } = useScreenInsets();
   

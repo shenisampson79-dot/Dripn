@@ -34,6 +34,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_SPACING = Spacing.sm;
@@ -65,6 +66,7 @@ interface SearchState {
 
 export default function VisualSearchScreen() {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { limits, tier } = useSubscription();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -139,11 +141,9 @@ export default function VisualSearchScreen() {
 
   const handleTakePhoto = async () => {
     if (!canSearch()) {
-      Alert.alert(
-        'Search Limit Reached',
-        'You have used all your visual searches this month. Upgrade your plan for more searches.',
+      Alert.alert(t('visualSearch.searchLimitReached') || "Search Limit Reached", t('visualSearch.youHaveUsedAllYourVisualSearchesThisMont') || "You have used all your visual searches this month. Upgrade your plan for more searches.",
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           { text: 'Upgrade', onPress: navigateToSubscription },
         ]
       );
@@ -157,11 +157,9 @@ export default function VisualSearchScreen() {
     if (!cameraPermission.granted) {
       if (cameraPermission.status === 'denied' && !cameraPermission.canAskAgain) {
         if (Platform.OS !== 'web') {
-          Alert.alert(
-            'Camera Access Required',
-            'Please enable camera access in your device settings to use visual search.',
+          Alert.alert(t('visualSearch.cameraAccessRequired') || "Camera Access Required", t('visualSearch.pleaseEnableCameraAccessInYourDeviceSett') || "Please enable camera access in your device settings to use visual search.",
             [
-              { text: 'Cancel', style: 'cancel' },
+              { text: t('common.cancel'), style: 'cancel' },
               { 
                 text: 'Open Settings', 
                 onPress: async () => {
@@ -206,11 +204,9 @@ export default function VisualSearchScreen() {
 
   const handleSelectFromGallery = async () => {
     if (!canSearch()) {
-      Alert.alert(
-        'Search Limit Reached',
-        'You have used all your visual searches this month. Upgrade your plan for more searches.',
+      Alert.alert(t('visualSearch.searchLimitReached') || "Search Limit Reached", t('visualSearch.youHaveUsedAllYourVisualSearchesThisMont') || "You have used all your visual searches this month. Upgrade your plan for more searches.",
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           { text: 'Upgrade', onPress: navigateToSubscription },
         ]
       );

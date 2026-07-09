@@ -346,9 +346,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   };
 
   const handleDeleteOutfit = (id: string) => {
-    Alert.alert(
-      'Delete Outfit Plan',
-      'Are you sure you want to remove this planned outfit?',
+    Alert.alert(t('wardrobe.deleteOutfitPlan') || "Delete Outfit Plan", t('wardrobe.areYouSureYouWantToRemoveThisPlannedOutf') || "Are you sure you want to remove this planned outfit?",
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -452,7 +450,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
           [{ text: "View Calendar", onPress: () => firstPlannedDate && setSelectedDate(firstPlannedDate) }]
         );
       } else {
-        Alert.alert("No Outfits Created", "AI couldn't match your wardrobe items. Try again or add more variety to your wardrobe.");
+        Alert.alert(t('wardrobe.noOutfitsCreated') || "No Outfits Created", t('wardrobe.aiCouldn') || "AI couldn"t match your wardrobe items. Try again or add more variety to your wardrobe.");
       }
     } catch (error) {
       console.error('AI outfit generation error:', error);
@@ -664,7 +662,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         </View>
         <LimitHitUpgradePrompt
           variant="card"
-          title="Outfit calendar is part of Stylist Unlimited"
+          title={t('wardrobe.outfitCalendarIsPartOfStylistUnlimited') || "Outfit calendar is part of Stylist Unlimited"}
           message="Plan looks ahead, pack for trips, and map outfits to your week. Upgrade to unlock the full planning toolkit."
           ctaLabel="View Stylist Unlimited"
           onUpgrade={() => navigation.navigate('Subscription' as any, { highlightPlan: 'stylist_unlimited' })}
@@ -860,7 +858,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
             <TextInput
               value={newEventName}
               onChangeText={setNewEventName}
-              placeholder="e.g., Birthday Party, Work Meeting"
+              placeholder={t('wardrobe.egBirthdayPartyWorkMeeting') || "e.g., Birthday Party, Work Meeting"}
               placeholderTextColor={tertiaryTextColor}
               style={[
                 styles.input,
@@ -951,7 +949,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
             <TextInput
               value={notes}
               onChangeText={setNotes}
-              placeholder="Any special notes for this outfit..."
+              placeholder={t('wardrobe.anySpecialNotesForThisOutfit') || "Any special notes for this outfit..."}
               placeholderTextColor={tertiaryTextColor}
               multiline
               numberOfLines={3}

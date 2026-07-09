@@ -29,6 +29,7 @@ import { useStyleProfile } from "@/contexts/StyleProfileContext";
 import apiService from "@/services/ApiService";
 import { currencyService } from "@/services/CurrencyService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type RegionalModelType = 'multicultural' | 'asian' | 'african' | 'middle-eastern' | 'south-asian' | 'latin-american';
 
@@ -419,6 +420,7 @@ interface EmergingTrend {
 
 export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user, isExploringOtherCountry, explorationCountry, actualCountry, switchBackToActualLocation } = useAuth();
   const { tier } = useSubscription();
   const { posts, votePost, voteComparison, thankPost } = usePosts();
@@ -618,7 +620,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
       "Join Challenge",
       `Ready to join "${challenge.name}"?\n\nPost your outfit with ${challenge.hashtag} to participate!`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         {
           text: "Share Challenge",
           onPress: () => shareChallenge(challenge.name, challenge.description),

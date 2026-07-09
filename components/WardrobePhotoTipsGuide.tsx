@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 import { Spacing, BorderRadius } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type IllustrationProps = {
   accent: string;
@@ -143,6 +144,7 @@ type WardrobePhotoTipsGuideProps = {
 
 export function WardrobePhotoTipsGuide({ onSeeAll, compact = false }: WardrobePhotoTipsGuideProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const ink = theme.text;
   const muted = theme.tabIconDefault;
   const surface = theme.backgroundDefault;
@@ -154,13 +156,13 @@ export function WardrobePhotoTipsGuide({ onSeeAll, compact = false }: WardrobePh
         <View style={styles.headerLeft}>
           <Feather name="camera" size={16} color={theme.link} />
           <ThemedText type="body" style={styles.headerTitle}>
-            Photo tips for best results
+            {t('wardrobe.photoTipsTitle') || 'Photo tips for best results'}
           </ThemedText>
         </View>
         {onSeeAll ? (
           <Pressable onPress={onSeeAll} hitSlop={8} style={styles.seeAllButton}>
             <ThemedText type="caption" style={{ color: theme.link, fontWeight: '600' }}>
-              See all
+              {t('wardrobe.seeAll') || 'See all'}
             </ThemedText>
             <Feather name="chevron-right" size={14} color={theme.link} />
           </Pressable>

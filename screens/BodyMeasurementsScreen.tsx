@@ -19,6 +19,7 @@ import {
   WeightUnit,
 } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type BodyMeasurementsScreenProps = {
   navigation: any;
@@ -27,6 +28,7 @@ type BodyMeasurementsScreenProps = {
 export default function BodyMeasurementsScreen({ navigation }: BodyMeasurementsScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user, updateProfile } = useAuth();
   const { palette } = useColorScheme();
 
@@ -43,12 +45,12 @@ export default function BodyMeasurementsScreen({ navigation }: BodyMeasurementsS
     setIsSubmitting(true);
     try {
       await updateProfile({ bodyMeasurements });
-      Alert.alert("Saved", "Your body measurements have been updated.", [
+      Alert.alert(t('common.saved') || "Saved", t('common.yourBodyMeasurementsHaveBeenUpdated') || "Your body measurements have been updated.", [
         { text: "OK", onPress: () => navigation.goBack() }
       ]);
     } catch (error) {
       console.error('Failed to save measurements:', error);
-      Alert.alert("Error", "Failed to save measurements. Please try again.");
+      Alert.alert(t('common.error') || "Error", t('common.failedToSaveMeasurementsPleaseTryAgain') || "Failed to save measurements. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

@@ -16,6 +16,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type StyleShowdownScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "StyleShowdown">;
@@ -41,6 +42,7 @@ const OPTION_SIZE = (SCREEN_WIDTH - Spacing.xl * 2 - Spacing.md) / 2;
 
 export default function StyleShowdownScreen({ navigation }: StyleShowdownScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const [showdowns, setShowdowns] = useState<Showdown[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,7 +83,7 @@ export default function StyleShowdownScreen({ navigation }: StyleShowdownScreenP
 
   const handleVote = async (showdownId: string, optionId: number) => {
     if (!user) {
-      Alert.alert("Sign In Required", "Please sign in to vote.");
+      Alert.alert(t('discover.signInRequired') || "Sign In Required", t('discover.pleaseSignInToVote') || "Please sign in to vote.");
       return;
     }
 

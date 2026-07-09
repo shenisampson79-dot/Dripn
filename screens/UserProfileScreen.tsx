@@ -12,6 +12,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocial } from "@/contexts/SocialContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type UserProfileScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "UserProfile">;
@@ -89,6 +90,7 @@ const MOCK_USERS: Record<string, {
 export default function UserProfileScreen({ navigation, route }: UserProfileScreenProps) {
   const { userId } = route.params;
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const { 
     isFollowing, 

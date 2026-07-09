@@ -11,6 +11,7 @@ import { Card } from "@/components/Card";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type PartnerScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "Partner">;
@@ -76,6 +77,7 @@ const PARTNER_OPTIONS: PartnerOption[] = [
 
 export default function PartnerScreen({ navigation }: PartnerScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
 
   const handleContactPress = async (email: string) => {
     const mailtoUrl = `mailto:${email}?subject=Dripn Partnership Inquiry`;

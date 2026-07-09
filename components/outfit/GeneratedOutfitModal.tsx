@@ -12,6 +12,7 @@ import { CATEGORY_LABELS, type WardrobeItem } from '@/contexts/WardrobeContext';
 import { useTheme } from '@/hooks/useTheme';
 import { sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
 import { wardrobeProcessedTileBackground, wardrobeTileBackground } from '@/utils/wardrobeImage';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 export type GeneratedOutfitModalData = {
   items: WardrobeItem[];
@@ -34,6 +35,7 @@ export function GeneratedOutfitModal({
   onClose,
 }: Props) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const [savedThisSession, setSavedThisSession] = useState(false);
@@ -73,7 +75,7 @@ export function GeneratedOutfitModal({
             <Pressable onPress={handleClose} hitSlop={8}>
               <Feather name="x" size={24} color={theme.text} />
             </Pressable>
-            <ThemedText type="h2">Your Perfect Outfit</ThemedText>
+            <ThemedText type="h2">{t('wardrobe.yourPerfectOutfit') || 'Your Perfect Outfit'}</ThemedText>
             <View style={{ width: 24 }} />
           </View>
 
@@ -87,7 +89,7 @@ export function GeneratedOutfitModal({
             {outfit?.stylistMessage ? (
               <View style={[styles.stylistMessage, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
                 <ThemedText type="caption" style={{ color: theme.tabIconDefault, fontWeight: '700', marginBottom: 4 }}>
-                  Why this works
+                  {t('wardrobe.whyThisWorks') || 'Why this works'}
                 </ThemedText>
                 <ThemedText style={{ fontSize: 14, lineHeight: 20, color: theme.text }}>
                   {outfit.stylistMessage}
@@ -137,7 +139,7 @@ export function GeneratedOutfitModal({
               <View style={styles.savedHint}>
                 <Feather name="check-circle" size={16} color={LuxuryColors.emerald} />
                 <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
-                  Saved — find it in Profile → Saved Outfits
+                  {t('wardrobe.savedOutfitHint') || 'Saved — find it in Profile → Saved Outfits'}
                 </ThemedText>
               </View>
             )}
@@ -150,7 +152,7 @@ export function GeneratedOutfitModal({
               }}
             >
               <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                Got it!
+                {t('common.gotIt') || 'Got it!'}
               </ThemedText>
             </Pressable>
           </View>

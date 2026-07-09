@@ -11,6 +11,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -66,12 +67,13 @@ const DEFAULT_TIERS: DfyTier[] = [
 export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const [pageHeader, setPageHeader] = useState({ 
-    title: "Want me to do this for you?", 
-    subtitle: "I'll set things up so your stylist works properly." 
+    title: t('dfy.styleMeProperly.title'), 
+    subtitle: t('dfy.styleMeProperly.subtitle'),
   });
   const [tiers, setTiers] = useState<DfyTier[]>(DEFAULT_TIERS);
-  const [footerReassurance, setFooterReassurance] = useState("One-time setup · No subscription required");
+  const [footerReassurance, setFooterReassurance] = useState(t('dfy.styleMeProperly.footerReassurance'));
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
 
   useEffect(() => {
@@ -180,7 +182,7 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
                 {index === 0 ? (
                   <View style={[styles.recommendedBadge, { backgroundColor: LuxuryColors.gold }]}>
                     <Feather name="zap" size={12} color="#FFFFFF" />
-                    <ThemedText type="small" style={styles.recommendedText}>Fastest</ThemedText>
+                    <ThemedText type="small" style={styles.recommendedText}>{t('dfy.styleMeProperly.fastest')}</ThemedText>
                   </View>
                 ) : null}
 
@@ -226,7 +228,7 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
                   <View style={styles.selectedIndicator}>
                     <Feather name="check-circle" size={20} color={LuxuryColors.gold} />
                     <ThemedText type="small" style={{ color: LuxuryColors.gold, fontWeight: '600' }}>
-                      Selected
+                      {t('dfy.comparison.selected')}
                     </ThemedText>
                   </View>
                 ) : null}
@@ -249,7 +251,7 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
               onPress={handleContinue}
             >
               <ThemedText type="body" style={styles.continueButtonText}>
-                Continue
+                {t('common.continue')}
               </ThemedText>
               <Feather name="arrow-right" size={20} color="#FFFFFF" />
             </Pressable>
@@ -266,7 +268,7 @@ export default function StyleMeProperlyScreen({ navigation }: StyleMeProperlyScr
 
           <Pressable onPress={handleSkip} style={styles.skipButton}>
             <ThemedText type="body" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              I'll do it myself
+              {t('dfy.styleMeProperly.doItMyself')}
             </ThemedText>
           </Pressable>
         </Animated.View>

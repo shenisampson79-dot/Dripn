@@ -32,6 +32,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { virtualTryOnService } from '@/services/VirtualTryOnService';
 import type { DiscoverStackParamList } from '@/navigation/DiscoverStackNavigator';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -44,6 +45,7 @@ type TryOnStep = 'upload_body' | 'select_garment' | 'processing' | 'result';
 
 export default function VirtualTryOnScreen({ navigation, route }: VirtualTryOnScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const { tier, limits } = useSubscription();
   const insets = useSafeAreaInsets();
@@ -92,7 +94,7 @@ export default function VirtualTryOnScreen({ navigation, route }: VirtualTryOnSc
           ? 'Virtual Try-On is available on Personal Stylist and above. Upgrade to try on clothes virtually!'
           : 'You have used all your virtual try-ons this month. Upgrade for more!',
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           { text: 'Upgrade', onPress: () => navigation.dispatch(CommonActions.navigate({ name: 'ProfileTab', params: { screen: 'Subscription' } })) },
         ]
       );

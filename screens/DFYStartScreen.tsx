@@ -19,6 +19,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, LuxuryColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { dfyService, DFYTier, DFYAccessStatus, DfyActivationBlockCode } from "@/services/DFYService";
 import {
   getDfyBenefitForSubscription,
@@ -51,6 +52,7 @@ const LUXURY_COLORS = {
 
 export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -68,13 +70,13 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
   const headerTitle = hasActiveWindow && activeTier
     ? getDfyActivePathTitle(activeTier)
     : benefit === 'none'
-      ? 'Done-For-You Setup'
+      ? t('dfy.start.headerDefault')
       : benefitTitle;
   const heroTitle = hasActiveWindow && activeTier
     ? getDfyActivePathTitle(activeTier)
     : benefit === 'none'
-      ? 'Unlock your stylist setup'
-      : `Included with ${subscriptionTierDisplayName(subscriptionTier)}`;
+      ? t('dfy.start.heroUnlock')
+      : t('dfy.start.heroIncluded').replace('{plan}', subscriptionTierDisplayName(subscriptionTier));
   const includedBlocked = activationBlockCode === 'included_used' || activationBlockCode === 'active_window';
   const showPaidAddOn = activationBlockCode === 'included_used' && benefit !== 'none';
 
@@ -137,7 +139,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
     try {
       const result = await dfyService.activateIncludedSetup(user.id, tier, subscriptionTier);
       if (!result.success) {
-        Alert.alert("Can't start yet", result.error ?? "Please try again.");
+        Alert.alert(t('dfy.start.cantStartTitle'), result.error ?? t('dfy.start.tryAgain'));
         await refreshState();
         return;
       }
@@ -176,7 +178,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
         <LinearGradient colors={selectedGradient} style={styles.pathCardGradient}>
           {options?.recommended ? (
             <View style={styles.recommendedBadge}>
-              <ThemedText type="caption" style={styles.recommendedText}>Recommended</ThemedText>
+              <ThemedText type="caption" style={styles.recommendedText}>{t('dfy.start.recommended')}</ThemedText>
             </View>
           ) : null}
           <View style={styles.pathCardHeader}>
@@ -190,7 +192,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           </ThemedText>
           <View style={styles.pathCtaRow}>
             <ThemedText type="small" style={styles.pathCtaText}>
-              Start {getDfyPathLabel(tier)}
+              {t('dfy.start.startPath').replace('{path}', getDfyPathLabel(tier))}
             </ThemedText>
             <Feather name="arrow-right" size={16} color="#FFFFFF" />
           </View>
@@ -224,11 +226,11 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
             </ThemedText>
           </View>
           <ThemedText type="body" style={styles.pathDescription}>
-            {getDfyPathDescription(tier)} · one-time
+            {getDfyPathDescription(tier)} · {t('dfy.start.oneTime')}
           </ThemedText>
           <View style={styles.pathCtaRow}>
             <ThemedText type="small" style={styles.pathCtaText}>
-              {isLite ? 'Look ready — purchase' : 'Dress better — purchase'}
+              {isLite ? t('dfy.start.lookReadyPurchase') : t('dfy.start.dressBetterPurchase')}
             </ThemedText>
             <Feather name="arrow-right" size={16} color="#FFFFFF" />
           </View>
@@ -239,15 +241,15 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
 
   const renderPaidAddOnSection = () => (
     <View style={styles.paidAddOnSection}>
-      <ThemedText type="h4" style={styles.sectionTitle}>Purchase another setup</ThemedText>
+      <ThemedText type="h4" style={styles.sectionTitle}>{t('dfy.start.purchaseAnother')}</ThemedText>
       <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
-        You've used your included setup — run another whenever you want to look and feel your best.
+        {t('dfy.start.purchaseAnotherDesc')}
       </ThemedText>
       {renderPaidAddOnCard('lite')}
       {benefit === 'full_wardrobe_setup' || benefit === 'styling_sprint' ? renderPaidAddOnCard('core') : null}
       {benefit === 'styling_sprint' ? (
         <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
-          Full Setup is included with Stylist Unlimited, or buy it here anytime.
+          {t('dfy.start.fullSetupIncludedNote')}
         </ThemedText>
       ) : null}
     </View>
@@ -279,7 +281,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           {accessStatus?.hasAccess && accessStatus.tier
             ? getDfyActiveWindowSubtitle(accessStatus.tier)
             : benefit === 'none'
-              ? 'Personal Stylist comes with Occasion Ready. Stylist Unlimited includes a full wardrobe setup — quick win or the whole closet.'
+              ? t('dfy.start.noBenefitSubtitle')
               : getDfyBenefitSubtitle(benefit)}
         </ThemedText>
       </View>
@@ -289,7 +291,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           <Feather name="clock" size={18} color={LUXURY_COLORS.gold} />
           <View style={styles.statusTextWrap}>
             <ThemedText type="body" style={{ fontWeight: '600' }}>
-              Active styling window
+              {t('dfy.start.activeWindow')}
             </ThemedText>
             <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
               {formatDfyDaysRemaining(accessStatus.daysRemaining, accessStatus.windowDays)} ·{' '}
@@ -297,30 +299,30 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
             </ThemedText>
           </View>
           <Button onPress={continueActivePlan} style={styles.continueButton}>
-            Continue
+            {t('common.continue')}
           </Button>
         </View>
       ) : null}
 
       {benefit === 'none' ? (
         <View style={styles.upgradeSection}>
-          <ThemedText type="h4" style={styles.sectionTitle}>Choose a plan to unlock</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{t('dfy.start.choosePlanUnlock')}</ThemedText>
           <Pressable
             onPress={() => navigation.navigate('Subscription', { highlightPlan: 'personal_stylist' })}
             style={[styles.planTeaser, { borderColor: LUXURY_COLORS.teal }]}
           >
-            <ThemedText type="h4">Personal Stylist</ThemedText>
+            <ThemedText type="h4">{t('dfy.start.personalStylist')}</ThemedText>
             <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-              Includes Occasion Ready (Quick Start)
+              {t('dfy.start.personalStylistIncludes')}
             </ThemedText>
           </Pressable>
           <Pressable
             onPress={() => navigation.navigate('Subscription', { highlightPlan: 'stylist_unlimited' })}
             style={[styles.planTeaser, { borderColor: LUXURY_COLORS.gold }]}
           >
-            <ThemedText type="h4">Stylist Unlimited</ThemedText>
+            <ThemedText type="h4">{t('dfy.start.stylistUnlimited')}</ThemedText>
             <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-              Includes Full Wardrobe Setup · Quick or Full path
+              {t('dfy.start.stylistUnlimitedIncludes')}
             </ThemedText>
           </Pressable>
         </View>
@@ -328,7 +330,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
 
       {benefit === 'styling_sprint' && !accessStatus?.hasAccess ? (
         <View style={styles.pathSection}>
-          <ThemedText type="h4" style={styles.sectionTitle}>Your included setup</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{t('dfy.start.includedSetup')}</ThemedText>
           {activationBlockedReason ? (
             <ThemedText type="small" style={[styles.blockedText, { color: theme.tabIconDefault }]}>
               {activationBlockedReason}
@@ -338,11 +340,11 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           {showPaidAddOn ? renderPaidAddOnSection() : (
             <>
               <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
-                Your plan includes one setup. Ready for the full wardrobe experience? Stylist Unlimited has you.
+                {t('dfy.start.oneSetupNote')}
               </ThemedText>
               <Pressable onPress={() => navigation.navigate('Subscription', { highlightPlan: 'stylist_unlimited' })}>
                 <ThemedText type="small" style={{ color: theme.link, textAlign: 'center' }}>
-                  Compare Stylist Unlimited
+                  {t('dfy.start.compareStylistUnlimited')}
                 </ThemedText>
               </Pressable>
             </>
@@ -352,9 +354,9 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
 
       {benefit === 'full_wardrobe_setup' && !accessStatus?.hasAccess ? (
         <View style={styles.pathSection}>
-          <ThemedText type="h4" style={styles.sectionTitle}>Choose your included path</ThemedText>
+          <ThemedText type="h4" style={styles.sectionTitle}>{t('dfy.start.chooseIncludedPath')}</ThemedText>
           <ThemedText type="body" style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}>
-            Your plan includes one setup — pick Quick Start or Full Setup to begin.
+            {t('dfy.start.chooseIncludedPathDesc')}
           </ThemedText>
           {activationBlockedReason ? (
             <ThemedText type="small" style={[styles.blockedText, { color: theme.tabIconDefault }]}>
@@ -369,7 +371,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
           ) : null}
           {showPaidAddOn ? renderPaidAddOnSection() : (
             <ThemedText type="caption" style={[styles.fineNote, { color: theme.tabIconDefault }]}>
-              Quick Start is a fast win when you're short on time. Full Setup is for when you want your whole closet digitised.
+              {t('dfy.start.quickVsFullNote')}
             </ThemedText>
           )}
         </View>

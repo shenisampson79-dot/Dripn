@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from "@/hooks/useTheme";
 import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type WardrobeDigitalTwinScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "WardrobeDigitalTwin">;
@@ -49,6 +50,7 @@ type TabType = "dashboard" | "capsule" | "future";
 
 export default function WardrobeDigitalTwinScreen({ navigation }: WardrobeDigitalTwinScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [isLoading, setIsLoading] = useState(true);
   const [digitalTwin, setDigitalTwin] = useState<DigitalTwinData | null>(null);

@@ -24,6 +24,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import { useBodyProfile, BodyShape } from "@/contexts/BodyProfileContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type BodyShapeStylingGuideScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "BodyShapeStylingGuide">;
@@ -57,6 +58,7 @@ const BODY_SHAPE_DESCRIPTIONS: Record<BodyShape, string> = {
 
 export default function BodyShapeStylingGuideScreen({ navigation }: BodyShapeStylingGuideScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { 
     bodyProfile, 
     generateStylingGuide, 
@@ -69,11 +71,9 @@ export default function BodyShapeStylingGuideScreen({ navigation }: BodyShapeSty
 
   const handleGenerateGuide = async () => {
     if (!hasBodyProfile) {
-      Alert.alert(
-        "Body Scan Required",
-        "Please complete a body scan first to get personalized styling recommendations.",
+      Alert.alert(t('common.bodyScanRequired') || "Body Scan Required", t('common.pleaseCompleteABodyScanFirstToGetPersona') || "Please complete a body scan first to get personalized styling recommendations.",
         [
-          { text: "Cancel", style: "cancel" },
+          { text: t('common.cancel'), style: "cancel" },
           { text: "Go to Scanner", onPress: () => navigation.navigate("BodyScanner") },
         ]
       );
@@ -82,7 +82,7 @@ export default function BodyShapeStylingGuideScreen({ navigation }: BodyShapeSty
 
     const result = await generateStylingGuide();
     if (result.success) {
-      Alert.alert("Success", "Your personalized styling guide has been generated!");
+      Alert.alert(t('common.success') || "Success", t('common.yourPersonalizedStylingGuideHasBeenGener') || "Your personalized styling guide has been generated!");
     }
   };
 

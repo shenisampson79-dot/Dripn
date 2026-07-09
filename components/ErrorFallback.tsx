@@ -16,6 +16,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Fonts } from "@/constants/theme";
 import { OnboardingService } from "@/services/OnboardingService";
 import { CommonActions, NavigationContainerRef } from "@react-navigation/native";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 let navigationRef: NavigationContainerRef<any> | null = null;
 let currentOnboardingStep: number | null = null;
@@ -35,6 +36,7 @@ export type ErrorFallbackProps = {
 
 export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -129,11 +131,11 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
         </View>
 
         <ThemedText type="h1" style={styles.title}>
-          Oops! Dripn hit a snag
+          {t('common.errorTitle') || "Oops! Dripn hit a snag"}
         </ThemedText>
 
         <ThemedText type="body" style={styles.message}>
-          Something went wrong, but don't worry - your style journey isn't over. Let's get you back on track!
+          {t('common.errorMessage') || "Something went wrong, but don't worry - your style journey isn't over. Let's get you back on track!"}
         </ThemedText>
 
         <Pressable
@@ -157,7 +159,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
             type="body"
             style={[styles.buttonText, { color: theme.buttonText }]}
           >
-            {isLoading ? "Restoring..." : "Refresh My Look"}
+            {isLoading ? (t('common.restoring') || 'Restoring...') : (t('common.refreshMyLook') || 'Refresh My Look')}
           </ThemedText>
         </Pressable>
       </View>
@@ -173,7 +175,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
             <ThemedView style={styles.modalContainer}>
               <View style={styles.modalHeader}>
                 <ThemedText type="h2" style={styles.modalTitle}>
-                  Error Details
+                  {t('common.errorDetails') || 'Error Details'}
                 </ThemedText>
                 <Pressable
                   onPress={() => setIsModalVisible(false)}

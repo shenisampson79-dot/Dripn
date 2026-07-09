@@ -36,6 +36,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
 import { getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 import { getRecommendedShades, FoundationBrand, FoundationMatch } from "@/services/FoundationMatchingService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const TAB_BAR_HEIGHT = 56;
@@ -69,6 +70,7 @@ const SEASON_INFO: Record<ColorSeason, { icon: keyof typeof Feather.glyphMap; co
 
 export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { bodyProfile, analyzeColorSeason, isAnalyzingColor, hasColorAnalysis, hasSkinToneAnalysis } = useBodyProfile();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -89,10 +91,10 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
       getSettingsChildScreenOptions({
         theme,
         isDark,
-        title: "Color Analysis",
+        title: t('colorAnalysis.title'),
       }),
     );
-  }, [navigation, theme, isDark, showCamera]);
+  }, [navigation, theme, isDark, showCamera, t]);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -116,7 +118,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
 
   const capturePhoto = async () => {
     if (!cameraRef.current) {
-      Alert.alert("Error", "Camera not ready. Please try again.");
+      Alert.alert(t('common.error'), t('colorAnalysis.cameraNotReady'));
       return;
     }
 
@@ -133,11 +135,11 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
         setShowCamera(false);
         await processImage(photo.uri);
       } else {
-        Alert.alert("Error", "Failed to capture photo. Please try again.");
+        Alert.alert(t('common.error'), t('colorAnalysis.captureFailed'));
       }
     } catch (err) {
       console.error("Failed to capture photo:", err);
-      Alert.alert("Error", "Failed to capture photo. Please try again or upload an image instead.");
+      Alert.alert(t('common.error'), t('colorAnalysis.captureFailedUpload'));
     }
   };
 
@@ -147,20 +149,23 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
 
       if (result.success) {
         Alert.alert(
-          "Analysis Complete",
-          `You are a ${result.colorSeason.season.toUpperCase()} ${result.colorSeason.subtype || ''} with ${result.colorSeason.confidence}% confidence!`,
-          [{ text: "View Results", style: "default" }]
+          t('colorAnalysis.analysisCompleteTitle'),
+          t('colorAnalysis.analysisCompleteMessage')
+            .replace('{season}', result.colorSeason.season.toUpperCase())
+            .replace('{subtype}', result.colorSeason.subtype || '')
+            .replace('{confidence}', String(result.colorSeason.confidence)),
+          [{ text: t('colorAnalysis.viewResults'), style: "default" }]
         );
       } else {
         Alert.alert(
-          "Analysis Issue",
-          "We couldn't fully analyze the image. Please try again with a clear, well-lit selfie showing your face, natural hair, and skin.",
-          [{ text: "Try Again", style: "default" }]
+          t('colorAnalysis.analysisIssueTitle'),
+          t('colorAnalysis.analysisIssueMessage'),
+          [{ text: t('common.retry'), style: "default" }]
         );
       }
     } catch (err) {
       console.error("Failed to analyze image:", err);
-      Alert.alert("Error", "Failed to analyze image. Please try again.");
+      Alert.alert(t('common.error'), t('colorAnalysis.analyzeFailed'));
     }
   };
 
@@ -189,7 +194,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
       }
     } catch (err) {
       console.error("Failed to pick image:", err);
-      Alert.alert("Error", "Failed to select image. Please try again.");
+      Alert.alert(t('common.error'), t('colorAnalysis.selectImageFailed'));
     }
   };
 

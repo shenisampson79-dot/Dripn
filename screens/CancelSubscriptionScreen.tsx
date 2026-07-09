@@ -10,6 +10,7 @@ import { CancelSubscriptionFlow } from "@/components/CancelSubscriptionFlow";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type CancelSubscriptionScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "CancelSubscription">;
@@ -17,6 +18,7 @@ type CancelSubscriptionScreenProps = {
 
 export default function CancelSubscriptionScreen({ navigation }: CancelSubscriptionScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
 
   return (

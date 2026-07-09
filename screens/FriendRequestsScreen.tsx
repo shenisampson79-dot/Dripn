@@ -11,6 +11,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import { useSocial, FriendRequest, SAMPLE_USERS } from "@/contexts/SocialContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type FriendRequestsScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "FriendRequests">;
@@ -38,6 +39,7 @@ function formatTimeAgo(timestamp: string): string {
 
 export default function FriendRequestsScreen({ navigation }: FriendRequestsScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const {
     incomingFriendRequests,
     outgoingFriendRequests,

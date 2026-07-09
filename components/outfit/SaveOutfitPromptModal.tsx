@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslations } from '@/contexts/TranslationContext';
 import { saveGeneratedOutfitToProfile } from '@/utils/saveGeneratedOutfit';
 
 export type SaveOutfitIntent = 'save' | 'love';
@@ -36,7 +37,7 @@ export function SaveOutfitPromptModal({
   visible,
   intent,
   wardrobeItemIds,
-  defaultTitle = 'My Outfit',
+  defaultTitle,
   defaultDescription = '',
   occasion = 'custom',
   onClose,
@@ -44,8 +45,9 @@ export function SaveOutfitPromptModal({
   onCustomSave,
 }: Props) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
-  const [title, setTitle] = useState(defaultTitle);
+  const [title, setTitle] = useState(defaultTitle || t('savedOutfits.defaultTitle'));
   const [description, setDescription] = useState(defaultDescription);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -60,14 +62,14 @@ export function SaveOutfitPromptModal({
 
   const handleConfirm = async () => {
     if (!onCustomSave && wardrobeItemIds.length === 0) {
-      Alert.alert('Nothing to save', 'This outfit has no wardrobe items linked yet.');
+      Alert.alert(t('savedOutfits.nothingToSaveTitle'), t('savedOutfits.nothingToSaveMessage'));
       return;
     }
 
     setIsSaving(true);
     try {
       const payload = {
-        name: title.trim() || defaultTitle || 'My Outfit',
+        name: title.trim() || defaultTitle || t('savedOutfits.defaultTitle'),
         description: description.trim() || undefined,
       };
 
@@ -84,13 +86,11 @@ export function SaveOutfitPromptModal({
       onSaved?.();
       onClose();
       Alert.alert(
-        isLove ? 'Saved to favorites' : 'Outfit saved',
-        isLove
-          ? 'You can find this look in Profile → Saved Outfits.'
-          : 'This outfit is in your Profile under Saved Outfits.',
+        isLove ? t('savedOutfits.savedToFavoritesTitle') : t('savedOutfits.outfitSavedTitle'),
+        isLove ? t('savedOutfits.savedToFavoritesMessage') : t('savedOutfits.outfitSavedMessage'),
       );
     } catch {
-      Alert.alert('Could not save', 'Please try again in a moment.');
+      Alert.alert(t('savedOutfits.couldNotSaveTitle'), t('savedOutfits.couldNotSaveMessage'));
     } finally {
       setIsSaving(false);
     }
@@ -106,7 +106,7 @@ export function SaveOutfitPromptModal({
       <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <Pressable onPress={onClose} disabled={isSaving}>
-            <ThemedText type="body" style={{ color: theme.link }}>Cancel</ThemedText>
+            <ThemedText type="body" style={{ color: theme.link }}>{t('common.cancel')}</ThemedText>
           </Pressable>
           <View style={styles.headerTitleRow}>
             <Feather
@@ -114,29 +114,29 @@ export function SaveOutfitPromptModal({
               size={18}
               color={isLove ? LuxuryColors.rose : LuxuryColors.gold}
             />
-            <ThemedText type="h3">{isLove ? 'Love this outfit' : 'Save outfit'}</ThemedText>
+            <ThemedText type="h3">{isLove ? t('savedOutfits.loveThisOutfit') : t('savedOutfits.saveOutfit')}</ThemedText>
           </View>
           <Pressable onPress={handleConfirm} disabled={isSaving}>
             {isSaving ? (
               <ActivityIndicator size="small" color={theme.link} />
             ) : (
-              <ThemedText type="body" style={{ color: theme.link, fontWeight: '700' }}>Save</ThemedText>
+              <ThemedText type="body" style={{ color: theme.link, fontWeight: '700' }}>{t('common.save')}</ThemedText>
             )}
           </Pressable>
         </View>
 
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
           <ThemedText type="caption" style={[styles.label, { color: secondaryText }]}>
-            Give this look a name so you can find it quickly in your saved outfits list.
+            {t('savedOutfits.namePrompt')}
           </ThemedText>
 
           <ThemedText type="caption" style={[styles.fieldLabel, { color: secondaryText }]}>
-            Title
+            {t('savedOutfits.titleLabel')}
           </ThemedText>
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder="e.g. Work Friday, Date night look..."
+            placeholder={t('savedOutfits.titlePlaceholder')}
             placeholderTextColor={secondaryText}
             style={[
               styles.input,
@@ -149,12 +149,12 @@ export function SaveOutfitPromptModal({
           />
 
           <ThemedText type="caption" style={[styles.fieldLabel, { color: secondaryText }]}>
-            Description (optional)
+            {t('savedOutfits.descriptionOptional')}
           </ThemedText>
           <TextInput
             value={description}
             onChangeText={setDescription}
-            placeholder="Why you love it, when to wear it, styling notes..."
+            placeholder={t('savedOutfits.descriptionPlaceholder')}
             placeholderTextColor={secondaryText}
             multiline
             numberOfLines={4}

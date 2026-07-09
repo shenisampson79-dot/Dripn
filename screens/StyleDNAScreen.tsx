@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { getSettingsChildScreenOptions } from "@/navigation/screenOptions";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type StyleDNAScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "StyleDNA">;
@@ -142,6 +143,7 @@ const SERVER_AXIS_LABELS: Record<string, string> = {
 
 export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { items } = useWardrobe();
   const { user } = useAuth();
   const [serverDna, setServerDna] = useState<Array<{ style: string; percentage: number }>>([]);
@@ -153,10 +155,10 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
       getSettingsChildScreenOptions({
         theme,
         isDark,
-        title: "Style DNA",
+        title: t('styleDna.title'),
       }),
     );
-  }, [navigation, theme, isDark]);
+  }, [navigation, theme, isDark, t]);
 
   useEffect(() => {
     if (!user) return;
@@ -343,10 +345,10 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
         <View style={styles.emptyState}>
           <Feather name="git-branch" size={64} color={theme.tabIconDefault} />
           <ThemedText type="h3" style={styles.emptyTitle}>
-            Discover Your Style DNA
+            {t('styleDna.emptyTitle')}
           </ThemedText>
           <ThemedText type="body" style={[styles.emptySubtitle, { color: theme.tabIconDefault }]}>
-            Add items to your wardrobe to uncover your unique style profile
+            {t('styleDna.emptySubtitle')}
           </ThemedText>
           <Pressable
             onPress={() => navigation.navigate("Wardrobe")}
@@ -357,7 +359,7 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
           >
             <Feather name="plus" size={18} color={theme.buttonText} />
             <ThemedText type="body" style={{ color: theme.buttonText, fontWeight: "600" }}>
-              Build Your Wardrobe
+              {t('styleDna.buildWardrobe')}
             </ThemedText>
           </Pressable>
         </View>
@@ -366,10 +368,10 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
           {serverDna.length > 0 && engagementCount > 0 ? (
             <Card style={styles.serverDnaCard}>
               <ThemedText type="caption" style={{ opacity: 0.7 }}>
-                Learned from your swipes & saves
+                {t('styleDna.learnedFromSwipes')}
               </ThemedText>
               <ThemedText type="h3" style={{ marginTop: Spacing.xs }}>
-                {serverHeadline || "Your evolving Style DNA"}
+                {serverHeadline || t('styleDna.evolvingHeadline')}
               </ThemedText>
               <View style={styles.serverDnaBars}>
                 {serverDna.slice(0, 4).map((entry) => (
@@ -408,13 +410,13 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
               </View>
               <View style={styles.primaryStyleInfo}>
                 <ThemedText type="caption" style={{ opacity: 0.7 }}>
-                  Your Dominant Style
+                  {t('styleDna.dominantStyle')}
                 </ThemedText>
                 <ThemedText type="h1" style={{ color: getStyleColor(styleAnalysis.primaryStyle.style) }}>
                   {STYLE_LABELS[styleAnalysis.primaryStyle.style]}
                 </ThemedText>
                 <ThemedText type="small" style={{ opacity: 0.8, marginTop: Spacing.xs }}>
-                  {styleAnalysis.primaryStyle.percentage.toFixed(0)}% of your wardrobe
+                  {t('styleDna.percentOfWardrobe').replace('{percent}', styleAnalysis.primaryStyle.percentage.toFixed(0))}
                 </ThemedText>
               </View>
             </View>
@@ -435,7 +437,7 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
                 </View>
                 <View style={styles.secondaryStyleInfo}>
                   <ThemedText type="caption" style={{ opacity: 0.7 }}>
-                    Secondary Style
+                    {t('styleDna.secondaryStyle')}
                   </ThemedText>
                   <ThemedText type="h3">
                     {STYLE_LABELS[styleAnalysis.secondaryStyle.style]}
@@ -452,7 +454,7 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
             <View style={styles.sectionHeader}>
               <Feather name="bar-chart-2" size={18} color={theme.link} />
               <ThemedText type="h3" style={styles.sectionTitle}>
-                Style Breakdown
+                {t('styleDna.styleBreakdown')}
               </ThemedText>
             </View>
             {styleAnalysis.styles.slice(0, 5).map((styleScore) => (
@@ -493,7 +495,7 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
             <View style={styles.sectionHeader}>
               <Feather name="droplet" size={18} color={theme.link} />
               <ThemedText type="h3" style={styles.sectionTitle}>
-                Color Palette
+                {t('styleDna.colorPalette')}
               </ThemedText>
             </View>
             <Card style={styles.colorCard}>

@@ -18,6 +18,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useWardrobe, WardrobeItem, ClothingColor } from "@/contexts/WardrobeContext";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const SOCIAL_SYNC_STORAGE_KEY = "@dripn_social_sync";
 
@@ -134,6 +135,7 @@ const MOCK_AI_INSIGHTS: AIInsight[] = [
 
 export default function SocialStyleSyncScreen({ navigation }: SocialStyleSyncScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { items: wardrobeItems, getOwnedItems } = useWardrobe();
   
   const [accounts, setAccounts] = useState<SocialAccount[]>(SOCIAL_ACCOUNTS);
@@ -156,7 +158,7 @@ export default function SocialStyleSyncScreen({ navigation }: SocialStyleSyncScr
         "Disconnect Account",
         `Are you sure you want to disconnect ${account.name}?`,
         [
-          { text: "Cancel", style: "cancel" },
+          { text: t('common.cancel'), style: "cancel" },
           {
             text: "Disconnect",
             style: "destructive",
@@ -283,7 +285,7 @@ export default function SocialStyleSyncScreen({ navigation }: SocialStyleSyncScr
 
   const handleAnalyzeSaves = async () => {
     if (connectedAccounts.length === 0) {
-      Alert.alert("Connect an Account", "Please connect at least one social account to analyze your saved posts.");
+      Alert.alert(t('discover.connectAnAccount') || "Connect an Account", t('discover.pleaseConnectAtLeastOneSocialAccountToAn') || "Please connect at least one social account to analyze your saved posts.");
       return;
     }
 

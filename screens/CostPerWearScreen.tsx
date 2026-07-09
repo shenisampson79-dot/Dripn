@@ -16,6 +16,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "expo-linear-gradient";
 import { useWardrobe, WardrobeItem, ClothingCategory, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type CostPerWearScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "CostPerWear">;
@@ -38,6 +39,7 @@ interface ItemAnalytics {
 
 export default function CostPerWearScreen({ navigation }: CostPerWearScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { items } = useWardrobe();
 
   const ownedItems = useMemo(() => {

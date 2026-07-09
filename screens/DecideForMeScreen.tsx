@@ -21,6 +21,7 @@ import { styleDirectionService, StyleDirection } from "@/services/StyleDirection
 import { onboardingProfileService, OnboardingProfile, DRESS_FOR_TO_OCCASION } from "@/services/OnboardingProfileService";
 import { onboardingSessionService } from "@/services/OnboardingSessionService";
 import { getStyleRuleForOccasion, generateOutfitImage } from "@/services/OutfitImageService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type DecideForMeScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "DecideForMe">;
@@ -234,6 +235,7 @@ const getFilteredOutfits = (occasion: string | null, temperature: number | null)
 export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   
   const [step, setStep] = useState<"occasion" | "loading" | "result">("loading");
   const [selectedOccasion, setSelectedOccasion] = useState<string | null>(null);
@@ -618,9 +620,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       const outfits = cached ? JSON.parse(cached) : [];
       
       if (outfits.length >= 3) {
-        Alert.alert(
-          "Create an account to save more",
-          "You've saved 3 outfits. Create a free account to keep them forever.",
+        Alert.alert(t('common.createAnAccountToSaveMore') || "Create an account to save more", t('common.you') || "You"ve saved 3 outfits. Create a free account to keep them forever.",
           [
             { text: "Not now", style: "cancel" },
             { text: "Sign up to save", onPress: handleCreateAccount },
@@ -801,7 +801,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       Keyboard.dismiss();
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     } catch {
-      Alert.alert("Could not update outfit", "Please try again — Ruby didn't get your message.");
+      Alert.alert(t('common.couldNotUpdateOutfit') || "Could not update outfit", t('common.pleaseTryAgainRubyDidn') || "Please try again — Ruby didn"t get your message.");
     } finally {
       setIsSubmittingExpression(false);
       setIsRefiningOutfit(false);
@@ -884,7 +884,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           <TextInput
             ref={expressionInputRef}
             style={styles.promptInput}
-            placeholder="Add context... (e.g. outdoor event, smart casual)"
+            placeholder={t('common.addContextEgOutdoorEventSmartCasual') || "Add context... (e.g. outdoor event, smart casual)"}
             placeholderTextColor="rgba(74, 52, 40, 0.4)"
             value={expressionText}
             onChangeText={setExpressionText}

@@ -11,6 +11,7 @@ import * as Haptics from "expo-haptics";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { StylistId } from "@/contexts/AuthContext";
 import { dfyService, UpgradePathTrigger } from "@/services/DFYService";
 
@@ -40,6 +41,7 @@ export function UpgradePathModal({
   featureKey,
   stylistId,
 }: UpgradePathModalProps) {
+  const { t } = useTranslations();
   const trigger = dfyService.getUpgradeTrigger(featureKey, stylistId);
 
   if (!trigger) return null;
@@ -83,7 +85,7 @@ export function UpgradePathModal({
                 <Feather name={avatar.icon} size={24} color="#FFFFFF" />
               </LinearGradient>
               <ThemedText type="small" style={styles.stylistName}>
-                {stylistId === 'ruby' ? 'Ruby' : stylistId === 'max' ? 'Max' : 'Your Stylist'}
+                {stylistId === 'ruby' ? t('upgrade.path.stylistRuby') : stylistId === 'max' ? t('upgrade.path.stylistMax') : t('upgrade.path.stylistDefault')}
               </ThemedText>
             </View>
 
@@ -98,37 +100,37 @@ export function UpgradePathModal({
                 <Feather name="lock" size={16} color={LUXURY_COLORS.gold} />
               </View>
               <ThemedText type="small" style={styles.featureText}>
-                {trigger.featureRequested} requires Core
+                {t('upgrade.path.requiresCore').replace('{feature}', trigger.featureRequested)}
               </ThemedText>
             </View>
 
             <View style={styles.corePreview}>
               <ThemedText type="h3" style={styles.coreTitle}>
-                With Core you get:
+                {t('upgrade.path.coreBenefitsTitle')}
               </ThemedText>
               <View style={styles.benefitsList}>
                 <View style={styles.benefitItem}>
                   <Feather name="check" size={16} color={LUXURY_COLORS.teal} />
                   <ThemedText type="small" style={styles.benefitText}>
-                    Individual item photography & analysis
+                    {t('upgrade.path.benefitPhotography')}
                   </ThemedText>
                 </View>
                 <View style={styles.benefitItem}>
                   <Feather name="check" size={16} color={LUXURY_COLORS.teal} />
                   <ThemedText type="small" style={styles.benefitText}>
-                    Swap any piece in your outfits
+                    {t('upgrade.path.benefitSwap')}
                   </ThemedText>
                 </View>
                 <View style={styles.benefitItem}>
                   <Feather name="check" size={16} color={LUXURY_COLORS.teal} />
                   <ThemedText type="small" style={styles.benefitText}>
-                    Unlimited outfit remixes for 30 days
+                    {t('upgrade.path.benefitRemix')}
                   </ThemedText>
                 </View>
                 <View style={styles.benefitItem}>
                   <Feather name="check" size={16} color={LUXURY_COLORS.teal} />
                   <ThemedText type="small" style={styles.benefitText}>
-                    Full wardrobe digitization (up to 30 items)
+                    {t('upgrade.path.benefitDigitization')}
                   </ThemedText>
                 </View>
               </View>
@@ -140,13 +142,13 @@ export function UpgradePathModal({
                 style={styles.upgradeButtonGradient}
               >
                 <ThemedText type="body" style={styles.upgradeButtonText}>
-                  Upgrade to Core - £39.99
+                  {t('upgrade.path.upgradeButton')}
                 </ThemedText>
               </LinearGradient>
             </Pressable>
 
             <Pressable onPress={onClose} style={styles.dismissButton}>
-              <ThemedText style={styles.dismissText}>Not right now</ThemedText>
+              <ThemedText style={styles.dismissText}>{t('upgrade.path.notNow')}</ThemedText>
             </Pressable>
           </LinearGradient>
         </Pressable>

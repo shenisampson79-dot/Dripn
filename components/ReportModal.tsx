@@ -7,14 +7,24 @@ import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { apiService } from "@/services/ApiService";
+import { useTranslations } from "@/contexts/TranslationContext";
+
+const REPORT_REASON_FALLBACKS: Record<string, string> = {
+  spam: 'Spam or misleading',
+  inappropriate: 'Inappropriate content',
+  harassment: 'Harassment or bullying',
+  copyright: 'Copyright violation',
+  impersonation: 'Impersonation',
+  other: 'Other',
+};
 
 const REPORT_REASONS = [
-  { id: "spam", label: "Spam or misleading", icon: "alert-circle" as const },
-  { id: "inappropriate", label: "Inappropriate content", icon: "eye-off" as const },
-  { id: "harassment", label: "Harassment or bullying", icon: "user-x" as const },
-  { id: "copyright", label: "Copyright violation", icon: "shield-off" as const },
-  { id: "impersonation", label: "Impersonation", icon: "user-minus" as const },
-  { id: "other", label: "Other", icon: "more-horizontal" as const },
+  { id: "spam", labelKey: "reportSpam", icon: "alert-circle" as const },
+  { id: "inappropriate", labelKey: "reportInappropriate", icon: "eye-off" as const },
+  { id: "harassment", labelKey: "reportHarassment", icon: "user-x" as const },
+  { id: "copyright", labelKey: "reportCopyright", icon: "shield-off" as const },
+  { id: "impersonation", labelKey: "reportImpersonation", icon: "user-minus" as const },
+  { id: "other", labelKey: "reportOther", icon: "more-horizontal" as const },
 ];
 
 interface ReportModalProps {
@@ -26,12 +36,16 @@ interface ReportModalProps {
 
 export function ReportModal({ visible, onClose, contentType, contentId }: ReportModalProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!selectedReason) {
-      Alert.alert("Select a reason", "Please select a reason for your report.");
+      Alert.alert(
+        t('community.selectReason') || 'Select a reason',
+        t('community.selectReasonMessage') || 'Please select a reason for your report.'
+      );
       return;
     }
 
@@ -48,13 +62,13 @@ export function ReportModal({ visible, onClose, contentType, contentId }: Report
       onClose();
 
       Alert.alert(
-        "Report Submitted",
-        "Thank you for helping keep Dripn safe. Our team will review this content.",
-        [{ text: "OK" }]
+        t('community.reportSubmitted') || 'Report Submitted',
+        t('community.reportSubmittedMessage') || 'Thank you for helping keep Dripn safe. Our team will review this content.',
+        [{ text: t('common.done') || 'OK' }]
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not submit your report. Please try again.";
-      Alert.alert("Report Failed", message);
+      const message = error instanceof Error ? error.message : (t('community.reportFailedMessage') || 'Could not submit your report. Please try again.');
+      Alert.alert(t('community.reportFailed') || 'Report Failed', message);
     } finally {
       setIsSubmitting(false);
     }
@@ -76,7 +90,7 @@ export function ReportModal({ visible, onClose, contentType, contentId }: Report
         <View style={styles.modalContainer}>
           <View style={[styles.modalContent, { backgroundColor: theme.backgroundDefault }]}>
             <View style={styles.header}>
-              <ThemedText type="h2">Report {contentType}</ThemedText>
+              <ThemedText type="h2">{t('community.reportContent') || 'Report'} {contentType}</ThemedText>
               <Pressable
                 onPress={handleClose}
                 style={({ pressed }) => [
@@ -89,7 +103,7 @@ export function ReportModal({ visible, onClose, contentType, contentId }: Report
             </View>
 
             <ThemedText type="body" style={styles.description}>
-              Why are you reporting this {contentType}?
+              {t('community.whyReporting') || `Why are you reporting this ${contentType}?`}
             </ThemedText>
 
             <View style={styles.reasonsList}>
@@ -124,7 +138,7 @@ export function ReportModal({ visible, onClose, contentType, contentId }: Report
                       fontWeight: selectedReason === reason.id ? "600" : "400",
                     }}
                   >
-                    {reason.label}
+                    {t(`community.${reason.labelKey}`) || REPORT_REASON_FALLBACKS[reason.id]}
                   </ThemedText>
                   {selectedReason === reason.id ? (
                     <Feather
@@ -151,7 +165,7 @@ export function ReportModal({ visible, onClose, contentType, contentId }: Report
                 ]}
               >
                 <ThemedText type="body" style={{ fontWeight: "600" }}>
-                  Cancel
+                  {t('common.cancel')}
                 </ThemedText>
               </Pressable>
               <Pressable
@@ -172,7 +186,7 @@ export function ReportModal({ visible, onClose, contentType, contentId }: Report
                   type="body"
                   style={{ color: "#FFFFFF", fontWeight: "600" }}
                 >
-                  {isSubmitting ? "Submitting..." : "Submit Report"}
+                  {isSubmitting ? (t('community.submitting') || 'Submitting...') : (t('community.submitReport') || 'Submit Report')}
                 </ThemedText>
               </Pressable>
             </View>

@@ -1,449 +1,248 @@
-import React from "react";
+import React, { useLayoutEffect } from "react";
 import { StyleSheet, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 export default function TermsOfServiceScreen() {
+  const navigation = useNavigation();
+  const { t } = useTranslations();
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: t('terms.screenTitle') });
+  }, [navigation, t]);
+
   return (
     <ScreenScrollView>
       <View style={styles.container}>
         <ThemedText type="h2" style={styles.mainTitle}>
-          Terms of Service
+          {t('terms.title')}
         </ThemedText>
         <ThemedText type="small" style={styles.effectiveDate}>
-          Effective Date: December 7, 2025
+          {t('terms.effectiveDate')}
         </ThemedText>
         <ThemedText type="small" style={styles.lastUpdated}>
-          Last Updated: January 22, 2026
+          {t('terms.lastUpdated')}
         </ThemedText>
 
         <View style={styles.welcomeSection}>
           <ThemedText type="body" style={styles.welcomeText}>
-            We believe in helping you make confident fashion decisions. These terms are designed to ensure you have a seamless, personalised styling experience.
+            {t('terms.welcome1')}
           </ThemedText>
           <ThemedText type="body" style={styles.welcomeText}>
-            We have tried to make this document as clear and straightforward as possible. If anything is unclear, please reach out - we are always happy to explain.
+            {t('terms.welcome2')}
           </ThemedText>
         </View>
 
         <View style={styles.section}>
           <ThemedText type="body" style={styles.paragraph}>
-            Welcome to Dripn. These Terms of Service ("Terms") govern your access to and use of the Dripn mobile application and related services (collectively, the "Service"). By accessing or using Dripn, you agree to be bound by these Terms.
+            {t('terms.intro1')}
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            Please read these Terms carefully before using our Service. If you do not agree to these Terms, you may not access or use the Service.
+            {t('terms.intro2')}
           </ThemedText>
         </View>
 
         <View style={styles.section}>
           <ThemedText type="h3" style={styles.sectionTitle}>
-            1. Acceptance of Terms
+            {t('terms.section01.title')}
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            By creating an account or using Dripn, you confirm that you:
+            {t('terms.section01.intro')}
           </ThemedText>
           <View style={styles.bulletList}>
             <ThemedText type="body" style={styles.bulletItem}>
-              Are at least 13 years of age (or the minimum age in your jurisdiction).
+              {t('terms.section01.bullet1')}
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Have the legal capacity to enter into these Terms.
+              {t('terms.section01.bullet2')}
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Agree to comply with all applicable laws and regulations.
+              {t('terms.section01.bullet3')}
             </ThemedText>
             <ThemedText type="body" style={styles.bulletItem}>
-              Have read and understood our Privacy Policy.
+              {t('terms.section01.bullet4')}
             </ThemedText>
           </View>
         </View>
 
         <View style={styles.section}>
           <ThemedText type="h3" style={styles.sectionTitle}>
-            2. Description of Service
+            {t('terms.section02.title')}
           </ThemedText>
           <ThemedText type="body" style={styles.paragraph}>
-            Dripn is a personal fashion decision engine that enables users to:
+            {t('terms.section02.intro')}
           </ThemedText>
           <View style={styles.bulletList}>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Receive instant AI-powered outfit recommendations.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Chat with personalised AI stylists for fashion advice.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Build and manage a digital wardrobe.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Access personalised styling advice based on your preferences.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Discover fashion deals, events, and trends.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Subscribe to premium features for enhanced experiences.
-            </ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section02.bullet1')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section02.bullet2')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section02.bullet3')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section02.bullet4')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section02.bullet5')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section02.bullet6')}</ThemedText>
           </View>
         </View>
 
         <View style={styles.section}>
           <ThemedText type="h3" style={styles.sectionTitle}>
-            3. User Accounts
+            {t('terms.section03.title')}
           </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            3.1 Account Creation
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            To use certain features, you must create an account. You agree to provide accurate, current, and complete information during registration and to update such information to keep it accurate.
-          </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            3.2 Account Security
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You must immediately notify us of any unauthorized use of your account.
-          </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            3.3 One Account Per Person
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            Each user may maintain only one account. Creating multiple accounts may result in termination of all accounts.
-          </ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section03.sub01.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section03.sub01.body')}</ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section03.sub02.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section03.sub02.body')}</ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section03.sub03.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section03.sub03.body')}</ThemedText>
         </View>
 
         <View style={styles.section}>
           <ThemedText type="h3" style={styles.sectionTitle}>
-            4. Subscription Plans and Payments
+            {t('terms.section04.title')}
           </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            4.1 Subscription Tiers
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            Dripn offers the following subscription tiers with varying features:
-          </ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section04.sub01.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section04.sub01.intro')}</ThemedText>
           <View style={styles.bulletList}>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Free: Limited stylist decisions, wardrobe items, and AI chat.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Personal Stylist: Unlimited decisions, wardrobe-aware advice, video posts, and extended AI chat.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Stylist Unlimited: Everything in Personal Stylist plus outfit calendar, unlimited wardrobe, and planning tools.
-            </ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section04.sub01.bullet1')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section04.sub01.bullet2')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section04.sub01.bullet3')}</ThemedText>
           </View>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            4.2 Billing
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            Paid subscriptions are billed in advance on a monthly or annual basis. On iOS, subscriptions and in-app purchases are processed through the Apple App Store (in-app purchase support is rolling out). On web and Android, payments are processed securely through Stripe. By subscribing, you authorize us to charge your payment method through the applicable platform.
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            One-time purchases (such as Done-For-You styling setups) follow the same platform rules: App Store on iOS when available, otherwise Stripe on web.
-          </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            4.3 Automatic Renewal
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current billing period. You can manage your subscription through your account settings or the app store.
-          </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            4.4 Refunds
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            Refunds are handled according to the policies of the platform through which you subscribed (Apple App Store or Google Play Store). For direct purchases, refund requests may be considered on a case-by-case basis within 14 days of purchase.
-          </ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section04.sub02.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section04.sub02.body1')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section04.sub02.body2')}</ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section04.sub03.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section04.sub03.body')}</ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section04.sub04.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section04.sub04.body')}</ThemedText>
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            5. User Content
-          </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            5.1 Your Content
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            You retain ownership of content you post ("User Content"). By posting content, you grant Dripn a worldwide, non-exclusive, royalty-free license to use, display, reproduce, and distribute your content in connection with the Service.
-          </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            5.2 Content Standards
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            You agree that your content will not:
-          </ThemedText>
+          <ThemedText type="h3" style={styles.sectionTitle}>{t('terms.section05.title')}</ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section05.sub01.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section05.sub01.body')}</ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section05.sub02.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section05.sub02.intro')}</ThemedText>
           <View style={styles.bulletList}>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Violate any law or infringe on third-party rights.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Contain nudity, sexually explicit material, or adult content.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Promote violence, hatred, discrimination, or harassment.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Include spam, misleading information, or commercial solicitation.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Impersonate others or misrepresent your identity.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Contain malware, viruses, or harmful code.
-            </ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section05.sub02.bullet1')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section05.sub02.bullet2')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section05.sub02.bullet3')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section05.sub02.bullet4')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section05.sub02.bullet5')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section05.sub02.bullet6')}</ThemedText>
           </View>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            5.3 Content Moderation
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            We reserve the right to remove any content that violates these Terms or is otherwise objectionable, at our sole discretion and without prior notice.
-          </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            5.4 Promotional Use of Content
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            By posting photos or videos on Dripn, you grant Dripn the right to use your content in promotional materials, including but not limited to:
-          </ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section05.sub03.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section05.sub03.body')}</ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section05.sub04.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section05.sub04.intro')}</ThemedText>
           <View style={styles.bulletList}>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Social media promotional reels and posts.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Marketing campaigns and advertisements.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              App Store and Google Play Store promotional materials.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Website and blog content showcasing style examples.
-            </ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section05.sub04.bullet1')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section05.sub04.bullet2')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section05.sub04.bullet3')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section05.sub04.bullet4')}</ThemedText>
           </View>
-          <ThemedText type="body" style={styles.paragraph}>
-            Your content may be featured in curated style highlights, trend showcases, or "best of" compilations. We may overlay text, apply filters, or edit content for promotional purposes while maintaining the integrity of the original. You will be credited where reasonably practical. If you wish to opt out of promotional use, you may contact us at privacy@dripn.app to request removal from future promotional materials.
-          </ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section05.sub04.body')}</ThemedText>
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            6. Acceptable Use
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            You agree not to:
-          </ThemedText>
+          <ThemedText type="h3" style={styles.sectionTitle}>{t('terms.section06.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section06.intro')}</ThemedText>
           <View style={styles.bulletList}>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Use the Service for any unlawful purpose.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Harass, bully, or intimidate other users.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Attempt to gain unauthorized access to the Service or other accounts.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Reverse engineer, decompile, or disassemble any part of the Service.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Use automated systems or bots without our written consent.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Collect user information without consent.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Interfere with or disrupt the Service or servers.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Circumvent security measures or usage limits.
-            </ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section06.bullet1')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section06.bullet2')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section06.bullet3')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section06.bullet4')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section06.bullet5')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section06.bullet6')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section06.bullet7')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section06.bullet8')}</ThemedText>
           </View>
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            7. Intellectual Property
-          </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            7.1 Our Intellectual Property
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            The Dripn name, logo, design, features, and all related intellectual property are owned by Dripn. You may not use, copy, or distribute our intellectual property without express written permission.
-          </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            7.2 License to Use
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            We grant you a limited, non-exclusive, non-transferable, revocable license to access and use the Service for personal, non-commercial purposes in accordance with these Terms.
-          </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            7.3 Copyright Claims
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            If you believe content on Dripn infringes your copyright, please contact us at copyright@dripn.app with the required information for a DMCA takedown notice.
-          </ThemedText>
+          <ThemedText type="h3" style={styles.sectionTitle}>{t('terms.section07.title')}</ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section07.sub01.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section07.sub01.body')}</ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section07.sub02.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section07.sub02.body')}</ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section07.sub03.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section07.sub03.body')}</ThemedText>
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            8. AI Fashion Advice
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            Dripn provides AI-powered fashion recommendations as a guide. You acknowledge that:
-          </ThemedText>
+          <ThemedText type="h3" style={styles.sectionTitle}>{t('terms.section08.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section08.intro')}</ThemedText>
           <View style={styles.bulletList}>
-            <ThemedText type="body" style={styles.bulletItem}>
-              AI advice is for informational and entertainment purposes.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Recommendations are suggestions, not professional styling services.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              You are responsible for your own fashion choices and purchases.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              AI recommendations may vary and are not guaranteed to be accurate.
-            </ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section08.bullet1')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section08.bullet2')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section08.bullet3')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section08.bullet4')}</ThemedText>
           </View>
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            9. Third-Party Services
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            The Service may contain links to third-party websites, affiliate shopping links, or services. We are not responsible for the content, products, or services offered by third parties. Your interactions with third parties are solely between you and them.
-          </ThemedText>
+          <ThemedText type="h3" style={styles.sectionTitle}>{t('terms.section09.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section09.body')}</ThemedText>
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            10. Disclaimer of Warranties
-          </ThemedText>
-          <ThemedText type="body" style={[styles.paragraph, styles.uppercase]}>
-            THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            We do not warrant that the Service will be uninterrupted, error-free, or secure. We do not guarantee the accuracy, completeness, or usefulness of any content or recommendations.
-          </ThemedText>
+          <ThemedText type="h3" style={styles.sectionTitle}>{t('terms.section10.title')}</ThemedText>
+          <ThemedText type="body" style={[styles.paragraph, styles.uppercase]}>{t('terms.section10.body1')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section10.body2')}</ThemedText>
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            11. Limitation of Liability
-          </ThemedText>
-          <ThemedText type="body" style={[styles.paragraph, styles.uppercase]}>
-            TO THE MAXIMUM EXTENT PERMITTED BY LAW, DRIPN AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR GOODWILL, ARISING FROM YOUR USE OF THE SERVICE.
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            Our total liability for any claims arising from these Terms or your use of the Service shall not exceed the amount you paid to Dripn in the twelve (12) months preceding the claim.
-          </ThemedText>
+          <ThemedText type="h3" style={styles.sectionTitle}>{t('terms.section11.title')}</ThemedText>
+          <ThemedText type="body" style={[styles.paragraph, styles.uppercase]}>{t('terms.section11.body1')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section11.body2')}</ThemedText>
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            12. Indemnification
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            You agree to indemnify, defend, and hold harmless Dripn and its affiliates from any claims, damages, losses, or expenses (including reasonable legal fees) arising from your use of the Service, your content, or your violation of these Terms.
-          </ThemedText>
+          <ThemedText type="h3" style={styles.sectionTitle}>{t('terms.section12.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section12.body')}</ThemedText>
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            13. Termination
-          </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            13.1 Your Right to Terminate
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            You may terminate your account at any time through the Settings menu or by contacting support. Account deletion requests will be processed within 30 days.
-          </ThemedText>
-
-          <ThemedText type="h4" style={styles.subsectionTitle}>
-            13.2 Our Right to Terminate
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            We may suspend or terminate your account at our discretion, without prior notice, for violations of these Terms, harmful behavior, or for any other reason. Upon termination, your license to use the Service ends immediately.
-          </ThemedText>
+          <ThemedText type="h3" style={styles.sectionTitle}>{t('terms.section13.title')}</ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section13.sub01.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section13.sub01.body')}</ThemedText>
+          <ThemedText type="h4" style={styles.subsectionTitle}>{t('terms.section13.sub02.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section13.sub02.body')}</ThemedText>
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            14. Changes to Terms
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            We may modify these Terms at any time. Material changes will be notified through the app or via email. Your continued use of the Service after changes constitutes acceptance of the revised Terms.
-          </ThemedText>
+          <ThemedText type="h3" style={styles.sectionTitle}>{t('terms.section14.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section14.body')}</ThemedText>
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            15. Governing Law and Disputes
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            These Terms are governed by the laws of England and Wales. Any disputes arising from these Terms or your use of the Service shall be resolved through binding arbitration or in the courts of England and Wales, except where prohibited by local law.
-          </ThemedText>
+          <ThemedText type="h3" style={styles.sectionTitle}>{t('terms.section15.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section15.body')}</ThemedText>
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            16. General Provisions
-          </ThemedText>
+          <ThemedText type="h3" style={styles.sectionTitle}>{t('terms.section16.title')}</ThemedText>
           <View style={styles.bulletList}>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Entire Agreement: These Terms, together with our Privacy Policy, constitute the entire agreement between you and Dripn.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Severability: If any provision is found unenforceable, the remaining provisions remain in effect.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Waiver: Our failure to enforce any right does not constitute a waiver of that right.
-            </ThemedText>
-            <ThemedText type="body" style={styles.bulletItem}>
-              Assignment: You may not assign these Terms without our consent. We may assign our rights freely.
-            </ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section16.bullet1')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section16.bullet2')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section16.bullet3')}</ThemedText>
+            <ThemedText type="body" style={styles.bulletItem}>{t('terms.section16.bullet4')}</ThemedText>
           </View>
         </View>
 
         <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            17. Contact Us
-          </ThemedText>
-          <ThemedText type="body" style={styles.paragraph}>
-            If you have questions about these Terms, please contact us:
-          </ThemedText>
+          <ThemedText type="h3" style={styles.sectionTitle}>{t('terms.section17.title')}</ThemedText>
+          <ThemedText type="body" style={styles.paragraph}>{t('terms.section17.intro')}</ThemedText>
           <View style={styles.contactInfo}>
-            <ThemedText type="body" style={styles.contactItem}>
-              Email: legal@dripn.app
-            </ThemedText>
-            <ThemedText type="body" style={styles.contactItem}>
-              Support: support@dripn.app
-            </ThemedText>
+            <ThemedText type="body" style={styles.contactItem}>{t('terms.section17.emailLegal')}</ThemedText>
+            <ThemedText type="body" style={styles.contactItem}>{t('terms.section17.emailSupport')}</ThemedText>
           </View>
         </View>
 
         <View style={styles.footer}>
-          <ThemedText type="small" style={styles.footerText}>
-            Dripn - Fashion Advice App
-          </ThemedText>
-          <ThemedText type="small" style={styles.footerText}>
-            Version 1.0.0
-          </ThemedText>
+          <ThemedText type="small" style={styles.footerText}>{t('terms.footerAppName')}</ThemedText>
+          <ThemedText type="small" style={styles.footerText}>{t('terms.footerVersion')}</ThemedText>
         </View>
       </View>
     </ScreenScrollView>

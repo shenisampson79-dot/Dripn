@@ -39,6 +39,7 @@ import AdminDashboardScreen from "@/screens/AdminDashboardScreen";
 import AnalyticsDashboard from "@/screens/AnalyticsDashboard";
 import FeedbackScreen from "@/screens/FeedbackScreen";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 import type { PortalMode } from "@/App";
 import type { SubscriptionTier } from "@/contexts/AuthContext";
@@ -99,13 +100,14 @@ interface ProfileStackNavigatorProps {
 
 export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavigatorProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
 
   return (
     <Stack.Navigator screenOptions={getCommonScreenOptions({ theme, isDark })}>
       <Stack.Screen
         name="Profile"
         options={{
-          title: "Profile",
+          title: t('profile.profile'),
           headerShown: false,
         }}
       >
@@ -114,7 +116,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
       <Stack.Screen
         name="Settings"
         options={{
-          title: "Settings",
+          title: t('settings.title'),
           headerShown: false,
         }}
       >
@@ -123,13 +125,13 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
-        options={getSettingsChildScreenOptions({ theme, isDark, title: "Subscription" })}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: t('subscription.screenTitle') })}
       />
       <Stack.Screen
         name="SubscriptionSuccess"
         component={SubscriptionSuccessScreen}
         options={{
-          title: "Welcome",
+          title: t('subscription.success.screenTitle'),
           headerShown: false,
           presentation: "fullScreenModal",
         }}
@@ -138,41 +140,41 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="EditProfile"
         component={EditProfileScreen}
         options={{
-          title: "Edit Profile",
+          title: t('settings.editProfile'),
         }}
       />
       <Stack.Screen
         name="VIPMembers"
         component={VIPMembersScreen}
         options={{
-          title: "VIP Members",
+          title: t('navTitles.vipMembers'),
           headerShown: false,
         }}
       />
       <Stack.Screen
         name="StyleExplorer"
         component={StyleExplorerScreen}
-        options={getSettingsChildScreenOptions({ theme, isDark, title: "Style Theme" })}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: t('settings.styleTheme') })}
       />
       <Stack.Screen
         name="PrivacyPolicy"
         component={PrivacyPolicyScreen}
         options={{
-          title: "Privacy Policy",
+          title: t('privacy.screenTitle'),
         }}
       />
       <Stack.Screen
         name="TermsOfService"
         component={TermsOfServiceScreen}
         options={{
-          title: "Terms of Service",
+          title: t('terms.screenTitle'),
         }}
       />
       <Stack.Screen
         name="LogoPreview"
         component={LogoPreviewScreen}
         options={{
-          title: "Logo Preview",
+          title: t('common.logoPreview'),
           presentation: "modal",
         }}
       />
@@ -180,7 +182,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="OnboardingQuiz"
         component={OnboardingQuizScreen}
         options={{
-          title: "Style Quiz",
+          title: t('quiz.title'),
           headerShown: false,
           presentation: "modal",
         }}
@@ -189,7 +191,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="Wardrobe"
         component={WardrobeScreen}
         options={{
-          title: "My Wardrobe",
+          title: t('wardrobe.myWardrobe'),
           headerShown: false,
         }}
       />
@@ -197,7 +199,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="AddWardrobeItem"
         component={AddWardrobeItemScreen}
         options={{
-          title: "Add Item",
+          title: t('wardrobe.addItem'),
           headerShown: false,
           presentation: "modal",
         }}
@@ -206,7 +208,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="BulkWardrobeUpload"
         component={BulkWardrobeUploadScreen}
         options={{
-          title: "Quick Add Items",
+          title: t('wardrobe.bulkUpload'),
           headerShown: false,
           presentation: "modal",
         }}
@@ -215,20 +217,20 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="OutfitCalendar"
         component={OutfitCalendarScreen}
         options={{
-          title: "Outfit Calendar",
+          title: t('wardrobe.outfitCalendar'),
           headerShown: false,
         }}
       />
       <Stack.Screen
         name="Support"
         component={SupportScreen}
-        options={getSettingsChildScreenOptions({ theme, isDark, title: "Chat with Julia" })}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: t('settings.chatWithJulia') })}
       />
       <Stack.Screen
         name="FeatureSuggestions"
         component={FeatureSuggestionsScreen}
         options={{
-          title: "Feature Suggestions",
+          title: t('settings.aiFeatureLab'),
           headerShown: false,
         }}
       />
@@ -236,7 +238,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="FashionTherapy"
         component={FashionTherapyScreen}
         options={{
-          title: "Fashion Therapy",
+          title: t('navTitles.fashionTherapy'),
           headerShown: false,
         }}
       />
@@ -244,7 +246,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="WeatherOutfit"
         component={WeatherOutfitScreen}
         options={{
-          title: "Weather Outfits",
+          title: t('stylistHub.weatherOutfits'),
           headerShown: false,
         }}
       />
@@ -252,7 +254,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="CostPerWear"
         component={CostPerWearScreen}
         options={{
-          title: "Cost-per-Wear",
+          title: t('navTitles.costPerWear'),
           headerShown: false,
         }}
       />
@@ -260,7 +262,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="StyleDNA"
         component={StyleDNAScreen}
         options={{
-          title: "Style DNA",
+          title: t('profile.styleDna'),
           headerShown: false,
         }}
       />
@@ -268,7 +270,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="VirtualTryOn"
         component={VirtualTryOnScreen}
         options={{
-          title: "Virtual Try-On",
+          title: t('navTitles.virtualTryOn'),
           headerShown: false,
           presentation: "fullScreenModal",
         }}
@@ -277,7 +279,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="ColorAnalysis"
         component={ColorAnalysisScreen}
         options={{
-          title: "Color Analysis",
+          title: t('profile.colorAnalysis'),
           headerShown: false,
         }}
       />
@@ -285,7 +287,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="BodyScanner"
         component={BodyScannerScreen}
         options={{
-          title: "Body Scanner",
+          title: t('bodyScan.title'),
           headerShown: false,
         }}
       />
@@ -293,21 +295,21 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="Partner"
         component={PartnerScreen}
         options={{
-          title: "Partner With Us",
+          title: t('settings.partnerWithUs'),
         }}
       />
       <Stack.Screen
         name="Help"
         component={HelpScreen}
         options={{
-          title: "Help & FAQ",
+          title: t('help.screenTitle'),
         }}
       />
       <Stack.Screen
         name="ColdOpen"
         component={ColdOpenScreen}
         options={{
-          title: "Get Started",
+          title: t('onboarding.getStarted'),
           headerShown: false,
           presentation: "modal",
         }}
@@ -316,7 +318,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="DFYComparison"
         component={DFYComparisonScreen}
         options={{
-          title: "Choose Your Setup",
+          title: t('dfy.comparison.titleDefault'),
           headerShown: false,
           presentation: "modal",
         }}
@@ -325,7 +327,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="DFYStart"
         component={DFYStartScreen}
         options={{
-          title: "Stylist Setup",
+          title: t('dfy.start.headerDefault'),
           headerShown: false,
         }}
       />
@@ -333,7 +335,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="DFYUpload"
         component={DFYUploadScreen}
         options={{
-          title: "Upload Wardrobe",
+          title: t('navTitles.uploadWardrobe'),
           headerShown: false,
         }}
       />
@@ -341,7 +343,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="DFYStylePlan"
         component={DFYStylePlanScreen}
         options={{
-          title: "Your Style Plan",
+          title: t('navTitles.yourStylePlan'),
           headerShown: false,
         }}
       />
@@ -349,7 +351,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="DFYExpiry"
         component={DFYExpiryScreen}
         options={{
-          title: "Access Status",
+          title: t('navTitles.accessStatus'),
           headerShown: false,
           presentation: "modal",
         }}
@@ -358,7 +360,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="AskStylist"
         component={AskStylistScreen}
         options={{
-          title: "Ask the Stylist",
+          title: t('aiStylist.askStylistTitle'),
           headerShown: false,
           presentation: "fullScreenModal",
         }}
@@ -367,7 +369,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="CancelSubscription"
         component={CancelSubscriptionScreen}
         options={{
-          title: "Cancel Subscription",
+          title: t('subscription.cancelSubscription'),
           headerShown: false,
           presentation: "modal",
         }}
@@ -376,7 +378,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="BodyMeasurements"
         component={BodyMeasurementsScreen}
         options={{
-          title: "Body Measurements",
+          title: t('settings.bodyMeasurements'),
           headerShown: false,
         }}
       />
@@ -384,7 +386,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="AdminDashboard"
         component={AdminDashboardScreen}
         options={{
-          title: "Admin Dashboard",
+          title: t('profile.adminDashboard'),
           headerShown: false,
         }}
       />
@@ -392,14 +394,14 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
         name="AnalyticsDashboard"
         component={AnalyticsDashboard}
         options={{
-          title: "Retention Analytics",
+          title: t('common.retentionAnalytics'),
           headerShown: false,
         }}
       />
       <Stack.Screen
         name="Feedback"
         component={FeedbackScreen}
-        options={getSettingsChildScreenOptions({ theme, isDark, title: "Send Feedback" })}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: t('feedback.screenTitle') })}
       />
     </Stack.Navigator>
   );

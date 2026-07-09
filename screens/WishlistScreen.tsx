@@ -23,6 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/hooks/useTheme';
 import { useWishlist, WishlistItem, PriceAlert, SearchProduct, SAMPLE_CATEGORIES } from '@/contexts/WishlistContext';
 import type { BargainsStackParamList } from '@/navigation/BargainsStackNavigator';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type WishlistScreenProps = {
   navigation: NativeStackNavigationProp<BargainsStackParamList, 'Bargains'>;
@@ -120,6 +121,7 @@ function MiniPriceChart({ priceHistory, theme, currencySymbol }: {
 
 export default function WishlistScreen({ navigation }: WishlistScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const {
     wishlistItems,
     priceAlerts,
@@ -169,7 +171,7 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
       'Remove from Wishlist',
       `Remove ${item.name} from your wishlist?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
           text: 'Remove',
           style: 'destructive',
@@ -184,7 +186,7 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
       'Set Target Price',
       `Set a target price for ${item.name}. We'll notify you when it drops to this price.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         { text: 'Clear', onPress: () => updateTargetPrice(item.id, undefined) },
         {
           text: 'Set',
@@ -262,7 +264,7 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
       'Mark as Purchased',
       `Did you buy ${item.name}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
           text: 'Yes, I bought it',
           onPress: async () => {
@@ -534,7 +536,7 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
           <Feather name="search" size={20} color={theme.tabIconDefault} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Search fashion products..."
+            placeholder={t('common.searchFashionProducts') || "Search fashion products..."}
             placeholderTextColor={theme.tabIconDefault}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -628,7 +630,7 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
             <View style={styles.urlInputRow}>
               <TextInput
                 style={[styles.urlInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }]}
-                placeholder="Paste product URL from any retailer..."
+                placeholder={t('common.pasteProductUrlFromAnyRetailer') || "Paste product URL from any retailer..."}
                 placeholderTextColor={theme.tabIconDefault}
                 value={trackingUrl}
                 onChangeText={setTrackingUrl}

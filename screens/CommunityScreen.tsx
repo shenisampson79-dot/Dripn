@@ -13,6 +13,7 @@ import { useMessaging } from "@/contexts/MessagingContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/Button";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type CommunityScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "Community">;
@@ -155,6 +156,7 @@ const formatNumber = (num: number): string => {
 
 export default function CommunityScreen({ navigation }: CommunityScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { following, activityFeed, getIncomingRequestsCount } = useSocial();
   const { unreadCount } = useMessaging();
   const { user } = useAuth();

@@ -31,11 +31,13 @@ import { useStyleTheme } from '@/hooks/useStyleTheme';
 import { useGamification } from '@/contexts/GamificationContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import type { Achievement, DailyReward, SpinReward } from '@/contexts/GamificationContext';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const WHEEL_SIZE = SCREEN_WIDTH - Spacing['3xl'] * 2;
 
 export default function GamificationScreen() {
+  const { t } = useTranslations();
   const { theme, isDark } = useStyleTheme();
   const { tier } = useSubscription();
   const {

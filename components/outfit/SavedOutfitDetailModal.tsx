@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 type Props = {
   visible: boolean;
@@ -23,6 +24,7 @@ type Props = {
 
 export function SavedOutfitDetailModal({ visible, onClose, children }: Props) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const sheetHeight = Math.min(windowHeight * 0.88, windowHeight - insets.top - Spacing.md);
@@ -42,7 +44,7 @@ export function SavedOutfitDetailModal({ visible, onClose, children }: Props) {
           ]}
         >
           <View style={styles.sheetHeader}>
-            <ThemedText type="h3">Outfit details</ThemedText>
+            <ThemedText type="h3">{t('savedOutfits.outfitDetails')}</ThemedText>
             <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
               <Feather name="x" size={22} color={theme.text} />
             </Pressable>

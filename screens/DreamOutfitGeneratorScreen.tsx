@@ -18,6 +18,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/services/ApiService";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type DreamOutfitGeneratorScreenProps = {
   navigation: NativeStackNavigationProp<UserStylistStackParamList, "DreamOutfitGenerator">;
@@ -55,6 +56,7 @@ const OCCASION_OPTIONS = [
 
 export default function DreamOutfitGeneratorScreen({ navigation }: DreamOutfitGeneratorScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { tier } = useSubscription();
   const { user } = useAuth();
   const gender = user?.gender || "female";
@@ -242,7 +244,7 @@ export default function DreamOutfitGeneratorScreen({ navigation }: DreamOutfitGe
                   borderColor: theme.border,
                 },
               ]}
-              placeholder="E.g., A sophisticated cocktail dress with modern edge..."
+              placeholder={t('wardrobe.egASophisticatedCocktailDressWithModernE') || "E.g., A sophisticated cocktail dress with modern edge..."}
               placeholderTextColor={theme.tabIconDefault}
               value={prompt}
               onChangeText={setPrompt}

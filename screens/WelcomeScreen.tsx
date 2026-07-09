@@ -11,6 +11,7 @@ import { LoopingBackgroundVideo } from "@/components/LoopingBackgroundVideo";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme, SchemePalette } from "@/contexts/ColorSchemeContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { videoRandomizer } from "@/services/VideoRandomizerService";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +25,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
   const { theme, isDark } = useTheme();
   const { palette } = useColorScheme();
   const { loginAsTestUser } = useAuth();
+  const { t } = useTranslations();
   const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo({ tone: "mixed" }));
   
   const handleTestLogin = async () => {
@@ -62,7 +64,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
                 Dripn
               </ThemedText>
               <ThemedText type="small" style={styles.taglineBelow}>
-                we decide — you look better
+                {t('welcome.tagline')}
               </ThemedText>
             </View>
           </View>
@@ -73,32 +75,32 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
         <View style={styles.featuresContainer}>
           <FeatureItem
             icon="zap"
-            title="Stop guessing what to wear"
-            description="Get the right outfit — instantly."
+            title={t('welcome.featureStopGuessingTitle')}
+            description={t('welcome.featureStopGuessingDesc')}
             theme={theme}
             isDark={isDark}
             palette={palette}
           />
           <FeatureItem
             icon="message-circle"
-            title="Just talk to your stylist"
-            description="Natural voice chat. Like having someone there with you."
+            title={t('welcome.featureTalkStylistTitle')}
+            description={t('welcome.featureTalkStylistDesc')}
             theme={theme}
             isDark={isDark}
             palette={palette}
           />
           <FeatureItem
             icon="users"
-            title="Look good every day"
-            description="No stress. No second-guessing."
+            title={t('welcome.featureLookGoodTitle')}
+            description={t('welcome.featureLookGoodDesc')}
             theme={theme}
             isDark={isDark}
             palette={palette}
           />
           <FeatureItem
             icon="grid"
-            title="Make your wardrobe work"
-            description="Everything organised. Everything usable."
+            title={t('welcome.featureWardrobeTitle')}
+            description={t('welcome.featureWardrobeDesc')}
             theme={theme}
             isDark={isDark}
             palette={palette}
@@ -111,7 +113,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           onPress={() => navigation.navigate("TrustOnboarding")}
           style={styles.primaryButton}
         >
-          Get Styled
+          {t('welcome.getStyled')}
         </Button>
         
         <Pressable 
@@ -119,7 +121,8 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           style={styles.signInButton}
         >
           <ThemedText type="body" style={styles.signInText}>
-            Already have an account? <ThemedText type="body" style={styles.signInLink}>Sign In</ThemedText>
+            {t('welcome.alreadyHaveAccount')}{' '}
+            <ThemedText type="body" style={styles.signInLink}>{t('welcome.signIn')}</ThemedText>
           </ThemedText>
         </Pressable>
 
@@ -130,7 +133,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           >
             <Feather name="code" size={14} color="rgba(255,255,255,0.6)" />
             <ThemedText type="small" style={styles.testUserText}>
-              Dev: Login as Test User
+              {t('welcome.devLoginAsTestUser')}
             </ThemedText>
           </Pressable>
         ) : null}

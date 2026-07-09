@@ -18,6 +18,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { dfyService, DFYOccasion, ColdOpenFlow } from "@/services/DFYService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -86,6 +87,7 @@ type ColdOpenScreenProps = {
 
 export default function ColdOpenScreen({ navigation }: ColdOpenScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const [selectedOccasion, setSelectedOccasion] = useState<DFYOccasion | null>(null);
   const [struggleText, setStruggleText] = useState("");
@@ -222,7 +224,7 @@ export default function ColdOpenScreen({ navigation }: ColdOpenScreenProps) {
                     styles.struggleInput,
                     { color: '#FFFFFF' },
                   ]}
-                  placeholder="e.g., Nothing feels right, I'm bored of my clothes..."
+                  placeholder={t('coldOpen.egNothingFeelsRightI') || "e.g., Nothing feels right, I"}m bored of my clothes..."
                   placeholderTextColor="rgba(255,255,255,0.4)"
                   value={struggleText}
                   onChangeText={setStruggleText}

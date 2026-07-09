@@ -15,6 +15,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type DailyStreakScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "DailyStreak">;
@@ -40,6 +41,7 @@ interface DailyChallenge {
 
 export default function DailyStreakScreen({ navigation }: DailyStreakScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const [streak, setStreak] = useState<StreakData | null>(null);
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
@@ -119,7 +121,7 @@ export default function DailyStreakScreen({ navigation }: DailyStreakScreenProps
         navigation.navigate("StyleShowdown" as any);
         break;
       case 'share':
-        Alert.alert("Share", "Share a look to complete this challenge!");
+        Alert.alert(t('common.share') || "Share", t('common.shareALookToCompleteThisChallenge') || "Share a look to complete this challenge!");
         break;
       case 'upload':
         navigation.navigate("StreetStyleScanner");

@@ -13,6 +13,7 @@ import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
 import { videoRandomizer } from "@/services/VideoRandomizerService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type OnboardingEntryScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "OnboardingEntry">;
@@ -35,6 +36,7 @@ interface EntryData {
 export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const [entryData, setEntryData] = useState<EntryData | null>(null);
   const [selectedVideo] = useState(() => videoRandomizer.getNextVideo({ tone: "confidence" }));
 

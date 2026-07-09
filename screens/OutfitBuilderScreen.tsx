@@ -42,6 +42,7 @@ import {
   OUTFIT_REEL_CENTER_RATIO,
 } from '@/utils/outfitReelImage';
 import type { WardrobeStackParamList } from '@/navigation/WardrobeStackNavigator';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const TAB_BAR_HEIGHT = 56;
@@ -215,6 +216,7 @@ function CategoryReel({
 
 export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const bottomNavClearance = Math.max(
@@ -480,7 +482,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
         : '';
       Alert.alert('Outfit saved', `"${name}" is ready in your wardrobe.${calMsg}`, [
         { text: 'Keep building', style: 'cancel' },
-        { text: 'Done', onPress: () => navigation.goBack() },
+        { text: t('common.done'), onPress: () => navigation.goBack() },
       ]);
     } catch {
       Alert.alert('Error', 'Could not save outfit. Please try again.');
@@ -643,7 +645,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
             <TextInput
               value={outfitName}
               onChangeText={setOutfitName}
-              placeholder="e.g. Friday Casual, Work Look..."
+              placeholder={t('wardrobe.egFridayCasualWorkLook') || "e.g. Friday Casual, Work Look..."}
               placeholderTextColor={secondaryText}
               style={[
                 styles.modalInput,
@@ -661,7 +663,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
             <TextInput
               value={outfitDescription}
               onChangeText={setOutfitDescription}
-              placeholder="e.g. Smart casual for client dinner, rainy day layers..."
+              placeholder={t('wardrobe.egSmartCasualForClientDinnerRainyDayLaye') || "e.g. Smart casual for client dinner, rainy day layers..."}
               placeholderTextColor={secondaryText}
               multiline
               numberOfLines={3}

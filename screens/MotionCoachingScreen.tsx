@@ -13,6 +13,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type MotionCoachingScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "MotionCoaching">;
@@ -53,6 +54,7 @@ interface HistoryItem {
 
 export default function MotionCoachingScreen({ navigation }: MotionCoachingScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const [motionDescription, setMotionDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<MotionAnalysisResult | null>(null);
@@ -194,7 +196,7 @@ export default function MotionCoachingScreen({ navigation }: MotionCoachingScree
               borderColor: theme.border,
             },
           ]}
-          placeholder="e.g., I walk with long strides, tend to slouch when sitting, feel confident in heels..."
+          placeholder={t('common.egIWalkWithLongStridesTendToSlouchWhenSi') || "e.g., I walk with long strides, tend to slouch when sitting, feel confident in heels..."}
           placeholderTextColor={theme.tabIconDefault}
           multiline
           numberOfLines={4}

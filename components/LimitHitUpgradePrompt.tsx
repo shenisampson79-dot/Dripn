@@ -6,6 +6,7 @@ import * as Haptics from "expo-haptics";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -24,12 +25,16 @@ interface LimitHitUpgradePromptProps {
 }
 
 export function LimitHitUpgradePrompt({
-  title = "Daily limit reached",
-  message = "Upgrade to Personal Stylist for unlimited stylist decisions and wardrobe-aware advice.",
-  ctaLabel = "Upgrade Now",
+  title,
+  message,
+  ctaLabel,
   onUpgrade,
   variant = 'banner',
 }: LimitHitUpgradePromptProps) {
+  const { t } = useTranslations();
+  const resolvedTitle = title ?? t('upgrade.limitHit.title');
+  const resolvedMessage = message ?? t('upgrade.limitHit.message');
+  const resolvedCta = ctaLabel ?? t('upgrade.limitHit.cta');
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onUpgrade();
@@ -49,12 +54,12 @@ export function LimitHitUpgradePrompt({
               <Feather name="zap" size={20} color="#FFFFFF" />
             </View>
             <View style={styles.textBlock}>
-              <ThemedText type="body" style={styles.cardTitle}>{title}</ThemedText>
-              <ThemedText type="small" style={styles.cardMessage}>{message}</ThemedText>
+              <ThemedText type="body" style={styles.cardTitle}>{resolvedTitle}</ThemedText>
+              <ThemedText type="small" style={styles.cardMessage}>{resolvedMessage}</ThemedText>
             </View>
           </View>
           <Pressable onPress={handlePress} style={styles.cardButton}>
-            <ThemedText type="body" style={styles.cardButtonText}>{ctaLabel}</ThemedText>
+            <ThemedText type="body" style={styles.cardButtonText}>{resolvedCta}</ThemedText>
             <Feather name="arrow-right" size={16} color={LUXURY_COLORS.violet} />
           </Pressable>
         </LinearGradient>
@@ -72,11 +77,11 @@ export function LimitHitUpgradePrompt({
       >
         <Feather name="alert-circle" size={16} color={LUXURY_COLORS.midnight} />
         <View style={styles.bannerTextBlock}>
-          <ThemedText type="small" style={styles.bannerTitle}>{title}</ThemedText>
-          <ThemedText type="caption" style={styles.bannerMessage}>{message}</ThemedText>
+          <ThemedText type="small" style={styles.bannerTitle}>{resolvedTitle}</ThemedText>
+          <ThemedText type="caption" style={styles.bannerMessage}>{resolvedMessage}</ThemedText>
         </View>
         <Pressable onPress={handlePress} style={styles.bannerCta}>
-          <ThemedText type="caption" style={styles.bannerCtaText}>{ctaLabel}</ThemedText>
+          <ThemedText type="caption" style={styles.bannerCtaText}>{resolvedCta}</ThemedText>
         </Pressable>
       </LinearGradient>
     </View>

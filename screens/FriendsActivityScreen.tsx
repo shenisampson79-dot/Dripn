@@ -10,6 +10,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import { useSocial, ActivityItem, ActivityType } from "@/contexts/SocialContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type FriendsActivityScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "FriendsActivity">;
@@ -57,6 +58,7 @@ function getRelativeTime(timestamp: string): string {
 
 export default function FriendsActivityScreen({ navigation }: FriendsActivityScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { activityFeed, isLoading, refreshActivityFeed, following } = useSocial();
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [refreshing, setRefreshing] = useState(false);

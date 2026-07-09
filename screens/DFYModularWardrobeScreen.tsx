@@ -26,6 +26,7 @@ import { useScreenInsets } from "@/hooks/useScreenInsets";
 import apiService from "@/services/ApiService";
 import { computeLocalOutfitScore, mergeOutfitScores } from "@/utils/outfitCompatibilityScore";
 import { resolveRegionalStyleContext } from "@/utils/outfitRegionalContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const ITEM_SIZE = 100;
@@ -66,6 +67,7 @@ type SelectedItems = {
 
 export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardrobeScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user, actualCountry } = useAuth();
   const regionalContext = React.useMemo(
     () => resolveRegionalStyleContext(user),

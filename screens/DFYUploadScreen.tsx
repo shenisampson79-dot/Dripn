@@ -27,6 +27,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const IMAGE_SIZE = (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md * 2) / 3;
@@ -63,6 +64,7 @@ interface UploadedImage {
 
 export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const uploadType = route.params?.type || "core";
   const maxItems = uploadType === "outfit" ? 7 : 30;
@@ -176,11 +178,9 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
       if (!permissionResult.canAskAgain && Platform.OS !== "web") {
-        Alert.alert(
-          "Permission Required",
-          "Photo library access was denied. Please enable it in Settings.",
+        Alert.alert(t('dfy.permissionRequired') || "Permission Required", t('dfy.photoLibraryAccessWasDeniedPleaseEnableI') || "Photo library access was denied. Please enable it in Settings.",
           [
-            { text: "Cancel", style: "cancel" },
+            { text: t('common.cancel'), style: "cancel" },
             {
               text: "Open Settings",
               onPress: () =>
@@ -189,7 +189,7 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
           ]
         );
       } else {
-        Alert.alert("Permission Required", "Please allow access to your photo library.");
+        Alert.alert(t('dfy.permissionRequired') || "Permission Required", t('dfy.pleaseAllowAccessToYourPhotoLibrary') || "Please allow access to your photo library.");
       }
       return;
     }
@@ -218,7 +218,7 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
 
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert("Permission Required", "Please allow access to your camera.");
+      Alert.alert(t('dfy.permissionRequired') || "Permission Required", t('dfy.pleaseAllowAccessToYourCamera') || "Please allow access to your camera.");
       return;
     }
 
@@ -322,7 +322,7 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
       navigation.navigate("Confirmation", { type: uploadType });
     } catch (error) {
       console.error("Upload error:", error);
-      Alert.alert("Upload Failed", "There was an error saving your items. Please try again.");
+      Alert.alert(t('dfy.uploadFailed') || "Upload Failed", t('dfy.thereWasAnErrorSavingYourItemsPleaseTryA') || "There was an error saving your items. Please try again.");
     } finally {
       setIsUploading(false);
     }
@@ -592,7 +592,7 @@ function EditItemModal({ visible, item, theme, onClose, onSave }: EditItemModalP
                   { backgroundColor: theme.backgroundSecondary, color: theme.text },
                 ]}
                 placeholderTextColor={theme.tabIconDefault}
-                placeholder="e.g., Blue Oxford Shirt"
+                placeholder={t('dfy.egBlueOxfordShirt') || "e.g., Blue Oxford Shirt"}
               />
             </View>
 

@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { UploadGuideComparison, UploadGuideImageSource } from '@/constants/uploadGuideExamples';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type UploadGuideComparisonTableProps = {
   title: string;
@@ -67,6 +68,7 @@ function ComparisonCell({
 
 export function UploadGuideComparisonTable({ title, rows, compact = false }: UploadGuideComparisonTableProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
 
   return (
     <View style={compact ? styles.sectionCompact : styles.section}>

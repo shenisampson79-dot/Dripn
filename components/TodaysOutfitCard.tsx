@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
 import { Spacing, BorderRadius } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslations } from "@/contexts/TranslationContext";
 import {
   onboardingProfileService,
   TodaysOutfit,
@@ -19,6 +20,7 @@ type Props = {
 
 export function TodaysOutfitCard({ onOpenStylist, onRefresh }: Props) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const [outfit, setOutfit] = useState<TodaysOutfit | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -56,11 +58,11 @@ export function TodaysOutfitCard({ onOpenStylist, onRefresh }: Props) {
         <View style={styles.header}>
           <View style={styles.badge}>
             <Feather name="zap" size={14} color="#C9A87C" />
-            <ThemedText type="caption" style={styles.badgeText}>Decided for you</ThemedText>
+            <ThemedText type="caption" style={styles.badgeText}>{t('home.decidedForYou') || 'Decided for you'}</ThemedText>
           </View>
-          <ThemedText type="h3" style={styles.title}>Today&apos;s outfit</ThemedText>
+          <ThemedText type="h3" style={styles.title}>{t('home.todaysOutfit') || "Today's outfit"}</ThemedText>
           <ThemedText type="small" style={[styles.sub, { color: theme.tabIconDefault }]}>
-            No decisions. Just wear this.
+            {t('home.noDecisions') || 'No decisions. Just wear this.'}
           </ThemedText>
         </View>
 
@@ -77,10 +79,10 @@ export function TodaysOutfitCard({ onOpenStylist, onRefresh }: Props) {
 
         <View style={styles.actions}>
           <Pressable style={[styles.primaryBtn, { backgroundColor: theme.link }]} onPress={handleWearThis}>
-            <ThemedText type="body" style={{ color: theme.buttonText, fontWeight: '600' }}>Wear this</ThemedText>
+            <ThemedText type="body" style={{ color: theme.buttonText, fontWeight: '600' }}>{t('home.wearThis') || 'Wear this'}</ThemedText>
           </Pressable>
           <Pressable style={[styles.secondaryBtn, { borderColor: theme.border }]} onPress={handleAnother}>
-            <ThemedText type="small" style={{ color: theme.text }}>Pick another</ThemedText>
+            <ThemedText type="small" style={{ color: theme.text }}>{t('home.pickAnother') || 'Pick another'}</ThemedText>
           </Pressable>
         </View>
       </LinearGradient>

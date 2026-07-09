@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
 import { 
   StyleSheet, 
   View, 
@@ -24,6 +24,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMessaging, Message, Report } from "@/contexts/MessagingContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type ConversationScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "Conversation">;
@@ -69,6 +70,7 @@ const REPORT_REASONS: { key: Report['reason']; label: string }[] = [
 export default function ConversationScreen({ navigation, route }: ConversationScreenProps) {
   const { conversationId, participantName } = route.params;
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   
@@ -96,11 +98,11 @@ export default function ConversationScreen({ navigation, route }: ConversationSc
   const messages = getMessages(conversationId);
   const isBlocked = conversation ? isUserBlocked(conversation.participantId) : false;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     markAsRead(conversationId);
   }, [conversationId, markAsRead]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     navigation.setOptions({
       title: participantName,
       headerRight: () => (
@@ -135,7 +137,7 @@ export default function ConversationScreen({ navigation, route }: ConversationSc
         "Unblock User",
         `Are you sure you want to unblock ${participantName}?`,
         [
-          { text: "Cancel", style: "cancel" },
+          { text: t('common.cancel'), style: "cancel" },
           { 
             text: "Unblock", 
             onPress: () => unblockUser(conversation.participantId)
@@ -147,7 +149,7 @@ export default function ConversationScreen({ navigation, route }: ConversationSc
         "Block User",
         `Are you sure you want to block ${participantName}? You will no longer receive messages from them.`,
         [
-          { text: "Cancel", style: "cancel" },
+          { text: t('common.cancel'), style: "cancel" },
           { 
             text: "Block", 
             style: "destructive",
@@ -173,11 +175,9 @@ export default function ConversationScreen({ navigation, route }: ConversationSc
   const handleDelete = () => {
     setShowOptionsModal(false);
     
-    Alert.alert(
-      "Delete Conversation",
-      "Are you sure you want to delete this conversation? This cannot be undone.",
+    Alert.alert(t('common.deleteConversation') || "Delete Conversation", t('common.areYouSureYouWantToDeleteThisConversatio') || "Are you sure you want to delete this conversation? This cannot be undone.",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         { 
           text: "Delete", 
           style: "destructive",
@@ -209,9 +209,7 @@ export default function ConversationScreen({ navigation, route }: ConversationSc
     setSelectedReportReason(null);
     setReportDescription('');
     
-    Alert.alert(
-      "Report Submitted",
-      "Thank you for your report. Our team will review it and take appropriate action.",
+    Alert.alert(t('common.reportSubmitted') || "Report Submitted", t('common.thankYouForYourReportOurTeamWillReviewIt') || "Thank you for your report. Our team will review it and take appropriate action.",
       [{ text: "OK" }]
     );
   };
@@ -372,7 +370,7 @@ export default function ConversationScreen({ navigation, route }: ConversationSc
                     color: theme.text,
                   }
                 ]}
-                placeholder="Type a message..."
+                placeholder={t('common.typeAMessage') || "Type a message..."}
                 placeholderTextColor={theme.tabIconDefault}
                 value={messageText}
                 onChangeText={setMessageText}
@@ -551,7 +549,7 @@ export default function ConversationScreen({ navigation, route }: ConversationSc
                   borderColor: theme.backgroundSecondary,
                 }
               ]}
-              placeholder="Additional details (optional)"
+              placeholder={t('common.additionalDetailsOptional') || "Additional details (optional)"}
               placeholderTextColor={theme.tabIconDefault}
               value={reportDescription}
               onChangeText={setReportDescription}

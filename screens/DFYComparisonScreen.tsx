@@ -30,6 +30,7 @@ import { Spacing, BorderRadius, LuxuryColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { dfyService, DFYTier, DFYComparisonTier } from "@/services/DFYService";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { apiService } from "@/services/ApiService";
 import { getDfyBenefitForSubscription } from "@/utils/dfyEntitlements";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
@@ -120,6 +121,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     paidAddOn?: boolean;
   } | undefined;
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user, refreshSubscriptionFromBackend } = useAuth();
   const insets = useSafeAreaInsets();
   const [selectedTier, setSelectedTier] = useState<DFYTier>(routeParams?.selectedTier || 'core');
@@ -252,7 +254,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     }
     if (useAppleIAP) {
       if (!user?.id) {
-        Alert.alert('Sign in required', 'Please sign in to purchase with the App Store.');
+        Alert.alert(t('dfy.comparison.signInRequiredTitle'), t('dfy.comparison.signInRequiredApple'));
         return;
       }
       startAppleCheckout();
@@ -268,11 +270,11 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
   const handleEmailSubmit = () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      setEmailError('Please enter your email');
+      setEmailError(t('dfy.comparison.emailRequired'));
       return;
     }
     if (!validateEmail(trimmedEmail)) {
-      setEmailError('Please enter a valid email');
+      setEmailError(t('dfy.comparison.emailInvalid'));
       return;
     }
     setEmailError('');
@@ -284,15 +286,15 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     if (selectedTier === 'lite') {
       Alert.alert(
-        'Payment Successful!',
-        'Your Occasion Ready setup is confirmed. Want ongoing styling advice from your personal AI stylist?',
+        t('dfy.comparison.paymentSuccessTitle'),
+        t('dfy.comparison.paymentSuccessLiteMessage'),
         [
           {
-            text: 'Get Personal Stylist',
+            text: t('dfy.comparison.getPersonalStylist'),
             onPress: () => navigation.navigate('Subscription' as any, { highlightPlan: 'personal_stylist' }),
           },
           {
-            text: 'Continue Setup',
+            text: t('dfy.comparison.continueSetup'),
             onPress: () => navigation.navigate('DFYStylePlan'),
             style: 'cancel',
           },
@@ -300,9 +302,9 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
       );
     } else {
       Alert.alert(
-        'Payment Successful!',
-        `Your Full Wardrobe Setup is confirmed. Let's get started!`,
-        [{ text: 'Continue', onPress: () => navigation.navigate('DFYUpload', { type: 'core' }) }]
+        t('dfy.comparison.paymentSuccessTitle'),
+        t('dfy.comparison.paymentSuccessCoreMessage'),
+        [{ text: t('common.continue'), onPress: () => navigation.navigate('DFYUpload', { type: 'core' }) }]
       );
     }
   };
@@ -319,7 +321,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
 
   const startAppleCheckout = async () => {
     if (!user?.id) {
-      Alert.alert('Sign in required', 'Please sign in to purchase with the App Store.');
+      Alert.alert(t('dfy.comparison.signInRequiredTitle'), t('dfy.comparison.signInRequiredApple'));
       return;
     }
 
@@ -329,23 +331,23 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
       const customerInfo = await appleIAPService.purchaseDFY(selectedTier as IAPDFYTier);
       const syncPayload = serializeDfyCustomerInfoForSync(customerInfo);
       if (!syncPayload.tier) {
-        throw new Error('DFY purchase could not be verified. Please try Restore Purchases or contact support.');
+        throw new Error(t('dfy.comparison.purchaseVerifyFailed'));
       }
       await apiService.syncAppleDFYPurchase(syncPayload);
       await completeDfyPurchaseSuccess();
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'cancelled' in error && (error as { cancelled?: boolean }).cancelled) {
         Alert.alert(
-          'Purchase Cancelled',
-          'You can complete your purchase at any time.',
-          [{ text: 'OK' }]
+          t('dfy.comparison.purchaseCancelledTitle'),
+          t('dfy.comparison.purchaseCancelledMessage'),
+          [{ text: t('common.done') }]
         );
         return;
       }
       console.error('DFY Apple IAP error:', error);
       Alert.alert(
-        'Payment Error',
-        error instanceof Error ? error.message : 'Failed to complete App Store purchase. Please try again.'
+        t('dfy.comparison.paymentErrorTitle'),
+        error instanceof Error ? error.message : t('dfy.comparison.applePurchaseFailed')
       );
     } finally {
       setIsProcessing(false);
@@ -354,7 +356,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
 
   const handleRestoreDfyPurchases = async () => {
     if (!user?.id) {
-      Alert.alert('Sign in required', 'Please sign in to restore purchases.');
+      Alert.alert(t('dfy.comparison.signInRequiredTitle'), t('dfy.comparison.signInRequiredRestore'));
       return;
     }
     setIsProcessing(true);
@@ -363,21 +365,21 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
       const customerInfo = await appleIAPService.restorePurchases();
       const syncPayload = serializeDfyCustomerInfoForSync(customerInfo);
       if (!syncPayload.tier) {
-        Alert.alert('No DFY purchase found', 'No DFY setup purchase was found for this Apple ID.');
+        Alert.alert(t('dfy.comparison.noDfyPurchaseTitle'), t('dfy.comparison.noDfyPurchaseMessage'));
         return;
       }
       await apiService.syncAppleDFYPurchase(syncPayload);
       await refreshSubscriptionFromBackend();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
-        'Restored',
-        'Your DFY setup purchase has been restored.',
-        [{ text: 'Continue', onPress: () => showDfyPaymentSuccess() }]
+        t('dfy.comparison.restoredTitle'),
+        t('dfy.comparison.restoredMessage'),
+        [{ text: t('common.continue'), onPress: () => showDfyPaymentSuccess() }]
       );
     } catch (error: unknown) {
       Alert.alert(
-        'Restore Failed',
-        error instanceof Error ? error.message : 'Could not restore purchases.'
+        t('dfy.comparison.restoreFailedTitle'),
+        error instanceof Error ? error.message : t('dfy.comparison.restoreFailedMessage')
       );
     } finally {
       setIsProcessing(false);
@@ -401,22 +403,22 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
         await completeDfyPurchaseSuccess();
       } else if (outcome === 'failed') {
         Alert.alert(
-          'Payment Not Completed',
-          'Your payment could not be verified. Please try again or contact support if you were charged.',
-          [{ text: 'OK' }]
+          t('dfy.comparison.paymentNotCompletedTitle'),
+          t('dfy.comparison.paymentNotCompletedMessage'),
+          [{ text: t('common.done') }]
         );
       } else {
         Alert.alert(
-          'Checkout Cancelled',
-          'You can complete your purchase at any time.',
-          [{ text: 'OK' }]
+          t('dfy.comparison.checkoutCancelledTitle'),
+          t('dfy.comparison.checkoutCancelledMessage'),
+          [{ text: t('common.done') }]
         );
       }
     } catch (error: any) {
       console.error('DFY checkout error:', error);
       Alert.alert(
-        'Payment Error',
-        error.message || 'Failed to start checkout. Please try again.'
+        t('dfy.comparison.paymentErrorTitle'),
+        error.message || t('dfy.comparison.checkoutStartFailed')
       );
     } finally {
       setIsProcessing(false);
@@ -471,7 +473,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
                   { backgroundColor: 'rgba(255,255,255,0.2)' }
                 ]}>
                   <ThemedText type="small" style={styles.mentalModelText}>
-                    {tier.mentalModel === 'tactical' ? 'Tactical' : 'Structural'}
+                    {tier.mentalModel === 'tactical' ? t('dfy.comparison.tactical') : t('dfy.comparison.structural')}
                   </ThemedText>
                 </View>
               </View>
@@ -485,7 +487,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
                 >
                   {tier.price}
                 </ThemedText>
-                <ThemedText type="small" style={styles.priceSubtext}>one-time</ThemedText>
+                <ThemedText type="small" style={styles.priceSubtext}>{t('dfy.start.oneTime')}</ThemedText>
               </View>
 
               <ThemedText style={styles.tierTagline}>{tier.tagline}</ThemedText>
@@ -533,7 +535,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
                   { color: isSelected ? (isLite ? LUXURY_COLORS.teal : LUXURY_COLORS.gold) : '#FFFFFF' }
                 ]}
               >
-                {isSelected ? 'Selected' : 'Select this option'}
+                {isSelected ? t('dfy.comparison.selected') : t('dfy.comparison.selectOption')}
               </ThemedText>
             </View>
           </LinearGradient>
@@ -571,12 +573,12 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
 
         <View style={styles.content}>
           <ThemedText type="h1" style={styles.title}>
-            {isPaidAddOn ? 'Choose your setup' : 'How would you like me to style you?'}
+            {isPaidAddOn ? t('dfy.comparison.titlePaidAddOn') : t('dfy.comparison.titleDefault')}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {isPaidAddOn
-              ? 'Pick the path that fits — your styling starts right after checkout.'
-              : 'One solves now. The other solves every time after.'}
+              ? t('dfy.comparison.subtitlePaidAddOn')
+              : t('dfy.comparison.subtitleDefault')}
           </ThemedText>
 
           <View style={styles.tiersContainer}>
@@ -586,10 +588,10 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           <View style={styles.comparisonNote}>
             <Feather name="info" size={16} color="rgba(255,255,255,0.5)" />
             <ThemedText type="small" style={styles.comparisonNoteText}>
-              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Full Setup</ThemedText>
-              {" "}dresses you every day after.{" "}
-              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>Occasion Ready</ThemedText>
-              {" "}gets you ready for right now.
+              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>{t('dfy.comparison.fullSetupLabel')}</ThemedText>
+              {" "}{t('dfy.comparison.comparisonNoteFull')}{" "}
+              <ThemedText type="small" style={{ fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>{t('dfy.comparison.occasionReadyLabel')}</ThemedText>
+              {" "}{t('dfy.comparison.comparisonNoteOccasion')}
             </ThemedText>
           </View>
         </View>
@@ -616,8 +618,8 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
                 <>
                   <ThemedText type="body" style={styles.continueButtonText}>
                     {isPaidAddOn
-                      ? (selectedTier === 'lite' ? 'Start Quick Setup' : 'Start Full Setup')
-                      : (selectedTier === 'lite' ? 'Look Ready — Purchase' : 'Dress Better — Purchase')}
+                      ? (selectedTier === 'lite' ? t('dfy.comparison.startQuickSetup') : t('dfy.comparison.startFullSetup'))
+                      : (selectedTier === 'lite' ? t('dfy.start.lookReadyPurchase') : t('dfy.start.dressBetterPurchase'))}
                   </ThemedText>
                   <Feather
                     name="arrow-right"
@@ -639,7 +641,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
             >
               <Feather name="refresh-cw" size={16} color="rgba(255,255,255,0.7)" />
               <ThemedText type="small" style={styles.restorePurchasesText}>
-                Restore Purchases
+                {t('dfy.comparison.restorePurchases')}
               </ThemedText>
             </Pressable>
           ) : null}
@@ -657,14 +659,14 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           >
             <View style={styles.emailModalHeader}>
               <ThemedText type="h3" style={{ color: isDark ? '#FFFFFF' : '#1A1A2E' }}>
-                Enter your email
+                {t('dfy.comparison.enterEmail')}
               </ThemedText>
               <Pressable onPress={() => setShowEmailModal(false)}>
                 <Feather name="x" size={22} color={isDark ? '#FFFFFF' : '#1A1A2E'} />
               </Pressable>
             </View>
             <ThemedText type="body" style={{ color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)', marginBottom: Spacing.lg }}>
-              We'll send your purchase receipt and styling access to this email.
+              {t('dfy.comparison.emailReceiptNote')}
             </ThemedText>
             <TextInput
               value={email}
@@ -672,7 +674,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
                 setEmail(text);
                 if (emailError) setEmailError('');
               }}
-              placeholder="your@email.com"
+              placeholder={t('dfy.comparison.emailPlaceholder')}
               placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -701,7 +703,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
             >
               <Pressable onPress={handleEmailSubmit} style={styles.emailSubmitInner}>
                 <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                  Continue to Checkout
+                  {t('dfy.comparison.continueToCheckout')}
                 </ThemedText>
               </Pressable>
             </LinearGradient>

@@ -14,6 +14,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { UpgradeCopy, UnlockType } from "@/services/StylistUpgradeService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -43,6 +44,7 @@ export function UpgradeCard({
 }: UpgradeCardProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslations();
 
   if (!visible) return null;
 
@@ -88,7 +90,7 @@ export function UpgradeCard({
                 {stylistName}
               </ThemedText>
               <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-                Your AI Stylist
+                {t('subscription.yourAiStylist') || 'Your AI Stylist'}
               </ThemedText>
             </View>
           </View>
@@ -109,7 +111,7 @@ export function UpgradeCard({
               onPress={() => onPrimaryAction(copy.unlocks)}
               style={[styles.primaryButton, { backgroundColor: stylistColor }]}
             >
-              {copy.cta[0] || "Show me options"}
+              {copy.cta[0] || t('subscription.showMeOptions') || 'Show me options'}
             </Button>
 
             {copy.cta[1] ? (
@@ -124,7 +126,7 @@ export function UpgradeCard({
           <View style={styles.footer}>
             <Feather name="shield" size={14} color={theme.tabIconDefault} />
             <ThemedText type="small" style={[styles.footerText, { color: theme.tabIconDefault }]}>
-              One-time · No subscription required
+              {t('subscription.oneTimeNoSub') || 'One-time · No subscription required'}
             </ThemedText>
           </View>
         </View>

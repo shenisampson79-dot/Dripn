@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -15,6 +15,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -25,33 +26,36 @@ interface TourStep {
   highlight?: string;
 }
 
-const TOUR_STEPS: TourStep[] = [
+const TOUR_STEP_KEYS = [
+  { icon: "award" as const, titleKey: "tourWelcomeTitle", descKey: "tourWelcomeDesc", highlightKey: "tourWelcomeHighlight" },
+  { icon: "star" as const, titleKey: "tourStylistsTitle", descKey: "tourStylistsDesc", highlightKey: "tourStylistsHighlight" },
+  { icon: "plus-circle" as const, titleKey: "tourPlusTitle", descKey: "tourPlusDesc", highlightKey: "tourPlusHighlight" },
+  { icon: "grid" as const, titleKey: "tourWardrobeTitle", descKey: "tourWardrobeDesc", highlightKey: "tourWardrobeHighlight" },
+  { icon: "check-circle" as const, titleKey: "tourDoneTitle", descKey: "tourDoneDesc", highlightKey: "tourDoneHighlight" },
+];
+
+const TOUR_STEP_FALLBACKS = [
   {
-    icon: "award",
     title: "Welcome to Dripn!",
     description: "Your personal fashion decision engine. Get instant, confident outfit decisions from AI stylists who learn your style and help you look your best.",
     highlight: "Decide what to wear in seconds",
   },
   {
-    icon: "star",
     title: "Meet Your Stylists",
     description: "Choose from 4 unique AI stylists: Ruby (bold & glamorous), Max (clean & minimal), Ace (street-smart), and Ivy (eco-conscious). Each brings their own personality to your styling advice.",
     highlight: "Find your perfect style match",
   },
   {
-    icon: "plus-circle",
     title: "The + Button",
     description: "Once you finish this tour, you'll see a + button in the center of the bottom navigation bar. That's your direct line to your stylist. Tap it anytime you need an outfit decision.",
     highlight: "Look for + in the bottom bar after this tour",
   },
   {
-    icon: "grid",
     title: "Build Your Wardrobe",
     description: "Add your clothes to create a digital wardrobe. Your stylist will learn what you own and suggest outfits that actually work with your pieces.",
     highlight: "Tap Wardrobe to get started",
   },
   {
-    icon: "check-circle",
     title: "You're All Set!",
     description: "Manage your Wardrobe, get outfit decisions, and chat with your stylist anytime. Welcome to effortless style decisions!",
     highlight: "Let's get you sorted",
@@ -65,8 +69,16 @@ interface AppTourProps {
 
 export function AppTour({ visible, onComplete }: AppTourProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const insets = useSafeAreaInsets();
   const [currentStep, setCurrentStep] = useState(0);
+
+  const tourSteps: TourStep[] = useMemo(() => TOUR_STEP_KEYS.map((step, i) => ({
+    icon: step.icon,
+    title: t(`onboarding.${step.titleKey}`) || TOUR_STEP_FALLBACKS[i].title,
+    description: t(`onboarding.${step.descKey}`) || TOUR_STEP_FALLBACKS[i].description,
+    highlight: t(`onboarding.${step.highlightKey}`) || TOUR_STEP_FALLBACKS[i].highlight,
+  })), [t]);
 
   useEffect(() => {
     if (visible) {
@@ -74,8 +86,8 @@ export function AppTour({ visible, onComplete }: AppTourProps) {
     }
   }, [visible]);
 
-  const step = TOUR_STEPS[currentStep];
-  const isLastStep = currentStep === TOUR_STEPS.length - 1;
+  const step = tourSteps[currentStep];
+  const isLastStep = currentStep === tourSteps.length - 1;
 
   const handleNext = () => {
     if (isLastStep) {
@@ -121,7 +133,7 @@ export function AppTour({ visible, onComplete }: AppTourProps) {
           <View style={styles.header}>
             <Pressable onPress={handleSkip} style={styles.skipButton}>
               <ThemedText type="small" style={{ opacity: 0.7 }}>
-                Skip Tour
+                {t('onboarding.skipTour') || 'Skip Tour'}
               </ThemedText>
             </Pressable>
           </View>
@@ -174,7 +186,7 @@ export function AppTour({ visible, onComplete }: AppTourProps) {
 
           <View style={styles.footer}>
             <View style={styles.progressDots}>
-              {TOUR_STEPS.map((_, index) => (
+              {TOUR_STEP_KEYS.map((_, index) => (
                 <View
                   key={index}
                   style={[
@@ -193,7 +205,7 @@ export function AppTour({ visible, onComplete }: AppTourProps) {
               {currentStep > 0 ? (
                 <Pressable onPress={handleBack} style={styles.backButton}>
                   <Feather name="chevron-left" size={20} color={theme.text} />
-                  <ThemedText type="body">Back</ThemedText>
+                  <ThemedText type="body">{t('common.back')}</ThemedText>
                 </Pressable>
               ) : (
                 <View style={styles.backButton} />
@@ -203,7 +215,7 @@ export function AppTour({ visible, onComplete }: AppTourProps) {
                 onPress={handleNext}
                 style={styles.nextButton}
               >
-                {isLastStep ? "Get Started" : "Next"}
+                {isLastStep ? (t('onboarding.getStarted') || 'Get Started') : t('common.next')}
               </Button>
             </View>
           </View>

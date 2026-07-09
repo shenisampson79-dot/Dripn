@@ -41,6 +41,7 @@ import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { DiscoverStackParamList } from '@/navigation/DiscoverStackNavigator';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - Spacing['3xl'] * 2;
@@ -546,6 +547,7 @@ type NavigationProp = NativeStackNavigationProp<DiscoverStackParamList>;
 
 export default function StyleShuffleScreen() {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { limits, tier } = useSubscription();
   const { user } = useAuth();
   const screenInsets = useScreenInsets();

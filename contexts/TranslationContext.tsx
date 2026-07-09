@@ -89,11 +89,11 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
       applyRTL(newTranslations.localeInfo.direction === 'rtl');
       
       if (!result.backendSaved && isAuthenticated) {
-        showToast('Language updated locally. Will sync when online.', 'info', 3000);
+        showToast(newTranslations.voiceCredits.languageUpdatedLocally, 'info', 3000);
       }
     } catch (error) {
       console.log('Failed to set language:', error);
-      showToast('Failed to change language. Please try again.', 'error', 3000);
+      showToast(TranslationService.getTranslations().voiceCredits.languageChangeFailed, 'error', 3000);
     } finally {
       setIsLoading(false);
     }

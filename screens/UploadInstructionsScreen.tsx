@@ -22,6 +22,7 @@ import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
 import { ScreenScrollView } from "@/components/ScreenScrollView";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type UploadInstructionsScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "UploadInstructions">;
@@ -104,6 +105,7 @@ const DEFAULT_INSTRUCTIONS: Record<string, UploadInstructions> = {
 export default function UploadInstructionsScreen({ navigation, route }: UploadInstructionsScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const clothingComparisons = useMemo(
     () => getClothingUploadComparisons(user?.gender),
@@ -245,11 +247,11 @@ export default function UploadInstructionsScreen({ navigation, route }: UploadIn
 
         <Animated.View entering={FadeInUp.delay(250)}>
           {uploadType === 'outfit' ? (
-            <UploadGuideComparisonTable title="Outfit photos" rows={OUTFIT_UPLOAD_COMPARISONS} />
+            <UploadGuideComparisonTable title={t('common.outfitPhotos') || "Outfit photos"} rows={OUTFIT_UPLOAD_COMPARISONS} />
           ) : (
             <>
-              <UploadGuideComparisonTable title="Clothing" rows={clothingComparisons} />
-              <UploadGuideComparisonTable title="Accessories" rows={ACCESSORY_UPLOAD_COMPARISONS} />
+              <UploadGuideComparisonTable title={t('common.clothing') || "Clothing"} rows={clothingComparisons} />
+              <UploadGuideComparisonTable title={t('common.accessories') || "Accessories"} rows={ACCESSORY_UPLOAD_COMPARISONS} />
             </>
           )}
         </Animated.View>

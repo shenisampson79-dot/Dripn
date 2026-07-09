@@ -13,7 +13,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useReferral } from "@/contexts/ReferralContext";
 import { useSmartNotifications } from "@/contexts/SmartNotificationsContext";
-import { useVoiceSettings, SUPPORTED_LANGUAGES, SPEED_OPTIONS } from "@/contexts/VoiceSettingsContext";
+import { useVoiceSettings, SUPPORTED_LANGUAGES, SPEED_OPTIONS, VoiceSpeed } from "@/contexts/VoiceSettingsContext";
 import { apiService } from "@/services/ApiService";
 import dfyService, { DFYAccessStatus, DFYTier } from "@/services/DFYService";
 import { useColorScheme, ColorSchemeMode } from "@/contexts/ColorSchemeContext";
@@ -123,7 +123,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const { referralCode, totalReferrals, bonusAIRequests, shareReferral } = useReferral();
   const { preferences: notificationPrefs, updatePreferences } = useSmartNotifications();
   const { settings: voiceSettings, updateSettings: updateVoiceSettings } = useVoiceSettings();
-  const { setLanguage: setAppLanguage, t, translations } = useTranslations();
+  const { setLanguage: setAppLanguage, t, translations, currentLanguage, availableLanguages } = useTranslations();
   const { colorScheme, setColorScheme, palette } = useColorScheme();
   
   // Admin check — analytics / internal tools
@@ -201,7 +201,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       await updateProfile({ country: selectedCountry });
     } catch (error) {
       console.error('Failed to update country:', error);
-      Alert.alert("Error", "Failed to update country. Please try again.");
+      Alert.alert(t('common.error') || "Error", t('common.failedToUpdateCountryPleaseTryAgain') || "Failed to update country. Please try again.");
     }
   };
 
@@ -252,13 +252,13 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const handleShareReferral = async () => {
     const success = await shareReferral();
     if (!success) {
-      Alert.alert("Sharing Failed", "Could not share your referral code. Please try again.");
+      Alert.alert(t('common.sharingFailed') || "Sharing Failed", t('common.couldNotShareYourReferralCodePleaseTryAg') || "Could not share your referral code. Please try again.");
     }
   };
 
   const handleNewsletterToggle = async (value: boolean) => {
     if (!user?.email) {
-      Alert.alert("Error", "Please add an email to your account first.");
+      Alert.alert(t('common.error') || "Error", t('common.pleaseAddAnEmailToYourAccountFirst') || "Please add an email to your account first.");
       return;
     }
 
@@ -268,15 +268,15 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         await apiService.subscribeToNewsletter(user.email, user.name);
         setIsNewsletterSubscribed(true);
         await AsyncStorage.setItem(NEWSLETTER_STATUS_KEY, "true");
-        Alert.alert("Subscribed", "You're now subscribed to Dripn fashion updates!");
+        Alert.alert(t('common.subscribed') || "Subscribed", t('common.you') || "You"re now subscribed to Dripn fashion updates!");
       } else {
         await apiService.unsubscribeFromNewsletter(user.email);
         setIsNewsletterSubscribed(false);
         await AsyncStorage.setItem(NEWSLETTER_STATUS_KEY, "false");
-        Alert.alert("Unsubscribed", "You've been unsubscribed from the newsletter.");
+        Alert.alert(t('common.unsubscribed') || "Unsubscribed", t('common.you') || "You"ve been unsubscribed from the newsletter.");
       }
     } catch (error) {
-      Alert.alert("Error", "Could not update newsletter subscription. Please try again.");
+      Alert.alert(t('common.error') || "Error", t('common.couldNotUpdateNewsletterSubscriptionPlea') || "Could not update newsletter subscription. Please try again.");
     } finally {
       setIsNewsletterLoading(false);
     }
@@ -284,12 +284,12 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
 
   const handleLogout = () => {
     Alert.alert(
-      "Sign Out",
-      "Are you sure you want to sign out?",
+      t('settings.signOut'),
+      t('settings.signOutConfirm'),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         {
-          text: "Sign Out",
+          text: t('settings.signOut'),
           style: "destructive",
           onPress: async () => {
             await logout();
@@ -301,38 +301,38 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
 
   const handleDeleteAccount = () => {
     const appleBillingWarning = shouldUseAppleIAP()
-      ? '\n\nIf you have an active Apple subscription, cancel it first in iOS Settings → Apple ID → Subscriptions. Apple subscriptions cannot be cancelled through this app.'
+      ? `\n\n${t('settings.deleteAccount.appleBillingWarning')}`
       : '';
 
     Alert.alert(
-      "Delete Account",
-      `Are you sure you want to delete your account? This action cannot be undone.${appleBillingWarning}`,
+      t('settings.deleteAccount'),
+      `${t('settings.deleteAccountConfirm')}${appleBillingWarning}`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         {
-          text: "Delete",
+          text: t('settings.deleteAccountDelete'),
           style: "destructive",
           onPress: () => {
             Alert.alert(
-              "Confirm Deletion",
-              `This will permanently delete all your data, posts, and comments. Are you absolutely sure?${appleBillingWarning}`,
+              t('settings.deleteAccountFinalTitle'),
+              `${t('settings.deleteAccountFinalMessage')}${appleBillingWarning}`,
               [
-                { text: "Cancel", style: "cancel" },
+                { text: t('common.cancel'), style: "cancel" },
                 {
-                  text: "Yes, Delete My Account",
+                  text: t('settings.deleteAccountConfirmButton'),
                   style: "destructive",
                   onPress: async () => {
                     try {
                       const result = await apiService.deleteAccount();
                       if (result.success) {
                         if (result.appleSubscriptionNotice) {
-                          Alert.alert('Account Deleted', result.appleSubscriptionNotice);
+                          Alert.alert(t('settings.deleteAccountDeletedTitle'), result.appleSubscriptionNotice);
                         }
                         await logout();
                       }
                     } catch (error) {
                       console.error('Failed to delete account:', error);
-                      Alert.alert('Error', 'Failed to delete your account. Please try again later.');
+                      Alert.alert(t('common.error'), t('settings.deleteAccountFailed'));
                     }
                   },
                 },
@@ -402,6 +402,31 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     { value: 'colorful', label: t('settings.colorful'), description: t('settings.colorfulDesc') },
     { value: 'minimalist', label: t('settings.minimalist'), description: t('settings.minimalistDesc') },
   ];
+
+  const languageOptions = availableLanguages.length > 0
+    ? availableLanguages
+    : SUPPORTED_LANGUAGES.map((lang) => ({
+        ...lang,
+        direction: (lang.code === 'ar' ? 'rtl' : 'ltr') as 'ltr' | 'rtl',
+      }));
+
+  const currentLanguageLabel =
+    languageOptions.find((lang) => lang.code === currentLanguage)?.nativeName
+    || SUPPORTED_LANGUAGES.find((lang) => lang.code === currentLanguage)?.nativeName
+    || translations.localeInfo.language
+    || 'English';
+
+  const getSpeedLabel = (value: VoiceSpeed): string => {
+    switch (value) {
+      case 0.5: return t('settings.verySlow');
+      case 0.75: return t('settings.slow');
+      case 1.0: return t('settings.normal');
+      case 1.25: return t('settings.fast');
+      case 1.5: return t('settings.veryFast');
+      case 2.0: return t('settings.maximum');
+      default: return t('settings.normal');
+    }
+  };
 
   const handleDFYToggle = async (tier: DFYTier, value: boolean) => {
     if (!user?.id) return;
@@ -610,15 +635,15 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           {(hasMonthlyAllowance || shouldShowBuyPacks || remainingCredits > 0 || weekendUnlimitedActive) ? (
             <SettingItem
               icon="zap"
-              title={weekendUnlimitedActive ? 'Weekend voice active' : shouldShowBuyPacks ? 'Top up voice replies' : 'Voice replies'}
+              title={weekendUnlimitedActive ? t('voiceCredits.weekendVoiceActive') : shouldShowBuyPacks ? t('voiceCredits.topUpVoiceReplies') : t('voiceCredits.voiceReplies')}
               subtitle={
                 voiceCreditsLoading
-                  ? 'Loading balance…'
+                  ? t('voiceCredits.loadingBalance')
                   : weekendUnlimitedActive
-                    ? `Expires ${weekendExpiryLabel}`
+                    ? `${t('voiceCredits.expires')} ${weekendExpiryLabel}`
                     : usageLabel
-                      ? `${usageLabel} this month`
-                      : `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} available`
+                      ? `${usageLabel} ${t('voiceCredits.thisMonth')}`
+                      : `${remainingCredits} ${remainingCredits === 1 ? t('voiceCredits.spokenReply') : t('voiceCredits.spokenReplies')}`
               }
               onPress={() => setShowVoiceCreditsModal(true)}
               theme={theme}
@@ -627,9 +652,18 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             />
           ) : null}
           <SettingItem
+            icon="globe"
+            title={t('settings.language')}
+            subtitle={currentLanguageLabel}
+            onPress={handleLanguageSelect}
+            theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+          />
+          <SettingItem
             icon="fast-forward"
             title={t('settings.voiceSpeed')}
-            subtitle={SPEED_OPTIONS.find(s => s.value === voiceSettings.voiceSpeed)?.label || "Normal"}
+            subtitle={getSpeedLabel(voiceSettings.voiceSpeed)}
             onPress={handleSpeedSelect}
             theme={theme}
             isDark={isDark}
@@ -774,8 +808,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
             <SettingItem
               icon="scissors"
-              title="Stylist Portal"
-              subtitle="Access stylist dashboard"
+              title={t('common.stylistPortal') || "Stylist Portal"}
+              subtitle={t('common.accessStylistDashboard') || "Access stylist dashboard"}
               onPress={() => onOpenPortal('stylist')}
               theme={theme}
               isDark={isDark}
@@ -783,8 +817,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             />
             <SettingItem
               icon="shield"
-              title="Admin Portal"
-              subtitle="Access admin dashboard"
+              title={t('common.adminPortal') || "Admin Portal"}
+              subtitle={t('common.accessAdminDashboard') || "Access admin dashboard"}
               onPress={() => onOpenPortal('admin')}
               theme={theme}
               isDark={isDark}
@@ -896,8 +930,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
             <SettingItem
               icon="bar-chart-2"
-              title="Retention Analytics"
-              subtitle="Smart offers & win-back revenue"
+              title={t('common.retentionAnalytics') || "Retention Analytics"}
+              subtitle={t('common.smartOffersWinbackRevenue') || "Smart offers & win-back revenue"}
               onPress={() => navigation.navigate("AnalyticsDashboard")}
               theme={theme}
               isDark={isDark}
@@ -905,8 +939,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             />
             <SettingItem
               icon="image"
-              title="Logo Preview"
-              subtitle="View Dripn logo variations"
+              title={t('common.logoPreview') || "Logo Preview"}
+              subtitle={t('common.viewDripnLogoVariations') || "View Dripn logo variations"}
               onPress={() => navigation.navigate("LogoPreview")}
               theme={theme}
               isDark={isDark}
@@ -986,13 +1020,13 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             </LinearGradient>
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
               {pickerModal.type === 'language' ? (
-                SUPPORTED_LANGUAGES.map((lang) => (
+                languageOptions.map((lang) => (
                   <Pressable
                     key={lang.code}
                     style={({ pressed }) => [
                       styles.modalOption,
                       { backgroundColor: pressed ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)') : 'transparent' },
-                      voiceSettings.preferredLanguage === lang.code && { backgroundColor: LUXURY_COLORS.violet + '20' },
+                      currentLanguage === lang.code && { backgroundColor: LUXURY_COLORS.violet + '20' },
                     ]}
                     onPress={async () => {
                       updateVoiceSettings({ preferredLanguage: lang.code });
@@ -1000,13 +1034,15 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                       closePickerModal();
                     }}
                   >
-                    <ThemedText type="body" style={styles.modalOptionText}>
-                      {lang.name}
-                    </ThemedText>
-                    <ThemedText type="small" style={styles.modalOptionSubtext}>
-                      {lang.nativeName}
-                    </ThemedText>
-                    {voiceSettings.preferredLanguage === lang.code ? (
+                    <View style={{ flex: 1 }}>
+                      <ThemedText type="body" style={styles.modalOptionText}>
+                        {lang.nativeName}
+                      </ThemedText>
+                      <ThemedText type="small" style={styles.modalOptionSubtext}>
+                        {lang.name}
+                      </ThemedText>
+                    </View>
+                    {currentLanguage === lang.code ? (
                       <Feather name="check" size={20} color={LUXURY_COLORS.violet} />
                     ) : null}
                   </Pressable>
@@ -1053,7 +1089,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                     }}
                   >
                     <ThemedText type="body" style={styles.modalOptionText}>
-                      {speed.label}
+                      {getSpeedLabel(speed.value)}
                     </ThemedText>
                     {voiceSettings.voiceSpeed === speed.value ? (
                       <Feather name="check" size={20} color={LUXURY_COLORS.violet} />
@@ -1092,7 +1128,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             >
               <View style={styles.modalHeader}>
                 <ThemedText type="h3" style={styles.modalTitle}>
-                  Select Country
+                  {t('settings.selectCountry')}
                 </ThemedText>
                 <Pressable 
                   onPress={() => {
@@ -1111,7 +1147,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                 style={[styles.searchInput, { backgroundColor: 'transparent', color: theme.text, flex: 1 }]}
                 value={countrySearch}
                 onChangeText={setCountrySearch}
-                placeholder="Search countries..."
+                placeholder={t('settings.searchCountries')}
                 placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
                 autoCapitalize="none"
               />

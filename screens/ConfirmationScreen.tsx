@@ -21,6 +21,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "expo-linear-gradient";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { onboardingSessionService } from "@/services/OnboardingSessionService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type ConfirmationScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Confirmation">;
@@ -48,6 +49,7 @@ const TURNAROUND_INFO: Record<string, { time: string; description: string }> = {
 export default function ConfirmationScreen({ navigation, route }: ConfirmationScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const setupType = route.params?.type || "outfit";
   const [messageIndex, setMessageIndex] = useState(0);
   const [isComplete, setIsComplete] = useState(false);

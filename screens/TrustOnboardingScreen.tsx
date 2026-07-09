@@ -14,6 +14,7 @@ import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { onboardingAnalyticsService } from "@/services/OnboardingAnalyticsService";
 import { videoRandomizer, type VideoTone } from "@/services/VideoRandomizerService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -232,6 +233,7 @@ const ALL_TRUST_MESSAGES: OnboardingContent[] = [
 export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   
   const [trustMessage] = useState(() => getRandomContent(ALL_TRUST_MESSAGES));
   const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo({ tone: trustMessage.tone }));

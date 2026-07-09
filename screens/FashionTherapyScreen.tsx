@@ -29,6 +29,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { apiService } from '@/services/ApiService';
 import type { ProfileStackParamList } from '@/navigation/ProfileStackNavigator';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type FashionTherapyScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'FashionTherapy'>;
@@ -71,6 +72,7 @@ const WELLNESS_ACTIVITIES: WellnessActivity[] = [
 
 export default function FashionTherapyScreen({ navigation }: FashionTherapyScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const { tier } = useSubscription();
   const insets = useSafeAreaInsets();

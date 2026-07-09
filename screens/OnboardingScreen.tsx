@@ -1204,9 +1204,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
     
     if (existingStatus !== 'granted') {
-      Alert.alert(
-        'Find Your Country',
-        'Dripn will detect your country to show you local trends and stores.',
+      Alert.alert(t('onboarding.findYourCountry') || "Find Your Country", t('onboarding.dripnWillDetectYourCountryToShowYouLocal') || "Dripn will detect your country to show you local trends and stores.",
         [
           { text: 'Select Manually', style: 'cancel' },
           { 
@@ -3122,7 +3120,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       color: theme.text,
                       minHeight: 100,
                     }}
-                    placeholder="e.g., Amish Plain Dress, Buddhist robes, Rastafarian..."
+                    placeholder={t('onboarding.egAmishPlainDressBuddhistRobesRastafaria') || "e.g., Amish Plain Dress, Buddhist robes, Rastafarian..."}
                     placeholderTextColor={theme.tabIconDefault}
                     value={religiousOrCulturalDressCode}
                     onChangeText={setReligiousOrCulturalDressCode}
@@ -3235,7 +3233,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       color: theme.text,
                       minHeight: 100,
                     }}
-                    placeholder="e.g., Afrofuturism, Normcore, Gorpcore..."
+                    placeholder={t('onboarding.egAfrofuturismNormcoreGorpcore') || "e.g., Afrofuturism, Normcore, Gorpcore..."}
                     placeholderTextColor={theme.tabIconDefault}
                     value={subcultureDescription}
                     onChangeText={setSubcultureDescription}

@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useStylistAuth } from "@/contexts/StylistAuthContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type StylistLoginScreenProps = {
   navigation: NativeStackNavigationProp<any>;
@@ -23,6 +24,7 @@ type StylistLoginScreenProps = {
 export default function StylistLoginScreen({ navigation, onLoginSuccess, onExit }: StylistLoginScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { login, isLoading } = useStylistAuth();
 
   const [email, setEmail] = useState("");
@@ -40,7 +42,7 @@ export default function StylistLoginScreen({ navigation, onLoginSuccess, onExit 
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please fill in all fields");
+      Alert.alert(t('common.error') || "Error", t('common.pleaseFillInAllFields') || "Please fill in all fields");
       return;
     }
 
@@ -105,7 +107,7 @@ export default function StylistLoginScreen({ navigation, onLoginSuccess, onExit 
               style={inputStyle}
               value={email}
               onChangeText={setEmail}
-              placeholder="stylist@dripn.com"
+              placeholder={t('common.stylistdripncom') || "stylist@dripn.com"}
               placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -124,7 +126,7 @@ export default function StylistLoginScreen({ navigation, onLoginSuccess, onExit 
                 style={[inputStyle, styles.passwordInput]}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Enter your password"
+                placeholder={t('common.enterYourPassword') || "Enter your password"}
                 placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
                 secureTextEntry={!showPassword}
                 returnKeyType="done"

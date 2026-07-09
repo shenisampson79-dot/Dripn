@@ -23,6 +23,7 @@ import {
   BudgetRange
 } from "@/contexts/AuthContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type OnboardingQuizScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "OnboardingQuiz">;
@@ -91,6 +92,7 @@ const TOTAL_STEPS = 7;
 export default function OnboardingQuizScreen({ navigation }: OnboardingQuizScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { completeQuiz, user } = useAuth();
 
   const [step, setStep] = useState(0);
@@ -443,7 +445,7 @@ export default function OnboardingQuizScreen({ navigation }: OnboardingQuizScree
                   borderColor: theme.backgroundSecondary,
                 }
               ]}
-              placeholder="Search brands..."
+              placeholder={t('onboarding.searchBrands') || "Search brands..."}
               placeholderTextColor={theme.tabIconDefault}
               value={brandSearchQuery}
               onChangeText={setBrandSearchQuery}

@@ -11,6 +11,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "expo-linear-gradient";
 import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type CollectiveInsightsScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "CollectiveInsights">;
@@ -70,6 +71,7 @@ type TabType = "insights" | "trends" | "compare";
 
 export default function CollectiveInsightsScreen({ navigation }: CollectiveInsightsScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const [activeTab, setActiveTab] = useState<TabType>("insights");
   const [isLoading, setIsLoading] = useState(true);
   const [optedIn, setOptedIn] = useState(true);

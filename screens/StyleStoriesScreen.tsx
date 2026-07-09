@@ -12,6 +12,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type StyleStoriesScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "StyleStories">;
@@ -68,6 +69,7 @@ const MOOD_COLORS: Record<string, string> = {
 
 export default function StyleStoriesScreen({ navigation }: StyleStoriesScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [userInput, setUserInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -242,7 +244,7 @@ export default function StyleStoriesScreen({ navigation }: StyleStoriesScreenPro
                   borderColor: theme.border,
                 },
               ]}
-              placeholder="e.g., That red dress I wore to my graduation, the vintage jacket from my grandmother..."
+              placeholder={t('discover.egThatRedDressIWoreToMyGraduationTheVint') || "e.g., That red dress I wore to my graduation, the vintage jacket from my grandmother..."}
               placeholderTextColor={theme.tabIconDefault}
               multiline
               numberOfLines={3}

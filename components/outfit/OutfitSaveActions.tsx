@@ -7,6 +7,7 @@ import { SaveOutfitPromptModal, type SaveOutfitIntent } from '@/components/outfi
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type Props = {
   wardrobeItemIds: string[];
@@ -23,6 +24,7 @@ export function OutfitSaveActions({
   occasion = 'custom',
   onSaved,
 }: Props) {
+  const { t } = useTranslations();
   const { isDark } = useTheme();
   const [promptVisible, setPromptVisible] = useState(false);
   const [intent, setIntent] = useState<SaveOutfitIntent>('save');

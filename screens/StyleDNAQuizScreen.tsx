@@ -16,6 +16,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type StyleDNAQuizScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "StyleQuiz">;
@@ -52,6 +53,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function StyleDNAQuizScreen({ navigation }: StyleDNAQuizScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -99,7 +101,7 @@ export default function StyleDNAQuizScreen({ navigation }: StyleDNAQuizScreenPro
 
   const handleNext = () => {
     if (answers[currentIndex] === -1) {
-      Alert.alert("Select an Option", "Please choose an answer before continuing.");
+      Alert.alert(t('onboarding.selectAnOption') || "Select an Option", t('onboarding.pleaseChooseAnAnswerBeforeContinuing') || "Please choose an answer before continuing.");
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -119,7 +121,7 @@ export default function StyleDNAQuizScreen({ navigation }: StyleDNAQuizScreenPro
 
   const submitQuiz = async () => {
     if (!user) {
-      Alert.alert("Sign In Required", "Please sign in to save your results.");
+      Alert.alert(t('onboarding.signInRequired') || "Sign In Required", t('onboarding.pleaseSignInToSaveYourResults') || "Please sign in to save your results.");
       return;
     }
 

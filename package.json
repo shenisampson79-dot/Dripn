@@ -16,7 +16,8 @@
     "lint": "npx expo lint",
     "check:format": "prettier --check \"**/*.{js,ts,tsx,css,json}\"",
     "format": "prettier --write \"**/*.{js,ts,tsx,css,json}\"",
-    "test:e2e-retention": "node scripts/e2e-retention-test.mjs"
+    "i18n:generate": "node scripts/generate-translations.js",
+    "i18n:locales": "node scripts/generate-all-locales.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

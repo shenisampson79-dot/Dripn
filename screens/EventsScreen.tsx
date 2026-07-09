@@ -18,6 +18,7 @@ import { useEventsPreferences, EVENT_INTEREST_OPTIONS, EventInterest } from "@/c
 import { useStyleProfile } from "@/contexts/StyleProfileContext";
 import apiService from "@/services/ApiService";
 import { 
+import { useTranslations } from "@/contexts/TranslationContext";
   EventsService, 
   Event, 
   LocationData,
@@ -46,6 +47,7 @@ const CATEGORY_TO_INTEREST: Record<string, EventInterest> = {
 
 export default function EventsScreen() {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const { isLiked, toggleLike } = useEventsFavorites();
   const { hasStyleProfile } = useStyleProfile();
@@ -180,9 +182,7 @@ export default function EventsScreen() {
       const currentPermission = await Location.getForegroundPermissionsAsync();
       
       if (currentPermission.status === "denied" && !currentPermission.canAskAgain) {
-        Alert.alert(
-          "Enable Location",
-          "To find events near you, turn on location in Settings.",
+        Alert.alert(t('common.enableLocation') || "Enable Location", t('common.toFindEventsNearYouTurnOnLocationInSetti') || "To find events near you, turn on location in Settings.",
           [
             { text: "Not Now", style: "cancel" },
             { 
@@ -199,11 +199,9 @@ export default function EventsScreen() {
       }
       
       if (currentPermission.status !== "granted") {
-        Alert.alert(
-          "Find Events Near You",
-          "Dripn will find fashion events and experiences in your area.",
+        Alert.alert(t('common.findEventsNearYou') || "Find Events Near You", t('common.dripnWillFindFashionEventsAndExperiences') || "Dripn will find fashion events and experiences in your area.",
           [
-            { text: "Skip", style: "cancel" },
+            { text: t('common.skip'), style: "cancel" },
             {
               text: "Enable",
               onPress: async () => {
@@ -373,10 +371,10 @@ export default function EventsScreen() {
                 if (canOpen) {
                   await Linking.openURL(url);
                 } else {
-                  Alert.alert("Unable to Open Maps", "Please ensure you have a maps app or web browser installed.");
+                  Alert.alert(t('common.unableToOpenMaps') || "Unable to Open Maps", t('common.pleaseEnsureYouHaveAMapsAppOrWebBrowserI') || "Please ensure you have a maps app or web browser installed.");
                 }
               } catch (error) {
-                Alert.alert("Error", "Could not open directions. Please try again.");
+                Alert.alert(t('common.error') || "Error", t('common.couldNotOpenDirectionsPleaseTryAgain') || "Could not open directions. Please try again.");
               }
             }}
             style={({ pressed }) => [

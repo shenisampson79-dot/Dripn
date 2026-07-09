@@ -12,6 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useStylistAuth, VIPSession } from "@/contexts/StylistAuthContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type StylistDashboardScreenProps = {
   navigation: NativeStackNavigationProp<any>;
@@ -22,6 +23,7 @@ type StylistDashboardScreenProps = {
 export default function StylistDashboardScreen({ navigation, onExit, onLogout }: StylistDashboardScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { stylist, getSessions } = useStylistAuth();
 
   const [sessions, setSessions] = useState<VIPSession[]>([]);
@@ -59,11 +61,9 @@ export default function StylistDashboardScreen({ navigation, onExit, onLogout }:
   }, [loadSessions]);
 
   const handleLogout = () => {
-    Alert.alert(
-      "Sign Out",
-      "Are you sure you want to sign out?",
+    Alert.alert(t('common.signOut') || "Sign Out", t('common.areYouSureYouWantToSignOut') || "Are you sure you want to sign out?",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         {
           text: "Sign Out",
           style: "destructive",

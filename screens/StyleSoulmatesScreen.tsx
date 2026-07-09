@@ -19,6 +19,7 @@ import { useSocial } from "@/contexts/SocialContext";
 import { getAllDiscoverableUsers, UserSummary } from "@/contexts/SocialContext";
 import { useBodyProfile, BodyProfile, BodyShape, HeightCategory, BuildCategory } from "@/contexts/BodyProfileContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type StyleSoulmatesScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "StyleSoulmates">;
@@ -92,6 +93,7 @@ const BODY_SHAPE_LABELS: Record<BodyShape, string> = {
 
 export default function StyleSoulmatesScreen({ navigation }: StyleSoulmatesScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { styleTheme } = useStyleTheme();
   const { followUser, sendFriendRequest, isFollowing, isFriend, hasPendingRequestTo } = useSocial();
   const { hasBodyProfile, getBodyMatchScore, bodyProfile } = useBodyProfile();

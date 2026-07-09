@@ -15,6 +15,7 @@ import { getAllStylists, getDefaultVoiceForStylist } from "@/services/PersonalSt
 import { onboardingProfileService } from "@/services/OnboardingProfileService";
 import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const GENDER_OPTIONS: { id: Gender; name: string }[] = [
   { id: "woman", name: "Woman" },
@@ -102,6 +103,7 @@ const STRICTNESS_OPTIONS: { id: DressCodeStrictness; name: string; description: 
 
 export default function EditProfileScreen({ navigation }: EditProfileScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user, updateProfile } = useAuth();
 
   const [name, setName] = useState(user?.name || "");
@@ -146,7 +148,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert("Permission Required", "Please allow access to your photo library to change your avatar.");
+      Alert.alert(t('common.permissionRequired') || "Permission Required", t('common.pleaseAllowAccessToYourPhotoLibraryToCha') || "Please allow access to your photo library to change your avatar.");
       return;
     }
 
@@ -173,17 +175,15 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
   };
 
   const handleRemovePhoto = () => {
-    Alert.alert(
-      "Remove profile photo?",
-      "Your profile will show the default avatar instead.",
+    Alert.alert(t('common.removeProfilePhoto') || "Remove profile photo?", t('common.yourProfileWillShowTheDefaultAvatarInste') || "Your profile will show the default avatar instead.",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         {
           text: "Remove",
           style: "destructive",
           onPress: () => {
             persistAvatarRemoval().catch(() => {
-              Alert.alert("Error", "Failed to remove profile photo. Please try again.");
+              Alert.alert(t('common.error') || "Error", t('common.failedToRemoveProfilePhotoPleaseTryAgain') || "Failed to remove profile photo. Please try again.");
             });
           },
         },
@@ -199,7 +199,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
         [
           { text: "Change Photo", onPress: handlePickImage },
           { text: "Remove Photo", style: "destructive", onPress: handleRemovePhoto },
-          { text: "Cancel", style: "cancel" },
+          { text: t('common.cancel'), style: "cancel" },
         ],
       );
       return;
@@ -210,7 +210,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert("Error", "Please enter your name");
+      Alert.alert(t('common.error') || "Error", t('common.pleaseEnterYourName') || "Please enter your name");
       return;
     }
 
@@ -257,7 +257,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
 
       navigation.goBack();
     } catch (error) {
-      Alert.alert("Error", "Failed to save profile. Please try again.");
+      Alert.alert(t('common.error') || "Error", t('common.failedToSaveProfilePleaseTryAgain') || "Failed to save profile. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -305,7 +305,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
           style={inputStyle}
           value={name}
           onChangeText={setName}
-          placeholder="Enter your name"
+          placeholder={t('common.enterYourName') || "Enter your name"}
           placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
           autoCapitalize="words"
           returnKeyType="done"
@@ -362,7 +362,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
               style={[styles.searchInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
               value={countrySearch}
               onChangeText={setCountrySearch}
-              placeholder="Search countries..."
+              placeholder={t('common.searchCountries') || "Search countries..."}
               placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
               autoCapitalize="none"
             />
@@ -688,7 +688,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
           style={[styles.textArea, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
           value={religiousOrCulturalDressCode}
           onChangeText={setReligiousOrCulturalDressCode}
-          placeholder="e.g., I prefer clothing that covers my arms and legs..."
+          placeholder={t('common.egIPreferClothingThatCoversMyArmsAndLegs') || "e.g., I prefer clothing that covers my arms and legs..."}
           placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
           multiline
           numberOfLines={3}

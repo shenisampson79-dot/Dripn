@@ -12,6 +12,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from "@/hooks/useTheme";
 import apiService from "@/services/ApiService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type VideoCallParams = {
   callId?: string;
@@ -31,6 +32,7 @@ type VideoCallScreenProps = {
 export default function VideoCallScreen({ navigation, route }: VideoCallScreenProps) {
   const { callId, roomUrl, calleeName, isStylistSession } = route.params;
   const { theme } = useTheme();
+  const { t } = useTranslations();
 
   const [callStatus, setCallStatus] = useState<'connecting' | 'active' | 'ended'>('connecting');
   const [callDuration, setCallDuration] = useState(0);

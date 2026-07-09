@@ -20,6 +20,7 @@ import { decisionService, CommunityVotingEligibility } from "@/services/Decision
 import { dfyService } from "@/services/DFYService";
 import { currencyService } from "@/services/CurrencyService";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 interface SecondOpinionButtonProps {
   outfitOptions: OutfitOption[];
@@ -37,6 +38,7 @@ export function SecondOpinionButton({
   stylistId,
 }: SecondOpinionButtonProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const [showModal, setShowModal] = useState(false);

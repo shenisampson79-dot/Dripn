@@ -25,6 +25,7 @@ import { Spacing, BorderRadius, Typography } from '@/constants/theme';
 import { useStyleTheme } from '@/hooks/useStyleTheme';
 import { useSmartNotifications } from '@/contexts/SmartNotificationsContext';
 import type { TrendNotification } from '@/contexts/SmartNotificationsContext';
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const WEATHER_ICONS: Record<string, keyof typeof Feather.glyphMap> = {
   sunny: 'sun',
@@ -46,6 +47,7 @@ const TREND_TYPE_ICONS: Record<string, keyof typeof Feather.glyphMap> = {
 };
 
 export default function SmartNotificationsScreen() {
+  const { t } = useTranslations();
   const { theme } = useStyleTheme();
   const {
     currentWeather,
@@ -85,11 +87,9 @@ export default function SmartNotificationsScreen() {
     if (granted) {
       await handleRefreshWeather();
     } else {
-      Alert.alert(
-        'Location Required',
-        'Weather-based styling needs your location. Please enable location access in Settings.',
+      Alert.alert(t('common.locationRequired') || "Location Required", t('common.weatherbasedStylingNeedsYourLocationPlea') || "Weather-based styling needs your location. Please enable location access in Settings.",
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           Platform.OS !== 'web'
             ? {
                 text: 'Open Settings',
@@ -115,11 +115,9 @@ export default function SmartNotificationsScreen() {
   };
 
   const handleClearAllTrends = () => {
-    Alert.alert(
-      'Clear All Notifications',
-      'Mark all trend notifications as read?',
+    Alert.alert(t('common.clearAllNotifications') || "Clear All Notifications", t('common.markAllTrendNotificationsAsRead') || "Mark all trend notifications as read?",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
           text: 'Clear All',
           onPress: async () => {

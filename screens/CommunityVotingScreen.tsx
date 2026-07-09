@@ -23,6 +23,7 @@ import {
   VotingResult,
 } from "@/services/CommunityVotingService";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const PREVIEW_SESSION: VotingSession = {
   id: "preview_session",
@@ -110,6 +111,7 @@ const barStyles = StyleSheet.create({
 
 export default function CommunityVotingScreen({ navigation, route }: any) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
@@ -133,9 +135,7 @@ export default function CommunityVotingScreen({ navigation, route }: any) {
     if (!selectedOptionId) return;
 
     if (!user?.id) {
-      Alert.alert(
-        "Sign in required",
-        "Create a free account to help other members with their style decisions.",
+      Alert.alert(t('community.signInRequired') || "Sign in required", t('community.createAFreeAccountToHelpOtherMembersWith') || "Create a free account to help other members with their style decisions.",
         [{ text: "OK" }]
       );
       return;
@@ -161,7 +161,7 @@ export default function CommunityVotingScreen({ navigation, route }: any) {
         Alert.alert("Unable to submit", result.error || "Please try again.");
       }
     } catch {
-      Alert.alert("Error", "An unexpected error occurred.");
+      Alert.alert(t('community.error') || "Error", t('community.anUnexpectedErrorOccurred') || "An unexpected error occurred.");
     } finally {
       setIsSubmitting(false);
     }

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -16,7 +16,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeInUp, FadeInDown } from 'react-native-reanimated';
-// KeyboardAvoidingView from react-native is used instead of react-native-keyboard-controller
+import { useNavigation } from '@react-navigation/native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Card } from '@/components/Card';
@@ -24,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Spacing, BorderRadius, Typography, LuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslations } from '@/contexts/TranslationContext';
 import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -44,8 +45,10 @@ const INPUT_MIN_HEIGHT = 44;
 const INPUT_MAX_HEIGHT = 120;
 
 export default function SupportScreen() {
+  const navigation = useNavigation();
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { t } = useTranslations();
   const { paddingTop, paddingBottom } = useScreenInsets();
   const safeAreaInsets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
@@ -62,6 +65,13 @@ export default function SupportScreen() {
   const [ticketDescription, setTicketDescription] = useState('');
   const [showQuickActions, setShowQuickActions] = useState(true);
   const [currencySymbol, setCurrencySymbol] = useState('$');
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: t('support.screenTitle') });
+  }, [navigation, t]);
+
+  const getQuickActionLabel = (id: string) => t(`support.quickAction.${id}`);
+  const getTicketCategoryLabel = (id: TicketCategory) => t(`support.ticketCategory.${id}`);
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -127,7 +137,7 @@ export default function SupportScreen() {
       setMessages(prev => [...prev, response]);
       scrollToEnd();
     } catch (error) {
-      Alert.alert('Error', 'Failed to send message. Please try again.');
+      Alert.alert(t('common.error'), t('support.sendFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -137,13 +147,15 @@ export default function SupportScreen() {
     const action = QUICK_TROUBLESHOOTING.find(a => a.id === actionId);
     if (!action) return;
 
+    const label = getQuickActionLabel(actionId);
+
     setShowQuickActions(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const userMsg: SupportMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: action.label,
+      content: label,
       timestamp: new Date().toISOString(),
     };
     setMessages(prev => [...prev, userMsg]);
@@ -157,7 +169,7 @@ export default function SupportScreen() {
       setMessages(prev => [...prev, response]);
       scrollToEnd();
     } catch (error) {
-      Alert.alert('Error', 'Failed to get response. Please try again.');
+      Alert.alert(t('common.error'), t('support.responseFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -170,7 +182,7 @@ export default function SupportScreen() {
 
   const submitTicket = async () => {
     if (!selectedCategory || !ticketDescription.trim()) {
-      Alert.alert('Missing Information', 'Please select a category and describe your issue.');
+      Alert.alert(t('support.missingInfoTitle'), t('support.missingInfoMessage'));
       return;
     }
 
@@ -189,7 +201,7 @@ export default function SupportScreen() {
       scrollToEnd();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      Alert.alert('Error', 'Failed to create ticket. Please try again.');
+      Alert.alert(t('common.error'), t('support.ticketFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -197,12 +209,12 @@ export default function SupportScreen() {
 
   const handleClearChat = () => {
     Alert.alert(
-      'Clear Chat History',
-      'Are you sure you want to clear your support chat history?',
+      t('support.clearChatTitle'),
+      t('support.clearChatMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Clear',
+          text: t('support.clear'),
           style: 'destructive',
           onPress: async () => {
             await supportService.clearChatHistory();
@@ -266,7 +278,7 @@ export default function SupportScreen() {
   const renderQuickActions = () => (
     <Animated.View entering={FadeIn.duration(400)} style={styles.quickActionsContainer}>
       <ThemedText type="small" style={styles.quickActionsTitle}>
-        Common Issues
+        {t('support.commonIssues')}
       </ThemedText>
       <View style={styles.quickActionsGrid}>
         {QUICK_TROUBLESHOOTING.slice(0, 4).map((action) => (
@@ -279,7 +291,7 @@ export default function SupportScreen() {
             ]}
           >
             <ThemedText type="small" style={styles.quickActionText}>
-              {action.label}
+              {getQuickActionLabel(action.id)}
             </ThemedText>
           </Pressable>
         ))}
@@ -293,7 +305,7 @@ export default function SupportScreen() {
       >
         <Feather name="file-plus" size={18} color="#FFFFFF" />
         <ThemedText type="body" style={styles.createTicketText}>
-          Create Support Ticket
+          {t('support.createTicket')}
         </ThemedText>
       </Pressable>
     </Animated.View>
@@ -315,7 +327,7 @@ export default function SupportScreen() {
           style={[styles.modalContent, { backgroundColor: theme.backgroundDefault }]}
         >
           <View style={styles.modalHeader}>
-            <ThemedText type="h3">Create Support Ticket</ThemedText>
+            <ThemedText type="h3">{t('support.createTicket')}</ThemedText>
             <Pressable
               onPress={() => setShowTicketModal(false)}
               hitSlop={12}
@@ -326,7 +338,7 @@ export default function SupportScreen() {
 
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
             <ThemedText type="body" style={styles.modalLabel}>
-              Select Category
+              {t('support.selectCategory')}
             </ThemedText>
             <View style={styles.categoriesGrid}>
               {TICKET_CATEGORIES.map((cat) => (
@@ -369,14 +381,14 @@ export default function SupportScreen() {
                       selectedCategory === cat.id && { color: theme.link },
                     ]}
                   >
-                    {cat.label}
+                    {getTicketCategoryLabel(cat.id)}
                   </ThemedText>
                 </Pressable>
               ))}
             </View>
 
             <ThemedText type="body" style={styles.modalLabel}>
-              Describe Your Issue
+              {t('support.describeIssue')}
             </ThemedText>
             <TextInput
               style={[
@@ -387,7 +399,7 @@ export default function SupportScreen() {
                   borderColor: theme.tabIconDefault,
                 },
               ]}
-              placeholder="Tell us what's happening..."
+              placeholder={t('support.issuePlaceholder')}
               placeholderTextColor={theme.tabIconDefault}
               value={ticketDescription}
               onChangeText={setTicketDescription}
@@ -406,7 +418,7 @@ export default function SupportScreen() {
                 { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
               ]}
             >
-              <ThemedText type="body">Cancel</ThemedText>
+              <ThemedText type="body">{t('common.cancel')}</ThemedText>
             </Pressable>
             <Pressable
               onPress={submitTicket}
@@ -427,7 +439,7 @@ export default function SupportScreen() {
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <ThemedText type="body" style={{ color: '#FFFFFF' }}>
-                  Submit Ticket
+                  {t('support.submitTicket')}
                 </ThemedText>
               )}
             </Pressable>
@@ -464,9 +476,9 @@ export default function SupportScreen() {
             </View>
           ) : null}
           <View>
-            <ThemedText type="h3">Julia</ThemedText>
+            <ThemedText type="h3">{t('support.juliaName')}</ThemedText>
             <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-              Your support assistant
+              {t('support.juliaSubtitle')}
             </ThemedText>
           </View>
         </View>
@@ -494,7 +506,7 @@ export default function SupportScreen() {
               <View style={styles.typingIndicator}>
                 <ActivityIndicator size="small" color={theme.link} />
                 <ThemedText type="small" style={{ marginLeft: Spacing.sm }}>
-                  Julia is typing...
+                  {t('support.juliaTyping')}
                 </ThemedText>
               </View>
             ) : null}
@@ -532,7 +544,7 @@ export default function SupportScreen() {
                 height: Math.max(INPUT_MIN_HEIGHT, Math.min(inputHeight, INPUT_MAX_HEIGHT)),
               },
             ]}
-            placeholder="Type your message..."
+            placeholder={t('support.messagePlaceholder')}
             placeholderTextColor={theme.tabIconDefault}
             value={inputText}
             onChangeText={setInputText}

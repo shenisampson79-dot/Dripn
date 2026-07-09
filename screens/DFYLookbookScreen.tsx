@@ -22,6 +22,7 @@ import { DFYOutfitVisual } from "@/components/outfit/DFYOutfitVisual";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { useWardrobe } from "@/contexts/WardrobeContext";
 import { dfyService, DFYOutfit, DFYLiteDelivery, StylistId } from "@/services/DFYService";
 import { SaveOutfitPromptModal, type SaveOutfitIntent } from "@/components/outfit/SaveOutfitPromptModal";
@@ -68,6 +69,7 @@ type DFYLookbookScreenProps = {
 
 export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const { items: wardrobeItems } = useWardrobe();
   const insets = useSafeAreaInsets();
@@ -106,6 +108,9 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     void populateLookbookOutfits(hydrated, { fillGapsOnly: filledCount > 0 });
   };
 
+  const outfitTitle = (idx: number) =>
+    idx === 0 ? t('dfy.lookbook.todaysLook') : t('dfy.lookbook.dayLook').replace('{day}', String(idx + 1));
+
   const loadDelivery = async () => {
     if (!user?.id) return;
     const saved = await dfyService.getDFYDelivery(user.id);
@@ -122,7 +127,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
             outfits: liteDelivery.outfits.map((o, idx) => ({
               ...o,
               dayNumber: idx + 1,
-              title: idx === 0 ? "Today's Look" : `Day ${idx + 1} Look`,
+              title: outfitTitle(idx),
             })),
           }
         : liteDelivery;
@@ -205,7 +210,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     rawOutfits.map((o, idx) => ({
       id: o.id || `outfit_${idx + 1}`,
       dayNumber: o.day || o.dayNumber || idx + 1,
-      title: o.title || (idx === 0 ? "Today's Look" : `Day ${idx + 1} Look`),
+      title: o.title || outfitTitle(idx),
       description: o.description || o.stylistNote || '',
       items: (o.items || []).map((it: any) => ({
         id: String(it.id),
@@ -337,11 +342,11 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
 
       const totalDays = working.totalDays || 14;
       if (countFilledLookbookDays(working) < totalDays) {
-        setGenerateError('Some days could not be filled. Add more wardrobe pieces and tap Refresh.');
+        setGenerateError(t('dfy.lookbook.someDaysUnfilled'));
       }
     } catch (err: any) {
       console.log('[DFYLookbook] Lookbook generation failed:', err);
-      setGenerateError(err?.message || 'Could not finish building your lookbook. Tap Refresh to try again.');
+      setGenerateError(err?.message || t('dfy.lookbook.buildFailed'));
     } finally {
       setIsGenerating(false);
     }
@@ -427,7 +432,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       wardrobeItems={wardrobeItems}
       canvasWidth={CARD_WIDTH}
       minHeight={height}
-      emptyMessage={outfit.items?.length ? 'Wardrobe photos loading…' : 'Outfit pieces coming soon'}
+      emptyMessage={outfit.items?.length ? t('dfy.lookbook.photosLoading') : t('dfy.lookbook.piecesComingSoon')}
     />
   );
 
@@ -459,7 +464,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
                 style={styles.currentDayBadge}
               >
                 <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                  Today
+                  {t('dfy.lookbook.today')}
                 </ThemedText>
               </LinearGradient>
             )}
@@ -486,7 +491,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
             <View style={styles.outfitTitleRow}>
               <View style={{ flex: 1 }}>
                 <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: 2 }}>
-                  Day {item.dayNumber} of 14
+                  {t('dfy.lookbook.dayOf').replace('{day}', String(item.dayNumber)).replace('{total}', '14')}
                 </ThemedText>
                 <ThemedText type="h3" numberOfLines={1}>
                   {item.title}
@@ -598,7 +603,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
                 {selectedOutfit.items && selectedOutfit.items.length > 0 ? (
                   <View style={styles.modalItemsSection}>
                     <ThemedText type="small" style={{ opacity: 0.5, marginBottom: Spacing.sm, marginLeft: Spacing.xs }}>
-                      The pieces ({selectedOutfit.items.length})
+                      {t('dfy.lookbook.thePieces').replace('{count}', String(selectedOutfit.items.length))}
                     </ThemedText>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm }}>
                       {sortOutfitItemsByVisualOrder(selectedOutfit.items).map((wardrobeItem) => {
@@ -646,7 +651,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
                     </LinearGradient>
                     <View style={styles.stylistNoteContent}>
                       <ThemedText type="small" style={{ color: colors.accent, fontWeight: '600' }}>
-                        Stylist Note
+                        {t('dfy.lookbook.stylistNote')}
                       </ThemedText>
                       <ThemedText style={{ marginTop: 4, lineHeight: 22 }}>
                         "{selectedOutfit.stylistNote}"
@@ -657,7 +662,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
 
                 <View style={styles.reactionSection}>
                   <ThemedText type="h3" style={{ marginBottom: Spacing.md }}>
-                    What do you think?
+                    {t('dfy.lookbook.whatDoYouThink')}
                   </ThemedText>
                   <View style={styles.reactionButtons}>
                     <Pressable
@@ -673,7 +678,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
                       >
                         <Feather name="heart" size={24} color="#FFFFFF" />
                       </LinearGradient>
-                      <ThemedText type="small" style={{ marginTop: 6 }}>Love</ThemedText>
+                      <ThemedText type="small" style={{ marginTop: 6 }}>{t('dfy.lookbook.love')}</ThemedText>
                     </Pressable>
 
                     <Pressable
@@ -689,7 +694,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
                       >
                         <Feather name="x" size={24} color="#FFFFFF" />
                       </LinearGradient>
-                      <ThemedText type="small" style={{ marginTop: 6 }}>Not me</ThemedText>
+                      <ThemedText type="small" style={{ marginTop: 6 }}>{t('dfy.lookbook.notMe')}</ThemedText>
                     </Pressable>
                   </View>
                 </View>
@@ -697,7 +702,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
                 <View style={[styles.infoNote, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
                   <Feather name="info" size={16} color={theme.tabIconDefault} />
                   <ThemedText type="small" style={{ flex: 1, marginLeft: Spacing.sm, opacity: 0.7 }}>
-                    This is a stylist-led outfit. If you'd like to swap items yourself, consider upgrading to Full Wardrobe Setup.
+                    {t('dfy.lookbook.stylistLedNote')}
                   </ThemedText>
                 </View>
               </>
@@ -720,16 +725,16 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
             <Feather name="arrow-left" size={20} color="#FFFFFF" />
           </Pressable>
-          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>My Lookbook</ThemedText>
+          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{t('dfy.lookbook.title')}</ThemedText>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.emptyState}>
           <Feather name="book-open" size={64} color="rgba(255,255,255,0.3)" />
           <ThemedText type="h3" style={{ color: '#FFFFFF', marginTop: Spacing.lg }}>
-            No lookbook yet
+            {t('dfy.lookbook.noLookbookTitle')}
           </ThemedText>
           <ThemedText style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: Spacing.sm }}>
-            Purchase Occasion Ready to get your personalized 14-day style plan
+            {t('dfy.lookbook.noLookbookMessage')}
           </ThemedText>
         </View>
       </View>
@@ -749,10 +754,10 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
           <Feather name="arrow-left" size={20} color="#FFFFFF" />
         </Pressable>
         <View style={styles.headerCenter}>
-          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>My Lookbook</ThemedText>
+          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{t('dfy.lookbook.title')}</ThemedText>
           <View style={[styles.daysRemainingBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
             <ThemedText type="caption" style={{ color: '#FFFFFF' }}>
-              {getDaysRemaining()} days left
+              {t('dfy.lookbook.daysLeft').replace('{count}', String(getDaysRemaining()))}
             </ThemedText>
           </View>
         </View>
@@ -774,7 +779,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
           />
         </View>
         <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
-          Day {currentDay} of 14
+          {t('dfy.lookbook.dayOf').replace('{day}', String(currentDay)).replace('{total}', '14')}
         </ThemedText>
       </View>
 
@@ -782,7 +787,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         <View style={[styles.generatingBanner, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
           <ActivityIndicator color="#FFFFFF" size="small" />
           <ThemedText type="small" style={{ color: '#FFFFFF', marginLeft: Spacing.sm }}>
-            Filling in your remaining days from your wardrobe...
+            {t('dfy.lookbook.fillingDays')}
           </ThemedText>
         </View>
       )}
@@ -814,7 +819,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
             >
               <Feather name="refresh-cw" size={14} color="rgba(255,255,255,0.7)" />
               <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.7)', marginLeft: Spacing.xs }}>
-                Refresh outfits from wardrobe
+                {t('dfy.lookbook.refreshOutfits')}
               </ThemedText>
             </Pressable>
           ) : null
@@ -827,7 +832,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         visible={showSavePrompt}
         intent={savePromptIntent}
         wardrobeItemIds={selectedOutfit?.items?.map((item) => String(item.id)) || ['lookbook']}
-        defaultTitle={selectedOutfit?.title || `Day ${selectedOutfit?.dayNumber || ''} look`}
+        defaultTitle={selectedOutfit?.title || t('dfy.lookbook.dayLookFallback').replace('{day}', String(selectedOutfit?.dayNumber || ''))}
         defaultDescription={selectedOutfit?.description || selectedOutfit?.stylistNote}
         onClose={() => setShowSavePrompt(false)}
         onCustomSave={async ({ name, description }) => {

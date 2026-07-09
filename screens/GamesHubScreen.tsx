@@ -16,6 +16,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type GamesHubScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "GamesHub">;
@@ -89,6 +90,7 @@ const GAMES_ORDER_KEY = "@games_order";
 
 export default function GamesHubScreen({ navigation }: GamesHubScreenProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { tier } = useSubscription();
   const { user } = useAuth();
   const [gamesOrder, setGamesOrder] = useState<string[]>([]);

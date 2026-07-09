@@ -16,6 +16,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { dfyService, DFYExpiryFlow, DFYAccessStatus } from "@/services/DFYService";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const LUXURY_COLORS = {
   gold: '#C9A87C',
@@ -38,6 +39,7 @@ type DFYExpiryScreenProps = {
 
 export default function DFYExpiryScreen({ navigation }: DFYExpiryScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   
@@ -91,7 +93,7 @@ export default function DFYExpiryScreen({ navigation }: DFYExpiryScreenProps) {
           style={StyleSheet.absoluteFill}
         />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ThemedText style={{ color: '#FFFFFF' }}>Loading...</ThemedText>
+          <ThemedText style={{ color: '#FFFFFF' }}>{t('common.loading')}</ThemedText>
         </View>
       </View>
     );
@@ -124,19 +126,19 @@ export default function DFYExpiryScreen({ navigation }: DFYExpiryScreenProps) {
 
           <ThemedText type="h1" style={styles.title}>
             {isExpired 
-              ? (isLite ? "Your style plan is complete" : "Your styling window has ended")
-              : `${accessStatus.daysRemaining} days remaining`
+              ? (isLite ? t('dfy.expiry.planCompleteLite') : t('dfy.expiry.windowEnded'))
+              : t('dfy.expiry.daysRemaining').replace('{count}', String(accessStatus.daysRemaining))
             }
           </ThemedText>
 
           <ThemedText style={styles.subtitle}>
             {isExpired
               ? (isLite 
-                  ? "I solved this moment. If you want me long-term, I need context."
-                  : "Your wardrobe is saved. Keep your stylist thinking.")
+                  ? t('dfy.expiry.expiredSubtitleLite')
+                  : t('dfy.expiry.expiredSubtitleCore'))
               : (isLite && accessStatus.daysRemaining <= 3
-                  ? "I've been reusing the same pieces because I only styled a capsule."
-                  : "Here's what will happen when your access ends")
+                  ? t('dfy.expiry.warningCapsule')
+                  : t('dfy.expiry.accessEndsNote'))
             }
           </ThemedText>
 
@@ -145,7 +147,7 @@ export default function DFYExpiryScreen({ navigation }: DFYExpiryScreenProps) {
               <View style={styles.sectionHeader}>
                 <Feather name="check-circle" size={20} color={LUXURY_COLORS.emerald} />
                 <ThemedText type="h3" style={styles.sectionTitle}>
-                  What {isExpired ? 'stayed' : 'stays'}
+                  {isExpired ? t('dfy.expiry.whatStayed') : t('dfy.expiry.whatStays')}
                 </ThemedText>
               </View>
               {expiryFlow.whatStays.map((item, index) => (
@@ -160,7 +162,7 @@ export default function DFYExpiryScreen({ navigation }: DFYExpiryScreenProps) {
               <View style={styles.sectionHeader}>
                 <Feather name="x-circle" size={20} color={LUXURY_COLORS.coral} />
                 <ThemedText type="h3" style={styles.sectionTitle}>
-                  What {isExpired ? 'stopped' : 'stops'}
+                  {isExpired ? t('dfy.expiry.whatStopped') : t('dfy.expiry.whatStops')}
                 </ThemedText>
               </View>
               {expiryFlow.whatStops.map((item, index) => (
@@ -181,15 +183,15 @@ export default function DFYExpiryScreen({ navigation }: DFYExpiryScreenProps) {
                 <Feather name="arrow-up-circle" size={24} color={LUXURY_COLORS.midnight} />
                 <View style={styles.upgradeCardContent}>
                   <ThemedText type="h3" style={styles.upgradeCardTitle}>
-                    Build my wardrobe
+                    {t('dfy.expiry.buildWardrobeTitle')}
                   </ThemedText>
                   <ThemedText style={styles.upgradeCardDescription}>
-                    I can get much better if I learn everything you own - once.
+                    {t('dfy.expiry.buildWardrobeDesc')}
                   </ThemedText>
                 </View>
                 <Pressable onPress={handleUpgradeToCore} style={styles.upgradeCardButton}>
                   <ThemedText type="body" style={styles.upgradeCardButtonText}>
-                    Build it
+                    {t('dfy.expiry.buildIt')}
                   </ThemedText>
                 </Pressable>
               </LinearGradient>
@@ -200,10 +202,10 @@ export default function DFYExpiryScreen({ navigation }: DFYExpiryScreenProps) {
             <View style={styles.renewCard}>
               <View style={styles.renewCardContent}>
                 <ThemedText type="h3" style={styles.renewCardTitle}>
-                  Keep my stylist active
+                  {t('dfy.expiry.keepStylistActive')}
                 </ThemedText>
                 <ThemedText style={styles.renewCardDescription}>
-                  Your wardrobe is saved. Subscription keeps your stylist thinking.
+                  {t('dfy.expiry.keepStylistDesc')}
                 </ThemedText>
               </View>
               <Pressable onPress={handleRenew} style={styles.renewButton}>
@@ -212,7 +214,7 @@ export default function DFYExpiryScreen({ navigation }: DFYExpiryScreenProps) {
                   style={styles.renewButtonGradient}
                 >
                   <ThemedText type="body" style={styles.renewButtonText}>
-                    Subscribe
+                    {t('dfy.expiry.subscribe')}
                   </ThemedText>
                 </LinearGradient>
               </Pressable>

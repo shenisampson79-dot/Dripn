@@ -11,6 +11,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { LinearGradient } from "expo-linear-gradient";
 import apiService from "@/services/ApiService";
 import type { DiscoverStackParamList } from "@/navigation/DiscoverStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type CulturalStyleScreenProps = {
   navigation: NativeStackNavigationProp<DiscoverStackParamList, "CulturalStyle">;
@@ -67,6 +68,7 @@ const DRESS_CODE_ICONS: Record<string, string> = {
 
 export default function CulturalStyleScreen({ navigation }: CulturalStyleScreenProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [styleData, setStyleData] = useState<CulturalStyleData | null>(null);

@@ -41,6 +41,7 @@ import {
   outfitIndexForDay,
   type DfyStylePlanParams,
 } from "@/utils/dfyNavigation";
+import { useTranslations } from "@/contexts/TranslationContext";
 import {
   getDfyCoreFeaturePaywallCopy,
   type DfyCoreFeature,
@@ -72,6 +73,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
   const route = useRoute();
   const routeParams = route.params as DfyStylePlanParams | undefined;
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const { showToast } = useToast();
   const { items: wardrobeItems } = useWardrobe();
@@ -605,7 +607,7 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
               </ThemedText>
               <TextInput
                 style={styles.adjustInput}
-                placeholder="e.g., Can I wear this with flats instead?"
+                placeholder={t('dfy.egCanIWearThisWithFlatsInstead') || "e.g., Can I wear this with flats instead?"}
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 value={adjustmentText}
                 onChangeText={setAdjustmentText}

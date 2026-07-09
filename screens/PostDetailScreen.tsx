@@ -21,6 +21,7 @@ import { getAIFashionAdvice, getComparisonAdvice, AIAdviceResult } from "@/servi
 import { sharePost, generateHashtags } from "@/services/SharingService";
 import { VoiceCommentInput, VoiceCommentPlayer } from "@/components/VoiceCommentInput";
 import type { HomeStackParamList } from "@/navigation/HomeStackNavigator";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 type PostDetailScreenProps = {
   navigation: NativeStackNavigationProp<HomeStackParamList, "PostDetail">;
@@ -33,6 +34,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
   const { postId } = route.params;
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const { posts, getPostComments, addComment, votePost, voteComparison, thankPost, updatePost } = usePosts();
   const { tier, canRequestAIAdvice, incrementAIAdvice, canRecordVoice, incrementVoiceComment } = useSubscription();
@@ -141,7 +143,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
 
   const handleComparisonVote = async (mediaId: string) => {
     if (isPollExpired) {
-      Alert.alert("Poll Closed", "This poll has ended and voting is no longer available.");
+      Alert.alert(t('community.pollClosed') || "Poll Closed", t('community.thisPollHasEndedAndVotingIsNoLongerAvail') || "This poll has ended and voting is no longer available.");
       return;
     }
     await voteComparison(postId, mediaId);
@@ -152,9 +154,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
     if (!post) return;
 
     if (!canRequestAIAdvice()) {
-      Alert.alert(
-        "Stylist Advice Limit Reached",
-        "You've used all your stylist advice requests this month. Upgrade your plan for unlimited styling advice.",
+      Alert.alert(t('community.stylistAdviceLimitReached') || "Stylist Advice Limit Reached", t('community.you') || "You"ve used all your stylist advice requests this month. Upgrade your plan for unlimited styling advice.",
         [
           { text: "Maybe Later", style: "cancel" },
           { text: "View Plans", onPress: () => navigation.navigate("Subscription") },
@@ -194,7 +194,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      Alert.alert("Error", "Could not get styling advice. Please try again.");
+      Alert.alert(t('community.error') || "Error", t('community.couldNotGetStylingAdvicePleaseTryAgain') || "Could not get styling advice. Please try again.");
     } finally {
       setIsRequestingAI(false);
     }
@@ -581,7 +581,7 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
                 ]}
                 value={commentText}
                 onChangeText={setCommentText}
-                placeholder="Add your style advice..."
+                placeholder={t('community.addYourStyleAdvice') || "Add your style advice..."}
                 placeholderTextColor={isDark ? "#9BA1A6" : "#687076"}
                 multiline
                 maxLength={500}

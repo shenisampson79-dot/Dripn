@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePosts, PostType, PostMedia, POLL_TIME_FRAMES } from "@/contexts/PostsContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 interface CreatePostScreenProps {
   onClose: () => void;
@@ -23,6 +24,7 @@ interface CreatePostScreenProps {
 export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const { user } = useAuth();
   const { createPost } = usePosts();
   const { 
@@ -61,7 +63,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert("Permission Required", "Please allow access to your photo library to add images.");
+      Alert.alert(t('community.permissionRequired') || "Permission Required", t('community.pleaseAllowAccessToYourPhotoLibraryToAdd') || "Please allow access to your photo library to add images.");
       return;
     }
 
@@ -78,7 +80,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
       const isVideo = asset.type === 'video';
       
       if (isVideo && !limits.canUploadVideo) {
-        Alert.alert("Upgrade Required", "Video uploads are available on Personal Stylist and above.");
+        Alert.alert(t('community.upgradeRequired') || "Upgrade Required", t('community.videoUploadsAreAvailableOnPersonalStylis') || "Video uploads are available on Personal Stylist and above.");
         return;
       }
 
@@ -106,7 +108,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert("Permission Required", "Please allow access to your camera to take photos.");
+      Alert.alert(t('community.permissionRequired') || "Permission Required", t('community.pleaseAllowAccessToYourCameraToTakePhoto') || "Please allow access to your camera to take photos.");
       return;
     }
 
@@ -128,8 +130,8 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
 
   const handleRecordVideo = async () => {
     if (!limits.canUploadVideo) {
-      Alert.alert("Upgrade Required", "Video recording is available on Personal Stylist and above.", [
-        { text: "Cancel", style: "cancel" },
+      Alert.alert(t('community.upgradeRequired') || "Upgrade Required", t('community.videoRecordingIsAvailableOnPersonalStyli') || "Video recording is available on Personal Stylist and above.", [
+        { text: t('common.cancel'), style: "cancel" },
         { text: "Upgrade", onPress: () => onClose() },
       ]);
       return;
@@ -143,7 +145,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert("Permission Required", "Please allow access to your camera to record video.");
+      Alert.alert(t('community.permissionRequired') || "Permission Required", t('community.pleaseAllowAccessToYourCameraToRecordVid') || "Please allow access to your camera to record video.");
       return;
     }
 
@@ -176,7 +178,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
         "Upload Limit Reached", 
         `You've used all ${limits.uploadsPerMonth} uploads this month. Upgrade to get more uploads.`,
         [
-          { text: "Cancel", style: "cancel" },
+          { text: t('common.cancel'), style: "cancel" },
           { text: "Upgrade", onPress: () => onClose() },
         ]
       );
@@ -184,7 +186,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
     }
 
     if (media.length === 0) {
-      Alert.alert("Media Required", "Please add at least one photo or video to your post.");
+      Alert.alert(t('community.mediaRequired') || "Media Required", t('community.pleaseAddAtLeastOnePhotoOrVideoToYourPos') || "Please add at least one photo or video to your post.");
       return;
     }
 
@@ -194,20 +196,20 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
           "Poll Limit Reached", 
           `You've used all ${limits.comparisonPollsPerMonth} comparison polls this month.`,
           [
-            { text: "Cancel", style: "cancel" },
+            { text: t('common.cancel'), style: "cancel" },
             { text: "Upgrade", onPress: () => onClose() },
           ]
         );
         return;
       }
       if (media.length < 2) {
-        Alert.alert("Two Options Required", "Please add at least two options for a comparison poll.");
+        Alert.alert(t('community.twoOptionsRequired') || "Two Options Required", t('community.pleaseAddAtLeastTwoOptionsForAComparison') || "Please add at least two options for a comparison poll.");
         return;
       }
     }
 
     if (!description.trim()) {
-      Alert.alert("Description Required", "Please add a description to your post.");
+      Alert.alert(t('community.descriptionRequired') || "Description Required", t('community.pleaseAddADescriptionToYourPost') || "Please add a description to your post.");
       return;
     }
 
@@ -224,7 +226,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
     }
 
     if (!user) {
-      Alert.alert("Error", "You must be logged in to create a post.");
+      Alert.alert(t('community.error') || "Error", t('community.youMustBeLoggedInToCreateAPost') || "You must be logged in to create a post.");
       return;
     }
 
@@ -269,7 +271,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
     } catch (error) {
-      Alert.alert("Error", "Failed to create post. Please try again.");
+      Alert.alert(t('community.error') || "Error", t('community.failedToCreatePostPleaseTryAgain') || "Failed to create post. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

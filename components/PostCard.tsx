@@ -8,6 +8,7 @@ import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { Post, PostMedia } from "@/contexts/PostsContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -39,6 +40,7 @@ export function PostCard({
   compact = false,
 }: PostCardProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -49,7 +51,7 @@ export function PostCard({
 
     if (days > 0) return `${days}d`;
     if (hours > 0) return `${hours}h`;
-    return "now";
+    return t('community.now') || 'now';
   };
 
   const handleVote = async (voteType: "up" | "down") => {
@@ -155,7 +157,7 @@ export function PostCard({
               ) : null}
               <View style={styles.optionBadge}>
                 <ThemedText type="caption" style={styles.optionText}>
-                  Option {index + 1}
+                  {t('community.option') || 'Option'} {index + 1}
                 </ThemedText>
               </View>
               <Pressable
@@ -164,7 +166,7 @@ export function PostCard({
               >
                 <Feather name="check" size={14} color="#FFFFFF" />
                 <ThemedText type="small" style={styles.voteText}>
-                  Vote ({item.votes || 0})
+                  {t('community.vote') || 'Vote'} ({item.votes || 0})
                 </ThemedText>
               </Pressable>
             </View>
@@ -305,7 +307,7 @@ export function PostCard({
           <View style={styles.aiAdviceHeader}>
             <Feather name="star" size={14} color={theme.link} />
             <ThemedText type="small" style={{ color: theme.link, fontWeight: "600" }}>
-              Style Advice
+              {t('community.styleAdvice') || 'Style Advice'}
             </ThemedText>
           </View>
           <ThemedText type="small" numberOfLines={2} style={styles.aiAdviceText}>
