@@ -397,9 +397,6 @@ function generateAIResponse(
   ];
   
   const offTopicPatterns = [
-    'premier league', 'football score', 'soccer score', 'basketball score', 'baseball score', 
-    'cricket score', 'rugby score', 'tennis score',
-    'who won the', 'who scored', 'championship game', 'cup final', 'league table',
     'politics', 'political', 'election results', 'prime minister', 'government policy', 'parliament',
     'stock market', 'stock price', 'bitcoin price', 'crypto price', 'investment advice', 'trading strategy',
     'weather today', 'weather forecast', 'temperature today', 'will it rain',
