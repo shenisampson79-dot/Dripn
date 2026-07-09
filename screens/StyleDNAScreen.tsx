@@ -3,7 +3,7 @@
  * Proprietary and confidential.
  */
 
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useMemo, useEffect, useState, useLayoutEffect } from "react";
 import { StyleSheet, View, Pressable } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -18,6 +18,7 @@ import { useWardrobe, WardrobeItem, ClothingCategory, ClothingColor, ClothingOcc
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
+import { getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 
 type StyleDNAScreenProps = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, "StyleDNA">;
@@ -146,6 +147,16 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
   const [serverDna, setServerDna] = useState<Array<{ style: string; percentage: number }>>([]);
   const [serverHeadline, setServerHeadline] = useState<string | null>(null);
   const [engagementCount, setEngagementCount] = useState(0);
+
+  useLayoutEffect(() => {
+    navigation.setOptions(
+      getSettingsChildScreenOptions({
+        theme,
+        isDark,
+        title: "Style DNA",
+      }),
+    );
+  }, [navigation, theme, isDark]);
 
   useEffect(() => {
     if (!user) return;
@@ -328,19 +339,6 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
 
   return (
     <ScreenScrollView>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => navigation.goBack()}
-          style={({ pressed }) => [
-            styles.backButton,
-            { backgroundColor: theme.backgroundDefault, opacity: pressed ? 0.8 : 1 },
-          ]}
-        >
-          <Feather name="arrow-left" size={20} color={theme.text} />
-        </Pressable>
-        <ThemedText type="h2">Style DNA</ThemedText>
-      </View>
-
       {!styleAnalysis ? (
         <View style={styles.emptyState}>
           <Feather name="git-branch" size={64} color={theme.tabIconDefault} />
@@ -593,19 +591,6 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.sm,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   emptyState: {
     flex: 1,
     alignItems: "center",

@@ -5,7 +5,7 @@
  * Color Analysis Screen - AI-powered seasonal color analysis from selfie
  */
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { 
   StyleSheet, 
   View, 
@@ -34,6 +34,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useBodyProfile, ColorSeason, SkinToneData } from "@/contexts/BodyProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
+import { getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 import { getRecommendedShades, FoundationBrand, FoundationMatch } from "@/services/FoundationMatchingService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -78,6 +79,20 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
   const [countdown, setCountdown] = useState<number | null>(null);
   const cameraRef = useRef<CameraView>(null);
   const [selectedBrand, setSelectedBrand] = useState<FoundationBrand | 'all'>('all');
+
+  useLayoutEffect(() => {
+    if (showCamera) {
+      navigation.setOptions({ headerShown: false });
+      return;
+    }
+    navigation.setOptions(
+      getSettingsChildScreenOptions({
+        theme,
+        isDark,
+        title: "Color Analysis",
+      }),
+    );
+  }, [navigation, theme, isDark, showCamera]);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -357,9 +372,6 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
 
   return (
     <ScreenScrollView>
-      <ThemedText type="h2" style={styles.title}>
-        Seasonal Color Analysis
-      </ThemedText>
       <ThemedText type="body" style={[styles.subtitle, { color: secondaryTextColor }]}>
         Discover the colors that make you shine based on your natural coloring
       </ThemedText>
@@ -708,9 +720,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  title: {
-    marginBottom: Spacing.xs,
   },
   subtitle: {
     marginBottom: Spacing.xl,

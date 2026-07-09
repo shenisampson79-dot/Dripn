@@ -6,7 +6,7 @@
  * Scans full-body photos to extract measurements and body proportions
  */
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useLayoutEffect } from "react";
 import { 
   StyleSheet, 
   View, 
@@ -34,6 +34,7 @@ import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constant
 import { useTheme } from "@/hooks/useTheme";
 import { useBodyProfile, BodyScanResult, BodyShape } from "@/contexts/BodyProfileContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
+import { getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -85,6 +86,20 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
     waist: "",
     hips: "",
   });
+
+  useLayoutEffect(() => {
+    if (showCamera) {
+      navigation.setOptions({ headerShown: false });
+      return;
+    }
+    navigation.setOptions(
+      getSettingsChildScreenOptions({
+        theme,
+        isDark,
+        title: "Body Profile",
+      }),
+    );
+  }, [navigation, theme, isDark, showCamera]);
 
   const handleTakePhoto = async () => {
     if (!cameraRef.current) return;
@@ -422,7 +437,6 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
         >
           <Feather name="user" size={32} color="#FFFFFF" />
         </LinearGradient>
-        <ThemedText type="h1" style={styles.title}>AI Body Scanner</ThemedText>
         <ThemedText style={[styles.subtitle, { color: theme.tabIconDefault }]}>
           AI-assisted estimates of body proportions from a full-body photo — helpful for fit guidance, not a substitute for professional measuring.
         </ThemedText>

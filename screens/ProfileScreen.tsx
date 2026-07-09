@@ -219,17 +219,43 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     emerald: palette.emerald,
   };
 
-  const styleProfileCardBackground = isDark ? '#FFFFFF' : '#FFFFFF';
-  const styleProfileCardTitleColor = isDark ? LUXURY_COLORS.midnight : theme.text;
-  const styleProfileCardMutedColor = isDark ? '#5A5268' : theme.tabIconDefault;
-  const styleProfileCardChevronColor = isDark ? '#7A7280' : theme.tabIconDefault;
-  const styleProfileCardElevation = {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: isDark ? 0.2 : 0.08,
-    shadowRadius: 8,
-    elevation: isDark ? 4 : 2,
-  };
+  const styleProfileTitleColor = '#FFFFFF';
+  const styleProfileSubtitleColor = 'rgba(255, 255, 255, 0.82)';
+
+  const styleProfileButtonThemes = useMemo(() => {
+    const getCardElevation = (shadowColor: string) => ({
+      shadowColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.35 : 0.14,
+      shadowRadius: 8,
+      elevation: isDark ? 4 : 3,
+    });
+
+    const sharedCard = {
+      gradient: [LUXURY_COLORS.teal, LUXURY_COLORS.emerald] as const,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.22)',
+      titleColor: '#FFFFFF',
+      valueAccentColor: '#FFFFFF',
+      mutedColor: 'rgba(255, 255, 255, 0.72)',
+      chevronColor: 'rgba(255, 255, 255, 0.72)',
+      elevation: getCardElevation(LUXURY_COLORS.teal),
+    };
+
+    return {
+      styleDna: {
+        ...sharedCard,
+        iconGradient: [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const,
+      },
+      colorAnalysis: {
+        ...sharedCard,
+        iconGradient: [LUXURY_COLORS.coral, LUXURY_COLORS.rose] as const,
+      },
+      bodyProfile: {
+        ...sharedCard,
+        iconGradient: [LUXURY_COLORS.teal, LUXURY_COLORS.emerald] as const,
+      },
+    };
+  }, [isDark, palette]);
 
   const voiceCreditsBarBackground = isDark ? 'rgba(13, 11, 9, 0.62)' : 'rgba(26, 22, 18, 0.52)';
   const voiceCreditsBarBorder = 'rgba(255, 255, 255, 0.14)';
@@ -388,12 +414,12 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const getSubscriptionBadgeGradient = (): readonly [string, string] => {
     const tier = normalizeSubscriptionTier(user?.subscriptionTier);
     if (tier === 'stylist_unlimited') {
-      return [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const;
-    }
-    if (tier === 'personal_stylist') {
       return [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const;
     }
-    return [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet] as const;
+    if (tier === 'personal_stylist') {
+      return [LUXURY_COLORS.teal, LUXURY_COLORS.emerald] as const;
+    }
+    return [LUXURY_COLORS.coral, LUXURY_COLORS.berry] as const;
   };
 
   const getContributorBadge = () => {
@@ -457,10 +483,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               </View>
             </LinearGradient>
             <LinearGradient
-              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+              colors={[LUXURY_COLORS.coral, LuxuryColors.deepCoral]}
               style={styles.editAvatarBadge}
             >
-              <Feather name="edit-2" size={10} color={LUXURY_COLORS.midnight} />
+              <Feather name="edit-2" size={10} color="#FFFFFF" />
             </LinearGradient>
           </Pressable>
 
@@ -486,7 +512,9 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
       <View style={styles.actionsSection}>
         <LinearGradient
-          colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+          colors={isDark
+            ? [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold] as const
+            : [LuxuryColors.champagne, '#FAF0E4'] as const}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.upgradeButtonGradient}
@@ -560,8 +588,10 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
 
       <View style={[styles.styleProfileSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
         <View style={styles.styleProfileHeader}>
-          <ThemedText type="h3" style={styles.styleProfileTitle}>{t('profile.yourStyleProfile')}</ThemedText>
-          <ThemedText type="small" style={styles.styleProfileSubtitle}>
+          <ThemedText type="h3" style={[styles.styleProfileTitle, { color: styleProfileTitleColor, fontWeight: '700' }]}>
+            {t('profile.yourStyleProfile')}
+          </ThemedText>
+          <ThemedText type="small" style={[styles.styleProfileSubtitle, { color: styleProfileSubtitleColor }]}>
             {t('profile.styleProfileSubtitle')}
           </ThemedText>
         </View>
@@ -570,104 +600,128 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           <Pressable
             onPress={() => navigation.navigate("StyleDNA")}
             style={({ pressed }) => [
-              styles.styleProfileCard,
-              {
-                backgroundColor: styleProfileCardBackground,
-                borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.06)',
-                ...styleProfileCardElevation,
-                opacity: pressed ? 0.8 : 1,
-              },
+              styles.styleProfileCardPressable,
+              { opacity: pressed ? 0.88 : 1 },
             ]}
           >
             <LinearGradient
-              colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
-              style={styles.styleProfileCardIcon}
+              colors={styleProfileButtonThemes.styleDna.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[
+                styles.styleProfileCard,
+                {
+                  borderColor: styleProfileButtonThemes.styleDna.borderColor,
+                  ...styleProfileButtonThemes.styleDna.elevation,
+                },
+              ]}
             >
-              <Feather name="git-branch" size={20} color="#FFFFFF" />
+              <LinearGradient
+                colors={styleProfileButtonThemes.styleDna.iconGradient}
+                style={styles.styleProfileCardIcon}
+              >
+                <Feather name="git-branch" size={20} color="#FFFFFF" />
+              </LinearGradient>
+              <View style={styles.styleProfileCardContent}>
+                <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileButtonThemes.styleDna.titleColor }]}>{translations.profile.styleDna}</ThemedText>
+                {ownedWardrobeItems.length > 0 ? (
+                  <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.styleDna.valueAccentColor }]}>
+                    {wardrobeDominantStyle || 'AI Analysed'}
+                  </ThemedText>
+                ) : (
+                  <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.styleDna.mutedColor }]}>
+                    Add items to your wardrobe
+                  </ThemedText>
+                )}
+              </View>
+              <Feather name="chevron-right" size={18} color={styleProfileButtonThemes.styleDna.chevronColor} />
             </LinearGradient>
-            <View style={styles.styleProfileCardContent}>
-              <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileCardTitleColor }]}>{translations.profile.styleDna}</ThemedText>
-              {ownedWardrobeItems.length > 0 ? (
-                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.teal }]}>
-                  {wardrobeDominantStyle || 'AI Analysed'}
-                </ThemedText>
-              ) : (
-                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileCardMutedColor }]}>
-                  Add items to your wardrobe
-                </ThemedText>
-              )}
-            </View>
-            <Feather name="chevron-right" size={18} color={styleProfileCardChevronColor} />
           </Pressable>
 
           <Pressable
             onPress={() => navigation.navigate("ColorAnalysis")}
             style={({ pressed }) => [
-              styles.styleProfileCard,
-              {
-                backgroundColor: styleProfileCardBackground,
-                borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.06)',
-                ...styleProfileCardElevation,
-                opacity: pressed ? 0.8 : 1,
-              },
+              styles.styleProfileCardPressable,
+              { opacity: pressed ? 0.88 : 1 },
             ]}
           >
             <LinearGradient
-              colors={[LUXURY_COLORS.coral, LUXURY_COLORS.rose]}
-              style={styles.styleProfileCardIcon}
+              colors={styleProfileButtonThemes.colorAnalysis.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[
+                styles.styleProfileCard,
+                {
+                  borderColor: styleProfileButtonThemes.colorAnalysis.borderColor,
+                  ...styleProfileButtonThemes.colorAnalysis.elevation,
+                },
+              ]}
             >
-              <Feather name="droplet" size={20} color="#FFFFFF" />
+              <LinearGradient
+                colors={styleProfileButtonThemes.colorAnalysis.iconGradient}
+                style={styles.styleProfileCardIcon}
+              >
+                <Feather name="droplet" size={20} color="#FFFFFF" />
+              </LinearGradient>
+              <View style={styles.styleProfileCardContent}>
+                <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileButtonThemes.colorAnalysis.titleColor }]}>{translations.profile.colorAnalysis}</ThemedText>
+                {hasColorAnalysis && bodyProfile?.colorSeason ? (
+                  <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.colorAnalysis.valueAccentColor }]}>
+                    {bodyProfile.colorSeason.season.charAt(0).toUpperCase() + bodyProfile.colorSeason.season.slice(1)}{bodyProfile.colorSeason.subtype ? ` · ${bodyProfile.colorSeason.subtype}` : ''}
+                  </ThemedText>
+                ) : user?.skinUndertone ? (
+                  <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.colorAnalysis.valueAccentColor }]}>
+                    {user.skinUndertone.charAt(0).toUpperCase() + user.skinUndertone.slice(1)} undertone
+                  </ThemedText>
+                ) : (
+                  <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.colorAnalysis.mutedColor }]}>
+                    Take a selfie to discover your season
+                  </ThemedText>
+                )}
+              </View>
+              <Feather name="chevron-right" size={18} color={styleProfileButtonThemes.colorAnalysis.chevronColor} />
             </LinearGradient>
-            <View style={styles.styleProfileCardContent}>
-              <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileCardTitleColor }]}>{translations.profile.colorAnalysis}</ThemedText>
-              {hasColorAnalysis && bodyProfile?.colorSeason ? (
-                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.teal }]}>
-                  {bodyProfile.colorSeason.season.charAt(0).toUpperCase() + bodyProfile.colorSeason.season.slice(1)}{bodyProfile.colorSeason.subtype ? ` · ${bodyProfile.colorSeason.subtype}` : ''}
-                </ThemedText>
-              ) : user?.skinUndertone ? (
-                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.teal }]}>
-                  {user.skinUndertone.charAt(0).toUpperCase() + user.skinUndertone.slice(1)} undertone
-                </ThemedText>
-              ) : (
-                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileCardMutedColor }]}>
-                  Take a selfie to discover your season
-                </ThemedText>
-              )}
-            </View>
-            <Feather name="chevron-right" size={18} color={styleProfileCardChevronColor} />
           </Pressable>
 
           <Pressable
             onPress={() => navigation.navigate("BodyScanner")}
             style={({ pressed }) => [
-              styles.styleProfileCard,
-              {
-                backgroundColor: styleProfileCardBackground,
-                borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.06)',
-                ...styleProfileCardElevation,
-                opacity: pressed ? 0.8 : 1,
-              },
+              styles.styleProfileCardPressable,
+              { opacity: pressed ? 0.88 : 1 },
             ]}
           >
             <LinearGradient
-              colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
-              style={styles.styleProfileCardIcon}
+              colors={styleProfileButtonThemes.bodyProfile.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[
+                styles.styleProfileCard,
+                {
+                  borderColor: styleProfileButtonThemes.bodyProfile.borderColor,
+                  ...styleProfileButtonThemes.bodyProfile.elevation,
+                },
+              ]}
             >
-              <Feather name="maximize" size={20} color="#FFFFFF" />
+              <LinearGradient
+                colors={styleProfileButtonThemes.bodyProfile.iconGradient}
+                style={styles.styleProfileCardIcon}
+              >
+                <Feather name="maximize" size={20} color="#FFFFFF" />
+              </LinearGradient>
+              <View style={styles.styleProfileCardContent}>
+                <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileButtonThemes.bodyProfile.titleColor }]}>{translations.profile.bodyProfile}</ThemedText>
+                {(hasBodyProfile && bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown') || (user?.bodyShape && String(user.bodyShape) !== 'unknown') ? (
+                  <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.bodyProfile.valueAccentColor }]}>
+                    {((bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown' ? bodyProfile.bodyShape : user?.bodyShape) as string || '').split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} shape
+                  </ThemedText>
+                ) : (
+                  <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.bodyProfile.mutedColor }]}>
+                    Scan or enter your measurements
+                  </ThemedText>
+                )}
+              </View>
+              <Feather name="chevron-right" size={18} color={styleProfileButtonThemes.bodyProfile.chevronColor} />
             </LinearGradient>
-            <View style={styles.styleProfileCardContent}>
-              <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileCardTitleColor }]}>{translations.profile.bodyProfile}</ThemedText>
-              {(hasBodyProfile && bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown') || (user?.bodyShape && String(user.bodyShape) !== 'unknown') ? (
-                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: LUXURY_COLORS.teal }]}>
-                  {((bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown' ? bodyProfile.bodyShape : user?.bodyShape) as string || '').split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} shape
-                </ThemedText>
-              ) : (
-                <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileCardMutedColor }]}>
-                  Scan or enter your measurements
-                </ThemedText>
-              )}
-            </View>
-            <Feather name="chevron-right" size={18} color={styleProfileCardChevronColor} />
           </Pressable>
         </View>
 
@@ -1033,11 +1087,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   styleProfileSubtitle: {
-    opacity: 0.7,
-    lineHeight: 18,
+    lineHeight: 20,
+    fontWeight: '400',
   },
   styleProfileCards: {
     gap: Spacing.sm,
+  },
+  styleProfileCardPressable: {
+    borderRadius: BorderRadius.lg,
   },
   styleProfileCard: {
     flexDirection: 'row',
@@ -1089,6 +1146,10 @@ const styles = StyleSheet.create({
   upgradeButtonText: {
     color: LuxuryColors.midnight,
     fontWeight: "700",
+  },
+  upgradeButtonTextLight: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   savedOutfitsSectionHeader: {
     flexDirection: 'row',
