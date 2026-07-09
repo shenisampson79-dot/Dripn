@@ -32,7 +32,7 @@ import { Spacing, BorderRadius } from '@/constants/theme';
 
 import { useTheme } from '@/hooks/useTheme';
 
-import { useVoiceCredits } from '@/hooks/useVoiceCredits';
+import { useVoiceCredits, isPurchaseCancelledError, getPurchaseErrorMessage } from '@/hooks/useVoiceCredits';
 
 import { getVoicePackDisplay } from '@/utils/voiceCreditPacks';
 
@@ -130,19 +130,17 @@ export function VoiceCreditsPurchaseModal({
 
     } catch (error: unknown) {
 
-      if (error && typeof error === 'object' && 'cancelled' in error && (error as { cancelled?: boolean }).cancelled) {
+      if (isPurchaseCancelledError(error)) {
 
         return;
 
       }
 
-      Alert.alert(
+      const message = getPurchaseErrorMessage(error);
 
-        'Purchase failed',
+      if (!message) return;
 
-        error instanceof Error ? error.message : 'Could not complete purchase. Please try again.',
-
-      );
+      Alert.alert('Purchase failed', message);
 
     }
 

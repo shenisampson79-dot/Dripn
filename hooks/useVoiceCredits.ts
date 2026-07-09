@@ -210,6 +210,90 @@ function getBrowserReturnUrl(result: WebBrowser.WebBrowserResult): string {
 
 
 
+function isVoiceCancelUrl(url: string): boolean {
+
+  return url.includes('cancel') || url.includes('voice-credits/cancel');
+
+}
+
+
+
+function isVoiceSuccessUrl(url: string): boolean {
+
+  return url.includes('success') || url.includes('voice-credits/success');
+
+}
+
+
+
+function throwCancelledPurchase(): never {
+
+  const cancelled = new Error('Purchase cancelled');
+
+  (cancelled as Error & { cancelled?: boolean }).cancelled = true;
+
+  throw cancelled;
+
+}
+
+
+
+export function isPurchaseCancelledError(error: unknown): boolean {
+
+  return !!(error && typeof error === 'object' && 'cancelled' in error && (error as { cancelled?: boolean }).cancelled);
+
+}
+
+
+
+function isTechnicalErrorMessage(message: string): boolean {
+
+  return /undefined|property|cannot read|TypeError|ReferenceError|SyntaxError|stack trace|\.js:\d|\.ts:\d|HTTP\s*\d{3}|status\s*(code)?\s*:?\s*\d{3}/i.test(message);
+
+}
+
+
+
+function isNetworkErrorMessage(message: string): boolean {
+
+  return /network|internet|offline|connection|timeout|failed to fetch|ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND/i.test(message);
+
+}
+
+
+
+export function getPurchaseErrorMessage(error: unknown): string {
+
+  if (isPurchaseCancelledError(error)) return '';
+
+  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+
+  if (message === 'Sign in required') return '';
+
+  if (isNetworkErrorMessage(message)) {
+
+    return 'Connection problem. Check your internet and try again.';
+
+  }
+
+  if (isTechnicalErrorMessage(message)) {
+
+    return "We couldn't complete your purchase. Please try again.";
+
+  }
+
+  if (message.includes('Voice purchase could not be verified')) {
+
+    return message;
+
+  }
+
+  return "We couldn't complete your purchase. Please try again.";
+
+}
+
+
+
 export function formatVoiceUsageLabel(credits: Pick<VoiceCreditsInternal, 'usedThisMonth' | 'monthlyAllowance'> | null): string {
 
   if (!credits || credits.monthlyAllowance <= 0) return '';
@@ -486,7 +570,7 @@ export function useVoiceCredits() {
 
   const refreshBalance = useCallback(() => {
 
-    fetchBalance();
+    return fetchBalance();
 
   }, [fetchBalance]);
 
@@ -552,7 +636,7 @@ export function useVoiceCredits() {
 
       } catch (error: unknown) {
 
-        if (error && typeof error === 'object' && 'cancelled' in error && (error as { cancelled?: boolean }).cancelled) {
+        if (isPurchaseCancelledError(error)) {
 
           throw error;
 
@@ -600,29 +684,67 @@ export function useVoiceCredits() {
 
       const returnUrl = getBrowserReturnUrl(browserResult);
 
-      const sessionId = returnUrl.match(/session_id=([^&]+)/)?.[1] || response.sessionId;
+
+
+      if (isVoiceCancelUrl(returnUrl)) {
+
+        throwCancelledPurchase();
+
+      }
+
+
+
+      if ((browserResult.type === 'dismiss' || browserResult.type === 'cancel') && !isVoiceSuccessUrl(returnUrl)) {
+
+        throwCancelledPurchase();
+
+      }
+
+
+
+      const sessionId = returnUrl.match(/session_id=([^&]+)/)?.[1];
 
 
 
       if (sessionId) {
 
-        const confirm = await apiService.confirmVoiceCreditsPurchase(sessionId);
+        try {
 
-        if (confirm.newBalance) {
+          const confirm = await apiService.confirmVoiceCreditsPurchase(sessionId);
 
-          updateBalance({
+          if (confirm.newBalance) {
 
-            remaining: confirm.newBalance.remaining,
+            updateBalance({
 
-            purchasedCredits: confirm.newBalance.purchasedCredits,
+              remaining: confirm.newBalance.remaining,
 
-            weekendUnlimitedActive: confirm.newBalance.weekendUnlimitedActive,
+              purchasedCredits: confirm.newBalance.purchasedCredits,
 
-            weekendUnlimitedExpiresAt: confirm.newBalance.weekendUnlimitedExpiresAt,
+              weekendUnlimitedActive: confirm.newBalance.weekendUnlimitedActive,
 
-            isUnlimited: confirm.weekendUnlimited || confirm.newBalance.weekendUnlimitedActive,
+              weekendUnlimitedExpiresAt: confirm.newBalance.weekendUnlimitedExpiresAt,
 
-          });
+              isUnlimited: confirm.weekendUnlimited || confirm.newBalance.weekendUnlimitedActive,
+
+            });
+
+          }
+
+
+
+          await refreshBalance();
+
+          return { ...response, ...confirm };
+
+        } catch (error) {
+
+          if (error instanceof Error && error.message === 'Payment not completed') {
+
+            throwCancelledPurchase();
+
+          }
+
+          throw error;
 
         }
 
@@ -630,11 +752,17 @@ export function useVoiceCredits() {
 
 
 
-      await refreshBalance();
-
-      return response;
+      throwCancelledPurchase();
 
     } catch (error) {
+
+      if (isPurchaseCancelledError(error)) {
+
+        await refreshBalance().catch(() => {});
+
+        throw error;
+
+      }
 
       console.error('[useVoiceCredits] Purchase error:', error);
 
