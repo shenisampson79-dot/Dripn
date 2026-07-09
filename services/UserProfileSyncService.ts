@@ -27,6 +27,8 @@ function isFilled(value: unknown): boolean {
   return true;
 }
 
+const EXPLICIT_NULL_CLEARABLE_KEYS = new Set(['avatar']);
+
 function mergeObjectsPreferFilled<T extends Record<string, any>>(
   base: T,
   ...sources: Array<Partial<T> | null | undefined>
@@ -45,6 +47,8 @@ function mergeObjectsPreferFilled<T extends Record<string, any>>(
         !Array.isArray(result[key])
       ) {
         result[key] = mergeObjectsPreferFilled(result[key], value);
+      } else if (value === null && EXPLICIT_NULL_CLEARABLE_KEYS.has(key)) {
+        result[key] = null;
       } else if (isFilled(value)) {
         result[key] = value;
       }

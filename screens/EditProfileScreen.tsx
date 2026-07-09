@@ -162,6 +162,16 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
     }
   };
 
+  const persistAvatarRemoval = async () => {
+    setAvatar(null);
+    await updateProfile({ avatar: null });
+    try {
+      await apiService.updateProfile({ avatarUrl: null });
+    } catch {
+      // Non-fatal — profileData sync still clears avatar in JSON profile
+    }
+  };
+
   const handleRemovePhoto = () => {
     Alert.alert(
       "Remove profile photo?",
@@ -171,7 +181,11 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
         {
           text: "Remove",
           style: "destructive",
-          onPress: () => setAvatar(null),
+          onPress: () => {
+            persistAvatarRemoval().catch(() => {
+              Alert.alert("Error", "Failed to remove profile photo. Please try again.");
+            });
+          },
         },
       ],
     );
@@ -227,7 +241,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
         },
       } as any);
 
-      if (!avatar) {
+      if (!avatar && user?.avatar) {
         try {
           await apiService.updateProfile({ avatarUrl: null });
         } catch {
