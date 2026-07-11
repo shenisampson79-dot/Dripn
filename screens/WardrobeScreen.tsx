@@ -296,8 +296,8 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (items.length < 3) {
       Alert.alert(
-        translations.wardrobe.moreItemsNeeded,
-        translations.wardrobe.addItemsMessage,
+        t('wardrobe.moreItemsNeeded') || 'More Items Needed',
+        t('wardrobe.addItemsMessage') || 'Add at least 3 items to your wardrobe for AI to create outfit combinations.',
         [{ text: translations.common.done }]
       );
       return;
@@ -353,8 +353,8 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
 
   const handleDeleteItem = async (item: WardrobeItem) => {
     Alert.alert(
-      translations.wardrobe.deleteItem,
-      translations.wardrobe.deleteConfirm,
+      t('wardrobe.deleteItem') || 'Delete Item',
+      t('wardrobe.deleteConfirm') || 'Are you sure you want to delete this item?',
       [
         { text: translations.common.cancel, style: "cancel" },
         {
@@ -763,10 +763,10 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         </LinearGradient>
       </LinearGradient>
       <ThemedText type="h2" style={styles.emptyTitle}>
-        {translations.wardrobe.wardrobeAwaits || 'Your wardrobe awaits'}
+        {t('wardrobe.wardrobeAwaits') || 'Your wardrobe awaits'}
       </ThemedText>
       <ThemedText type="body" style={styles.emptyText}>
-        {translations.wardrobe.wardrobeAwaitsDesc || 'Start building your digital closet by adding photos of your favourite pieces'}
+        {t('wardrobe.wardrobeAwaitsDesc') || 'Start building your digital closet by adding photos of your favourite pieces'}
       </ThemedText>
       <LinearGradient
         colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
@@ -777,7 +777,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         <Pressable onPress={handleQuickAdd} style={styles.emptyButtonInner}>
           <Feather name="layers" size={18} color={LUXURY_COLORS.midnight} />
           <ThemedText type="body" style={styles.emptyButtonText}>
-            {translations.wardrobe.quickAddMultiple || 'Bulk Add Items'}
+            {t('wardrobe.quickAddMultiple') || 'Bulk Add Items'}
           </ThemedText>
         </Pressable>
       </LinearGradient>
@@ -787,7 +787,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       >
         <Feather name="plus" size={18} color={LUXURY_COLORS.gold} />
         <ThemedText type="body" style={{ marginLeft: Spacing.sm, color: LUXURY_COLORS.gold }}>
-          {translations.wardrobe.addSingleItem || 'Add Single Item'}
+          {t('wardrobe.addSingleItem') || 'Add Single Item'}
         </ThemedText>
       </Pressable>
     </View>
@@ -945,10 +945,10 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                         <ThemedText type="h3">
                           {selectedItem.lastWorn 
                             ? new Date(selectedItem.lastWorn).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                            : translations.wardrobe.never
-                          }
-                        </ThemedText>
-                        <ThemedText type="caption" style={{ opacity: 0.6 }}>{translations.wardrobe.lastWorn}</ThemedText>
+                            : (t('wardrobe.never') || 'Never')
+                        }
+                      </ThemedText>
+                        <ThemedText type="caption" style={{ opacity: 0.6 }}>{t('wardrobe.lastWorn') || 'Last worn'}</ThemedText>
                       </View>
                     </View>
                   </View>
@@ -1018,7 +1018,9 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                         <Feather name="scissors" size={18} color={theme.textSecondary} />
                       )}
                       <ThemedText type="body" style={{ color: theme.textSecondary, fontWeight: '600' }}>
-                        {isReprocessingBg ? 'Fixing...' : 'Fix Background'}
+                        {isReprocessingBg
+                          ? (t('wardrobe.fixing') || 'Fixing...')
+                          : (t('wardrobe.fixBackground') || 'Fix Background')}
                       </ThemedText>
                     </Pressable>
                   ) : null}
@@ -1029,7 +1031,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                   >
                     <Feather name="trash-2" size={18} color="#FF3B30" />
                     <ThemedText type="body" style={{ color: "#FF3B30", fontWeight: '600' }}>
-                      Delete
+                      {t('wardrobe.deleteItem') || 'Delete'}
                     </ThemedText>
                   </Pressable>
                 </View>
@@ -1107,7 +1109,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{t('wardrobe.myWardrobe')}</ThemedText>
             <View style={[styles.itemCountBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
               <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600' }}>
-                {items.length} {items.length === 1 ? (translations.wardrobe.piece || 'piece') : (translations.wardrobe.pieces || 'pieces')}
+                {items.length} {items.length === 1 ? (t('wardrobe.piece') || 'piece') : (t('wardrobe.pieces') || 'pieces')}
               </ThemedText>
             </View>
           </View>
@@ -1132,8 +1134,8 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               <Feather name="check-square" size={16} color="#FFFFFF" />
               <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '600', marginLeft: Spacing.xs }}>
                 {filteredItems.length > 0 && filteredItems.every((item) => selectedIds.has(String(item.id)))
-                  ? 'Deselect All'
-                  : 'Select All'}
+                  ? (t('wardrobe.deselectAll') || 'Deselect All')
+                  : (t('wardrobe.selectAll') || 'Select All')}
               </ThemedText>
             </Pressable>
             <View style={styles.selectionUtilityActions}>
@@ -1445,7 +1447,10 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     <Feather name="check" size={14} color="#FFFFFF" />
                   </LinearGradient>
                   <ThemedText type="body" style={{ marginLeft: Spacing.sm, fontWeight: '600' }}>
-                    {dfyAccess.tier === 'core' ? 'Full Wardrobe Setup' : 'Occasion Ready'} Active
+                    {dfyAccess.tier === 'core'
+                      ? (t('wardrobe.fullWardrobeSetup') || 'Full Wardrobe Setup')
+                      : (t('wardrobe.occasionReady') || 'Occasion Ready')}{' '}
+                    {t('wardrobe.active') || 'Active'}
                   </ThemedText>
                 </View>
                 <ThemedText type="small" style={{ color: theme.tabIconDefault, marginTop: Spacing.xs }}>

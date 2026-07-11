@@ -287,12 +287,12 @@ interface QuickPrompt {
   icon: keyof typeof Feather.glyphMap;
 }
 
-const QUICK_PROMPTS: QuickPrompt[] = [
-  { id: 'work', label: 'Work Outfit', prompt: 'Suggest a professional outfit for work', icon: 'briefcase' },
-  { id: 'date', label: 'Date Night', prompt: 'Help me put together a date night outfit', icon: 'heart' },
-  { id: 'weekend', label: 'Weekend Look', prompt: 'What casual outfit would you recommend for the weekend?', icon: 'coffee' },
-  { id: 'party', label: 'Party Style', prompt: 'I need an outfit for a party tonight', icon: 'star' },
-  { id: 'color', label: 'Color Advice', prompt: 'What colors go well together from my wardrobe?', icon: 'droplet' },
+const getQuickPrompts = (t: (key: string) => string): QuickPrompt[] => [
+  { id: 'work', label: t('aiStylist.promptWorkOutfit') || 'Work Outfit', prompt: 'Suggest a professional outfit for work', icon: 'briefcase' },
+  { id: 'date', label: t('aiStylist.promptDateNight') || 'Date Night', prompt: 'Help me put together a date night outfit', icon: 'heart' },
+  { id: 'weekend', label: t('aiStylist.promptCasualWeekend') || 'Weekend Look', prompt: 'What casual outfit would you recommend for the weekend?', icon: 'coffee' },
+  { id: 'party', label: t('aiStylist.promptSpecialEvent') || 'Party Style', prompt: 'I need an outfit for a party tonight', icon: 'star' },
+  { id: 'color', label: t('aiStylist.promptColorAdvice') || 'Color Advice', prompt: 'What colors go well together from my wardrobe?', icon: 'droplet' },
 ];
 
 interface MoodInfo {
@@ -1272,6 +1272,7 @@ function messageHasWardrobeVisual(message: ChatMessage): boolean {
 export default function AIStylistScreen() {
   const { theme, isDark } = useTheme();
   const { t, currentLanguage } = useTranslations();
+  const quickPrompts = useMemo(() => getQuickPrompts(t), [t]);
   const { limits, tier } = useSubscription();
   const { items: wardrobeItems } = useWardrobe();
   const { user, actualCountry } = useAuth();
@@ -2833,7 +2834,7 @@ export default function AIStylistScreen() {
         {t('aiStylist.quickSuggestions')}
       </ThemedText>
       <View style={styles.quickPromptsGrid}>
-        {QUICK_PROMPTS.map((prompt) => (
+        {quickPrompts.map((prompt) => (
           <Pressable
             key={prompt.id}
             onPress={() => handleQuickPrompt(prompt.prompt)}
@@ -2937,7 +2938,9 @@ export default function AIStylistScreen() {
               ) : null}
             </View>
             <ThemedText style={[styles.headerSubtitle, { color: theme.tabIconDefault }]}>
-              {chatMode === 'voice' ? 'Voice mode — spoken replies' : 'Stylist Chat'}
+              {chatMode === 'voice'
+                ? (t('aiStylist.voiceModeLabel') || 'Voice mode — spoken replies')
+                : (t('aiStylist.chatModeLabel') || 'Stylist Chat')}
             </ThemedText>
           </View>
         </View>
@@ -3007,7 +3010,7 @@ export default function AIStylistScreen() {
                 { opacity: pressed ? 0.9 : 1 },
               ]}
             >
-              <ThemedText style={styles.upgradeTeaserButtonText}>Upgrade Now</ThemedText>
+              <ThemedText style={styles.upgradeTeaserButtonText}>{t('aiStylist.upgradeNow') || 'Upgrade Now'}</ThemedText>
               <Feather name="arrow-right" size={16} color={stylistGradient[0]} />
             </Pressable>
           </LinearGradient>
@@ -3109,7 +3112,7 @@ export default function AIStylistScreen() {
           <View style={[styles.transcribingContainer, { backgroundColor: theme.backgroundSecondary }]}>
             <ActivityIndicator size="small" color={stylist.color} />
             <ThemedText style={[styles.transcribingText, { color: theme.tabIconDefault }]}>
-              Transcribing your message...
+              {t('aiStylist.transcribing') || 'Transcribing your message...'}
             </ThemedText>
           </View>
         </View>
@@ -3139,7 +3142,7 @@ export default function AIStylistScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.quickPromptsScrollContent}
             >
-              {QUICK_PROMPTS.slice(0, 4).map((prompt) => (
+              {quickPrompts.slice(0, 4).map((prompt) => (
                 <Pressable
                   key={prompt.id}
                   onPress={() => handleQuickPrompt(prompt.prompt)}
@@ -3227,7 +3230,11 @@ export default function AIStylistScreen() {
           <TextInput
             value={inputText}
             onChangeText={setInputText}
-            placeholder={limitReached ? "Daily limit reached - upgrade for more" : "Ask for styling advice..."}
+            placeholder={
+              limitReached
+                ? (t('aiStylist.dailyLimitPlaceholder') || 'Daily limit reached - upgrade for more')
+                : (t('aiStylist.askPlaceholder') || 'Ask for styling advice...')
+            }
             placeholderTextColor={theme.tabIconDefault}
             style={[styles.textInput, { color: theme.text }]}
             multiline

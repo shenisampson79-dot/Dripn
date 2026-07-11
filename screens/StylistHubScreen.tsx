@@ -47,11 +47,11 @@ interface StylistFeature {
   premium?: boolean;
 }
 
-const getFeatures = (t: any): StylistFeature[] => [
+const getFeatures = (t: (key: string) => string): StylistFeature[] => [
   {
     id: "ai-stylist",
-    title: t?.stylistHub?.personalStylist || "Stylist Chat",
-    description: t?.stylistHub?.personalStylistDesc || "Chat, photos & wardrobe advice",
+    title: t('stylistHub.personalStylist') || "Stylist Chat",
+    description: t('stylistHub.personalStylistDesc') || "Chat, photos & wardrobe advice",
     icon: "message-circle",
     screen: "AIStylist",
     gradientKey: "primary",
@@ -59,8 +59,8 @@ const getFeatures = (t: any): StylistFeature[] => [
   },
   {
     id: "outfit-calendar",
-    title: t?.stylistHub?.outfitCalendar || "Outfit Calendar",
-    description: t?.stylistHub?.outfitCalendarDesc || "Plan your looks ahead",
+    title: t('stylistHub.outfitCalendar') || "Outfit Calendar",
+    description: t('stylistHub.outfitCalendarDesc') || "Plan your looks ahead",
     icon: "calendar",
     screen: "OutfitCalendar",
     gradientKey: "cool",
@@ -68,8 +68,8 @@ const getFeatures = (t: any): StylistFeature[] => [
   },
   {
     id: "weather-outfit",
-    title: t?.stylistHub?.weatherOutfits || "Weather Outfits",
-    description: t?.stylistHub?.weatherOutfitsDesc || "Dress for the forecast",
+    title: t('stylistHub.weatherOutfits') || "Weather Outfits",
+    description: t('stylistHub.weatherOutfitsDesc') || "Dress for the forecast",
     icon: "cloud",
     screen: "WeatherOutfit",
     gradientKey: "secondary",
@@ -77,8 +77,8 @@ const getFeatures = (t: any): StylistFeature[] => [
   },
   {
     id: "fashion-blog",
-    title: t?.stylistHub?.blog || "Blog",
-    description: t?.stylistHub?.blogDesc || "Fashion tips & guides",
+    title: t('stylistHub.blog') || "Blog",
+    description: t('stylistHub.blogDesc') || "Fashion tips & guides",
     icon: "book-open",
     screen: "FashionBlog",
     gradientKey: "warm",
@@ -86,8 +86,8 @@ const getFeatures = (t: any): StylistFeature[] => [
   },
   {
     id: "style-rules",
-    title: t?.stylistHub?.styleRules || "Style Rules",
-    description: t?.stylistHub?.styleRulesDesc || "Your personal guidelines",
+    title: t('stylistHub.styleRules') || "Style Rules",
+    description: t('stylistHub.styleRulesDesc') || "Your personal guidelines",
     icon: "list",
     screen: "StyleRules",
     gradientKey: "primary",
@@ -95,8 +95,8 @@ const getFeatures = (t: any): StylistFeature[] => [
   },
   {
     id: "colour-insights",
-    title: "Colour Insights",
-    description: "Discover your palette",
+    title: t('stylistHub.colourInsights') || "Colour Insights",
+    description: t('stylistHub.colourInsightsDesc') || "Discover your palette",
     icon: "droplet",
     screen: "ColourInsights",
     gradientKey: "accent",
@@ -122,11 +122,11 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
   const { theme } = useTheme();
   const { tier, limits } = useSubscription();
   const { palette, colorScheme } = useColorScheme();
-  const { translations } = useTranslations();
+  const { t } = useTranslations();
   const [tilesOrder, setTilesOrder] = useState<string[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  const allFeatures = getFeatures(translations);
+  const allFeatures = getFeatures(t);
   
   useEffect(() => {
     const loadTilesOrder = async () => {
@@ -299,11 +299,13 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
               <View style={styles.tileContent}>
                 <ThemedText type="body" style={styles.tileTitle}>
                   {feature.title}
-                  {feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar ? ' · Unlimited' : ''}
+                  {feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar
+                    ? ` ${t('stylistHub.unlimitedBadge') || '· Unlimited'}`
+                    : ''}
                 </ThemedText>
                 <ThemedText type="caption" style={styles.tileDescription}>
                   {feature.id === 'outfit-calendar' && !limits.canAccessOutfitCalendar
-                    ? 'Plan outfits ahead — Stylist Unlimited'
+                    ? (t('stylistHub.outfitCalendarLockedDesc') || 'Plan outfits ahead — Stylist Unlimited')
                     : feature.description}
                 </ThemedText>
               </View>
@@ -358,7 +360,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
       <ScreenScrollView style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerContent}>
           <View style={{ width: 40 }} />
-          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{translations.stylistHub?.screenTitle || 'Stylist'}</ThemedText>
+          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{t('stylistHub.screenTitle') || 'Stylist'}</ThemedText>
           {/* Edit button hidden for now - re-enable when more features are added */}
           <View style={{ width: 40 }} />
         </View>
@@ -372,10 +374,10 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
             <View style={styles.headerRow}>
               <View>
                 <ThemedText type="h3" style={[styles.title, { color: '#3D3426' }]}>
-                  {translations.stylistHub?.styleToolsTitle || 'Style Tools'}
+                  {t('stylistHub.styleToolsTitle') || 'Style Tools'}
                 </ThemedText>
                 <ThemedText style={[styles.subtitle, { color: '#5A4D3A' }]}>
-                  {translations.stylistHub?.styleToolsSubtitle || 'Chat when you want — we already decided today'}
+                  {t('stylistHub.styleToolsSubtitle') || 'Your personal fashion assistant'}
                 </ThemedText>
               </View>
             </View>
@@ -384,7 +386,7 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
               <View style={[styles.editHint, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
                 <Feather name="info" size={14} color="#FFFFFF" />
                 <ThemedText type="caption" style={{ color: '#FFFFFF', marginLeft: Spacing.xs }}>
-                  {translations.stylistHub?.customizeLayout || 'Long press any tile to customise your layout'}
+                  {t('stylistHub.customizeLayout') || 'Long press any tile to customise your layout'}
                 </ThemedText>
               </View>
             ) : null}

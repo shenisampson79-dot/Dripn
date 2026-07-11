@@ -8,7 +8,7 @@ import * as WebBrowser from "expo-web-browser";
 
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing, BorderRadius, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useReferral } from "@/contexts/ReferralContext";
@@ -18,7 +18,11 @@ import { apiService } from "@/services/ApiService";
 import dfyService, { DFYAccessStatus, DFYTier } from "@/services/DFYService";
 import { useColorScheme, ColorSchemeMode } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
-import { getBillingPlanDisplayName, normalizeSubscriptionTier } from "@/utils/subscriptionTier";
+import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
+import { getLocalizedSubscriptionSubtitle } from "@/utils/subscriptionPlanLabels";
+import { getStyleThemeLabel } from "@/utils/styleThemeLabels";
+import { ALL_COUNTRIES } from "@/constants/countries";
+import { filterCountriesBySearch, getLocalizedCountryName } from "@/utils/countryLocalization";
 import { isDevTestingModeEnabled, setDevTestingModeEnabled } from "@/utils/devTesting";
 import { shouldUseAppleIAP } from "@/utils/platformPayments";
 import { VoiceCreditsPurchaseModal } from "@/components/VoiceCreditsPurchaseModal";
@@ -107,17 +111,6 @@ function SettingItem({
   );
 }
 
-const STYLE_NAMES: Record<StyleTheme, string> = {
-  luxury: "Minimalist",
-  streetwear: "Casual",
-  boho: "Creative",
-  sporty: "Active",
-  "smart-casual": "Smart Casual",
-  business: "Professional",
-  edgy: "Trendsetter",
-};
-
-
 export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScreenProps) {
   const { theme, isDark } = useTheme();
   const { user, logout, updateProfile } = useAuth();
@@ -171,30 +164,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     weekendExpiryLabel,
   } = useVoiceCredits();
 
-  const ALL_COUNTRIES = [
-    "Albania", "Andorra", "Antigua and Barbuda", "Argentina", "Armenia", "Australia",
-    "Austria", "Azerbaijan", "Bahamas", "Bangladesh", "Barbados", "Belarus", "Belgium",
-    "Belize", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Bulgaria",
-    "Canada", "Cayman Islands", "Chile", "China", "Colombia", "Costa Rica", "Croatia",
-    "Cuba", "Curacao", "Cyprus", "Czech Republic", "Denmark", "Dominica", "Dominican Republic",
-    "Ecuador", "Egypt", "El Salvador", "Estonia", "Ethiopia", "Fiji", "Finland", "France",
-    "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guyana", "Haiti",
-    "Honduras", "Hong Kong", "Hungary", "Iceland", "India", "Indonesia", "Ireland", "Israel",
-    "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kuwait", "Latvia",
-    "Lebanon", "Lithuania", "Luxembourg", "Macau", "Malaysia", "Maldives", "Malta", "Mauritius",
-    "Mexico", "Monaco", "Montenegro", "Morocco", "Nepal", "Netherlands", "New Zealand", "Nicaragua",
-    "Nigeria", "North Macedonia", "Norway", "Oman", "Pakistan", "Panama", "Paraguay", "Peru",
-    "Philippines", "Poland", "Portugal", "Puerto Rico", "Qatar", "Romania", "Russia", "Rwanda",
-    "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "San Marino",
-    "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Singapore", "Slovakia", "Slovenia",
-    "South Africa", "South Korea", "Spain", "Sri Lanka", "Sweden", "Switzerland", "Taiwan",
-    "Tanzania", "Thailand", "Trinidad and Tobago", "Tunisia", "Turkey", "UAE", "Uganda", "Ukraine",
-    "United Kingdom", "United States", "Uruguay", "Vatican City", "Venezuela", "Vietnam", "Zambia", "Zimbabwe",
-  ];
-
-  const filteredCountries = ALL_COUNTRIES.filter(c =>
-    c.toLowerCase().includes(countrySearch.toLowerCase())
-  );
+  const filteredCountries = filterCountriesBySearch(ALL_COUNTRIES, countrySearch, currentLanguage);
 
   const handleSelectCountry = async (selectedCountry: string) => {
     setShowCountryPicker(false);
@@ -520,7 +490,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <SettingItem
             icon="credit-card"
             title={t('settings.subscription')}
-            subtitle={`${getBillingPlanDisplayName(user?.subscriptionTier)} Plan`}
+            subtitle={getLocalizedSubscriptionSubtitle(user?.subscriptionTier, t)}
             onPress={() => navigation.navigate("Subscription")}
             theme={theme}
             isDark={isDark}
@@ -553,7 +523,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <SettingItem
             icon="heart"
             title={t('settings.styleTheme')}
-            subtitle={STYLE_NAMES[user?.stylePreference || "luxury"]}
+            subtitle={getStyleThemeLabel(user?.stylePreference, t)}
             onPress={handleChangeStyle}
             theme={theme}
             isDark={isDark}
@@ -571,7 +541,11 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           <SettingItem
             icon="map-pin"
             title={t('settings.country')}
-            subtitle={user?.country || t('settings.notSet')}
+            subtitle={
+              user?.country
+                ? getLocalizedCountryName(user.country, currentLanguage)
+                : t('settings.notSet')
+            }
             onPress={() => setShowCountryPicker(true)}
             theme={theme}
             isDark={isDark}
@@ -1143,7 +1117,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                     user?.country === c && { backgroundColor: LUXURY_COLORS.coral + '20' },
                   ]}
                 >
-                  <ThemedText type="body">{c}</ThemedText>
+                  <ThemedText type="body">{getLocalizedCountryName(c, currentLanguage)}</ThemedText>
                   {user?.country === c ? (
                     <Feather name="check" size={20} color={LUXURY_COLORS.coral} />
                   ) : null}

@@ -23,6 +23,7 @@ import {
 } from "@/utils/wardrobeCategories";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { getStyleThemeLabel } from "@/utils/styleThemeLabels";
 
 const EDGY_FEMALE_IMAGE: ImageSourcePropType = require("../assets/images/styles/edgy/female/default.png");
 const EDGY_MALE_IMAGE: ImageSourcePropType = require("../assets/images/styles/edgy/male/default.png");
@@ -433,7 +434,7 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
                 fontWeight: selectedStyle === style.id ? "700" : "500",
               }}
             >
-              {style.name}
+              {getStyleThemeLabel(style.id, t)}
             </ThemedText>
             {normalizeStyleThemeForGender(user?.stylePreference || (isMale ? 'smart-casual' : 'luxury'), isMale) === style.id ? (
               <View style={[styles.currentBadge, { backgroundColor: selectedStyle === style.id ? "rgba(255,255,255,0.3)" : theme.link }]}>
@@ -461,7 +462,7 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
           />
           
           <View style={styles.styleInfo}>
-            <ThemedText type="h1">{currentStyle.name}</ThemedText>
+            <ThemedText type="h1">{getStyleThemeLabel(currentStyle.id, t)}</ThemedText>
             <ThemedText type="body" style={styles.styleDescription}>
               {currentStyle.detailedDescription}
             </ThemedText>

@@ -16,34 +16,14 @@ import { onboardingProfileService } from "@/services/OnboardingProfileService";
 import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { ALL_COUNTRIES } from "@/constants/countries";
+import { filterCountriesBySearch, getLocalizedCountryName } from "@/utils/countryLocalization";
 
 const GENDER_OPTIONS: { id: Gender; name: string }[] = [
   { id: "woman", name: "Woman" },
   { id: "man", name: "Man" },
   { id: "non-binary", name: "Non-Binary" },
   { id: "prefer-not-to-say", name: "Prefer not to say" },
-];
-
-const ALL_COUNTRIES = [
-  "Albania", "Andorra", "Antigua and Barbuda", "Argentina", "Armenia", "Australia",
-  "Austria", "Azerbaijan", "Bahamas", "Bangladesh", "Barbados", "Belarus", "Belgium",
-  "Belize", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Bulgaria",
-  "Canada", "Cayman Islands", "Chile", "China", "Colombia", "Costa Rica", "Croatia",
-  "Cuba", "Curacao", "Cyprus", "Czech Republic", "Denmark", "Dominica", "Dominican Republic",
-  "Ecuador", "Egypt", "El Salvador", "Estonia", "Ethiopia", "Finland", "France", "Georgia",
-  "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guyana", "Haiti", "Honduras",
-  "Hungary", "Iceland", "India", "Indonesia", "Ireland", "Israel", "Italy", "Jamaica",
-  "Japan", "Kazakhstan", "Kenya", "Kosovo", "Latvia", "Liechtenstein", "Lithuania",
-  "Luxembourg", "Malaysia", "Malta", "Mauritius", "Mexico", "Moldova", "Monaco",
-  "Montenegro", "Morocco", "Namibia", "Netherlands", "New Zealand", "Nicaragua", "Nigeria",
-  "North Macedonia", "Norway", "Pakistan", "Panama", "Paraguay", "Peru", "Philippines",
-  "Poland", "Portugal", "Puerto Rico", "Romania", "Russia", "Saint Kitts and Nevis",
-  "Saint Lucia", "Saint Vincent and the Grenadines", "San Marino", "Saudi Arabia", "Serbia",
-  "Singapore", "Slovakia", "Slovenia", "South Africa", "South Korea", "Spain", "Suriname",
-  "Sweden", "Switzerland", "Taiwan", "Thailand", "Trinidad and Tobago", "Turkey",
-  "Turks and Caicos Islands", "Ukraine", "United Arab Emirates", "United Kingdom",
-  "United States", "Uruguay", "US Virgin Islands", "Vatican City", "Venezuela", "Vietnam",
-  "Zimbabwe",
 ];
 
 type EditProfileScreenProps = {
@@ -103,7 +83,7 @@ const STRICTNESS_OPTIONS: { id: DressCodeStrictness; name: string; description: 
 
 export default function EditProfileScreen({ navigation }: EditProfileScreenProps) {
   const { theme, isDark } = useTheme();
-  const { t } = useTranslations();
+  const { t, currentLanguage } = useTranslations();
   const { user, updateProfile } = useAuth();
 
   const [name, setName] = useState(user?.name || "");
@@ -140,9 +120,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
   const stylists = getAllStylists();
   const selectedStylist = stylists.find((s) => s.id === selectedStylistId);
 
-  const filteredCountries = ALL_COUNTRIES.filter(c =>
-    c.toLowerCase().includes(countrySearch.toLowerCase())
-  );
+  const filteredCountries = filterCountriesBySearch(ALL_COUNTRIES, countrySearch, currentLanguage);
 
   const handlePickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -331,7 +309,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
         >
           <Feather name="map-pin" size={18} color={theme.tabIconDefault} />
           <ThemedText type="body" style={styles.countryText}>
-            {country}
+            {getLocalizedCountryName(country, currentLanguage)}
           </ThemedText>
           <Feather name="chevron-down" size={18} color={theme.tabIconDefault} />
         </Pressable>
@@ -384,7 +362,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
                   type="body"
                   style={{ color: country === c ? "#FFFFFF" : theme.text }}
                 >
-                  {c}
+                  {getLocalizedCountryName(c, currentLanguage)}
                 </ThemedText>
                 {country === c ? (
                   <Feather name="check" size={18} color="#FFFFFF" />

@@ -40,17 +40,17 @@ interface CustomTabBarProps extends BottomTabBarProps {
   onCreatePost: () => void;
 }
 
-const TAB_TRANSLATION_KEYS: Record<string, (nav: any) => string> = {
-  StylistTab: (nav) => nav?.stylist || 'Stylist',
-  WardrobeTab: (nav) => nav?.wardrobe || 'Wardrobe',
-  ProfileTab: (nav) => nav?.profile || 'Profile',
-  SettingsTab: (nav) => nav?.settings || 'Settings',
+const TAB_TRANSLATION_KEYS: Record<string, string> = {
+  StylistTab: 'nav.stylist',
+  WardrobeTab: 'nav.wardrobe',
+  ProfileTab: 'nav.profile',
+  SettingsTab: 'nav.settings',
 };
 
 function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTabBarProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { translations } = useTranslations();
+  const { t } = useTranslations();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   useEffect(() => {
@@ -118,7 +118,7 @@ function CustomTabBar({ state, descriptors, navigation, onCreatePost }: CustomTa
           ]}
           numberOfLines={1}
         >
-          {TAB_TRANSLATION_KEYS[tabConfig.name]?.(translations.nav) ?? tabConfig.label}
+          {t(TAB_TRANSLATION_KEYS[tabConfig.name]) || tabConfig.label}
         </ThemedText>
       </Pressable>
     );

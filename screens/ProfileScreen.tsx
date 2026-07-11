@@ -24,6 +24,7 @@ import { useBodyProfile } from "@/contexts/BodyProfileContext";
 import { useStyleProfile } from "@/contexts/StyleProfileContext";
 import { useWardrobe } from "@/contexts/WardrobeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { getStyleThemeLabel } from "@/utils/styleThemeLabels";
 import { OutfitPiecesVisual, OutfitPieceVisual } from "@/components/OutfitPiecesVisual";
 import { SavedOutfitsTable } from "@/components/outfit/SavedOutfitsTable";
 import { SavedOutfitDetailModal } from "@/components/outfit/SavedOutfitDetailModal";
@@ -104,8 +105,13 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
       formal: ['luxury','business','smart-casual'],
     };
     const STYLE_LABELS: Record<string, string> = {
-      luxury: 'Minimalist', streetwear: 'Casual', boho: 'Creative',
-      sporty: 'Active', 'smart-casual': 'Smart Casual', business: 'Professional', edgy: 'Trendsetter',
+      luxury: getStyleThemeLabel('luxury', t),
+      streetwear: getStyleThemeLabel('streetwear', t),
+      boho: getStyleThemeLabel('boho', t),
+      sporty: getStyleThemeLabel('sporty', t),
+      'smart-casual': getStyleThemeLabel('smart-casual', t),
+      business: getStyleThemeLabel('business', t),
+      edgy: getStyleThemeLabel('edgy', t),
     };
     const scores: Record<string, number> = { luxury:0, streetwear:0, boho:0, sporty:0, 'smart-casual':0, business:0, edgy:0 };
     for (const item of ownedWardrobeItems) {
@@ -114,7 +120,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     }
     const top = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
     return top ? STYLE_LABELS[top[0]] || top[0] : null;
-  }, [ownedWardrobeItems]);
+  }, [ownedWardrobeItems, t]);
 
   // Sync onboarding body data into BodyProfileContext if not yet stored
   useEffect(() => {
@@ -442,7 +448,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const subscriptionTierLabel = getTierFeaturesDisplayName(user?.subscriptionTier);
 
   const tabConfig = [
-    { key: 'outfits', label: translations.profile.savedOutfits || 'Saved Outfits', icon: 'bookmark', color: LUXURY_COLORS.gold },
+    { key: 'outfits', label: t('profile.savedOutfits') || 'Saved Outfits', icon: 'bookmark', color: LUXURY_COLORS.gold },
   ];
 
   const headerGradientColors: readonly [string, string, string] = colorScheme === 'minimalist' 
@@ -491,7 +497,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           </Pressable>
 
           <ThemedText type="h2" style={[styles.userName, { color: '#FFFFFF' }]}>
-            {user?.name || translations.profile.guestUser}
+            {user?.name || t('profile.guestUser') || 'Guest User'}
           </ThemedText>
 
           <View style={styles.badgesContainer}>
@@ -525,7 +531,9 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           >
             <Feather name="zap" size={18} color={LUXURY_COLORS.midnight} />
             <ThemedText type="body" style={styles.upgradeButtonText}>
-              {user?.subscriptionTier === "free" ? translations.profile.upgradeToPersonal : translations.profile.manageSubscription}
+              {user?.subscriptionTier === "free"
+                ? (t('profile.upgradeToPersonal') || 'Upgrade to Personal Stylist')
+                : (t('profile.manageSubscription') || 'Manage Subscription')}
             </ThemedText>
           </Pressable>
         </LinearGradient>
@@ -550,11 +558,13 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             </LinearGradient>
             <View style={styles.voiceCreditsContent}>
               <ThemedText type="body" style={{ fontWeight: '600', color: voiceCreditsTitleColor }}>
-                {shouldShowBuyPacks ? 'Top up voice replies' : 'Voice replies'}
+                {shouldShowBuyPacks
+                  ? (t('profile.topUpVoiceReplies') || 'Top up voice replies')
+                  : (t('profile.voiceReplies') || 'Voice replies')}
               </ThemedText>
               <ThemedText type="small" style={{ color: voiceCreditsSubtitleColor }}>
                 {voiceCreditsLoading
-                  ? 'Loading balance…'
+                  ? (t('profile.loadingBalance') || 'Loading balance…')
                   : weekendUnlimitedActive
                     ? `Weekend voice active — expires ${weekendExpiryLabel}`
                     : usageLabel
@@ -579,7 +589,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
             >
               <Feather name="bar-chart-2" size={18} color={LUXURY_COLORS.gold} />
               <ThemedText type="body" style={{ color: LUXURY_COLORS.gold, fontWeight: '600' }}>
-                {translations.profile.adminDashboard || 'Admin Dashboard'}
+                {t('profile.adminDashboard') || 'Admin Dashboard'}
               </ThemedText>
             </Pressable>
           </LinearGradient>
@@ -623,14 +633,14 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 <Feather name="git-branch" size={20} color="#FFFFFF" />
               </LinearGradient>
               <View style={styles.styleProfileCardContent}>
-                <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileButtonThemes.styleDna.titleColor }]}>{translations.profile.styleDna}</ThemedText>
+                <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileButtonThemes.styleDna.titleColor }]}>{t('profile.styleDna') || 'Style DNA'}</ThemedText>
                 {ownedWardrobeItems.length > 0 ? (
                   <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.styleDna.valueAccentColor }]}>
                     {wardrobeDominantStyle || 'AI Analysed'}
                   </ThemedText>
                 ) : (
                   <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.styleDna.mutedColor }]}>
-                    Add items to your wardrobe
+                    {t('profile.addItemsToWardrobe') || 'Add items to your wardrobe'}
                   </ThemedText>
                 )}
               </View>
@@ -664,7 +674,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 <Feather name="droplet" size={20} color="#FFFFFF" />
               </LinearGradient>
               <View style={styles.styleProfileCardContent}>
-                <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileButtonThemes.colorAnalysis.titleColor }]}>{translations.profile.colorAnalysis}</ThemedText>
+                <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileButtonThemes.colorAnalysis.titleColor }]}>{t('profile.colorAnalysis') || 'Color Analysis'}</ThemedText>
                 {hasColorAnalysis && bodyProfile?.colorSeason ? (
                   <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.colorAnalysis.valueAccentColor }]}>
                     {bodyProfile.colorSeason.season.charAt(0).toUpperCase() + bodyProfile.colorSeason.season.slice(1)}{bodyProfile.colorSeason.subtype ? ` · ${bodyProfile.colorSeason.subtype}` : ''}
@@ -675,7 +685,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                   </ThemedText>
                 ) : (
                   <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.colorAnalysis.mutedColor }]}>
-                    Take a selfie to discover your season
+                    {t('profile.takeSelfieSeason') || 'Take a selfie to discover your season'}
                   </ThemedText>
                 )}
               </View>
@@ -709,14 +719,14 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 <Feather name="maximize" size={20} color="#FFFFFF" />
               </LinearGradient>
               <View style={styles.styleProfileCardContent}>
-                <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileButtonThemes.bodyProfile.titleColor }]}>{translations.profile.bodyProfile}</ThemedText>
+                <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileButtonThemes.bodyProfile.titleColor }]}>{t('profile.bodyProfile') || 'Body Profile'}</ThemedText>
                 {(hasBodyProfile && bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown') || (user?.bodyShape && String(user.bodyShape) !== 'unknown') ? (
                   <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.bodyProfile.valueAccentColor }]}>
                     {((bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown' ? bodyProfile.bodyShape : user?.bodyShape) as string || '').split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} shape
                   </ThemedText>
                 ) : (
                   <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.bodyProfile.mutedColor }]}>
-                    Scan or enter your measurements
+                    {t('profile.scanOrEnterMeasurements') || 'Scan or enter your measurements'}
                   </ThemedText>
                 )}
               </View>
@@ -736,7 +746,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                   : !hasColorAnalysis && user?.skinUndertone
                     ? `You have a ${user.skinUndertone} undertone — take a colour selfie to discover your full season.`
                     : !hasColorAnalysis
-                      ? 'Take a selfie in the Colour Analysis screen to discover your colour season.'
+                      ? (t('profile.colourSeasonTip') || 'Take a selfie in the Colour Analysis screen to discover your colour season.')
                       : 'Add your body measurements in Body Profile to get perfectly tailored recommendations.'}
             </ThemedText>
           </View>
@@ -816,7 +826,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 >
                   <Feather name="book-open" size={10} color="#FFFFFF" />
                   <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10 }}>
-                    My Lookbook · Day {selectedLookbookOutfit.dayNumber}
+                    {(t('profile.myLookbookDay') || 'My Lookbook · Day {day}').replace('{day}', String(selectedLookbookOutfit.dayNumber))}
                   </ThemedText>
                 </LinearGradient>
               </Pressable>
