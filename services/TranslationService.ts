@@ -1,6 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from './ApiService';
-import { LOCAL_TRANSLATION_BUNDLES, UI_FULL_COVERAGE_LANGUAGES, resolveLocaleDirection } from './localeBundles';
+import {
+  LOCAL_TRANSLATION_BUNDLES,
+  LOCAL_LANGUAGE_META,
+  UI_FULL_COVERAGE_LANGUAGES,
+  resolveLocaleDirection,
+  resolveLocaleNativeName,
+} from './localeBundles';
 
 const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v4';
 const TRANSLATIONS_LANG_KEY = '@dripn_translations_lang';
@@ -1979,6 +1985,8 @@ const DEFAULT_TRANSLATIONS: Translations = {
     voiceReplies: 'Voice Replies',
     weekendAddedMessage: 'Weekend Added Message',
     weekendVoiceActive: 'Weekend Voice Active',
+    languageUpdatedLocally: 'Language updated on this device. Will sync when online.',
+    languageChangeFailed: 'Could not change language. Please try again.',
   },
   welcome: {
     alreadyHaveAccount: 'Already have an account? ',
@@ -2007,19 +2015,40 @@ class TranslationServiceClass {
   private currentLang: string = 'en';
   private availableLanguages: Array<{ code: string; name: string; nativeName: string; direction: 'ltr' | 'rtl' }> = [];
 
+  /** Flatten nested API payloads and keep dotted string keys as-is. */
+  private normalizeToFlat(input: Record<string, any> | null | undefined): Record<string, string> {
+    if (!input || typeof input !== 'object') return {};
+    const result: Record<string, string> = {};
+    for (const key of Object.keys(input)) {
+      const val = input[key];
+      if (typeof val === 'string') {
+        result[key] = val;
+      } else if (val && typeof val === 'object' && !Array.isArray(val)) {
+        Object.assign(result, this.flattenTranslations(val, key));
+      }
+    }
+    return result;
+  }
+
+  private applyFlatTranslations(flat: Record<string, string>, langCode: string, direction?: 'ltr' | 'rtl'): Translations {
+    const merged = this.mergeTranslations(flat, langCode);
+    merged.localeInfo.direction = direction || resolveLocaleDirection(langCode);
+    merged.localeInfo.language = resolveLocaleNativeName(langCode);
+    this.translations = merged;
+    this.currentLang = langCode;
+    return merged;
+  }
+
   async fetchCurrentLanguage(): Promise<Translations> {
     try {
       const response = await apiService.getCurrentLanguage();
       const langCode = response.languageCode;
       const localFlat = LOCAL_TRANSLATIONS[langCode] || {};
-      const combined = { ...localFlat, ...response.translations };
-      const merged = this.mergeTranslations(combined, langCode);
-      merged.localeInfo.direction = response.direction;
-      
-      this.translations = merged;
-      this.currentLang = langCode;
+      // Local offline bundles win over API so nested English payloads cannot wipe UI chrome
+      const backendFlat = this.normalizeToFlat(response.translations);
+      const combined = { ...backendFlat, ...localFlat };
+      const merged = this.applyFlatTranslations(combined, langCode, response.direction);
       await this.cacheTranslations(merged, langCode);
-      
       return merged;
     } catch (error) {
       console.log('Failed to fetch current language:', error);
@@ -2029,37 +2058,34 @@ class TranslationServiceClass {
 
   async fetchTranslations(langCode: string): Promise<Translations> {
     const localFlat = LOCAL_TRANSLATIONS[langCode] || {};
+    const hasLocal = Object.keys(localFlat).length > 0;
+
+    // Full-coverage languages: apply local bundle immediately (no network gate)
+    if (hasLocal) {
+      const merged = this.applyFlatTranslations(localFlat, langCode);
+      await this.cacheTranslations(merged, langCode);
+      return merged;
+    }
 
     if (langCode === 'en') {
-      const merged = Object.keys(localFlat).length
-        ? this.mergeTranslations(localFlat, 'en')
-        : DEFAULT_TRANSLATIONS;
-      this.translations = merged;
+      this.translations = DEFAULT_TRANSLATIONS;
       this.currentLang = 'en';
-      await this.cacheTranslations(merged, 'en');
-      return merged;
+      await this.cacheTranslations(DEFAULT_TRANSLATIONS, 'en');
+      return DEFAULT_TRANSLATIONS;
     }
 
     try {
       const response = await apiService.getTranslations(langCode);
-      const combined = { ...localFlat, ...response.translations };
-      const merged = this.mergeTranslations(combined, langCode);
-      merged.localeInfo.direction = response.direction;
-      merged.localeInfo.language = response.nativeName;
-      
-      this.translations = merged;
-      this.currentLang = langCode;
+      const backendFlat = this.normalizeToFlat(response.translations);
+      const merged = this.applyFlatTranslations(backendFlat, langCode, response.direction);
+      if (response.nativeName) {
+        merged.localeInfo.language = response.nativeName;
+      }
       await this.cacheTranslations(merged, langCode);
-      
       return merged;
     } catch (error) {
-      console.log('Translation fetch error, using local bundle:', error);
-      const merged = this.mergeTranslations(localFlat, langCode);
-      merged.localeInfo.direction = resolveLocaleDirection(langCode);
-      this.translations = merged;
-      this.currentLang = langCode;
-      await this.cacheTranslations(merged, langCode);
-      return merged;
+      console.log('Translation fetch error, no local bundle available:', error);
+      throw new Error(`No translations available for language: ${langCode}`);
     }
   }
 
@@ -2067,10 +2093,14 @@ class TranslationServiceClass {
     const flatToNested = (flat: Record<string, any>): Record<string, any> => {
       const result: Record<string, any> = {};
       for (const key in flat) {
+        // Only accept string leaf values — nested objects from a bad merge would overwrite branches
+        if (typeof flat[key] !== 'string') continue;
         const parts = key.split('.');
         let current = result;
         for (let i = 0; i < parts.length - 1; i++) {
-          current[parts[i]] = current[parts[i]] || {};
+          if (typeof current[parts[i]] !== 'object' || current[parts[i]] === null) {
+            current[parts[i]] = {};
+          }
           current = current[parts[i]];
         }
         current[parts[parts.length - 1]] = flat[key];
@@ -2078,14 +2108,14 @@ class TranslationServiceClass {
       return result;
     };
 
-    const nested = flatToNested(backendTranslations);
+    const nested = flatToNested(this.normalizeToFlat(backendTranslations));
 
     const core: Record<string, any> = {
       locale: langCode,
       localeInfo: {
         direction: resolveLocaleDirection(langCode),
         locale: langCode,
-        language: nested.localeInfo?.language || langCode,
+        language: nested.localeInfo?.language || resolveLocaleNativeName(langCode),
       },
       common: { ...DEFAULT_TRANSLATIONS.common, ...nested.common },
       nav: { ...DEFAULT_TRANSLATIONS.nav, ...nested.nav },
@@ -2141,19 +2171,21 @@ class TranslationServiceClass {
   }
 
   async setLanguage(langCode: string): Promise<{ success: boolean; backendSaved: boolean }> {
-    // Always fetch and apply translations locally first
+    // Apply bundled (or network) translations first — must not depend on POST /api/language
     await this.fetchTranslations(langCode);
-    
-    // Try to persist to backend (non-blocking)
-    let backendSaved = false;
+    const backendSaved = await this.persistLanguagePreference(langCode);
+    return { success: true, backendSaved };
+  }
+
+  /** Persist preferred language for stylist chat; failures are non-fatal for UI chrome. */
+  async persistLanguagePreference(langCode: string): Promise<boolean> {
     try {
       await apiService.setLanguage({ languageCode: langCode });
-      backendSaved = true;
+      return true;
     } catch (error) {
       console.log('Failed to persist language to backend (will use local):', error);
+      return false;
     }
-    
-    return { success: true, backendSaved };
   }
 
   async syncLanguageFromAccent(accent: string): Promise<void> {
@@ -2170,55 +2202,54 @@ class TranslationServiceClass {
       return this.availableLanguages;
     }
 
+    const localList = LOCAL_LANGUAGE_META.map((lang) => ({ ...lang }));
+    const byCode = new Map(localList.map((lang) => [lang.code, lang]));
+
     try {
       const response = await apiService.getLanguages();
-      this.availableLanguages = response.languages;
-      return this.availableLanguages;
+      for (const lang of response.languages || []) {
+        if (!byCode.has(lang.code)) {
+          byCode.set(lang.code, lang);
+        }
+      }
     } catch (error) {
       console.log('Failed to fetch available languages:', error);
-      return [];
     }
+
+    this.availableLanguages = Array.from(byCode.values());
+    return this.availableLanguages;
   }
 
   async loadCachedTranslations(): Promise<Translations> {
     try {
       const cachedLang = await AsyncStorage.getItem(TRANSLATIONS_LANG_KEY);
       const cached = await AsyncStorage.getItem(TRANSLATIONS_CACHE_KEY);
-      
+
       if (cached && cachedLang) {
         const parsed = JSON.parse(cached);
-        if (cachedLang !== 'en') {
-          const localFlat = LOCAL_TRANSLATIONS[cachedLang] || {};
-          const merged = this.mergeTranslations({ ...localFlat, ...this.flattenTranslations(parsed) }, cachedLang);
-          this.translations = merged;
-        } else if (LOCAL_TRANSLATIONS.en && Object.keys(LOCAL_TRANSLATIONS.en).length) {
-          const merged = this.mergeTranslations(
-            { ...LOCAL_TRANSLATIONS.en, ...this.flattenTranslations(parsed) },
-            'en'
+        const localFlat = LOCAL_TRANSLATIONS[cachedLang] || {};
+        if (Object.keys(localFlat).length > 0) {
+          // Prefer bundled locale over possibly-stale/English-contaminated cache
+          const merged = this.applyFlatTranslations(
+            { ...this.flattenTranslations(parsed), ...localFlat },
+            cachedLang,
+            parsed?.localeInfo?.direction
           );
-          this.translations = merged;
-        } else {
-          this.translations = parsed;
+          return merged;
         }
+        this.translations = parsed;
         this.currentLang = cachedLang;
         return this.translations;
       }
-      
+
       if (cachedLang && cachedLang !== 'en' && LOCAL_TRANSLATIONS[cachedLang]) {
-        const merged = this.mergeTranslations(LOCAL_TRANSLATIONS[cachedLang], cachedLang);
-        merged.localeInfo.direction = resolveLocaleDirection(cachedLang);
-        this.translations = merged;
-        this.currentLang = cachedLang;
-        return merged;
+        return this.applyFlatTranslations(LOCAL_TRANSLATIONS[cachedLang], cachedLang);
       }
     } catch (error) {
       console.log('Failed to load cached translations:', error);
     }
     if (LOCAL_TRANSLATIONS.en && Object.keys(LOCAL_TRANSLATIONS.en).length) {
-      const merged = this.mergeTranslations(LOCAL_TRANSLATIONS.en, 'en');
-      this.translations = merged;
-      this.currentLang = 'en';
-      return merged;
+      return this.applyFlatTranslations(LOCAL_TRANSLATIONS.en, 'en');
     }
     return DEFAULT_TRANSLATIONS;
   }

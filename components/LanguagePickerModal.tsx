@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,6 +22,7 @@ export function LanguagePickerModal({ visible, onClose }: LanguagePickerModalPro
   const { theme, isDark } = useTheme();
   const { t, setLanguage, currentLanguage, availableLanguages, isLoading } = useTranslations();
   const { updateSettings: updateVoiceSettings } = useVoiceSettings();
+  const [selectingCode, setSelectingCode] = useState<string | null>(null);
 
   const languageOptions = useMemo(
     () =>
@@ -35,14 +36,35 @@ export function LanguagePickerModal({ visible, onClose }: LanguagePickerModalPro
   );
 
   const handleSelect = async (langCode: string) => {
-    updateVoiceSettings({ preferredLanguage: langCode });
-    await setLanguage(langCode);
-    onClose();
+    if (selectingCode) return;
+    if (langCode === currentLanguage) {
+      onClose();
+      return;
+    }
+
+    setSelectingCode(langCode);
+    try {
+      // UI chrome first — local bundles apply immediately
+      await setLanguage(langCode);
+      try {
+        await updateVoiceSettings({ preferredLanguage: langCode });
+      } catch (voiceError) {
+        // Voice preference sync must not undo a successful UI language change
+        console.warn("Failed to sync preferredLanguage to voice settings:", voiceError);
+      }
+      onClose();
+    } catch {
+      // Error toast is shown by TranslationContext
+    } finally {
+      setSelectingCode(null);
+    }
   };
+
+  const showInitialLoading = isLoading && languageOptions.length === 0;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.modalOverlay} onPress={onClose}>
+      <Pressable style={styles.modalOverlay} onPress={selectingCode ? undefined : onClose}>
         <View
           style={[
             styles.modalContent,
@@ -64,6 +86,7 @@ export function LanguagePickerModal({ visible, onClose }: LanguagePickerModalPro
               </ThemedText>
               <Pressable
                 onPress={onClose}
+                disabled={!!selectingCode}
                 style={[
                   styles.modalCloseButton,
                   { backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" },
@@ -74,43 +97,50 @@ export function LanguagePickerModal({ visible, onClose }: LanguagePickerModalPro
             </View>
           </LinearGradient>
 
-          {isLoading ? (
+          {showInitialLoading ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator color={LuxuryColors.violet} />
             </View>
           ) : (
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-              {languageOptions.map((lang) => (
-                <Pressable
-                  key={lang.code}
-                  style={({ pressed }) => [
-                    styles.modalOption,
-                    {
-                      backgroundColor: pressed
-                        ? isDark
-                          ? "rgba(255,255,255,0.05)"
-                          : "rgba(0,0,0,0.03)"
-                        : "transparent",
-                    },
-                    currentLanguage === lang.code && {
-                      backgroundColor: LuxuryColors.violet + "20",
-                    },
-                  ]}
-                  onPress={() => handleSelect(lang.code)}
-                >
-                  <View style={{ flex: 1 }}>
-                    <ThemedText type="body" style={styles.modalOptionText}>
-                      {lang.nativeName}
-                    </ThemedText>
-                    <ThemedText type="small" style={styles.modalOptionSubtext}>
-                      {lang.name}
-                    </ThemedText>
-                  </View>
-                  {currentLanguage === lang.code ? (
-                    <Feather name="check" size={20} color={LuxuryColors.violet} />
-                  ) : null}
-                </Pressable>
-              ))}
+              {languageOptions.map((lang) => {
+                const isSelecting = selectingCode === lang.code;
+                const isSelected = currentLanguage === lang.code;
+                return (
+                  <Pressable
+                    key={lang.code}
+                    disabled={!!selectingCode}
+                    style={({ pressed }) => [
+                      styles.modalOption,
+                      {
+                        backgroundColor: pressed
+                          ? isDark
+                            ? "rgba(255,255,255,0.05)"
+                            : "rgba(0,0,0,0.03)"
+                          : "transparent",
+                      },
+                      isSelected && {
+                        backgroundColor: LuxuryColors.violet + "20",
+                      },
+                    ]}
+                    onPress={() => handleSelect(lang.code)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <ThemedText type="body" style={styles.modalOptionText}>
+                        {lang.nativeName}
+                      </ThemedText>
+                      <ThemedText type="small" style={styles.modalOptionSubtext}>
+                        {lang.name}
+                      </ThemedText>
+                    </View>
+                    {isSelecting ? (
+                      <ActivityIndicator size="small" color={LuxuryColors.violet} />
+                    ) : isSelected ? (
+                      <Feather name="check" size={20} color={LuxuryColors.violet} />
+                    ) : null}
+                  </Pressable>
+                );
+              })}
             </ScrollView>
           )}
         </View>

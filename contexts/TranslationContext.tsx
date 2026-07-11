@@ -26,6 +26,8 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const [availableLanguages, setAvailableLanguages] = useState<Array<{ code: string; name: string; nativeName: string; direction: 'ltr' | 'rtl' }>>([]);
   const hasFetchedFromBackend = useRef(false);
+  /** Bumps on every user language change so in-flight backend fetches cannot overwrite the selection. */
+  const languageEpochRef = useRef(0);
 
   useEffect(() => {
     loadInitialData();
@@ -38,9 +40,13 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated]);
 
   const fetchLanguageFromBackend = async () => {
+    const epochAtStart = languageEpochRef.current;
     try {
       hasFetchedFromBackend.current = true;
       const current = await TranslationService.fetchCurrentLanguage();
+      if (epochAtStart !== languageEpochRef.current) {
+        return;
+      }
       setTranslations(current);
       setCurrentLanguage(TranslationService.getCurrentLanguage());
       applyRTL(current.localeInfo.direction === 'rtl');
@@ -54,7 +60,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
       const cached = await TranslationService.loadCachedTranslations();
       setTranslations(cached);
       setCurrentLanguage(TranslationService.getCurrentLanguage());
-      
+
       const langs = await TranslationService.getAvailableLanguages();
       setAvailableLanguages(langs);
     } catch (error) {
@@ -80,22 +86,37 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   };
 
   const setLanguage = async (langCode: string) => {
+    const epoch = ++languageEpochRef.current;
     try {
-      setIsLoading(true);
-      const result = await TranslationService.setLanguage(langCode);
+      // 1) Apply local/network translations into the service
+      await TranslationService.fetchTranslations(langCode);
+      if (epoch !== languageEpochRef.current) {
+        return;
+      }
+
+      // 2) Update React state immediately so Settings chrome switches language
       const newTranslations = TranslationService.getTranslations();
       setTranslations(newTranslations);
       setCurrentLanguage(langCode);
       applyRTL(newTranslations.localeInfo.direction === 'rtl');
-      
-      if (!result.backendSaved && isAuthenticated) {
-        showToast(newTranslations.voiceCredits.languageUpdatedLocally, 'info', 3000);
-      }
+
+      // 3) Sync preferredLanguage for stylist chat in the background
+      void TranslationService.persistLanguagePreference(langCode).then((backendSaved) => {
+        if (epoch !== languageEpochRef.current) return;
+        if (!backendSaved && isAuthenticated) {
+          const msg =
+            newTranslations.voiceCredits?.languageUpdatedLocally ||
+            'Language updated on this device. Sync to account failed — will retry later.';
+          showToast(msg, 'info', 3000);
+        }
+      });
     } catch (error) {
       console.log('Failed to set language:', error);
-      showToast(TranslationService.getTranslations().voiceCredits.languageChangeFailed, 'error', 3000);
-    } finally {
-      setIsLoading(false);
+      const msg =
+        TranslationService.getTranslations().voiceCredits?.languageChangeFailed ||
+        'Could not change language. Please try again.';
+      showToast(msg, 'error', 3000);
+      throw error;
     }
   };
 
@@ -122,7 +143,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   const t = useCallback((key: string): string => {
     const parts = key.split('.');
     let current: any = translations;
-    
+
     for (const part of parts) {
       if (current && typeof current === 'object' && part in current) {
         current = current[part];
@@ -130,7 +151,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
         return '';
       }
     }
-    
+
     return typeof current === 'string' ? current : '';
   }, [translations]);
 
@@ -143,10 +164,10 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <TranslationContext.Provider value={{ 
-      translations, 
-      isLoading, 
-      isRTL, 
+    <TranslationContext.Provider value={{
+      translations,
+      isLoading,
+      isRTL,
       currentLanguage,
       availableLanguages,
       refreshTranslations,

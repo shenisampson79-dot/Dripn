@@ -70,8 +70,45 @@ export const UI_FULL_COVERAGE_LANGUAGES = [
 
 export type FullCoverageLanguage = (typeof UI_FULL_COVERAGE_LANGUAGES)[number];
 
+/** Display metadata for the 19 offline UI languages (picker + localeInfo) */
+export const LOCAL_LANGUAGE_META: Array<{
+  code: FullCoverageLanguage;
+  name: string;
+  nativeName: string;
+  direction: 'ltr' | 'rtl';
+}> = [
+  { code: 'en', name: 'English', nativeName: 'English', direction: 'ltr' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español', direction: 'ltr' },
+  { code: 'fr', name: 'French', nativeName: 'Français', direction: 'ltr' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', direction: 'ltr' },
+  { code: 'it', name: 'Italian', nativeName: 'Italiano', direction: 'ltr' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português', direction: 'ltr' },
+  { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', direction: 'ltr' },
+  { code: 'pl', name: 'Polish', nativeName: 'Polski', direction: 'ltr' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский', direction: 'ltr' },
+  { code: 'zh', name: 'Chinese', nativeName: '中文', direction: 'ltr' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語', direction: 'ltr' },
+  { code: 'ko', name: 'Korean', nativeName: '한국어', direction: 'ltr' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية', direction: 'rtl' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', direction: 'ltr' },
+  { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', direction: 'ltr' },
+  { code: 'sv', name: 'Swedish', nativeName: 'Svenska', direction: 'ltr' },
+  { code: 'da', name: 'Danish', nativeName: 'Dansk', direction: 'ltr' },
+  { code: 'no', name: 'Norwegian', nativeName: 'Norsk', direction: 'ltr' },
+  { code: 'fi', name: 'Finnish', nativeName: 'Suomi', direction: 'ltr' },
+];
+
 const RTL_LANGUAGES = new Set(['ar']);
 
 export function resolveLocaleDirection(langCode: string): 'ltr' | 'rtl' {
   return RTL_LANGUAGES.has(langCode) ? 'rtl' : 'ltr';
+}
+
+export function resolveLocaleNativeName(langCode: string): string {
+  return LOCAL_LANGUAGE_META.find((l) => l.code === langCode)?.nativeName || langCode;
+}
+
+export function hasLocalTranslationBundle(langCode: string): boolean {
+  const bundle = LOCAL_TRANSLATION_BUNDLES[langCode];
+  return !!bundle && Object.keys(bundle).length > 0;
 }

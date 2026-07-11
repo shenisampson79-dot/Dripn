@@ -124,7 +124,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const { referralCode, totalReferrals, bonusAIRequests, shareReferral } = useReferral();
   const { preferences: notificationPrefs, updatePreferences } = useSmartNotifications();
   const { settings: voiceSettings, updateSettings: updateVoiceSettings } = useVoiceSettings();
-  const { setLanguage: setAppLanguage, t, translations, currentLanguage, availableLanguages } = useTranslations();
+  const { t, translations, currentLanguage, availableLanguages } = useTranslations();
   const { colorScheme, setColorScheme, palette } = useColorScheme();
   
   // Admin check — analytics / internal tools
@@ -1158,11 +1158,11 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         visible={showVoiceCreditsModal}
         onClose={() => setShowVoiceCreditsModal(false)}
       />
+      </ScreenScrollView>
       <LanguagePickerModal
         visible={languagePickerVisible}
         onClose={() => setLanguagePickerVisible(false)}
       />
-      </ScreenScrollView>
     </View>
   );
 }
