@@ -105,7 +105,7 @@ export default function ChallengeSubmissionScreen() {
       await submitChallengeEntry(challengeId, imageUri, caption.trim());
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(t('common.entrySubmitted') || "Entry Submitted", t('common.yourOutfitHasBeenSubmittedToTheChallenge') || "Your outfit has been submitted to the challenge. Good luck!",
-        [{ text: "OK", onPress: () => navigation.goBack() }]
+        [{ text: t('common.ok') || "OK", onPress: () => navigation.goBack() }]
       );
     } catch (error) {
       Alert.alert(t('common.error') || "Error", t('common.failedToSubmitEntryPleaseTryAgain') || "Failed to submit entry. Please try again.");

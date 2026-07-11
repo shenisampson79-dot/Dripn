@@ -9,6 +9,7 @@ import DFYStylePlanScreen from "@/screens/DFYStylePlanScreen";
 import DFYUploadScreen from "@/screens/DFYUploadScreen";
 import { HeaderTitle } from "@/components/HeaderTitle";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions, getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 
 export type HomeStackParamList = {
@@ -25,6 +26,7 @@ const Stack = createNativeStackNavigator<HomeStackParamList>();
 
 export default function HomeStackNavigator() {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
 
   return (
     <Stack.Navigator
@@ -43,19 +45,23 @@ export default function HomeStackNavigator() {
         name="PostDetail"
         component={PostDetailScreen}
         options={{
-          title: "Post",
+          title: t('navTitles.post') || "Post",
         }}
       />
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
-        options={getSettingsChildScreenOptions({ theme, isDark, title: "Subscription" })}
+        options={getSettingsChildScreenOptions({
+          theme,
+          isDark,
+          title: t('navTitles.subscription') || t('subscription.screenTitle') || "Subscription",
+        })}
       />
       <Stack.Screen
         name="DFYComparison"
         component={DFYComparisonScreen}
         options={{
-          title: "Choose Your Setup",
+          title: t('navTitles.chooseYourSetup') || "Choose Your Setup",
           headerShown: false,
           presentation: "modal",
         }}
@@ -64,7 +70,7 @@ export default function HomeStackNavigator() {
         name="DFYStart"
         component={DFYStartScreen}
         options={{
-          title: "Stylist Setup",
+          title: t('navTitles.stylistSetup') || "Stylist Setup",
           headerShown: false,
         }}
       />
@@ -72,7 +78,7 @@ export default function HomeStackNavigator() {
         name="DFYUpload"
         component={DFYUploadScreen}
         options={{
-          title: "Upload Wardrobe",
+          title: t('navTitles.uploadWardrobe') || "Upload Wardrobe",
           headerShown: false,
         }}
       />
@@ -80,7 +86,7 @@ export default function HomeStackNavigator() {
         name="DFYStylePlan"
         component={DFYStylePlanScreen}
         options={{
-          title: "Your Style Plan",
+          title: t('navTitles.yourStylePlan') || "Your Style Plan",
           headerShown: false,
         }}
       />

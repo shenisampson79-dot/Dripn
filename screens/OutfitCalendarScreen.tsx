@@ -147,7 +147,7 @@ function StackedOutfitPreview({ outfitItems }: StackedOutfitPreviewProps) {
 
 export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScreenProps) {
   const { theme, isDark } = useTheme();
-  const { translations } = useTranslations();
+  const { t, translations } = useTranslations();
   const { user } = useAuth();
   const { limits } = useSubscription();
   const secondaryTextColor = getSecondaryTextColor(isDark);
@@ -304,7 +304,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
 
   const handleSaveOutfit = async () => {
     if (selectedItems.length === 0) {
-      Alert.alert('No Items Selected', 'Please select at least one item for your outfit.');
+      Alert.alert(t('wardrobe.noItemsSelected'), t('wardrobe.noItemsSelectedOutfit'));
       return;
     }
 
@@ -314,8 +314,8 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
     );
     if (!isCompleteOutfit(completedIds, items)) {
       Alert.alert(
-        'Incomplete Outfit',
-        `Every outfit needs at least ${MIN_OUTFIT_ITEMS} items including shoes or trainers.`,
+        t('wardrobe.incompleteOutfit'),
+        t('wardrobe.incompleteOutfitMessage').replace('{n}', String(MIN_OUTFIT_ITEMS)),
       );
       return;
     }
@@ -341,16 +341,16 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
       setShowAddModal(false);
       setEditingOutfitId(null);
     } catch (error) {
-      Alert.alert('Error', 'Failed to save outfit plan.');
+      Alert.alert(t('common.error'), t('wardrobe.failedToSaveOutfitPlan'));
     }
   };
 
   const handleDeleteOutfit = (id: string) => {
     Alert.alert(t('wardrobe.deleteOutfitPlan') || "Delete Outfit Plan", t('wardrobe.areYouSureYouWantToRemoveThisPlannedOutf') || "Are you sure you want to remove this planned outfit?",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         { 
-          text: 'Delete', 
+          text: t('common.delete'), 
           style: 'destructive',
           onPress: () => deletePlannedOutfit(id)
         },
@@ -361,18 +361,18 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   const handleMarkWorn = async (id: string) => {
     try {
       await markPlannedOutfitWorn(id);
-      Alert.alert('Success', 'Outfit marked as worn! Wear counts updated.');
+      Alert.alert(t('common.success'), t('wardrobe.outfitMarkedWorn'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to mark outfit as worn.');
+      Alert.alert(t('common.error'), t('wardrobe.failedToMarkWorn'));
     }
   };
 
   const handleAICreateOutfits = () => {
     if (!wardrobeCanBuildCompleteOutfit(items)) {
       Alert.alert(
-        "Need More Items",
-        `Add at least ${MIN_OUTFIT_ITEMS} wardrobe items including shoes/trainers, a top, and a bottom for AI to create complete outfits.`,
-        [{ text: "OK" }]
+        t('wardrobe.needMoreItems'),
+        t('wardrobe.needMoreItemsAi').replace('{n}', String(MIN_OUTFIT_ITEMS)),
+        [{ text: t('common.ok') }]
       );
       return;
     }
@@ -443,18 +443,23 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
         }
         const partial = successCount < generatingDays;
         Alert.alert(
-          partial ? "Some Outfits Created" : "Outfits Created!",
+          partial ? t('wardrobe.someOutfitsCreated') : t('wardrobe.outfitsCreated'),
           partial
-            ? `AI created ${successCount} of ${generatingDays} outfits. Tap the marked days on your calendar to view them.`
-            : `AI created ${successCount} outfit${successCount > 1 ? 's' : ''} for the next ${successCount} days.`,
-          [{ text: "View Calendar", onPress: () => firstPlannedDate && setSelectedDate(firstPlannedDate) }]
+            ? t('wardrobe.someOutfitsCreatedMessage')
+                .replace('{success}', String(successCount))
+                .replace('{total}', String(generatingDays))
+            : t('wardrobe.outfitsCreatedMessage').replace('{count}', String(successCount)),
+          [{ text: t('common.viewCalendar'), onPress: () => firstPlannedDate && setSelectedDate(firstPlannedDate) }]
         );
       } else {
-        Alert.alert(t('wardrobe.noOutfitsCreated') || "No Outfits Created", t('wardrobe.aiCouldn') || "AI couldn"t match your wardrobe items. Try again or add more variety to your wardrobe.");
+        Alert.alert(
+          t('wardrobe.noOutfitsCreated') || "No Outfits Created",
+          t('wardrobe.aiCouldntMatchYourWardrobeItems') || "AI couldn't match your wardrobe items. Try again or add more variety to your wardrobe.",
+        );
       }
     } catch (error) {
       console.error('AI outfit generation error:', error);
-      Alert.alert('Error', 'Failed to generate AI outfits. Please try again.');
+      Alert.alert(t('common.error'), t('wardrobe.failedToGenerateAiOutfits'));
     } finally {
       setIsGeneratingAI(false);
       setAiGenerateProgress({ current: 0, total: 0 });

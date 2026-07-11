@@ -155,12 +155,12 @@ export default function SocialStyleSyncScreen({ navigation }: SocialStyleSyncScr
 
     if (account.connected) {
       Alert.alert(
-        "Disconnect Account",
-        `Are you sure you want to disconnect ${account.name}?`,
+        t('socialStyle.disconnectAccount'),
+        t('socialStyle.disconnectConfirm').replace('{name}', account.name),
         [
           { text: t('common.cancel'), style: "cancel" },
           {
-            text: "Disconnect",
+            text: t('common.disconnect'),
             style: "destructive",
             onPress: () => {
               setAccounts(prev =>
@@ -285,7 +285,7 @@ export default function SocialStyleSyncScreen({ navigation }: SocialStyleSyncScr
 
   const handleAnalyzeSaves = async () => {
     if (connectedAccounts.length === 0) {
-      Alert.alert(t('discover.connectAnAccount') || "Connect an Account", t('discover.pleaseConnectAtLeastOneSocialAccountToAn') || "Please connect at least one social account to analyze your saved posts.");
+      Alert.alert(t('discover.connectAnAccount'), t('discover.pleaseConnectAtLeastOneSocialAccountToAn'));
       return;
     }
 

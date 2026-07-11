@@ -369,8 +369,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   }
 
   const showFarewellDialog = (farewell: FarewellResponse | null) => {
-    const message = farewell?.message || "That's all I've got for browsing mode...";
-    const signupPrompt = "Create an account to unlock your personal stylist and save your picks.";
+    const message = farewell?.message || t('decideForMe.browsingDoneTitle');
+    const signupPrompt = t('decideForMe.browsingDoneMessage');
     
     const buttons: any[] = [];
     
@@ -394,8 +394,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       });
     } else {
       buttons.push(
-        { text: "Save my picks", onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "farewell" }) },
-        { text: "Create account", onPress: () => navigation.navigate("Auth", { mode: 'signup' }) }
+        { text: t('common.saveMyPicks'), onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "farewell" }) },
+        { text: t('common.signUp'), onPress: () => navigation.navigate("Auth", { mode: 'signup' }) }
       );
     }
     
@@ -620,10 +620,12 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       const outfits = cached ? JSON.parse(cached) : [];
       
       if (outfits.length >= 3) {
-        Alert.alert(t('common.createAnAccountToSaveMore') || "Create an account to save more", t('common.you') || "You"ve saved 3 outfits. Create a free account to keep them forever.",
+        Alert.alert(
+          t('common.createAnAccountToSaveMore') || "Create an account to save more",
+          t('common.youveSaved3OutfitsCreateAFreeAccount') || "You've saved 3 outfits. Create a free account to keep them forever.",
           [
-            { text: "Not now", style: "cancel" },
-            { text: "Sign up to save", onPress: handleCreateAccount },
+            { text: t('upgrade.path.notNow') || "Not now", style: "cancel" },
+            { text: t('common.signUpToSave') || "Sign up to save", onPress: handleCreateAccount },
           ]
         );
         return;
@@ -801,7 +803,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       Keyboard.dismiss();
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     } catch {
-      Alert.alert(t('common.couldNotUpdateOutfit') || "Could not update outfit", t('common.pleaseTryAgainRubyDidn') || "Please try again — Ruby didn"t get your message.");
+      Alert.alert(
+        t('common.couldNotUpdateOutfit') || "Could not update outfit",
+        t('common.pleaseTryAgainRubyDidntGetYourMessage') || "Please try again — Ruby didn't get your message.",
+      );
     } finally {
       setIsSubmittingExpression(false);
       setIsRefiningOutfit(false);
@@ -822,15 +827,15 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
   const handleJustBrowsing = async () => {
     Alert.alert(
-      "That's all I've got for browsing mode - but it was lovely to help!",
-      "Create an account to unlock your personal stylist and save your picks.",
+      t('decideForMe.browsingDoneTitle'),
+      t('decideForMe.browsingDoneMessage'),
       [
-        { 
-          text: "Save my picks", 
-          onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "browsing" }) 
+        {
+          text: t('common.saveMyPicks'),
+          onPress: () => navigation.navigate("SoftSignupGate", { fromPath: "browsing" })
         },
-        { 
-          text: "Create account", 
+        {
+          text: t('common.signUp'),
           onPress: () => navigation.navigate("Auth", { mode: 'signup' }),
         },
       ]

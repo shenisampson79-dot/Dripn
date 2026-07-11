@@ -6,6 +6,7 @@ import WishlistScreen from "@/screens/WishlistScreen";
 import SustainabilityScreen from "@/screens/SustainabilityScreen";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 export type BargainsStackParamList = {
   Bargains: undefined;
@@ -16,6 +17,7 @@ const Stack = createNativeStackNavigator<BargainsStackParamList>();
 
 export default function BargainsStackNavigator() {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
 
   return (
     <Stack.Navigator
@@ -27,14 +29,14 @@ export default function BargainsStackNavigator() {
         name="Bargains"
         component={BargainsScreen}
         options={{
-          title: "Bargains",
+          title: t('navTitles.bargains') || "Bargains",
         }}
       />
       <Stack.Screen
         name="Sustainability"
         component={SustainabilityScreen}
         options={{
-          title: "Sustainability",
+          title: t('navTitles.sustainability') || "Sustainability",
         }}
       />
     </Stack.Navigator>

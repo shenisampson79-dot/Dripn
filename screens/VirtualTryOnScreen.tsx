@@ -89,13 +89,13 @@ export default function VirtualTryOnScreen({ navigation, route }: VirtualTryOnSc
   const handleUploadBodyPhoto = async () => {
     if (!canTryOn()) {
       Alert.alert(
-        'Upgrade Required',
-        tier === 'free' 
-          ? 'Virtual Try-On is available on Personal Stylist and above. Upgrade to try on clothes virtually!'
-          : 'You have used all your virtual try-ons this month. Upgrade for more!',
+        t('virtualTryOn.upgradeRequired'),
+        tier === 'free'
+          ? t('virtualTryOn.upgradeFree')
+          : t('virtualTryOn.upgradeUsedUp'),
         [
           { text: t('common.cancel'), style: 'cancel' },
-          { text: 'Upgrade', onPress: () => navigation.dispatch(CommonActions.navigate({ name: 'ProfileTab', params: { screen: 'Subscription' } })) },
+          { text: t('common.upgrade'), onPress: () => navigation.dispatch(CommonActions.navigate({ name: 'ProfileTab', params: { screen: 'Subscription' } })) },
         ]
       );
       return;
@@ -120,20 +120,20 @@ export default function VirtualTryOnScreen({ navigation, route }: VirtualTryOnSc
         }
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to select image. Please try again.');
+      Alert.alert(t('common.error'), t('virtualTryOn.failedSelectImage'));
     }
   };
 
   const handleTakePhoto = async () => {
     if (!canTryOn()) {
-      Alert.alert('Upgrade Required', 'Virtual Try-On requires a Basic subscription or higher.');
+      Alert.alert(t('virtualTryOn.upgradeRequired'), t('virtualTryOn.requiresBasic'));
       return;
     }
 
     if (!cameraPermission?.granted) {
       const result = await requestCameraPermission();
       if (!result.granted) {
-        Alert.alert('Permission Required', 'Camera access is needed to take a photo.');
+        Alert.alert(t('common.permissionRequired'), t('virtualTryOn.cameraNeeded'));
         return;
       }
     }
@@ -157,7 +157,7 @@ export default function VirtualTryOnScreen({ navigation, route }: VirtualTryOnSc
         }
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
+      Alert.alert(t('common.error'), t('virtualTryOn.failedTakePhoto'));
     }
   };
 
@@ -179,13 +179,13 @@ export default function VirtualTryOnScreen({ navigation, route }: VirtualTryOnSc
         setGarmentDescription('A fashionable garment');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to select garment. Please try again.');
+      Alert.alert(t('common.error'), t('virtualTryOn.failedSelectGarment'));
     }
   };
 
   const handleGenerateTryOn = async () => {
     if (!bodyImageUri || !garmentImageUrl) {
-      Alert.alert('Missing Images', 'Please upload both a body photo and a garment image.');
+      Alert.alert(t('virtualTryOn.missingImages'), t('virtualTryOn.missingImagesMessage'));
       return;
     }
 
@@ -221,12 +221,12 @@ export default function VirtualTryOnScreen({ navigation, route }: VirtualTryOnSc
         setStep('result');
         fetchUsage();
       } else {
-        Alert.alert('Error', response.error || 'Failed to generate try-on image. Please try again.');
+        Alert.alert(t('common.error'), response.error || t('virtualTryOn.failedGenerate'));
         setStep('select_garment');
       }
     } catch (error) {
       clearInterval(progressInterval);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      Alert.alert(t('common.error'), t('virtualTryOn.somethingWrong'));
       setStep('select_garment');
     } finally {
       setIsLoading(false);

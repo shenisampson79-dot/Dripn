@@ -1632,7 +1632,7 @@ export default function AIStylistScreen() {
 
   const startRecording = async () => {
     if (Platform.OS === 'web') {
-      Alert.alert('Not Available', 'Voice commands are available in Expo Go on your mobile device');
+      Alert.alert(t('common.notAvailable'), t('aiStylist.voiceNotAvailable'));
       return;
     }
 
@@ -1641,12 +1641,12 @@ export default function AIStylistScreen() {
       if (status !== 'granted') {
         if (!canAskAgain && (Platform.OS as string) !== 'web') {
           Alert.alert(
-            'Microphone Permission Required',
-            `${stylist.name} needs access to your microphone to hear your voice commands. Please enable it in Settings.`,
+            t('aiStylist.micPermissionRequired'),
+            t('aiStylist.micPermissionMessage').replace('{name}', stylist.name),
             [
-              { text: 'Cancel', style: 'cancel' },
+              { text: t('common.cancel'), style: 'cancel' },
               { 
-                text: 'Open Settings', 
+                text: t('common.openSettings'), 
                 onPress: async () => {
                   try {
                     await Linking.openSettings();
@@ -1664,7 +1664,7 @@ export default function AIStylistScreen() {
     }
 
     if (!canSendMessage()) {
-      Alert.alert('Daily Limit Reached', 'Upgrade to send more messages today');
+      Alert.alert(t('common.dailyLimitReached'), t('aiStylist.dailyLimitUpgrade'));
       return;
     }
 
@@ -1695,7 +1695,7 @@ export default function AIStylistScreen() {
       }, 1000);
     } catch (error) {
       console.error('Failed to start recording:', error);
-      Alert.alert('Recording Error', 'Could not start recording. Please try again.');
+      Alert.alert(t('common.recordingError'), t('aiStylist.couldNotStartRecording'));
     }
   };
 
@@ -1744,7 +1744,7 @@ export default function AIStylistScreen() {
         }
         handleVoiceMessage(uri, Math.max(actualDurationSec, 1));
       } else if (uri && actualDurationMs < minDurationMs) {
-        Alert.alert('Recording Too Short', 'Please hold to record a longer message.');
+        Alert.alert(t('common.recordingTooShort'), t('aiStylist.recordingTooShortMessage'));
       }
     } catch (error) {
       console.error('Failed to stop recording:', error);
@@ -1993,7 +1993,7 @@ export default function AIStylistScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please allow access to your photos to send images to Ruby');
+        Alert.alert(t('common.permissionNeeded'), t('aiStylist.photoPermissionRuby'));
         return;
       }
       

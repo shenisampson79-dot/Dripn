@@ -163,7 +163,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       setImageProcessed(false);
       setAiAnalyzed(false);
     } catch (error) {
-      Alert.alert('Rotate failed', 'Could not rotate this photo. Please try another image.');
+      Alert.alert(t('wardrobe.rotateFailed'), t('wardrobe.couldNotRotatePhotoTryAnother'));
     }
   };
 
@@ -285,12 +285,12 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         setIsAnalyzing(false);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         Alert.alert(
-          "Free Scans Used",
-          result.message || "You've used all 3 free scans. Sign up to unlock unlimited wardrobe scanning!",
+          t('wardrobe.freeScansUsed'),
+          result.message || t('wardrobe.freeScansUsedDefault'),
           [
-            { text: "Maybe Later", style: "cancel" },
+            { text: t('common.maybeLater'), style: "cancel" },
             { 
-              text: "Sign Up", 
+              text: t('common.signUp'), 
               style: "default",
               onPress: () => navigation.navigate('Auth' as any)
             }
@@ -544,14 +544,16 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
           : '';
         
         Alert.alert(
-          "AI Analysis Complete",
-          `Detected: ${itemName || 'Fashion Item'}\n\nFeel free to adjust any details before saving.${scansMessage}`,
-          [{ text: "Got it", style: "default" }]
+          t('wardrobe.aiAnalysisComplete'),
+          t('wardrobe.aiAnalysisCompleteMessage')
+            .replace('{name}', itemName || t('wardrobe.fashionItem'))
+            .replace('{scans}', scansMessage),
+          [{ text: t('common.gotIt'), style: "default" }]
         );
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         Alert.alert(t('wardrobe.analysisIssue') || "Analysis Issue", t('wardrobe.couldNotAnalyzeImagePleaseFillInTheDetai') || "Could not analyze image. Please fill in the details manually.",
-          [{ text: "OK", style: "default" }]
+          [{ text: t('common.ok'), style: "default" }]
         );
       }
     } catch (error: any) {
@@ -584,7 +586,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.photoLibraryAccessWasDeniedPleaseEnableI') || "Photo library access was denied. Please enable it in Settings to add images.",
           [
             { text: t('common.cancel'), style: "cancel" },
-            { text: "Open Settings", onPress: openSettings },
+            { text: t('common.openSettings'), onPress: openSettings },
           ]
         );
       } else {
@@ -614,7 +616,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.cameraAccessWasDeniedPleaseEnableItInSet') || "Camera access was denied. Please enable it in Settings to take photos.",
           [
             { text: t('common.cancel'), style: "cancel" },
-            { text: "Open Settings", onPress: openSettings },
+            { text: t('common.openSettings'), onPress: openSettings },
           ]
         );
       } else {
@@ -664,9 +666,9 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
     
     if (missingFields.length > 0) {
       Alert.alert(
-        "Complete Your Item",
-        `Please fill in: ${missingFields.join(", ")}`,
-        [{ text: "OK" }]
+        t('wardrobe.completeYourItem'),
+        t('wardrobe.pleaseFillIn').replace('{fields}', missingFields.join(", ")),
+        [{ text: t('common.ok') }]
       );
       return;
     }
@@ -725,8 +727,8 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
 
       if (origin === 'inspiration') {
         Alert.alert(
-          'Saved to Inspiration',
-          `${itemLabel} has been added to your style inspiration board.`,
+          t('wardrobe.savedToInspiration'),
+          t('wardrobe.savedToInspirationMessage').replace('{name}', itemLabel),
           [{ text: t('common.done'), onPress: () => navigation.goBack() }],
         );
         return;
@@ -740,16 +742,16 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
 
       if (canOfferOutfitPlanning(outfitCounts)) {
         Alert.alert(
-          'Item Added',
-          `${itemLabel} has been added to your wardrobe. Would you like to plan an outfit with it?`,
+          t('wardrobe.itemAdded'),
+          t('wardrobe.itemAddedPlanOutfit').replace('{name}', itemLabel),
           [
             {
-              text: 'Not Now',
+              text: t('common.notNow'),
               style: 'cancel',
               onPress: () => navigation.goBack(),
             },
             {
-              text: 'Plan Outfit',
+              text: t('wardrobe.planOutfit'),
               onPress: () => {
                 navigation.replace('OutfitCalendar');
               },
@@ -760,9 +762,11 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
       }
 
       Alert.alert(
-        'Item Added',
-        `${itemLabel} has been added to your wardrobe.\n\n${describeOutfitPlanningGap(outfitCounts)}`,
-        [{ text: 'Keep Building', onPress: () => navigation.goBack() }],
+        t('wardrobe.itemAdded'),
+        t('wardrobe.itemAddedGap')
+          .replace('{name}', itemLabel)
+          .replace('{gap}', describeOutfitPlanningGap(outfitCounts)),
+        [{ text: t('common.keepBuilding'), onPress: () => navigation.goBack() }],
       );
     } catch (error) {
       Alert.alert(t('wardrobe.error') || "Error", t('wardrobe.failedToAddItemToWardrobePleaseTryAgain') || "Failed to add item to wardrobe. Please try again.");

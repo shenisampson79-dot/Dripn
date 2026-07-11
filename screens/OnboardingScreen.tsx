@@ -922,7 +922,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       if (!cameraPermission?.granted) {
         const result = await requestCameraPermission();
         if (!result.granted) {
-          Alert.alert('Permission Required', 'Camera access is needed to scan your body type.');
+          Alert.alert(t('common.permissionRequired'), t('onboarding.cameraNeededBody'));
           return;
         }
       }
@@ -936,7 +936,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       setShowCameraModal(true);
     } catch (error) {
       console.log('Body scan setup error:', error);
-      Alert.alert('Setup Failed', 'Unable to prepare body scan. Please try again.');
+      Alert.alert(t('common.setupFailed'), t('onboarding.setupFailedBody'));
     }
   }, [cameraPermission, requestCameraPermission]);
 
@@ -945,7 +945,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       if (!cameraPermission?.granted) {
         const result = await requestCameraPermission();
         if (!result.granted) {
-          Alert.alert('Permission Required', 'Camera access is needed to analyze your colors.');
+          Alert.alert(t('common.permissionRequired'), t('onboarding.cameraNeededColor'));
           return;
         }
       }
@@ -960,7 +960,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     } catch (error: any) {
       console.error('Color scan setup error:', error?.message || error);
       console.error('Color scan full error:', JSON.stringify(error, null, 2));
-      Alert.alert('Setup Failed', `Unable to prepare color analysis. ${error?.message || 'Please try again.'}`);
+      Alert.alert(
+        t('common.setupFailed'),
+        t('onboarding.setupFailedColor').replace('{detail}', error?.message || t('onboarding.pleaseTryAgain'))
+      );
     }
   }, [cameraPermission, requestCameraPermission]);
 
@@ -1001,7 +1004,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       });
       
       if (!photo?.base64 || !photo?.uri) {
-        Alert.alert('Capture Failed', 'Unable to capture photo. Please try again.');
+        Alert.alert(t('common.captureFailed'), t('onboarding.captureFailedPhoto'));
         return;
       }
       
@@ -1023,9 +1026,9 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               setBodyShape(scanResult.autoFillFields.bodyType as BodyShape);
             }
             Alert.alert(
-              'Body Scan Complete',
+              t('onboarding.bodyScanComplete'),
               scanResult.message || `Your body type: ${scanResult.bodyType}\nKibbe type: ${scanResult.kibbeBodyType}`,
-              [{ text: 'OK' }]
+              [{ text: t('common.ok') }]
             );
           }
         } finally {
@@ -1064,9 +1067,9 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           } else {
             setColorScanResult(scanResult);
             Alert.alert(
-              'Color Analysis Complete',
+              t('onboarding.colorAnalysisComplete'),
               scanResult.message || `You're a ${scanResult.colorSeasonType} ${scanResult.seasonSubtype}!\n\nPower colors: ${scanResult.colorPalette.powerColors.slice(0, 3).join(', ')}`,
-              [{ text: 'OK' }]
+              [{ text: t('common.ok') }]
             );
           }
         } finally {
@@ -1077,7 +1080,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       }
     } catch (error) {
       console.log('Photo capture error:', error);
-      Alert.alert('Capture Failed', 'Unable to analyze photo. Please try again.');
+      Alert.alert(t('common.captureFailed'), t('onboarding.captureFailedAnalyze'));
       setIsBodyScanning(false);
       setIsColorScanning(false);
     }
@@ -1119,7 +1122,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       setShowStyleQuiz(true);
     } catch (error) {
       console.log('Quiz load error:', error);
-      Alert.alert('Quiz Unavailable', 'Unable to load the style quiz. Please choose your style manually.');
+      Alert.alert(t('onboarding.quizUnavailable'), t('onboarding.quizUnavailableMessage'));
     } finally {
       setIsLoadingQuiz(false);
     }
@@ -1168,14 +1171,14 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         }
       } else {
         Alert.alert(
-          'Style Quiz Complete',
-          result.personalizedMessage || 'Thanks for completing the quiz! Please select your preferred style below.',
-          [{ text: 'Continue' }]
+          t('onboarding.styleQuizComplete'),
+          result.personalizedMessage || t('onboarding.styleQuizCompleteDefault'),
+          [{ text: t('common.continue') }]
         );
       }
     } catch (error) {
       console.log('Quiz submit error:', error);
-      Alert.alert('Submission Failed', 'Unable to submit quiz. Please try again.');
+      Alert.alert(t('common.submissionFailed'), t('onboarding.submissionFailed'));
     } finally {
       setIsLoadingQuiz(false);
     }
@@ -1204,11 +1207,11 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
     
     if (existingStatus !== 'granted') {
-      Alert.alert(t('onboarding.findYourCountry') || "Find Your Country", t('onboarding.dripnWillDetectYourCountryToShowYouLocal') || "Dripn will detect your country to show you local trends and stores.",
+      Alert.alert(t('onboarding.findYourCountry'), t('onboarding.dripnWillDetectYourCountryToShowYouLocal'),
         [
-          { text: 'Select Manually', style: 'cancel' },
+          { text: t('onboarding.selectManually'), style: 'cancel' },
           { 
-            text: 'Use Location', 
+            text: t('onboarding.useLocation'),
             onPress: async () => {
               setIsDetectingLocation(true);
               try {
@@ -1233,7 +1236,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
     } finally {
       setIsDetectingLocation(false);
     }
-  }, []);
+  }, [t]);
 
   const fetchLocationAndSetCountry = useCallback(async () => {
     try {
@@ -1249,13 +1252,16 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         if (detectedCountry) {
           setCountry(detectedCountry);
         } else {
-          Alert.alert('Country Not Found', `We detected "${address.country}" but it's not in our list. Please select manually.`);
+          Alert.alert(
+            t('onboarding.countryNotFound'),
+            t('onboarding.countryNotFoundMessage').replace('{country}', address.country)
+          );
         }
       }
     } catch (error) {
       console.log('Location detection error:', error);
     }
-  }, []);
+  }, [t]);
 
   const handleNext = () => {
     if (step < totalSteps - 1) {

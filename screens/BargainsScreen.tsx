@@ -98,7 +98,7 @@ export default function BargainsScreen({ navigation }: BargainsScreenProps) {
     if (result.success) {
       Alert.alert(t('bargains.shared') || "Shared", t('bargains.dealSharedSuccessfully') || "Deal shared successfully!");
     } else if (result.error) {
-      Alert.alert("Share Failed", result.error);
+      Alert.alert(t('common.shareFailed'), result.error);
     }
   };
 

@@ -154,10 +154,12 @@ export default function PostDetailScreen({ navigation, route }: PostDetailScreen
     if (!post) return;
 
     if (!canRequestAIAdvice()) {
-      Alert.alert(t('community.stylistAdviceLimitReached') || "Stylist Advice Limit Reached", t('community.you') || "You"ve used all your stylist advice requests this month. Upgrade your plan for unlimited styling advice.",
+      Alert.alert(
+        t('community.stylistAdviceLimitReached') || "Stylist Advice Limit Reached",
+        t('community.youveUsedAllYourStylistAdviceRequests') || "You've used all your stylist advice requests this month. Upgrade your plan for unlimited styling advice.",
         [
-          { text: "Maybe Later", style: "cancel" },
-          { text: "View Plans", onPress: () => navigation.navigate("Subscription") },
+          { text: t('common.maybeLater') || "Maybe Later", style: "cancel" },
+          { text: t('common.viewPlans') || "View Plans", onPress: () => navigation.navigate("Subscription") },
         ]
       );
       return;

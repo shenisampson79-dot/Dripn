@@ -148,7 +148,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert(t('common.permissionRequired') || "Permission Required", t('common.pleaseAllowAccessToYourPhotoLibraryToCha') || "Please allow access to your photo library to change your avatar.");
+      Alert.alert(t('common.permissionRequired'), t('common.pleaseAllowAccessToYourPhotoLibraryToCha'));
       return;
     }
 
@@ -175,15 +175,15 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
   };
 
   const handleRemovePhoto = () => {
-    Alert.alert(t('common.removeProfilePhoto') || "Remove profile photo?", t('common.yourProfileWillShowTheDefaultAvatarInste') || "Your profile will show the default avatar instead.",
+    Alert.alert(t('common.removeProfilePhoto'), t('common.yourProfileWillShowTheDefaultAvatarInste'),
       [
         { text: t('common.cancel'), style: "cancel" },
         {
-          text: "Remove",
+          text: t('common.remove'),
           style: "destructive",
           onPress: () => {
             persistAvatarRemoval().catch(() => {
-              Alert.alert(t('common.error') || "Error", t('common.failedToRemoveProfilePhotoPleaseTryAgain') || "Failed to remove profile photo. Please try again.");
+              Alert.alert(t('common.error'), t('common.failedToRemoveProfilePhotoPleaseTryAgain'));
             });
           },
         },
@@ -194,11 +194,11 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
   const handleAvatarPress = () => {
     if (avatar) {
       Alert.alert(
-        "Profile Photo",
+        t('common.profilePhoto'),
         undefined,
         [
-          { text: "Change Photo", onPress: handlePickImage },
-          { text: "Remove Photo", style: "destructive", onPress: handleRemovePhoto },
+          { text: t('common.changePhoto'), onPress: handlePickImage },
+          { text: t('common.removePhoto'), style: "destructive", onPress: handleRemovePhoto },
           { text: t('common.cancel'), style: "cancel" },
         ],
       );
@@ -210,7 +210,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert(t('common.error') || "Error", t('common.pleaseEnterYourName') || "Please enter your name");
+      Alert.alert(t('common.error'), t('common.pleaseEnterYourName'));
       return;
     }
 
@@ -257,7 +257,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
 
       navigation.goBack();
     } catch (error) {
-      Alert.alert(t('common.error') || "Error", t('common.failedToSaveProfilePleaseTryAgain') || "Failed to save profile. Please try again.");
+      Alert.alert(t('common.error'), t('common.failedToSaveProfilePleaseTryAgain'));
     } finally {
       setIsSaving(false);
     }

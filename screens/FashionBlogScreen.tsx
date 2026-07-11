@@ -553,7 +553,7 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
       const gender = mapUserGenderToNewsletterFilter(user?.gender);
       
       if (!apiService.isConfigured()) {
-        loadFallbackPosts("Connect to the internet to load weekly newsletter issues.");
+        loadFallbackPosts(t('blog.offlineNotice'));
         return;
       }
 
@@ -564,7 +564,6 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
       });
       
       const newsletters = response.newsletters ?? [];
-      const subscribedFlag = (await AsyncStorage.getItem(NEWSLETTER_SUBSCRIPTION_KEY)) === "true";
       if (newsletters.length > 0) {
         const formattedPosts = mapNewslettersToPosts(newsletters as Array<Record<string, unknown>>);
         const filtered = applyProfileFilters(formattedPosts);
@@ -574,18 +573,14 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
         } else {
           setPosts(formattedPosts);
           setIsUsingFallback(false);
-          setContentNotice("No issues matched your season or profile filter — showing all published newsletters.");
+          setContentNotice(t('blog.filterNotice'));
         }
       } else {
-        loadFallbackPosts(
-          subscribedFlag
-            ? "You're on the mailing list. No weekly issues are published in the app yet — curated guides below."
-            : "No weekly issues published yet — curated guides below until the newsletter feed goes live.",
-        );
+        loadFallbackPosts(t('blog.noIssuesYet'));
       }
     } catch (error) {
       console.log("Error fetching newsletters, using fallback:", error);
-      loadFallbackPosts("Couldn't reach the newsletter server — curated guides below.");
+      loadFallbackPosts(t('blog.serverError'));
     } finally {
       setLoading(false);
     }
@@ -603,15 +598,19 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     if (!user?.email) {
-      Alert.alert(t('common.emailRequired') || "Email Required", t('common.addAnEmailAddressToYourDripnAccountToRec') || "Add an email address to your Dripn account to receive the weekly newsletter.",
-        [{ text: "OK" }],
+      Alert.alert(
+        t('settings.newsletterEmailRequired') || t('common.emailRequired') || "Email Required",
+        t('settings.newsletterEmailRequiredMessage') || t('common.addAnEmailAddressToYourDripnAccountToRec') || "Add an email address to your Dripn account to receive the weekly newsletter.",
+        [{ text: t('common.ok') || "OK" }],
       );
       return;
     }
 
     if (!apiService.isConfigured()) {
-      Alert.alert(t('common.connectionRequired') || "Connection Required", t('common.connectToTheInternetToSubscribeToTheWeek') || "Connect to the internet to subscribe to the weekly newsletter.",
-        [{ text: "OK" }],
+      Alert.alert(
+        t('settings.newsletterConnectionRequired') || t('common.connectionRequired') || "Connection Required",
+        t('settings.newsletterConnectionRequiredMessage') || t('common.connectToTheInternetToSubscribeToTheWeek') || "Connect to the internet to subscribe to the weekly newsletter.",
+        [{ text: t('common.ok') || "OK" }],
       );
       return;
     }
@@ -633,16 +632,16 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
       await fetchPosts();
 
       Alert.alert(
-        result?.alreadySubscribed ? "Already Subscribed" : "Subscribed!",
-        result?.alreadySubscribed
-          ? "You're on our weekly list. New issues will appear here when published."
-          : "You're on our weekly list. New issues will appear here when published and arrive by email.",
-        [{ text: "Great!" }],
+        t('blog.subscribed'),
+        t('settings.newsletterSubscribed'),
+        [{ text: t('common.ok') || "OK" }],
       );
     } catch (error) {
       console.log("Newsletter subscribe failed:", error);
-      Alert.alert(t('common.subscriptionFailed') || "Subscription Failed", t('common.weCouldn') || "We couldn"t save your subscription. Please try again later.",
-        [{ text: "OK" }],
+      Alert.alert(
+        t('settings.newsletterUpdateFailed') || t('common.subscriptionFailed') || "Subscription Failed",
+        t('common.weCouldntSaveYourSubscription') || "We couldn't save your subscription. Please try again later.",
+        [{ text: t('common.ok') || "OK" }],
       );
     }
   };
@@ -653,9 +652,9 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
     
     Alert.alert(t('common.reportIssue') || "Report Issue", t('common.whatWouldYouLikeToReport') || "What would you like to report?",
       [
-        { text: "Typo or Error", onPress: () => submitReport(postId, "typo", "Typo or grammatical error reported") },
-        { text: "Offensive Content", onPress: () => submitReport(postId, "offensive", "Content flagged as potentially offensive") },
-        { text: "Inaccurate Information", onPress: () => submitReport(postId, "inaccurate", "Information reported as potentially inaccurate") },
+        { text: t('fashionBlog.reportTypo') || "Typo or Error", onPress: () => submitReport(postId, "typo", "Typo or grammatical error reported") },
+        { text: t('fashionBlog.reportOffensive') || "Offensive Content", onPress: () => submitReport(postId, "offensive", "Content flagged as potentially offensive") },
+        { text: t('fashionBlog.reportInaccurate') || "Inaccurate Information", onPress: () => submitReport(postId, "inaccurate", "Information reported as potentially inaccurate") },
         { text: t('common.cancel'), style: "cancel", onPress: () => setReportingPostId(null) }
       ]
     );
@@ -673,12 +672,14 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
       }
       
       Alert.alert(t('common.reportSubmitted') || "Report Submitted", t('common.thankYouForYourFeedbackOurTeamWillReview') || "Thank you for your feedback. Our team will review this content.",
-        [{ text: "OK" }]
+        [{ text: t('common.ok') || "OK" }]
       );
     } catch (error) {
       console.log("Error submitting report:", error);
-      Alert.alert(t('common.reportFailed') || "Report Failed", t('common.weCouldn') || "We couldn"t submit your report. Please try again later.",
-        [{ text: "OK" }]
+      Alert.alert(
+        t('common.reportFailed') || "Report Failed",
+        t('common.weCouldntSubmitYourReport') || "We couldn't submit your report. Please try again later.",
+        [{ text: t('common.ok') || "OK" }],
       );
     } finally {
       setReportingPostId(null);
@@ -692,9 +693,9 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-      <ThemedText type="h2" style={styles.title}>Fashion Blog</ThemedText>
+      <ThemedText type="h2" style={styles.title}>{t('blog.title')}</ThemedText>
       <ThemedText type="body" style={styles.subtitle}>
-        AI-researched weekly style insights — web, Instagram & TikTok intelligence
+        {t('blog.subtitle')}
       </ThemedText>
 
       {isUsingFallback || contentNotice ? (
@@ -703,9 +704,7 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
           <ThemedText type="small" style={styles.fallbackBannerText}>
             {contentNotice
               ?? (isUsingFallback
-                ? (isSubscribed
-                  ? "You're on the mailing list. No weekly issues are in the app yet — curated guides below (not your inbox feed)."
-                  : `Curated style guides for ${getCurrentCalendarSeason()} — not live newsletter issues.`)
+                ? (isSubscribed ? t('blog.noIssuesYet') : t('blog.curatedGuides'))
                 : null)}
           </ThemedText>
         </View>
@@ -718,28 +717,28 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
               <Feather name="mail" size={24} color={theme.link} />
             </View>
             <View style={styles.subscribeText}>
-              <ThemedText type="h3">Get Weekly Updates</ThemedText>
+              <ThemedText type="h3">{t('blog.subscribe')}</ThemedText>
               <ThemedText type="small" style={styles.subscribeSubtext}>
-                Join our newsletter for exclusive styling tips delivered to your inbox
+                {t('blog.joinNewsletter')}
               </ThemedText>
             </View>
           </View>
           <Button onPress={handleSubscribe} style={styles.subscribeButton}>
-            Subscribe
+            {t('blog.subscribe')}
           </Button>
         </Card>
       ) : !isUsingFallback ? (
         <View style={[styles.subscribedBadge, { backgroundColor: isDark ? "rgba(52, 199, 89, 0.2)" : "rgba(52, 199, 89, 0.1)" }]}>
           <Feather name="check-circle" size={16} color={theme.success || "#34C759"} />
           <ThemedText type="small" style={{ color: theme.success || "#34C759" }}>
-            Subscribed · weekly issues below
+            {t('blog.subscribed')}
           </ThemedText>
         </View>
       ) : (
         <View style={[styles.subscribedBadge, { backgroundColor: isDark ? "rgba(52, 199, 89, 0.2)" : "rgba(52, 199, 89, 0.1)" }]}>
           <Feather name="mail" size={16} color={theme.success || "#34C759"} />
           <ThemedText type="small" style={{ color: theme.success || "#34C759" }}>
-            On mailing list · email delivery active
+            {t('blog.subscribed')}
           </ThemedText>
         </View>
       )}
@@ -836,7 +835,7 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
               color={theme.tabIconDefault} 
             />
             <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
-              {isExpanded ? "Show less" : "Read more"}
+              {isExpanded ? "Show less" : t('blog.readMore')}
             </ThemedText>
           </View>
         </Card>
@@ -847,9 +846,9 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Feather name="book-open" size={48} color={theme.tabIconDefault} />
-      <ThemedText type="h3" style={styles.emptyTitle}>No Articles Yet</ThemedText>
+      <ThemedText type="h3" style={styles.emptyTitle}>{t('blog.emptyTitle')}</ThemedText>
       <ThemedText type="body" style={styles.emptySubtitle}>
-        Check back soon for the latest fashion insights and styling tips.
+        {t('blog.emptyMessage')}
       </ThemedText>
     </View>
   );

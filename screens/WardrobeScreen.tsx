@@ -164,7 +164,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       await reloadWardrobe();
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {
-      Alert.alert('Refresh failed', 'Could not reload your wardrobe. Check your connection and try again.');
+      Alert.alert(t('wardrobe.refreshFailed'), t('wardrobe.refreshFailedMessage'));
     } finally {
       setIsRefreshing(false);
     }
@@ -187,9 +187,12 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
           setBatchBgProgress({ processed: status.processed, total: status.total, failed: status.failed });
           await reloadWardrobe();
           if (showCompletionAlert) {
+            const failedPart = status.failed > 0 ? `, ${status.failed} failed` : '';
             Alert.alert(
-              'Background fix complete',
-              `Fixed ${status.processed} item${status.processed !== 1 ? 's' : ''}${status.failed > 0 ? `, ${status.failed} failed` : ''}.`
+              t('wardrobe.bgFixComplete'),
+              t('wardrobe.bgFixCompleteMessage')
+                .replace('{processed}', String(status.processed))
+                .replace('{failedPart}', failedPart)
             );
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
@@ -335,7 +338,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       setShowGeneratedOutfitModal(true);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unable to generate outfit. Please try again.';
-      Alert.alert('Generation Failed', message);
+      Alert.alert(t('common.generationFailed'), message);
     } finally {
       setIsGeneratingOutfit(false);
       setGeneratingOccasion(null);
@@ -413,7 +416,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       const result = await apiService.reprocessItemBackground(item.id);
       if (result.success) {
         if (result.alreadyProcessed) {
-          Alert.alert('Already Clean', 'This item already has a transparent background.');
+          Alert.alert(t('wardrobe.alreadyClean'), t('wardrobe.alreadyCleanMessage'));
         } else if (result.imageUrl) {
           await reloadWardrobe();
           setSelectedItem((prev) =>
@@ -422,11 +425,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               : prev
           );
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert('Done', 'Background removed successfully.');
+          Alert.alert(t('common.done'), t('wardrobe.bgRemovedSuccess'));
         }
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to remove background. Please try again.');
+      Alert.alert(t('common.error'), t('wardrobe.failedToRemoveBg'));
     } finally {
       setIsReprocessingBg(false);
     }
@@ -435,9 +438,9 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
   const handleReprocessAllBackgrounds = () => {
     Alert.alert(t('wardrobe.fixAllBackgrounds') || "Fix All Backgrounds", t('wardrobe.thisUploadsPhotosFromYourDeviceRemovesBa') || "This uploads photos from your device, removes backgrounds, and applies a white backdrop. It may take a few minutes for many items.",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Fix All',
+          text: t('wardrobe.fixAllBackgrounds') || "Fix All",
           onPress: async () => {
             setIsReprocessingAll(true);
             setBatchBgProgress({ processed: 0, total: items.length, failed: 0 });
@@ -453,9 +456,18 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               });
               await reloadWardrobe();
               if (result.fixed > 0) {
+                const failedPart = result.failed > 0
+                  ? ` ${result.failed} could not be processed (photo unreadable or AI service error).`
+                  : '';
+                const noLocalPart = result.noLocal > 0
+                  ? ` ${result.noLocal} skipped — no photo on this device.`
+                  : '';
                 Alert.alert(
-                  'Backgrounds updated',
-                  `Removed backgrounds on ${result.fixed} item${result.fixed !== 1 ? 's' : ''}.${result.failed > 0 ? ` ${result.failed} could not be processed (photo unreadable or AI service error).` : ''}${result.noLocal > 0 ? ` ${result.noLocal} skipped — no photo on this device.` : ''}`
+                  t('wardrobe.backgroundsUpdated'),
+                  t('wardrobe.backgroundsUpdatedMessage')
+                    .replace('{fixed}', String(result.fixed))
+                    .replace('{failedPart}', failedPart)
+                    .replace('{noLocalPart}', noLocalPart)
                 );
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               } else if (result.failed > 0) {
@@ -463,14 +475,14 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                 );
               } else if (result.noLocal > 0 || (result.fixed === 0 && result.failed === 0)) {
                 Alert.alert(
-                  'Photos need to be re-added',
-                  `The original photos are not on this phone anymore, and the server copies have expired (${result.noLocal} item${result.noLocal !== 1 ? 's' : ''}).\n\nTap + at the bottom, open an item, and add a new photo — or delete and re-add each piece.`
+                  t('wardrobe.photosNeedReadd'),
+                  t('wardrobe.photosNeedReaddMessage').replace('{count}', String(result.noLocal))
                 );
               } else {
-                Alert.alert('Done', 'All items already have processed backgrounds.');
+                Alert.alert(t('common.done'), t('wardrobe.allBgProcessed'));
               }
             } catch (error) {
-              Alert.alert('Error', 'Failed to process backgrounds. Please try again.');
+              Alert.alert(t('common.error'), t('wardrobe.failedToProcessBg'));
             } finally {
               setIsReprocessingAll(false);
               setBatchBgProgress(null);
@@ -511,12 +523,12 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
     if (ids.length === 0) return;
 
     Alert.alert(
-      'Delete Items',
-      `Delete ${ids.length} item${ids.length !== 1 ? 's' : ''} from your wardrobe? This cannot be undone.`,
+      t('wardrobe.deleteItems'),
+      t('wardrobe.deleteItemsConfirm').replace('{count}', String(ids.length)),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             setIsBulkDeleting(true);
@@ -525,7 +537,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               exitSelectionMode();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch {
-              Alert.alert('Error', 'Failed to delete items. Please try again.');
+              Alert.alert(t('common.error'), t('wardrobe.failedToDeleteItems'));
             } finally {
               setIsBulkDeleting(false);
             }

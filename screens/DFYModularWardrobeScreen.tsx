@@ -249,7 +249,7 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
         .map(([_, item]) => (item as WardrobeItem).id);
 
       if (outfitItems.length === 0) {
-        Alert.alert('No items selected', 'Please select at least one item to save');
+        Alert.alert(t('wardrobe.noItemsSelectedSave'), t('wardrobe.selectAtLeastOneToSave'));
         return;
       }
 
@@ -261,9 +261,9 @@ export default function DFYModularWardrobeScreen({ navigation }: DFYModularWardr
       });
 
       setShowOutfitPreview(false);
-      Alert.alert('Outfit Saved', 'Your outfit has been saved successfully!');
+      Alert.alert(t('wardrobe.outfitSavedTitle'), t('wardrobe.outfitSavedSuccess'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to save outfit');
+      Alert.alert(t('common.error'), t('wardrobe.failedToSaveOutfit'));
       console.error('[DFYModularWardrobe] Save outfit error:', error);
     }
   };

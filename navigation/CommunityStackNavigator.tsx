@@ -13,6 +13,7 @@ import ColorAnalysisScreen from "@/screens/ColorAnalysisScreen";
 import BodyShapeStylingGuideScreen from "@/screens/BodyShapeStylingGuideScreen";
 import PersonalizedWardrobeFilterScreen from "@/screens/PersonalizedWardrobeFilterScreen";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
 import CommunityVotingScreen from "@/screens/CommunityVotingScreen";
@@ -37,6 +38,7 @@ const Stack = createNativeStackNavigator<CommunityStackParamList>();
 
 export default function CommunityStackNavigator() {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
 
   return (
     <Stack.Navigator screenOptions={getCommonScreenOptions({ theme, isDark })}>
@@ -44,68 +46,68 @@ export default function CommunityStackNavigator() {
         name="Community"
         component={CommunityScreen}
         options={{
-          title: "Community",
+          title: t('navTitles.community') || "Community",
         }}
       />
       <Stack.Screen
         name="CommunityVoting"
         component={CommunityVotingScreen}
-        options={{ title: "Community Vote" }}
+        options={{ title: t('navTitles.communityVote') || "Community Vote" }}
       />
       <Stack.Screen
         name="UserProfile"
         component={UserProfileScreen}
-        options={{ headerTitle: "Profile" }}
+        options={{ headerTitle: t('navTitles.profile') || "Profile" }}
       />
       <Stack.Screen
         name="FriendsActivity"
         component={FriendsActivityScreen}
-        options={{ headerTitle: "Friends Activity" }}
+        options={{ headerTitle: t('navTitles.friendsActivity') || "Friends Activity" }}
       />
       <Stack.Screen
         name="FriendRequests"
         component={FriendRequestsScreen}
-        options={{ headerTitle: "Friend Requests" }}
+        options={{ headerTitle: t('navTitles.friendRequests') || "Friend Requests" }}
       />
       <Stack.Screen
         name="DiscoverPeople"
         component={DiscoverPeopleScreen}
-        options={{ headerTitle: "Discover People" }}
+        options={{ headerTitle: t('navTitles.discoverPeople') || "Discover People" }}
       />
       <Stack.Screen
         name="Messages"
         component={MessagesScreen}
-        options={{ headerTitle: "Messages" }}
+        options={{ headerTitle: t('navTitles.messages') || "Messages" }}
       />
       <Stack.Screen
         name="Conversation"
         component={ConversationScreen}
-        options={{ headerTitle: "Chat" }}
+        options={{ headerTitle: t('navTitles.chat') || "Chat" }}
       />
       <Stack.Screen
         name="StyleSoulmates"
         component={StyleSoulmatesScreen}
-        options={{ headerTitle: "Style Soulmates" }}
+        options={{ headerTitle: t('navTitles.styleSoulmates') || "Style Soulmates" }}
       />
       <Stack.Screen
         name="BodyScanner"
         component={BodyScannerScreen}
-        options={{ headerTitle: "Body Scanner" }}
+        options={{ headerTitle: t('navTitles.bodyScanner') || "Body Scanner" }}
       />
       <Stack.Screen
         name="ColorAnalysis"
         component={ColorAnalysisScreen}
-        options={{ headerTitle: "Color Analysis" }}
+        options={{ headerTitle: t('navTitles.colorAnalysis') || "Color Analysis" }}
       />
       <Stack.Screen
         name="BodyShapeStylingGuide"
         component={BodyShapeStylingGuideScreen}
-        options={{ headerTitle: "Styling Guide" }}
+        options={{ headerTitle: t('navTitles.stylingGuide') || "Styling Guide" }}
       />
       <Stack.Screen
         name="PersonalizedWardrobeFilter"
         component={PersonalizedWardrobeFilterScreen}
-        options={{ headerTitle: "Wardrobe Filter" }}
+        options={{ headerTitle: t('navTitles.wardrobeFilter') || "Wardrobe Filter" }}
       />
     </Stack.Navigator>
   );

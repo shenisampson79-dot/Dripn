@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, Spacing } from '@/constants/theme';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 type LoadingStep = {
   message: string;
@@ -12,47 +13,40 @@ type LoadingStep = {
   icon: keyof typeof Feather.glyphMap;
 };
 
-function getLoadingSteps(stylistId: string, stylistName: string): LoadingStep[] {
-  const byStylist: Record<string, LoadingStep[]> = {
-    ruby: [
-      { message: 'Opening your wardrobe, love', detail: 'Pulling up everything you own', icon: 'archive' },
-      { message: 'Browsing your pieces', detail: 'Shirts, trousers, shoes — the lot', icon: 'grid' },
-      { message: 'Reading the room', detail: 'Weather, occasion, and your notes', icon: 'cloud' },
-      { message: 'Building your look', detail: 'Layering pieces that work together', icon: 'layers' },
-      { message: 'Almost ready', detail: 'Scoring the outfit and writing your notes', icon: 'star' },
-    ],
-    max: [
-      { message: 'Digging into your wardrobe', detail: 'Finding what actually works', icon: 'archive' },
-      { message: 'Shortlisting pieces', detail: 'No filler — only strong options', icon: 'filter' },
-      { message: 'Factoring in your day', detail: 'Context, weather, dress code', icon: 'sun' },
-      { message: 'Assembling the outfit', detail: 'Top to toe, styled properly', icon: 'layers' },
-      { message: 'Final rating', detail: 'Honest score coming up', icon: 'award' },
-    ],
-    ace: [
-      { message: 'Accessing wardrobe', detail: 'Loading your owned items', icon: 'database' },
-      { message: 'Filtering candidates', detail: 'Occasion-appropriate pieces only', icon: 'sliders' },
-      { message: 'Applying context', detail: 'Temperature and setting', icon: 'thermometer' },
-      { message: 'Composing outfit', detail: 'Structured from your clothes', icon: 'layout' },
-      { message: 'Calculating rating', detail: 'Style score in progress', icon: 'bar-chart-2' },
-    ],
-    ivy: [
-      { message: 'Reviewing your wardrobe', detail: 'Cataloguing available pieces', icon: 'book-open' },
-      { message: 'Selecting combinations', detail: 'Proportion, colour, and balance', icon: 'aperture' },
-      { message: 'Considering the context', detail: 'Your brief and the conditions', icon: 'map-pin' },
-      { message: 'Curating your outfit', detail: 'A considered look from your rail', icon: 'package' },
-      { message: 'Preparing your verdict', detail: 'Rating and styling notes', icon: 'check-circle' },
-    ],
+function getLoadingSteps(
+  stylistId: string,
+  stylistName: string,
+  t: (key: string) => string,
+): LoadingStep[] {
+  const tr = (key: string, vars?: Record<string, string | number>) => {
+    let s = t(key) || key;
+    if (vars) {
+      Object.entries(vars).forEach(([k, v]) => {
+        s = s.replace(`{${k}}`, String(v));
+      });
+    }
+    return s;
   };
 
-  const steps = byStylist[stylistId] || [
-    { message: `${stylistName} is on it`, detail: 'Opening your wardrobe', icon: 'archive' as const },
-    { message: 'Browsing your pieces', detail: 'Finding the best combination', icon: 'grid' as const },
-    { message: 'Matching your context', detail: 'Occasion, weather, and vibe', icon: 'sun' as const },
-    { message: 'Putting the look together', detail: 'Layering your outfit', icon: 'layers' as const },
-    { message: 'Almost there', detail: 'Rating and final touches', icon: 'star' as const },
-  ];
+  const iconsByStylist: Record<string, (keyof typeof Feather.glyphMap)[]> = {
+    ruby: ['archive', 'grid', 'cloud', 'layers', 'star'],
+    max: ['archive', 'filter', 'sun', 'layers', 'award'],
+    ace: ['database', 'sliders', 'thermometer', 'layout', 'bar-chart-2'],
+    ivy: ['book-open', 'aperture', 'map-pin', 'package', 'check-circle'],
+    default: ['archive', 'grid', 'sun', 'layers', 'star'],
+  };
 
-  return steps;
+  const prefix = ['ruby', 'max', 'ace', 'ivy'].includes(stylistId) ? stylistId : 'default';
+  const icons = iconsByStylist[prefix];
+
+  return [1, 2, 3, 4, 5].map((n, i) => ({
+    message:
+      prefix === 'default' && n === 1
+        ? tr(`surpriseMe.default.1`, { name: stylistName })
+        : tr(`surpriseMe.${prefix}.${n}`),
+    detail: tr(`surpriseMe.${prefix}.${n}d`),
+    icon: icons[i],
+  }));
 }
 
 type Props = {
@@ -70,7 +64,21 @@ export function SurpriseMeLoadingOverlay({
   stylistGradient,
   stylistIcon,
 }: Props) {
-  const steps = useMemo(() => getLoadingSteps(stylistId, stylistName), [stylistId, stylistName]);
+  const { t } = useTranslations();
+  const tr = (key: string, vars?: Record<string, string | number>) => {
+    let s = t(key) || key;
+    if (vars) {
+      Object.entries(vars).forEach(([k, v]) => {
+        s = s.replace(`{${k}}`, String(v));
+      });
+    }
+    return s;
+  };
+
+  const steps = useMemo(
+    () => getLoadingSteps(stylistId, stylistName, t),
+    [stylistId, stylistName, t],
+  );
   const [stepIndex, setStepIndex] = useState(0);
 
   useEffect(() => {
@@ -102,7 +110,7 @@ export function SurpriseMeLoadingOverlay({
           <ActivityIndicator size="large" color="#C9A87C" style={styles.spinner} />
 
           <ThemedText type="h3" style={styles.title}>
-            {stylistName} is styling you
+            {tr('surpriseMe.stylingYou', { name: stylistName })}
           </ThemedText>
 
           <View style={styles.messageBlock}>
@@ -122,7 +130,7 @@ export function SurpriseMeLoadingOverlay({
           </View>
 
           <ThemedText type="caption" style={styles.stepCounter}>
-            Step {stepIndex + 1} of {steps.length}
+            {tr('surpriseMe.stepOf', { current: stepIndex + 1, total: steps.length })}
           </ThemedText>
         </View>
       </View>

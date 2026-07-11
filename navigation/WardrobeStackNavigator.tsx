@@ -16,6 +16,7 @@ import DFYLookbookScreen from "@/screens/DFYLookbookScreen";
 import DFYModularWardrobeScreen from "@/screens/DFYModularWardrobeScreen";
 import DFYCalendarScreen from "@/screens/DFYCalendarScreen";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 import { DFYTier } from "@/services/DFYService";
 
@@ -41,6 +42,7 @@ const Stack = createNativeStackNavigator<WardrobeStackParamList>();
 
 export default function WardrobeStackNavigator() {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
 
   return (
     <Stack.Navigator screenOptions={getCommonScreenOptions({ theme, isDark })}>
@@ -48,7 +50,7 @@ export default function WardrobeStackNavigator() {
         name="Wardrobe"
         component={WardrobeScreen}
         options={{
-          title: "My Wardrobe",
+          title: t('navTitles.myWardrobe') || t('wardrobe.myWardrobe') || "My Wardrobe",
           headerShown: false,
         }}
       />
@@ -56,7 +58,7 @@ export default function WardrobeStackNavigator() {
         name="AddWardrobeItem"
         component={AddWardrobeItemScreen}
         options={{
-          title: "Add Item",
+          title: t('navTitles.addItem') || t('wardrobe.addItem') || "Add Item",
           headerShown: false,
           presentation: "modal",
         }}
@@ -65,7 +67,7 @@ export default function WardrobeStackNavigator() {
         name="BulkWardrobeUpload"
         component={BulkWardrobeUploadScreen}
         options={{
-          title: "Quick Add Items",
+          title: t('navTitles.quickAddItems') || t('wardrobe.bulkUpload') || "Quick Add Items",
           headerShown: false,
           presentation: "modal",
         }}
@@ -74,7 +76,7 @@ export default function WardrobeStackNavigator() {
         name="OutfitCalendar"
         component={OutfitCalendarScreen}
         options={{
-          title: "Outfit Calendar",
+          title: t('navTitles.outfitCalendar') || t('wardrobe.outfitCalendar') || "Outfit Calendar",
           headerShown: false,
         }}
       />
@@ -82,7 +84,7 @@ export default function WardrobeStackNavigator() {
         name="OutfitBuilder"
         component={OutfitBuilderScreen}
         options={{
-          title: "Outfit Builder",
+          title: t('navTitles.outfitBuilder') || "Outfit Builder",
           headerShown: false,
         }}
       />
@@ -90,14 +92,14 @@ export default function WardrobeStackNavigator() {
         name="WardrobeDigitalTwin"
         component={WardrobeDigitalTwinScreen}
         options={{
-          title: "Wardrobe Twin",
+          title: t('navTitles.wardrobeTwin') || "Wardrobe Twin",
         }}
       />
       <Stack.Screen
         name="CostPerWear"
         component={CostPerWearScreen}
         options={{
-          title: "Cost-per-Wear",
+          title: t('navTitles.costPerWear') || "Cost-per-Wear",
           headerShown: false,
         }}
       />
@@ -105,7 +107,7 @@ export default function WardrobeStackNavigator() {
         name="StyleDNA"
         component={StyleDNAScreen}
         options={{
-          title: "Style DNA",
+          title: t('navTitles.styleDna') || t('profile.styleDna') || "Style DNA",
           headerShown: false,
         }}
       />
@@ -113,7 +115,7 @@ export default function WardrobeStackNavigator() {
         name="VirtualTryOn"
         component={VirtualTryOnScreen}
         options={{
-          title: "Virtual Try-On",
+          title: t('navTitles.virtualTryOn') || "Virtual Try-On",
           headerShown: false,
           presentation: "fullScreenModal",
         }}
@@ -122,7 +124,7 @@ export default function WardrobeStackNavigator() {
         name="ColorAnalysis"
         component={ColorAnalysisScreen}
         options={{
-          title: "Color Analysis",
+          title: t('navTitles.colorAnalysis') || t('profile.colorAnalysis') || "Color Analysis",
           headerShown: false,
         }}
       />
@@ -130,7 +132,7 @@ export default function WardrobeStackNavigator() {
         name="BodyScanner"
         component={BodyScannerScreen}
         options={{
-          title: "Body Scanner",
+          title: t('navTitles.bodyScanner') || t('bodyScan.title') || "Body Scanner",
           headerShown: false,
         }}
       />
@@ -138,7 +140,7 @@ export default function WardrobeStackNavigator() {
         name="WeatherOutfit"
         component={WeatherOutfitScreen}
         options={{
-          title: "Weather Outfits",
+          title: t('navTitles.weatherOutfits') || t('stylistHub.weatherOutfits') || "Weather Outfits",
           headerShown: false,
         }}
       />
@@ -146,7 +148,7 @@ export default function WardrobeStackNavigator() {
         name="DFYLookbook"
         component={DFYLookbookScreen}
         options={{
-          title: "My Lookbook",
+          title: t('navTitles.myLookbook') || t('wardrobe.myLookbook') || "My Lookbook",
           headerShown: false,
         }}
       />
@@ -154,7 +156,7 @@ export default function WardrobeStackNavigator() {
         name="DFYModularWardrobe"
         component={DFYModularWardrobeScreen}
         options={{
-          title: "Modular Wardrobe",
+          title: t('navTitles.modularWardrobe') || t('wardrobe.modularWardrobe') || "Modular Wardrobe",
           headerShown: false,
         }}
       />
@@ -162,7 +164,7 @@ export default function WardrobeStackNavigator() {
         name="DFYCalendar"
         component={DFYCalendarScreen}
         options={{
-          title: "DFY Calendar",
+          title: t('navTitles.dfyCalendar') || "DFY Calendar",
           headerShown: false,
         }}
       />

@@ -168,18 +168,18 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
 
   const handleRemoveItem = useCallback((item: WishlistItem) => {
     Alert.alert(
-      'Remove from Wishlist',
-      `Remove ${item.name} from your wishlist?`,
+      t('wishlist.removeFromWishlist'),
+      t('wishlist.removeConfirm').replace('{name}', item.name),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('common.remove'),
           style: 'destructive',
           onPress: () => removeFromWishlist(item.id),
         },
       ]
     );
-  }, [removeFromWishlist]);
+  }, [removeFromWishlist, t]);
 
   const handleSetTargetPrice = useCallback((item: WishlistItem) => {
     Alert.prompt(
@@ -218,7 +218,7 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
 
   const handleAddByUrl = useCallback(async () => {
     if (!trackingUrl.trim()) {
-      Alert.alert('Enter URL', 'Please paste a product URL from any retailer.');
+      Alert.alert(t('wishlist.enterUrl'), t('wishlist.enterUrlMessage'));
       return;
     }
     
@@ -228,13 +228,16 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
     try {
       const result = await addItemByUrl(trackingUrl.trim());
       if (result.success) {
-        Alert.alert('Added!', `${result.itemName || 'Product'} is now being tracked for price drops.`);
+        Alert.alert(
+          t('wishlist.addedExclaim'),
+          t('wishlist.trackingPriceDrops').replace('{name}', result.itemName || t('wishlist.product')),
+        );
         setTrackingUrl('');
       } else {
-        Alert.alert('Error', result.error || 'Could not add this product. Please check the URL and try again.');
+        Alert.alert(t('common.error'), result.error || t('wishlist.couldNotAddProduct'));
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to track product. Please try again.');
+      Alert.alert(t('common.error'), t('wishlist.failedToTrack'));
     } finally {
       setIsAddingUrl(false);
     }
@@ -244,9 +247,9 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await addProductToWishlist(product);
-      Alert.alert('Added', `${product.name} added to your wishlist!`);
+      Alert.alert(t('wishlist.added'), t('wishlist.addedToWishlist').replace('{name}', product.name));
     } catch (error) {
-      Alert.alert('Error', 'Failed to add item to wishlist.');
+      Alert.alert(t('common.error'), t('wishlist.failedToAdd'));
     }
   }, [addProductToWishlist]);
 
@@ -255,24 +258,24 @@ export default function WishlistScreen({ navigation }: WishlistScreenProps) {
     try {
       await Linking.openURL(affiliateUrl);
     } catch (error) {
-      Alert.alert('Error', 'Could not open the shop link.');
+      Alert.alert(t('common.error'), t('wishlist.couldNotOpenShop'));
     }
   }, []);
 
   const handleMarkPurchased = useCallback(async (item: WishlistItem) => {
     Alert.alert(
-      'Mark as Purchased',
-      `Did you buy ${item.name}?`,
+      t('wishlist.markAsPurchased'),
+      t('wishlist.markAsPurchasedConfirm').replace('{name}', item.name),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Yes, I bought it',
+          text: t('common.yesIBoughtIt'),
           onPress: async () => {
             try {
               await markAsPurchased(item.id);
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (error) {
-              Alert.alert('Error', 'Failed to mark as purchased.');
+              Alert.alert(t('common.error'), t('wishlist.failedToMarkPurchased'));
             }
           },
         },

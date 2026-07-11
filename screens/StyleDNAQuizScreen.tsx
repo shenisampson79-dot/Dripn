@@ -101,7 +101,7 @@ export default function StyleDNAQuizScreen({ navigation }: StyleDNAQuizScreenPro
 
   const handleNext = () => {
     if (answers[currentIndex] === -1) {
-      Alert.alert(t('onboarding.selectAnOption') || "Select an Option", t('onboarding.pleaseChooseAnAnswerBeforeContinuing') || "Please choose an answer before continuing.");
+      Alert.alert(t('onboarding.selectAnOption'), t('onboarding.pleaseChooseAnAnswerBeforeContinuing'));
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -121,7 +121,7 @@ export default function StyleDNAQuizScreen({ navigation }: StyleDNAQuizScreenPro
 
   const submitQuiz = async () => {
     if (!user) {
-      Alert.alert(t('onboarding.signInRequired') || "Sign In Required", t('onboarding.pleaseSignInToSaveYourResults') || "Please sign in to save your results.");
+      Alert.alert(t('common.signInRequired'), t('onboarding.pleaseSignInToSaveYourResults'));
       return;
     }
 
@@ -135,7 +135,7 @@ export default function StyleDNAQuizScreen({ navigation }: StyleDNAQuizScreenPro
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Failed to submit quiz");
+      Alert.alert(t('common.error'), err.message || t('styleDna.failedSubmitQuiz'));
     } finally {
       setSubmitting(false);
     }

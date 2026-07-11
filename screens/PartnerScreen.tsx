@@ -88,20 +88,20 @@ export default function PartnerScreen({ navigation }: PartnerScreenProps) {
       } else {
         if (Platform.OS === 'web') {
           Alert.alert(
-            "Email Not Available",
-            `Please email us directly at ${email} to inquire about partnership opportunities.`
+            t('partner.emailNotAvailable'),
+            t('partner.emailNotAvailableMessage').replace('{email}', email)
           );
         } else {
           Alert.alert(
-            "Email App Not Found",
-            `Please email us at ${email} to learn more about partnering with Dripn.`
+            t('partner.emailAppNotFound'),
+            t('partner.emailAppNotFoundMessage').replace('{email}', email)
           );
         }
       }
     } catch (error) {
       Alert.alert(
-        "Unable to Open Email",
-        `Please contact us directly at ${email} for partnership inquiries.`
+        t('partner.unableToOpenEmail'),
+        t('partner.unableToOpenEmailMessage').replace('{email}', email)
       );
     }
   };

@@ -66,12 +66,12 @@ export default function SustainabilityScreen() {
 
   const handleAddGoal = useCallback(async () => {
     if (!newGoalTitle.trim()) {
-      Alert.alert('Goal Required', 'Please enter a goal title');
+      Alert.alert(t('sustainability.goalRequired'), t('sustainability.enterGoalTitle'));
       return;
     }
     const target = parseInt(newGoalTarget, 10);
     if (isNaN(target) || target <= 0) {
-      Alert.alert('Invalid Target', 'Please enter a valid target number');
+      Alert.alert(t('sustainability.invalidTarget'), t('sustainability.enterValidTarget'));
       return;
     }
     setIsAddingGoal(true);
@@ -87,7 +87,7 @@ export default function SustainabilityScreen() {
       setNewGoalTarget('');
       setShowGoalModal(false);
     } catch (error) {
-      Alert.alert('Error', 'Failed to add goal. Please try again.');
+      Alert.alert(t('common.error'), t('sustainability.failedAddGoal'));
     } finally {
       setIsAddingGoal(false);
     }

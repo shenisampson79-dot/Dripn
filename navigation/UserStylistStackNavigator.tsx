@@ -21,6 +21,7 @@ import StyleRulesScreen from "@/screens/StyleRulesScreen";
 import WishlistScreen from "@/screens/WishlistScreen";
 import ColourInsightsScreen from "@/screens/ColourInsightsScreen";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
 export type UserStylistStackParamList = {
@@ -49,6 +50,7 @@ const Stack = createNativeStackNavigator<UserStylistStackParamList>();
 
 export default function UserStylistStackNavigator() {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
 
   return (
     <Stack.Navigator screenOptions={getCommonScreenOptions({ theme, isDark })}>
@@ -56,94 +58,94 @@ export default function UserStylistStackNavigator() {
         name="StylistHub"
         component={StylistHubScreen}
         options={{
-          title: "Stylist",
+          title: t('nav.stylist'),
           headerShown: false,
         }}
       />
       <Stack.Screen
         name="AIStylist"
         component={AIStylistScreen}
-        options={{ headerTitle: "Stylist Chat" }}
+        options={{ headerTitle: t('navTitles.stylistChat') }}
       />
       <Stack.Screen
         name="StyleShuffle"
         component={StyleShuffleScreen}
-        options={{ headerTitle: "Style Shuffle" }}
+        options={{ headerTitle: t('navTitles.styleShuffle') }}
       />
       <Stack.Screen
         name="VisualSearch"
         component={VisualSearchScreen}
-        options={{ headerTitle: "Visual Search" }}
+        options={{ headerTitle: t('navTitles.visualSearch') }}
       />
       <Stack.Screen
         name="DreamOutfitGenerator"
         component={DreamOutfitGeneratorScreen}
-        options={{ headerTitle: "Dream Outfit Generator" }}
+        options={{ headerTitle: t('navTitles.dreamOutfitGenerator') }}
       />
       <Stack.Screen
         name="Wardrobe"
         component={WardrobeScreen}
-        options={{ headerTitle: "My Wardrobe", headerShown: false }}
+        options={{ headerTitle: t('wardrobe.myWardrobe'), headerShown: false }}
       />
       <Stack.Screen
         name="AddWardrobeItem"
         component={AddWardrobeItemScreen}
-        options={{ headerTitle: "Add Item", headerShown: false, presentation: "modal" }}
+        options={{ headerTitle: t('wardrobe.addItem'), headerShown: false, presentation: "modal" }}
       />
       <Stack.Screen
         name="BulkWardrobeUpload"
         component={BulkWardrobeUploadScreen}
-        options={{ headerTitle: "Quick Add Items", headerShown: false, presentation: "modal" }}
+        options={{ headerTitle: t('navTitles.quickAddItems'), headerShown: false, presentation: "modal" }}
       />
       <Stack.Screen
         name="OutfitCalendar"
         component={OutfitCalendarScreen}
-        options={{ headerTitle: "Outfit Calendar", headerShown: false }}
+        options={{ headerTitle: t('wardrobe.outfitCalendar'), headerShown: false }}
       />
       <Stack.Screen
         name="WeatherOutfit"
         component={WeatherOutfitScreen}
-        options={{ headerTitle: "Weather Outfits", headerShown: false }}
+        options={{ headerTitle: t('stylistHub.weatherOutfits'), headerShown: false }}
       />
       <Stack.Screen
         name="CostPerWear"
         component={CostPerWearScreen}
-        options={{ headerTitle: "Cost-per-Wear", headerShown: false }}
+        options={{ headerTitle: t('navTitles.costPerWear'), headerShown: false }}
       />
       <Stack.Screen
         name="StyleDNA"
         component={StyleDNAScreen}
-        options={{ headerTitle: "Style DNA", headerShown: false }}
+        options={{ headerTitle: t('profile.styleDna'), headerShown: false }}
       />
       <Stack.Screen
         name="VirtualTryOn"
         component={VirtualTryOnScreen}
-        options={{ headerTitle: "Virtual Try-On", headerShown: false, presentation: "fullScreenModal" }}
+        options={{ headerTitle: t('navTitles.virtualTryOn'), headerShown: false, presentation: "fullScreenModal" }}
       />
       <Stack.Screen
         name="ColorAnalysis"
         component={ColorAnalysisScreen}
-        options={{ headerTitle: "Color Analysis", headerShown: false }}
+        options={{ headerTitle: t('profile.colorAnalysis'), headerShown: false }}
       />
       <Stack.Screen
         name="BodyScanner"
         component={BodyScannerScreen}
-        options={{ headerTitle: "Body Scanner", headerShown: false }}
+        options={{ headerTitle: t('bodyScan.title'), headerShown: false }}
       />
       <Stack.Screen
         name="FashionBlog"
         component={FashionBlogScreen}
-        options={{ headerTitle: "Blog", headerShown: false }}
+        options={{ headerTitle: t('navTitles.blog'), headerShown: false }}
       />
       <Stack.Screen
         name="StyleRules"
         component={StyleRulesScreen}
-        options={{ headerTitle: "Style Rules", headerShown: false }}
+        options={{ headerTitle: t('navTitles.styleRules'), headerShown: false }}
       />
       <Stack.Screen
         name="ColourInsights"
         component={ColourInsightsScreen}
-        options={{ headerTitle: "Colour Insights" }}
+        options={{ headerTitle: t('navTitles.colourInsights') }}
       />
     </Stack.Navigator>
   );

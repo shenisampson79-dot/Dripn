@@ -97,13 +97,13 @@ export default function PriceCheckScreen({ navigation }: PriceCheckScreenProps) 
 
   const handleSubmitGuess = async () => {
     if (!user) {
-      Alert.alert(t('common.signInRequired') || "Sign In Required", t('common.pleaseSignInToPlay') || "Please sign in to play.");
+      Alert.alert(t('common.signInRequired'), t('common.pleaseSignInToPlay'));
       return;
     }
 
     const guessValue = parseFloat(guessInput.replace(/[^0-9.]/g, ""));
     if (isNaN(guessValue) || guessValue <= 0) {
-      Alert.alert(t('common.invalidPrice') || "Invalid Price", t('common.pleaseEnterAValidPrice') || "Please enter a valid price.");
+      Alert.alert(t('common.invalidPrice'), t('common.pleaseEnterAValidPrice'));
       return;
     }
 
@@ -126,7 +126,7 @@ export default function PriceCheckScreen({ navigation }: PriceCheckScreenProps) 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Failed to submit guess");
+      Alert.alert(t('common.error'), err.message || t('priceCheck.failedSubmitGuess'));
     } finally {
       setSubmitting(false);
     }

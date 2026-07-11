@@ -20,6 +20,7 @@ import GuestBrowseScreen from "@/screens/GuestBrowseScreen";
 import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
 import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
 export type AuthStackParamList = {
@@ -52,6 +53,7 @@ type AuthStackNavigatorProps = {
 
 export default function AuthStackNavigator({ initialRouteName = "Welcome" }: AuthStackNavigatorProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
 
   return (
     <Stack.Navigator 
@@ -78,8 +80,22 @@ export default function AuthStackNavigator({ initialRouteName = "Welcome" }: Aut
       <Stack.Screen name="OnboardingStyleQuiz" component={OnboardingStyleQuizScreen} />
       <Stack.Screen name="StyleQuizOnboarding" component={StyleQuizOnboardingScreen} />
       <Stack.Screen name="GuestBrowse" component={GuestBrowseScreen} />
-      <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ headerShown: true, title: "Terms of Service" }} />
-      <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ headerShown: true, title: "Privacy Policy" }} />
+      <Stack.Screen
+        name="TermsOfService"
+        component={TermsOfServiceScreen}
+        options={{
+          headerShown: true,
+          title: t('navTitles.termsOfService') || t('terms.screenTitle') || "Terms of Service",
+        }}
+      />
+      <Stack.Screen
+        name="PrivacyPolicy"
+        component={PrivacyPolicyScreen}
+        options={{
+          headerShown: true,
+          title: t('navTitles.privacyPolicy') || t('privacy.screenTitle') || "Privacy Policy",
+        }}
+      />
     </Stack.Navigator>
   );
 }

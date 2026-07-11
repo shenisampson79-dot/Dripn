@@ -46,7 +46,7 @@ export default function BodyMeasurementsScreen({ navigation }: BodyMeasurementsS
     try {
       await updateProfile({ bodyMeasurements });
       Alert.alert(t('common.saved') || "Saved", t('common.yourBodyMeasurementsHaveBeenUpdated') || "Your body measurements have been updated.", [
-        { text: "OK", onPress: () => navigation.goBack() }
+        { text: t('common.ok') || "OK", onPress: () => navigation.goBack() }
       ]);
     } catch (error) {
       console.error('Failed to save measurements:', error);

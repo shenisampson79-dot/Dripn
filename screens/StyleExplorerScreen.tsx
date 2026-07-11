@@ -392,12 +392,12 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
     try {
       await updateProfile({ stylePreference: styleToSave });
       Alert.alert(
-        "Style Updated",
-        `Your style has been changed to ${currentStyle.name}. Your feed and recommendations will now reflect this style.`,
-        [{ text: "Great!", onPress: () => navigation.goBack() }]
+        t('discover.styleUpdated'),
+        t('discover.styleUpdatedMessage').replace('{name}', currentStyle.name),
+        [{ text: t('common.great'), onPress: () => navigation.goBack() }]
       );
     } catch (error) {
-      Alert.alert(t('discover.error') || "Error", t('discover.couldNotUpdateYourStylePleaseTryAgain') || "Could not update your style. Please try again.");
+      Alert.alert(t('common.error'), t('discover.couldNotUpdateYourStylePleaseTryAgain'));
     } finally {
       setIsUpdating(false);
     }

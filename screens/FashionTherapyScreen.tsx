@@ -121,12 +121,12 @@ export default function FashionTherapyScreen({ navigation }: FashionTherapyScree
 
   const fetchMoodOutfit = async () => {
     if (!selectedMood) {
-      Alert.alert('Select a Mood', 'Please select how you are feeling first');
+      Alert.alert(t('fashionTherapy.selectMood'), t('fashionTherapy.selectMoodMessage'));
       return;
     }
 
     if (!apiService.isConfigured()) {
-      Alert.alert('Not Available', 'Fashion therapy features require a backend connection. Please try again later.');
+      Alert.alert(t('common.notAvailable'), t('fashionTherapy.notAvailable'));
       return;
     }
 
@@ -141,7 +141,7 @@ export default function FashionTherapyScreen({ navigation }: FashionTherapyScree
       });
       setMoodOutfit(data);
     } catch (error) {
-      Alert.alert('Error', 'Unable to get outfit recommendation. Please try again.');
+      Alert.alert(t('common.error'), t('fashionTherapy.unableOutfitRec'));
     } finally {
       setIsLoading(false);
     }
@@ -149,7 +149,7 @@ export default function FashionTherapyScreen({ navigation }: FashionTherapyScree
 
   const fetchBodyPositivity = async () => {
     if (!apiService.isConfigured()) {
-      Alert.alert('Not Available', 'Fashion therapy features require a backend connection. Please try again later.');
+      Alert.alert(t('common.notAvailable'), t('fashionTherapy.notAvailable'));
       return;
     }
 
@@ -164,7 +164,7 @@ export default function FashionTherapyScreen({ navigation }: FashionTherapyScree
       });
       setBodyPositivity(data);
     } catch (error) {
-      Alert.alert('Error', 'Unable to load content. Please try again.');
+      Alert.alert(t('common.error'), t('fashionTherapy.unableLoadContent'));
     } finally {
       setIsLoading(false);
     }
@@ -172,7 +172,7 @@ export default function FashionTherapyScreen({ navigation }: FashionTherapyScree
 
   const fetchConfidenceRitual = async () => {
     if (!apiService.isConfigured()) {
-      Alert.alert('Not Available', 'Fashion therapy features require a backend connection. Please try again later.');
+      Alert.alert(t('common.notAvailable'), t('fashionTherapy.notAvailable'));
       return;
     }
 
@@ -187,7 +187,7 @@ export default function FashionTherapyScreen({ navigation }: FashionTherapyScree
       });
       setConfidenceRitual(data);
     } catch (error) {
-      Alert.alert('Error', 'Unable to load ritual. Please try again.');
+      Alert.alert(t('common.error'), t('fashionTherapy.unableLoadRitual'));
     } finally {
       setIsLoading(false);
     }
@@ -195,12 +195,12 @@ export default function FashionTherapyScreen({ navigation }: FashionTherapyScree
 
   const fetchWellnessOutfit = async () => {
     if (!selectedActivity) {
-      Alert.alert('Select an Activity', 'Please select a wellness activity first');
+      Alert.alert(t('fashionTherapy.selectActivity'), t('fashionTherapy.selectActivityMessage'));
       return;
     }
 
     if (!apiService.isConfigured()) {
-      Alert.alert('Not Available', 'Fashion therapy features require a backend connection. Please try again later.');
+      Alert.alert(t('common.notAvailable'), t('fashionTherapy.notAvailable'));
       return;
     }
 
@@ -215,7 +215,7 @@ export default function FashionTherapyScreen({ navigation }: FashionTherapyScree
       });
       setWellnessOutfit(data);
     } catch (error) {
-      Alert.alert('Error', 'Unable to get outfit recommendation. Please try again.');
+      Alert.alert(t('common.error'), t('fashionTherapy.unableOutfitRec'));
     } finally {
       setIsLoading(false);
     }
@@ -223,7 +223,7 @@ export default function FashionTherapyScreen({ navigation }: FashionTherapyScree
 
   const fetchCapsuleWardrobe = async () => {
     if (!apiService.isConfigured()) {
-      Alert.alert('Not Available', 'Fashion therapy features require a backend connection. Please try again later.');
+      Alert.alert(t('common.notAvailable'), t('fashionTherapy.notAvailable'));
       return;
     }
 
@@ -239,7 +239,7 @@ export default function FashionTherapyScreen({ navigation }: FashionTherapyScree
       });
       setCapsuleWardrobe(data);
     } catch (error) {
-      Alert.alert('Error', 'Unable to load capsule wardrobe. Please try again.');
+      Alert.alert(t('common.error'), t('fashionTherapy.unableLoadCapsule'));
     } finally {
       setIsLoading(false);
     }

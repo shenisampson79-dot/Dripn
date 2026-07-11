@@ -70,7 +70,7 @@ export default function StreetStyleScannerScreen({ navigation }: StreetStyleScan
           await analyzeImage(photo.uri);
         }
       } catch (error: any) {
-        Alert.alert('Photo Error', error?.message || 'Failed to capture photo. Please try again.');
+        Alert.alert(t('common.photoError'), error?.message || t('streetStyle.failedCapture'));
       }
     }
   };
@@ -123,11 +123,11 @@ export default function StreetStyleScannerScreen({ navigation }: StreetStyleScan
         setAnalysis(newAnalysis);
         setScanHistory(prev => [newAnalysis, ...prev.slice(0, 4)]);
       } else {
-        Alert.alert('Analysis Failed', 'Could not analyze the image. Please try again.');
+        Alert.alert(t('common.analysisFailed'), t('streetStyle.couldNotAnalyze'));
       }
     } catch (error: any) {
       console.error('Street style scan error:', error);
-      Alert.alert('Error', error.message || 'Failed to analyze the outfit. Please try again.');
+      Alert.alert(t('common.error'), error.message || t('streetStyle.failedAnalyzeOutfit'));
     } finally {
       setIsAnalyzing(false);
     }

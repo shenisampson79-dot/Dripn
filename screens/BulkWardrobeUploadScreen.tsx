@@ -177,7 +177,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       );
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {
-      Alert.alert('Rotate failed', 'Could not rotate this photo. Try again.');
+      Alert.alert(t('wardrobe.rotateFailed'), t('wardrobe.couldNotRotatePhotoTryAgain'));
     }
   };
 
@@ -218,7 +218,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.pleaseAllowAccessToYourPhotoLibraryInSet') || "Please allow access to your photo library in Settings to upload clothes.",
           [
             { text: t('common.cancel'), style: "cancel" },
-            { text: "Open Settings", onPress: openAppSettings },
+            { text: t('common.openSettings'), onPress: openAppSettings },
           ]
         );
       } else {
@@ -248,9 +248,9 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
 
         if (preparedUris.length > maxBulkBatch) {
           Alert.alert(
-            "Too Many Images",
-            `Please select up to ${maxBulkBatch} images at a time to ensure smooth processing.`,
-            [{ text: "OK" }]
+            t('wardrobe.tooManyImages'),
+            t('wardrobe.tooManyImagesMessage').replace('{n}', String(maxBulkBatch)),
+            [{ text: t('common.ok') }]
           );
         }
 
@@ -262,7 +262,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       } catch (error) {
         console.error('[BulkUpload] Failed to prepare images:', error);
         setIsProcessing(false);
-        Alert.alert('Error', 'Failed to prepare your photos. Please try again.');
+        Alert.alert(t('common.error'), t('wardrobe.failedToPreparePhotos'));
       }
     }
   };
@@ -274,7 +274,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.pleaseAllowCameraAccessInSettingsToTakeP') || "Please allow camera access in Settings to take photos of your clothes.",
           [
             { text: t('common.cancel'), style: "cancel" },
-            { text: "Open Settings", onPress: openAppSettings },
+            { text: t('common.openSettings'), onPress: openAppSettings },
           ]
         );
       } else {
@@ -303,7 +303,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       } catch (error) {
         console.error('[BulkUpload] Failed to prepare camera photo:', error);
         setIsProcessing(false);
-        Alert.alert('Error', 'Failed to prepare your photo. Please try again.');
+        Alert.alert(t('common.error'), t('wardrobe.failedToPreparePhoto'));
       }
     }
   };
@@ -315,7 +315,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         Alert.alert(t('wardrobe.permissionRequired') || "Permission Required", t('wardrobe.pleaseAllowAccessToYourPhotoLibraryInSet') || "Please allow access to your photo library in Settings to upload clothes.",
           [
             { text: t('common.cancel'), style: "cancel" },
-            { text: "Open Settings", onPress: openAppSettings },
+            { text: t('common.openSettings'), onPress: openAppSettings },
           ]
         );
       } else {
@@ -346,7 +346,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       } catch (error) {
         console.error('[BulkUpload] Failed to prepare screenshot:', error);
         setIsProcessing(false);
-        Alert.alert('Error', 'Failed to prepare your photo. Please try again.');
+        Alert.alert(t('common.error'), t('wardrobe.failedToPreparePhoto'));
       }
     }
   };
@@ -371,8 +371,8 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       } else {
         Alert.alert(t('wardrobe.noItemsDetected') || "No Items Detected", t('wardrobe.couldNotDetectClothingItemsInThisImageTr') || "Could not detect clothing items in this image. Try a clearer photo or add details manually.",
           [
-            { text: "Try Again", style: "cancel" },
-            { text: "Add Manually", onPress: () => navigation.navigate("AddWardrobeItem") },
+            { text: t('common.tryAgain'), style: "cancel" },
+            { text: t('common.enterManually'), onPress: () => navigation.navigate("AddWardrobeItem") },
           ]
         );
       }
@@ -484,28 +484,33 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (failedUris.length > 0) {
         Alert.alert(
-          "Partial Success",
-          `Analyzed ${allItems.length} of ${imageUris.length} items. ${failedUris.length} image${failedUris.length > 1 ? 's' : ''} could not be analyzed. Review and confirm to add to your wardrobe.`,
+          t('wardrobe.partialSuccess'),
+          t('wardrobe.partialSuccessMessage')
+            .replace('{found}', String(allItems.length))
+            .replace('{total}', String(imageUris.length))
+            .replace('{failed}', String(failedUris.length)),
           [
-            { text: "Retry Failed", onPress: () => processBulkImages(failedUris, true) },
-            { text: "Continue Anyway", style: "default" },
+            { text: t('common.retryFailed'), onPress: () => processBulkImages(failedUris, true) },
+            { text: t('common.continueAnyway'), style: "default" },
           ]
         );
       } else {
         Alert.alert(
-          "Items Detected",
-          `Found ${allItems.length} item${allItems.length > 1 ? 's' : ''} in ${imageUris.length} photo${imageUris.length > 1 ? 's' : ''}. Review and confirm to add to your wardrobe.`
+          t('wardrobe.itemsDetected'),
+          t('wardrobe.itemsDetectedMessage')
+            .replace('{count}', String(allItems.length))
+            .replace('{photos}', String(imageUris.length))
         );
       }
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       if (quotaExceeded) {
         Alert.alert(t('wardrobe.aiCreditsExhausted') || "AI Credits Exhausted", t('wardrobe.yourOpenaiApiQuotaHasBeenExceededPleaseT') || "Your OpenAI API quota has been exceeded. Please top up your OpenAI account at platform.openai.com/billing to continue using AI analysis.",
-          [{ text: "OK", style: "cancel" }]
+          [{ text: t('common.ok'), style: "cancel" }]
         );
       } else if (authRequired) {
         Alert.alert(t('wardrobe.sessionExpired') || "Session Expired", t('wardrobe.pleaseSignOutAndSignBackInThenTryYourUpl') || "Please sign out and sign back in, then try your upload again.",
-          [{ text: "OK", style: "cancel" }]
+          [{ text: t('common.ok'), style: "cancel" }]
         );
       } else {
         const failure = describeBulkAnalyzeFailure(lastErrorDetail);
@@ -513,7 +518,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
           failure.title,
           failure.message,
           [
-            { text: "Try Again", onPress: () => processBulkImages(imageUris, true) },
+            { text: t('common.tryAgain'), onPress: () => processBulkImages(imageUris, true) },
             { text: t('common.cancel'), style: "cancel" },
           ]
         );
@@ -618,7 +623,7 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
         Alert.alert(t('wardrobe.couldNotExtract') || "Could Not Extract", t('wardrobe.unableToExtractProductInformationFromThi') || "Unable to extract product information from this URL. Try copying the full product page content instead.",
-          [{ text: "OK" }]
+          [{ text: t('common.ok') }]
         );
       }
     } catch (error) {
@@ -659,16 +664,16 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     if (duplicates.length > 0) {
       const duplicateNames = duplicates.map(d => d.suggestedName).join(', ');
       Alert.alert(
-        "Duplicate Items Found",
-        `The following item${duplicates.length > 1 ? 's are' : ' is'} already in your wardrobe: ${duplicateNames}. Would you like to add them anyway?`,
+        t('wardrobe.duplicateItemsFound'),
+        t('wardrobe.duplicateItemsMessage').replace('{names}', duplicateNames),
         [
           {
-            text: "Skip Duplicates",
+            text: t('common.skipDuplicates'),
             style: 'cancel',
             onPress: () => saveItems(selectedItems.filter(item => !checkForDuplicate(item.suggestedName, item.category))),
           },
           {
-            text: "Add All",
+            text: t('common.addAll'),
             onPress: () => saveItems(selectedItems),
           },
         ]
@@ -716,10 +721,10 @@ export default function BulkWardrobeUploadScreen({ navigation }: BulkWardrobeUpl
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     
     Alert.alert(
-      "Items Added",
+      t('wardrobe.itemsAdded'),
       savedCount > 0
-        ? `Successfully added ${savedCount} item${savedCount > 1 ? 's' : ''}. Background removal will continue while you use the app — check your wardrobe for progress.`
-        : `Could not add items. Please try again.`,
+        ? t('wardrobe.itemsAddedSuccess').replace('{count}', String(savedCount))
+        : t('wardrobe.itemsAddedFailed'),
       [{ text: t('common.done'), onPress: () => navigation.goBack() }]
     );
   };

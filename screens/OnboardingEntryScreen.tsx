@@ -14,6 +14,7 @@ import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { apiService } from "@/services/ApiService";
 import { videoRandomizer } from "@/services/VideoRandomizerService";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { LanguageEntryButton, LanguagePickerModal } from "@/components/LanguagePickerModal";
 
 type OnboardingEntryScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "OnboardingEntry">;
@@ -39,6 +40,7 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
   const { t } = useTranslations();
   const [entryData, setEntryData] = useState<EntryData | null>(null);
   const [selectedVideo] = useState(() => videoRandomizer.getNextVideo({ tone: "confidence" }));
+  const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
 
   const ui = useMemo(
     () => ({
@@ -133,6 +135,10 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
         </View>
       </Pressable>
 
+      <View style={[styles.languageButton, { top: insets.top + Spacing.md }]}>
+        <LanguageEntryButton light={isDark} onPress={() => setLanguagePickerVisible(true)} />
+      </View>
+
       <View style={[styles.content, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.xl }]}>
         <Animated.View entering={FadeIn.delay(200)} style={styles.header}>
           <ThemedText type="h1" style={[styles.title, { color: ui.title }, !isDark && styles.titleLight]}>
@@ -226,6 +232,10 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
           </Pressable>
         </Animated.View>
       </View>
+      <LanguagePickerModal
+        visible={languagePickerVisible}
+        onClose={() => setLanguagePickerVisible(false)}
+      />
     </View>
   );
 }
@@ -237,6 +247,11 @@ const styles = StyleSheet.create({
   backButton: {
     position: "absolute",
     left: Spacing.lg,
+    zIndex: 10,
+  },
+  languageButton: {
+    position: "absolute",
+    right: Spacing.lg,
     zIndex: 10,
   },
   backButtonInner: {

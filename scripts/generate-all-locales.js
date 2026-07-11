@@ -58,16 +58,17 @@ async function mapConcurrent(items, fn, limit = CONCURRENCY) {
 
 async function translateLocale(lang, enFlat, overrides, { force = false } = {}) {
   const outPath = path.join(LOCALES_DIR, `${lang}.json`);
-  if (!force && fs.existsSync(outPath)) {
-    const existing = loadJson(outPath);
-    if (Object.keys(existing).length >= Object.keys(enFlat).length) {
-      console.log(`  ${lang}: skip (existing ${Object.keys(existing).length} keys)`);
-      return existing;
-    }
-  }
+  const existing = (!force && fs.existsSync(outPath)) ? loadJson(outPath) : {};
 
   const keys = Object.keys(enFlat);
-  const entries = await mapConcurrent(keys, async (key) => {
+  const missing = keys.filter((key) => force || !existing[key] || existing[key] === '');
+  if (missing.length === 0 && Object.keys(existing).length >= keys.length) {
+    console.log(`  ${lang}: skip (complete ${Object.keys(existing).length} keys)`);
+    return existing;
+  }
+
+  console.log(`  ${lang}: translating ${missing.length} missing/updated keys…`);
+  const translatedEntries = await mapConcurrent(missing, async (key) => {
     if (overrides[key]) {
       return [key, overrides[key]];
     }
@@ -85,7 +86,21 @@ async function translateLocale(lang, enFlat, overrides, { force = false } = {}) 
     }
   });
 
-  const result = Object.fromEntries(entries);
+  const result = { ...existing };
+  for (const [key, value] of translatedEntries) {
+    result[key] = value;
+  }
+  // Drop keys removed from en-flat only when force regenerating
+  if (force) {
+    for (const key of Object.keys(result)) {
+      if (!(key in enFlat)) delete result[key];
+    }
+  }
+  // Ensure every en-flat key exists
+  for (const key of keys) {
+    if (!(key in result)) result[key] = enFlat[key];
+  }
+
   console.log(`  ${lang}: ${Object.keys(result).length} keys written`);
   fs.writeFileSync(outPath, JSON.stringify(result, null, 2) + '\n');
   return result;

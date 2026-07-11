@@ -111,7 +111,7 @@ export default function MixMatchScreen({ navigation }: MixMatchScreenProps) {
 
   const handleSubmitEntry = async () => {
     if (!user) {
-      Alert.alert(t('common.signInRequired') || "Sign In Required", t('common.pleaseSignInToSubmitAnEntry') || "Please sign in to submit an entry.");
+      Alert.alert(t('common.signInRequired'), t('common.pleaseSignInToSubmitAnEntry'));
       return;
     }
 
@@ -130,7 +130,7 @@ export default function MixMatchScreen({ navigation }: MixMatchScreenProps) {
 
       const imageBase64 = result.assets[0].base64;
       if (!imageBase64) {
-        Alert.alert(t('common.error') || "Error", t('common.failedToProcessImage') || "Failed to process image");
+        Alert.alert(t('common.error'), t('common.failedToProcessImage'));
         return;
       }
 
@@ -144,13 +144,13 @@ export default function MixMatchScreen({ navigation }: MixMatchScreenProps) {
       });
 
       if (response.success) {
-        Alert.alert(t('common.success') || "Success", t('common.yourEntryHasBeenSubmitted') || "Your entry has been submitted!");
+        Alert.alert(t('common.success'), t('common.yourEntryHasBeenSubmitted'));
         setSelectedChallenge(prev => prev ? { ...prev, hasSubmitted: true } : null);
         await fetchEntries(selectedChallenge.id);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Failed to submit entry");
+      Alert.alert(t('common.error'), err.message || t('mixMatch.failedSubmitEntry'));
     } finally {
       setSubmitting(false);
     }
@@ -158,7 +158,7 @@ export default function MixMatchScreen({ navigation }: MixMatchScreenProps) {
 
   const handleVote = async (entryId: string) => {
     if (!user) {
-      Alert.alert(t('common.signInRequired') || "Sign In Required", t('common.pleaseSignInToVote') || "Please sign in to vote.");
+      Alert.alert(t('common.signInRequired'), t('common.pleaseSignInToVote'));
       return;
     }
 
@@ -176,7 +176,7 @@ export default function MixMatchScreen({ navigation }: MixMatchScreenProps) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Failed to vote");
+      Alert.alert(t('common.error'), err.message || t('mixMatch.failedVote'));
     } finally {
       setVoting(null);
     }

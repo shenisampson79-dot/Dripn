@@ -56,14 +56,14 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
 
   const handlePickImage = async () => {
     if (media.length >= maxMedia) {
-      Alert.alert("Limit Reached", `You can only add ${maxMedia} item(s) for this post type.`);
+      Alert.alert(t('community.limitReached'), t('community.limitReachedMedia').replace('{n}', String(maxMedia)));
       return;
     }
 
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert(t('community.permissionRequired') || "Permission Required", t('community.pleaseAllowAccessToYourPhotoLibraryToAdd') || "Please allow access to your photo library to add images.");
+      Alert.alert(t('community.permissionRequired'), t('community.pleaseAllowAccessToYourPhotoLibraryToAdd'));
       return;
     }
 
@@ -80,12 +80,12 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
       const isVideo = asset.type === 'video';
       
       if (isVideo && !limits.canUploadVideo) {
-        Alert.alert(t('community.upgradeRequired') || "Upgrade Required", t('community.videoUploadsAreAvailableOnPersonalStylis') || "Video uploads are available on Personal Stylist and above.");
+        Alert.alert(t('community.upgradeRequired'), t('community.videoUploadsAreAvailableOnPersonalStylis'));
         return;
       }
 
       if (isVideo && asset.duration && asset.duration / 1000 > limits.maxVideoSeconds) {
-        Alert.alert("Video Too Long", `Your plan allows videos up to ${limits.maxVideoSeconds} seconds.`);
+        Alert.alert(t('community.videoTooLong'), t('community.videoTooLongMessage').replace('{n}', String(limits.maxVideoSeconds)));
         return;
       }
 
@@ -101,14 +101,14 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
 
   const handleTakePhoto = async () => {
     if (media.length >= maxMedia) {
-      Alert.alert("Limit Reached", `You can only add ${maxMedia} item(s) for this post type.`);
+      Alert.alert(t('community.limitReached'), t('community.limitReachedMedia').replace('{n}', String(maxMedia)));
       return;
     }
 
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert(t('community.permissionRequired') || "Permission Required", t('community.pleaseAllowAccessToYourCameraToTakePhoto') || "Please allow access to your camera to take photos.");
+      Alert.alert(t('community.permissionRequired'), t('community.pleaseAllowAccessToYourCameraToTakePhoto'));
       return;
     }
 
@@ -130,22 +130,22 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
 
   const handleRecordVideo = async () => {
     if (!limits.canUploadVideo) {
-      Alert.alert(t('community.upgradeRequired') || "Upgrade Required", t('community.videoRecordingIsAvailableOnPersonalStyli') || "Video recording is available on Personal Stylist and above.", [
+      Alert.alert(t('community.upgradeRequired'), t('community.videoRecordingIsAvailableOnPersonalStyli'), [
         { text: t('common.cancel'), style: "cancel" },
-        { text: "Upgrade", onPress: () => onClose() },
+        { text: t('common.upgrade'), onPress: () => onClose() },
       ]);
       return;
     }
 
     if (media.length >= maxMedia) {
-      Alert.alert("Limit Reached", `You can only add ${maxMedia} item(s) for this post type.`);
+      Alert.alert(t('community.limitReached'), t('community.limitReachedMedia').replace('{n}', String(maxMedia)));
       return;
     }
 
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert(t('community.permissionRequired') || "Permission Required", t('community.pleaseAllowAccessToYourCameraToRecordVid') || "Please allow access to your camera to record video.");
+      Alert.alert(t('community.permissionRequired'), t('community.pleaseAllowAccessToYourCameraToRecordVid'));
       return;
     }
 
@@ -175,58 +175,58 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
   const handleSubmit = async () => {
     if (!canUpload()) {
       Alert.alert(
-        "Upload Limit Reached", 
-        `You've used all ${limits.uploadsPerMonth} uploads this month. Upgrade to get more uploads.`,
+        t('community.uploadLimitReached'),
+        t('community.uploadLimitMessage').replace('{n}', String(limits.uploadsPerMonth)),
         [
           { text: t('common.cancel'), style: "cancel" },
-          { text: "Upgrade", onPress: () => onClose() },
+          { text: t('common.upgrade'), onPress: () => onClose() },
         ]
       );
       return;
     }
 
     if (media.length === 0) {
-      Alert.alert(t('community.mediaRequired') || "Media Required", t('community.pleaseAddAtLeastOnePhotoOrVideoToYourPos') || "Please add at least one photo or video to your post.");
+      Alert.alert(t('community.mediaRequired'), t('community.pleaseAddAtLeastOnePhotoOrVideoToYourPos'));
       return;
     }
 
     if (postType === "comparison") {
       if (!canCreatePoll()) {
         Alert.alert(
-          "Poll Limit Reached", 
-          `You've used all ${limits.comparisonPollsPerMonth} comparison polls this month.`,
+          t('community.pollLimitReached'),
+          t('community.pollLimitMessage').replace('{n}', String(limits.comparisonPollsPerMonth)),
           [
             { text: t('common.cancel'), style: "cancel" },
-            { text: "Upgrade", onPress: () => onClose() },
+            { text: t('common.upgrade'), onPress: () => onClose() },
           ]
         );
         return;
       }
       if (media.length < 2) {
-        Alert.alert(t('community.twoOptionsRequired') || "Two Options Required", t('community.pleaseAddAtLeastTwoOptionsForAComparison') || "Please add at least two options for a comparison poll.");
+        Alert.alert(t('community.twoOptionsRequired'), t('community.pleaseAddAtLeastTwoOptionsForAComparison'));
         return;
       }
     }
 
     if (!description.trim()) {
-      Alert.alert(t('community.descriptionRequired') || "Description Required", t('community.pleaseAddADescriptionToYourPost') || "Please add a description to your post.");
+      Alert.alert(t('community.descriptionRequired'), t('community.pleaseAddADescriptionToYourPost'));
       return;
     }
 
     if (requestAIAdvice && !canRequestAIAdvice()) {
       Alert.alert(
-        "Stylist Advice Limit Reached", 
-        `You've used all ${limits.aiAdvicePerMonth} stylist advice requests this month.`,
+        t('community.stylistAdviceLimitReached'),
+        t('community.stylistAdviceLimitMessage').replace('{n}', String(limits.aiAdvicePerMonth)),
         [
-          { text: "Post Anyway", onPress: () => setRequestAIAdvice(false) },
-          { text: "Upgrade", onPress: () => onClose() },
+          { text: t('common.postAnyway'), onPress: () => setRequestAIAdvice(false) },
+          { text: t('common.upgrade'), onPress: () => onClose() },
         ]
       );
       return;
     }
 
     if (!user) {
-      Alert.alert(t('community.error') || "Error", t('community.youMustBeLoggedInToCreateAPost') || "You must be logged in to create a post.");
+      Alert.alert(t('common.error'), t('community.youMustBeLoggedInToCreateAPost'));
       return;
     }
 
@@ -271,7 +271,7 @@ export default function CreatePostScreen({ onClose }: CreatePostScreenProps) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
     } catch (error) {
-      Alert.alert(t('community.error') || "Error", t('community.failedToCreatePostPleaseTryAgain') || "Failed to create post. Please try again.");
+      Alert.alert(t('common.error'), t('community.failedToCreatePostPleaseTryAgain'));
     } finally {
       setIsSubmitting(false);
     }

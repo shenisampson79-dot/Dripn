@@ -37,47 +37,47 @@ const LUXURY_COLORS = {
 
 interface OccasionOption {
   id: DFYOccasion;
-  label: string;
+  labelKey: string;
+  descKey: string;
   icon: keyof typeof Feather.glyphMap;
   gradient: readonly [string, string];
-  description: string;
 }
 
 const OCCASION_OPTIONS: OccasionOption[] = [
   {
     id: 'work',
-    label: 'Work',
+    labelKey: 'coldOpen.work',
+    descKey: 'coldOpen.workDesc',
     icon: 'briefcase',
     gradient: [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet],
-    description: 'Office, meetings, professional',
   },
   {
     id: 'holiday',
-    label: 'Holiday',
+    labelKey: 'coldOpen.holiday',
+    descKey: 'coldOpen.holidayDesc',
     icon: 'sun',
     gradient: [LUXURY_COLORS.coral, '#C46A4F'],
-    description: 'Vacation, travel, relaxed',
   },
   {
     id: 'event',
-    label: 'Event',
+    labelKey: 'coldOpen.event',
+    descKey: 'coldOpen.eventDesc',
     icon: 'star',
     gradient: [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold],
-    description: 'Party, wedding, special occasion',
   },
   {
     id: 'casual',
-    label: 'Casual',
+    labelKey: 'coldOpen.casual',
+    descKey: 'coldOpen.casualDesc',
     icon: 'coffee',
     gradient: [LUXURY_COLORS.teal, LUXURY_COLORS.emerald],
-    description: 'Everyday, weekend, errands',
   },
   {
     id: 'browsing',
-    label: 'Just Browsing',
+    labelKey: 'coldOpen.justBrowsing',
+    descKey: 'coldOpen.justBrowsingDesc',
     icon: 'eye',
     gradient: [LUXURY_COLORS.rose, '#D4949A'],
-    description: 'Exploring options, no rush',
   },
 ];
 
@@ -151,10 +151,10 @@ export default function ColdOpenScreen({ navigation }: ColdOpenScreenProps) {
 
           <View style={styles.content}>
             <ThemedText type="h1" style={styles.title}>
-              What are you getting dressed for?
+              {t('coldOpen.whatsTheOccasion')}
             </ThemedText>
             <ThemedText style={styles.subtitle}>
-              Pick the occasion that's on your mind right now
+              {t('coldOpen.pickWhatYoureDressingFor')}
             </ThemedText>
 
             <View style={styles.occasionsGrid}>
@@ -181,10 +181,10 @@ export default function ColdOpenScreen({ navigation }: ColdOpenScreenProps) {
                     >
                       <Feather name={occasion.icon} size={28} color="#FFFFFF" />
                       <ThemedText type="h3" style={styles.occasionLabel}>
-                        {occasion.label}
+                        {t(occasion.labelKey)}
                       </ThemedText>
                       <ThemedText type="small" style={styles.occasionDescription}>
-                        {occasion.description}
+                        {t(occasion.descKey)}
                       </ThemedText>
                       {isSelected ? (
                         <View style={styles.checkmark}>
@@ -204,7 +204,7 @@ export default function ColdOpenScreen({ navigation }: ColdOpenScreenProps) {
               >
                 <Feather name="message-circle" size={16} color="rgba(255,255,255,0.7)" />
                 <ThemedText style={styles.struggleToggleText}>
-                  Having a specific struggle? Tell me more (optional)
+                  {t('coldOpen.whatsTrippingYouUp')}
                 </ThemedText>
               </Pressable>
             ) : null}
@@ -213,10 +213,12 @@ export default function ColdOpenScreen({ navigation }: ColdOpenScreenProps) {
               <View style={styles.struggleContainer}>
                 <View style={styles.struggleHeader}>
                   <ThemedText type="body" style={styles.struggleLabel}>
-                    What's making it hard?
+                    {t('coldOpen.tellUsWhatsHard')}
                   </ThemedText>
                   <Pressable onPress={handleSkipStruggle}>
-                    <ThemedText style={styles.skipButton}>Skip</ThemedText>
+                    <ThemedText style={styles.skipButton}>
+                      {t('coldOpen.skip')}
+                    </ThemedText>
                   </Pressable>
                 </View>
                 <TextInput
@@ -224,7 +226,7 @@ export default function ColdOpenScreen({ navigation }: ColdOpenScreenProps) {
                     styles.struggleInput,
                     { color: '#FFFFFF' },
                   ]}
-                  placeholder={t('coldOpen.egNothingFeelsRightI') || "e.g., Nothing feels right, I"}m bored of my clothes..."
+                  placeholder={t('coldOpen.egNothingFeelsRightImBoredOfMyClothes')}
                   placeholderTextColor="rgba(255,255,255,0.4)"
                   value={struggleText}
                   onChangeText={setStruggleText}
@@ -262,7 +264,7 @@ export default function ColdOpenScreen({ navigation }: ColdOpenScreenProps) {
                     { color: selectedOccasion ? LUXURY_COLORS.midnight : 'rgba(255,255,255,0.4)' },
                   ]}
                 >
-                  Continue
+                  {t('coldOpen.continue')}
                 </ThemedText>
                 <Feather
                   name="arrow-right"

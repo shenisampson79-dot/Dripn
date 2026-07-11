@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, LuxuryColors, Spacing } from '@/constants/theme';
 import type { OutfitOccasionId } from '@/constants/outfitOccasions';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 type Props = {
   wardrobeCount: number;
@@ -32,7 +33,17 @@ export function WeeklyOutfitPlannerPanel({
   onGenerate,
 }: Props) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
   const secondaryText = isDark ? '#B0B0B0' : '#666666';
+  const tr = (key: string, vars?: Record<string, string | number>) => {
+    let s = t(key) || key;
+    if (vars) {
+      Object.entries(vars).forEach(([k, v]) => {
+        s = s.replace(`{${k}}`, String(v));
+      });
+    }
+    return s;
+  };
 
   return (
     <View style={styles.container}>
@@ -44,16 +55,16 @@ export function WeeklyOutfitPlannerPanel({
           <Feather name="cpu" size={32} color="#FFFFFF" />
         </LinearGradient>
         <ThemedText type="h3" style={styles.headerTitle}>
-          Create outfits for the week
+          {t('weeklyPlanner.title') || 'Weekly Outfit Planner'}
         </ThemedText>
         <ThemedText type="body" style={[styles.headerDesc, { color: secondaryText }]}>
-          AI will create {generatingDays} looks from your {wardrobeCount} wardrobe items
+          {t('weeklyPlanner.subtitle') || 'Plan looks for the week ahead'}
+        </ThemedText>
+        <ThemedText type="caption" style={{ color: secondaryText, marginTop: Spacing.xs }}>
+          {t('weeklyPlanner.today') || 'Today'}
         </ThemedText>
       </View>
 
-      <ThemedText type="caption" style={[styles.sectionLabel, { color: secondaryText }]}>
-        Number of days
-      </ThemedText>
       <View style={styles.daysRow}>
         {[3, 5, 7].map((days) => (
           <Pressable
@@ -70,7 +81,7 @@ export function WeeklyOutfitPlannerPanel({
               type="body"
               style={{ color: generatingDays === days ? '#FFFFFF' : theme.text, fontWeight: '600' }}
             >
-              {days} days
+              {tr('weeklyPlanner.days', { n: days })}
             </ThemedText>
           </Pressable>
         ))}
@@ -88,9 +99,11 @@ export function WeeklyOutfitPlannerPanel({
       <Card elevation={1} style={styles.infoCard}>
         <Feather name="info" size={16} color={theme.link} />
         <ThemedText type="caption" style={[styles.infoText, { color: secondaryText }]}>
-          {focusOccasionId
-            ? `All ${generatingDays} days will use the same occasion focus. Tap again to clear and use a mixed week.`
-            : 'Without a focus, AI rotates work, casual, and date-night styles across the week.'}
+          {wardrobeCount === 0
+            ? (t('weeklyPlanner.empty') || 'No plan yet — generate outfits for the week.')
+            : focusOccasionId
+              ? `All ${generatingDays} days will use the same occasion focus. Tap again to clear and use a mixed week.`
+              : 'Without a focus, AI rotates work, casual, and date-night styles across the week.'}
         </ThemedText>
       </Card>
 
@@ -118,7 +131,7 @@ export function WeeklyOutfitPlannerPanel({
             <>
               <Feather name="zap" size={20} color="#FFFFFF" />
               <ThemedText type="body" style={styles.generateText}>
-                Generate {generatingDays} outfits
+                {t('weeklyPlanner.generate') || 'Generate week'}
               </ThemedText>
             </>
           )}

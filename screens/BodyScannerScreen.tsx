@@ -137,7 +137,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
       }
     } catch (err) {
       console.error("Failed to pick image:", err);
-      Alert.alert(t('bodyScan.error') || "Error", t('bodyScan.failedToSelectImagePleaseTryAgain') || "Failed to select image. Please try again.");
+      Alert.alert(t('common.error'), t('bodyScan.failedToSelectImagePleaseTryAgain'));
     }
   };
 
@@ -152,23 +152,23 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
 
       if (result.success) {
         Alert.alert(
-          "Scan Complete",
-          `Body analysis complete with ${result.confidence}% confidence. Your body profile has been saved.`,
-          [{ text: "View Results", style: "default" }]
+          t('bodyScan.scanComplete'),
+          t('bodyScan.scanCompleteMessage').replace('{confidence}', String(result.confidence)),
+          [{ text: t('common.viewResults'), style: "default" }]
         );
       } else {
         Alert.alert(
-          "Scan Issue",
-          error || "We couldn't fully analyze the image. Please try again with a clearer full-body photo, standing straight with arms slightly away from your body.",
+          t('bodyScan.scanIssue'),
+          error || t('bodyScan.scanIssueDefault'),
           [
-            { text: "Try Again", onPress: () => setCapturedImage(null) },
-            { text: "Enter Manually", onPress: () => setManualMode(true) },
+            { text: t('common.tryAgain'), onPress: () => setCapturedImage(null) },
+            { text: t('common.enterManually'), onPress: () => setManualMode(true) },
           ]
         );
       }
     } catch (err) {
       console.error("Failed to process image:", err);
-      Alert.alert(t('bodyScan.error') || "Error", t('bodyScan.failedToAnalyzeImagePleaseTryAgain') || "Failed to analyze image. Please try again.");
+      Alert.alert(t('common.error'), t('bodyScan.failedToAnalyzeImagePleaseTryAgain'));
     }
   };
 
@@ -225,7 +225,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
     });
 
     setManualMode(false);
-    Alert.alert(t('bodyScan.saved') || "Saved", t('bodyScan.yourBodyProfileHasBeenSavedSuccessfully') || "Your body profile has been saved successfully.");
+    Alert.alert(t('bodyScan.saved'), t('bodyScan.yourBodyProfileHasBeenSavedSuccessfully'));
   };
 
   const renderMeasurementRow = (key: string, value: number | undefined) => {

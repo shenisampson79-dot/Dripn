@@ -173,7 +173,7 @@ export function SecondOpinionButton({
             </View>
             
             <ThemedText type="h2" style={styles.lockedTitle}>
-              Community voting unlocks soon
+              {t('secondOpinion.title') || 'Second Opinion'}
             </ThemedText>
             
             <ThemedText type="body" style={[styles.lockedDescription, { color: theme.tabIconDefault }]}>
@@ -219,12 +219,12 @@ export function SecondOpinionButton({
             </View>
             
             <Button onPress={handleUpgradePress} style={styles.lockedUpgradeButton}>
-              View subscription options
+              {t('secondOpinion.viewSubscriptionOptions') || 'View subscription options'}
             </Button>
             
             <Pressable onPress={() => setShowLockedModal(false)} style={styles.lockedDismiss}>
               <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-                Maybe later
+                {t('secondOpinion.maybeLater') || 'Maybe later'}
               </ThemedText>
             </Pressable>
           </View>
@@ -256,7 +256,11 @@ export function SecondOpinionButton({
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.link} />
           <ThemedText type="body" style={styles.loadingText}>
-            {isProcessingPayment ? "Processing..." : result ? "Checking results..." : "Setting up your confidence check..."}
+            {isProcessingPayment
+              ? (t('secondOpinion.listening') || 'Listening…')
+              : result
+                ? (t('secondOpinion.listening') || 'Listening…')
+                : (t('secondOpinion.tapToSpeak') || 'Tap to speak')}
           </ThemedText>
         </View>
       );
@@ -339,7 +343,7 @@ export function SecondOpinionButton({
 
           <Pressable onPress={() => setShowModal(false)} style={styles.skipLink}>
             <ThemedText type="small" style={styles.skipText}>
-              Maybe later
+              {t('secondOpinion.maybeLater') || 'Maybe later'}
             </ThemedText>
           </Pressable>
         </View>
@@ -401,10 +405,10 @@ export function SecondOpinionButton({
       <View style={styles.waitingContainer}>
         <View style={styles.waitingHeader}>
           <ThemedText type="h2" style={styles.waitingTitle}>
-            Quick confidence check
+            {t('secondOpinion.title') || 'Second Opinion'}
           </ThemedText>
           <ThemedText type="body" style={styles.waitingSubtitle}>
-            We'll quietly check what people with similar style would choose.
+            {t('secondOpinion.tapToSpeak') || 'Tap to speak'}
           </ThemedText>
         </View>
 
@@ -448,11 +452,11 @@ export function SecondOpinionButton({
 
         <View style={styles.buttonRow}>
           <Button onPress={handleCheckResults} style={styles.checkButton}>
-            Start confidence check
+            {t('secondOpinion.send') || 'Send'}
           </Button>
           <Pressable onPress={() => setShowModal(false)} style={styles.skipLink}>
             <ThemedText type="small" style={styles.skipText}>
-              No thanks, I trust you
+              {t('secondOpinion.noThanksTrust') || 'No thanks, I trust you'}
             </ThemedText>
           </Pressable>
         </View>
@@ -477,7 +481,9 @@ export function SecondOpinionButton({
             <Feather name="lock" size={12} color={theme.tabIconDefault} style={{ marginRight: Spacing.xs }} />
           ) : null}
           <ThemedText type="small" style={[styles.secondOpinionText, { color: theme.tabIconDefault }]}>
-            {isLocked ? "Unlock community voting" : "Want a quick second opinion?"}
+            {isLocked
+              ? (t('secondOpinion.title') || 'Second Opinion')
+              : (t('secondOpinion.askAnother') || 'Ask another stylist')}
           </ThemedText>
         </View>
       </Pressable>

@@ -83,7 +83,7 @@ export default function StyleShowdownScreen({ navigation }: StyleShowdownScreenP
 
   const handleVote = async (showdownId: string, optionId: number) => {
     if (!user) {
-      Alert.alert(t('discover.signInRequired') || "Sign In Required", t('discover.pleaseSignInToVote') || "Please sign in to vote.");
+      Alert.alert(t('common.signInRequired'), t('common.pleaseSignInToVote'));
       return;
     }
 
@@ -110,7 +110,7 @@ export default function StyleShowdownScreen({ navigation }: StyleShowdownScreenP
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Failed to submit vote");
+      Alert.alert(t('common.error'), err.message || t('styleShowdown.failedSubmitVote'));
     } finally {
       setVoting(null);
     }

@@ -144,7 +144,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
   const { items: wardrobeItems } = useWardrobe();
-  const { translations } = useTranslations();
+  const { t, translations } = useTranslations();
   const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<'type' | 'upload' | 'event-questions' | 'context' | 'response'>('type');
@@ -431,15 +431,15 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     } catch (error: any) {
       if (error.limitCopy || error.message?.includes("your decision for today")) {
         Alert.alert(
-          'Unable to submit',
-          error.limitCopy?.message || error.message || "That's your decision for today. Your stylist is here whenever you're ready.",
+          t('askStylist.unableToSubmit'),
+          error.limitCopy?.message || error.message || t('askStylist.decisionLimitDefault'),
           [
             {
-              text: 'Maybe later',
+              text: t('common.maybeLater'),
               style: 'cancel',
             },
             {
-              text: error.limitCopy?.cta || 'Unlock unlimited decisions',
+              text: error.limitCopy?.cta || t('askStylist.unlockUnlimitedDecisions'),
               onPress: () => {
                 const redirectUrl = error.limitCopy?.redirectUrl || '/subscription';
                 if (redirectUrl === '/subscription' || redirectUrl.includes('subscription')) {
@@ -452,7 +452,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           ]
         );
       } else {
-        Alert.alert('Unable to submit', formatSubmitError(error));
+        Alert.alert(t('askStylist.unableToSubmit'), formatSubmitError(error));
       }
     } finally {
       setIsLoading(false);
@@ -464,8 +464,8 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     if (uploadLimit === 0) return;
     if (images.length >= uploadLimit) {
       Alert.alert(
-        'Maximum images reached',
-        `You can upload up to ${uploadLimit} images.`
+        t('askStylist.maxImagesReached'),
+        t('askStylist.maxImagesMessage').replace('{n}', String(uploadLimit))
       );
       return;
     }
@@ -488,15 +488,15 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     if (uploadLimit === 0) return;
     if (images.length >= uploadLimit) {
       Alert.alert(
-        'Maximum images reached',
-        `You can upload up to ${uploadLimit} images.`
+        t('askStylist.maxImagesReached'),
+        t('askStylist.maxImagesMessage').replace('{n}', String(uploadLimit))
       );
       return;
     }
 
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Camera permission needed', 'Please enable camera access in settings.');
+      Alert.alert(t('askStylist.cameraPermissionNeeded'), t('askStylist.enableCameraInSettings'));
       return;
     }
 
@@ -625,15 +625,15 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
     } catch (error: any) {
       if (error.limitCopy || error.message?.includes("your decision for today")) {
         Alert.alert(
-          'Unable to submit',
-          error.limitCopy?.message || error.message || "That's your decision for today. Your stylist is here whenever you're ready.",
+          t('askStylist.unableToSubmit'),
+          error.limitCopy?.message || error.message || t('askStylist.decisionLimitDefault'),
           [
             {
-              text: 'Maybe later',
+              text: t('common.maybeLater'),
               style: 'cancel',
             },
             {
-              text: error.limitCopy?.cta || 'Unlock unlimited decisions',
+              text: error.limitCopy?.cta || t('askStylist.unlockUnlimitedDecisions'),
               onPress: () => {
                 const redirectUrl = error.limitCopy?.redirectUrl || '/subscription';
                 if (redirectUrl === '/subscription' || redirectUrl.includes('subscription')) {
@@ -646,7 +646,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
           ]
         );
       } else {
-        Alert.alert('Unable to submit', formatSubmitError(error));
+        Alert.alert(t('askStylist.unableToSubmit'), formatSubmitError(error));
       }
     } finally {
       setIsLoading(false);

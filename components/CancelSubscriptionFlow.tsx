@@ -295,9 +295,10 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         await updateProfile({ subscriptionTier: targetTier });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
-          "Plan updated",
-          `You're now on ${getBillingPlanDisplayName(targetTier)} (testing mode — no Stripe charge).`,
-          [{ text: "OK", onPress: handleKeepSubscription }],
+          t('cancelFlow.planUpdated') || "Plan updated",
+          (t('cancelFlow.nowOnPlanTesting') || "You're now on {plan} (testing mode — no Stripe charge).")
+            .replace('{plan}', getBillingPlanDisplayName(targetTier)),
+          [{ text: t('common.ok') || "OK", onPress: handleKeepSubscription }],
         );
         return;
       }
@@ -312,12 +313,14 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refreshSubscriptionFromBackend().catch(() => {});
       Alert.alert(
-        "Plan updated",
-        result.message || `You're now on ${result.tierName || getBillingPlanDisplayName(plan)}.`,
-        [{ text: "OK", onPress: handleKeepSubscription }]
+        t('cancelFlow.planUpdated') || "Plan updated",
+        result.message ||
+          (t('cancelFlow.nowOnPlan') || "You're now on {plan}.")
+            .replace('{plan}', result.tierName || getBillingPlanDisplayName(plan)),
+        [{ text: t('common.ok') || "OK", onPress: handleKeepSubscription }]
       );
     } catch (error: any) {
-      const msg = error?.message || "Could not change plan.";
+      const msg = error?.message || t('cancelFlow.couldNotChangePlan') || "Could not change plan.";
       if (msg.includes("NOT_A_DOWNGRADE") || msg.includes("lower than")) {
         navigation.navigate("Subscription", {
           highlightPlan: (highlightPlan || "style_chat") as import("@/contexts/AuthContext").SubscriptionTier,
@@ -325,7 +328,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         handleKeepSubscription();
         return;
       }
-      Alert.alert("Error", msg);
+      Alert.alert(t('common.error'), msg);
     } finally {
       setIsProcessing(false);
     }
@@ -348,13 +351,14 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       await refreshSubscriptionFromBackend().catch(() => {});
       Alert.alert(
-        "Subscription cancelled",
+        t('cancelFlow.subscriptionCancelled') || "Subscription cancelled",
         result.message ||
+          t('cancelFlow.remainActiveUntilPeriodEnd') ||
           "Your subscription will remain active until the end of the current billing period.",
-        [{ text: "OK", onPress: handleKeepSubscription }]
+        [{ text: t('common.ok') || "OK", onPress: handleKeepSubscription }]
       );
     } catch (error: any) {
-      Alert.alert("Error", error?.message || "Failed to cancel subscription.");
+      Alert.alert(t('common.error'), error?.message || t('cancelFlow.failedToCancel') || "Failed to cancel. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -384,11 +388,10 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
       </LinearGradient>
 
       <ThemedText type="h2" style={styles.title}>
-        Wait — don't lose your style progress
+        {t('cancelFlow.waitDontLose') || "Wait — don't lose your style progress"}
       </ThemedText>
       <ThemedText type="body" style={[styles.subtitle, { color: theme.tabIconDefault }]}>
-        You've built wardrobe insights, outfit history, and stylist conversations on{" "}
-        {tierName}. Cancelling removes premium access when your billing period ends.
+        {t('cancelFlow.waitBody') || "You'll lose access to your saved outfits, stylist conversations, and personalized recommendations."}
       </ThemedText>
 
       <View style={styles.lossPreview}>
@@ -401,7 +404,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
       </View>
 
       <Button onPress={handleKeepSubscription} style={styles.primaryButton}>
-        Keep Subscription
+        {t('cancelFlow.keepSubscription') || 'Keep Subscription'}
       </Button>
       <Pressable
         onPress={() => {
@@ -419,10 +422,10 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
   const renderStep2 = () => (
     <View style={styles.stepContent}>
       <ThemedText type="h2" style={styles.title}>
-        What's the main reason?
+        {t('cancelFlow.mainReason') || "What's the main reason?"}
       </ThemedText>
       <ThemedText type="body" style={[styles.subtitle, { color: theme.tabIconDefault }]}>
-        Your feedback helps us improve Dripn for everyone.
+        {t('cancelFlow.feedbackHelps') || 'Your feedback helps us improve Dripn.'}
       </ThemedText>
 
       <View style={styles.reasonsContainer}>
@@ -479,7 +482,9 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
         Continue
       </Button>
       <Pressable onPress={handleKeepSubscription} style={styles.linkButton}>
-        <ThemedText style={{ color: theme.link }}>Keep Subscription</ThemedText>
+        <ThemedText style={{ color: theme.link }}>
+          {t('cancelFlow.keepSubscription') || 'Keep Subscription'}
+        </ThemedText>
       </Pressable>
     </View>
   );
@@ -663,7 +668,9 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
           }}
           style={styles.linkButton}
         >
-          <ThemedText style={{ color: theme.tabIconDefault }}>Continue to cancel</ThemedText>
+          <ThemedText style={{ color: theme.tabIconDefault }}>
+            {t('cancelFlow.continueToCancel') || 'Continue to Cancel'}
+          </ThemedText>
           <Feather name="chevron-right" size={16} color={theme.tabIconDefault} />
         </Pressable>
       </View>
@@ -673,7 +680,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
   const renderStep4 = () => (
     <View style={styles.stepContent}>
       <ThemedText type="h2" style={styles.title}>
-        You'll lose access to
+        {t('cancelFlow.youllLoseAccess') || "You'll lose access to"}
       </ThemedText>
       <ThemedText type="body" style={[styles.subtitle, { color: theme.tabIconDefault }]}>
         After your billing period ends on {tierName}:
@@ -698,20 +705,20 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
             <Feather name="x" size={14} color="#DC2626" />
           </View>
           <ThemedText type="body" style={{ flex: 1 }}>
-            Saved outfits and stylist conversations (read-only after cancel)
+            {t('cancelFlow.savedOutfitsAndChats') || 'Saved outfits and stylist conversations'}
           </ThemedText>
         </View>
       </View>
 
       <Button onPress={handleKeepSubscription} style={styles.primaryButton}>
-        Keep Subscription
+        {t('cancelFlow.keepSubscription') || 'Keep Subscription'}
       </Button>
       <Button
         onPress={handleConfirmCancel}
         disabled={isProcessing}
         style={[styles.destructiveButton, { opacity: isProcessing ? 0.6 : 1 }]}
       >
-        {isProcessing ? "Cancelling..." : "Confirm Cancel"}
+        {isProcessing ? (t('cancelFlow.cancelling') || "Cancelling...") : (t('cancelFlow.confirmCancel') || 'Confirm Cancel')}
       </Button>
     </View>
   );

@@ -85,14 +85,16 @@ export default function GamificationScreen() {
         setClaimedReward(reward);
         animateStreakFire();
         Alert.alert(
-          'Daily Reward Claimed!',
-          `You earned ${reward.points} points!${reward.bonus ? `\nBonus: ${reward.bonus}` : ''}`
+          t('gamification.dailyRewardClaimed'),
+          t('gamification.dailyRewardMessage')
+            .replace('{points}', String(reward.points))
+            .replace('{bonus}', reward.bonus ? `\nBonus: ${reward.bonus}` : '')
         );
       }
     } catch (error) {
-      Alert.alert('Error', 'Could not claim daily reward');
+      Alert.alert(t('common.error'), t('gamification.couldNotClaimDaily'));
     }
-  }, [claimDailyReward, animateStreakFire]);
+  }, [claimDailyReward, animateStreakFire, t]);
 
   const handleSpin = useCallback(async () => {
     if (!canSpinToday || isSpinning || !spinRewards || spinRewards.length === 0) return;
@@ -132,9 +134,9 @@ export default function GamificationScreen() {
       });
     } catch (error) {
       setIsSpinning(false);
-      Alert.alert('Error', 'Could not spin the wheel');
+      Alert.alert(t('common.error'), t('gamification.couldNotSpin'));
     }
-  }, [canSpinToday, isSpinning, spinWheel, spinRewards]);
+  }, [canSpinToday, isSpinning, spinWheel, spinRewards, t]);
 
   const onSpinComplete = useCallback((result: SpinReward) => {
     setIsSpinning(false);
@@ -148,17 +150,17 @@ export default function GamificationScreen() {
 
     let message = '';
     if (result.type === 'points') {
-      message = `You won ${result.value} points!`;
+      message = t('gamification.spinWonPoints').replace('{value}', String(result.value));
     } else if (result.type === 'discount') {
-      message = `You won a ${result.value} discount!`;
+      message = t('gamification.spinWonDiscount').replace('{value}', String(result.value));
     } else if (result.type === 'feature') {
-      message = `You unlocked: ${result.value}`;
+      message = t('gamification.spinUnlockedFeature').replace('{value}', String(result.value));
     } else {
-      message = 'Better luck next time!';
+      message = t('gamification.spinBetterLuck');
     }
 
-    Alert.alert('Spin Result', message);
-  }, []);
+    Alert.alert(t('gamification.spinResult'), message);
+  }, [t]);
 
   const handleClaimAchievement = useCallback(async (achievementId: string) => {
     try {
@@ -166,13 +168,13 @@ export default function GamificationScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const achievement = achievements.find(a => a.id === achievementId);
       Alert.alert(
-        'Achievement Reward Claimed!',
-        `You earned ${achievement?.rewardPoints || 0} points!`
+        t('gamification.achievementClaimed'),
+        t('gamification.achievementClaimedMessage').replace('{points}', String(achievement?.rewardPoints || 0))
       );
     } catch (error) {
-      Alert.alert('Error', 'Could not claim achievement reward');
+      Alert.alert(t('common.error'), t('gamification.couldNotClaimAchievement'));
     }
-  }, [claimAchievementReward, achievements]);
+  }, [claimAchievementReward, achievements, t]);
 
   const wheelAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${wheelRotation.value}deg` }],

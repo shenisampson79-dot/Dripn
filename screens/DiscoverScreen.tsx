@@ -187,34 +187,34 @@ const TILE_LABEL_SIZE = 15;
 
 interface CategoryTile {
   id: string;
-  name: string;
+  nameKey: string;
+  descKey: string;
   icon: keyof typeof Feather.glyphMap;
   pastelBg: string;
-  description: string;
   screen?: keyof DiscoverStackParamList;
   sectionId?: string;
 }
 
 const CATEGORY_TILES: CategoryTile[] = [
-  { id: "styleOfTheDay", name: "Style of Day", icon: "award", pastelBg: "#E85D75", description: "Your personalized daily outfit recommendation tailored to your style and region.", sectionId: "styleOfTheDay" },
-  { id: "trends", name: "Trends", icon: "trending-up", pastelBg: "#6366F1", description: "What's hot right now in fashion with real-time trend analysis and weekly highlights.", sectionId: "trendScanner" },
-  { id: "styleIcons", name: "Style Icons", icon: "star", pastelBg: "#F59E0B", description: "Get inspired by celebrities and top fashion influencers with AI-powered lookalike outfits.", sectionId: "celebrity" },
-  { id: "fashionTherapy", name: "Style Therapy", icon: "heart", pastelBg: "#F472B6", description: "Mood-based styling, body positivity affirmations, and wellness-focused outfit recommendations.", screen: "FashionTherapy" },
-  { id: "sustainability", name: "Eco Style", icon: "globe", pastelBg: "#10B981", description: "Discover sustainable fashion brands and eco-friendly styling tips.", screen: "Sustainability" },
-  { id: "fashionReads", name: "Fashion Reads", icon: "book-open", pastelBg: "#3B82F6", description: "Expert fashion articles, styling tips, magazine looks, and in-depth guides.", screen: "FashionBlog" },
-  { id: "offers", name: "Offers", icon: "tag", pastelBg: "#EF4444", description: "Exclusive daily deals and discounts from trusted fashion retailers.", screen: "Bargains" },
-  { id: "events", name: "Events", icon: "calendar", pastelBg: "#14B8A6", description: "Discover fashion events near you with outfit suggestions.", screen: "Events" },
-  { id: "culturalStyle", name: "Style Diplomat", icon: "map", pastelBg: "#F97316", description: "Cultural dress codes and fashion etiquette for 5 countries. Perfect for travelers.", screen: "CulturalStyle" },
+  { id: "styleOfTheDay", nameKey: "discover.tileStyleOfDay", descKey: "discover.tileStyleOfDayDesc", icon: "award", pastelBg: "#E85D75", sectionId: "styleOfTheDay" },
+  { id: "trends", nameKey: "discover.tileTrends", descKey: "discover.tileTrendsDesc", icon: "trending-up", pastelBg: "#6366F1", sectionId: "trendScanner" },
+  { id: "styleIcons", nameKey: "discover.tileStyleIcons", descKey: "discover.tileStyleIconsDesc", icon: "star", pastelBg: "#F59E0B", sectionId: "celebrity" },
+  { id: "fashionTherapy", nameKey: "discover.tileStyleTherapy", descKey: "discover.tileStyleTherapyDesc", icon: "heart", pastelBg: "#F472B6", screen: "FashionTherapy" },
+  { id: "sustainability", nameKey: "discover.tileEcoStyle", descKey: "discover.tileEcoStyleDesc", icon: "globe", pastelBg: "#10B981", screen: "Sustainability" },
+  { id: "fashionReads", nameKey: "discover.tileFashionReads", descKey: "discover.tileFashionReadsDesc", icon: "book-open", pastelBg: "#3B82F6", screen: "FashionBlog" },
+  { id: "offers", nameKey: "discover.tileOffers", descKey: "discover.tileOffersDesc", icon: "tag", pastelBg: "#EF4444", screen: "Bargains" },
+  { id: "events", nameKey: "discover.tileEvents", descKey: "discover.tileEventsDesc", icon: "calendar", pastelBg: "#14B8A6", screen: "Events" },
+  { id: "culturalStyle", nameKey: "discover.tileStyleDiplomat", descKey: "discover.tileStyleDiplomatDesc", icon: "map", pastelBg: "#F97316", screen: "CulturalStyle" },
 ];
 
 const SECTION_NAV = [
-  { id: "styleOfTheDay", name: "Style of Day", icon: "award" as const },
-  { id: "trendScanner", name: "Trends", icon: "trending-up" as const },
-  { id: "influencer", name: "Influencers", icon: "users" as const },
-  { id: "magazine", name: "Magazines", icon: "book-open" as const },
-  { id: "celebrity", name: "Celebrity", icon: "star" as const },
-  { id: "highlights", name: "Highlights", icon: "zap" as const },
-  { id: "blog", name: "Blog", icon: "edit-3" as const },
+  { id: "styleOfTheDay", nameKey: "discover.tileStyleOfDay", icon: "award" as const },
+  { id: "trendScanner", nameKey: "discover.tileTrends", icon: "trending-up" as const },
+  { id: "influencer", nameKey: "discover.sectionInfluencers", icon: "users" as const },
+  { id: "magazine", nameKey: "discover.sectionMagazines", icon: "book-open" as const },
+  { id: "celebrity", nameKey: "discover.sectionCelebrity", icon: "star" as const },
+  { id: "highlights", nameKey: "discover.sectionHighlights", icon: "zap" as const },
+  { id: "blog", nameKey: "discover.sectionBlog", icon: "edit-3" as const },
 ];
 
 interface Challenge {
@@ -491,8 +491,8 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
 
   const moreMenuItems = [
     { id: 'people', label: 'People', icon: 'users' as const, screen: 'Community' as const },
-    { id: 'events', label: 'Events', icon: 'calendar' as const, screen: 'Events' as const },
-    { id: 'offers', label: 'Offers', icon: 'tag' as const, screen: 'Bargains' as const },
+    { id: 'events', label: t('discover.tileEvents'), icon: 'calendar' as const, screen: 'Events' as const },
+    { id: 'offers', label: t('discover.tileOffers'), icon: 'tag' as const, screen: 'Bargains' as const },
   ];
 
   useEffect(() => {
@@ -617,40 +617,50 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
 
   const handleJoinChallenge = (challenge: Challenge) => {
     Alert.alert(
-      "Join Challenge",
-      `Ready to join "${challenge.name}"?\n\nPost your outfit with ${challenge.hashtag} to participate!`,
+      t('discover.joinChallenge'),
+      (t('discover.readyToJoinChallenge') || 'Ready to join "{name}"?\n\nPost your outfit with {hashtag} to participate!')
+        .replace('{name}', challenge.name)
+        .replace('{hashtag}', challenge.hashtag),
       [
         { text: t('common.cancel'), style: "cancel" },
         {
-          text: "Share Challenge",
+          text: t('discover.shareChallenge'),
           onPress: () => shareChallenge(challenge.name, challenge.description),
         },
-        { text: "Join Now", onPress: () => {} },
+        { text: t('discover.joinChallenge'), onPress: () => {} },
       ]
     );
   };
 
   const handleGetTheLook = (look: CelebrityLook) => {
     const items = isPremium ? look.luxuryItems : look.budgetItems;
-    const priceLabel = isPremium ? "Luxury" : "Budget-Friendly";
+    const priceLabel = isPremium ? t('discover.luxury') : t('discover.budgetFriendly');
     const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
     const formatPrice = (price: number) => currencyService.formatPrice(price);
+    const itemsBlock = items.map(item => `${item.name}\n${formatPrice(item.price)} at ${item.store}`).join("\n\n");
     
     Alert.alert(
-      `Get the ${look.styleName} Look`,
-      `${priceLabel} alternatives (Total: ${formatPrice(totalPrice)}):\n\n${items.map(item => `${item.name}\n${formatPrice(item.price)} at ${item.store}`).join("\n\n")}\n\n—\nDripn may earn a commission on purchases made through retailer links.`,
+      t('discover.getTheLook'),
+      (t('discover.getTheLookMessage') || '{styleName}\n\n{priceLabel} (Total: {total}):\n\n{items}\n\n—\nDripn may earn a commission on purchases made through retailer links.')
+        .replace('{styleName}', look.styleName)
+        .replace('{priceLabel}', priceLabel)
+        .replace('{total}', formatPrice(totalPrice))
+        .replace('{items}', itemsBlock),
       [
-        { text: "Close", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         { 
-          text: isPremium ? "View Budget Options" : "View Luxury Options", 
+          text: isPremium ? t('discover.budgetFriendly') : t('discover.luxury'), 
           onPress: () => {
             const altItems = isPremium ? look.budgetItems : look.luxuryItems;
-            const altLabel = isPremium ? "Budget-Friendly" : "Luxury";
+            const altLabel = isPremium ? t('discover.budgetFriendly') : t('discover.luxury');
             const altTotal = altItems.reduce((sum, item) => sum + item.price, 0);
+            const altItemsBlock = altItems.map(item => `${item.name}\n${formatPrice(item.price)} at ${item.store}`).join("\n\n");
             Alert.alert(
-              `${altLabel} Alternatives`,
-              `Total: ${formatPrice(altTotal)}\n\n${altItems.map(item => `${item.name}\n${formatPrice(item.price)} at ${item.store}`).join("\n\n")}`,
-              [{ text: "Close" }]
+              altLabel,
+              (t('discover.altLookTotalMessage') || 'Total: {total}\n\n{items}')
+                .replace('{total}', formatPrice(altTotal))
+                .replace('{items}', altItemsBlock),
+              [{ text: t('common.cancel') }]
             );
           }
         },
@@ -696,9 +706,9 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
               <Feather name="compass" size={24} color={theme.link} />
             </View>
             <View>
-              <ThemedText type="h1" style={styles.browseTitle}>Discover</ThemedText>
+              <ThemedText type="h1" style={styles.browseTitle}>{t('discover.title')}</ThemedText>
               <ThemedText style={[styles.browseSubtitle, { color: theme.tabIconDefault }]}>
-                Explore fashion inspiration
+                {t('discover.subtitle')}
               </ThemedText>
             </View>
           </View>
@@ -724,7 +734,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
           <View style={[styles.editHint, { backgroundColor: theme.link + "20" }]}>
             <Feather name="info" size={14} color={theme.link} />
             <ThemedText style={[styles.editHintText, { color: theme.link }]}>
-              Tap arrows to reorder categories
+              {t('discover.reorderHint')}
             </ThemedText>
           </View>
         ) : null}
@@ -755,7 +765,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
                 <Feather name={tile.icon} size={TILE_ICON_SIZE} color={TILE_TEXT_COLOR} />
               </View>
               <ThemedText style={[styles.categoryLabel, { color: TILE_TEXT_COLOR, fontSize: TILE_LABEL_SIZE }]}>
-                {tile.name}
+                {t(tile.nameKey)}
               </ThemedText>
               
               {isEditMode ? (
@@ -814,10 +824,10 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
                   <Feather name={selectedTile.icon} size={40} color="#FFFFFF" />
                 </View>
                 <ThemedText type="h2" style={styles.sheetTitle}>
-                  {selectedTile.name}
+                  {t(selectedTile.nameKey)}
                 </ThemedText>
                 <ThemedText type="body" style={[styles.sheetDescription, { color: theme.tabIconDefault }]}>
-                  {selectedTile.description}
+                  {t(selectedTile.descKey)}
                 </ThemedText>
                 <Pressable
                   onPress={handleTileNavigate}
@@ -826,7 +836,7 @@ export default function DiscoverScreen({ navigation }: DiscoverScreenProps) {
                     { backgroundColor: selectedTile.pastelBg, opacity: pressed ? 0.9 : 1 },
                   ]}
                   accessibilityRole="button"
-                  accessibilityLabel={`Navigate to ${selectedTile.name}`}
+                  accessibilityLabel={`Navigate to ${t(selectedTile.nameKey)}`}
                 >
                   <ThemedText type="body" style={styles.sheetButtonText}>
                     {selectedTile.screen ? "Open" : "Go to Section"}

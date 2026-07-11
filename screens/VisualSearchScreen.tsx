@@ -141,10 +141,10 @@ export default function VisualSearchScreen() {
 
   const handleTakePhoto = async () => {
     if (!canSearch()) {
-      Alert.alert(t('visualSearch.searchLimitReached') || "Search Limit Reached", t('visualSearch.youHaveUsedAllYourVisualSearchesThisMont') || "You have used all your visual searches this month. Upgrade your plan for more searches.",
+      Alert.alert(t('visualSearch.searchLimitReached'), t('visualSearch.youHaveUsedAllYourVisualSearchesThisMont'),
         [
           { text: t('common.cancel'), style: 'cancel' },
-          { text: 'Upgrade', onPress: navigateToSubscription },
+          { text: t('common.upgrade'), onPress: navigateToSubscription },
         ]
       );
       return;
@@ -157,11 +157,11 @@ export default function VisualSearchScreen() {
     if (!cameraPermission.granted) {
       if (cameraPermission.status === 'denied' && !cameraPermission.canAskAgain) {
         if (Platform.OS !== 'web') {
-          Alert.alert(t('visualSearch.cameraAccessRequired') || "Camera Access Required", t('visualSearch.pleaseEnableCameraAccessInYourDeviceSett') || "Please enable camera access in your device settings to use visual search.",
+          Alert.alert(t('visualSearch.cameraAccessRequired'), t('visualSearch.pleaseEnableCameraAccessInYourDeviceSett'),
             [
               { text: t('common.cancel'), style: 'cancel' },
-              { 
-                text: 'Open Settings', 
+              {
+                text: t('common.openSettings'),
                 onPress: async () => {
                   try {
                     await Linking.openSettings();
@@ -198,16 +198,16 @@ export default function VisualSearchScreen() {
       }
     } catch (error) {
       console.error('Failed to take photo:', error);
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
+      Alert.alert(t('common.error'), t('visualSearch.failedTakePhoto'));
     }
   };
 
   const handleSelectFromGallery = async () => {
     if (!canSearch()) {
-      Alert.alert(t('visualSearch.searchLimitReached') || "Search Limit Reached", t('visualSearch.youHaveUsedAllYourVisualSearchesThisMont') || "You have used all your visual searches this month. Upgrade your plan for more searches.",
+      Alert.alert(t('visualSearch.searchLimitReached'), t('visualSearch.youHaveUsedAllYourVisualSearchesThisMont'),
         [
           { text: t('common.cancel'), style: 'cancel' },
-          { text: 'Upgrade', onPress: navigateToSubscription },
+          { text: t('common.upgrade'), onPress: navigateToSubscription },
         ]
       );
       return;
@@ -230,7 +230,7 @@ export default function VisualSearchScreen() {
       }
     } catch (error) {
       console.error('Failed to select image:', error);
-      Alert.alert('Error', 'Failed to select image. Please try again.');
+      Alert.alert(t('common.error'), t('visualSearch.failedSelectImage'));
     }
   };
 
@@ -285,7 +285,7 @@ export default function VisualSearchScreen() {
           analyzedColor: response.analyzedColor || null,
         });
       } else {
-        Alert.alert('Search Failed', 'Could not find similar items. Please try again.');
+        Alert.alert(t('common.searchFailed'), t('visualSearch.searchFailed'));
         setSearchState({
           status: 'idle',
           selectedImage: null,
@@ -296,7 +296,7 @@ export default function VisualSearchScreen() {
       }
     } catch (error: any) {
       console.error('Visual search error:', error);
-      Alert.alert('Error', error.message || 'Failed to search. Please try again.');
+      Alert.alert(t('common.error'), error.message || t('visualSearch.failedSearch'));
       setSearchState({
         status: 'idle',
         selectedImage: null,
@@ -324,12 +324,21 @@ export default function VisualSearchScreen() {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+    const priceLine = item.originalPrice
+      ? t('visualSearch.priceWasNow')
+          .replace('{was}', item.originalPrice.toFixed(2))
+          .replace('{now}', item.price.toFixed(2))
+      : t('visualSearch.priceNowOnly').replace('{now}', item.price.toFixed(2));
+
     Alert.alert(
       item.name,
-      `${item.brand}\n${item.store}\n\nPrice: ${item.originalPrice ? `Was ${item.originalPrice.toFixed(2)} - ` : ''}Now ${item.price.toFixed(2)}`,
+      t('visualSearch.itemDetailMessage')
+        .replace('{brand}', item.brand)
+        .replace('{store}', item.store)
+        .replace('{priceLine}', priceLine),
       [
-        { text: 'Close', style: 'cancel' },
-        { text: 'Shop Now', onPress: () => {} },
+        { text: t('common.close'), style: 'cancel' },
+        { text: t('shoppable.shopNow'), onPress: () => {} },
       ]
     );
   };

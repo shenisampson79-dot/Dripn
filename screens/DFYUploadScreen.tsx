@@ -265,8 +265,10 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
     const analyzedImages = images.filter((img) => img.status === "analyzed" && img.analysis);
     if (analyzedImages.length < minItems) {
       Alert.alert(
-        "More items needed",
-        `Please upload at least ${minItems} ${uploadType === "outfit" ? "outfit photos" : "items"} to continue.`
+        t('dfy.moreItemsNeeded'),
+        t('dfy.moreItemsNeededMessage')
+          .replace('{n}', String(minItems))
+          .replace('{kind}', uploadType === "outfit" ? t('dfy.outfitPhotos') : t('dfy.items'))
       );
       return;
     }
@@ -313,8 +315,10 @@ export default function DFYUploadScreen({ navigation, route }: DFYUploadScreenPr
         
         if (result.failed > 0 && result.errors.length > 0) {
           Alert.alert(
-            "Partial Upload",
-            `${result.saved} items saved successfully. ${result.failed} items failed to save.`
+            t('dfy.partialUpload'),
+            t('dfy.partialUploadMessage')
+              .replace('{saved}', String(result.saved))
+              .replace('{failed}', String(result.failed))
           );
         }
       }

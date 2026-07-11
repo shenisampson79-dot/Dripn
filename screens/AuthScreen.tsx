@@ -21,6 +21,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
+import { LanguageEntryButton, LanguagePickerModal } from "@/components/LanguagePickerModal";
 
 type AuthScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Auth">;
@@ -41,6 +42,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
 
   const isSignup = mode === "signup";
 
@@ -112,7 +114,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
       if (isExpoGo && Platform.OS !== 'web') {
         setSocialLoading(null);
         Alert.alert(t('common.googleSignin') || "Google Sign-In", t('common.googleSigninIsAvailableInTheFullDripnApp') || "Google Sign-In is available in the full Dripn app. For now, please use your email and password to sign in.",
-          [{ text: 'OK' }]
+          [{ text: t('common.ok') || 'OK' }]
         );
         return;
       }
@@ -186,6 +188,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
         >
           <Feather name="arrow-left" size={24} color={theme.text} />
         </Pressable>
+        <LanguageEntryButton light={false} onPress={() => setLanguagePickerVisible(true)} />
       </View>
 
       <ScreenKeyboardAwareScrollView
@@ -422,6 +425,10 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           </ThemedText>
         </View>
       </ScreenKeyboardAwareScrollView>
+      <LanguagePickerModal
+        visible={languagePickerVisible}
+        onClose={() => setLanguagePickerVisible(false)}
+      />
     </ThemedView>
   );
 }
@@ -431,6 +438,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
   },

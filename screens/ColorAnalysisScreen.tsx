@@ -208,20 +208,23 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
 
       if (result.success) {
         Alert.alert(
-          "Analysis Complete",
-          `You are a ${result.colorSeason.season.toUpperCase()} ${result.colorSeason.subtype || ''} with ${result.colorSeason.confidence}% confidence!`,
-          [{ text: "View Results", style: "default" }]
+          t('colorAnalysis.analysisComplete'),
+          t('colorAnalysis.analysisCompleteMessage')
+            .replace('{season}', result.colorSeason.season.toUpperCase())
+            .replace('{subtype}', result.colorSeason.subtype || '')
+            .replace('{confidence}', String(result.colorSeason.confidence)),
+          [{ text: t('common.viewResults'), style: "default" }]
         );
       } else {
         Alert.alert(
-          "Analysis Issue",
-          "We couldn't fully analyze the image. Please try again with a clear, well-lit selfie showing your face, natural hair, and skin.",
-          [{ text: "Try Again", style: "default" }]
+          t('colorAnalysis.analysisIssue'),
+          t('colorAnalysis.analysisIssueMessage'),
+          [{ text: t('common.tryAgain'), style: "default" }]
         );
       }
     } catch (err) {
       console.error("Failed to process image:", err);
-      Alert.alert("Error", "Failed to analyze image. Please try again.");
+      Alert.alert(t('common.error'), t('colorAnalysis.failedToAnalyze'));
     }
   };
 

@@ -24,6 +24,7 @@ import { ThemedText } from "./ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 interface VoiceCommentInputProps {
   onRecordingComplete: (uri: string, duration: number) => void;
@@ -37,6 +38,7 @@ export function VoiceCommentInput({
   maxDuration = 60,
 }: VoiceCommentInputProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const { canRecordVoice } = useSubscription();
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -117,9 +119,9 @@ export function VoiceCommentInput({
   const startRecording = async () => {
     if (!canRecordVoice()) {
       Alert.alert(
-        "Voice Comment Limit Reached",
-        "You've used all your voice comments this month. Upgrade for more.",
-        [{ text: "OK" }]
+        t('voiceComment.limitReached') || "Voice Comment Limit Reached",
+        t('voiceComment.limitReachedMessage'),
+        [{ text: t('common.ok') || "OK" }]
       );
       return;
     }
@@ -148,7 +150,7 @@ export function VoiceCommentInput({
       }, 1000);
     } catch (error) {
       console.error("Failed to start recording:", error);
-      Alert.alert("Recording Error", "Could not start recording. Please try again.");
+      Alert.alert(t('voiceComment.recordingError'), t('aiStylist.couldNotStartRecording'));
     }
   };
 
@@ -232,6 +234,9 @@ export function VoiceCommentInput({
           <ThemedText type="body" style={styles.duration}>
             {formatDuration(recordingDuration)}
           </ThemedText>
+          <ThemedText type="small" style={{ opacity: 0.7 }}>
+            {t('voiceComment.releaseToSend') || 'Release to send'}
+          </ThemedText>
 
           <View style={styles.recordingActions}>
             <Pressable
@@ -261,7 +266,7 @@ export function VoiceCommentInput({
         >
           <Feather name="mic" size={20} color="#FFFFFF" />
           <ThemedText type="small" style={styles.recordButtonText}>
-            Hold to record voice comment
+            {t('voiceComment.holdToRecord') || 'Hold to record'}
           </ThemedText>
         </Pressable>
       )}
@@ -277,6 +282,7 @@ interface VoiceCommentPlayerProps {
 
 export function VoiceCommentPlayer({ uri, duration, transcript }: VoiceCommentPlayerProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const playerRef = useRef<AudioPlayer | null>(null);
@@ -289,7 +295,7 @@ export function VoiceCommentPlayer({ uri, duration, transcript }: VoiceCommentPl
 
   const togglePlayback = async () => {
     if (Platform.OS === "web") {
-      Alert.alert("Not Available", "Voice playback is available in Expo Go");
+      Alert.alert(t('voiceComment.notAvailable'), t('voiceComment.playbackAvailableInExpoGo'));
       return;
     }
 

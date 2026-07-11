@@ -20,6 +20,7 @@ import CulturalStyleScreen from "@/screens/CulturalStyleScreen";
 import StyleStoriesScreen from "@/screens/StyleStoriesScreen";
 import CollectiveInsightsScreen from "@/screens/CollectiveInsightsScreen";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslations } from "@/contexts/TranslationContext";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
 
 export type DiscoverStackParamList = {
@@ -57,6 +58,7 @@ const Stack = createNativeStackNavigator<DiscoverStackParamList>();
 
 export default function DiscoverStackNavigator() {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslations();
 
   return (
     <Stack.Navigator screenOptions={getCommonScreenOptions({ theme, isDark })}>
@@ -64,93 +66,93 @@ export default function DiscoverStackNavigator() {
         name="Discover"
         component={DiscoverScreen}
         options={{
-          title: "Today's Decision",
+          title: t('navTitles.todaysDecision') || "Today's Decision",
         }}
       />
       <Stack.Screen
         name="FashionBlog"
         component={FashionBlogScreen}
-        options={{ headerTitle: "Fashion Blog" }}
+        options={{ headerTitle: t('navTitles.fashionBlog') || "Fashion Blog" }}
       />
       <Stack.Screen
         name="StyleShuffle"
         component={StyleShuffleScreen}
-        options={{ headerTitle: "Style Shuffle" }}
+        options={{ headerTitle: t('navTitles.styleShuffle') || "Style Shuffle" }}
       />
       <Stack.Screen
         name="AIStylist"
         component={AIStylistScreen}
-        options={{ headerTitle: "Stylist Chat" }}
+        options={{ headerTitle: t('navTitles.stylistChat') || "Stylist Chat" }}
       />
       <Stack.Screen
         name="VisualSearch"
         component={VisualSearchScreen}
-        options={{ headerTitle: "Visual Search" }}
+        options={{ headerTitle: t('navTitles.visualSearch') || "Visual Search" }}
       />
       <Stack.Screen
         name="SmartNotifications"
         component={SmartNotificationsScreen}
-        options={{ headerTitle: "Smart Notifications" }}
+        options={{ headerTitle: t('navTitles.smartNotifications') || "Smart Notifications" }}
       />
       <Stack.Screen
         name="Events"
         component={EventsScreen}
-        options={{ headerTitle: "Events Near You" }}
+        options={{ headerTitle: t('navTitles.eventsNearYou') || "Events Near You" }}
       />
       <Stack.Screen
         name="StreetStyleScanner"
         component={StreetStyleScannerScreen}
-        options={{ headerTitle: "Street Style Scanner" }}
+        options={{ headerTitle: t('navTitles.streetStyleScanner') || "Street Style Scanner" }}
       />
       <Stack.Screen
         name="VirtualTryOn"
         component={VirtualTryOnScreen}
-        options={{ headerTitle: "Virtual Try-On" }}
+        options={{ headerTitle: t('navTitles.virtualTryOn') || "Virtual Try-On" }}
       />
       <Stack.Screen
         name="StyleSoulmates"
         component={StyleSoulmatesScreen}
-        options={{ headerTitle: "Style Soulmates" }}
+        options={{ headerTitle: t('navTitles.styleSoulmates') || "Style Soulmates" }}
       />
       <Stack.Screen
         name="Bargains"
         component={BargainsScreen}
-        options={{ headerTitle: "Offers" }}
+        options={{ headerTitle: t('navTitles.offers') || "Offers" }}
       />
       <Stack.Screen
         name="Sustainability"
         component={SustainabilityScreen}
-        options={{ headerTitle: "Sustainability" }}
+        options={{ headerTitle: t('navTitles.sustainability') || "Sustainability" }}
       />
       <Stack.Screen
         name="FashionTherapy"
         component={FashionTherapyScreen}
-        options={{ headerTitle: "Fashion Therapy", headerShown: false }}
+        options={{ headerTitle: t('navTitles.fashionTherapy') || "Fashion Therapy", headerShown: false }}
       />
       <Stack.Screen
         name="MotionCoaching"
         component={MotionCoachingScreen}
-        options={{ headerTitle: "Presence Analysis" }}
+        options={{ headerTitle: t('navTitles.presenceAnalysis') || "Presence Analysis" }}
       />
       <Stack.Screen
         name="WardrobeDigitalTwin"
         component={WardrobeDigitalTwinScreen}
-        options={{ headerTitle: "Wardrobe Twin" }}
+        options={{ headerTitle: t('navTitles.wardrobeTwin') || "Wardrobe Twin" }}
       />
       <Stack.Screen
         name="CulturalStyle"
         component={CulturalStyleScreen}
-        options={{ headerTitle: "Style Diplomat" }}
+        options={{ headerTitle: t('navTitles.styleDiplomat') || "Style Diplomat" }}
       />
       <Stack.Screen
         name="StyleStories"
         component={StyleStoriesScreen}
-        options={{ headerTitle: "Style Stories" }}
+        options={{ headerTitle: t('navTitles.styleStories') || "Style Stories" }}
       />
       <Stack.Screen
         name="CollectiveInsights"
         component={CollectiveInsightsScreen}
-        options={{ headerTitle: "Fashion Intelligence" }}
+        options={{ headerTitle: t('navTitles.fashionIntelligence') || "Fashion Intelligence" }}
       />
     </Stack.Navigator>
   );

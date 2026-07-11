@@ -52,7 +52,7 @@ export default function StylistLoginScreen({ navigation, onLoginSuccess, onExit 
         onLoginSuccess();
       }
     } catch (error: any) {
-      Alert.alert("Login Failed", error.message || "Please check your credentials and try again.");
+      Alert.alert(t('common.loginFailed'), error.message || t('common.checkCredentialsTryAgain'));
     }
   };
 

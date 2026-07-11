@@ -607,6 +607,24 @@ export default function StyleShuffleScreen() {
   const dailyLimit = limits.styleShuffleSwipesPerDay;
   const remainingSwipes = dailyLimit === Infinity ? Infinity : Math.max(0, dailyLimit - swipesToday);
 
+  const showDailyLimitAlert = useCallback(() => {
+    Alert.alert(
+      t('common.dailyLimitReached'),
+      t('styleShuffle.dailyLimitMessage').replace('{n}', String(dailyLimit)),
+      [
+        { text: t('common.ok'), style: 'cancel' },
+        { text: t('common.upgrade'), onPress: navigateToSubscription },
+      ]
+    );
+  }, [t, dailyLimit, navigateToSubscription]);
+
+  const showDailyLimitShortAlert = useCallback(() => {
+    Alert.alert(
+      t('common.dailyLimitReached'),
+      t('styleShuffle.dailyLimitShortMessage').replace('{n}', String(dailyLimit))
+    );
+  }, [t, dailyLimit]);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -770,14 +788,7 @@ export default function StyleShuffleScreen() {
     if (isAnimating.value) return;
     
     if (remainingSwipes === 0 && dailyLimit !== Infinity) {
-      Alert.alert(
-        'Daily Limit Reached',
-        `You've used all ${dailyLimit} swipes for today. Upgrade your plan for more swipes!`,
-        [
-          { text: 'OK', style: 'cancel' },
-          { text: 'Upgrade', onPress: navigateToSubscription },
-        ]
-      );
+      showDailyLimitAlert();
       return;
     }
 
@@ -802,7 +813,7 @@ export default function StyleShuffleScreen() {
       }
     });
     translateY.value = withSpring(targetY, { ...SWIPE_OUT_SPRING, damping: 35 });
-  }, [remainingSwipes, dailyLimit, handleSwipeComplete, navigateToSubscription]);
+  }, [remainingSwipes, dailyLimit, handleSwipeComplete, showDailyLimitAlert]);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -835,10 +846,7 @@ export default function StyleShuffleScreen() {
         if (remainingSwipes === 0 && dailyLimit !== Infinity) {
           translateX.value = withSpring(0, SNAP_BACK_SPRING);
           translateY.value = withSpring(0, SNAP_BACK_SPRING);
-          runOnJS(Alert.alert)(
-            'Daily Limit Reached',
-            `You've used all ${dailyLimit} swipes for today.`
-          );
+          runOnJS(showDailyLimitShortAlert)();
         } else {
           isAnimating.value = true;
           const targetX = direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
@@ -1258,10 +1266,16 @@ export default function StyleShuffleScreen() {
             ]}
             onPress={() => {
               if (currentOutfit) {
-                Alert.alert(
-                  currentOutfit.name,
-                  `Style: ${currentOutfit.style}\nOccasion: ${currentOutfit.occasion}\nSeason: ${currentOutfit.season}\n\nItems:\n${currentOutfit.items.map(i => `- ${i.name} (${i.category})`).join('\n')}`
-                );
+                const itemLine = t('styleShuffle.outfitItemLine');
+                const items = currentOutfit.items
+                  .map((i) => itemLine.replace('{name}', i.name).replace('{category}', i.category))
+                  .join('\n');
+                const message = t('styleShuffle.outfitDetailsMessage')
+                  .replace('{style}', currentOutfit.style)
+                  .replace('{occasion}', currentOutfit.occasion)
+                  .replace('{season}', currentOutfit.season)
+                  .replace('{items}', items);
+                Alert.alert(currentOutfit.name, message);
               }
             }}
           >

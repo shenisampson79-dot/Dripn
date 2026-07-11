@@ -184,9 +184,9 @@ export default function EventsScreen() {
       if (currentPermission.status === "denied" && !currentPermission.canAskAgain) {
         Alert.alert(t('common.enableLocation') || "Enable Location", t('common.toFindEventsNearYouTurnOnLocationInSetti') || "To find events near you, turn on location in Settings.",
           [
-            { text: "Not Now", style: "cancel" },
+            { text: t('common.notNow') || "Not Now", style: "cancel" },
             { 
-              text: "Open Settings", 
+              text: t('common.openSettings') || "Open Settings", 
               onPress: () => {
                 if (Platform.OS !== "web") {
                   Linking.openSettings().catch(() => {});
@@ -203,7 +203,7 @@ export default function EventsScreen() {
           [
             { text: t('common.skip'), style: "cancel" },
             {
-              text: "Enable",
+              text: t('common.enable') || "Enable",
               onPress: async () => {
                 const { status } = await Location.requestForegroundPermissionsAsync();
                 setLocationEnabled(status === "granted");
@@ -444,8 +444,15 @@ export default function EventsScreen() {
               onPress={() => {
                 Alert.alert(
                   event.title,
-                  `${event.description}\n\nDate: ${event.date}\nTime: ${event.time}\nLocation: ${event.location}\nPrice: ${event.price}\n\nWhat to wear: ${event.outfitSuggestion}\n\nSource: ${event.source}`,
-                  [{ text: "Close", style: "default" }]
+                  (t('events.detailMessage') || '{description}\n\nDate: {date}\nTime: {time}\nLocation: {location}\nPrice: {price}\n\nWhat to wear: {outfit}\n\nSource: {source}')
+                    .replace('{description}', event.description)
+                    .replace('{date}', event.date)
+                    .replace('{time}', event.time)
+                    .replace('{location}', event.location)
+                    .replace('{price}', event.price)
+                    .replace('{outfit}', event.outfitSuggestion)
+                    .replace('{source}', event.source),
+                  [{ text: t('common.close') || "Close", style: "default" }]
                 );
               }}
               style={({ pressed }) => [

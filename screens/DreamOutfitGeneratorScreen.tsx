@@ -101,11 +101,11 @@ export default function DreamOutfitGeneratorScreen({ navigation }: DreamOutfitGe
         setSelectedStyle(null);
         setSelectedOccasion(null);
       } else {
-        Alert.alert('Generation Failed', 'Could not generate the outfit. Please try again.');
+        Alert.alert(t('common.generationFailed'), t('dreamOutfit.couldNotGenerate'));
       }
     } catch (error: any) {
       console.error('Dream outfit generation error:', error);
-      Alert.alert('Error', error.message || 'Failed to generate outfit. Please try again.');
+      Alert.alert(t('common.error'), error.message || t('dreamOutfit.failedGenerate'));
     } finally {
       setIsGenerating(false);
     }

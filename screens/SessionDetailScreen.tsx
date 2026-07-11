@@ -43,7 +43,7 @@ export default function SessionDetailScreen({ navigation, route, onExit }: Sessi
       }
     } catch (error) {
       console.error('Failed to load session:', error);
-      Alert.alert('Error', 'Failed to load session details');
+      Alert.alert(t('common.error'), t('session.failedLoad'));
     } finally {
       setIsLoading(false);
     }
@@ -59,9 +59,9 @@ export default function SessionDetailScreen({ navigation, route, onExit }: Sessi
     setIsSaving(true);
     try {
       await updateSessionNotes(sessionId, notes);
-      Alert.alert('Success', 'Notes saved successfully');
+      Alert.alert(t('common.success'), t('session.notesSaved'));
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to save notes');
+      Alert.alert(t('common.error'), error.message || t('session.failedSaveNotes'));
     } finally {
       setIsSaving(false);
     }
@@ -72,15 +72,15 @@ export default function SessionDetailScreen({ navigation, route, onExit }: Sessi
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Complete',
+          text: t('common.complete'),
           onPress: async () => {
             setIsCompleting(true);
             try {
               await completeSession(sessionId, notes);
-              Alert.alert('Success', 'Session marked as completed');
+              Alert.alert(t('common.success'), t('session.markedCompleted'));
               navigation.goBack();
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to complete session');
+              Alert.alert(t('common.error'), error.message || t('session.failedComplete'));
             } finally {
               setIsCompleting(false);
             }

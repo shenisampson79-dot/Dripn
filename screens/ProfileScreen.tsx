@@ -294,7 +294,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
         current === `lookbook-${outfitId}` ? null : current,
       );
     } catch {
-      Alert.alert('Could not remove outfit', 'Please try again.');
+      Alert.alert(t('profile.couldNotRemoveOutfit'), t('profile.pleaseTryAgain'));
     }
   };
 

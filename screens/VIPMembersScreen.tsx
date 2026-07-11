@@ -72,7 +72,7 @@ export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) 
 
     const isAvailable = member.isOnline !== false;
     if (!isAvailable) {
-      Alert.alert('Member Offline', `${member.displayName} is currently offline. Try again later.`);
+      Alert.alert(t('vip.memberOffline'), t('vip.memberOfflineMessage').replace('{name}', member.displayName));
       return;
     }
 
@@ -87,7 +87,7 @@ export default function VIPMembersScreen({ navigation }: VIPMembersScreenProps) 
         calleeName: member.displayName,
       });
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to initiate call');
+      Alert.alert(t('common.error'), err.message || t('vip.failedInitiateCall'));
     } finally {
       setIsInitiatingCall(null);
     }

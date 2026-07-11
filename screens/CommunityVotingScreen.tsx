@@ -135,8 +135,8 @@ export default function CommunityVotingScreen({ navigation, route }: any) {
     if (!selectedOptionId) return;
 
     if (!user?.id) {
-      Alert.alert(t('community.signInRequired') || "Sign in required", t('community.createAFreeAccountToHelpOtherMembersWith') || "Create a free account to help other members with their style decisions.",
-        [{ text: "OK" }]
+      Alert.alert(t('community.signInRequired'), t('community.createAFreeAccountToHelpOtherMembersWith'),
+        [{ text: t('common.ok') }]
       );
       return;
     }
@@ -158,10 +158,10 @@ export default function CommunityVotingScreen({ navigation, route }: any) {
         setVotingResult(results);
         setHasVoted(true);
       } else {
-        Alert.alert("Unable to submit", result.error || "Please try again.");
+        Alert.alert(t('community.unableToSubmit'), result.error || t('common.pleaseTryAgain'));
       }
     } catch {
-      Alert.alert(t('community.error') || "Error", t('community.anUnexpectedErrorOccurred') || "An unexpected error occurred.");
+      Alert.alert(t('common.error'), t('community.anUnexpectedErrorOccurred'));
     } finally {
       setIsSubmitting(false);
     }

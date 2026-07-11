@@ -361,6 +361,69 @@ const DEFAULT_TRANSLATIONS: Translations = {
     settings: 'Settings',
     stylist: 'Stylist',
   },
+  navTitles: {
+    todaysDecision: "Today's Decision",
+    fashionBlog: 'Fashion Blog',
+    styleShuffle: 'Style Shuffle',
+    stylistChat: 'Stylist Chat',
+    visualSearch: 'Visual Search',
+    smartNotifications: 'Smart Notifications',
+    eventsNearYou: 'Events Near You',
+    streetStyleScanner: 'Street Style Scanner',
+    virtualTryOn: 'Virtual Try-On',
+    styleSoulmates: 'Style Soulmates',
+    offers: 'Offers',
+    sustainability: 'Sustainability',
+    fashionTherapy: 'Fashion Therapy',
+    presenceAnalysis: 'Presence Analysis',
+    wardrobeTwin: 'Wardrobe Twin',
+    styleDiplomat: 'Style Diplomat',
+    styleStories: 'Style Stories',
+    fashionIntelligence: 'Fashion Intelligence',
+    myWardrobe: 'My Wardrobe',
+    addItem: 'Add Item',
+    quickAddItems: 'Quick Add Items',
+    outfitCalendar: 'Outfit Calendar',
+    outfitBuilder: 'Outfit Builder',
+    costPerWear: 'Cost-per-Wear',
+    styleDna: 'Style DNA',
+    colorAnalysis: 'Color Analysis',
+    bodyScanner: 'Body Scanner',
+    weatherOutfits: 'Weather Outfits',
+    myLookbook: 'My Lookbook',
+    modularWardrobe: 'Modular Wardrobe',
+    dfyCalendar: 'DFY Calendar',
+    community: 'Community',
+    communityVote: 'Community Vote',
+    profile: 'Profile',
+    friendsActivity: 'Friends Activity',
+    friendRequests: 'Friend Requests',
+    discoverPeople: 'Discover People',
+    messages: 'Messages',
+    chat: 'Chat',
+    stylingGuide: 'Styling Guide',
+    wardrobeFilter: 'Wardrobe Filter',
+    post: 'Post',
+    subscription: 'Subscription',
+    chooseYourSetup: 'Choose Your Setup',
+    stylistSetup: 'Stylist Setup',
+    uploadWardrobe: 'Upload Wardrobe',
+    yourStylePlan: 'Your Style Plan',
+    termsOfService: 'Terms of Service',
+    privacyPolicy: 'Privacy Policy',
+    bargains: 'Bargains',
+    events: 'Events',
+    stylist: 'Stylist',
+    dreamOutfitGenerator: 'Dream Outfit Generator',
+    blog: 'Blog',
+    styleRules: 'Style Rules',
+    colourInsights: 'Colour Insights',
+    vipMembers: 'VIP Members',
+    accessStatus: 'Access Status',
+    doneForYouStyle: 'Done-For-You Style',
+    analytics: 'Analytics',
+    socialStyleSync: 'Social Style Sync',
+  },
   stylist: {
     greeting: 'Hello! How can I help you today?',
     thinking: 'Thinking...',
@@ -665,7 +728,195 @@ const DEFAULT_TRANSLATIONS: Translations = {
     shared: 'Shared',
   },
   coldOpen: {
-    egNothingFeelsRightI: 'e.g., Nothing feels right, I',
+    egNothingFeelsRightI: "e.g., Nothing feels right, I'm bored of my clothes...",
+    egNothingFeelsRightImBoredOfMyClothes: "e.g., Nothing feels right, I'm bored of my clothes...",
+    title: 'What are you getting dressed for?',
+    subtitle: "Pick the occasion that's on your mind right now",
+    whatsTheOccasion: "What's the occasion?",
+    pickWhatYoureDressingFor: "Pick what you're dressing for",
+    whatsTrippingYouUp: "What's tripping you up? (optional)",
+    tellUsWhatsHard: "Tell us what's hard about getting dressed right now",
+    work: 'Work',
+    workDesc: 'Office, meetings, professional',
+    holiday: 'Holiday',
+    holidayDesc: 'Vacation, travel, relaxed',
+    event: 'Event',
+    eventDesc: 'Party, wedding, special occasion',
+    casual: 'Casual',
+    casualDesc: 'Everyday, weekend, errands',
+    justBrowsing: 'Just Browsing',
+    justBrowsingDesc: 'Exploring options, no rush',
+    struggleToggle: 'Having a specific struggle? Tell me more (optional)',
+    struggleLabel: "What's making it hard?",
+    skip: 'Skip',
+    continue: 'Continue',
+  },
+  discover: {
+    title: 'Discover',
+    subtitle: 'Explore fashion inspiration',
+    reorderHint: 'Tap arrows to reorder categories',
+    open: 'Open',
+    goToSection: 'Go to Section',
+    styleOfDay: 'Style of Day',
+    styleOfDayDesc: 'Your personalized daily outfit recommendation tailored to your style and region.',
+    trends: 'Trends',
+    trendsDesc: "What's hot right now in fashion with real-time trend analysis and weekly highlights.",
+    styleIcons: 'Style Icons',
+    styleIconsDesc: 'Get inspired by celebrities and top fashion influencers with AI-powered lookalike outfits.',
+    styleTherapy: 'Style Therapy',
+    styleTherapyDesc: 'Mood-based styling, body positivity affirmations, and wellness-focused outfit recommendations.',
+    ecoStyle: 'Eco Style',
+    ecoStyleDesc: 'Discover sustainable fashion brands and eco-friendly styling tips.',
+    fashionReads: 'Fashion Reads',
+    fashionReadsDesc: 'Expert fashion articles, styling tips, magazine looks, and in-depth guides.',
+    offers: 'Offers',
+    offersDesc: 'Exclusive daily deals and discounts from trusted fashion retailers.',
+    events: 'Events',
+    eventsDesc: 'Discover fashion events near you with outfit suggestions.',
+    styleDiplomat: 'Style Diplomat',
+    styleDiplomatDesc: 'Cultural dress codes and fashion etiquette for 5 countries. Perfect for travelers.',
+    influencers: 'Influencers',
+    magazines: 'Magazines',
+    celebrity: 'Celebrity',
+    highlights: 'Highlights',
+    blog: 'Blog',
+    people: 'People',
+    joinChallenge: 'Join Challenge',
+    shareChallenge: 'Share Challenge',
+    joinNow: 'Join Now',
+  },
+  fashionBlog: {
+    title: 'Fashion Blog',
+    subtitle: 'AI-researched weekly style insights and styling tips',
+    getWeeklyUpdates: 'Get Weekly Updates',
+    newsletterJoin: 'Join the Dripn newsletter for weekly fashion insights delivered to your inbox.',
+    subscribe: 'Subscribe',
+    subscribedWeekly: 'Subscribed · weekly issues below',
+    alreadySubscribed: 'Already Subscribed',
+    subscribedExclaim: 'Subscribed!',
+    proTip: 'Pro Tip:',
+    researchedFrom: 'Researched from:',
+    report: 'Report',
+    showLess: 'Show less',
+    readMore: 'Read more',
+    noArticlesYet: 'No Articles Yet',
+    checkBackSoon: 'Check back soon for new style insights.',
+    loadingArticles: 'Loading articles...',
+    reportTypo: 'Typo or Error',
+    reportOffensive: 'Offensive Content',
+    reportInaccurate: 'Inaccurate Information',
+  },
+  surpriseMe: {
+    stepOf: 'Step {current} of {total}',
+    ruby: {
+      1: 'Opening your wardrobe, love',
+      '1d': 'Pulling up everything you own',
+      2: 'Browsing your pieces',
+      '2d': 'Shirts, trousers, shoes — the lot',
+      3: 'Reading the room',
+      '3d': 'Weather, occasion, and your notes',
+      4: 'Building your look',
+      '4d': 'Layering pieces that work together',
+      5: 'Almost ready',
+      '5d': 'Scoring the outfit and writing your notes',
+    },
+    max: {
+      1: 'Digging into your wardrobe',
+      '1d': 'Finding what actually works',
+      2: 'Shortlisting pieces',
+      '2d': 'No filler — only strong options',
+      3: 'Factoring in your day',
+      '3d': 'Context, weather, dress code',
+      4: 'Assembling the outfit',
+      '4d': 'Top to toe, styled properly',
+      5: 'Final rating',
+      '5d': 'Honest score coming up',
+    },
+    ace: {
+      1: 'Scanning your closet data',
+      '1d': 'Inventory check in progress',
+      2: 'Optimising combinations',
+      '2d': 'Efficiency over fluff',
+      3: 'Checking conditions',
+      '3d': 'Weather and constraints locked',
+      4: 'Building the system look',
+      '4d': 'Modular pieces, max versatility',
+      5: 'Crunching the score',
+      '5d': 'Data-backed recommendation ready',
+    },
+    ivy: {
+      1: 'Reviewing your wardrobe story',
+      '1d': 'Every piece has potential',
+      2: 'Finding intentional pairings',
+      '2d': "Thoughtful, not trendy for trend's sake",
+      3: 'Considering your context',
+      '3d': "Where you're going, how you want to feel",
+      4: 'Composing the outfit',
+      '4d': 'Balanced, wearable, you',
+      5: 'Finishing touches',
+      '5d': 'Notes and confidence score',
+    },
+    default: {
+      1: '{name} is opening your wardrobe',
+      '1d': 'Pulling up your pieces',
+      2: 'Browsing options',
+      '2d': 'Finding strong combinations',
+      3: 'Reading the brief',
+      '3d': 'Weather, occasion, preferences',
+      4: 'Building your look',
+      '4d': 'Putting it all together',
+      5: 'Almost ready',
+      '5d': 'Finalising your outfit',
+    },
+  },
+  weeklyPlanner: {
+    createOutfitsForWeek: 'Create outfits for the week',
+    aiWillCreate: 'AI will create {n} looks from your {count} wardrobe items',
+    numberOfDays: 'Number of days',
+    days: '{n} days',
+    focusOccasionOptional: 'Focus occasion (optional)',
+    creatingOutfits: 'Creating outfits...',
+    creatingOutfitOf: 'Creating outfit {x} of {y}...',
+    generateOutfits: 'Generate {n} outfits',
+  },
+  cancelFlow: {
+    waitDontLose: "Wait — don't lose your style progress",
+    waitBody: "You'll lose access to your saved outfits, stylist conversations, and personalized recommendations.",
+    keepSubscription: 'Keep Subscription',
+    continue: 'Continue',
+    mainReason: "What's the main reason?",
+    feedbackHelps: 'Your feedback helps us improve Dripn.',
+    youllLoseAccess: "You'll lose access to",
+    savedOutfitsAndChats: 'Saved outfits and stylist conversations',
+    cancelling: 'Cancelling...',
+    confirmCancel: 'Confirm Cancel',
+    planUpdated: 'Plan updated',
+    subscriptionCancelled: 'Subscription cancelled',
+    couldNotChangePlan: 'Could not change plan.',
+    failedToCancel: 'Failed to cancel subscription.',
+  },
+  secondOpinion: {
+    viewSubscriptionOptions: 'View subscription options',
+    maybeLater: 'Maybe later',
+    startConfidenceCheck: 'Start confidence check',
+    noThanksTrust: 'No thanks, I trust you',
+    unlockCommunityVoting: 'Unlock community voting',
+    wantSecondOpinion: 'Want a quick second opinion?',
+  },
+  voiceComment: {
+    limitReached: 'Voice Comment Limit Reached',
+    recordingError: 'Recording Error',
+    notAvailable: 'Not Available',
+    availableInExpoGo: 'Voice recording is available in Expo Go',
+    enableMic: 'Enable microphone access',
+    holdToRecord: 'Hold to record voice comment',
+  },
+  shoppable: {
+    sizes: 'Sizes:',
+    shopNow: 'Shop Now',
+    affiliateDisclosure: 'Dripn may earn a commission when you shop through this link.',
+    cannotOpenLink: 'Cannot open link',
+    errorOpeningProduct: 'Error opening product',
   },
   colorAnalysis: {
     analysisCompleteMessage: 'Analysis Complete Message',
@@ -1777,14 +2028,17 @@ class TranslationServiceClass {
   }
 
   async fetchTranslations(langCode: string): Promise<Translations> {
-    if (langCode === 'en') {
-      this.translations = DEFAULT_TRANSLATIONS;
-      this.currentLang = 'en';
-      await this.cacheTranslations(DEFAULT_TRANSLATIONS, 'en');
-      return DEFAULT_TRANSLATIONS;
-    }
-
     const localFlat = LOCAL_TRANSLATIONS[langCode] || {};
+
+    if (langCode === 'en') {
+      const merged = Object.keys(localFlat).length
+        ? this.mergeTranslations(localFlat, 'en')
+        : DEFAULT_TRANSLATIONS;
+      this.translations = merged;
+      this.currentLang = 'en';
+      await this.cacheTranslations(merged, 'en');
+      return merged;
+    }
 
     try {
       const response = await apiService.getTranslations(langCode);
@@ -1937,6 +2191,12 @@ class TranslationServiceClass {
           const localFlat = LOCAL_TRANSLATIONS[cachedLang] || {};
           const merged = this.mergeTranslations({ ...localFlat, ...this.flattenTranslations(parsed) }, cachedLang);
           this.translations = merged;
+        } else if (LOCAL_TRANSLATIONS.en && Object.keys(LOCAL_TRANSLATIONS.en).length) {
+          const merged = this.mergeTranslations(
+            { ...LOCAL_TRANSLATIONS.en, ...this.flattenTranslations(parsed) },
+            'en'
+          );
+          this.translations = merged;
         } else {
           this.translations = parsed;
         }
@@ -1953,6 +2213,12 @@ class TranslationServiceClass {
       }
     } catch (error) {
       console.log('Failed to load cached translations:', error);
+    }
+    if (LOCAL_TRANSLATIONS.en && Object.keys(LOCAL_TRANSLATIONS.en).length) {
+      const merged = this.mergeTranslations(LOCAL_TRANSLATIONS.en, 'en');
+      this.translations = merged;
+      this.currentLang = 'en';
+      return merged;
     }
     return DEFAULT_TRANSLATIONS;
   }

@@ -22,6 +22,7 @@ import { getBillingPlanDisplayName, normalizeSubscriptionTier } from "@/utils/su
 import { isDevTestingModeEnabled, setDevTestingModeEnabled } from "@/utils/devTesting";
 import { shouldUseAppleIAP } from "@/utils/platformPayments";
 import { VoiceCreditsPurchaseModal } from "@/components/VoiceCreditsPurchaseModal";
+import { LanguagePickerModal } from "@/components/LanguagePickerModal";
 import { useVoiceCredits } from "@/hooks/useVoiceCredits";
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
@@ -151,7 +152,8 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   };
   
   const [isNewsletterSubscribed, setIsNewsletterSubscribed] = useState(false);
-  const [pickerModal, setPickerModal] = useState<{ type: 'language' | 'speed' | 'colorScheme' | null; visible: boolean }>({ type: null, visible: false });
+  const [pickerModal, setPickerModal] = useState<{ type: 'speed' | 'colorScheme' | null; visible: boolean }>({ type: null, visible: false });
+  const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
   const [isNewsletterLoading, setIsNewsletterLoading] = useState(false);
   const [dfyAccess, setDfyAccess] = useState<DFYAccessStatus | null>(null);
   const [dfyLoading, setDfyLoading] = useState(false);
@@ -268,12 +270,18 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         await apiService.subscribeToNewsletter(user.email, user.name);
         setIsNewsletterSubscribed(true);
         await AsyncStorage.setItem(NEWSLETTER_STATUS_KEY, "true");
-        Alert.alert(t('common.subscribed') || "Subscribed", t('common.you') || "You"re now subscribed to Dripn fashion updates!");
+        Alert.alert(
+          t('common.subscribed') || "Subscribed",
+          t('common.youreNowSubscribedToDripnFashionUpdates') || "You're now subscribed to Dripn fashion updates!",
+        );
       } else {
         await apiService.unsubscribeFromNewsletter(user.email);
         setIsNewsletterSubscribed(false);
         await AsyncStorage.setItem(NEWSLETTER_STATUS_KEY, "false");
-        Alert.alert(t('common.unsubscribed') || "Unsubscribed", t('common.you') || "You"ve been unsubscribed from the newsletter.");
+        Alert.alert(
+          t('common.unsubscribed') || "Unsubscribed",
+          t('common.youveBeenUnsubscribedFromTheNewsletter') || "You've been unsubscribed from the newsletter.",
+        );
       }
     } catch (error) {
       Alert.alert(t('common.error') || "Error", t('common.couldNotUpdateNewsletterSubscriptionPlea') || "Could not update newsletter subscription. Please try again.");
@@ -352,16 +360,16 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const handleAISuggestions = () => {
     const isEnabled = user?.aiSuggestionsEnabled !== false;
     Alert.alert(
-      "Style Suggestions",
-      isEnabled 
-        ? "Style suggestions from your personal stylist are currently ON. Would you like to turn them off and only receive feedback from the community?"
-        : "Style suggestions are currently OFF. Would you like to turn them on to receive personalized styling advice?",
+      t('settings.styleSuggestions'),
+      isEnabled
+        ? t('settings.styleSuggestionsOn')
+        : t('settings.styleSuggestionsOff'),
       [
-        { 
-          text: isEnabled ? "Turn Off" : "Turn On", 
-          onPress: () => updateProfile({ aiSuggestionsEnabled: !isEnabled }) 
+        {
+          text: isEnabled ? t('settings.turnOff') : t('settings.turnOn'),
+          onPress: () => updateProfile({ aiSuggestionsEnabled: !isEnabled })
         },
-        { text: "Cancel", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
       ]
     );
   };
@@ -383,7 +391,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   };
 
   const handleLanguageSelect = () => {
-    setPickerModal({ type: 'language', visible: true });
+    setLanguagePickerVisible(true);
   };
 
   const handleSpeedSelect = () => {
@@ -447,7 +455,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       await loadDFYAccess();
     } catch (error) {
       console.error('Error toggling DFY access:', error);
-      Alert.alert('Error', 'Could not update DFY access. Please try again.');
+      Alert.alert(t('common.error'), t('settings.couldNotUpdateDfy'));
     } finally {
       setDfyLoading(false);
     }
@@ -462,7 +470,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     } catch (error) {
       console.error('Error toggling testing mode:', error);
       setTestingModeEnabled(!value);
-      Alert.alert('Error', 'Could not update testing mode. Please try again.');
+      Alert.alert(t('common.error'), t('settings.couldNotUpdateTesting'));
     }
   };
 
@@ -1008,7 +1016,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             >
               <View style={styles.modalHeader}>
                 <ThemedText type="h3" style={styles.modalTitle}>
-                  {pickerModal.type === 'language' ? t('settings.selectLanguage') : pickerModal.type === 'colorScheme' ? t('settings.selectColourScheme') : t('settings.voiceSpeed')}
+                  {pickerModal.type === 'colorScheme' ? t('settings.selectColourScheme') : t('settings.voiceSpeed')}
                 </ThemedText>
                 <Pressable 
                   onPress={closePickerModal} 
@@ -1019,35 +1027,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               </View>
             </LinearGradient>
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-              {pickerModal.type === 'language' ? (
-                languageOptions.map((lang) => (
-                  <Pressable
-                    key={lang.code}
-                    style={({ pressed }) => [
-                      styles.modalOption,
-                      { backgroundColor: pressed ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)') : 'transparent' },
-                      currentLanguage === lang.code && { backgroundColor: LUXURY_COLORS.violet + '20' },
-                    ]}
-                    onPress={async () => {
-                      updateVoiceSettings({ preferredLanguage: lang.code });
-                      await setAppLanguage(lang.code);
-                      closePickerModal();
-                    }}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <ThemedText type="body" style={styles.modalOptionText}>
-                        {lang.nativeName}
-                      </ThemedText>
-                      <ThemedText type="small" style={styles.modalOptionSubtext}>
-                        {lang.name}
-                      </ThemedText>
-                    </View>
-                    {currentLanguage === lang.code ? (
-                      <Feather name="check" size={20} color={LUXURY_COLORS.violet} />
-                    ) : null}
-                  </Pressable>
-                ))
-              ) : pickerModal.type === 'colorScheme' ? (
+              {pickerModal.type === 'colorScheme' ? (
                 COLOR_SCHEME_OPTIONS.map((option) => (
                   <Pressable
                     key={option.value}
@@ -1177,6 +1157,10 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       <VoiceCreditsPurchaseModal
         visible={showVoiceCreditsModal}
         onClose={() => setShowVoiceCreditsModal(false)}
+      />
+      <LanguagePickerModal
+        visible={languagePickerVisible}
+        onClose={() => setLanguagePickerVisible(false)}
       />
       </ScreenScrollView>
     </View>

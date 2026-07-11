@@ -92,7 +92,7 @@ export default function SmartNotificationsScreen() {
           { text: t('common.cancel'), style: 'cancel' },
           Platform.OS !== 'web'
             ? {
-                text: 'Open Settings',
+                text: t('common.openSettings') || 'Open Settings',
                 onPress: async () => {
                   try {
                     await Linking.openSettings();
@@ -101,7 +101,7 @@ export default function SmartNotificationsScreen() {
                   }
                 },
               }
-            : { text: 'OK' },
+            : { text: t('common.ok') || 'OK' },
         ].filter(Boolean) as any
       );
     }

@@ -6,6 +6,7 @@ import { Feather } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslations } from "@/contexts/TranslationContext";
 
 export interface ShoppableProduct {
   id: string;
@@ -31,6 +32,7 @@ interface ShoppableCardProps {
 
 export function ShoppableCard({ product, compact = false, onPress }: ShoppableCardProps) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
 
   const formatPrice = (price: number, currency: string) => {
     return new Intl.NumberFormat("en-US", {
@@ -54,11 +56,11 @@ export function ShoppableCard({ product, compact = false, onPress }: ShoppableCa
       if (supported) {
         await Linking.openURL(product.affiliateUrl);
       } else {
-        Alert.alert("Cannot open link", "Unable to open this product link.");
+        Alert.alert(t('shoppable.cannotOpenLink') || "Cannot open link", t('shoppable.failedToOpen') || "Failed to open product page.");
       }
     } catch (error) {
       console.error("Error opening affiliate link:", error);
-      Alert.alert("Error", "Failed to open product page.");
+      Alert.alert(t('common.error') || "Error", t('shoppable.failedToOpen') || "Failed to open product page.");
     }
   };
 
@@ -150,7 +152,7 @@ export function ShoppableCard({ product, compact = false, onPress }: ShoppableCa
         {product.sizes ? (
           <View style={styles.sizesRow}>
             <ThemedText type="small" style={styles.sizesLabel}>
-              Sizes:
+              {t('shoppable.sizes') || 'Sizes:'}
             </ThemedText>
             <ThemedText type="small" style={styles.sizesText}>
               {product.sizes.join(", ")}
@@ -167,11 +169,11 @@ export function ShoppableCard({ product, compact = false, onPress }: ShoppableCa
         >
           <Feather name="shopping-bag" size={16} color="#FFFFFF" />
           <ThemedText type="body" style={styles.shopButtonText}>
-            Shop Now
+            {t('shoppable.shopNow') || 'Shop Now'}
           </ThemedText>
         </Pressable>
         <ThemedText type="caption" style={[styles.affiliateDisclosure, { color: theme.tabIconDefault }]}>
-          Dripn may earn a commission if you purchase through this link, at no extra cost to you.
+          {t('shoppable.affiliateDisclosure') || 'May contain affiliate links'}
         </ThemedText>
       </View>
     </Pressable>

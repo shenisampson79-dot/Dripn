@@ -437,7 +437,7 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
 
   const handleSave = () => {
     if (selectedItemIds.length === 0) {
-      Alert.alert('Nothing selected', 'Swipe through the rows to pick items first.');
+      Alert.alert(t('wardrobe.nothingSelected'), t('wardrobe.nothingSelectedMessage'));
       return;
     }
     setOutfitName('');
@@ -480,12 +480,15 @@ export default function OutfitBuilderScreen({ navigation }: OutfitBuilderScreenP
       const calMsg = result.calendarEntry
         ? `\n\nAlso pinned to ${formatDate(calendarDate)}.`
         : '';
-      Alert.alert('Outfit saved', `"${name}" is ready in your wardrobe.${calMsg}`, [
-        { text: 'Keep building', style: 'cancel' },
+      Alert.alert(
+        t('wardrobe.outfitSavedTitle'),
+        t('wardrobe.outfitSavedMessage').replace('{name}', name).replace('{calMsg}', calMsg),
+        [
+        { text: t('common.keepBuilding'), style: 'cancel' },
         { text: t('common.done'), onPress: () => navigation.goBack() },
       ]);
     } catch {
-      Alert.alert('Error', 'Could not save outfit. Please try again.');
+      Alert.alert(t('common.error'), t('wardrobe.couldNotSaveOutfit'));
     } finally {
       setIsSaving(false);
     }

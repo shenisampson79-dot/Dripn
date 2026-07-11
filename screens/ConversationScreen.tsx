@@ -134,24 +134,24 @@ export default function ConversationScreen({ navigation, route }: ConversationSc
     
     if (isBlocked) {
       Alert.alert(
-        "Unblock User",
-        `Are you sure you want to unblock ${participantName}?`,
+        t('community.unblockUser'),
+        t('community.unblockUserConfirm').replace('{name}', participantName),
         [
           { text: t('common.cancel'), style: "cancel" },
           { 
-            text: "Unblock", 
+            text: t('common.unblock'), 
             onPress: () => unblockUser(conversation.participantId)
           },
         ]
       );
     } else {
       Alert.alert(
-        "Block User",
-        `Are you sure you want to block ${participantName}? You will no longer receive messages from them.`,
+        t('community.blockUser'),
+        t('community.blockUserConfirm').replace('{name}', participantName),
         [
           { text: t('common.cancel'), style: "cancel" },
           { 
-            text: "Block", 
+            text: t('common.block'), 
             style: "destructive",
             onPress: () => blockUser(conversation.participantId, participantName)
           },
@@ -175,11 +175,11 @@ export default function ConversationScreen({ navigation, route }: ConversationSc
   const handleDelete = () => {
     setShowOptionsModal(false);
     
-    Alert.alert(t('common.deleteConversation') || "Delete Conversation", t('common.areYouSureYouWantToDeleteThisConversatio') || "Are you sure you want to delete this conversation? This cannot be undone.",
+    Alert.alert(t('common.deleteConversation'), t('common.areYouSureYouWantToDeleteThisConversatio'),
       [
         { text: t('common.cancel'), style: "cancel" },
         { 
-          text: "Delete", 
+          text: t('common.delete'), 
           style: "destructive",
           onPress: async () => {
             await deleteConversation(conversationId);
@@ -209,8 +209,8 @@ export default function ConversationScreen({ navigation, route }: ConversationSc
     setSelectedReportReason(null);
     setReportDescription('');
     
-    Alert.alert(t('common.reportSubmitted') || "Report Submitted", t('common.thankYouForYourReportOurTeamWillReviewIt') || "Thank you for your report. Our team will review it and take appropriate action.",
-      [{ text: "OK" }]
+    Alert.alert(t('common.reportSubmitted'), t('common.thankYouForYourReportOurTeamWillReviewIt'),
+      [{ text: t('common.ok') }]
     );
   };
 

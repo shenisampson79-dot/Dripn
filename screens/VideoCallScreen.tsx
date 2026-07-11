@@ -81,7 +81,7 @@ export default function VideoCallScreen({ navigation, route }: VideoCallScreenPr
     try {
       await WebBrowser.openBrowserAsync(roomUrl);
     } catch (error) {
-      Alert.alert('Error', 'Failed to open video call in browser');
+      Alert.alert(t('common.error'), t('videoCall.failedOpenBrowser'));
     }
   };
 

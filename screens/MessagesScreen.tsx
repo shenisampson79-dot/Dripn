@@ -84,10 +84,10 @@ export default function MessagesScreen({ navigation }: MessagesScreenProps) {
     
     Alert.alert(
       conversation.participantName,
-      "Choose an action",
+      t('messages.chooseAction'),
       [
         {
-          text: conversation.isMuted ? "Unmute" : "Mute",
+          text: conversation.isMuted ? t('common.unmute') : t('common.mute'),
           onPress: () => {
             if (conversation.isMuted) {
               unmuteConversation(conversation.id);
@@ -97,29 +97,29 @@ export default function MessagesScreen({ navigation }: MessagesScreenProps) {
           },
         },
         {
-          text: isBlocked ? "Unblock User" : "Block User",
+          text: isBlocked ? t('community.unblockUser') : t('community.blockUser'),
           style: isBlocked ? "default" : "destructive",
           onPress: () => {
             if (isBlocked) {
               Alert.alert(
-                "Unblock User",
-                `Are you sure you want to unblock ${conversation.participantName}?`,
+                t('community.unblockUser'),
+                t('community.unblockUserConfirm').replace('{name}', conversation.participantName),
                 [
                   { text: t('common.cancel'), style: "cancel" },
                   { 
-                    text: "Unblock", 
+                    text: t('common.unblock'), 
                     onPress: () => unblockUser(conversation.participantId)
                   },
                 ]
               );
             } else {
               Alert.alert(
-                "Block User",
-                `Are you sure you want to block ${conversation.participantName}? You will no longer receive messages from them.`,
+                t('community.blockUser'),
+                t('community.blockUserConfirm').replace('{name}', conversation.participantName),
                 [
                   { text: t('common.cancel'), style: "cancel" },
                   { 
-                    text: "Block", 
+                    text: t('common.block'), 
                     style: "destructive",
                     onPress: () => blockUser(conversation.participantId, conversation.participantName)
                   },
@@ -129,14 +129,14 @@ export default function MessagesScreen({ navigation }: MessagesScreenProps) {
           },
         },
         {
-          text: "Delete Conversation",
+          text: t('common.deleteConversation'),
           style: "destructive",
           onPress: () => {
-            Alert.alert(t('common.deleteConversation') || "Delete Conversation", t('common.areYouSureYouWantToDeleteThisConversatio') || "Are you sure you want to delete this conversation? This cannot be undone.",
+            Alert.alert(t('common.deleteConversation'), t('common.areYouSureYouWantToDeleteThisConversatio'),
               [
                 { text: t('common.cancel'), style: "cancel" },
                 { 
-                  text: "Delete", 
+                  text: t('common.delete'), 
                   style: "destructive",
                   onPress: () => deleteConversation(conversation.id)
                 },
