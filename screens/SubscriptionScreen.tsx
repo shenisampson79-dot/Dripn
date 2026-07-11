@@ -12,8 +12,6 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius, SubscriptionColors, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth, SubscriptionTier } from "@/contexts/AuthContext";
-import { useSubscription } from "@/contexts/SubscriptionContext";
-import { useReferral } from "@/contexts/ReferralContext";
 import { normalizeSubscriptionTier, tierToBillingPlan, getBillingPlanDisplayName } from "@/utils/subscriptionTier";
 import {
   getDfyBenefitForSubscription,
@@ -233,9 +231,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const { theme, isDark } = useTheme();
   const { t, currentLanguage } = useTranslations();
   const { user, refreshSubscriptionFromBackend } = useAuth();
-  const { referralCode: subscriptionReferralCode } = useSubscription();
-  const { referralCode, shareReferral } = useReferral();
-  const displayReferralCode = referralCode || subscriptionReferralCode;
   const scrollViewRef = useRef<any>(null);
   const plansSectionY = useRef(0);
   const checkoutInProgressRef = useRef(false);
@@ -536,14 +531,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       });
     }, 100);
     setTimeout(() => setHighlightPlans(false), 3000);
-  };
-
-  const handleShareReferral = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const success = await shareReferral();
-    if (!success) {
-      Alert.alert(t('subscription.sharingFailed'), t('subscription.sharingFailedMessage'));
-    }
   };
 
   const handleManageSubscription = async () => {
@@ -1137,34 +1124,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         </Pressable>
       ) : null}
 
-
-      <Pressable
-        onPress={handleShareReferral}
-        style={({ pressed }) => [
-          styles.referralSection,
-          { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', opacity: pressed ? 0.85 : 1 },
-        ]}
-      >
-        <LinearGradient
-          colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.referralIconContainer}
-        >
-          <Feather name="gift" size={20} color="#FFFFFF" />
-        </LinearGradient>
-        <View style={styles.referralContent}>
-          <ThemedText type="h3">{t('subscription.inviteFriends')}</ThemedText>
-          <ThemedText type="small" style={{ opacity: 0.7 }}>
-            {t('subscription.inviteFriendsSubtitle')}
-          </ThemedText>
-        </View>
-        <View style={[styles.referralCode, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-          <ThemedText type="h3" style={{ letterSpacing: 3, color: LUXURY_COLORS.teal }}>{displayReferralCode}</ThemedText>
-        </View>
-        <Feather name="share-2" size={20} color={LUXURY_COLORS.teal} />
-      </Pressable>
-
       <View style={styles.dfySection}>
         <View style={styles.dfySectionHeader}>
           <ThemedText type="h2" style={styles.sectionTitle}>
@@ -1738,29 +1697,6 @@ const styles = StyleSheet.create({
   inlineSubscribeButtonText: {
     fontWeight: '700',
     fontSize: 16,
-  },
-  referralSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.xl,
-    gap: Spacing.md,
-  },
-  referralIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  referralContent: {
-    flex: 1,
-  },
-  referralCode: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
   },
   dfySection: {
     marginBottom: Spacing.xl,
