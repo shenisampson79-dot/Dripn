@@ -54,13 +54,39 @@ function restoreBrands(text) {
   return out;
 }
 
+/** Protect {placeholder} tokens so Google Translate does not localize them. */
+function protectPlaceholders(text) {
+  const map = [];
+  const protectedText = String(text).replace(/\{[a-zA-Z0-9_]+\}/g, (m) => {
+    const token = `[[PH${map.length}]]`;
+    map.push([token, m]);
+    return token;
+  });
+  return { protectedText, map };
+}
+
+function restorePlaceholders(text, map) {
+  let out = String(text);
+  for (const [token, original] of map) {
+    // Google may alter spacing/brackets slightly — try exact then loose
+    if (out.includes(token)) {
+      out = out.split(token).join(original);
+    } else {
+      const loose = token.replace(/[\[\]]/g, '\\$&');
+      out = out.replace(new RegExp(loose, 'gi'), original);
+    }
+  }
+  return out;
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function translateViaGoogle(text, targetLang) {
   const tl = GOOGLE_LANG_CODES[targetLang] || targetLang;
-  const q = protectBrands(text);
+  const { protectedText, map } = protectPlaceholders(text);
+  const q = protectBrands(protectedText);
   const url =
     'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=' +
     encodeURIComponent(tl) +
@@ -75,7 +101,7 @@ async function translateViaGoogle(text, targetLang) {
   }
   const data = await res.json();
   const translated = (data[0] || []).map((part) => part[0]).join('');
-  return restoreBrands(translated);
+  return restorePlaceholders(restoreBrands(translated), map);
 }
 
 async function translateBatch(texts, targetLang, { delayMs = 120 } = {}) {
@@ -106,6 +132,8 @@ module.exports = {
   GOOGLE_LANG_CODES,
   protectBrands,
   restoreBrands,
+  protectPlaceholders,
+  restorePlaceholders,
   translateViaGoogle,
   translateBatch,
   sleep,
