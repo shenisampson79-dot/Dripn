@@ -1738,7 +1738,7 @@ class ApiService {
     }>('/api/voice-credits/packages');
   }
 
-  async purchaseVoiceCredits(packageId: string) {
+  async purchaseVoiceCredits(packageId: string, language?: string) {
     return this.request<{
       success?: boolean;
       checkoutUrl: string;
@@ -1747,7 +1747,7 @@ class ApiService {
       amount?: number;
     }>('/api/voice-credits/purchase', {
       method: 'POST',
-      body: JSON.stringify({ packageId }),
+      body: JSON.stringify({ packageId, ...(language ? { language } : {}) }),
     });
   }
 
@@ -1796,10 +1796,10 @@ class ApiService {
     });
   }
 
-  async createCheckoutSession(plan: string) {
+  async createCheckoutSession(plan: string, language?: string) {
     return this.request<{ checkoutUrl: string; sessionId: string }>('/api/checkout/create-session', {
       method: 'POST',
-      body: JSON.stringify({ plan }),
+      body: JSON.stringify({ plan, ...(language ? { language } : {}) }),
     });
   }
 
@@ -1820,7 +1820,7 @@ class ApiService {
     }
   }
 
-  async createDFYCheckoutSession(email: string, packageType: 'lite' | 'core') {
+  async createDFYCheckoutSession(email: string, packageType: 'lite' | 'core', language?: string) {
     const plan = packageType === 'core' ? 'core_wardrobe' : 'outfit_setup';
     const headers: Record<string, string> = {};
     if (this.guestToken) {
@@ -1829,7 +1829,7 @@ class ApiService {
     return this.request<{ checkoutUrl: string; sessionId: string }>('/api/checkout/dfy/create-session', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ email, productId: plan }),
+      body: JSON.stringify({ email, productId: plan, ...(language ? { language } : {}) }),
     });
   }
 
@@ -1952,10 +1952,10 @@ class ApiService {
     });
   }
 
-  async createSubscriptionCheckout(plan: string, billingCycle: 'monthly' | 'yearly' = 'monthly') {
+  async createSubscriptionCheckout(plan: string, billingCycle: 'monthly' | 'yearly' = 'monthly', language?: string) {
     return this.request<{ checkoutUrl: string; sessionId: string; plan?: string }>('/api/subscription/create-checkout', {
       method: 'POST',
-      body: JSON.stringify({ plan, billingCycle }),
+      body: JSON.stringify({ plan, billingCycle, ...(language ? { language } : {}) }),
     });
   }
 
@@ -1995,10 +1995,10 @@ class ApiService {
     });
   }
 
-  async createBillingCheckout(plan: string) {
+  async createBillingCheckout(plan: string, language?: string) {
     return this.request<{ checkoutUrl: string; sessionId: string; plan: string }>('/api/billing/checkout', {
       method: 'POST',
-      body: JSON.stringify({ plan }),
+      body: JSON.stringify({ plan, ...(language ? { language } : {}) }),
     });
   }
 

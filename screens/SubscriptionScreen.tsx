@@ -231,7 +231,7 @@ const getTierIcon = (tier?: SubscriptionTier): "award" | "star" | "message-circl
 
 export default function SubscriptionScreen({ navigation, route }: SubscriptionScreenProps & { route: any }) {
   const { theme, isDark } = useTheme();
-  const { t } = useTranslations();
+  const { t, currentLanguage } = useTranslations();
   const { user, refreshSubscriptionFromBackend } = useAuth();
   const { referralCode: subscriptionReferralCode } = useSubscription();
   const { referralCode, shareReferral } = useReferral();
@@ -487,7 +487,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
         const billingPlan = tierToBillingPlan(planId);
 
-        const checkout = await apiService.createSubscriptionCheckout(billingPlan, billingCycle);
+        const checkout = await apiService.createSubscriptionCheckout(billingPlan, billingCycle, currentLanguage);
         if (!checkout.checkoutUrl) {
           throw new Error(t('subscription.checkoutStartFailed'));
         }

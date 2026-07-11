@@ -24,6 +24,8 @@ import { shouldUseAppleIAP } from '@/utils/platformPayments';
 
 import { useAuth } from '@/contexts/AuthContext';
 
+import { useTranslations } from '@/contexts/TranslationContext';
+
 import { formatVoicePricePence, VOICE_PACK_PRICE_PENCE, formatWeekendExpiry, sortVoiceCreditPacks } from '@/utils/voiceCreditPacks';
 
 
@@ -339,6 +341,8 @@ export function getVoiceUsageNudge(
 export function useVoiceCredits() {
 
   const { user } = useAuth();
+
+  const { currentLanguage } = useTranslations();
 
   const [credits, setCredits] = useState<VoiceCreditsInternal | null>(null);
 
@@ -660,7 +664,7 @@ export function useVoiceCredits() {
 
     try {
 
-      const response = await apiService.purchaseVoiceCredits(packageId);
+      const response = await apiService.purchaseVoiceCredits(packageId, currentLanguage);
 
       if (!response.checkoutUrl) {
 
@@ -774,7 +778,7 @@ export function useVoiceCredits() {
 
     }
 
-  }, [refreshBalance, updateBalance, useAppleIAP, user?.id]);
+  }, [refreshBalance, updateBalance, useAppleIAP, user?.id, currentLanguage]);
 
 
 
@@ -784,7 +788,7 @@ export function useVoiceCredits() {
 
       setIsPurchasing(true);
 
-      const response = await apiService.createCheckoutSession('monthly');
+      const response = await apiService.createCheckoutSession('monthly', currentLanguage);
 
       if (response.checkoutUrl) {
 
@@ -814,7 +818,7 @@ export function useVoiceCredits() {
 
     }
 
-  }, [refreshBalance]);
+  }, [refreshBalance, currentLanguage]);
 
 
 

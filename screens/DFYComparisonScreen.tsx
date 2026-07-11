@@ -121,7 +121,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     paidAddOn?: boolean;
   } | undefined;
   const { theme, isDark } = useTheme();
-  const { t } = useTranslations();
+  const { t, currentLanguage } = useTranslations();
   const { user, refreshSubscriptionFromBackend } = useAuth();
   const insets = useSafeAreaInsets();
   const [selectedTier, setSelectedTier] = useState<DFYTier>(routeParams?.selectedTier || 'core');
@@ -390,7 +390,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     setIsProcessing(true);
     
     try {
-      const response = await apiService.createDFYCheckoutSession(checkoutEmail, selectedTier);
+      const response = await apiService.createDFYCheckoutSession(checkoutEmail, selectedTier, currentLanguage);
       
       if (!response.checkoutUrl || !response.sessionId) {
         throw new Error('No checkout URL received');
