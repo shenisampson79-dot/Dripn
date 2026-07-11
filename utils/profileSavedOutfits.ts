@@ -4,6 +4,10 @@ import type { SavedOutfitTableRow } from '@/components/outfit/SavedOutfitsTable'
 import { resolveDFYItemImageUri, type RawDFYOutfitItem } from '@/utils/dfyOutfitImages';
 import { sortOutfitItemsByVisualOrder } from '@/utils/outfitItemOrder';
 import { buildWardrobeImageProxyUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
+import {
+  getLocalizedLookbookDayTag,
+  getLocalizedLookbookTitle,
+} from '@/utils/profileLabelLocalization';
 
 export type MixAndMatchSavedOutfit = {
   id: string;
@@ -22,6 +26,8 @@ export type MixAndMatchSavedOutfit = {
   }>;
   wardrobe_item_ids?: string[];
 };
+
+type TranslateFn = (key: string) => string;
 
 function previewFromItems(
   items: Array<{ id: string; name: string; imageUri?: string | null }>,
@@ -90,7 +96,10 @@ export function buildSavedOutfitTableRows(
   lookbookOutfits: SavedLookbookOutfit[],
   mixOutfits: MixAndMatchSavedOutfit[],
   wardrobeItems: WardrobeItem[],
+  t?: TranslateFn,
 ): SavedOutfitTableRow[] {
+  const translate: TranslateFn = t || ((key) => key);
+
   const lookbookRows: SavedOutfitTableRow[] = lookbookOutfits.map((outfit) => {
     const ordered = sortOutfitItemsByVisualOrder(outfit.items || []);
     const previewItems = ordered.map((item) => {
@@ -102,12 +111,18 @@ export function buildSavedOutfitTableRows(
       };
     });
 
+    const dayTag = getLocalizedLookbookDayTag(outfit.dayNumber, translate);
+    const itemsLabel = (translate('profile.itemsCount') || '{count} items').replace(
+      '{count}',
+      String(ordered.length),
+    );
+
     return {
       id: `lookbook-${outfit.id}`,
-      title: outfit.title || `Lookbook · Day ${outfit.dayNumber}`,
-      description: outfit.description || outfit.stylistNote || `${ordered.length} items`,
+      title: getLocalizedLookbookTitle(outfit.title, outfit.dayNumber, translate),
+      description: outfit.description || outfit.stylistNote || itemsLabel,
       itemCount: ordered.length,
-      badgeLabel: `Lookbook · Day ${outfit.dayNumber}`,
+      badgeLabel: dayTag,
       badgeColors: ['#E07A5F', '#C46A4F'] as const,
       previewItems: previewFromItems(previewItems),
     };
@@ -132,14 +147,17 @@ export function buildSavedOutfitTableRows(
     });
 
     const occasionLabel = mixOccasionLabel(outfit);
+    const loved = outfit.tags?.includes('loved');
 
     return {
       id: `mix-${outfit.id}`,
-      title: outfit.name || 'My Outfit',
+      title: outfit.name || translate('profile.myOutfit') || 'My Outfit',
       description: outfit.description?.trim() || occasionLabel,
       itemCount: resolvedItems.length,
-      badgeLabel: outfit.tags?.includes('loved') ? 'Loved Outfit' : 'My Outfit',
-      badgeColors: outfit.tags?.includes('loved')
+      badgeLabel: loved
+        ? translate('profile.lovedOutfit') || 'Loved Outfit'
+        : translate('profile.myOutfit') || 'My Outfit',
+      badgeColors: loved
         ? (['#E8B4B8', '#DB2777'] as const)
         : (['#E8B4B8', '#8B2F39'] as const),
       previewItems: previewFromItems(previewItems),

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -7,12 +7,24 @@ import { ThemedText } from '@/components/ThemedText';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import { OUTFIT_OCCASION_CHIPS, type OutfitOccasionId } from '@/constants/outfitOccasions';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 type Props = {
   generatingOccasionId?: string | null;
   disabled?: boolean;
   onOccasionPress: (occasionId: OutfitOccasionId) => void;
   onWeatherPress?: () => void;
+};
+
+const OCCASION_I18N_KEYS: Record<string, string> = {
+  work_outfit: 'aiStylist.promptWorkOutfit',
+  date_night: 'aiStylist.promptDateNight',
+  casual_day: 'aiStylist.promptCasualDay',
+  weekend: 'aiStylist.promptWeekend',
+  smart_casual: 'aiStylist.promptSmartCasual',
+  gym: 'aiStylist.promptGym',
+  evening_out: 'aiStylist.promptEveningOut',
+  travel: 'aiStylist.promptTravel',
 };
 
 export function OccasionOutfitChips({
@@ -22,11 +34,21 @@ export function OccasionOutfitChips({
   onWeatherPress,
 }: Props) {
   const { theme } = useTheme();
+  const { t } = useTranslations();
+
+  const chips = useMemo(
+    () =>
+      OUTFIT_OCCASION_CHIPS.map((option) => ({
+        ...option,
+        label: t(OCCASION_I18N_KEYS[option.id] || '') || option.label,
+      })),
+    [t],
+  );
 
   return (
     <View style={styles.container}>
       <ThemedText style={[styles.label, { color: theme.tabIconDefault }]}>
-        Outfit from your wardrobe
+        {t('aiStylist.outfitFromWardrobe') || 'Outfit from your wardrobe'}
       </ThemedText>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {onWeatherPress ? (
@@ -42,11 +64,13 @@ export function OccasionOutfitChips({
             ]}
           >
             <Feather name="cloud" size={14} color={theme.link} />
-            <ThemedText style={styles.chipText}>Weather look</ThemedText>
+            <ThemedText style={styles.chipText}>
+              {t('aiStylist.weatherLook') || 'Weather look'}
+            </ThemedText>
           </Pressable>
         ) : null}
 
-        {OUTFIT_OCCASION_CHIPS.map((option) => {
+        {chips.map((option) => {
           const isGenerating = generatingOccasionId === option.id;
           return (
             <Pressable

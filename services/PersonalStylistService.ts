@@ -207,10 +207,28 @@ export function getStylistForUser(userGender: Gender, stylistPreferences?: Styli
   return STYLISTS.ruby;
 }
 
-export function getStylistGreeting(stylist: PersonalStylist, userName?: string | null): string {
-  const greetings = stylist.greeting?.length ? stylist.greeting : ['Hi {name}! How can I help with your style today?'];
+export function getStylistGreeting(
+  stylist: PersonalStylist,
+  userName?: string | null,
+  t?: (key: string) => string,
+): string {
+  const displayName =
+    userName || (t ? t('aiStylist.welcomeNameFallback') : null) || 'there';
+
+  // Prefer localized welcome template so language switch updates the seed message.
+  if (t) {
+    const template = t('aiStylist.welcomeMessage');
+    if (template && template !== 'aiStylist.welcomeMessage') {
+      return template
+        .replace(/\{name\}/g, displayName)
+        .replace(/\{stylist\}/g, stylist.name);
+    }
+  }
+
+  const greetings = stylist.greeting?.length
+    ? stylist.greeting
+    : ['Hi {name}! How can I help with your style today?'];
   const greeting = greetings[Math.floor(Math.random() * greetings.length)];
-  const displayName = userName || 'there';
   return greeting.replace(/{name}/g, displayName);
 }
 

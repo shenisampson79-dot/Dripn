@@ -599,7 +599,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       >
         <Feather name="zap" size={15} color="#FFFFFF" />
         <ThemedText type="caption" style={styles.quickActionLabel} numberOfLines={1}>
-          AI Outfit
+          {t('wardrobe.aiOutfit') || 'AI Outfit'}
         </ThemedText>
       </Pressable>
       <Pressable
@@ -611,7 +611,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       >
         <Feather name="shuffle" size={15} color="#FFFFFF" />
         <ThemedText type="caption" style={styles.quickActionLabel} numberOfLines={1}>
-          Outfit Mix
+          {t('wardrobe.outfitMix') || 'Outfit Mix'}
         </ThemedText>
       </Pressable>
       <Pressable
@@ -620,7 +620,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       >
         <Feather name="layers" size={15} color="#FFFFFF" />
         <ThemedText type="caption" style={styles.quickActionLabel} numberOfLines={1}>
-          Bulk Add
+          {t('wardrobe.bulkAdd') || 'Bulk Add'}
         </ThemedText>
       </Pressable>
       <Pressable
@@ -629,11 +629,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
       >
         <Feather name="plus" size={15} color={LUXURY_COLORS.midnight} />
         <ThemedText type="caption" style={[styles.quickActionLabel, styles.quickActionLabelPrimary]} numberOfLines={1}>
-          Add Item
+          {t('wardrobe.addItem') || 'Add Item'}
         </ThemedText>
       </Pressable>
     </View>
-  ), [handleAICreateOutfit, handleQuickAdd, handleAddItem, navigation, LUXURY_COLORS.midnight]);
+  ), [handleAICreateOutfit, handleQuickAdd, handleAddItem, navigation, LUXURY_COLORS.midnight, t]);
 
   const renderWardrobeItem = useCallback(({ item }: { item: WardrobeItem }) => {
     const hasProcessedImage = item.imageProcessed === true;
@@ -704,12 +704,12 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             {item.name}
           </ThemedText>
           <ThemedText type="caption" style={styles.itemWornBelow}>
-            Worn {item.timesWorn}x
+            {(t('wardrobe.wornTimes') || 'Worn {n}x').replace('{n}', String(item.timesWorn))}
           </ThemedText>
         </View>
       </Pressable>
     );
-  }, [theme, isDark, selectionMode, selectedIds, toggleItemSelection, handleItemPress, CATEGORY_COLORS, LUXURY_COLORS.gold]);
+  }, [theme, isDark, selectionMode, selectedIds, toggleItemSelection, handleItemPress, CATEGORY_COLORS, LUXURY_COLORS.gold, t]);
 
   const renderEmptyCategoryState = () => {
     const categoryLabel = CATEGORY_OPTIONS.find(c => c.key === selectedCategory)?.label || selectedCategory;
@@ -1078,11 +1078,11 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                 onPress={exitSelectionMode}
                 style={styles.headerTextButton}
               >
-                <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>Cancel</ThemedText>
+                <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '600' }}>{t('wardrobe.cancel') || 'Cancel'}</ThemedText>
               </Pressable>
               <View style={styles.headerTitleContainer}>
                 <ThemedText type="h3" style={{ color: '#FFFFFF' }}>
-                  {selectedIds.size} Selected
+                  {(t('wardrobe.selectedCount') || '{count} Selected').replace('{count}', String(selectedIds.size))}
                 </ThemedText>
               </View>
               <Pressable
@@ -1093,7 +1093,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                 {isBulkDeleting ? (
                   <ActivityIndicator size="small" color="#FF8A8A" />
                 ) : (
-                  <ThemedText type="body" style={{ color: '#FF8A8A', fontWeight: '700' }}>Delete</ThemedText>
+                  <ThemedText type="body" style={{ color: '#FF8A8A', fontWeight: '700' }}>{t('wardrobe.delete') || 'Delete'}</ThemedText>
                 )}
               </Pressable>
             </>
@@ -1121,7 +1121,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                   }}
                   style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
                 >
-                  <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>Select</ThemedText>
+                  <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>{t('wardrobe.select') || 'Select'}</ThemedText>
                 </Pressable>
           </View>
             </>
@@ -1220,7 +1220,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                         {t('wardrobe.myLookbook')}
                       </ThemedText>
                       <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                        {dfyAccess.daysRemaining}d left
+                        {(t('wardrobe.daysLeft') || '{n}d left').replace('{n}', String(dfyAccess.daysRemaining))}
                       </ThemedText>
                     </View>
                     <Feather name="chevron-right" size={16} color="rgba(255,255,255,0.6)" />
@@ -1245,7 +1245,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                         {t('wardrobe.calendar14Day')}
                       </ThemedText>
                       <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                        Daily outfits
+                        {t('wardrobe.dailyOutfits') || 'Daily outfits'}
                       </ThemedText>
                     </View>
                     <Feather name="chevron-right" size={16} color="rgba(255,255,255,0.6)" />
@@ -1273,7 +1273,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                         {t('wardrobe.modularWardrobe')}
                       </ThemedText>
                       <ThemedText type="caption" style={{ color: 'rgba(0,0,0,0.6)' }}>
-                        Mix & match
+                        {t('wardrobe.mixAndMatch') || 'Mix & match'}
                       </ThemedText>
                     </View>
                     <Feather name="chevron-right" size={16} color="rgba(0,0,0,0.4)" />
@@ -1298,7 +1298,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                         {t('wardrobe.calendar30Day')}
                       </ThemedText>
                       <ThemedText type="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                        {dfyAccess.daysRemaining}d left
+                        {(t('wardrobe.daysLeft') || '{n}d left').replace('{n}', String(dfyAccess.daysRemaining))}
                       </ThemedText>
                     </View>
                     <Feather name="chevron-right" size={16} color="rgba(255,255,255,0.6)" />
@@ -1368,7 +1368,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
         >
           <View>
             <ThemedText type="body" style={{ fontWeight: '700' }}>
-              {selectedIds.size} selected
+              {(t('wardrobe.selectedCount') || '{count} Selected').replace('{count}', String(selectedIds.size))}
             </ThemedText>
           </View>
           <Pressable
@@ -1382,7 +1382,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
               <>
                 <Feather name="trash-2" size={18} color="#FFFFFF" />
                 <ThemedText type="body" style={{ color: '#FFFFFF', fontWeight: '700', marginLeft: Spacing.sm }}>
-                  Delete ({selectedIds.size})
+                  {(t('wardrobe.deleteCount') || 'Delete ({n})').replace('{n}', String(selectedIds.size))}
                 </ThemedText>
               </>
             )}

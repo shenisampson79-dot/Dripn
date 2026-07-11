@@ -1308,13 +1308,14 @@ export default function AIStylistScreen() {
   };
 
   // Single source of truth for which language the stylist should speak.
-  // Priority: explicit Settings preference > onboarding stylist language > 'en'.
+  // Priority: UI language (Settings) > voice preferredLanguage > onboarding stylist language.
   const onboardingLangCode =
     LANGUAGE_NAME_TO_CODE[user?.stylistPreferences?.language || 'English'] || 'en';
   const effectiveLanguage =
-    voiceSettings.preferredLanguage && voiceSettings.preferredLanguage !== 'en'
+    currentLanguage ||
+    (voiceSettings.preferredLanguage && voiceSettings.preferredLanguage !== 'en'
       ? voiceSettings.preferredLanguage
-      : onboardingLangCode;
+      : onboardingLangCode);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -1462,7 +1463,7 @@ export default function AIStylistScreen() {
   useEffect(() => {
     if (messages.length === 0) {
       const userName = user?.name ? user.name.split(' ')[0] : null;
-      const greeting = getStylistGreeting(stylist, userName);
+      const greeting = getStylistGreeting(stylist, userName, t);
       const greetingMessage: ChatMessage = {
         id: `msg_${Date.now()}`,
         role: 'assistant',
@@ -1471,7 +1472,18 @@ export default function AIStylistScreen() {
       };
       setMessages([greetingMessage]);
     }
-  }, [stylist, user?.name]);
+  }, [stylist, user?.name, t, messages.length]);
+
+  // Refresh seed welcome when UI language changes (only if chat is still just the greeting).
+  useEffect(() => {
+    const userName = user?.name ? user.name.split(' ')[0] : null;
+    const nextGreeting = getStylistGreeting(stylist, userName, t);
+    setMessages((prev) => {
+      if (prev.length !== 1 || prev[0]?.role !== 'assistant') return prev;
+      if (prev[0].content === nextGreeting) return prev;
+      return [{ ...prev[0], content: nextGreeting }];
+    });
+  }, [currentLanguage, t, stylist, user?.name]);
 
   useEffect(() => {
     if (isRecording) {
@@ -2365,7 +2377,7 @@ export default function AIStylistScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
     
-    const greeting = getStylistGreeting(stylist);
+    const greeting = getStylistGreeting(stylist, user?.name ? user.name.split(' ')[0] : null, t);
     const greetingMessage: ChatMessage = {
       id: `msg_${Date.now()}`,
       role: 'assistant',
@@ -3137,12 +3149,15 @@ export default function AIStylistScreen() {
               onWeatherPress={navigateToWeatherOutfits}
               onOccasionPress={handleOccasionOutfitGenerate}
             />
+            {/* Extra chat prompts that don't overlap occasion chips (work/date/weekend). */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.quickPromptsScrollContent}
             >
-              {quickPrompts.slice(0, 4).map((prompt) => (
+              {quickPrompts
+                .filter((prompt) => prompt.id === 'party' || prompt.id === 'color')
+                .map((prompt) => (
                 <Pressable
                   key={prompt.id}
                   onPress={() => handleQuickPrompt(prompt.prompt)}

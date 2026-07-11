@@ -25,6 +25,11 @@ import { useStyleProfile } from "@/contexts/StyleProfileContext";
 import { useWardrobe } from "@/contexts/WardrobeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { getStyleThemeLabel } from "@/utils/styleThemeLabels";
+import {
+  getLocalizedBodyShapeLabel,
+  getLocalizedColorSeasonLabel,
+  getLocalizedLookbookTitle,
+} from "@/utils/profileLabelLocalization";
 import { OutfitPiecesVisual, OutfitPieceVisual } from "@/components/OutfitPiecesVisual";
 import { SavedOutfitsTable } from "@/components/outfit/SavedOutfitsTable";
 import { SavedOutfitDetailModal } from "@/components/outfit/SavedOutfitDetailModal";
@@ -272,8 +277,8 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
   const likedOutfits: SavedLookbookOutfit[] = savedLookbookOutfits;
 
   const savedOutfitRows = useMemo(
-    () => buildSavedOutfitTableRows(likedOutfits, savedMixAndMatchOutfits, wardrobeItems),
-    [likedOutfits, savedMixAndMatchOutfits, wardrobeItems],
+    () => buildSavedOutfitTableRows(likedOutfits, savedMixAndMatchOutfits, wardrobeItems, t),
+    [likedOutfits, savedMixAndMatchOutfits, wardrobeItems, t],
   );
 
   useEffect(() => {
@@ -677,11 +682,18 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileButtonThemes.colorAnalysis.titleColor }]}>{t('profile.colorAnalysis') || 'Color Analysis'}</ThemedText>
                 {hasColorAnalysis && bodyProfile?.colorSeason ? (
                   <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.colorAnalysis.valueAccentColor }]}>
-                    {bodyProfile.colorSeason.season.charAt(0).toUpperCase() + bodyProfile.colorSeason.season.slice(1)}{bodyProfile.colorSeason.subtype ? ` · ${bodyProfile.colorSeason.subtype}` : ''}
+                    {getLocalizedColorSeasonLabel(
+                      bodyProfile.colorSeason.season,
+                      bodyProfile.colorSeason.subtype,
+                      t,
+                    )}
                   </ThemedText>
                 ) : user?.skinUndertone ? (
                   <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.colorAnalysis.valueAccentColor }]}>
-                    {user.skinUndertone.charAt(0).toUpperCase() + user.skinUndertone.slice(1)} undertone
+                    {(t('profile.undertoneValue') || '{tone} undertone').replace(
+                      '{tone}',
+                      user.skinUndertone.charAt(0).toUpperCase() + user.skinUndertone.slice(1),
+                    )}
                   </ThemedText>
                 ) : (
                   <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.colorAnalysis.mutedColor }]}>
@@ -722,7 +734,12 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
                 <ThemedText type="body" style={[styles.styleProfileCardTitle, { color: styleProfileButtonThemes.bodyProfile.titleColor }]}>{t('profile.bodyProfile') || 'Body Profile'}</ThemedText>
                 {(hasBodyProfile && bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown') || (user?.bodyShape && String(user.bodyShape) !== 'unknown') ? (
                   <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.bodyProfile.valueAccentColor }]}>
-                    {((bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown' ? bodyProfile.bodyShape : user?.bodyShape) as string || '').split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} shape
+                    {getLocalizedBodyShapeLabel(
+                      (bodyProfile?.bodyShape && bodyProfile.bodyShape !== 'unknown'
+                        ? bodyProfile.bodyShape
+                        : user?.bodyShape) as string,
+                      t,
+                    )}
                   </ThemedText>
                 ) : (
                   <ThemedText type="small" style={[styles.styleProfileCardValue, { color: styleProfileButtonThemes.bodyProfile.mutedColor }]}>
@@ -856,7 +873,11 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               </View>
             </View>
             <ThemedText type="h3" style={styles.likedOutfitTitle}>
-              {selectedLookbookOutfit.title || `Lookbook · Day ${selectedLookbookOutfit.dayNumber}`}
+              {getLocalizedLookbookTitle(
+                selectedLookbookOutfit.title,
+                selectedLookbookOutfit.dayNumber,
+                t,
+              )}
             </ThemedText>
             {(selectedLookbookOutfit.description || selectedLookbookOutfit.stylistNote) ? (
               <ThemedText type="small" style={styles.likedOutfitDesc}>
@@ -864,7 +885,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
               </ThemedText>
             ) : null}
             <ThemedText type="caption" style={[styles.outfitVisualSectionLabel, { color: theme.tabIconDefault }]}>
-              Full outfit
+              {t('profile.fullOutfit') || 'Full outfit'}
             </ThemedText>
             {renderSavedLookbookVisual(selectedLookbookOutfit, { forModal: true })}
           </View>

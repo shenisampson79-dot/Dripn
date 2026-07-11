@@ -164,7 +164,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     weekendExpiryLabel,
   } = useVoiceCredits();
 
-  const filteredCountries = filterCountriesBySearch(ALL_COUNTRIES, countrySearch, currentLanguage);
+  const filteredCountries = filterCountriesBySearch(ALL_COUNTRIES, countrySearch, currentLanguage, t);
 
   const handleSelectCountry = async (selectedCountry: string) => {
     setShowCountryPicker(false);
@@ -543,7 +543,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             title={t('settings.country')}
             subtitle={
               user?.country
-                ? getLocalizedCountryName(user.country, currentLanguage)
+                ? getLocalizedCountryName(user.country, currentLanguage, t)
                 : t('settings.notSet')
             }
             onPress={() => setShowCountryPicker(true)}
@@ -1117,7 +1117,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
                     user?.country === c && { backgroundColor: LUXURY_COLORS.coral + '20' },
                   ]}
                 >
-                  <ThemedText type="body">{getLocalizedCountryName(c, currentLanguage)}</ThemedText>
+                  <ThemedText type="body">{getLocalizedCountryName(c, currentLanguage, t)}</ThemedText>
                   {user?.country === c ? (
                     <Feather name="check" size={20} color={LUXURY_COLORS.coral} />
                   ) : null}

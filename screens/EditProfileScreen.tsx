@@ -120,7 +120,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
   const stylists = getAllStylists();
   const selectedStylist = stylists.find((s) => s.id === selectedStylistId);
 
-  const filteredCountries = filterCountriesBySearch(ALL_COUNTRIES, countrySearch, currentLanguage);
+  const filteredCountries = filterCountriesBySearch(ALL_COUNTRIES, countrySearch, currentLanguage, t);
 
   const handlePickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -309,7 +309,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
         >
           <Feather name="map-pin" size={18} color={theme.tabIconDefault} />
           <ThemedText type="body" style={styles.countryText}>
-            {getLocalizedCountryName(country, currentLanguage)}
+            {getLocalizedCountryName(country, currentLanguage, t)}
           </ThemedText>
           <Feather name="chevron-down" size={18} color={theme.tabIconDefault} />
         </Pressable>
@@ -362,7 +362,7 @@ export default function EditProfileScreen({ navigation }: EditProfileScreenProps
                   type="body"
                   style={{ color: country === c ? "#FFFFFF" : theme.text }}
                 >
-                  {getLocalizedCountryName(c, currentLanguage)}
+                  {getLocalizedCountryName(c, currentLanguage, t)}
                 </ThemedText>
                 {country === c ? (
                   <Feather name="check" size={18} color="#FFFFFF" />
