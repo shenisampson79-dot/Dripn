@@ -25,6 +25,11 @@ import { preSignupQuizService, type QuizCompletionSummary } from '@/services/Pre
 import { apiService } from '@/services/ApiService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslations } from "@/contexts/TranslationContext";
+import {
+  quizLookNameKey,
+  quizOccasionTagKey,
+  quizStyleTagKey,
+} from '@/utils/quizI18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - Spacing.xl * 2;
@@ -39,7 +44,7 @@ function defaultQuizGender(userGender: string | null | undefined): QuizOutfitGen
 }
 
 export default function PreSignupStyleQuizScreen({ navigation }: Props) {
-  const { t } = useTranslations();
+  const { t, currentLanguage } = useTranslations();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [quizGender, setQuizGender] = useState<QuizOutfitGender>(() =>
@@ -101,11 +106,15 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
     setCompletionLoading(true);
     await onboardingProfileService.completeQuiz();
     const profile = await onboardingProfileService.getProfile();
-    const summary = await preSignupQuizService.getCompletionSummary(profile);
+    const summary = await preSignupQuizService.getCompletionSummary(
+      profile,
+      t,
+      currentLanguage,
+    );
     setCompletion(summary);
     setCompletionLoading(false);
     setDone(true);
-  }, []);
+  }, [t, currentLanguage]);
 
   const handleGenderChange = useCallback(async (gender: QuizOutfitGender) => {
     if (gender === quizGender) return;
@@ -205,7 +214,10 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
             <>
               <Feather name="check-circle" size={56} color="#C9A87C" />
               <ThemedText type="h1" style={styles.doneTitle}>
-                {completion?.headline || t('preSignupQuiz.vibeFallback') || 'We know your vibe'}
+                {completion?.headline ||
+                  t('preSignupQuiz.headline.vibe') ||
+                  t('preSignupQuiz.vibeFallback') ||
+                  'We know your vibe'}
               </ThemedText>
               <ThemedText type="body" style={styles.doneSub}>
                 {completion?.summary ||
@@ -292,8 +304,14 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
         <View style={styles.cardWrap}>
           <Image source={current.image} style={styles.cardImage} resizeMode="cover" />
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.75)']} style={styles.cardGradient}>
-            <ThemedText type="h3" style={styles.cardName}>{current.name}</ThemedText>
-            <ThemedText type="small" style={styles.cardMeta}>{current.style} · {current.occasion}</ThemedText>
+            <ThemedText type="h3" style={styles.cardName}>
+              {t(quizLookNameKey(current.id)) || current.name}
+            </ThemedText>
+            <ThemedText type="small" style={styles.cardMeta}>
+              {(t(quizStyleTagKey(current.style)) || current.style)}
+              {' · '}
+              {(t(quizOccasionTagKey(current.occasion)) || current.occasion)}
+            </ThemedText>
           </LinearGradient>
         </View>
       ) : null}

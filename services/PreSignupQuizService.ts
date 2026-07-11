@@ -15,6 +15,11 @@ import {
   type PreSignupQuizOutfit,
   type QuizOutfitGender,
 } from '@/constants/preSignupQuizOutfits';
+import {
+  translateQuizLookName,
+  translateQuizStylesList,
+  type TranslateFn,
+} from '@/utils/quizLookI18n';
 
 export interface QuizDeckConfig {
   title: string;
@@ -41,37 +46,85 @@ function rankStylesFromLikes(profile: OnboardingProfile): string[] {
     .map(([style]) => style);
 }
 
-function buildLocalCompletionSummary(profile: OnboardingProfile): QuizCompletionSummary {
+function buildLocalCompletionSummary(
+  profile: OnboardingProfile,
+  t?: TranslateFn,
+): QuizCompletionSummary {
   const dressFor = profile.dressFor || 'myself';
   const likes = onboardingProfileService.getSessionQuizLikes(profile);
   const topStyles = rankStylesFromLikes(profile);
-  const occasionLabel = DRESS_FOR_LABELS[dressFor];
-  const likedNames = likes.map((l) => l.name);
+  const occasionLabel =
+    (t && (t(`preSignupQuiz.dressFor.${dressFor}`) || '')) ||
+    DRESS_FOR_LABELS[dressFor];
+  const likedNames = likes.map((l) =>
+    t ? translateQuizLookName(l.outfitId, l.name, t) : l.name,
+  );
+  const stylesText = t
+    ? translateQuizStylesList(topStyles.slice(0, 3), t)
+    : topStyles.slice(0, 3).join(' · ');
+  const workLeanRaw = topStyles.filter((s) => /business|smart|classic|luxury/i.test(s));
+  const workLean = t
+    ? translateQuizStylesList(
+        (workLeanRaw.length ? workLeanRaw : topStyles.slice(0, 2)),
+        t,
+      )
+    : (workLeanRaw.join(' · ') || topStyles.slice(0, 2).join(' · '));
+
+  const vibeFallback = (t && t('preSignupQuiz.vibeFallback')) || 'We know your vibe';
+  const summaryFallback =
+    (t && t('preSignupQuiz.summaryFallback')) ||
+    "Got it — we'll use your picks to style you.";
 
   if (!likes.length) {
     return {
-      headline: 'We know your vibe',
-      summary: "Got it — we'll use your picks to style you.",
+      headline: vibeFallback,
+      summary: summaryFallback,
       topStyles: [],
     };
   }
 
   if (dressFor === 'work') {
-    const workLean = topStyles.filter((s) => /business|smart|classic|luxury/i.test(s)).join(' and ')
-      || topStyles.slice(0, 2).join(' and ');
+    const workHeadline =
+      (t && t('preSignupQuiz.vibeWorkHeadline')) || 'We know your work style';
+    const sharp =
+      (t && t('preSignupQuiz.sharpProfessional')) || 'sharp and professional';
+
+    if (likedNames.length) {
+      const template =
+        (t && t('preSignupQuiz.summaryWorkLiked')) ||
+        'For {occasion}, you liked {names} — {styles}. We\'ll dress you that way.';
+      return {
+        headline: workHeadline,
+        summary: template
+          .replace('{occasion}', occasionLabel)
+          .replace(
+            '{names}',
+            likedNames.slice(0, 3).join(', ') + (likedNames.length > 3 ? '…' : ''),
+          )
+          .replace('{styles}', workLean || sharp),
+        topStyles: topStyles.slice(0, 3),
+      };
+    }
+
+    const leanTemplate =
+      (t && t('preSignupQuiz.summaryWorkLean')) ||
+      'You lean {styles} for the office. We\'ll keep it sharp and intentional.';
     return {
-      headline: 'We know your work style',
-      summary: likedNames.length
-        ? `For ${occasionLabel}, you liked ${likedNames.slice(0, 3).join(', ')}${likedNames.length > 3 ? '…' : ''} — ${workLean || 'sharp and professional'}. We'll dress you that way.`
-        : `You lean ${workLean} for the office. We'll keep it sharp and intentional.`,
+      headline: workHeadline,
+      summary: leanTemplate.replace('{styles}', workLean || sharp),
       topStyles: topStyles.slice(0, 3),
     };
   }
 
-  const stylesText = topStyles.slice(0, 3).join(' · ');
+  const summaryTemplate =
+    (t && t('preSignupQuiz.summaryWithStyles')) ||
+    "For {occasion}, you leaned {styles}. We'll use that to style you.";
+
   return {
-    headline: 'We know your vibe',
-    summary: `For ${occasionLabel}, you leaned ${stylesText}. We'll use that to style you.`,
+    headline: vibeFallback,
+    summary: summaryTemplate
+      .replace('{occasion}', occasionLabel)
+      .replace('{styles}', stylesText),
     topStyles: topStyles.slice(0, 3),
   };
 }
@@ -130,9 +183,19 @@ class PreSignupQuizService {
     };
   }
 
-  async getCompletionSummary(profile: OnboardingProfile): Promise<QuizCompletionSummary> {
+  async getCompletionSummary(
+    profile: OnboardingProfile,
+    t?: TranslateFn,
+    language?: string,
+  ): Promise<QuizCompletionSummary> {
     const sessionLikes = onboardingProfileService.getSessionQuizLikes(profile);
-    const fallback = buildLocalCompletionSummary(profile);
+    const fallback = buildLocalCompletionSummary(profile, t);
+    const lang = (language || 'en').toLowerCase().slice(0, 2);
+
+    // Prefer client-localized copy for non-English so API English cannot override.
+    if (lang !== 'en' && t) {
+      return fallback;
+    }
 
     try {
       const deviceId = await onboardingSessionService.getDeviceId();
@@ -140,6 +203,7 @@ class PreSignupQuizService {
         '/api/onboarding/quiz-completion',
         {
           deviceId,
+          language: lang,
           profile: {
             dressFor: profile.dressFor,
             identity: profile.identity,

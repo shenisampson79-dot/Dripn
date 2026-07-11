@@ -488,7 +488,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     setStep("loading");
     setStyleAdvice(null);
 
-    const { styleRule, explanation } = getStyleRuleForOccasion(occasionId);
+    const { styleRule, explanation } = getStyleRuleForOccasion(occasionId, t);
     setStyleAdvice({ styleRule, explanation, imageUrl: null });
 
     const filteredOutfits = getFilteredOutfits(occasionId, weather?.temperature ?? null);
@@ -564,7 +564,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const generateOutfitImageAsync = async (outfitDescription: string, occasionId: string) => {
     setIsGeneratingImage(true);
     try {
-      const result = await generateOutfitImage(outfitDescription, occasionId);
+      const result = await generateOutfitImage(outfitDescription, occasionId, t);
       setStyleAdvice(prev => ({
         styleRule: prev?.styleRule || result.styleRule,
         explanation: prev?.explanation || result.explanation,

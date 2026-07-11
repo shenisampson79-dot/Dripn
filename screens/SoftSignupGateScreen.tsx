@@ -60,43 +60,57 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
   const getContextMessage = () => {
     switch (fromPath) {
       case "second_opinion_urgent":
-        return "Sign up to get Fast feedback from our community";
+        return t("softSignup.msg.second_opinion_urgent") || "Sign up to get Fast feedback from our community";
       case "quick_start":
-        return "Want me to remember this and keep styling for you?";
+        return t("softSignup.msg.quick_start") || "Want me to remember this and keep styling for you?";
       case "inspirations_only":
-        return "Want me to remember your preferences?";
+        return t("softSignup.msg.inspirations_only") || "Want me to remember your preferences?";
       case "done_for_you_outfit":
       case "done_for_you_core":
-        return "Create an account to complete your setup.";
+        return t("softSignup.msg.done_for_you") || "Create an account to complete your setup.";
       case "browsing":
       case "farewell":
-        return "Save your style picks for next time?";
+        return t("softSignup.msg.browsing") || "Save your style picks for next time?";
       default:
-        return "Want me to remember this for next time?";
+        return t("softSignup.msg.default") || "Want me to remember this for next time?";
     }
   };
 
   const getBenefits = () => {
     if (fromPath === "second_opinion_urgent") {
       return [
-        { icon: "users" as const, text: "Get real feedback from real people" },
-        { icon: "clock" as const, text: "Quick responses within 45 minutes" },
-        { icon: "thumbs-up" as const, text: "Know if your outfit works" },
+        { icon: "users" as const, text: t("softSignup.benefit.urgent.0") || "Get real feedback from real people" },
+        { icon: "clock" as const, text: t("softSignup.benefit.urgent.1") || "Quick responses within 45 minutes" },
+        { icon: "thumbs-up" as const, text: t("softSignup.benefit.urgent.2") || "Know if your outfit works" },
       ];
     }
     if (fromPath === "browsing" || fromPath === "farewell") {
       return [
-        { icon: "bookmark" as const, text: "Save outfits you like" },
-        { icon: "eye" as const, text: "Browse your style history" },
-        { icon: "star" as const, text: "Get personalised picks" },
+        { icon: "bookmark" as const, text: t("softSignup.benefit.browse.0") || "Save outfits you like" },
+        { icon: "eye" as const, text: t("softSignup.benefit.browse.1") || "Browse your style history" },
+        { icon: "star" as const, text: t("softSignup.benefit.browse.2") || "Get personalised picks" },
       ];
     }
     return [
-      { icon: "save" as const, text: "Save your recommendations" },
-      { icon: "refresh-cw" as const, text: "Get better styling over time" },
-      { icon: "unlock" as const, text: "Unlock all AI stylist features" },
+      { icon: "save" as const, text: t("softSignup.benefit.default.0") || "Save your recommendations" },
+      { icon: "refresh-cw" as const, text: t("softSignup.benefit.default.1") || "Get better styling over time" },
+      { icon: "unlock" as const, text: t("softSignup.benefit.default.2") || "Unlock all AI stylist features" },
     ];
   };
+
+  const primaryCta =
+    fromPath === "second_opinion_urgent"
+      ? t("softSignup.cta.getFastFeedback") || "Get Fast feedback"
+      : fromPath === "browsing" || fromPath === "farewell"
+        ? t("softSignup.cta.saveMyPicks") || t("common.saveMyPicks") || "Save my picks"
+        : t("softSignup.cta.signUpToSave") || t("common.signUpToSave") || "Sign up to save";
+
+  const secondaryCta =
+    fromPath === "second_opinion_urgent"
+      ? t("softSignup.cta.maybeLater") || t("common.maybeLater") || "Maybe later"
+      : fromPath === "browsing" || fromPath === "farewell"
+        ? t("softSignup.cta.browseAsGuest") || "Browse as guest"
+        : t("softSignup.cta.continueWithoutSaving") || "Continue without saving";
 
   return (
     <View style={styles.container}>
@@ -149,20 +163,12 @@ export default function SoftSignupGateScreen({ navigation, route }: SoftSignupGa
             onPress={handleCreateAccount} 
             style={[styles.primaryButton, { backgroundColor: theme.link }]}
           >
-            {fromPath === "second_opinion_urgent" 
-              ? "Get Fast feedback" 
-              : fromPath === "browsing" || fromPath === "farewell" 
-                ? "Save my picks" 
-                : "Sign up to save"}
+            {primaryCta}
           </Button>
 
           <Pressable onPress={handleContinueWithoutSaving} style={styles.secondaryButton}>
             <ThemedText type="body" style={styles.secondaryButtonText}>
-              {fromPath === "second_opinion_urgent"
-                ? "Maybe later"
-                : fromPath === "browsing" || fromPath === "farewell"
-                  ? "Browse as guest"
-                  : "Continue without saving"}
+              {secondaryCta}
             </ThemedText>
           </Pressable>
         </Animated.View>
