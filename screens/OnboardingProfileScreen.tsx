@@ -24,48 +24,25 @@ type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'OnboardingProfile'>;
 };
 
-const IDENTITY_OPTIONS: {
+const IDENTITY_IDS: {
   id: StyleIdentity;
-  label: string;
-  subtitle: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
-  {
-    id: 'never_learned',
-    label: 'I never really learned how to dress',
-    subtitle: 'No shame — we decide for you.',
-    icon: 'help-circle',
-  },
-  {
-    id: 'starting_zero',
-    label: 'I am starting from zero',
-    subtitle: 'Basics, confidence, zero jargon.',
-    icon: 'sunrise',
-  },
-  {
-    id: 'level_up',
-    label: 'I dress fine but want to level up',
-    subtitle: 'Look sharper with less effort.',
-    icon: 'trending-up',
-  },
-  {
-    id: 'impress_someone',
-    label: 'I want to impress someone specific',
-    subtitle: 'Date, work, event — we optimise for it.',
-    icon: 'star',
-  },
+  { id: 'never_learned', icon: 'help-circle' },
+  { id: 'starting_zero', icon: 'sunrise' },
+  { id: 'level_up', icon: 'trending-up' },
+  { id: 'impress_someone', icon: 'star' },
 ];
 
-const DRESS_FOR_OPTIONS: {
+const DRESS_FOR_IDS: {
   id: DressFor;
-  label: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
-  { id: 'work', label: 'Work / meetings', icon: 'briefcase' },
-  { id: 'date', label: 'Date or romance', icon: 'heart' },
-  { id: 'friends', label: 'Friends / going out', icon: 'users' },
-  { id: 'event', label: 'Event / special occasion', icon: 'calendar' },
-  { id: 'myself', label: 'Just for me today', icon: 'user' },
+  { id: 'work', icon: 'briefcase' },
+  { id: 'date', icon: 'heart' },
+  { id: 'friends', icon: 'users' },
+  { id: 'event', icon: 'calendar' },
+  { id: 'myself', icon: 'user' },
 ];
 
 export default function OnboardingProfileScreen({ navigation }: Props) {
@@ -96,6 +73,50 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
       rootBg: isDark ? '#0D0B09' : theme.backgroundRoot,
     }),
     [isDark, theme]
+  );
+
+  const identityOptions = useMemo(
+    () =>
+      IDENTITY_IDS.map((opt) => ({
+        ...opt,
+        label:
+          t(`onboardingProfile.identity.${opt.id}.label`) ||
+          ({
+            never_learned: 'I never really learned how to dress',
+            starting_zero: 'I am starting from zero',
+            level_up: 'I dress fine but want to level up',
+            impress_someone: 'I want to impress someone specific',
+          } as Record<string, string>)[opt.id] ||
+          opt.id,
+        subtitle:
+          t(`onboardingProfile.identity.${opt.id}.subtitle`) ||
+          ({
+            never_learned: 'No shame — we decide for you.',
+            starting_zero: 'Basics, confidence, zero jargon.',
+            level_up: 'Look sharper with less effort.',
+            impress_someone: 'Date, work, event — we optimise for it.',
+          } as Record<string, string>)[opt.id] ||
+          '',
+      })),
+    [t]
+  );
+
+  const dressForOptions = useMemo(
+    () =>
+      DRESS_FOR_IDS.map((opt) => ({
+        ...opt,
+        label:
+          t(`onboardingProfile.dressFor.${opt.id}`) ||
+          ({
+            work: 'Work / meetings',
+            date: 'Date or romance',
+            friends: 'Friends / going out',
+            event: 'Event / special occasion',
+            myself: 'Just for me today',
+          } as Record<string, string>)[opt.id] ||
+          opt.id,
+      })),
+    [t]
   );
 
   const handleContinue = async () => {
@@ -141,13 +162,14 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
           {step === 0 ? (
             <>
               <ThemedText type="h1" style={[styles.headline, { color: ui.headline }]}>
-                Which sounds most like you?
+                {t('onboardingProfile.identityTitle') || 'Which sounds most like you?'}
               </ThemedText>
               <ThemedText type="body" style={[styles.sub, { color: ui.sub }]}>
-                We will tailor how decisive your stylist is — and how much we explain.
+                {t('onboardingProfile.identitySubtitle') ||
+                  'We will tailor how decisive your stylist is — and how much we explain.'}
               </ThemedText>
               <View style={styles.options}>
-                {IDENTITY_OPTIONS.map((opt) => {
+                {identityOptions.map((opt) => {
                   const selected = identity === opt.id;
                   return (
                     <Pressable
@@ -179,13 +201,14 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
           ) : (
             <>
               <ThemedText type="h1" style={[styles.headline, { color: ui.headline }]}>
-                What's the occasion?
+                {t('onboardingProfile.occasionTitle') || "What's the occasion?"}
               </ThemedText>
               <ThemedText type="body" style={[styles.sub, { color: ui.sub }]}>
-                We'll tailor your outfit to the moment — or skip if you're just dressing for yourself.
+                {t('onboardingProfile.occasionSubtitle') ||
+                  "We'll tailor your outfit to the moment — or skip if you're just dressing for yourself."}
               </ThemedText>
               <View style={styles.options}>
-                {DRESS_FOR_OPTIONS.map((opt) => {
+                {dressForOptions.map((opt) => {
                   const selected = dressFor === opt.id;
                   return (
                     <Pressable
@@ -217,7 +240,11 @@ export default function OnboardingProfileScreen({ navigation }: Props) {
           disabled={step === 0 ? !identity : false}
           style={styles.cta}
         >
-          {step === 0 ? 'Continue' : dressFor ? 'Pick outfits I like' : 'Skip — surprise me'}
+          {step === 0
+            ? t('onboardingProfile.continue') || t('common.continue') || 'Continue'
+            : dressFor
+              ? t('onboardingProfile.pickOutfits') || 'Pick outfits I like'
+              : t('onboardingProfile.skipSurprise') || 'Skip — surprise me'}
         </Button>
       </View>
     </View>
@@ -248,7 +275,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   optionText: { flex: 1 },
-  optionLabel: { fontWeight: '600' },
-  optionSub: { marginTop: 2 },
+  optionLabel: { fontWeight: '600', marginBottom: 2 },
+  optionSub: { lineHeight: 18 },
   cta: { marginTop: Spacing.lg },
 });

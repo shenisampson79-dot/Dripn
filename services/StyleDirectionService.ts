@@ -117,7 +117,7 @@ class StyleDirectionService {
     quizGender?: string;
     likedStyles?: string[];
     quizComplete?: boolean;
-  }): Promise<{
+  }, language?: string): Promise<{
     message: string;
     options: { id: string; label: string }[];
     skipOccasion?: boolean;
@@ -131,6 +131,7 @@ class StyleDirectionService {
       if (profile?.quizGender) params.set('quizGender', profile.quizGender);
       if (profile?.likedStyles?.length) params.set('likedStyles', profile.likedStyles.join(','));
       if (profile?.quizComplete) params.set('quizComplete', 'true');
+      if (language) params.set('language', language);
 
       const data = await apiService.get<{
         message?: string;

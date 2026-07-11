@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Dimensions, Pressable } from "react-native";
+import React, { useState, useEffect, useMemo } from "react";
+import { StyleSheet, View, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -9,243 +9,106 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { LoopingBackgroundVideo } from "@/components/LoopingBackgroundVideo";
-import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import { Spacing, BorderRadius, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { onboardingAnalyticsService } from "@/services/OnboardingAnalyticsService";
 import { videoRandomizer, type VideoTone } from "@/services/VideoRandomizerService";
 import { useTranslations } from "@/contexts/TranslationContext";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
 type TrustOnboardingScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "TrustOnboarding">;
 };
 
-interface OnboardingContent {
-  headline: string;
-  subtext?: string;
-  bullets?: { text: string; icon?: keyof typeof Feather.glyphMap }[];
+type TrustMsgMeta = {
+  key: string;
   tone: VideoTone;
-}
+  bulletCount?: number;
+  bulletIcons?: (keyof typeof Feather.glyphMap)[];
+};
 
-const POSITIONING_OPTIONS: OnboardingContent[] = [
-  {
-    headline: "Stop overthinking what to wear.",
-    subtext: "An opinionated AI stylist that tells you what to wear — using your wardrobe when available.",
-    tone: "pain",
-  },
-  {
-    headline: "You've stared at your wardrobe for 20 minutes. Again.",
-    subtext: "Let's fix that. One clear answer, every time.",
-    tone: "pain",
-  },
-  {
-    headline: "Three outfits on the bed. Zero confidence in any of them.",
-    subtext: "Sound familiar? I'll tell you which one to wear.",
-    tone: "pain",
-  },
-  {
-    headline: "Running late because you changed twice.",
-    subtext: "Get dressed with certainty. First time, every time.",
-    tone: "pain",
-  },
-  {
-    headline: "The longer you look, the less you know.",
-    subtext: "Break the spiral. Get a clear answer in seconds.",
-    tone: "pain",
-  },
-  {
-    headline: "Your wardrobe isn't the problem. The decision is.",
-    subtext: "I make the call. You make the exit.",
-    tone: "pain",
-  },
+const POSITIONING: TrustMsgMeta[] = [
+  { key: "pos0", tone: "pain" },
+  { key: "pos1", tone: "pain" },
+  { key: "pos2", tone: "pain" },
+  { key: "pos3", tone: "pain" },
+  { key: "pos4", tone: "pain" },
+  { key: "pos5", tone: "pain" },
 ];
 
-const ASPIRATION_OPTIONS: OnboardingContent[] = [
-  {
-    headline: "Walk in looking like you planned it. Even if you didn't.",
-    subtext: "We decide what you wear — so you look better than everyone else with zero effort.",
-    tone: "confidence",
-  },
-  {
-    headline: "Be the best-dressed person in the room — without trying.",
-    subtext: "Your friends will ask where you shop. You don't have to know.",
-    tone: "confidence",
-  },
-  {
-    headline: "Stop being the one who 'doesn't really do fashion.'",
-    subtext: "Nobody taught you? That's fine. We decide for you.",
-    tone: "confidence",
-  },
-  {
-    headline: "Look like you have a stylist. Because you do.",
-    subtext: "One clear outfit. No scrolling. No second-guessing.",
-    tone: "confidence",
-  },
-  {
-    headline: "Think less. Look better.",
-    subtext: "From 'I have nothing to wear' to 'just wear this' in seconds.",
-    tone: "confidence",
-  },
-  {
-    headline: "Date tonight? Work tomorrow? Already handled.",
-    subtext: "Tell us the occasion — we make the call.",
-    tone: "confidence",
-  },
-  {
-    headline: "You don't need taste. You need a decision.",
-    subtext: "Perfect if you've never learned how to dress — we won't judge.",
-    tone: "confidence",
-  },
-  {
-    headline: "Quiet confidence beats loud insecurity.",
-    subtext: "Dress sharper than your friends without making it a personality.",
-    tone: "confidence",
-  },
+const ASPIRATION: TrustMsgMeta[] = [
+  { key: "asp0", tone: "confidence" },
+  { key: "asp1", tone: "confidence" },
+  { key: "asp2", tone: "confidence" },
+  { key: "asp3", tone: "confidence" },
+  { key: "asp4", tone: "confidence" },
+  { key: "asp5", tone: "confidence" },
+  { key: "asp6", tone: "confidence" },
+  { key: "asp7", tone: "confidence" },
 ];
 
-const TRUST_FRAMING_OPTIONS: OnboardingContent[] = [
-  {
-    headline: "One question. One outfit. Done.",
-    bullets: [
-      { text: "No second-guessing" },
-      { text: "No infinite options" },
-      { text: "Just clarity" },
-    ],
-    tone: "mixed",
-  },
-  {
-    headline: "A stylist who actually decides.",
-    bullets: [
-      { text: "One clear recommendation" },
-      { text: "No scrolling, no trends" },
-      { text: "Designed to save time, not steal it" },
-    ],
-    tone: "mixed",
-  },
-  {
-    headline: "No feed. No likes. No 'maybe this, maybe that.'",
-    bullets: [
-      { text: "Just: wear this" },
-      { text: "One answer, not twenty options" },
-      { text: "Get dressed and go" },
-    ],
-    tone: "mixed",
-  },
-  {
-    headline: "You ask. I answer. That's it.",
-    bullets: [
-      { text: "No endless scrolling" },
-      { text: "No algorithm games" },
-      { text: "Just the outfit you need" },
-    ],
-    tone: "mixed",
-  },
-  {
-    headline: "Built to get you out the door, not glued to a screen.",
-    bullets: [
-      { text: "Fast, decisive recommendations" },
-      { text: "No time-wasting features" },
-      { text: "Mission: get you dressed" },
-    ],
-    tone: "mixed",
-  },
-  {
-    headline: "Other apps want your attention. I want you dressed and gone.",
-    bullets: [
-      { text: "Success = you leaving quickly" },
-      { text: "No engagement tricks" },
-      { text: "Your time matters more than mine" },
-    ],
-    tone: "mixed",
-  },
+const TRUST_FRAMING: TrustMsgMeta[] = [
+  { key: "tf0", tone: "mixed", bulletCount: 3 },
+  { key: "tf1", tone: "mixed", bulletCount: 3 },
+  { key: "tf2", tone: "mixed", bulletCount: 3 },
+  { key: "tf3", tone: "mixed", bulletCount: 3 },
+  { key: "tf4", tone: "mixed", bulletCount: 3 },
+  { key: "tf5", tone: "mixed", bulletCount: 3 },
 ];
 
-const CONTROL_REASSURANCE_OPTIONS: OnboardingContent[] = [
-  {
-    headline: "You're always in control.",
-    bullets: [
-      { text: "You can change your mind anytime", icon: "refresh-cw" },
-      { text: "You can ignore any advice", icon: "x-circle" },
-      { text: "Nothing is posted publicly", icon: "lock" },
-    ],
-    tone: "confidence",
-  },
-  {
-    headline: "Ignore me. Disagree with me. You're still the boss.",
-    bullets: [
-      { text: "My job is to recommend, not command", icon: "message-circle" },
-      { text: "Your style, your rules", icon: "user" },
-      { text: "I'm just here to help decide", icon: "check" },
-    ],
-    tone: "confidence",
-  },
-  {
-    headline: "Your mirror moments stay between us.",
-    bullets: [
-      { text: "Photos never shared without permission", icon: "lock" },
-      { text: "No public profiles or feeds", icon: "eye-off" },
-      { text: "This is your private space", icon: "shield" },
-    ],
-    tone: "confidence",
-  },
-  {
-    headline: "No one sees your outfit pics. Not even me judging your 2019 purchases.",
-    bullets: [
-      { text: "Your wardrobe stays private", icon: "lock" },
-      { text: "No social pressure here", icon: "users" },
-      { text: "Just honest, helpful advice", icon: "heart" },
-    ],
-    tone: "confidence",
-  },
-  {
-    headline: "Take my advice or don't. I'm not keeping score.",
-    bullets: [
-      { text: "No guilt trips", icon: "smile" },
-      { text: "No passive-aggressive reminders", icon: "bell-off" },
-      { text: "Just here when you need me", icon: "coffee" },
-    ],
-    tone: "confidence",
-  },
-  {
-    headline: "Private by default. Shared only if you say so.",
-    bullets: [
-      { text: "You control what's visible", icon: "eye" },
-      { text: "Your data, your choice", icon: "database" },
-      { text: "Trust built on transparency", icon: "shield" },
-    ],
-    tone: "confidence",
-  },
+const CONTROL: TrustMsgMeta[] = [
+  { key: "ctrl0", tone: "confidence", bulletCount: 3, bulletIcons: ["refresh-cw", "x-circle", "lock"] },
+  { key: "ctrl1", tone: "confidence", bulletCount: 3, bulletIcons: ["message-circle", "user", "check"] },
+  { key: "ctrl2", tone: "confidence", bulletCount: 3, bulletIcons: ["lock", "eye-off", "shield"] },
+  { key: "ctrl3", tone: "confidence", bulletCount: 3, bulletIcons: ["lock", "users", "heart"] },
+  { key: "ctrl4", tone: "confidence", bulletCount: 3, bulletIcons: ["smile", "bell-off", "coffee"] },
+  { key: "ctrl5", tone: "confidence", bulletCount: 3, bulletIcons: ["eye", "database", "shield"] },
+];
+
+const ALL_TRUST_MESSAGES: TrustMsgMeta[] = [
+  ...POSITIONING,
+  ...ASPIRATION,
+  ...TRUST_FRAMING,
+  ...CONTROL,
 ];
 
 function getRandomContent<T>(options: T[]): T {
   return options[Math.floor(Math.random() * options.length)];
 }
 
-const ALL_TRUST_MESSAGES: OnboardingContent[] = [
-  ...POSITIONING_OPTIONS,
-  ...ASPIRATION_OPTIONS,
-  ...TRUST_FRAMING_OPTIONS,
-  ...CONTROL_REASSURANCE_OPTIONS,
-];
-
 export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScreenProps) {
   const insets = useSafeAreaInsets();
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const { t } = useTranslations();
-  
-  const [trustMessage] = useState(() => getRandomContent(ALL_TRUST_MESSAGES));
-  const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo({ tone: trustMessage.tone }));
-  
-  const [messageVariationId] = useState(() => `trust_${ALL_TRUST_MESSAGES.indexOf(trustMessage) + 1}`);
-  
+
+  const [trustMeta] = useState(() => getRandomContent(ALL_TRUST_MESSAGES));
+  const [backgroundVideo] = useState(() => videoRandomizer.getNextVideo({ tone: trustMeta.tone }));
+  const [messageVariationId] = useState(() => `trust_${ALL_TRUST_MESSAGES.indexOf(trustMeta) + 1}`);
+
+  const trustMessage = useMemo(() => {
+    const prefix = `trustOnboarding.${trustMeta.key}`;
+    const headline = t(`${prefix}.headline`);
+    const subtext = t(`${prefix}.subtext`);
+    const bullets =
+      trustMeta.bulletCount && trustMeta.bulletCount > 0
+        ? Array.from({ length: trustMeta.bulletCount }, (_, i) => ({
+            text: t(`${prefix}.bullet${i}`),
+            icon: trustMeta.bulletIcons?.[i],
+          })).filter((b) => !!b.text)
+        : undefined;
+    return {
+      headline: headline || "",
+      subtext: subtext || undefined,
+      bullets: bullets && bullets.length > 0 ? bullets : undefined,
+    };
+  }, [t, trustMeta]);
+
   useEffect(() => {
-    onboardingAnalyticsService.trackVariation(messageVariationId, 'trust', 'view');
-  }, []);
+    onboardingAnalyticsService.trackVariation(messageVariationId, "trust", "view");
+  }, [messageVariationId]);
 
   const handleGetStyled = () => {
-    onboardingAnalyticsService.trackVariation(messageVariationId, 'trust', 'complete', 'what-to-wear-today' as any);
+    onboardingAnalyticsService.trackVariation(messageVariationId, "trust", "complete", "what-to-wear-today" as any);
     navigation.navigate("OnboardingProfile");
   };
 
@@ -254,30 +117,19 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
       <LoopingBackgroundVideo source={backgroundVideo} style={styles.backgroundVideo} />
 
       <LinearGradient
-        colors={[
-          "transparent",
-          "rgba(0,0,0,0.35)",
-          "rgba(0,0,0,0.65)",
-          "rgba(0,0,0,0.95)"
-        ]}
+        colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.65)", "rgba(0,0,0,0.95)"]}
         style={styles.gradientOverlay}
         locations={[0, 0.35, 0.6, 1]}
       />
 
       <View style={[styles.overlay, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.lg }]}>
-        <Pressable 
-          onPress={() => navigation.goBack()} 
-          style={styles.backButton}
-        >
+        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
           <View style={styles.backButtonInner}>
             <Feather name="arrow-left" size={20} color="#FFFFFF" />
           </View>
         </Pressable>
         <View style={styles.headerSpacer} />
-        <Animated.View 
-          entering={FadeIn.duration(400)} 
-          style={styles.stepContainer}
-        >
+        <Animated.View entering={FadeIn.duration(400)} style={styles.stepContainer}>
           <View style={styles.stepContent}>
             <View style={styles.contentCard}>
               <ThemedText type="h1" style={styles.headline}>
@@ -305,7 +157,7 @@ export default function TrustOnboardingScreen({ navigation }: TrustOnboardingScr
               style={styles.ctaGradient}
             >
               <Button onPress={handleGetStyled} style={styles.primaryButton}>
-                Let's Go
+                {t("trustOnboarding.letsGo") || "Let's Go"}
               </Button>
             </LinearGradient>
           </View>
@@ -321,16 +173,15 @@ interface BulletPointProps {
   icon?: keyof typeof Feather.glyphMap;
 }
 
-function BulletPoint({ text, theme, icon }: BulletPointProps) {
+function BulletPoint({ text, icon }: BulletPointProps) {
   return (
     <View style={styles.bulletPoint}>
-      <LinearGradient
-        colors={ScreenGradients.trustOnboarding.secondary}
-        style={styles.bulletIconWrapper}
-      >
+      <LinearGradient colors={ScreenGradients.trustOnboarding.secondary} style={styles.bulletIconWrapper}>
         <Feather name={icon || "check"} size={14} color="#FFFFFF" />
       </LinearGradient>
-      <ThemedText type="body" style={styles.bulletText}>{text}</ThemedText>
+      <ThemedText type="body" style={styles.bulletText}>
+        {text}
+      </ThemedText>
     </View>
   );
 }
@@ -371,29 +222,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: Spacing.xl,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
   headerSpacer: {
     height: 48,
-  },
-  progressBarContainer: {
-    flex: 1,
-  },
-  progressBarBg: {
-    height: 4,
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: 2,
-  },
-  placeholder: {
-    width: 40,
   },
   stepContainer: {
     flex: 1,
@@ -434,12 +264,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.md,
   },
-  bulletIcon: {
-    width: 24,
-    textShadowColor: "rgba(0, 0, 0, 0.8)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
-  },
   bulletIconWrapper: {
     width: 28,
     height: 28,
@@ -460,117 +284,11 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 8,
   },
-  optionsContainer: {
-    gap: Spacing.sm,
-  },
-  optionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderColor: "rgba(255, 255, 255, 0.3)",
-  },
-  optionIcon: {
-    marginRight: Spacing.md,
-    textShadowColor: "rgba(0, 0, 0, 0.6)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  optionText: {
-    flex: 1,
-    fontSize: 16,
-    color: "#FFFFFF",
-    fontWeight: "500",
-    textShadowColor: "rgba(0, 0, 0, 0.7)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: Spacing.lg,
-  },
-  loadingText: {
-    color: "#FFFFFF",
-    fontWeight: "500",
-    textShadowColor: "rgba(0, 0, 0, 0.8)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
-  },
-  recommendationHeader: {
-    marginBottom: Spacing.lg,
-  },
-  recommendedBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-  },
-  recommendedBadgeText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-  recommendationCard: {
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.xl,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-  },
-  recommendationTitle: {
-    fontSize: 24,
-    lineHeight: 30,
-    marginBottom: Spacing.md,
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  recommendationExplanation: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: "rgba(255, 255, 255, 0.95)",
-  },
-  backupContainer: {
-    marginTop: Spacing.lg,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  backupLabel: {
-    fontWeight: "600",
-    marginBottom: Spacing.xs,
-    color: "rgba(255, 255, 255, 0.8)",
-  },
-  backupText: {
-    color: "rgba(255, 255, 255, 0.9)",
-  },
-  noWardrobeNote: {
-    textAlign: "center",
-    marginTop: Spacing.lg,
-    fontStyle: "italic",
-    color: "#FFFFFF",
-    fontWeight: "500",
-    textShadowColor: "rgba(0, 0, 0, 0.8)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
-  },
   ctaContainer: {
     gap: Spacing.md,
     paddingTop: Spacing.xl,
   },
   primaryButton: {
     width: "100%",
-  },
-  loginLink: {
-    alignItems: "center",
-    paddingVertical: Spacing.sm,
-  },
-  loginText: {
-    textAlign: "center",
-    color: "#FFFFFF",
-    textShadowColor: "rgba(0, 0, 0, 0.7)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
   },
 });

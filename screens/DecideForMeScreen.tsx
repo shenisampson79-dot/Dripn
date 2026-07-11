@@ -68,12 +68,13 @@ const CACHED_OUTFITS_KEY = "dripn_cached_outfits";
 const RECOMMENDATION_COUNT_KEY = "dripn_recommendation_count";
 const STYLE_DIRECTION_SET_KEY = "dripn_style_direction_set";
 
-const STYLE_CHIPS = [
-  { id: "masculine" as StyleDirection, label: "Masculine" },
-  { id: "feminine" as StyleDirection, label: "Feminine" },
-  { id: "androgynous" as StyleDirection, label: "Androgynous" },
-  { id: "not_sure" as StyleDirection, label: "Not sure yet" },
-];
+const OCCASION_LABEL_KEYS: Record<string, string> = {
+  work: "decideForMe.occasion.work",
+  date: "decideForMe.occasion.date",
+  casual: "decideForMe.occasion.casual",
+  event: "decideForMe.occasion.event",
+  browsing: "decideForMe.occasion.browsing",
+};
 
 interface FallbackOutfit {
   outfit: string;
@@ -235,7 +236,7 @@ const getFilteredOutfits = (occasion: string | null, temperature: number | null)
 export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
-  const { t } = useTranslations();
+  const { t, currentLanguage } = useTranslations();
   
   const [step, setStep] = useState<"occasion" | "loading" | "result">("loading");
   const [selectedOccasion, setSelectedOccasion] = useState<string | null>(null);
@@ -291,10 +292,15 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           setStyleDirectionSet(true);
         }
       }
-      const messages = await styleDirectionService.getFirstMessages(profile);
-      setFirstMessages(messages);
     });
   }, []);
+
+  useEffect(() => {
+    onboardingProfileService.getProfile().then(async (profile) => {
+      const messages = await styleDirectionService.getFirstMessages(profile, currentLanguage);
+      setFirstMessages(messages);
+    });
+  }, [currentLanguage]);
 
   const checkStyleDirectionStatus = async () => {
     try {
@@ -384,7 +390,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           });
         } else if (step.id === "restart") {
           buttons.push({
-            text: "Start again",
+            text: t('decideForMe.startAgain') || "Start again",
             onPress: () => {
               setStep("occasion");
               setRecommendation(null);
@@ -506,6 +512,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         expression: expressionText.trim() || undefined,
         deviceId,
         onboardingProfile: profile,
+        language: currentLanguage,
       });
 
       if (data?.recommendation) {
@@ -513,7 +520,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         setRecommendation({
           id: data.id,
           outfit: data.recommendation,
-          reasoning: data.reasoning || "This look balances comfort with style, perfect for your occasion.",
+          reasoning: data.reasoning || t('decideForMe.reasoningFallback') || "This look balances comfort with style, perfect for your occasion.",
           stylistName: data.stylistName || "Ruby",
         });
       } else {
@@ -536,7 +543,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       incrementRecommendationCount();
       generateOutfitImageAsync(outfitDescription, occasionId);
     }
-  }, [onboardingProfile, weather, expressionText]);
+  }, [onboardingProfile, weather, expressionText, currentLanguage, t]);
 
   useEffect(() => {
     if (autoStartedRef.current) return;
@@ -769,13 +776,14 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           previousRecommendation: previousOutfit,
           deviceId,
           onboardingProfile: profile,
+          language: currentLanguage,
         });
 
         if (data?.recommendation) {
           setRecommendation({
             id: data.id,
             outfit: data.recommendation,
-            reasoning: data.reasoning || "Updated based on what you told me.",
+            reasoning: data.reasoning || t('decideForMe.updatedReasoning') || "Updated based on what you told me.",
             stylistName: data.stylistName || "Ruby",
           });
           gotApiResponse = true;
@@ -819,6 +827,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     selectedOccasion,
     weather,
     generateTailoredRecommendation,
+    currentLanguage,
+    t,
   ]);
 
   const handlePersonalise = () => {
@@ -843,14 +853,21 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   };
 
   const renderOccasionStep = () => {
-    const options = firstMessages?.options || [
-      { id: "work", label: "Work" },
-      { id: "date", label: "Date" },
-      { id: "casual", label: "Casual" },
-      { id: "event", label: "Event" },
-      { id: "browsing", label: "Just browsing" },
+    const defaultOptions = [
+      { id: "work", label: t(OCCASION_LABEL_KEYS.work) || "Work" },
+      { id: "date", label: t(OCCASION_LABEL_KEYS.date) || "Date" },
+      { id: "casual", label: t(OCCASION_LABEL_KEYS.casual) || "Casual" },
+      { id: "event", label: t(OCCASION_LABEL_KEYS.event) || "Event" },
+      { id: "browsing", label: t(OCCASION_LABEL_KEYS.browsing) || "Just browsing" },
     ];
-    const message = firstMessages?.message || "Tell me what you're dressing for — I'll decide the outfit.";
+    const options = (firstMessages?.options?.length ? firstMessages.options : defaultOptions).map((option) => ({
+      ...option,
+      label: t(OCCASION_LABEL_KEYS[option.id]) || option.label,
+    }));
+    const message =
+      t("decideForMe.tellMeOccasion") ||
+      firstMessages?.message ||
+      "Tell me what you're dressing for — I'll decide the outfit.";
 
     return (
       <Animated.View entering={FadeIn} style={styles.stepContainer} pointerEvents="box-none">
@@ -875,7 +892,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           <Animated.View entering={FadeInDown.delay(200)} style={[styles.weatherBadge, { backgroundColor: 'rgba(74, 52, 40, 0.1)' }]}>
             <Feather name="cloud" size={16} color="#4A3428" />
             <ThemedText type="small" style={{ color: '#4A3428', marginLeft: Spacing.xs, fontWeight: '500' }}>
-              {weather.temperature}° in {weather.location}
+              {(t('decideForMe.weatherIn') || '{temp}° in {location}')
+                .replace('{temp}', String(weather.temperature))
+                .replace('{location}', weather.location)}
             </ThemedText>
           </Animated.View>
         ) : null}
@@ -955,9 +974,17 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   };
 
   const renderLoadingStep = () => {
-    const loadingMessage = firstMessages?.skipOccasion && onboardingProfile?.dressFor
-      ? `Ruby is deciding your outfit for ${onboardingProfileService.getDressForLabel(onboardingProfile.dressFor)}...`
-      : "Ruby is deciding your outfit...";
+    const occasionLabel = onboardingProfile?.dressFor
+      ? t(`onboardingProfile.dressFor.${onboardingProfile.dressFor}`) ||
+        onboardingProfileService.getDressForLabel(onboardingProfile.dressFor)
+      : "";
+    const loadingMessage =
+      firstMessages?.skipOccasion && onboardingProfile?.dressFor
+        ? (t("decideForMe.rubyDecidingFor") || "Ruby is deciding your outfit for {occasion}...").replace(
+            "{occasion}",
+            occasionLabel
+          )
+        : t("decideForMe.rubyDeciding") || "Ruby is deciding your outfit...";
 
     return (
       <Animated.View entering={FadeIn} style={styles.loadingContainer}>
@@ -973,23 +1000,23 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     <Animated.View entering={FadeIn} style={[styles.savePromptOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
       <View style={[styles.savePromptCard, { backgroundColor: theme.backgroundDefault }]}>
         <ThemedText type="h3" style={[styles.savePromptTitle, { color: theme.text }]}>
-          Keep this outfit?
+          {t('decideForMe.keepOutfit') || 'Keep this outfit?'}
         </ThemedText>
         <ThemedText type="body" style={[styles.savePromptSubtitle, { color: theme.tabIconDefault }]}>
-          Create a free account to save it forever
+          {t('decideForMe.createAccountToSave') || 'Create a free account to save it forever'}
         </ThemedText>
         
         <Button onPress={handleCreateAccount} style={[styles.savePromptButton, { backgroundColor: theme.link }]}>
-          Sign up to save
+          {t('decideForMe.signUpToSave') || t('common.signUpToSave') || 'Sign up to save'}
         </Button>
         
         <Pressable onPress={handleNotNow} style={styles.savePromptSecondary}>
           <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
-            Not now
+            {t('decideForMe.notNow') || t('common.notNow') || 'Not now'}
           </ThemedText>
           {cachedOutfitsCount > 0 ? (
             <ThemedText type="small" style={{ color: theme.tabIconDefault, marginTop: 4 }}>
-              ({3 - cachedOutfitsCount} saves left)
+              {(t('decideForMe.savesLeft') || '({n} saves left)').replace('{n}', String(3 - cachedOutfitsCount))}
             </ThemedText>
           ) : null}
         </Pressable>
@@ -1029,10 +1056,10 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             </View>
             <View style={styles.recommendationHeaderText}>
               <ThemedText type="h4" style={{ color: LuxuryColors.obsidian, fontWeight: '700' }}>
-                Ruby's Pick
+                {t("decideForMe.rubysPick") || "Ruby's Pick"}
               </ThemedText>
               <ThemedText type="small" style={{ color: 'rgba(74, 52, 40, 0.6)' }}>
-                Your outfit recommendation
+                {t("decideForMe.yourRecommendation") || "Your outfit recommendation"}
               </ThemedText>
             </View>
           </View>
@@ -1042,7 +1069,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
               <View style={styles.refiningRow}>
                 <ActivityIndicator size="small" color={LuxuryColors.obsidian} />
                 <ThemedText type="body" style={[styles.recommendationCardText, { color: LuxuryColors.obsidian, marginLeft: Spacing.sm }]}>
-                  Ruby is adjusting your look...
+                  {t("decideForMe.rubyAdjusting") || "Ruby is adjusting your look..."}
                 </ThemedText>
               </View>
             ) : (
@@ -1064,7 +1091,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       </Animated.View>
 
       <ThemedText type="small" style={[styles.disclaimerText, { color: isDark ? 'rgba(255,255,255,0.7)' : '#6B7280' }]}>
-        I'm choosing generally. With your wardrobe, I'd choose specifically.
+        {t("decideForMe.disclaimer") || "I'm choosing generally. With your wardrobe, I'd choose specifically."}
       </ThemedText>
 
       {styleAdvice?.imageUrl || isGeneratingImage ? (
@@ -1073,7 +1100,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             <View style={[styles.imageLoadingContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
               <ActivityIndicator size="small" color={isDark ? LuxuryColors.gold : LuxuryColors.deepGold} />
               <ThemedText type="small" style={{ color: isDark ? 'rgba(255,255,255,0.7)' : '#6B7280', marginTop: Spacing.sm }}>
-                Visualizing your outfit...
+                {t("decideForMe.visualizing") || "Visualizing your outfit..."}
               </ThemedText>
             </View>
           ) : styleAdvice?.imageUrl ? (
@@ -1100,7 +1127,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             <View style={styles.styleRuleHeader}>
               <Feather name="star" size={14} color={isDark ? LuxuryColors.gold : LuxuryColors.deepGold} />
               <ThemedText type="small" style={{ color: isDark ? LuxuryColors.gold : LuxuryColors.deepGold, fontWeight: '600', marginLeft: Spacing.xs }}>
-                Style Rule
+                {t("decideForMe.styleRule") || "Style Rule"}
               </ThemedText>
             </View>
             <ThemedText type="body" style={[styles.styleRuleText, { color: isDark ? '#FFFFFF' : '#1F2937' }]}>
@@ -1120,7 +1147,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         >
           <Feather name="bookmark" size={18} color={theme.link} />
           <ThemedText type="body" style={[styles.actionButtonText, { color: theme.link }]}>
-            Save outfit
+            {t("decideForMe.saveOutfit") || "Save outfit"}
           </ThemedText>
         </Pressable>
 
@@ -1144,7 +1171,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             style={isLoadingAnotherOption ? { transform: [{ rotate: '180deg' }] } : undefined}
           />
           <ThemedText type="body" style={[styles.actionButtonText, { color: isLoadingAnotherOption ? "#FFFFFF" : theme.text }]}>
-            {isLoadingAnotherOption ? "Loading..." : "Another option"}
+            {isLoadingAnotherOption
+              ? t("decideForMe.loading") || t("common.loading") || "Loading..."
+              : t("decideForMe.anotherOption") || "Another option"}
           </ThemedText>
         </Pressable>
       </Animated.View>
@@ -1152,8 +1181,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
       <View style={styles.calibrationSection} pointerEvents="box-none">
         <ThemedText type="body" style={[styles.calibrationMessage, { color: theme.tabIconDefault }]}>
           {isRefiningOutfit
-            ? "Updating your outfit..."
-            : styleDirectionService.getCalibrationMessage()}
+            ? t("decideForMe.updatingOutfit") || "Updating your outfit..."
+            : t("decideForMe.calibrationMessage") || styleDirectionService.getCalibrationMessage()}
         </ThemedText>
         <View
           style={[styles.expressionInputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
@@ -1162,7 +1191,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           <TextInput
             ref={resultExpressionInputRef}
             style={[styles.expressionInput, { color: theme.text }]}
-            placeholder={styleDirectionService.getExpressionPlaceholder()}
+            placeholder={t("decideForMe.expressionPlaceholder") || styleDirectionService.getExpressionPlaceholder()}
             placeholderTextColor={theme.tabIconDefault}
             value={expressionText}
             onChangeText={(text) => setExpressionText(text.slice(0, MAX_EXPRESSION_LENGTH))}
@@ -1183,7 +1212,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
             disabled={!expressionText.trim() || isSubmittingExpression || isRefiningOutfit}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             accessibilityRole="button"
-            accessibilityLabel="Send feedback to Ruby"
+            accessibilityLabel={t("decideForMe.sendFeedback") || "Send feedback to Ruby"}
           >
             {isRefiningOutfit ? (
               <ActivityIndicator size="small" color={theme.link} />
@@ -1196,16 +1225,16 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
 
       <Animated.View entering={FadeInDown.delay(400)} style={styles.ctaSection}>
         <ThemedText type="body" style={[styles.ctaPrompt, { color: theme.tabIconDefault }]}>
-          Want this personalised to your wardrobe?
+          {t("decideForMe.wantPersonalised") || "Want this personalised to your wardrobe?"}
         </ThemedText>
 
         <Button onPress={handlePersonalise} style={[styles.primaryButton, { backgroundColor: theme.link }]}>
-          Yes, personalise it
+          {t("decideForMe.yesPersonalise") || "Yes, personalise it"}
         </Button>
 
         <Pressable onPress={handleJustBrowsing} style={styles.secondaryButton}>
           <ThemedText type="body" style={{ color: theme.tabIconDefault }}>
-            I'm just browsing
+            {t("decideForMe.justBrowsing") || "I'm just browsing"}
           </ThemedText>
         </Pressable>
       </Animated.View>
@@ -1229,7 +1258,9 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         <Pressable onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: 'rgba(74, 52, 40, 0.1)' }]}>
           <Feather name="arrow-left" size={24} color={ScreenGradients.decideForMe.accent} />
         </Pressable>
-        <ThemedText type="h3" style={{ color: ScreenGradients.decideForMe.accent }}>Decide for me</ThemedText>
+        <ThemedText type="h3" style={{ color: ScreenGradients.decideForMe.accent }}>
+          {t("decideForMe.title") || "Decide for me"}
+        </ThemedText>
         <View style={styles.backButton} />
       </View>
 

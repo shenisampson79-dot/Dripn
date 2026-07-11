@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet, View, Pressable, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -20,25 +20,10 @@ type OnboardingEntryScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "OnboardingEntry">;
 };
 
-interface EntryPoint {
-  id: string;
-  label: string;
-  subtitle: string;
-  cta: string;
-}
-
-interface EntryData {
-  title: string;
-  subtitle: string;
-  entryPoints: EntryPoint[];
-  trustBuilding: string;
-}
-
 export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
-  const [entryData, setEntryData] = useState<EntryData | null>(null);
   const [selectedVideo] = useState(() => videoRandomizer.getNextVideo({ tone: "confidence" }));
   const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
 
@@ -61,28 +46,24 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
     [isDark, theme]
   );
 
-  useEffect(() => {
-    loadEntryData();
-  }, []);
-
-  const loadEntryData = async () => {
-    try {
-      const data = await apiService.get<EntryData>("/api/onboarding/entry-paths");
-      if (data) {
-        setEntryData(data);
-      }
-    } catch (error: unknown) {
-      setEntryData({
-        title: "We decide. You look better.",
-        subtitle: "Zero effort — your stylist picks the outfit so you outdress the room.",
-        entryPoints: [
-          { id: "decide_for_me", label: "Decide for me", subtitle: "One answer. Out the door.", cta: "Decide for me" },
-          { id: "style_me_properly", label: "Style me properly", subtitle: "Using my wardrobe when ready", cta: "Style me properly" },
-        ],
-        trustBuilding: "See how it works before signing up",
-      });
-    }
-  };
+  const copy = useMemo(
+    () => ({
+      title: t("onboardingEntry.title") || "We decide. You look better.",
+      subtitle:
+        t("onboardingEntry.subtitle") ||
+        "Zero effort — your stylist picks the outfit so you outdress the room.",
+      decideLabel: t("onboardingEntry.decideForMe") || "Decide for me",
+      decideSubtitle: t("onboardingEntry.decideForMeSubtitle") || "One answer. Out the door.",
+      styleLabel: t("onboardingEntry.styleMeProperly") || "Style me properly",
+      styleSubtitle:
+        t("onboardingEntry.styleMeProperlySubtitle") || "Using my wardrobe when ready",
+      signIn:
+        t("onboardingEntry.alreadyHaveAccount") || "Already have an account? Sign in",
+      trust:
+        t("onboardingEntry.seeHowItWorks") || "See how it works before signing up",
+    }),
+    [t]
+  );
 
   const handleEntryChoice = async (entryPointId: string) => {
     try {
@@ -100,17 +81,14 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
 
   const handleJustBrowsing = async () => {
     try {
-      await apiService.post<{ immediateChat?: boolean; browsingMode?: boolean }>("/api/onboarding/entry-choice", { 
-        choice: "just_browsing" 
+      await apiService.post<{ immediateChat?: boolean; browsingMode?: boolean }>("/api/onboarding/entry-choice", {
+        choice: "just_browsing",
       });
     } catch (error) {
       console.log("Failed to track browsing choice");
     }
     navigation.navigate("GuestBrowse");
   };
-
-  const decideForMe = entryData?.entryPoints?.find(e => e.id === "decide_for_me");
-  const styleMeProperly = entryData?.entryPoints?.find(e => e.id === "style_me_properly");
 
   return (
     <View style={[styles.container, { backgroundColor: ui.rootBg }]}>
@@ -126,8 +104,8 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
         locations={ui.gradientLocations}
       />
 
-      <Pressable 
-        onPress={() => navigation.goBack()} 
+      <Pressable
+        onPress={() => navigation.goBack()}
         style={[styles.backButton, { top: insets.top + Spacing.md }]}
       >
         <View style={[styles.backButtonInner, { backgroundColor: ui.backBg }]}>
@@ -142,22 +120,22 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
       <View style={[styles.content, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.xl }]}>
         <Animated.View entering={FadeIn.delay(200)} style={styles.header}>
           <ThemedText type="h1" style={[styles.title, { color: ui.title }, !isDark && styles.titleLight]}>
-            {entryData?.title || "What should I wear?"}
+            {copy.title}
           </ThemedText>
           <ThemedText type="body" style={[styles.subtitle, { color: ui.subtitle }, !isDark && styles.subtitleLight]}>
-            {entryData?.subtitle || "Your AI stylist will decide for you — no scrolling, no guessing."}
+            {copy.subtitle}
           </ThemedText>
         </Animated.View>
 
-        <Animated.View 
-          entering={FadeInDown.delay(400).springify()} 
+        <Animated.View
+          entering={FadeInDown.delay(400).springify()}
           style={styles.ctaContainer}
         >
           <Pressable
             style={({ pressed }) => [
               styles.ctaButton,
               styles.primaryCta,
-              { opacity: pressed ? 0.9 : 1 }
+              { opacity: pressed ? 0.9 : 1 },
             ]}
             onPress={() => handleEntryChoice("decide_for_me")}
           >
@@ -169,11 +147,11 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
             >
               <View style={styles.ctaContent}>
                 <View style={styles.ctaTextContainer}>
-                  <ThemedText type="h3" style={[styles.ctaLabel, { color: '#4A3428', fontWeight: '700' }]}>
-                    {decideForMe?.label || "Decide for me"}
+                  <ThemedText type="h3" style={[styles.ctaLabel, { color: "#4A3428", fontWeight: "700" }]}>
+                    {copy.decideLabel}
                   </ThemedText>
-                  <ThemedText type="small" style={[styles.ctaSubtitle, { color: '#4A3428', opacity: 0.8, fontWeight: '500' }]}>
-                    {decideForMe?.subtitle || "Fast, confident advice"}
+                  <ThemedText type="small" style={[styles.ctaSubtitle, { color: "#4A3428", opacity: 0.8, fontWeight: "500" }]}>
+                    {copy.decideSubtitle}
                   </ThemedText>
                 </View>
                 <View style={styles.ctaIconWrapper}>
@@ -187,7 +165,7 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
             style={({ pressed }) => [
               styles.ctaButton,
               styles.secondaryCta,
-              { opacity: pressed ? 0.9 : 1 }
+              { opacity: pressed ? 0.9 : 1 },
             ]}
             onPress={() => handleEntryChoice("style_me_properly")}
           >
@@ -200,10 +178,10 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
               <View style={styles.ctaContent}>
                 <View style={styles.ctaTextContainer}>
                   <ThemedText type="h3" style={styles.ctaLabel}>
-                    {styleMeProperly?.label || "Style me properly"}
+                    {copy.styleLabel}
                   </ThemedText>
                   <ThemedText type="small" style={[styles.ctaSubtitle, { opacity: 0.9 }]}>
-                    {styleMeProperly?.subtitle || "Using my wardrobe & preferences"}
+                    {copy.styleSubtitle}
                   </ThemedText>
                 </View>
                 <View style={styles.ctaIconWrapper}>
@@ -213,7 +191,7 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
             </LinearGradient>
           </Pressable>
 
-          <Pressable 
+          <Pressable
             onPress={() => navigation.navigate("Auth", { mode: "login" })}
             style={[
               styles.signInButton,
@@ -221,13 +199,13 @@ export default function OnboardingEntryScreen({ navigation }: OnboardingEntryScr
             ]}
           >
             <ThemedText type="body" style={[styles.signInButtonText, { color: ui.signInText }]}>
-              Already have an account? Sign in
+              {copy.signIn}
             </ThemedText>
           </Pressable>
 
           <Pressable onPress={handleJustBrowsing}>
-            <ThemedText type="small" style={[styles.trustText, { color: ui.trustText, textDecorationLine: 'underline' }]}>
-              {entryData?.trustBuilding || "See how it works before signing up"}
+            <ThemedText type="small" style={[styles.trustText, { color: ui.trustText, textDecorationLine: "underline" }]}>
+              {copy.trust}
             </ThemedText>
           </Pressable>
         </Animated.View>

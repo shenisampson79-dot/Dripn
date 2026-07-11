@@ -58,16 +58,34 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
 
   const current = outfits[index];
 
+  const localizedQuizCopy = useCallback(
+    (occasion: DressFor, fallbackTitle?: string, fallbackSubtitle?: string) => ({
+      title:
+        t(`preSignupQuiz.copy.${occasion}.title`) ||
+        fallbackTitle ||
+        QUIZ_SCREEN_COPY[occasion]?.title ||
+        QUIZ_SCREEN_COPY.myself.title,
+      subtitle:
+        t(`preSignupQuiz.copy.${occasion}.subtitle`) ||
+        fallbackSubtitle ||
+        QUIZ_SCREEN_COPY[occasion]?.subtitle ||
+        QUIZ_SCREEN_COPY.myself.subtitle,
+    }),
+    [t]
+  );
+
   const loadDeck = useCallback(async (gender: QuizOutfitGender, userProfile: OnboardingProfile) => {
     setDeckLoading(true);
     const deck = await preSignupQuizService.buildDeck(gender, userProfile);
     setOutfits(deck.outfits);
-    setQuizTitle(deck.title);
-    setQuizSubtitle(deck.subtitle);
+    const occasion = userProfile.dressFor || 'myself';
+    const copy = localizedQuizCopy(occasion, deck.title, deck.subtitle);
+    setQuizTitle(copy.title);
+    setQuizSubtitle(copy.subtitle);
     setIndex(0);
     setLikes(0);
     setDeckLoading(false);
-  }, []);
+  }, [localizedQuizCopy]);
 
   useEffect(() => {
     onboardingProfileService.getProfile().then(async (loaded) => {
@@ -142,11 +160,17 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
     navigation.navigate('OnboardingEntry');
   };
 
+  const dressForLabel =
+    t(`preSignupQuiz.dressFor.${dressFor}`) || DRESS_FOR_LABELS[dressFor] || dressFor;
+
   if (deckLoading) {
     return (
       <View style={[styles.container, styles.loadingState, { paddingTop: insets.top + Spacing.xl }]}>
         <ThemedText type="body" style={styles.loadingText}>
-          Curating looks for {DRESS_FOR_LABELS[dressFor]}...
+          {(t('preSignupQuiz.curating') || 'Curating looks for {occasion}...').replace(
+            '{occasion}',
+            dressForLabel
+          )}
         </ThemedText>
       </View>
     );
@@ -155,11 +179,16 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
   if (!outfits.length) {
     return (
       <View style={[styles.container, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.xl }]}>
-        <ThemedText type="h2" style={styles.title}>Almost there</ThemedText>
-        <ThemedText type="body" style={styles.subtitle}>
-          We could not load style picks for this occasion. Continue and your stylist will still decide for you.
+        <ThemedText type="h2" style={styles.title}>
+          {t('preSignupQuiz.almostThere') || 'Almost there'}
         </ThemedText>
-        <Button onPress={handleContinue} style={{ marginTop: Spacing.xl }}>Continue</Button>
+        <ThemedText type="body" style={styles.subtitle}>
+          {t('preSignupQuiz.loadFailed') ||
+            'We could not load style picks for this occasion. Continue and your stylist will still decide for you.'}
+        </ThemedText>
+        <Button onPress={handleContinue} style={{ marginTop: Spacing.xl }}>
+          {t('preSignupQuiz.continue') || 'Continue'}
+        </Button>
       </View>
     );
   }
@@ -170,25 +199,29 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
         <View style={styles.doneContent}>
           {completionLoading ? (
             <ThemedText type="body" style={styles.doneSub}>
-              Reading your style picks...
+              {t('preSignupQuiz.readingPicks') || 'Reading your style picks...'}
             </ThemedText>
           ) : (
             <>
               <Feather name="check-circle" size={56} color="#C9A87C" />
               <ThemedText type="h1" style={styles.doneTitle}>
-                {completion?.headline || 'We know your vibe'}
+                {completion?.headline || t('preSignupQuiz.vibeFallback') || 'We know your vibe'}
               </ThemedText>
               <ThemedText type="body" style={styles.doneSub}>
-                {completion?.summary || "Got it — we'll use your picks to style you."}
+                {completion?.summary ||
+                  t('preSignupQuiz.summaryFallback') ||
+                  "Got it — we'll use your picks to style you."}
               </ThemedText>
               <ThemedText type="small" style={styles.doneHint}>
-                Next, choose how you want your stylist to help.
+                {t('preSignupQuiz.nextHint') || 'Next, choose how you want your stylist to help.'}
               </ThemedText>
             </>
           )}
         </View>
         {!completionLoading ? (
-          <Button onPress={handleContinue}>Continue</Button>
+          <Button onPress={handleContinue}>
+            {t('preSignupQuiz.continue') || 'Continue'}
+          </Button>
         ) : null}
       </View>
     );
@@ -201,7 +234,9 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
       </Pressable>
 
       <View style={styles.genderRow}>
-        <ThemedText type="small" style={styles.genderLabel}>Show me outfits for</ThemedText>
+        <ThemedText type="small" style={styles.genderLabel}>
+          {t('preSignupQuiz.showOutfitsFor') || 'Show me outfits for'}
+        </ThemedText>
         <View style={styles.genderToggle}>
           <Pressable
             onPress={() => handleGenderChange('female')}
@@ -216,7 +251,7 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
               type="small"
               style={[styles.genderOptionText, quizGender === 'female' && styles.genderOptionTextActive]}
             >
-              Women
+              {t('preSignupQuiz.women') || 'Women'}
             </ThemedText>
           </Pressable>
           <Pressable
@@ -232,7 +267,7 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
               type="small"
               style={[styles.genderOptionText, quizGender === 'male' && styles.genderOptionTextActive]}
             >
-              Men
+              {t('preSignupQuiz.men') || 'Men'}
             </ThemedText>
           </Pressable>
         </View>
@@ -244,7 +279,9 @@ export default function PreSignupStyleQuizScreen({ navigation }: Props) {
         darkColor="#3D3426"
         style={styles.progress}
       >
-        {index + 1} of {outfits.length} — tap like or skip
+        {(t('preSignupQuiz.progress') || '{current} of {total} — tap like or skip')
+          .replace('{current}', String(index + 1))
+          .replace('{total}', String(outfits.length))}
       </ThemedText>
       <ThemedText type="h2" style={styles.title}>{quizTitle}</ThemedText>
       <ThemedText type="body" style={styles.subtitle}>
