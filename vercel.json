@@ -5,6 +5,42 @@
   "framework": null,
   "redirects": [
     {
+      "source": "/invite",
+      "has": [{ "type": "host", "value": "dripn.app" }],
+      "destination": "https://dripnapp.com/invite",
+      "permanent": false
+    },
+    {
+      "source": "/invite/",
+      "has": [{ "type": "host", "value": "dripn.app" }],
+      "destination": "https://dripnapp.com/invite",
+      "permanent": false
+    },
+    {
+      "source": "/invite/:code*",
+      "has": [{ "type": "host", "value": "dripn.app" }],
+      "destination": "https://dripnapp.com/invite/:code",
+      "permanent": false
+    },
+    {
+      "source": "/invite",
+      "has": [{ "type": "host", "value": "www.dripn.app" }],
+      "destination": "https://dripnapp.com/invite",
+      "permanent": false
+    },
+    {
+      "source": "/invite/",
+      "has": [{ "type": "host", "value": "www.dripn.app" }],
+      "destination": "https://dripnapp.com/invite",
+      "permanent": false
+    },
+    {
+      "source": "/invite/:code*",
+      "has": [{ "type": "host", "value": "www.dripn.app" }],
+      "destination": "https://dripnapp.com/invite/:code",
+      "permanent": false
+    },
+    {
       "source": "/invite/:code/",
       "destination": "/invite/:code",
       "permanent": false
