@@ -15,7 +15,7 @@ interface OutfitImageResult {
 
 type TranslateFn = (key: string) => string;
 
-/** Stable i18n keys — seeded in en-flat / locales as decideForMe.rules.* / decideForMe.tips.* */
+/** Stable i18n keys — seeded in en-flat / locales as decideForMe.rules.* / decideForMe.explanations.* */
 export const STYLE_RULE_KEYS: Record<string, string[]> = {
   work: [
     'decideForMe.rules.work.0',
@@ -49,31 +49,32 @@ export const STYLE_RULE_KEYS: Record<string, string[]> = {
   ],
 };
 
+/** Coaching lines under the style rule — use explanations.* (localized in all 19 langs). */
 export const STYLE_TIP_KEYS: Record<string, string[]> = {
   work: [
-    'decideForMe.tips.work.0',
-    'decideForMe.tips.work.1',
-    'decideForMe.tips.work.2',
+    'decideForMe.explanations.work.0',
+    'decideForMe.explanations.work.1',
+    'decideForMe.explanations.work.2',
   ],
   date: [
-    'decideForMe.tips.date.0',
-    'decideForMe.tips.date.1',
-    'decideForMe.tips.date.2',
+    'decideForMe.explanations.date.0',
+    'decideForMe.explanations.date.1',
+    'decideForMe.explanations.date.2',
   ],
   casual: [
-    'decideForMe.tips.casual.0',
-    'decideForMe.tips.casual.1',
-    'decideForMe.tips.casual.2',
+    'decideForMe.explanations.casual.0',
+    'decideForMe.explanations.casual.1',
+    'decideForMe.explanations.casual.2',
   ],
   event: [
-    'decideForMe.tips.event.0',
-    'decideForMe.tips.event.1',
-    'decideForMe.tips.event.2',
+    'decideForMe.explanations.event.0',
+    'decideForMe.explanations.event.1',
+    'decideForMe.explanations.event.2',
   ],
   browsing: [
-    'decideForMe.tips.browsing.0',
-    'decideForMe.tips.browsing.1',
-    'decideForMe.tips.browsing.2',
+    'decideForMe.explanations.browsing.0',
+    'decideForMe.explanations.browsing.1',
+    'decideForMe.explanations.browsing.2',
   ],
 };
 
@@ -121,35 +122,35 @@ const STYLE_RULE_EN: Record<string, string> = {
 };
 
 const STYLE_TIP_EN: Record<string, string> = {
-  'decideForMe.tips.work.0':
+  'decideForMe.explanations.work.0':
     'This look commands respect while remaining approachable. The structure projects competence, while thoughtful details show attention to presentation.',
-  'decideForMe.tips.work.1':
+  'decideForMe.explanations.work.1':
     "Professional doesn't mean boring. This outfit balances authority with personality, helping you stand out for the right reasons.",
-  'decideForMe.tips.work.2':
+  'decideForMe.explanations.work.2':
     'The key here is polish. Every element works together seamlessly, suggesting someone who has their act together.',
-  'decideForMe.tips.date.0':
+  'decideForMe.explanations.date.0':
     "This outfit strikes the perfect balance - put-together without looking like you tried too hard. It says 'I care' without screaming it.",
-  'decideForMe.tips.date.1':
+  'decideForMe.explanations.date.1':
     'The silhouette flatters while remaining comfortable. When you feel good, that confidence is your best accessory.',
-  'decideForMe.tips.date.2':
+  'decideForMe.explanations.date.2':
     'Romantic undertones with modern edge. This look creates intrigue and suggests depth.',
-  'decideForMe.tips.casual.0':
+  'decideForMe.explanations.casual.0':
     'Effortless style is about intention disguised as ease. This look appears thrown-together but every piece earns its place.',
-  'decideForMe.tips.casual.1':
+  'decideForMe.explanations.casual.1':
     "Comfort and style aren't opposites. This outfit proves you can have both without compromise.",
-  'decideForMe.tips.casual.2':
+  'decideForMe.explanations.casual.2':
     'The secret to great casual style is quality basics. Nothing here screams for attention, yet everything works beautifully.',
-  'decideForMe.tips.event.0':
+  'decideForMe.explanations.event.0':
     'Events call for impact. This look makes an entrance while remaining tasteful - memorable for all the right reasons.',
-  'decideForMe.tips.event.1':
+  'decideForMe.explanations.event.1':
     'The drama is intentional but controlled. Statement-making without overwhelming the occasion or your personality.',
-  'decideForMe.tips.event.2':
+  'decideForMe.explanations.event.2':
     'Special occasions deserve special effort. This outfit shows you understand the assignment.',
-  'decideForMe.tips.browsing.0':
+  'decideForMe.explanations.browsing.0':
     'Versatility is key. This combination works across multiple settings with simple accessory changes.',
-  'decideForMe.tips.browsing.1':
+  'decideForMe.explanations.browsing.1':
     'Investment dressing at its finest. These pieces will serve you well for years, not just this season.',
-  'decideForMe.tips.browsing.2':
+  'decideForMe.explanations.browsing.2':
     "The foundation of a great wardrobe. Build from here and you'll always have something to wear.",
 };
 

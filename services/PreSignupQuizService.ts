@@ -178,8 +178,9 @@ class PreSignupQuizService {
           ? pickDiverseEventDeck(filtered, deckSize)
           : fillUniqueImageDeck(filtered, filtered, deckSize)
       ),
-      title: aiConfig?.title || fallbackCopy.title,
-      subtitle: aiConfig?.subtitle || fallbackCopy.subtitle,
+      // Prefer local chrome; AI deck titles can be English
+      title: fallbackCopy.title,
+      subtitle: fallbackCopy.subtitle,
     };
   }
 

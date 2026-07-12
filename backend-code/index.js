@@ -1147,7 +1147,7 @@ app.get('/api/stripe/config', async (req, res) => {
 // ============ SUBSCRIPTION MANAGEMENT ROUTES ============
 
 const SUBSCRIPTION_PLAN_MAP = {
-  subscription: { name: 'Style Chat', monthlyPrice: 999, yearlyPrice: 9599 },
+  subscription: { name: 'Personal Stylist', monthlyPrice: 999, yearlyPrice: 9599 },
   premium: { name: 'Personal Stylist', monthlyPrice: 1499, yearlyPrice: 14399 },
   pro: { name: 'Stylist Unlimited', monthlyPrice: 1999, yearlyPrice: 19199 },
 };
@@ -1613,7 +1613,7 @@ app.post('/api/subscription/cancel/complete', authMiddleware, async (req, res) =
         options: [
           { type: 'discount', label: '50% off for 3 months', price: '£4.99/mo' },
           { type: 'pause', label: 'Pause for 1 month', price: 'Free' },
-          { type: 'downgrade', label: 'Switch to Style Chat', price: '£9.99/mo' },
+          { type: 'downgrade', label: 'Switch to Personal Stylist', price: '£9.99/mo' },
         ],
       },
     });

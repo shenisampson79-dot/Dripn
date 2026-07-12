@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { StyleSheet, View, Pressable, Alert, Dimensions, Platform, ActivityIndicator, Linking } from "react-native";
+import { StyleSheet, View, Pressable, Alert, Dimensions, Platform, ActivityIndicator } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -20,7 +20,11 @@ import {
 import { currencyService } from "@/services/CurrencyService";
 import { apiService } from "@/services/ApiService";
 import { appleIAPService, serializeCustomerInfoForSync, serializeDfyCustomerInfoForSync, type IAPSubscriptionTier } from "@/services/AppleIAPService";
-import { shouldUseAppleIAP } from "@/utils/platformPayments";
+import {
+  openAppleManageSubscriptions,
+  shouldManageSubscriptionViaApple,
+  shouldUseAppleIAP,
+} from "@/utils/platformPayments";
 import { getErrorMessage, openExternalUrl } from "@/utils/openExternalUrl";
 import { isDevTestingModeEnabled } from "@/utils/devTesting";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -450,13 +454,32 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     try {
       if (planId === "free") {
         if (normalizedTier && normalizedTier !== 'free') {
-          await apiService.cancelSubscription();
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert(
-            t('subscription.cancelledTitle'),
-            t('subscription.cancelledMessage'),
-            [{ text: t('common.ok'), onPress: () => navigation.goBack() }]
-          );
+          const status = await apiService.getSubscriptionStatus().catch(() => null);
+          const viaApple = shouldManageSubscriptionViaApple({
+            billingPlatform: status?.billingPlatform,
+            hasStripeBilling: status?.hasStripeBilling,
+            stripeSubscriptionId: status?.stripeSubscriptionId,
+          });
+
+          if (viaApple || (useAppleIAP && !status?.hasStripeBilling && !status?.stripeSubscriptionId)) {
+            Alert.alert(
+              t('subscription.cancel.appleCancelTitle') || 'Manage in the App Store',
+              t('subscription.cancel.appleCancelMessage') ||
+                'This subscription is billed through Apple. Cancel or change it in Settings → Apple ID → Subscriptions.',
+              [
+                {
+                  text: t('subscription.cancel.appleCancelManage') || 'Manage Subscription',
+                  onPress: () => openAppleManageSubscriptions().catch(() => {}),
+                },
+                { text: t('common.ok'), style: 'cancel' },
+              ],
+            );
+            return;
+          }
+
+          // Stripe: route through retention cancel flow instead of silent cancel
+          navigation.navigate('CancelSubscription');
+          return;
         } else {
           navigation.goBack();
         }
@@ -538,12 +561,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     setIsProcessing(true);
     try {
       if (useAppleIAP && normalizedTier !== 'free') {
-        try {
-          const Purchases = (await import('react-native-purchases')).default;
-          await Purchases.showManageSubscriptions();
-        } catch {
-          await Linking.openURL('https://apps.apple.com/account/subscriptions');
-        }
+        await openAppleManageSubscriptions();
         return;
       }
 
@@ -707,15 +725,12 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     ];
   };
 
+  // Keep in sync with DFYService COMPARISON_TIERS feature lists
   const getWardrobeSetupFeatureKeys = () => [
     'subscription.dfy.wardrobe.feature1',
     'subscription.dfy.wardrobe.feature2',
     'subscription.dfy.wardrobe.feature3',
     'subscription.dfy.wardrobe.feature4',
-    'subscription.dfy.wardrobe.feature5',
-    'subscription.dfy.wardrobe.feature6',
-    'subscription.dfy.wardrobe.feature7',
-    'subscription.dfy.wardrobe.feature8',
   ];
 
   const getOccasionReadyFeatureKeys = () => [
@@ -723,8 +738,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     'subscription.dfy.occasion.feature2',
     'subscription.dfy.occasion.feature3',
     'subscription.dfy.occasion.feature4',
-    'subscription.dfy.occasion.feature5',
-    'subscription.dfy.occasion.feature6',
   ];
 
   const getOccasionReadyExcludedKeys = () => [
@@ -1343,8 +1356,30 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
       {normalizedTier !== 'free' ? (
         <Pressable
-          onPress={() => {
+          onPress={async () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            const status = await apiService.getSubscriptionStatus().catch(() => null);
+            const viaApple = shouldManageSubscriptionViaApple({
+              billingPlatform: status?.billingPlatform,
+              hasStripeBilling: status?.hasStripeBilling,
+              stripeSubscriptionId: status?.stripeSubscriptionId,
+            }) || (useAppleIAP && !status?.hasStripeBilling && !status?.stripeSubscriptionId);
+
+            if (viaApple) {
+              Alert.alert(
+                t('subscription.cancel.appleCancelTitle') || 'Manage in the App Store',
+                t('subscription.cancel.appleCancelMessage') ||
+                  'This subscription is billed through Apple. Cancel or change it in Settings → Apple ID → Subscriptions.',
+                [
+                  {
+                    text: t('subscription.cancel.appleCancelManage') || 'Manage Subscription',
+                    onPress: () => openAppleManageSubscriptions().catch(() => {}),
+                  },
+                  { text: t('common.ok'), style: 'cancel' },
+                ],
+              );
+              return;
+            }
             navigation.navigate('CancelSubscription');
           }}
           style={styles.cancelFooterLink}

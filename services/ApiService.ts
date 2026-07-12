@@ -423,7 +423,7 @@ class ApiService {
     }>('/api/subscription/cancel/variant');
   }
 
-  async getCancelOffer() {
+  async getCancelOffer(subscriptionTier?: string) {
     return this.request<{
       success: boolean;
       variant: 'A' | 'B' | 'C';
@@ -449,7 +449,12 @@ class ApiService {
       };
       offers?: Record<string, unknown>;
       offerEventId?: number;
-    }>('/api/subscription/cancel/offer');
+    }>('/api/subscription/cancel/offer', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...(subscriptionTier ? { subscriptionTier } : {}),
+      }),
+    });
   }
 
   async logAnalyticsEvent(data: {
@@ -1919,12 +1924,14 @@ class ApiService {
       active: isActive,
       plan,
       status: isActive ? 'active' : 'inactive',
-      currentPeriodEnd: sub.currentPeriodEnd ?? null,
+      currentPeriodEnd: sub.currentPeriodEnd ?? sub.cancelAt ?? null,
+      cancelAt: sub.cancelAt ?? sub.currentPeriodEnd ?? null,
       cancelAtPeriodEnd: sub.cancelAtPeriodEnd ?? false,
       stripeCustomerId: sub.stripeCustomerId ?? raw.stripeCustomerId ?? null,
       stripeSubscriptionId: sub.stripeSubscriptionId ?? raw.stripeSubscriptionId ?? null,
       hasStripeBilling,
       isTrial: sub.isTrial ?? raw.isTrial ?? false,
+      billingPlatform: sub.billingPlatform ?? raw.billingPlatform ?? null,
     };
   }
 
