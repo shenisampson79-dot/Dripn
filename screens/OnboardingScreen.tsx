@@ -1031,6 +1031,14 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
               [{ text: t('common.ok') }]
             );
           }
+        } catch (scanErr) {
+          console.error('Onboarding body scan failed:', scanErr);
+          Alert.alert(
+            t('common.error') || 'Scan Issue',
+            scanErr instanceof Error
+              ? scanErr.message
+              : "We couldn't complete your body scan. Please try again with a clearer full-body photo.",
+          );
         } finally {
           setIsBodyScanning(false);
         }

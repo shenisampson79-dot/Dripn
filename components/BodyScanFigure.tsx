@@ -1,153 +1,175 @@
 import React from "react";
-import { View } from "react-native";
+import { StyleProp, View, ViewStyle } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 interface BodyScanFigureProps {
-  color: string;
+  /** Stroke / accent color. Hex preferred for filled variant. */
+  color?: string;
+  /** Figure height in px. Width scales from the viewBox aspect ratio. */
   size?: number;
+  /**
+   * `guide` — translucent outline for camera framing (default).
+   * `filled` — solid figure with scanner brackets.
+   */
+  variant?: "guide" | "filled";
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
- * Single-path human body outline.
+ * Gender-neutral full-body front silhouette (mild A-pose).
  *
- * Proportions calibrated to the Vecteezy reference (IMG_4847):
- *
- *   ViewBox 110 × 305, center x = 55
- *
- *   y landmarks (% of 305):
- *     Head top    y=3   (1%)
- *     Head btm    y=40  (13%)
- *     Neck btm    y=57  (19%)
- *     Armpit      y=75  (25%)
- *     Wrist       y=192 (63%)  ← slightly below crotch, matches ref
- *     Crotch      y=174 (57%)
- *     Knee        y=222 (73%)
- *     Ankle       y=268 (88%)
- *     Foot btm    y=299 (98%)
- *
- *   x landmarks:
- *     Body left/right at chest:  x=30  /  x=80   (50px = 45% wide)
- *     Body left/right at waist:  x=34  /  x=76   (42px — slight narrowing)
- *     Body left/right at hip:    x=30  /  x=80   (50px)
- *
- *     Right arm outer: x=95   hangs straight down
- *     Right arm inner: x=84   gap from body right (80) = 4px
- *     Left arm inner:  x=26   gap from body left (30) = 4px
- *     Left arm outer:  x=15   arm width = 11px each side
- *
- *     Crotch inner legs: left x=46, right x=64   gap = 18px
- *     Leg outer:        left x=30, right x=80   width = 16px each
+ * ViewBox 120 × 305, center x = 60. Path is mirrored about the centerline.
+ * Matches scanner reference: oval head, sloping shoulders, ~15° arms with
+ * mitten hands, gentle hourglass, clear crotch V, knee/calf articulation,
+ * feet angled slightly outward.
  */
-export function BodyScanFigure({ color, size = 260 }: BodyScanFigureProps) {
+export function BodyScanFigure({
+  color = "#FFFFFF",
+  size = 360,
+  variant = "guide",
+  style,
+}: BodyScanFigureProps) {
+  const width = size * (120 / 305);
+  const isGuide = variant === "guide";
+
   const hex = color.replace("#", "");
-  const r = parseInt(hex.substring(0, 2), 16) || 50;
-  const g = parseInt(hex.substring(2, 4), 16) || 30;
-  const b = parseInt(hex.substring(4, 6), 16) || 10;
-  const stroke = `rgba(${r},${g},${b},0.88)`;
-  const br     = `rgba(${r},${g},${b},0.28)`;
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const hasRgb = Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b);
+
+  const stroke = isGuide
+    ? "rgba(255,255,255,0.9)"
+    : hasRgb
+      ? `rgba(${r},${g},${b},0.88)`
+      : color;
+  const bracket = isGuide
+    ? "rgba(255,255,255,0.45)"
+    : hasRgb
+      ? `rgba(${r},${g},${b},0.28)`
+      : "rgba(255,255,255,0.28)";
+  // Guide stays see-through so the camera feed remains visible inside the outline.
+  const fill = isGuide ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.95)";
+
+  /**
+   * Single closed path — continuous silhouette (no disconnected limbs).
+   * Cubic Béziers at neck, shoulders, waist, knees, calves, and ankles.
+   * Right half then exact mirror for left (x' = 120 − x).
+   */
+  const bodyPath = [
+    "M 60,4",
+    // Head (smooth oval, ~1/7.5–1/8 height)
+    "C 73,4 81,13.5 81,28.5",
+    "C 81,39 76.5,46.5 71,50.5",
+    // Short, relatively thick neck → rounded sloping shoulder
+    "C 68.5,53 67.5,56.5 67,61",
+    "C 67,67 70.5,72.5 78.5,75",
+    "C 88.5,77.5 97.5,82.5 103.5,91.5",
+    // Right outer arm (~15° from torso)
+    "C 108.5,98.5 111.5,109 112.5,122",
+    "C 113.5,133 112.5,142 109.5,148.5",
+    // Right mitten hand — rounded fingers, distinct thumb toward body
+    "C 107.5,154 103,157.5 98,158",
+    "C 94,158.5 90,156.5 88.5,152.5",
+    "C 87,148.5 89.5,144.5 92.5,142",
+    // Right inner arm → armpit
+    "C 95,133 94.5,122 92.5,110",
+    "C 90.5,98.5 87,90 82.5,85.5",
+    // Right torso: waist taper → hip flare
+    "C 81,96 80,108 78.5,120",
+    "C 77,131 76.5,141 78,151",
+    "C 79.5,160 82.5,169 85,180",
+    // Right outer leg: thigh → knee narrow → calf → ankle
+    "C 87.5,196 88.5,210 86,225",
+    "C 83.5,238 82.5,248 83.5,260",
+    "C 84.5,270 84,278 81.5,284",
+    // Right foot — compact, angled slightly outward
+    "C 80,288.5 84,293.5 92,296.5",
+    "C 97,298.5 102,297.5 104,294.5",
+    "C 105.5,292 104.5,288.5 101.5,286.5",
+    "C 97,284.5 90,283.5 84,283",
+    "C 80,282.5 77,280.5 75,277.5",
+    // Right inner leg → crotch V
+    "C 73,267 72,255 71,242",
+    "C 70,228 69,214 67.5,200",
+    "C 66,186 64.5,172 63,161",
+    "C 62,155.5 61,152.5 60,152.5",
+    // Left inner leg (mirror)
+    "C 59,152.5 58,155.5 57,161",
+    "C 55.5,172 54,186 52.5,200",
+    "C 51,214 50,228 49,242",
+    "C 48,255 47,267 45,277.5",
+    // Left foot (mirror)
+    "C 43,280.5 40,282.5 36,283",
+    "C 30,283.5 23,284.5 18.5,286.5",
+    "C 15.5,288.5 14.5,292 16,294.5",
+    "C 18,297.5 23,298.5 28,296.5",
+    "C 36,293.5 40,288.5 39,284",
+    // Left outer leg (mirror)
+    "C 36,278 35.5,270 36.5,260",
+    "C 37.5,248 36.5,238 34,225",
+    "C 31.5,210 32.5,196 35,180",
+    // Left hip → waist → torso (mirror)
+    "C 37.5,169 40.5,160 42,151",
+    "C 43.5,141 43,131 41.5,120",
+    "C 40,108 39,96 37.5,85.5",
+    // Left armpit → inner arm → mitten hand (mirror)
+    "C 33,90 29.5,98.5 27.5,110",
+    "C 25.5,122 25,133 27.5,142",
+    "C 30.5,144.5 33,148.5 31.5,152.5",
+    "C 30,156.5 26,158.5 22,158",
+    "C 17,157.5 12.5,154 10.5,148.5",
+    // Left outer arm → shoulder (mirror)
+    "C 7.5,142 6.5,133 7.5,122",
+    "C 8.5,109 11.5,98.5 16.5,91.5",
+    "C 22.5,82.5 31.5,77.5 41.5,75",
+    "C 49.5,72.5 53,67 53,61",
+    // Left neck → head close (mirror)
+    "C 52.5,56.5 51.5,53 49,50.5",
+    "C 43.5,46.5 39,39 39,28.5",
+    "C 39,13.5 47,4 60,4",
+    "Z",
+  ].join(" ");
 
   return (
-    <View style={{ alignItems: "center" }}>
-      <Svg
-        width={size * (110 / 305)}
-        height={size}
-        viewBox="0 0 110 305"
-      >
-        {/* SCANNER BRACKETS */}
-        <Path d="M 5,5 L 5,22 M 5,5 L 22,5"
-          fill="none" stroke={br} strokeWidth="1.6" strokeLinecap="round" />
-        <Path d="M 105,5 L 105,22 M 105,5 L 88,5"
-          fill="none" stroke={br} strokeWidth="1.6" strokeLinecap="round" />
-        <Path d="M 5,300 L 5,283 M 5,300 L 22,300"
-          fill="none" stroke={br} strokeWidth="1.6" strokeLinecap="round" />
-        <Path d="M 105,300 L 105,283 M 105,300 L 88,300"
-          fill="none" stroke={br} strokeWidth="1.6" strokeLinecap="round" />
-
-        {/*
-         * BODY — one clockwise closed path.
-         *
-         * Sequence:
-         *   head-top → R-head → R-neck → R-shoulder-slope →
-         *   R-arm-outer↓ → R-hand → R-arm-inner↑ →
-         *   R-armpit-notch → R-body↓ →
-         *   R-leg-outer↓ → R-foot → R-leg-inner↑ →
-         *   crotch-crossing →
-         *   L-leg-inner↓ → L-foot → L-leg-outer↑ →
-         *   L-body↑ → L-armpit-notch →
-         *   L-arm-inner↓ → L-hand → L-arm-outer↑ →
-         *   L-shoulder-slope → L-neck → L-head → Z
-         */}
+    <View style={[{ alignItems: "center" }, style]} pointerEvents="none">
+      <Svg width={width} height={size} viewBox="0 0 120 305">
         <Path
-          fill="rgba(255,255,255,0.95)"
+          d="M 3,3 L 3,20 M 3,3 L 20,3"
+          fill="none"
+          stroke={bracket}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <Path
+          d="M 117,3 L 117,20 M 117,3 L 100,3"
+          fill="none"
+          stroke={bracket}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <Path
+          d="M 3,302 L 3,285 M 3,302 L 20,302"
+          fill="none"
+          stroke={bracket}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <Path
+          d="M 117,302 L 117,285 M 117,302 L 100,302"
+          fill="none"
+          stroke={bracket}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+
+        <Path
+          d={bodyPath}
+          fill={fill}
           stroke={stroke}
-          strokeWidth="2.1"
+          strokeWidth={isGuide ? 2.4 : 2}
           strokeLinejoin="round"
           strokeLinecap="round"
-          d={`
-            M 55,3
-
-            C 67,3  74,12 74,26
-            C 74,32 72,36 70,40
-            C 68,44 64,48 62,53
-            C 60,57 60,63 62,70
-            C 70,67 85,63 95,67
-            C 97,70 96,76 95,84
-            C 95,100 95,124 95,148
-            C 95,164 95,178 95,192
-            C 95,197 93,200 91,200
-            L 88,200
-            C 86,200 84,197 84,192
-            C 84,178 84,162 84,144
-            C 84,124 84,104 84,84
-            C 84,76 82,70 80,70
-            C 80,72 80,76 80,84
-            C 80,100 80,120 80,140
-            C 80,158 80,170 80,180
-            C 80,192 80,200 80,208
-            C 80,218 79,232 78,246
-            C 77,258 75,268 73,276
-            C 72,282 72,288 73,293
-            C 75,297 79,300 85,300
-            C 91,300 95,298 96,293
-            C 96,289 94,287 90,287
-            C 84,287 78,287 70,287
-            C 67,287 65,281 64,271
-            C 63,259 63,245 63,231
-            C 63,217 63,201 63,191
-            C 63,183 63,176 63,174
-            C 61,170 58,168 55,168
-            C 52,168 49,170 47,174
-            C 47,176 47,183 47,191
-            C 47,201 47,217 47,231
-            C 47,245 46,259 44,271
-            C 43,281 40,287 37,287
-            C 29,287 23,287 16,287
-            C 12,287 10,289 10,293
-            C 11,298 15,300 21,300
-            C 27,300 31,297 33,293
-            C 34,288 34,282 33,276
-            C 31,268 29,258 28,246
-            C 27,232 26,218 26,208
-            C 26,200 26,192 26,180
-            C 26,170 26,158 26,140
-            C 26,120 26,100 26,84
-            C 26,76 26,72 26,70
-            C 24,70 22,76 22,84
-            C 22,104 22,124 22,144
-            C 22,162 22,178 22,192
-            C 22,197 20,200 18,200
-            L 15,200
-            C 13,200 11,197 11,192
-            C 11,178 11,164 11,148
-            C 11,124 11,100 11,84
-            C 10,76 9,70 13,67
-            C 23,63 38,67 46,70
-            C 48,63 48,57 47,53
-            C 45,48 42,44 40,40
-            C 38,36 36,32 36,26
-            C 36,12 43,3  55,3
-            Z
-          `}
         />
       </Svg>
     </View>

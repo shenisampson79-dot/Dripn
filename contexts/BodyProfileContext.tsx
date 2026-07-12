@@ -174,6 +174,8 @@ export interface BodyScanResult {
   confidence: number;
   recommendations: string[];
   fitAdvice: string[];
+  /** Friendly message for UI when success is false (raw errors stay in console) */
+  errorMessage?: string;
 }
 
 interface BodyProfileContextType {
@@ -298,6 +300,26 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
     setIsScanning(true);
     setError(null);
 
+    const failedResult = (errorMessage: string, isFirstTime: boolean): BodyScanResult => ({
+      success: false,
+      measurements: {},
+      bodyShape: 'unknown' as BodyShape,
+      heightCategory: 'average',
+      buildCategory: 'average',
+      proportions: {
+        shoulderToHipRatio: 1,
+        waistToHipRatio: 0.75,
+        bustToWaistRatio: 1.2,
+        torsoToLegRatio: 0.9,
+      },
+      confidence: 0,
+      recommendations: isFirstTime
+        ? ['Try a full-body photo with head to toe visible', 'Good natural lighting helps us analyze better', 'Fitted clothes show your body shape more clearly']
+        : [],
+      fitAdvice: [],
+      errorMessage,
+    });
+
     try {
       const apiUrl = API_URL;
       const token = await AsyncStorage.getItem('@dripn_token');
@@ -315,24 +337,83 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
       });
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
+        let serverMessage = '';
+        try {
+          const errBody = await response.json();
+          serverMessage = errBody.message || errBody.error || '';
+        } catch {
+          // ignore non-JSON error bodies
+        }
+        console.error('Body scan API error:', response.status, serverMessage);
+        throw new Error(serverMessage || `Body scan failed (${response.status})`);
       }
 
       const data = await response.json();
+
+      const rawShape = String(data.bodyShape || data.bodyType || 'unknown').toLowerCase().trim();
+      const shapeAliases: Record<string, BodyShape> = {
+        hourglass: 'hourglass',
+        pear: 'pear',
+        triangle: 'pear',
+        apple: 'apple',
+        oval: 'apple',
+        rectangle: 'rectangle',
+        'inverted-triangle': 'inverted-triangle',
+        'inverted triangle': 'inverted-triangle',
+        athletic: 'athletic',
+        petite: 'petite',
+        'plus-size': 'plus-size',
+        plus: 'plus-size',
+        tall: 'tall',
+        unknown: 'unknown',
+      };
+      const dashed = rawShape.replace(/\s+/g, '-');
+      const bodyShape: BodyShape =
+        shapeAliases[rawShape] ||
+        shapeAliases[dashed] ||
+        (dashed.includes('unclear') ? 'unknown' : 'unknown');
+
+      let confidence = 0;
+      if (typeof data.confidence === 'number') {
+        confidence = data.confidence <= 1 ? Math.round(data.confidence * 100) : Math.round(data.confidence);
+      } else if (typeof data.confidence === 'string') {
+        const map: Record<string, number> = { high: 85, medium: 65, low: 40 };
+        confidence = map[data.confidence.toLowerCase()] ?? 50;
+      } else if (typeof data.bodyTypeConfidence === 'string') {
+        const map: Record<string, number> = { high: 85, medium: 65, low: 40 };
+        confidence = map[data.bodyTypeConfidence.toLowerCase().split(/[\s-]/)[0]] ?? 50;
+      }
+
+      const heightRaw = String(data.heightCategory || '').toLowerCase();
+      const heightCategory: HeightCategory =
+        heightRaw.includes('petite') ? 'petite'
+          : heightRaw.includes('very') ? 'very-tall'
+            : heightRaw.includes('tall') ? 'tall'
+              : 'average';
+
+      const buildRaw = String(data.buildCategory || data.fitPreference || 'average').toLowerCase();
+      const buildCategory: BuildCategory =
+        buildRaw.includes('slim') ? 'slim'
+          : buildRaw.includes('athletic') ? 'athletic'
+            : buildRaw.includes('curvy') ? 'curvy'
+              : buildRaw.includes('plus') ? 'plus'
+                : 'average';
+
+      const props = data.proportions || {};
       const result: BodyScanResult = {
         success: true,
         measurements: data.measurements || {},
-        bodyShape: data.bodyShape || 'unknown',
-        heightCategory: data.heightCategory || 'average',
-        buildCategory: data.buildCategory || 'average',
-        proportions: data.proportions || {
-          shoulderToHipRatio: 1,
-          waistToHipRatio: 0.75,
-          bustToWaistRatio: 1.2,
-          torsoToLegRatio: 0.9,
+        bodyShape,
+        heightCategory,
+        buildCategory,
+        proportions: {
+          shoulderToHipRatio: Number(props.shoulderToHipRatio) || 1,
+          waistToHipRatio: Number(props.waistToHipRatio) || 0.75,
+          bustToWaistRatio: Number(props.bustToWaistRatio) || 1.2,
+          torsoToLegRatio: Number(props.torsoToLegRatio) || 0.9,
         },
-        confidence: data.confidence || 0,
-        recommendations: data.recommendations || [],
+        confidence,
+        recommendations: data.recommendations || data.kibbeStyleRecommendations || [],
         fitAdvice: data.fitAdvice || [],
       };
 
@@ -354,37 +435,21 @@ export function BodyProfileProvider({ children }: BodyProfileProviderProps) {
       return result;
     } catch (err) {
       console.error('Body scan failed:', err);
-      
-      // Check if this is their first time doing a body scan (skipped during onboarding)
+
       const isFirstTime = bodyProfile?.bodyShape === 'unknown' || !bodyProfile?.bodyShape;
-      
-      const errorMsg = isFirstTime
-        ? 'Let\'s try that again! Make sure your full body is visible from head to toe, in good lighting, and wearing fitted clothes.'
-        : 'The photo wasn\'t clear enough. Please try again with a full-body photo in good lighting.';
-      
-      setError(errorMsg);
-      return {
-        success: false,
-        measurements: {},
-        bodyShape: 'unknown' as BodyShape,
-        heightCategory: 'average',
-        buildCategory: 'average',
-        proportions: {
-          shoulderToHipRatio: 1,
-          waistToHipRatio: 0.75,
-          bustToWaistRatio: 1.2,
-          torsoToLegRatio: 0.9,
-        },
-        confidence: 0,
-        recommendations: isFirstTime 
-          ? ['Try a full-body photo with head to toe visible', 'Good natural lighting helps us analyze better', 'Fitted clothes show your body shape more clearly']
-          : [],
-        fitAdvice: [],
-      };
+      const friendly =
+        err instanceof Error && err.message && !/API request failed|failed \(\d+\)/i.test(err.message)
+          ? err.message
+          : isFirstTime
+            ? "We couldn't complete your body scan. Make sure your full body is visible head to toe, in good lighting, then try again."
+            : "We couldn't analyze that photo. Please try again with a clearer full-body photo in good lighting.";
+
+      setError(friendly);
+      return failedResult(friendly, isFirstTime);
     } finally {
       setIsScanning(false);
     }
-  }, [saveBodyProfile]);
+  }, [saveBodyProfile, bodyProfile?.bodyShape]);
 
   const analyzeColorSeason = useCallback(async (selfieBase64: string): Promise<ColorAnalysisResult> => {
     setIsAnalyzingColor(true);

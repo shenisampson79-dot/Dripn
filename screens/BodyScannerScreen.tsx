@@ -6,7 +6,7 @@
  * Scans full-body photos to extract measurements and body proportions
  */
 
-import React, { useState, useRef, useCallback, useLayoutEffect } from "react";
+import React, { useState, useRef, useCallback, useLayoutEffect, useEffect } from "react";
 import { 
   StyleSheet, 
   View, 
@@ -18,10 +18,10 @@ import {
   Dimensions,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { CommonActions } from "@react-navigation/native";
 import { CameraView, useCameraPermissions, CameraType } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
+import * as ImageManipulator from "expo-image-manipulator";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
@@ -30,14 +30,22 @@ import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Card } from "@/components/Card";
-import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import { BodyScanFigure } from "@/components/BodyScanFigure";
+import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useBodyProfile, BodyScanResult, BodyShape } from "@/contexts/BodyProfileContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
 import { getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 import { useTranslations } from "@/contexts/TranslationContext";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+/**
+ * Guide height sized for full-body framing at typical phone distance
+ * (arm’s length / selfie stick / across a small room). Larger than before
+ * so the outline matches how big a person appears in-frame.
+ */
+const BODY_GUIDE_SIZE = Math.min(SCREEN_HEIGHT * 0.72, SCREEN_WIDTH * 2.35, 620);
+const CAPTURE_COUNTDOWN_SECONDS = 5;
 
 type BodyScannerScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "BodyScanner">;
@@ -72,13 +80,14 @@ const MEASUREMENT_LABELS: Record<string, string> = {
 export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
-  const { bodyProfile, scanBody, isScanning, hasBodyProfile, saveBodyProfile, error } = useBodyProfile();
+  const { bodyProfile, scanBody, isScanning, hasBodyProfile, saveBodyProfile } = useBodyProfile();
   
   const [permission, requestPermission] = useCameraPermissions();
   const [showCamera, setShowCamera] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<BodyScanResult | null>(null);
   const [facing, setFacing] = useState<CameraType>("front");
+  const [countdown, setCountdown] = useState<number | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
   const [manualMode, setManualMode] = useState(false);
@@ -103,28 +112,57 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
     );
   }, [navigation, theme, isDark, showCamera, t]);
 
-  const handleTakePhoto = async () => {
+  const closeCamera = useCallback(() => {
+    setCountdown(null);
+    setShowCamera(false);
+  }, []);
+
+  const handleTakePhoto = useCallback(async () => {
     if (!cameraRef.current) return;
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
+        quality: 0.7,
         base64: false,
       });
 
       if (photo?.uri) {
         setCapturedImage(photo.uri);
+        setCountdown(null);
         setShowCamera(false);
         await processImage(photo.uri);
       }
     } catch (err) {
       console.error("Failed to take photo:", err);
+      setCountdown(null);
       Alert.alert(t('common.error'), t('bodyScan.captureFailed'));
     }
+  }, [t]);
+
+  useEffect(() => {
+    if (countdown === null) return;
+
+    if (countdown === 0) {
+      setCountdown(null);
+      handleTakePhoto();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown((prev) => (prev === null ? null : prev - 1));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown, handleTakePhoto]);
+
+  const startCountdown = () => {
+    if (countdown !== null) return;
+    setCountdown(CAPTURE_COUNTDOWN_SECONDS);
   };
 
   const handlePickImage = async () => {
     try {
+      setCountdown(null);
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.8,
@@ -133,6 +171,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
 
       if (!result.canceled && result.assets[0]) {
         setCapturedImage(result.assets[0].uri);
+        setShowCamera(false);
         await processImage(result.assets[0].uri);
       }
     } catch (err) {
@@ -141,9 +180,24 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
     }
   };
 
+  const compressForUpload = async (uri: string): Promise<string> => {
+    try {
+      const manipulated = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1024 } }],
+        { compress: 0.72, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      return manipulated.uri;
+    } catch (manipErr) {
+      console.warn("Body scan image compress failed, using original:", manipErr);
+      return uri;
+    }
+  };
+
   const processImage = async (uri: string) => {
     try {
-      const base64 = await FileSystem.readAsStringAsync(uri, {
+      const uploadUri = await compressForUpload(uri);
+      const base64 = await FileSystem.readAsStringAsync(uploadUri, {
         encoding: "base64",
       });
 
@@ -159,7 +213,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
       } else {
         Alert.alert(
           t('bodyScan.scanIssue'),
-          error || t('bodyScan.scanIssueDefault'),
+          result.errorMessage || t('bodyScan.scanIssueDefault'),
           [
             { text: t('common.tryAgain'), onPress: () => setCapturedImage(null) },
             { text: t('common.enterManually'), onPress: () => setManualMode(true) },
@@ -288,49 +342,64 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
         <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
           <View style={styles.cameraOverlay}>
             <View style={styles.cameraHeader}>
-              <Pressable onPress={() => setShowCamera(false)} style={styles.cameraBackButton}>
+              <Pressable onPress={closeCamera} style={styles.cameraBackButton}>
                 <Feather name="x" size={28} color="#FFFFFF" />
               </Pressable>
               <ThemedText style={styles.cameraTitle}>Body Scanner</ThemedText>
               <Pressable 
                 onPress={() => setFacing(f => f === "front" ? "back" : "front")} 
                 style={styles.cameraBackButton}
+                disabled={countdown !== null}
               >
                 <Feather name="refresh-cw" size={24} color="#FFFFFF" />
               </Pressable>
             </View>
 
-            <View style={styles.bodyGuide}>
-              <View style={[styles.guideOutline, { borderColor: "rgba(255,255,255,0.5)" }]}>
-                <View style={styles.guideHead} />
-                <View style={styles.torsoWithArms}>
-                  <View style={styles.guideArm} />
-                  <View style={styles.guideTorso} />
-                  <View style={styles.guideArm} />
-                </View>
-                <View style={styles.guideLegs} />
-              </View>
+            <View style={styles.bodyGuide} pointerEvents="none">
+              <BodyScanFigure variant="guide" size={BODY_GUIDE_SIZE} color="#FFFFFF" />
             </View>
+
+            {countdown !== null ? (
+              <View style={styles.countdownOverlay} pointerEvents="none">
+                <ThemedText style={styles.countdownText}>
+                  {countdown > 0 ? countdown : ""}
+                </ThemedText>
+                {countdown > 0 ? (
+                  <ThemedText style={styles.countdownHint}>Get into position</ThemedText>
+                ) : null}
+              </View>
+            ) : null}
 
             <View style={styles.cameraInstructions}>
               <ThemedText style={styles.instructionText}>
-                Stand in a well-lit area
+                Step back until your whole body fits in the outline
               </ThemedText>
               <ThemedText style={styles.instructionText}>
-                Position yourself within the outline
-              </ThemedText>
-              <ThemedText style={styles.instructionText}>
-                Keep arms slightly away from body
+                Stand in a well-lit area · arms slightly away from body
               </ThemedText>
             </View>
 
             <View style={styles.cameraControls}>
-              <Pressable onPress={handlePickImage} style={styles.galleryButton}>
+              <Pressable
+                onPress={handlePickImage}
+                style={styles.galleryButton}
+                disabled={countdown !== null}
+              >
                 <Feather name="image" size={24} color="#FFFFFF" />
               </Pressable>
               
-              <Pressable onPress={handleTakePhoto} style={styles.captureButton}>
-                <View style={styles.captureInner} />
+              <Pressable
+                onPress={startCountdown}
+                style={styles.captureButton}
+                disabled={countdown !== null}
+              >
+                {countdown !== null ? (
+                  <ThemedText style={styles.captureCountdownLabel}>
+                    {countdown > 0 ? countdown : "…"}
+                  </ThemedText>
+                ) : (
+                  <View style={styles.captureInner} />
+                )}
               </Pressable>
               
               <View style={styles.galleryButton} />
@@ -744,55 +813,31 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
   },
-  guideOutline: {
-    width: 180,
-    height: 400,
-    borderWidth: 2,
-    borderRadius: 90,
-    borderStyle: "dashed",
+  countdownOverlay: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: "center",
-    paddingTop: 20,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.28)",
   },
-  guideHead: {
-    width: 60,
-    height: 70,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.5)",
-    borderStyle: "dashed",
+  countdownText: {
+    color: "#FFFFFF",
+    fontSize: 96,
+    fontWeight: "700",
+    textShadowColor: "rgba(0,0,0,0.85)",
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 8,
   },
-  torsoWithArms: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
-    gap: 8,
-  },
-  guideArm: {
-    width: 35,
-    height: 120,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.5)",
-    borderStyle: "dashed",
-  },
-  guideTorso: {
-    width: 100,
-    height: 140,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.5)",
-    borderStyle: "dashed",
-    flex: 0,
-  },
-  guideLegs: {
-    width: 80,
-    height: 120,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.5)",
-    borderStyle: "dashed",
-    marginTop: 10,
-    borderRadius: 10,
+  countdownHint: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: Spacing.sm,
+    textShadowColor: "rgba(0,0,0,0.8)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
   },
   cameraInstructions: {
     alignItems: "center",
@@ -803,6 +848,11 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     textAlign: "center",
+  },
+  captureCountdownLabel: {
+    color: "#333",
+    fontSize: 28,
+    fontWeight: "700",
   },
   cameraControls: {
     flexDirection: "row",

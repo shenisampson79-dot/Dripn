@@ -219,8 +219,22 @@ class OnboardingServiceClass {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Body scan failed: ${error}`);
+      let serverMessage = '';
+      try {
+        const errBody = await response.json();
+        serverMessage = errBody.message || errBody.error || '';
+      } catch {
+        try {
+          serverMessage = await response.text();
+        } catch {
+          // ignore
+        }
+      }
+      console.error('Body scan API error:', response.status, serverMessage);
+      throw new Error(
+        serverMessage ||
+          "We couldn't complete your body scan. Please try again with a clearer full-body photo."
+      );
     }
 
     return response.json();
