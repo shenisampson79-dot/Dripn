@@ -15,7 +15,7 @@ import {
   Platform,
   Alert,
   Image as RNImage,
-  Dimensions,
+  LayoutChangeEvent,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { CameraView, useCameraPermissions, CameraType } from "expo-camera";
@@ -38,14 +38,26 @@ import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigat
 import { getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 import { useTranslations } from "@/contexts/TranslationContext";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 /**
- * Guide height sized for full-body framing at typical phone distance
- * (arm’s length / selfie stick / across a small room). Larger than before
- * so the outline matches how big a person appears in-frame.
+ * Soft max so the silhouette stays large on tall phones without dominating short ones.
+ * Actual size is measured from the flex area between header and bottom controls.
  */
-const BODY_GUIDE_SIZE = Math.min(SCREEN_HEIGHT * 0.72, SCREEN_WIDTH * 2.35, 620);
+const BODY_GUIDE_MAX_SIZE = 560;
+/** SVG viewBox 120×305 — convert available width into a max figure height. */
+const BODY_GUIDE_HEIGHT_PER_WIDTH = 305 / 120;
 const CAPTURE_COUNTDOWN_SECONDS = 5;
+/** Confidence below this → retake guidance + estimate framing. */
+const LOW_CONFIDENCE_THRESHOLD = 60;
+/** Confidence at or above this → success-style banner. */
+const HIGH_CONFIDENCE_THRESHOLD = 80;
+
+type ConfidenceBand = "low" | "medium" | "high";
+
+function getConfidenceBand(confidence: number): ConfidenceBand {
+  if (confidence < LOW_CONFIDENCE_THRESHOLD) return "low";
+  if (confidence < HIGH_CONFIDENCE_THRESHOLD) return "medium";
+  return "high";
+}
 
 type BodyScannerScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "BodyScanner">;
@@ -88,6 +100,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
   const [scanResult, setScanResult] = useState<BodyScanResult | null>(null);
   const [facing, setFacing] = useState<CameraType>("front");
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [guideSize, setGuideSize] = useState(0);
   const cameraRef = useRef<CameraView>(null);
 
   const [manualMode, setManualMode] = useState(false);
@@ -97,6 +110,12 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
     waist: "",
     hips: "",
   });
+
+  const scanConfidence = bodyProfile?.scanData?.confidence;
+  const confidenceBand =
+    typeof scanConfidence === "number" ? getConfidenceBand(scanConfidence) : null;
+  const isLowConfidence = confidenceBand === "low";
+  const isMediumConfidence = confidenceBand === "medium";
 
   useLayoutEffect(() => {
     if (showCamera) {
@@ -114,7 +133,22 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
 
   const closeCamera = useCallback(() => {
     setCountdown(null);
+    setGuideSize(0);
     setShowCamera(false);
+  }, []);
+
+  const onBodyGuideLayout = useCallback((e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    // onLayout is the outer box; match bodyGuide padding so the figure fits
+    // inside the safe area between header and instructions/controls.
+    const availableH = Math.max(0, height - Spacing.lg * 2);
+    const availableW = Math.max(0, width - Spacing.md * 2);
+    const next = Math.min(
+      availableH,
+      availableW * BODY_GUIDE_HEIGHT_PER_WIDTH,
+      BODY_GUIDE_MAX_SIZE,
+    );
+    setGuideSize((prev) => (Math.abs(prev - next) < 1 ? prev : next));
   }, []);
 
   const handleTakePhoto = useCallback(async () => {
@@ -205,11 +239,35 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
       setScanResult(result);
 
       if (result.success) {
-        Alert.alert(
-          t('bodyScan.scanComplete'),
-          t('bodyScan.scanCompleteMessage').replace('{confidence}', String(result.confidence)),
-          [{ text: t('common.viewResults'), style: "default" }]
-        );
+        const band = getConfidenceBand(result.confidence);
+        if (band === "low") {
+          Alert.alert(
+            t("bodyScan.lowConfidenceAlertTitle"),
+            t("bodyScan.lowConfidenceAlertMessage").replace(
+              "{confidence}",
+              String(result.confidence)
+            ),
+            [
+              {
+                text: t("bodyScan.rescanRetake"),
+                onPress: () => {
+                  setCapturedImage(null);
+                  setShowCamera(true);
+                },
+              },
+              { text: t("common.viewResults"), style: "cancel" },
+            ]
+          );
+        } else {
+          Alert.alert(
+            t("bodyScan.scanComplete"),
+            t("bodyScan.scanCompleteMessage").replace(
+              "{confidence}",
+              String(result.confidence)
+            ),
+            [{ text: t("common.viewResults"), style: "default" }]
+          );
+        }
       } else {
         Alert.alert(
           t('bodyScan.scanIssue'),
@@ -355,8 +413,14 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
               </Pressable>
             </View>
 
-            <View style={styles.bodyGuide} pointerEvents="none">
-              <BodyScanFigure variant="guide" size={BODY_GUIDE_SIZE} color="#FFFFFF" />
+            <View
+              style={styles.bodyGuide}
+              pointerEvents="none"
+              onLayout={onBodyGuideLayout}
+            >
+              {guideSize > 0 ? (
+                <BodyScanFigure variant="guide" size={guideSize} color="#FFFFFF" />
+              ) : null}
             </View>
 
             {countdown !== null ? (
@@ -565,25 +629,90 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
               </View>
             </View>
 
-            {bodyProfile.scanData ? (
-              <View style={[styles.confidenceBadge, { backgroundColor: theme.success + "20" }]}>
-                <Feather name="check-circle" size={16} color={theme.success} />
-                <ThemedText type="small" style={{ color: theme.success }}>
-                  AI Scanned - {bodyProfile.scanData.confidence}% Confidence
-                </ThemedText>
-              </View>
-            ) : (
+            {bodyProfile.scanData ? (() => {
+              const confidence = bodyProfile.scanData!.confidence;
+              const badgeColor = isLowConfidence
+                ? theme.error
+                : isMediumConfidence
+                  ? theme.warning
+                  : theme.success;
+              const badgeIcon = isLowConfidence
+                ? "alert-triangle"
+                : isMediumConfidence
+                  ? "alert-circle"
+                  : "check-circle";
+              const badgeLabel = isLowConfidence
+                ? t("bodyScan.lowConfidenceBadge").replace("{confidence}", String(confidence))
+                : t("bodyScan.aiScannedConfidence").replace("{confidence}", String(confidence));
+              return (
+                <View style={[styles.confidenceBadge, { backgroundColor: badgeColor + "20" }]}>
+                  <Feather name={badgeIcon} size={16} color={badgeColor} />
+                  <ThemedText type="small" style={{ color: badgeColor, flexShrink: 1, textAlign: "center" }}>
+                    {badgeLabel}
+                  </ThemedText>
+                </View>
+              );
+            })() : (
               <View style={[styles.confidenceBadge, { backgroundColor: theme.warning + "20" }]}>
                 <Feather name="edit-3" size={16} color={theme.warning} />
                 <ThemedText type="small" style={{ color: theme.warning }}>
-                  Manually Entered
+                  {t("bodyScan.manuallyEntered")}
                 </ThemedText>
               </View>
             )}
           </Card>
 
+          {isLowConfidence ? (
+            <Card style={[styles.guidanceCard, { borderColor: theme.error + "40" }]}>
+              <View style={styles.guidanceHeader}>
+                <Feather name="camera" size={18} color={theme.error} />
+                <ThemedText style={{ fontWeight: "700", color: theme.error, flex: 1 }}>
+                  {t("bodyScan.lowConfidenceTitle")}
+                </ThemedText>
+              </View>
+              <ThemedText type="small" style={{ color: theme.tabIconDefault, lineHeight: 20, marginBottom: Spacing.sm }}>
+                {t("bodyScan.lowConfidenceMessage")}
+              </ThemedText>
+              <ThemedText type="small" style={{ fontWeight: "600", marginBottom: Spacing.xs }}>
+                {t("bodyScan.retakeGuidanceTitle")}
+              </ThemedText>
+              {[
+                t("bodyScan.tipFullBody"),
+                t("bodyScan.tipStandBack"),
+                t("bodyScan.tipLighting"),
+                t("bodyScan.tipPose"),
+                t("bodyScan.tipClothes"),
+              ].map((tip) => (
+                <View key={tip} style={styles.guidanceTipRow}>
+                  <Feather name="check" size={14} color={theme.link} />
+                  <ThemedText type="small" style={{ flex: 1, color: theme.tabIconDefault, lineHeight: 18 }}>
+                    {tip}
+                  </ThemedText>
+                </View>
+              ))}
+            </Card>
+          ) : isMediumConfidence ? (
+            <Card style={styles.mediumTipCard}>
+              <View style={styles.guidanceTipRow}>
+                <Feather name="info" size={16} color={theme.warning} />
+                <ThemedText type="small" style={{ flex: 1, color: theme.tabIconDefault, lineHeight: 18 }}>
+                  {t("bodyScan.mediumConfidenceTip")}
+                </ThemedText>
+              </View>
+            </Card>
+          ) : null}
+
           <Card style={styles.measurementsCard}>
-            <ThemedText type="h4" style={styles.sectionTitle}>Your Measurements</ThemedText>
+            <ThemedText type="h4" style={styles.sectionTitle}>
+              {isLowConfidence
+                ? t("bodyScan.measurementsEstimates")
+                : t("bodyScan.yourMeasurements")}
+            </ThemedText>
+            {isLowConfidence ? (
+              <ThemedText type="small" style={{ color: theme.warning, marginBottom: Spacing.sm, lineHeight: 18 }}>
+                {t("bodyScan.measurementsLowConfidenceNote")}
+              </ThemedText>
+            ) : null}
             <View style={styles.measurementsGrid}>
               {Object.entries(bodyProfile.measurements).map(([key, value]) => 
                 renderMeasurementRow(key, value)
@@ -593,7 +722,7 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
 
           {scanResult?.recommendations && scanResult.recommendations.length > 0 ? (
             <Card style={styles.recommendationsCard}>
-              <ThemedText type="h4" style={styles.sectionTitle}>Style Recommendations</ThemedText>
+              <ThemedText type="h4" style={styles.sectionTitle}>{t("bodyScan.styleRecommendations")}</ThemedText>
               {scanResult.recommendations.map((rec, index) => (
                 <View key={index} style={styles.recommendationItem}>
                   <Feather name="check" size={16} color={theme.success} />
@@ -609,25 +738,22 @@ export default function BodyScannerScreen({ navigation }: BodyScannerScreenProps
               style={({ pressed }) => [styles.rescanButton, { opacity: pressed ? 0.8 : 1 }]}
             >
               <LinearGradient
-                colors={["#667eea", "#764ba2"]}
+                colors={isLowConfidence ? ["#C94C5A", "#8B2F39"] : ["#667eea", "#764ba2"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.rescanGradient}
               >
-                <Feather name="refresh-cw" size={18} color="#FFFFFF" />
-                <ThemedText style={styles.rescanText}>Rescan Body</ThemedText>
+                <Feather
+                  name={isLowConfidence ? "camera" : "refresh-cw"}
+                  size={18}
+                  color="#FFFFFF"
+                />
+                <ThemedText style={styles.rescanText}>
+                  {isLowConfidence
+                    ? t("bodyScan.rescanRetake")
+                    : t("bodyScan.rescanBody")}
+                </ThemedText>
               </LinearGradient>
-            </Pressable>
-
-            <Pressable
-              onPress={() => navigation.navigate("StyleSoulmates")}
-              style={({ pressed }) => [
-                styles.findMatchesButton,
-                { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
-              ]}
-            >
-              <Feather name="heart" size={18} color={theme.link} />
-              <ThemedText style={{ color: theme.link, fontWeight: "600" }}>Find Body Matches</ThemedText>
             </Pressable>
           </View>
         </>
@@ -813,8 +939,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    overflow: "hidden",
   },
   countdownOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -842,6 +969,7 @@ const styles = StyleSheet.create({
   cameraInstructions: {
     alignItems: "center",
     paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
     gap: Spacing.xs,
   },
   instructionText: {
@@ -949,7 +1077,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: Spacing.xs,
     paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.sm,
+  },
+  guidanceCard: {
+    padding: Spacing.lg,
+    borderWidth: 1,
+  },
+  guidanceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  guidanceTipRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  mediumTipCard: {
+    padding: Spacing.md,
   },
   measurementsCard: {
     padding: Spacing.lg,
@@ -993,14 +1141,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "600",
     fontSize: 16,
-  },
-  findMatchesButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
-    gap: Spacing.sm,
   },
   manualCard: {
     padding: Spacing.lg,
