@@ -13,7 +13,8 @@ import { currencyService } from "@/services/CurrencyService";
 const DRIPN_BRANDING = {
   tagline: "Style that flows - Get personalized fashion advice from AI and real people",
   downloadCTA: "Download Dripn free",
-  appStoreUrl: "https://dripn.app",
+  /** Public web host (Vercel). Not dripn.app — that domain is unrelated IONOS hosting. */
+  appStoreUrl: "https://dripnapp.com",
   deepLinkScheme: "dripn://",
 };
 
@@ -123,7 +124,7 @@ export function generateShareContent(post: Post): ShareableContent {
   const hashtagsStr = hashtags.join(" ");
   
   const deepLink = `dripn://post/${post.id}`;
-  const webUrl = `https://dripn.app/post/${post.id}`;
+  const webUrl = `https://dripnapp.com/post/${post.id}`;
   
   let title = "Check out this outfit on Dripn";
   
@@ -166,7 +167,7 @@ export async function shareChallenge(
 ): Promise<boolean> {
   try {
     const hashtag = `#Dripn${challengeName.replace(/\s+/g, "")}`;
-    const message = `Join the "${challengeName}" challenge on Dripn!\n\n${challengeDescription}\n\n${hashtag} #Dripn #FashionChallenge\n\nhttps://dripn.app/challenges`;
+    const message = `Join the "${challengeName}" challenge on Dripn!\n\n${challengeDescription}\n\n${hashtag} #Dripn #FashionChallenge\n\nhttps://dripnapp.com/challenges`;
     
     const result = await Share.share({
       title: `Dripn Challenge: ${challengeName}`,
@@ -182,7 +183,7 @@ export async function shareChallenge(
 
 export async function shareReferralCode(code: string, bonusInfo: string): Promise<boolean> {
   try {
-    const message = `Get fashion advice from real people and AI on Dripn!\n\nUse my referral code: ${code}\n${bonusInfo}\n\nDownload now: https://dripn.app/invite/${code}`;
+    const message = `Get fashion advice from real people and AI on Dripn!\n\nUse my referral code: ${code}\n${bonusInfo}\n\nDownload now: https://dripnapp.com/invite/${code}`;
     
     const result = await Share.share({
       title: "Join Dripn",
@@ -201,7 +202,7 @@ export async function shareStyleOfDay(
   advice: string
 ): Promise<boolean> {
   try {
-    const message = `Today's Style Pick on Dripn:\n\n"${description}"\n\nAI Tip: ${advice.slice(0, 150)}...\n\n#StyleOfTheDay #Dripn #AIFashion\n\nhttps://dripn.app/style-of-the-day`;
+    const message = `Today's Style Pick on Dripn:\n\n"${description}"\n\nAI Tip: ${advice.slice(0, 150)}...\n\n#StyleOfTheDay #Dripn #AIFashion\n\nhttps://dripnapp.com/style-of-the-day`;
     
     const result = await Share.share({
       title: "Dripn Style of the Day",

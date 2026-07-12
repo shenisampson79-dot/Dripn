@@ -9,6 +9,14 @@
       "destination": "https://dripn-server.onrender.com/api/:path*"
     },
     {
+      "source": "/invite",
+      "destination": "https://dripn-server.onrender.com/invite"
+    },
+    {
+      "source": "/invite/:code",
+      "destination": "https://dripn-server.onrender.com/invite/:code"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

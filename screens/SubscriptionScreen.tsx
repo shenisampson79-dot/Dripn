@@ -944,33 +944,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 
   return (
     <ScreenScrollView ref={scrollViewRef} style={{ backgroundColor: isDark ? '#0D0B09' : '#FAF8F5' }}>
-      <LinearGradient
-        colors={isDark 
-          ? [LUXURY_COLORS.deepViolet, LUXURY_COLORS.berry, '#0D0B09'] 
-          : [LUXURY_COLORS.violet, LUXURY_COLORS.rose, '#FAF8F5']
-        }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroGradient}
-      >
-        <View style={styles.heroContent}>
-          <View style={styles.heroIconContainer}>
-            <LinearGradient
-              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-              style={styles.heroIconGradient}
-            >
-              <Feather name="award" size={28} color={LUXURY_COLORS.midnight} />
-            </LinearGradient>
-          </View>
-          <ThemedText type="h1" style={styles.heroTitle}>
-            {t('subscription.heroTitle')}
-          </ThemedText>
-          <ThemedText type="body" style={styles.heroSubtitle}>
-            {t('subscription.heroSubtitle')}
-          </ThemedText>
-        </View>
-      </LinearGradient>
-
       {(winbackBanner || winbackOffer50 || winbackPausePrompt) ? (
         <View style={[styles.winbackBanner, { backgroundColor: isDark ? 'rgba(201,168,124,0.15)' : 'rgba(201,168,124,0.25)' }]}>
           {winbackBanner ? (
@@ -1394,38 +1367,6 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
 }
 
 const styles = StyleSheet.create({
-  heroGradient: {
-    marginHorizontal: -Spacing.lg,
-    marginTop: 0,
-    paddingTop: Spacing["2xl"],
-    paddingBottom: Spacing["2xl"],
-    paddingHorizontal: Spacing.lg,
-    borderBottomLeftRadius: BorderRadius.xl,
-    borderBottomRightRadius: BorderRadius.xl,
-    marginBottom: Spacing.xl,
-  },
-  heroContent: {
-    alignItems: 'center',
-  },
-  heroIconContainer: {
-    marginBottom: Spacing.md,
-  },
-  heroIconGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroTitle: {
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: Spacing.xs,
-  },
-  heroSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
-  },
   winbackBanner: {
     marginBottom: Spacing.lg,
     padding: Spacing.md,
