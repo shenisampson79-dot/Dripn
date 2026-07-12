@@ -1172,7 +1172,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
+    // Match Top up voice credits outer height (paddingVertical md + two-line content)
     paddingVertical: Spacing.md,
+    minHeight: Spacing.md * 2 + 40,
   },
   upgradeButtonText: {
     color: LuxuryColors.midnight,
