@@ -176,7 +176,7 @@ class SupportService {
 
       const chatHistory = this.chatHistory
         .filter((m) => m.role === 'user' || m.role === 'assistant')
-        // Exclude the just-added user message — it is sent separately as `message`
+        // Exclude the just-added user message — it is sent separately as `userMessage`
         .slice(0, -1)
         .slice(-8)
         .map((m) => ({
@@ -184,20 +184,19 @@ class SupportService {
           content: m.content,
         }));
 
-      const result = await apiService.sendSupportMessage({
-        message: userMessage,
-        chatHistory,
-        stylistName: 'Julia',
-        stylistPersonality: 'julia',
+      // Julia is a stylist personality (support mode) — same /api/chat/resilient stack as Ruby/Max/Ace/Ivy
+      const result = await apiService.sendStylistMessage({
+        stylistId: 'julia',
+        messages: chatHistory,
+        userMessage,
       });
 
-      const response = (result?.response || '').trim();
+      const response = (result?.content || '').trim();
       const looksLikeOutage =
-        Boolean(result?.fallback) ||
+        Boolean(result?.error) ||
         /trouble connecting|try again or email support/i.test(response);
 
       if (!response || looksLikeOutage) {
-        // Live Julia AI failed — answer with targeted offline help, not a generic menu
         return this.getMockResponse(userMessage, { reason: 'ai_unavailable' });
       }
 
