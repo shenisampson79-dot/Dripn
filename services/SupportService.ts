@@ -230,7 +230,7 @@ class SupportService {
 
   private connectionTroubleshooting(signOff: string, note?: string): string {
     const prefix = note ? `${note}\n\n` : '';
-    return `${prefix}Sorry you're having trouble reaching our servers. Try this:\n\n1. Check Wi‑Fi or mobile data\n2. Force-quit Dripn and open it again\n3. Wait 30–60 seconds — our backend can take a moment to wake up, then try again\n4. Toggle airplane mode off/on, or switch between Wi‑Fi and cellular\n5. Make sure you're on the latest app version\n\nIf it still fails, tap the + icon to create a support ticket, or email support@dripn.app with your phone model and what screen you were on. ${signOff}`;
+    return `${prefix}Try this:\n\n1. Check Wi‑Fi or mobile data\n2. Force-quit Dripn and open it again\n3. Wait 30–60 seconds — our backend can take a moment to wake up, then try again\n4. Toggle airplane mode off/on, or switch between Wi‑Fi and cellular\n5. Make sure you're on the latest app version\n\nIf it still fails, tap the + icon to create a support ticket, or email support@dripn.app with your phone model and what screen you were on. ${signOff}`;
   }
 
   private getMockResponse(
@@ -241,10 +241,14 @@ class SupportService {
     const signOff = 'Happy to help!';
 
     if (this.isConnectionIssue(lowerMessage)) {
-      const note =
-        opts?.reason === 'ai_unavailable' || opts?.reason === 'network_error'
-          ? "I couldn't reach the live support brain just now (that can happen when the server is waking up), but here's how to fix app ↔ server connection:"
-          : undefined;
+      // ai_unavailable means we DID reach dripn-server; only the OpenAI reply failed
+      let note: string | undefined;
+      if (opts?.reason === 'ai_unavailable') {
+        note =
+          "Good news: your app is reaching our servers right now. My full AI replies are temporarily unavailable (that’s separate from app ↔ server connection). If another screen still won’t load, try these steps:";
+      } else if (opts?.reason === 'network_error') {
+        note = "I couldn’t reach our servers from this chat just now. Here’s how to fix the connection:";
+      }
       return this.connectionTroubleshooting(signOff, note);
     }
 
