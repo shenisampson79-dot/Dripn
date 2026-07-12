@@ -1099,12 +1099,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
             </>
           ) : (
             <>
-          <Pressable
-            onPress={() => navigation.goBack()}
-            style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
-          >
-            <Feather name="arrow-left" size={20} color="#FFFFFF" />
-          </Pressable>
+          <View style={styles.headerSideSlot} />
           <View style={styles.headerTitleContainer}>
             <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{t('wardrobe.myWardrobe')}</ThemedText>
             <View style={[styles.itemCountBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
@@ -1119,7 +1114,7 @@ export default function WardrobeScreen({ navigation }: WardrobeScreenProps) {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setSelectionMode(true);
                   }}
-                  style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
+                  style={[styles.headerActionButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
                 >
                   <ThemedText type="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>{t('wardrobe.select') || 'Select'}</ThemedText>
                 </Pressable>
@@ -1573,10 +1568,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: Spacing.md,
   },
+  headerSideSlot: {
+    minWidth: 72,
+  },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+    minWidth: 72,
+    justifyContent: 'flex-end',
   },
   batchProgressBanner: {
     flexDirection: 'row',
@@ -1590,15 +1590,17 @@ const styles = StyleSheet.create({
   headerTitleContainer: {
     alignItems: 'center',
     gap: Spacing.xs,
+    flex: 1,
   },
   itemCountBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: BorderRadius.full,
   },
-  backButton: {
-    width: 40,
+  headerActionButton: {
+    minWidth: 40,
     height: 40,
+    paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.full,
     alignItems: "center",
     justifyContent: "center",

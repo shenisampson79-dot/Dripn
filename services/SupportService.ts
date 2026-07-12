@@ -171,13 +171,18 @@ class SupportService {
   private async getAIResponse(userMessage: string): Promise<string> {
     try {
       if (!apiService.isConfigured()) {
-        return this.getMockResponse(userMessage);
+        return this.getMockResponse(userMessage, { reason: 'not_configured' });
       }
 
-      const chatHistory = this.chatHistory.slice(-10).map(m => ({
-        role: m.role,
-        content: m.content,
-      }));
+      const chatHistory = this.chatHistory
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        // Exclude the just-added user message — it is sent separately as `message`
+        .slice(0, -1)
+        .slice(-8)
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
 
       const result = await apiService.sendSupportMessage({
         message: userMessage,
@@ -186,24 +191,72 @@ class SupportService {
         stylistPersonality: 'julia',
       });
 
-      return result.response;
+      const response = (result?.response || '').trim();
+      const looksLikeOutage =
+        Boolean(result?.fallback) ||
+        /trouble connecting|try again or email support/i.test(response);
+
+      if (!response || looksLikeOutage) {
+        // Live Julia AI failed — answer with targeted offline help, not a generic menu
+        return this.getMockResponse(userMessage, { reason: 'ai_unavailable' });
+      }
+
+      return response;
     } catch (error) {
       console.error('Support API error:', error);
-      return this.getMockResponse(userMessage);
+      return this.getMockResponse(userMessage, { reason: 'network_error' });
     }
   }
 
-  private getMockResponse(userMessage: string): string {
+  private isConnectionIssue(lowerMessage: string): boolean {
+    return (
+      lowerMessage.includes('connect') ||
+      lowerMessage.includes('connection') ||
+      lowerMessage.includes('server') ||
+      lowerMessage.includes('offline') ||
+      lowerMessage.includes('network') ||
+      lowerMessage.includes('timeout') ||
+      lowerMessage.includes("can't reach") ||
+      lowerMessage.includes('cant reach') ||
+      lowerMessage.includes('not loading') ||
+      lowerMessage.includes('won’t load') ||
+      lowerMessage.includes("won't load") ||
+      lowerMessage.includes('spinning') ||
+      lowerMessage.includes('keeps loading') ||
+      lowerMessage.includes('api') ||
+      lowerMessage.includes('backend')
+    );
+  }
+
+  private connectionTroubleshooting(signOff: string, note?: string): string {
+    const prefix = note ? `${note}\n\n` : '';
+    return `${prefix}Sorry you're having trouble reaching our servers. Try this:\n\n1. Check Wi‑Fi or mobile data\n2. Force-quit Dripn and open it again\n3. Wait 30–60 seconds — our backend can take a moment to wake up, then try again\n4. Toggle airplane mode off/on, or switch between Wi‑Fi and cellular\n5. Make sure you're on the latest app version\n\nIf it still fails, tap the + icon to create a support ticket, or email support@dripn.app with your phone model and what screen you were on. ${signOff}`;
+  }
+
+  private getMockResponse(
+    userMessage: string,
+    opts?: { reason?: 'not_configured' | 'ai_unavailable' | 'network_error' },
+  ): string {
     const lowerMessage = userMessage.toLowerCase();
     const signOff = 'Happy to help!';
 
+    if (this.isConnectionIssue(lowerMessage)) {
+      const note =
+        opts?.reason === 'ai_unavailable' || opts?.reason === 'network_error'
+          ? "I couldn't reach the live support brain just now (that can happen when the server is waking up), but here's how to fix app ↔ server connection:"
+          : undefined;
+      return this.connectionTroubleshooting(signOff, note);
+    }
+
     if (
       lowerMessage.includes('referral') ||
+      lowerMessage.includes('referring') ||
       lowerMessage.includes('refer a friend') ||
       lowerMessage.includes('refer the app') ||
-      (lowerMessage.includes('refer') && lowerMessage.includes('friend'))
+      (lowerMessage.includes('refer') && lowerMessage.includes('friend')) ||
+      (lowerMessage.includes('invite') && lowerMessage.includes('friend'))
     ) {
-      return `Great question about referrals! Share your personal code from Settings > Invite Friends.\n\nWhen a friend joins with your code:\n- You earn bonus AI styling requests\n- You get a 10% discount on your subscription\n- Your friend gets +20 styling requests and a 10% welcome discount\n\nTap the gift icon in Settings to share your code. ${signOff}`;
+      return `Great question about referrals! Share your personal code from Settings > Invite Friends.\n\nWhen a friend joins with your code, you both get:\n- +20 bonus AI stylist chat messages\n- 10% off your next Stripe subscription charge (web/Android). Apple In-App Purchase can’t use Stripe coupons, but the +20 AI messages still apply.\n\nFriends can also enter a code under Settings > Invite Friends. ${signOff}`;
     }
 
     if (lowerMessage.includes('subscription') || lowerMessage.includes('plan') || lowerMessage.includes('upgrade')) {
@@ -224,6 +277,15 @@ class SupportService {
 
     if (lowerMessage.includes('ticket') || lowerMessage.includes('support team')) {
       return `I can help you create a support ticket that goes directly to our team! Just tell me:\n\n1. What category best describes your issue?\n2. A brief description of the problem\n\nOr tap one of the quick options below to get started.`;
+    }
+
+    // If live AI was down but the question wasn't connection-related, still be useful
+    if (opts?.reason === 'ai_unavailable' || opts?.reason === 'network_error') {
+      return `I'm having a brief moment connecting to my full answer engine. Please try that question again in a few seconds.\n\nMeanwhile I can still help with subscriptions, referrals, wardrobe tips, or creating a support ticket — or email support@dripn.app. ${signOff}`;
+    }
+
+    if (opts?.reason === 'not_configured') {
+      return `Support chat isn't fully configured in this build. Please email support@dripn.app and we'll help right away. ${signOff}`;
     }
 
     return `Thanks for reaching out! I'm here to help with anything Dripn-related. You can ask me about:\n\n- App features and how to use them\n- Subscription plans and upgrades\n- Troubleshooting common issues\n- Creating a support ticket\n\nWhat would you like to know? ${signOff}`;

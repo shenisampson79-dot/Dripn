@@ -71,22 +71,33 @@ export function resolveGeneratedOutfitItemIds(
 }
 
 export async function generateWardrobeOutfit(params: {
-  occasionType: OutfitOccasionId;
+  occasionType: OutfitOccasionId | 'todays_look';
   wardrobeItems: WardrobeItem[];
   stylistId?: string;
   saveToCalendar?: boolean;
   calendarDate?: string;
   user?: UserProfile | null;
   onboardingProfile?: OnboardingProfile | null;
+  weather?: { temperature: number; condition: string } | null;
 }): Promise<GeneratedOutfitDisplay & { raw: Awaited<ReturnType<typeof apiService.generateOutfit>> }> {
-  const { occasionType, wardrobeItems, stylistId, saveToCalendar, calendarDate, user, onboardingProfile } = params;
-  const regional = resolveRegionalStyleContext(user, onboardingProfile);
-
-  const result = await apiService.generateOutfit({
+  const {
     occasionType,
+    wardrobeItems,
     stylistId,
     saveToCalendar,
     calendarDate,
+    user,
+    onboardingProfile,
+    weather,
+  } = params;
+  const regional = resolveRegionalStyleContext(user, onboardingProfile);
+
+  const result = await apiService.generateOutfit({
+    occasionType: occasionType as Parameters<typeof apiService.generateOutfit>[0]['occasionType'],
+    stylistId,
+    saveToCalendar,
+    calendarDate,
+    weather: weather || undefined,
     countryCode: regional.countryCode || undefined,
     preferredStyles: regional.styleTags,
     localItems: wardrobeItems.map((i) => ({

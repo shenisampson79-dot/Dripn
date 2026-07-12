@@ -586,7 +586,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (email: string, password: string, name: string) => {
     setIsAuthenticating(true);
     try {
-      const result = await apiService.register(email, password, name);
+      let pendingReferral: string | undefined;
+      try {
+        const stored = await AsyncStorage.getItem('@dripn_pending_referral');
+        if (stored) pendingReferral = stored;
+      } catch {
+        /* ignore */
+      }
+
+      const result = await apiService.register(email, password, name, pendingReferral);
+      if (pendingReferral) {
+        try {
+          await AsyncStorage.removeItem('@dripn_pending_referral');
+        } catch {
+          /* ignore */
+        }
+      }
       const backendUser = result.user;
       const newUser = createDefaultUser(email, name);
       newUser.id = backendUser.id?.toString() || newUser.id;
@@ -881,6 +896,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Ensure hasSeenTour is always persisted with the user
     if (updates.hasSeenTour !== undefined) {
       console.log('[Auth] Updating hasSeenTour to:', updates.hasSeenTour);
+    }
+    if (updates.gender === 'man') {
+      await onboardingProfileService.syncQuizGenderFromUserGender('man').catch(() => {});
+    } else if (updates.gender === 'woman') {
+      await onboardingProfileService.syncQuizGenderFromUserGender('woman').catch(() => {});
     }
     await saveUser(updatedUser);
   };

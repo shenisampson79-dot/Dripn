@@ -366,10 +366,6 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
         </View>
 
         <View style={styles.contentSection}>
-          <TodaysOutfitCard
-            onOpenStylist={(prompt) => navigation.navigate("AIStylist", { initialPrompt: prompt })}
-          />
-
           <View style={styles.headerSection}>
             <View style={styles.headerRow}>
               <View>
@@ -397,6 +393,11 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
           </View>
         </View>
       </ScreenScrollView>
+
+      {/* Overlay — does not affect Style Tools layout */}
+      <TodaysOutfitCard
+        onOpenStylist={(prompt) => navigation.navigate("AIStylist", { initialPrompt: prompt })}
+      />
     </View>
   );
 }

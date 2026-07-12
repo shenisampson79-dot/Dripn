@@ -58,6 +58,7 @@ import { PersonalStylistVoicePanel } from '@/components/PersonalStylistVoicePane
 import { Spacing, BorderRadius, Typography, LuxuryColors as ThemeLuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useReferral } from '@/contexts/ReferralContext';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useWardrobe, WardrobeItem, ClothingOccasion, ClothingSeason } from '@/contexts/WardrobeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1274,6 +1275,7 @@ export default function AIStylistScreen() {
   const { t, currentLanguage } = useTranslations();
   const quickPrompts = useMemo(() => getQuickPrompts(t), [t]);
   const { limits, tier } = useSubscription();
+  const { bonusAIRequests, consumeBonusAiRequest } = useReferral();
   const { items: wardrobeItems } = useWardrobe();
   const { user, actualCountry } = useAuth();
   const { settings: voiceSettings, getVoiceForStylist } = useVoiceSettings();
@@ -2028,6 +2030,14 @@ export default function AIStylistScreen() {
   const incrementDailyMessages = async () => {
     try {
       const today = new Date().toDateString();
+      if (
+        limits.aiChatMessagesPerDay !== Infinity &&
+        messagesToday >= limits.aiChatMessagesPerDay &&
+        bonusAIRequests > 0
+      ) {
+        await consumeBonusAiRequest();
+        return;
+      }
       const newCount = messagesToday + 1;
       await AsyncStorage.setItem(DAILY_MESSAGES_KEY, JSON.stringify({ date: today, count: newCount }));
       setMessagesToday(newCount);
@@ -2038,12 +2048,14 @@ export default function AIStylistScreen() {
   
   const canSendMessage = () => {
     if (limits.aiChatMessagesPerDay === Infinity) return true;
-    return messagesToday < limits.aiChatMessagesPerDay;
+    if (messagesToday < limits.aiChatMessagesPerDay) return true;
+    return bonusAIRequests > 0;
   };
   
   const getRemainingMessages = () => {
     if (limits.aiChatMessagesPerDay === Infinity) return Infinity;
-    return Math.max(0, limits.aiChatMessagesPerDay - messagesToday);
+    const dailyLeft = Math.max(0, limits.aiChatMessagesPerDay - messagesToday);
+    return dailyLeft + Math.max(0, bonusAIRequests);
   };
   
   const sendMessage = async (text: string) => {
@@ -2873,7 +2885,10 @@ export default function AIStylistScreen() {
   );
   
   const remainingMessages = getRemainingMessages();
-  const limitReached = useMemo(() => limitsLoaded && !canSendMessage(), [limitsLoaded, messagesToday, limits.aiChatMessagesPerDay]);
+  const limitReached = useMemo(
+    () => limitsLoaded && !canSendMessage(),
+    [limitsLoaded, messagesToday, limits.aiChatMessagesPerDay, bonusAIRequests],
+  );
   
   // Memoize upgrade teaser values to prevent flickering on every keystroke
   const upgradeTeaserData = useMemo(() => {

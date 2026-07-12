@@ -114,7 +114,7 @@ function SettingItem({
 export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScreenProps) {
   const { theme, isDark } = useTheme();
   const { user, logout, updateProfile } = useAuth();
-  const { referralCode, totalReferrals, bonusAIRequests, shareReferral } = useReferral();
+  const { referralCode, totalReferrals, bonusAIRequests, shareReferral, applyReferralCode, referredByCode, referralDiscountPending } = useReferral();
   const { preferences: notificationPrefs, updatePreferences } = useSmartNotifications();
   const { settings: voiceSettings, updateSettings: updateVoiceSettings } = useVoiceSettings();
   const { t, translations, currentLanguage, availableLanguages } = useTranslations();
@@ -154,6 +154,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const [showVoiceCreditsModal, setShowVoiceCreditsModal] = useState(false);
+  const [referralCodeInput, setReferralCodeInput] = useState('');
   const {
     remainingCredits,
     hasMonthlyAllowance,
@@ -226,6 +227,17 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     if (!success) {
       Alert.alert(t('common.sharingFailed') || "Sharing Failed", t('common.couldNotShareYourReferralCodePleaseTryAg') || "Could not share your referral code. Please try again.");
     }
+  };
+
+  const handleApplyReferralCode = async () => {
+    const result = await applyReferralCode(referralCodeInput);
+    Alert.alert(
+      result.success
+        ? (t('settings.referralAppliedTitle') || 'Referral applied')
+        : (t('common.error') || 'Error'),
+      result.message,
+    );
+    if (result.success) setReferralCodeInput('');
   };
 
   const handleNewsletterToggle = async (value: boolean) => {
@@ -457,14 +469,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       />
       <ScreenScrollView style={{ backgroundColor: 'transparent' }}>
         <View style={styles.headerContent}>
-          <Pressable
-            onPress={() => navigation.goBack()}
-            style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
-          >
-            <Feather name="arrow-left" size={20} color="#FFFFFF" />
-          </Pressable>
           <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{t('settings.title')}</ThemedText>
-          <View style={{ width: 40 }} />
         </View>
 
       <View style={styles.section}>
@@ -593,12 +598,57 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               </ThemedText>
               <ThemedText type="small" style={styles.settingSubtitle}>
                 {totalReferrals > 0
-                  ? `${totalReferrals} friends joined - ${bonusAIRequests} AI requests & 10% discount earned`
+                  ? (t('settings.referralStatsLine') || '{count} friends joined · {bonus} bonus AI messages')
+                      .replace('{count}', String(totalReferrals))
+                      .replace('{bonus}', String(bonusAIRequests))
                   : t('settings.inviteDescription')}
+                {referralDiscountPending
+                  ? `\n${t('settings.referralDiscountPending') || '10% off ready for your next Stripe checkout.'}`
+                  : ''}
               </ThemedText>
             </View>
             <Feather name="share-2" size={18} color={LUXURY_COLORS.coral} />
           </Pressable>
+          {!referredByCode ? (
+            <View style={styles.referralApplyRow}>
+              <TextInput
+                value={referralCodeInput}
+                onChangeText={setReferralCodeInput}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                placeholder={t('settings.enterReferralCode') || 'Have a code? Enter it here'}
+                placeholderTextColor={theme.tabIconDefault}
+                style={[
+                  styles.referralInput,
+                  {
+                    color: theme.text,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                    borderColor: theme.border,
+                  },
+                ]}
+              />
+              <Pressable
+                onPress={handleApplyReferralCode}
+                disabled={!referralCodeInput.trim()}
+                style={[
+                  styles.referralApplyBtn,
+                  {
+                    backgroundColor: theme.link,
+                    opacity: referralCodeInput.trim() ? 1 : 0.5,
+                  },
+                ]}
+              >
+                <ThemedText type="small" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                  {t('settings.applyCode') || 'Apply'}
+                </ThemedText>
+              </Pressable>
+            </View>
+          ) : (
+            <ThemedText type="caption" style={[styles.referralAppliedNote, { color: theme.tabIconDefault }]}>
+              {(t('settings.referredByNote') || 'Joined with code {code}')
+                .replace('{code}', referredByCode)}
+            </ThemedText>
+          )}
         </View>
       </View>
 
@@ -1149,13 +1199,6 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.full,
-    alignItems: 'center',
     justifyContent: 'center',
   },
   section: {
@@ -1217,6 +1260,30 @@ const styles = StyleSheet.create({
   settingSubtitle: {
     opacity: 0.6,
     marginTop: 2,
+  },
+  referralApplyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
+  },
+  referralInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: 15,
+  },
+  referralApplyBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.md,
+  },
+  referralAppliedNote: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
   },
   footer: {
     alignItems: "center",

@@ -646,7 +646,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     checkForTrends: 'Check for trends',
     inviteFriends: 'Invite Friends',
     shareYourCode: 'Share Your Code',
-    inviteDescription: 'Invite friends and you both get 20 AI requests & 10% discount',
+    inviteDescription: 'Invite friends — you both get +20 AI stylist messages and 10% off your next Stripe subscription charge',
     communityVoting: 'Community Voting',
     communityVotingDesc: 'Notify when other users need your fashion advice',
     priceAlerts: 'Price Alerts',
@@ -1627,7 +1627,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     heroSubtitle: 'Your AI stylist for everyday confidence — or full life planning',
     heroTitle: 'Look Better, Stress Less',
     inviteFriends: 'Invite Friends',
-    inviteFriendsSubtitle: 'Tap to share — you both get a free month',
+    inviteFriendsSubtitle: 'Share your code — you both get +20 AI messages & 10% off Stripe billing',
     manageBilling: 'Manage Billing',
     manageSubscription: 'Manage Subscription',
     memberVideoCallingIsAvailableOnTheStylis: 'Member video calling is available on the Stylist Unlimited plan.',
@@ -1767,25 +1767,41 @@ const DEFAULT_TRANSLATIONS: Translations = {
     youreOn: 'You\'re on',
   },
   support: {
-    clear: 'text: \'Clear\',',
-    clearChatMessage: 'Clear Chat History',
-    clearChatTitle: 'Are you sure you want to clear your support chat history?',
+    clear: 'Clear',
+    clearChatMessage: 'This will remove your conversation with Julia. You can always start a new chat anytime.',
+    clearChatTitle: 'Clear chat history?',
     commonIssues: 'Common Issues',
-    createTicket: 'h3',
+    createTicket: 'Create Support Ticket',
     describeIssue: 'Describe Your Issue',
-    issuePlaceholder: 'Tell us what',
-    juliaName: 'h3',
+    issuePlaceholder: 'Tell us what happened and how we can help…',
+    juliaName: 'Julia',
     juliaSubtitle: 'Your support assistant',
     juliaTyping: 'Julia is typing...',
     messagePlaceholder: 'Type your message...',
-    missingInfoMessage: 'Missing Info Message',
-    missingInfoTitle: 'Missing Info Title',
-    responseFailed: 'Response Failed',
-    screenTitle: 'react',
+    missingInfoMessage: 'Please choose a category and describe your issue.',
+    missingInfoTitle: 'Missing information',
+    responseFailed: 'Could not get a response. Please try again.',
+    screenTitle: 'Ask Julia',
     selectCategory: 'Select Category',
-    sendFailed: 'Send Failed',
+    sendFailed: 'Could not send your message. Please try again.',
     submitTicket: 'Submit Ticket',
-    ticketFailed: 'Ticket Failed',
+    ticketFailed: 'Could not create your ticket. Please try again or email support@dripn.app.',
+    quickAction: {
+      'app-slow': 'App is running slow',
+      'login-issues': 'Cannot log in',
+      'subscription-not-working': 'Subscription features not working',
+      'photos-not-uploading': 'Photos not uploading',
+      'notifications-not-working': 'Not receiving notifications',
+    },
+    ticketCategory: {
+      subscription: 'Subscription & Plans',
+      account: 'Account Issues',
+      'app-issue': 'App Problems',
+      billing: 'Billing & Payments',
+      styling: 'Styling Features',
+      'feature-request': 'Feature Requests',
+      other: 'Other',
+    },
   },
   terms: {
     effectiveDate: 'Effective Date: December 7, 2025',
@@ -2124,11 +2140,20 @@ class TranslationServiceClass {
   }
 
   private mergeTranslations(backendTranslations: Record<string, any>, langCode: string): Translations {
+    const isCorruptValue = (value: string) => {
+      const v = value.trim();
+      if (!v) return true;
+      if (['h1', 'h2', 'h3', 'h4', 'react', 'body', 'small', 'caption'].includes(v)) return true;
+      if (/^text:\s*['"]/.test(v)) return true;
+      return false;
+    };
+
     const flatToNested = (flat: Record<string, any>): Record<string, any> => {
       const result: Record<string, any> = {};
       for (const key in flat) {
         // Only accept string leaf values — nested objects from a bad merge would overwrite branches
         if (typeof flat[key] !== 'string') continue;
+        if (isCorruptValue(flat[key])) continue;
         const parts = key.split('.');
         let current = result;
         for (let i = 0; i < parts.length - 1; i++) {
@@ -2187,6 +2212,18 @@ class TranslationServiceClass {
       home: { ...DEFAULT_TRANSLATIONS.home, ...nested.home },
       auth: { ...DEFAULT_TRANSLATIONS.auth, ...nested.auth },
       aiStylist: { ...DEFAULT_TRANSLATIONS.aiStylist, ...nested.aiStylist },
+      support: {
+        ...DEFAULT_TRANSLATIONS.support,
+        ...nested.support,
+        quickAction: {
+          ...(DEFAULT_TRANSLATIONS.support as any).quickAction,
+          ...nested.support?.quickAction,
+        },
+        ticketCategory: {
+          ...(DEFAULT_TRANSLATIONS.support as any).ticketCategory,
+          ...nested.support?.ticketCategory,
+        },
+      },
     };
 
     for (const key of Object.keys(nested)) {

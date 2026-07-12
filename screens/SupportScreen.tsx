@@ -40,7 +40,6 @@ import {
 import { PersonalStylist } from '@/services/PersonalStylistService';
 import { currencyService } from '@/services/CurrencyService';
 
-const INPUT_CONTAINER_HEIGHT = 80;
 const INPUT_MIN_HEIGHT = 44;
 const INPUT_MAX_HEIGHT = 120;
 
@@ -52,10 +51,10 @@ export default function SupportScreen() {
   const { paddingTop, paddingBottom } = useScreenInsets();
   const safeAreaInsets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
+  const sendingRef = useRef(false);
 
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [inputText, setInputText] = useState('');
-  const [inputHeight, setInputHeight] = useState(INPUT_MIN_HEIGHT);
   const [isLoading, setIsLoading] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -67,11 +66,19 @@ export default function SupportScreen() {
   const [currencySymbol, setCurrencySymbol] = useState('$');
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: t('support.screenTitle') });
+    navigation.setOptions({
+      title: t('support.screenTitle') || t('settings.chatWithJulia') || 'Ask Julia',
+    });
   }, [navigation, t]);
 
-  const getQuickActionLabel = (id: string) => t(`support.quickAction.${id}`);
-  const getTicketCategoryLabel = (id: TicketCategory) => t(`support.ticketCategory.${id}`);
+  const getQuickActionLabel = (id: string) =>
+    t(`support.quickAction.${id}`) ||
+    QUICK_TROUBLESHOOTING.find((a) => a.id === id)?.label ||
+    id;
+  const getTicketCategoryLabel = (id: TicketCategory) =>
+    t(`support.ticketCategory.${id}`) ||
+    TICKET_CATEGORIES.find((c) => c.id === id)?.label ||
+    id;
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -114,63 +121,73 @@ export default function SupportScreen() {
   }, []);
 
   const handleSend = async () => {
-    if (!inputText.trim() || isLoading) return;
+    if (!inputText.trim() || isLoading || sendingRef.current) return;
 
     const userMessage = inputText.trim();
+    sendingRef.current = true;
+    setIsLoading(true);
     setInputText('');
-    setInputHeight(INPUT_MIN_HEIGHT);
     setShowQuickActions(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    const userMsg: SupportMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: userMessage,
-      timestamp: new Date().toISOString(),
-    };
-    setMessages(prev => [...prev, userMsg]);
+    // Optimistic bubble — replaced by canonical history after send (prevents duplicates)
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `pending-${Date.now()}`,
+        role: 'user',
+        content: userMessage,
+        timestamp: new Date().toISOString(),
+      },
+    ]);
     scrollToEnd();
 
-    setIsLoading(true);
     try {
-      const response = await supportService.sendMessage(userMessage);
-      setMessages(prev => [...prev, response]);
+      await supportService.sendMessage(userMessage);
+      setMessages(supportService.getChatHistory());
       scrollToEnd();
     } catch (error) {
-      Alert.alert(t('common.error'), t('support.sendFailed'));
+      setMessages(supportService.getChatHistory());
+      Alert.alert(t('common.error'), t('support.sendFailed') || 'Could not send your message. Please try again.');
     } finally {
+      sendingRef.current = false;
       setIsLoading(false);
     }
   };
 
   const handleQuickAction = async (actionId: string) => {
     const action = QUICK_TROUBLESHOOTING.find(a => a.id === actionId);
-    if (!action) return;
+    if (!action || isLoading || sendingRef.current) return;
 
     const label = getQuickActionLabel(actionId);
 
+    sendingRef.current = true;
+    setIsLoading(true);
     setShowQuickActions(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    const userMsg: SupportMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: label,
-      timestamp: new Date().toISOString(),
-    };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `pending-${Date.now()}`,
+        role: 'user',
+        content: label,
+        timestamp: new Date().toISOString(),
+      },
+    ]);
     scrollToEnd();
 
-    setIsLoading(true);
     try {
-      const response = await supportService.sendMessage(action.label, {
+      await supportService.sendMessage(action.label, {
         fromQuickAction: true,
       });
-      setMessages(prev => [...prev, response]);
+      setMessages(supportService.getChatHistory());
       scrollToEnd();
     } catch (error) {
-      Alert.alert(t('common.error'), t('support.responseFailed'));
+      setMessages(supportService.getChatHistory());
+      Alert.alert(t('common.error'), t('support.responseFailed') || 'Could not get a response. Please try again.');
     } finally {
+      sendingRef.current = false;
       setIsLoading(false);
     }
   };
@@ -476,9 +493,9 @@ export default function SupportScreen() {
             </View>
           ) : null}
           <View>
-            <ThemedText type="h3">{t('support.juliaName')}</ThemedText>
+            <ThemedText type="h3">{t('support.juliaName') || 'Julia'}</ThemedText>
             <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-              {t('support.juliaSubtitle')}
+              {t('support.juliaSubtitle') || 'Your support assistant'}
             </ThemedText>
           </View>
         </View>
@@ -494,7 +511,7 @@ export default function SupportScreen() {
         renderItem={renderMessage}
         contentContainerStyle={[
           styles.messagesList,
-          { paddingBottom: Math.max(Spacing.xl, inputHeight + Spacing.lg) },
+          { paddingBottom: Spacing.xl },
         ]}
         showsVerticalScrollIndicator={false}
         onContentSizeChange={scrollToEnd}
@@ -541,20 +558,17 @@ export default function SupportScreen() {
               {
                 backgroundColor: theme.backgroundSecondary,
                 color: theme.text,
-                height: Math.max(INPUT_MIN_HEIGHT, Math.min(inputHeight, INPUT_MAX_HEIGHT)),
               },
             ]}
-            placeholder={t('support.messagePlaceholder')}
+            placeholder={t('support.messagePlaceholder') || 'Type your message...'}
             placeholderTextColor={theme.tabIconDefault}
             value={inputText}
             onChangeText={setInputText}
-            onContentSizeChange={(e) => {
-              setInputHeight(e.nativeEvent.contentSize.height);
-            }}
             multiline
             blurOnSubmit={false}
-            scrollEnabled={inputHeight >= INPUT_MAX_HEIGHT}
+            scrollEnabled
             textAlignVertical="top"
+            underlineColorAndroid="transparent"
           />
           <Pressable
             onPress={handleSend}
@@ -722,6 +736,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 12 : 10,
     paddingBottom: Platform.OS === 'ios' ? 12 : 10,
     fontSize: Typography.body.fontSize,
+    lineHeight: 22,
   },
   sendButton: {
     width: 44,

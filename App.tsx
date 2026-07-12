@@ -63,6 +63,8 @@ import { TranslationProvider } from "@/contexts/TranslationContext";
 import { ColorSchemeProvider } from "@/contexts/ColorSchemeContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { SubscriptionSuccessRedirect } from "@/components/SubscriptionSuccessRedirect";
+import * as Linking from "expo-linking";
+import { stashPendingReferralCode } from "@/contexts/ReferralContext";
 
 export type PortalMode = 'stylist' | 'admin' | null;
 
@@ -244,6 +246,28 @@ function AppContent() {
 }
 
 export default function App() {
+  useEffect(() => {
+    const captureInvite = (url: string | null) => {
+      if (!url) return;
+      try {
+        const parsed = Linking.parse(url);
+        const path = `${parsed.path || ''} ${parsed.hostname || ''}`.toLowerCase();
+        const codeFromPath = parsed.path?.match(/invite\/([^/?#]+)/i)?.[1]
+          || (parsed.path && !parsed.path.includes('/') ? parsed.path : null);
+        const code = (parsed.queryParams?.code as string)
+          || codeFromPath
+          || (path.includes('invite') ? (parsed.queryParams?.referral as string) : null);
+        if (code) void stashPendingReferralCode(String(code));
+      } catch {
+        /* ignore */
+      }
+    };
+
+    Linking.getInitialURL().then(captureInvite);
+    const sub = Linking.addEventListener('url', ({ url }) => captureInvite(url));
+    return () => sub.remove();
+  }, []);
+
   return (
     <ErrorBoundary>
       <SafeAreaProvider>

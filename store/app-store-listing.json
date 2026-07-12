@@ -1,0 +1,89 @@
+{
+  "ios": {
+    "name": "Dripn: AI Outfit Stylist",
+    "nameCharacterCount": 24,
+    "nameLimit": 30,
+    "subtitle": "Your AI fashion stylist",
+    "subtitleCharacterCount": 23,
+    "subtitleLimit": 30,
+    "subtitleNotes": "ChatGPT pick 'Your personal AI fashion stylist' is 33 chars (over Apple's 30). Shortened to stay under the limit while keeping the same meaning.",
+    "subtitleAlternates": [
+      "Get styled in seconds with AI",
+      "Outfits picked for you fast"
+    ],
+    "keywords": "outfit,stylist,fashion,ai,clothes,wardrobe,style,looks,outfits,shopping,wear,match",
+    "keywordsCharacterCount": 83,
+    "keywordsLimit": 100,
+    "promotionalText": "Speak your vibe. Get styled instantly — outfits in seconds.",
+    "promotionalTextLimit": 170,
+    "positioningLine": "Dripn — your AI Outfit Stylist",
+    "ascAppId": "6762082932",
+    "description": "Your AI Outfit Stylist — Instantly Look Your Best\n\nMeet Dripn, your personal AI stylist that turns your vibe into perfectly styled outfits in seconds.\n\nNo more overthinking what to wear. No more wasted time.\nJust tell Dripn what you’re feeling — and get a complete outfit, instantly.\n\nHOW IT WORKS\n\n1. Tell Dripn your vibe\nType or say what you’re going for:\n“date night”, “casual streetwear”, “summer outfit”, “clean fit”\n\n2. Get a full outfit\nDripn creates a complete look — top, bottoms, shoes — perfectly matched\n\n3. Wear it with confidence\nLook good, feel good, every single day\n\nWHY DRIPN\n\n• Instant outfit ideas — no scrolling, no effort\n• AI-powered styling — smart, on-trend combinations\n• Personalised looks — based on your taste & vibe\n• Outfit inspiration for any occasion\n• Your stylist, always in your pocket\n\nPERFECT FOR\n\n• Daily outfit planning\n• Last-minute events\n• Date nights & nights out\n• Streetwear & fashion inspiration\n• Building your personal style\n\nSTOP WONDERING WHAT TO WEAR\n\nWhether you’re dressing for a casual day, a night out, or something special — Dripn helps you look put together in seconds.\n\nNo stress. No guesswork.\nJust great outfits.\n\nUPGRADE YOUR STYLE\n\nDownload Dripn — your AI Outfit Stylist — today.\n\nDRIPN PRO\n\nUnlock unlimited outfit generations and premium styling features.\n• Unlimited AI outfits\n• Faster results\n• Priority access to new features",
+    "whatsNew": "Launch ready: AI outfit styling, voice vibes, and looks matched to you."
+  },
+  "android": {
+    "title": "Dripn: AI Outfit Stylist",
+    "shortDescription": "Your AI fashion stylist for outfits, wardrobe & daily looks",
+    "shortDescriptionLimit": 80,
+    "fullDescription": "Dripn — your AI Outfit Stylist.\n\nTurn your vibe into perfectly styled outfits in seconds. Tell Dripn what you want — date night, streetwear, summer fit — and get a complete look: top, bottoms, shoes.\n\nHOW IT WORKS\n1. Tell Dripn your vibe (type or speak)\n2. Get a full matched outfit instantly\n3. Wear it with confidence\n\nWHY DRIPN\n• Instant outfit ideas\n• AI-powered styling\n• Personalised to your taste\n• Looks for any occasion\n• Your stylist in your pocket\n\nPerfect for daily outfit planning, last-minute events, date nights, nights out, and building your personal style.\n\nDownload Dripn — your AI Outfit Stylist — today."
+  },
+  "screenshots": {
+    "designRules": [
+      "Max 6–8 words per headline",
+      "Big bold text — don’t bury it",
+      "Dark/clean background = premium",
+      "Show OUTPUT > UI",
+      "Promise + clarity + outcome, minimal words"
+    ],
+    "slides": [
+      {
+        "order": 1,
+        "role": "HOOK",
+        "headline": "Your AI Outfit Stylist",
+        "subtext": "Speak your vibe. Get styled instantly.",
+        "visual": "User speaking → outfit appears"
+      },
+      {
+        "order": 2,
+        "role": "HOW IT WORKS",
+        "headline": "Just tell it what you want",
+        "subtext": "“Date night”, “streetwear”, “summer fit”",
+        "visual": "Chat or voice input UI"
+      },
+      {
+        "order": 3,
+        "role": "MAGIC MOMENT",
+        "headline": "Outfits in seconds",
+        "subtext": "Full looks, perfectly matched",
+        "visual": "Generated outfit (top + bottom + shoes)"
+      },
+      {
+        "order": 4,
+        "role": "PERSONALISATION",
+        "headline": "Styled just for you",
+        "subtext": "Based on your taste & vibe",
+        "visual": "Different styles (casual / formal / street)"
+      },
+      {
+        "order": 5,
+        "role": "USE CASES",
+        "headline": "Never wonder what to wear",
+        "subtext": "Dates • Nights out • Everyday fits",
+        "visual": "3 scenarios (date / party / casual)"
+      },
+      {
+        "order": 6,
+        "role": "CONVERSION",
+        "headline": "Upgrade your style",
+        "subtext": "Your personal stylist — anytime",
+        "cta": "Try Dripn today",
+        "visual": "Premium close / app hero"
+      }
+    ]
+  },
+  "notes": [
+    "Removed unverified 'Join thousands…' claim for launch safety — add back only when true.",
+    "Apple keywords field is separate; do not paste the keyword list into the description body as a labelled section in App Store Connect.",
+    "Screenshot text goes ON the image frames in design — not into App Store Connect text fields."
+  ]
+}

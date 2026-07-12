@@ -22,6 +22,7 @@ import { onboardingProfileService, OnboardingProfile, DRESS_FOR_TO_OCCASION } fr
 import { onboardingSessionService } from "@/services/OnboardingSessionService";
 import { getStyleRuleForOccasion, generateOutfitImage } from "@/services/OutfitImageService";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 type DecideForMeScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "DecideForMe">;
@@ -212,7 +213,14 @@ const FALLBACK_OUTFITS: FallbackOutfit[] = [
   { outfit: "Pleated midi skirt with a fitted tank and heeled sandals. Statement necklace.", reasoning: "Easy event styling. The pleats add movement and interest.", occasions: ["event"], warmWeather: true },
 ];
 
-const getFilteredOutfits = (occasion: string | null, temperature: number | null): FallbackOutfit[] => {
+const FEMININE_GARMENT_RE =
+  /\b(dress(?:es)?|skirt|heels?|blouse|camisole|leggings|bodysuit|gown|sundress|wrap dress|pencil skirt|midi skirt|maxi(?:\s+dress)?|kitten heels?|ballet flats|handbag|earrings|slip dress|sheath dress|culottes|crop(?:ped)?\s+(?:top|jumper|hoodie)|halter|bodycon)\b/i;
+
+const getFilteredOutfits = (
+  occasion: string | null,
+  temperature: number | null,
+  quizGender?: 'male' | 'female' | null,
+): FallbackOutfit[] => {
   let filtered = [...FALLBACK_OUTFITS];
   
   if (occasion) {
@@ -229,6 +237,11 @@ const getFilteredOutfits = (occasion: string | null, temperature: number | null)
       if (warmFiltered.length > 0) filtered = warmFiltered;
     }
   }
+
+  if (quizGender === 'male') {
+    const maleSafe = filtered.filter((o) => !FEMININE_GARMENT_RE.test(o.outfit) && !/feminine|ladylike|curve/i.test(o.reasoning));
+    if (maleSafe.length > 0) filtered = maleSafe;
+  }
   
   return filtered.length > 0 ? filtered : FALLBACK_OUTFITS;
 };
@@ -237,6 +250,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const { t, currentLanguage } = useTranslations();
+  const { user } = useAuth();
   
   const [step, setStep] = useState<"occasion" | "loading" | "result">("loading");
   const [selectedOccasion, setSelectedOccasion] = useState<string | null>(null);
@@ -276,15 +290,17 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     loadRecommendationCount();
     checkStyleDirectionStatus();
     onboardingProfileService.getProfile().then(async (profile) => {
-      setOnboardingProfile(profile);
-      if (profile.dressFor) {
-        setSelectedOccasion(DRESS_FOR_TO_OCCASION[profile.dressFor] || null);
+      const synced = await onboardingProfileService.syncQuizGenderFromUserGender(user?.gender);
+      const resolved = { ...profile, ...synced };
+      setOnboardingProfile(resolved);
+      if (resolved.dressFor) {
+        setSelectedOccasion(DRESS_FOR_TO_OCCASION[resolved.dressFor] || null);
       } else {
         setStep("occasion");
       }
-      if (profile.quizGender) {
+      if (resolved.quizGender) {
         const direction: StyleDirection =
-          profile.quizGender === 'female' ? 'feminine' : 'masculine';
+          resolved.quizGender === 'female' ? 'feminine' : 'masculine';
         const isSet = await AsyncStorage.getItem(STYLE_DIRECTION_SET_KEY);
         if (isSet !== 'true') {
           await styleDirectionService.setStyleDirection(direction, 'onboarding');
@@ -293,7 +309,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         }
       }
     });
-  }, []);
+  }, [user?.gender]);
 
   useEffect(() => {
     onboardingProfileService.getProfile().then(async (profile) => {
@@ -491,7 +507,11 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     const { styleRule, explanation } = getStyleRuleForOccasion(occasionId, t);
     setStyleAdvice({ styleRule, explanation, imageUrl: null });
 
-    const filteredOutfits = getFilteredOutfits(occasionId, weather?.temperature ?? null);
+    const filteredOutfits = getFilteredOutfits(
+      occasionId,
+      weather?.temperature ?? null,
+      profile.quizGender,
+    );
     const randomIndex = Math.floor(Math.random() * filteredOutfits.length);
     outfitIndexRef.current = randomIndex;
     const fallbackOutfit = filteredOutfits[randomIndex];
@@ -512,6 +532,7 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
         expression: expressionText.trim() || undefined,
         deviceId,
         onboardingProfile: profile,
+        quizGender: profile.quizGender,
         language: currentLanguage,
       });
 
@@ -656,8 +677,13 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
     setIsLoadingAnotherOption(true);
     await recordInteraction("another_option");
     
-    // Get filtered outfits based on occasion and weather
-    const filteredOutfits = getFilteredOutfits(selectedOccasion, weather?.temperature ?? null);
+    // Get filtered outfits based on occasion, weather, and gender
+    const profile = onboardingProfile ?? (await onboardingProfileService.getProfile());
+    const filteredOutfits = getFilteredOutfits(
+      selectedOccasion,
+      weather?.temperature ?? null,
+      profile.quizGender,
+    );
     
     // Cycle to next outfit within filtered set
     outfitIndexRef.current = (outfitIndexRef.current + 1) % filteredOutfits.length;

@@ -224,7 +224,7 @@ export default function ProfileStackNavigator({ onOpenPortal }: ProfileStackNavi
       <Stack.Screen
         name="Support"
         component={SupportScreen}
-        options={getSettingsChildScreenOptions({ theme, isDark, title: t('settings.chatWithJulia') })}
+        options={getSettingsChildScreenOptions({ theme, isDark, title: t('support.screenTitle') || t('settings.chatWithJulia') || 'Ask Julia' })}
       />
       <Stack.Screen
         name="FeatureSuggestions"

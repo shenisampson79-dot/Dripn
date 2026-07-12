@@ -11,7 +11,11 @@ import { Post } from "@/contexts/PostsContext";
 import { currencyService } from "@/services/CurrencyService";
 
 const DRIPN_BRANDING = {
-  tagline: "Style that flows - Get personalized fashion advice from AI and real people",
+  /** App Store-facing product name */
+  productName: "Dripn: AI Outfit Stylist",
+  /** Spoken / marketing positioning */
+  positioning: "Dripn — your AI Outfit Stylist",
+  tagline: "Dripn — your AI Outfit Stylist. Get personalized fashion advice from AI and real people",
   downloadCTA: "Download Dripn free",
   /** Public web host (Vercel). Not dripn.app — that domain is unrelated IONOS hosting. */
   appStoreUrl: "https://dripnapp.com",
@@ -183,10 +187,10 @@ export async function shareChallenge(
 
 export async function shareReferralCode(code: string, bonusInfo: string): Promise<boolean> {
   try {
-    const message = `Get fashion advice from real people and AI on Dripn!\n\nUse my referral code: ${code}\n${bonusInfo}\n\nDownload now: https://dripnapp.com/invite/${code}`;
+    const message = `Get fashion advice from real people and AI on Dripn — your AI Outfit Stylist!\n\nUse my referral code: ${code}\n${bonusInfo}\n\nDownload now: https://dripnapp.com/invite/${code}`;
     
     const result = await Share.share({
-      title: "Join Dripn",
+      title: "Join Dripn: AI Outfit Stylist",
       message,
     });
     

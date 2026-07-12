@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Dripn",
+    "name": "Dripn: AI Outfit Stylist",
     "slug": "dripn",
     "version": "1.0.0",
-    "description": "Dripn is your AI-powered personal stylist. Get outfit advice from photo uploads, build a digital wardrobe, and explore style inspiration tailored to your preferences. Features include AI styling chat, outfit builder, weather-based suggestions, community voting on looks, shoppable product links, and optional subscription plans with added benefits. Size-inclusive guidance for casual, professional, and special-occasion dressing. Style that flows.",
+    "description": "Dripn — your AI Outfit Stylist. Get outfit advice from photo uploads, build a digital wardrobe, and explore style inspiration tailored to your preferences. Features include AI styling chat, outfit builder, weather-based suggestions, community voting on looks, shoppable product links, and optional subscription plans with added benefits. Size-inclusive guidance for casual, professional, and special-occasion dressing.",
     "orientation": "portrait",
     "icon": "./assets/images/dripn-logo-icon.png",
     "scheme": "dripn",
@@ -95,6 +95,12 @@
     "extra": {
       "eas": {
         "projectId": "6afc8cc7-86c1-4a8a-9b09-a0daff5bd93f"
+      },
+      "storeListing": {
+        "iosName": "Dripn: AI Outfit Stylist",
+        "iosSubtitle": "Your AI fashion stylist",
+        "iosKeywords": "outfit,stylist,fashion,ai,clothes,wardrobe,style,looks,outfits,shopping,wear,match",
+        "positioning": "Dripn — your AI Outfit Stylist"
       }
     },
     "owner": "ahmayatazah",

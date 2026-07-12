@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Image, ImageSourcePropType, Alert } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, ImageSourcePropType, Alert } from "react-native";
+import { Image } from "expo-image";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -413,36 +414,56 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
+        style={styles.styleTabsScroll}
         contentContainerStyle={styles.styleTabsContainer}
       >
-        {styleOptions.map((style) => (
-          <Pressable
-            key={style.id}
-            onPress={() => setSelectedStyle(style.id)}
-            style={[
-              styles.styleTab,
-              {
-                backgroundColor: selectedStyle === style.id ? theme.link : theme.backgroundDefault,
-                borderColor: selectedStyle === style.id ? theme.link : theme.backgroundSecondary,
-              },
-            ]}
-          >
-            <ThemedText
-              type="small"
-              style={{
-                color: selectedStyle === style.id ? "#FFFFFF" : theme.text,
-                fontWeight: selectedStyle === style.id ? "700" : "500",
-              }}
+        {styleOptions.map((style) => {
+          const isSelected = selectedStyle === style.id;
+          const isCurrent =
+            normalizeStyleThemeForGender(
+              user?.stylePreference || (isMale ? "smart-casual" : "luxury"),
+              isMale,
+            ) === style.id;
+
+          return (
+            <Pressable
+              key={style.id}
+              onPress={() => setSelectedStyle(style.id)}
+              style={[
+                styles.styleTab,
+                {
+                  backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
+                  borderColor: isSelected ? theme.link : theme.backgroundSecondary,
+                },
+              ]}
             >
-              {getStyleThemeLabel(style.id, t)}
-            </ThemedText>
-            {normalizeStyleThemeForGender(user?.stylePreference || (isMale ? 'smart-casual' : 'luxury'), isMale) === style.id ? (
-              <View style={[styles.currentBadge, { backgroundColor: selectedStyle === style.id ? "rgba(255,255,255,0.3)" : theme.link }]}>
-                <Feather name="check" size={10} color={selectedStyle === style.id ? "#FFFFFF" : "#FFFFFF"} />
-              </View>
-            ) : null}
-          </Pressable>
-        ))}
+              {isCurrent ? <View style={styles.badgeSlot} /> : null}
+              <ThemedText
+                type="small"
+                numberOfLines={1}
+                style={{
+                  color: isSelected ? "#FFFFFF" : theme.text,
+                  fontWeight: "600",
+                  textAlign: "center",
+                }}
+              >
+                {getStyleThemeLabel(style.id, t)}
+              </ThemedText>
+              {isCurrent ? (
+                <View
+                  style={[
+                    styles.currentBadge,
+                    {
+                      backgroundColor: isSelected ? "rgba(255,255,255,0.3)" : theme.link,
+                    },
+                  ]}
+                >
+                  <Feather name="check" size={10} color="#FFFFFF" />
+                </View>
+              ) : null}
+            </Pressable>
+          );
+        })}
       </ScrollView>
 
       <ScrollView 
@@ -455,11 +476,20 @@ export default function StyleExplorerScreen({ navigation }: StyleExplorerScreenP
           entering={FadeIn.duration(300)}
           style={styles.styleContent}
         >
-          <Image
-            source={getStyleImage(selectedStyle)}
-            style={styles.styleImage}
-            resizeMode="cover"
-          />
+          <View
+            style={[
+              styles.styleImageFrame,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
+          >
+            <Image
+              source={getStyleImage(selectedStyle)}
+              style={styles.styleImage}
+              contentFit="contain"
+              contentPosition="center"
+              transition={200}
+            />
+          </View>
           
           <View style={styles.styleInfo}>
             <ThemedText type="h1">{getStyleThemeLabel(currentStyle.id, t)}</ThemedText>
@@ -533,21 +563,31 @@ const styles = StyleSheet.create({
     textAlign: "center",
     opacity: 0.7,
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  styleTabsScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
   },
   styleTabsContainer: {
     paddingHorizontal: Spacing.md,
     gap: Spacing.sm,
     marginBottom: Spacing.md,
+    alignItems: "center",
   },
   styleTab: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: Spacing.sm,
+    justifyContent: "center",
+    height: 40,
     paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
     gap: Spacing.xs,
+  },
+  badgeSlot: {
+    width: 16,
+    height: 16,
   },
   currentBadge: {
     width: 16,
@@ -566,10 +606,17 @@ const styles = StyleSheet.create({
   styleContent: {
     gap: Spacing.lg,
   },
+  styleImageFrame: {
+    width: "100%",
+    aspectRatio: 3 / 4,
+    borderRadius: BorderRadius.lg,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   styleImage: {
     width: "100%",
-    height: 300,
-    borderRadius: BorderRadius.lg,
+    height: "100%",
   },
   styleInfo: {
     gap: Spacing.md,

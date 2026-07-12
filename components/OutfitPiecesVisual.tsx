@@ -229,6 +229,8 @@ type Props = {
   canvasWidth?: number;
   /** Shrinks layer sizes proportionally (e.g. fit full outfit in a detail modal). */
   visualScale?: number;
+  /** Pull stacked pieces closer together (higher overlap). */
+  tight?: boolean;
 };
 
 export function OutfitPiecesVisual({
@@ -239,6 +241,7 @@ export function OutfitPiecesVisual({
   large = false,
   canvasWidth,
   visualScale,
+  tight = false,
 }: Props) {
   const { isDark } = useTheme();
   const sizeScale = compact ? 0.72 : (visualScale ?? 1);
@@ -300,9 +303,8 @@ export function OutfitPiecesVisual({
     const base = large ? LAYER_WIDTH_LARGE[slot] : LAYER_WIDTH[slot];
     return base * (compact ? 0.94 : 1);
   };
-  const stackOverlap = Math.round(
-    (compact ? 30 : large ? STACK_OVERLAP_LARGE : STACK_OVERLAP) * sizeScale,
-  );
+  const baseOverlap = compact ? 30 : large ? STACK_OVERLAP_LARGE : STACK_OVERLAP;
+  const stackOverlap = Math.round(baseOverlap * sizeScale * (tight ? 1.55 : 1));
 
   const canvasHeight =
     stack.reduce((sum, layer, index) => {

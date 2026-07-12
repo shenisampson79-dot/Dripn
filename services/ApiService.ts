@@ -182,7 +182,7 @@ class ApiService {
         errorMessage = error.message || String(error.errorCode);
       }
 
-      if (!errorMessage || errorMessage.startsWith('HTTP')) {
+      if (!errorMessage || errorMessage === 'Request failed' || errorMessage.startsWith('HTTP')) {
         switch (response.status) {
           case 401:
             errorMessage = 'Authentication required. Please log in to use this feature.';
@@ -191,7 +191,9 @@ class ApiService {
             errorMessage = 'Access denied. Please check your credentials.';
             break;
           case 404:
-            errorMessage = 'Account not found. Please check your email or sign up.';
+            errorMessage = endpoint.includes('/referral')
+              ? 'Referral API is not deployed on the server yet.'
+              : 'Account not found. Please check your email or sign up.';
             break;
           case 429:
             errorMessage = 'Too many attempts. Please try again later.';
@@ -255,10 +257,15 @@ class ApiService {
     return response.json();
   }
 
-  async register(email: string, password: string, displayName?: string) {
-    const result = await this.request<{ token: string; user: any }>('/api/auth/register', {
+  async register(email: string, password: string, displayName?: string, referralCode?: string) {
+    const result = await this.request<{ token: string; user: any; referralReward?: any }>('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, displayName }),
+      body: JSON.stringify({
+        email,
+        password,
+        displayName,
+        ...(referralCode ? { referralCode } : {}),
+      }),
     });
     await this.setToken(result.token);
     return result;
@@ -979,6 +986,38 @@ class ApiService {
     });
   }
 
+  async applyReferralCode(code: string) {
+    return this.request<{
+      success: boolean;
+      message?: string;
+      bonusAIRequests?: number;
+      referredByCode?: string;
+      error?: string;
+    }>('/api/referral/apply', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+  }
+
+  async getMyReferralStats() {
+    return this.request<{
+      success: boolean;
+      referralCode: string | null;
+      totalReferrals: number;
+      bonusAIRequests: number;
+      referredByCode: string | null;
+      referralDiscountPending: boolean;
+      referralDiscountApplied: boolean;
+    }>('/api/referral/me');
+  }
+
+  async consumeReferralAiBonus() {
+    return this.request<{ success: boolean; consumed: boolean; bonusAIRequests: number }>(
+      '/api/referral/consume-bonus',
+      { method: 'POST', body: JSON.stringify({}) },
+    );
+  }
+
   async getReferralStats(code: string) {
     return this.request<{ referralCode: string; totalReferrals: number }>(`/api/referral/stats/${code}`);
   }
@@ -1397,7 +1436,7 @@ class ApiService {
     stylistName?: string;
     stylistPersonality?: string;
   }) {
-    return this.request<{ response: string }>('/api/support/chat', {
+    return this.request<{ response: string; fallback?: boolean }>('/api/support/chat', {
       method: 'POST',
       body: JSON.stringify(data),
     });
