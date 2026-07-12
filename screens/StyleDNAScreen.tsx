@@ -12,7 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ScreenScrollView } from "@/components/ScreenScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
-import { Spacing, BorderRadius, StyleThemes, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
+import { Spacing, BorderRadius, StyleTheme } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useWardrobe, WardrobeItem, ClothingCategory, ClothingColor, ClothingOccasion, CATEGORY_LABELS } from "@/contexts/WardrobeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -72,6 +72,17 @@ const STYLE_ICONS: Record<StyleTheme, string> = {
   "smart-casual": "coffee",
   business: "briefcase",
   edgy: "moon",
+};
+
+/** Distinct accent colors for Style DNA cards/bars (keeps theme primaries unchanged). */
+const STYLE_DNA_COLORS: Record<StyleTheme, { light: string; dark: string }> = {
+  luxury: { light: "#C9A87C", dark: "#E0C49A" }, // Minimalist — champagne gold
+  "smart-casual": { light: "#5B8FA8", dark: "#7AADC4" }, // Smart Casual — slate teal
+  sporty: { light: "#0077B6", dark: "#00A8E8" }, // Active — Capri blue
+  streetwear: { light: "#8B2F39", dark: "#C94C5A" }, // Casual — berry maroon
+  business: { light: "#1E5B73", dark: "#3D8B9C" }, // Professional — deep teal
+  boho: { light: "#C87941", dark: "#E09860" }, // Creative — terracotta
+  edgy: { light: "#9B7EBD", dark: "#B08ED0" }, // Trendsetter — Parma violet
 };
 
 const COLOR_STYLE_MAP: Record<ClothingColor, StyleTheme[]> = {
@@ -303,8 +314,8 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
   }, [ownedItems]);
 
   const getStyleColor = (style: StyleTheme): string => {
-    const colors = StyleThemes[style];
-    return isDark ? colors.dark.primary : colors.light.primary;
+    const colors = STYLE_DNA_COLORS[style];
+    return isDark ? colors.dark : colors.light;
   };
 
   const getColorHex = (color: ClothingColor): string => {

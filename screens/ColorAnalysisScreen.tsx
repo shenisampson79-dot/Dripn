@@ -45,6 +45,18 @@ import { resolveFashionColorHex, stripColorHexFromLabel } from "@/utils/fashionC
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const TAB_BAR_HEIGHT = 56;
 
+/** Match BodyScannerScreen confidence bands for consistent UX. */
+const LOW_CONFIDENCE_THRESHOLD = 60;
+const HIGH_CONFIDENCE_THRESHOLD = 80;
+
+type ConfidenceBand = "low" | "medium" | "high";
+
+function getConfidenceBand(confidence: number): ConfidenceBand {
+  if (confidence < LOW_CONFIDENCE_THRESHOLD) return "low";
+  if (confidence < HIGH_CONFIDENCE_THRESHOLD) return "medium";
+  return "high";
+}
+
 type ColorAnalysisScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "ColorAnalysis">;
 };
@@ -420,6 +432,18 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
 
   const colorSeason = bodyProfile?.colorSeason;
   const seasonInfo = colorSeason ? SEASON_INFO[colorSeason.season] : null;
+  const confidenceBand =
+    typeof colorSeason?.confidence === "number"
+      ? getConfidenceBand(colorSeason.confidence)
+      : null;
+  const confidenceBadgeColor =
+    confidenceBand === "high"
+      ? theme.success
+      : confidenceBand === "medium"
+        ? theme.warning
+        : confidenceBand === "low"
+          ? theme.error
+          : secondaryTextColor;
 
   return (
     <ScreenScrollView>
@@ -444,10 +468,18 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
                   </ThemedText>
                 ) : null}
               </View>
-              <View style={styles.confidenceBadge}>
+              <View
+                style={[
+                  styles.confidenceBadge,
+                  {
+                    backgroundColor: confidenceBadgeColor + "20",
+                    borderColor: confidenceBadgeColor + "40",
+                  },
+                ]}
+              >
                 <ThemedText
                   type="caption"
-                  style={{ color: secondaryTextColor, flexShrink: 1, textAlign: "center" }}
+                  style={{ color: confidenceBadgeColor, flexShrink: 1, textAlign: "center", fontWeight: "600" }}
                 >
                   {(t("colorAnalysis.confidenceBadge") || "{confidence}% confidence").replace(
                     "{confidence}",
@@ -874,7 +906,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
-    backgroundColor: "rgba(0,0,0,0.1)",
+    borderWidth: 1,
   },
   seasonDescription: {
     lineHeight: 22,
