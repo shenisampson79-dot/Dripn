@@ -175,6 +175,7 @@
   "coldOpen.workDesc": "办公室、会议、专业",
   "colorAnalysis.analysisComplete": "分析完成",
   "colorAnalysis.analysisCompleteMessage": "您是 {season} {subtype}，有 {confidence}% 的信心！",
+  "colorAnalysis.confidenceBadge": "{confidence}% 置信度",
   "colorAnalysis.analysisCompleteTitle": "分析完整标题",
   "colorAnalysis.analysisIssue": "分析问题",
   "colorAnalysis.analysisIssueMessage": "分析问题留言",

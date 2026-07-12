@@ -394,6 +394,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     costPerWear: 'Cost-per-Wear',
     styleDna: 'Style DNA',
     colorAnalysis: 'Color Analysis',
+    colourAnalysis: 'Colour Analysis',
     bodyScanner: 'Body Scanner',
     weatherOutfits: 'Weather Outfits',
     myLookbook: 'My Lookbook',
@@ -934,7 +935,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     captureFailed: 'Capture Failed',
     captureFailedUpload: 'Capture Failed Upload',
     selectImageFailed: 'Select Image Failed',
-    title: 'Title',
+    title: 'Color Analysis',
     viewResults: 'View Results',
   },
   community: {
@@ -1477,7 +1478,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     percentOfWardrobe: 'Percent Of Wardrobe',
     secondaryStyle: 'Secondary Style',
     styleBreakdown: 'Style Breakdown',
-    title: 'Title',
+    title: 'Style DNA',
   },
   subscription: {
     almostThereMessage: 'Complete checkout to activate your plan.',

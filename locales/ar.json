@@ -175,6 +175,7 @@
   "coldOpen.workDesc": "مكتب، اجتماعات، المهنية",
   "colorAnalysis.analysisComplete": "اكتمل التحليل",
   "colorAnalysis.analysisCompleteMessage": "أنت {season} {subtype} تتمتع بثقة {confidence}%!",
+  "colorAnalysis.confidenceBadge": "{confidence}% ثقة",
   "colorAnalysis.analysisCompleteTitle": "تحليل العنوان الكامل",
   "colorAnalysis.analysisIssue": "قضية التحليل",
   "colorAnalysis.analysisIssueMessage": "رسالة مشكلة التحليل",

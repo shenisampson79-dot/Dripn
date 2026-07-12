@@ -175,6 +175,7 @@
   "coldOpen.workDesc": "Kantoor, vergaderingen, professioneel",
   "colorAnalysis.analysisComplete": "Analyse voltooid",
   "colorAnalysis.analysisCompleteMessage": "Je bent een {season} {subtype} met een vertrouwen van {confidence}%!",
+  "colorAnalysis.confidenceBadge": "{confidence}% betrouwbaarheid",
   "colorAnalysis.analysisCompleteTitle": "Analyse Volledige titel",
   "colorAnalysis.analysisIssue": "Analyse probleem",
   "colorAnalysis.analysisIssueMessage": "Analyseprobleembericht",

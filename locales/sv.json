@@ -175,6 +175,7 @@
   "coldOpen.workDesc": "Kontor, möten, proffs",
   "colorAnalysis.analysisComplete": "Analysen är klar",
   "colorAnalysis.analysisCompleteMessage": "Du är en {season} {subtype} med {confidence}% förtroende!",
+  "colorAnalysis.confidenceBadge": "{confidence}% konfidens",
   "colorAnalysis.analysisCompleteTitle": "Analys fullständig titel",
   "colorAnalysis.analysisIssue": "Analysfråga",
   "colorAnalysis.analysisIssueMessage": "Meddelande om analysproblem",

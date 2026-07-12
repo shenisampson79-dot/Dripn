@@ -175,6 +175,7 @@
   "coldOpen.workDesc": "Kontor, møder, professionelt",
   "colorAnalysis.analysisComplete": "Analyse gennemført",
   "colorAnalysis.analysisCompleteMessage": "Du er en {season} {subtype} med {confidence}% tillid!",
+  "colorAnalysis.confidenceBadge": "{confidence}% konfidens",
   "colorAnalysis.analysisCompleteTitle": "Analyse komplet titel",
   "colorAnalysis.analysisIssue": "Analyse spørgsmål",
   "colorAnalysis.analysisIssueMessage": "Besked om analyseproblem",

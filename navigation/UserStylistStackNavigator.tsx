@@ -40,7 +40,7 @@ export type UserStylistStackParamList = {
   VirtualTryOn: undefined;
   ColorAnalysis: undefined;
   BodyScanner: undefined;
-  FashionBlog: undefined;
+  FashionBlog: { highlightArticle?: string } | undefined;
   StyleRules: undefined;
   ColourInsights: undefined;
   SocialStyleSync: undefined;

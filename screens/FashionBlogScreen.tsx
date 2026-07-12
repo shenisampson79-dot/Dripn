@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { StyleSheet, View, Pressable, RefreshControl, Alert, ActivityIndicator } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RouteProp, useRoute } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -488,6 +489,8 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   const { user } = useAuth();
+  const route = useRoute<RouteProp<UserStylistStackParamList, "FashionBlog">>();
+  const highlightArticle = route.params?.highlightArticle;
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -501,6 +504,24 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
     loadSubscriptionStatus();
     fetchPosts();
   }, [user?.gender]);
+
+  useEffect(() => {
+    if (!highlightArticle || loading) return;
+
+    const ensureHighlightedPost = () => {
+      setPosts((prev) => {
+        if (prev.some((p) => p.id === highlightArticle)) return prev;
+        if (highlightArticle !== "fallback-color-guide") return prev;
+        const guide = prepareFallbackBlogPosts(createFallbackBlogPosts()).find(
+          (p) => p.id === highlightArticle,
+        );
+        return guide ? [guide, ...prev] : prev;
+      });
+      setExpandedPost(highlightArticle);
+    };
+
+    ensureHighlightedPost();
+  }, [highlightArticle, loading]);
 
   const applyProfileFilters = useCallback((items: BlogPost[]) => {
     return filterBlogPostsForProfile(items, user, getCurrentCalendarSeason());

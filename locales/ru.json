@@ -175,6 +175,7 @@
   "coldOpen.workDesc": "Офис, встречи, профессиональный",
   "colorAnalysis.analysisComplete": "Анализ завершен",
   "colorAnalysis.analysisCompleteMessage": "Вы {season} {subtype} с уверенностью в {confidence}%!",
+  "colorAnalysis.confidenceBadge": "{confidence}% уверенности",
   "colorAnalysis.analysisCompleteTitle": "Полное название анализа",
   "colorAnalysis.analysisIssue": "Проблема анализа",
   "colorAnalysis.analysisIssueMessage": "Сообщение о проблеме анализа",

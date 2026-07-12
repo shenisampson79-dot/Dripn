@@ -5,7 +5,7 @@
  * Color Analysis Screen - AI-powered seasonal color analysis from selfie
  */
 
-import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { 
   StyleSheet, 
   View, 
@@ -15,10 +15,12 @@ import {
   Alert,
   Dimensions,
 } from "react-native";
+import { CommonActions } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { CameraView, useCameraPermissions, CameraType } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
+import * as Localization from "expo-localization";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
@@ -37,6 +39,8 @@ import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigat
 import { getSettingsChildScreenOptions } from "@/navigation/screenOptions";
 import { getRecommendedShades, FoundationBrand, FoundationMatch } from "@/services/FoundationMatchingService";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { getCountryIsoCode } from "@/utils/countryLocalization";
+import { resolveFashionColorHex, stripColorHexFromLabel } from "@/utils/fashionColorHex";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const TAB_BAR_HEIGHT = 56;
@@ -45,26 +49,38 @@ type ColorAnalysisScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "ColorAnalysis">;
 };
 
-const SEASON_INFO: Record<ColorSeason, { icon: keyof typeof Feather.glyphMap; colors: string[]; description: string }> = {
-  spring: { 
-    icon: "sun", 
+const SEASON_INFO: Record<
+  ColorSeason,
+  {
+    icon: keyof typeof Feather.glyphMap;
+    colors: string[];
+    iconColor: string;
+    description: string;
+  }
+> = {
+  spring: {
+    icon: "sun",
     colors: ["#FFB347", "#FF6B6B", "#98D8C8", "#F7DC6F"],
-    description: "Warm, clear, and bright. Your colors are fresh and lively like a spring garden." 
+    iconColor: "#E8A017",
+    description: "Warm, clear, and bright. Your colors are fresh and lively like a spring garden.",
   },
-  summer: { 
-    icon: "cloud", 
+  summer: {
+    icon: "cloud",
     colors: ["#AED6F1", "#D7BDE2", "#FAD7A0", "#A9CCE3"],
-    description: "Cool, soft, and muted. Your colors are gentle and sophisticated like a summer haze." 
+    iconColor: "#5B8DB8",
+    description: "Cool, soft, and muted. Your colors are gentle and sophisticated like a summer haze.",
   },
-  autumn: { 
-    icon: "cloud-drizzle", 
+  autumn: {
+    icon: "cloud-drizzle",
     colors: ["#D35400", "#A04000", "#7B241C", "#6E2C00"],
-    description: "Warm, rich, and earthy. Your colors are deep and golden like autumn leaves." 
+    iconColor: "#C9782A",
+    description: "Warm, rich, and earthy. Your colors are deep and golden like autumn leaves.",
   },
-  winter: { 
-    icon: "cloud-snow", 
+  winter: {
+    icon: "cloud-snow",
     colors: ["#2E4053", "#1A5276", "#7B241C", "#FDFEFE"],
-    description: "Cool, clear, and bold. Your colors are high-contrast and dramatic like a winter landscape." 
+    iconColor: "#2A4A6B",
+    description: "Cool, clear, and bold. Your colors are high-contrast and dramatic like a winter landscape.",
   },
 };
 
@@ -72,7 +88,7 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
   const { bodyProfile, analyzeColorSeason, isAnalyzingColor, hasColorAnalysis, hasSkinToneAnalysis } = useBodyProfile();
-  const { user } = useAuth();
+  const { user, actualCountry } = useAuth();
   const insets = useSafeAreaInsets();
   
   const [permission, requestPermission] = useCameraPermissions();
@@ -81,6 +97,33 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
   const [countdown, setCountdown] = useState<number | null>(null);
   const cameraRef = useRef<CameraView>(null);
   const [selectedBrand, setSelectedBrand] = useState<FoundationBrand | 'all'>('all');
+
+  const colorAnalysisTitle = useMemo(() => {
+    const accent = (user?.stylistPreferences?.accent || "").toLowerCase();
+    const countryIso =
+      getCountryIsoCode(actualCountry || user?.actualCountry || user?.country || "") || "";
+    let isUk = accent === "british" || countryIso === "GB";
+    if (!isUk) {
+      try {
+        const locales = Localization.getLocales();
+        const locale = locales?.[0];
+        const region = locale?.regionCode?.toUpperCase();
+        const langTag = (locale?.languageTag || "").toLowerCase();
+        isUk = region === "GB" || langTag.startsWith("en-gb");
+      } catch {
+        // ignore locale lookup failures
+      }
+    }
+    if (isUk) {
+      return t("navTitles.colourAnalysis") || "Colour Analysis";
+    }
+    return (
+      t("colorAnalysis.title") ||
+      t("navTitles.colorAnalysis") ||
+      t("profile.colorAnalysis") ||
+      "Color Analysis"
+    );
+  }, [t, user?.stylistPreferences?.accent, user?.actualCountry, user?.country, actualCountry]);
 
   useLayoutEffect(() => {
     if (showCamera) {
@@ -91,10 +134,10 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
       getSettingsChildScreenOptions({
         theme,
         isDark,
-        title: t('colorAnalysis.title'),
+        title: colorAnalysisTitle,
       }),
     );
-  }, [navigation, theme, isDark, showCamera, t]);
+  }, [navigation, theme, isDark, showCamera, colorAnalysisTitle]);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -388,8 +431,8 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
         <>
           <Card elevation={2} style={styles.resultCard}>
             <View style={styles.seasonHeader}>
-              <View style={[styles.seasonIcon, { backgroundColor: theme.link + "20" }]}>
-                <Feather name={seasonInfo.icon} size={32} color={theme.link} />
+              <View style={[styles.seasonIcon, { backgroundColor: seasonInfo.iconColor + "22" }]}>
+                <Feather name={seasonInfo.icon} size={32} color={seasonInfo.iconColor} />
               </View>
               <View style={styles.seasonInfo}>
                 <ThemedText type="h2" style={styles.seasonName}>
@@ -402,8 +445,14 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
                 ) : null}
               </View>
               <View style={styles.confidenceBadge}>
-                <ThemedText type="caption" style={{ color: secondaryTextColor }}>
-                  {colorSeason.confidence}%
+                <ThemedText
+                  type="caption"
+                  style={{ color: secondaryTextColor, flexShrink: 1, textAlign: "center" }}
+                >
+                  {(t("colorAnalysis.confidenceBadge") || "{confidence}% confidence").replace(
+                    "{confidence}",
+                    String(colorSeason.confidence),
+                  )}
                 </ThemedText>
               </View>
             </View>
@@ -411,10 +460,17 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
               {seasonInfo.description}
             </ThemedText>
             <Pressable
-              onPress={() => navigation.getParent()?.navigate("Discover", { 
-                screen: "FashionBlog",
-                params: { highlightArticle: "fallback-color-guide" }
-              })}
+              onPress={() =>
+                navigation.dispatch(
+                  CommonActions.navigate({
+                    name: "StylistTab",
+                    params: {
+                      screen: "FashionBlog",
+                      params: { highlightArticle: "fallback-color-guide" },
+                    },
+                  }),
+                )
+              }
               style={({ pressed }) => [
                 styles.learnMoreButton,
                 { backgroundColor: theme.link + "15", opacity: pressed ? 0.7 : 1 }
@@ -463,34 +519,6 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
               <ThemedText type="body" style={[styles.skinToneDescription, { color: secondaryTextColor }]}>
                 {bodyProfile.skinTone.description}
               </ThemedText>
-              {bodyProfile.skinTone.complementaryColors.length > 0 ? (
-                <View style={styles.complementarySection}>
-                  <ThemedText type="caption" style={[styles.complementaryLabel, { color: tertiaryTextColor }]}>
-                    Colors that complement your skin:
-                  </ThemedText>
-                  <View style={styles.complementaryColors}>
-                    {bodyProfile.skinTone.complementaryColors.map((color, index) => {
-                      const hexMatch = color.match(/#(?:[0-9a-fA-F]{3}){1,2}/i);
-                      const displayColor = hexMatch ? hexMatch[0] : null;
-                      const colorName = color.replace(/#[0-9A-Fa-f]{3,6}/gi, '').trim();
-                      return (
-                        <View key={index} style={styles.complementaryItem}>
-                          {displayColor ? (
-                            <View style={[styles.complementaryCircle, { backgroundColor: displayColor }]} />
-                          ) : (
-                            <View style={[styles.complementaryCircle, { backgroundColor: theme.backgroundSecondary, borderWidth: 1, borderColor: theme.border, justifyContent: 'center', alignItems: 'center' }]}>
-                              <Feather name="droplet" size={16} color={secondaryTextColor} />
-                            </View>
-                          )}
-                          <ThemedText type="caption" numberOfLines={1} style={{ maxWidth: 60, textAlign: 'center' }}>
-                            {colorName || color}
-                          </ThemedText>
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
-              ) : null}
             </Card>
           ) : null}
 
@@ -573,9 +601,8 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
             </View>
             <View style={styles.colorGrid}>
               {colorSeason.bestColors.map((color, index) => {
-                const hexMatch = color.match(/#(?:[0-9a-fA-F]{3}){1,2}/i);
-                const displayColor = hexMatch ? hexMatch[0] : null;
-                const colorName = color.replace(/#[0-9A-Fa-f]{3,6}/gi, '').trim();
+                const displayColor = resolveFashionColorHex(color);
+                const colorName = stripColorHexFromLabel(color);
                 return (
                   <View key={index} style={styles.colorItem}>
                     {displayColor ? (
@@ -603,9 +630,8 @@ export default function ColorAnalysisScreen({ navigation }: ColorAnalysisScreenP
             </View>
             <View style={styles.colorGrid}>
               {colorSeason.avoidColors.map((color, index) => {
-                const hexMatch = color.match(/#(?:[0-9a-fA-F]{3}){1,2}/i);
-                const displayColor = hexMatch ? hexMatch[0] : null;
-                const colorName = color.replace(/#[0-9A-Fa-f]{3,6}/gi, '').trim();
+                const displayColor = resolveFashionColorHex(color);
+                const colorName = stripColorHexFromLabel(color);
                 return (
                   <View key={index} style={styles.colorItem}>
                     {displayColor ? (
@@ -844,6 +870,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   confidenceBadge: {
+    maxWidth: 110,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
@@ -936,29 +963,6 @@ const styles = StyleSheet.create({
   },
   skinToneDescription: {
     lineHeight: 22,
-    marginBottom: Spacing.md,
-  },
-  complementarySection: {
-    marginTop: Spacing.sm,
-  },
-  complementaryLabel: {
-    marginBottom: Spacing.sm,
-  },
-  complementaryColors: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.md,
-  },
-  complementaryItem: {
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
-  complementaryCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
   },
   reanalyzeButton: {
     flexDirection: "row",

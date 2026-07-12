@@ -175,6 +175,7 @@
   "coldOpen.workDesc": "사무실, 회의, 전문가",
   "colorAnalysis.analysisComplete": "분석 완료",
   "colorAnalysis.analysisCompleteMessage": "귀하는 {confidence}% 자신감을 갖고 있는 {season} {subtype}입니다!",
+  "colorAnalysis.confidenceBadge": "신뢰도 {confidence}%",
   "colorAnalysis.analysisCompleteTitle": "분석 완료 제목",
   "colorAnalysis.analysisIssue": "분석이슈",
   "colorAnalysis.analysisIssueMessage": "분석 이슈 메시지",

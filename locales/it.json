@@ -175,6 +175,7 @@
   "coldOpen.workDesc": "Ufficio, riunioni, professionale",
   "colorAnalysis.analysisComplete": "Analisi completata",
   "colorAnalysis.analysisCompleteMessage": "Sei un {season} {subtype} con il {confidence}% di confidenza!",
+  "colorAnalysis.confidenceBadge": "{confidence}% di confidenza",
   "colorAnalysis.analysisCompleteTitle": "Titolo completo dell'analisi",
   "colorAnalysis.analysisIssue": "Problema di analisi",
   "colorAnalysis.analysisIssueMessage": "Messaggio di problema di analisi",

@@ -175,6 +175,7 @@
   "coldOpen.workDesc": "Ofis, toplantılar, profesyonel",
   "colorAnalysis.analysisComplete": "Analiz Tamamlandı",
   "colorAnalysis.analysisCompleteMessage": "Sen %{confidence} güvene sahip bir {season} {subtype}'sin!",
+  "colorAnalysis.confidenceBadge": "%{confidence} güven",
   "colorAnalysis.analysisCompleteTitle": "Analizin Tamamı Başlığı",
   "colorAnalysis.analysisIssue": "Analiz Sorunu",
   "colorAnalysis.analysisIssueMessage": "Analiz Sorunu Mesajı",

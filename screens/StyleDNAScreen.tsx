@@ -155,7 +155,11 @@ export default function StyleDNAScreen({ navigation }: StyleDNAScreenProps) {
       getSettingsChildScreenOptions({
         theme,
         isDark,
-        title: t('styleDna.title'),
+        title:
+          t('styleDna.title') ||
+          t('navTitles.styleDna') ||
+          t('profile.styleDna') ||
+          'Style DNA',
       }),
     );
   }, [navigation, theme, isDark, t]);

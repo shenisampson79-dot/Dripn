@@ -175,6 +175,7 @@
   "coldOpen.workDesc": "Toimisto, kokoukset, ammattilainen",
   "colorAnalysis.analysisComplete": "Analyysi valmis",
   "colorAnalysis.analysisCompleteMessage": "Olet {season} {subtype} {confidence}% varmuudella!",
+  "colorAnalysis.confidenceBadge": "{confidence}% varmuus",
   "colorAnalysis.analysisCompleteTitle": "Analyysi täydellinen otsikko",
   "colorAnalysis.analysisIssue": "Analyysiongelma",
   "colorAnalysis.analysisIssueMessage": "Analyysiongelmaviesti",

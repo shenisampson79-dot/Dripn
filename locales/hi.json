@@ -175,6 +175,7 @@
   "coldOpen.workDesc": "कार्यालय, बैठकें, पेशेवर",
   "colorAnalysis.analysisComplete": "विश्लेषण पूर्ण",
   "colorAnalysis.analysisCompleteMessage": "आप {season} {subtype} और {confidence}% आत्मविश्वास वाले हैं!",
+  "colorAnalysis.confidenceBadge": "{confidence}% विश्वास",
   "colorAnalysis.analysisCompleteTitle": "विश्लेषण पूर्ण शीर्षक",
   "colorAnalysis.analysisIssue": "विश्लेषण मुद्दा",
   "colorAnalysis.analysisIssueMessage": "विश्लेषण समस्या संदेश",

@@ -175,6 +175,7 @@
   "coldOpen.workDesc": "オフィス、会議、プロフェッショナル",
   "colorAnalysis.analysisComplete": "分析完了",
   "colorAnalysis.analysisCompleteMessage": "あなたは {confidence}% の自信を持つ {season} {subtype} です!",
+  "colorAnalysis.confidenceBadge": "信頼度 {confidence}%",
   "colorAnalysis.analysisCompleteTitle": "分析完了タイトル",
   "colorAnalysis.analysisIssue": "分析問題",
   "colorAnalysis.analysisIssueMessage": "分析問題メッセージ",

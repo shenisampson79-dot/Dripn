@@ -175,6 +175,7 @@
   "coldOpen.workDesc": "Kontor, møter, profesjonelt",
   "colorAnalysis.analysisComplete": "Analyse fullført",
   "colorAnalysis.analysisCompleteMessage": "Du er en {season} {subtype} med {confidence} % selvtillit!",
+  "colorAnalysis.confidenceBadge": "{confidence}% konfidens",
   "colorAnalysis.analysisCompleteTitle": "Analyse fullstendig tittel",
   "colorAnalysis.analysisIssue": "Analyseproblem",
   "colorAnalysis.analysisIssueMessage": "Melding om analyseproblem",
