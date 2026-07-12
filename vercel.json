@@ -3,6 +3,13 @@
   "outputDirectory": "web-build",
   "installCommand": "npm install",
   "framework": null,
+  "redirects": [
+    {
+      "source": "/invite/:code/",
+      "destination": "/invite/:code",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -13,8 +20,8 @@
       "destination": "https://dripn-server.onrender.com/invite"
     },
     {
-      "source": "/invite/:code",
-      "destination": "https://dripn-server.onrender.com/invite/:code"
+      "source": "/invite/:code*",
+      "destination": "https://dripn-server.onrender.com/invite/:code*"
     },
     {
       "source": "/(.*)",
