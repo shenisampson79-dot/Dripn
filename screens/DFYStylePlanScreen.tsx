@@ -6,7 +6,10 @@ import {
   TextInput,
   Modal,
   Dimensions,
+  Platform,
+  ScrollView,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFocusEffect, useRoute } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
@@ -522,7 +525,9 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
               >
                 <Feather name="shuffle" size={16} color="rgba(255,255,255,0.5)" />
                 <View style={styles.coreActionTextBlock}>
-                  <ThemedText type="small" style={styles.coreActionText}>New combinations</ThemedText>
+                  <ThemedText type="small" style={styles.coreActionText} numberOfLines={2}>
+                    {'New\ncombinations'}
+                  </ThemedText>
                   <ThemedText type="small" style={styles.coreActionSubtext}>Remix the whole look</ThemedText>
                 </View>
                 <View style={styles.coreBadge}>
@@ -588,11 +593,19 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
         animationType="slide"
         onRequestClose={() => setShowAdjustModal(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowAdjustModal(false)}>
-          <Pressable style={styles.adjustModal} onPress={e => e.stopPropagation()}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior="padding"
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+        >
+          <Pressable style={styles.modalDismissArea} onPress={() => setShowAdjustModal(false)} />
+          <Pressable style={styles.adjustModal} onPress={(e) => e.stopPropagation()}>
             <LinearGradient
               colors={[LUXURY_COLORS.midnight, LUXURY_COLORS.obsidian]}
-              style={styles.adjustModalGradient}
+              style={[
+                styles.adjustModalGradient,
+                { paddingBottom: Math.max(insets.bottom, Spacing.lg) + Spacing.md },
+              ]}
             >
               <View style={styles.modalHeader}>
                 <ThemedText type="h3" style={styles.modalTitle}>
@@ -605,29 +618,38 @@ export default function DFYStylePlanScreen({ navigation }: DFYStylePlanScreenPro
               <ThemedText style={styles.modalSubtitle}>
                 Tell your stylist what you'd like changed
               </ThemedText>
-              <TextInput
-                style={styles.adjustInput}
-                placeholder={t('dfy.egCanIWearThisWithFlatsInstead') || "e.g., Can I wear this with flats instead?"}
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={adjustmentText}
-                onChangeText={setAdjustmentText}
-                multiline
-                numberOfLines={4}
-                maxLength={300}
-              />
-              <Pressable onPress={submitAdjustment} style={styles.submitButton}>
-                <LinearGradient
-                  colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-                  style={styles.submitButtonGradient}
-                >
-                  <ThemedText type="body" style={styles.submitButtonText}>
-                    Send adjustment
-                  </ThemedText>
-                </LinearGradient>
-              </Pressable>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+              >
+                <TextInput
+                  style={styles.adjustInput}
+                  placeholder={t('dfy.egCanIWearThisWithFlatsInstead') || "e.g., Can I wear this with flats instead?"}
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={adjustmentText}
+                  onChangeText={setAdjustmentText}
+                  multiline
+                  numberOfLines={4}
+                  maxLength={300}
+                  textAlignVertical="top"
+                  autoFocus
+                  blurOnSubmit={false}
+                />
+                <Pressable onPress={submitAdjustment} style={styles.submitButton}>
+                  <LinearGradient
+                    colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+                    style={styles.submitButtonGradient}
+                  >
+                    <ThemedText type="body" style={styles.submitButtonText}>
+                      Send adjustment
+                    </ThemedText>
+                  </LinearGradient>
+                </Pressable>
+              </ScrollView>
             </LinearGradient>
           </Pressable>
-        </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal
@@ -830,6 +852,7 @@ const styles = StyleSheet.create({
   coreActionText: {
     color: 'rgba(255,255,255,0.7)',
     fontWeight: '600',
+    lineHeight: 16,
   },
   coreActionSubtext: {
     color: 'rgba(255,255,255,0.4)',
@@ -885,10 +908,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
+  modalDismissArea: {
+    flex: 1,
+  },
   adjustModal: {
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     overflow: 'hidden',
+    maxHeight: '85%',
   },
   adjustModalGradient: {
     padding: Spacing.xl,

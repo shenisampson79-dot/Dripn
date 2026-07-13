@@ -8,7 +8,7 @@ import {
   resolveLocaleNativeName,
 } from './localeBundles';
 
-const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v4';
+const TRANSLATIONS_CACHE_KEY = '@dripn_translations_v5';
 const TRANSLATIONS_LANG_KEY = '@dripn_translations_lang';
 
 export interface OnboardingStepTranslations {
@@ -305,6 +305,7 @@ export interface SettingsTranslations {
   accountActions: string;
   signOut: string;
   deleteAccount: string;
+  deleteAccountAppleBillingWarning?: string;
   notifications: string;
   privacy: string;
   about: string;
@@ -646,7 +647,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     checkForTrends: 'Check for trends',
     inviteFriends: 'Invite Friends',
     shareYourCode: 'Share Your Code',
-    inviteDescription: 'Invite friends — you both get +20 AI stylist messages and 10% off your next Stripe subscription charge',
+    inviteDescription: 'Invite friends — you get 10% off per friend (up to 50% each month; extras carry over). They get 10% off too',
     communityVoting: 'Community Voting',
     communityVotingDesc: 'Notify when other users need your fashion advice',
     priceAlerts: 'Price Alerts',
@@ -657,6 +658,8 @@ const DEFAULT_TRANSLATIONS: Translations = {
     accountActions: 'Account Actions',
     signOut: 'Sign Out',
     deleteAccount: 'Delete Account',
+    deleteAccountAppleBillingWarning:
+      'If you have an active Apple subscription, cancel it in Settings → Apple ID → Subscriptions before deleting your account.',
     notifications: 'Notifications',
     privacy: 'Privacy',
     about: 'About',
@@ -1050,26 +1053,26 @@ const DEFAULT_TRANSLATIONS: Translations = {
     },
     lookbook: {
       buildFailed: 'Build Failed',
-      dayLook: 'Day Look',
-      dayLookFallback: 'Day Look Fallback',
-      dayOf: 'Day Of',
-      daysLeft: 'Days Left',
-      fillingDays: 'Filling Days',
+      dayLook: 'Day {day} Look',
+      dayLookFallback: 'Day {day} Look',
+      dayOf: 'Day {day} of {total}',
+      daysLeft: '{count} days left',
+      fillingDays: 'Filling in your remaining days…',
       love: 'Love',
-      noLookbookMessage: 'No Lookbook Message',
-      noLookbookTitle: 'No Lookbook Title',
-      notMe: 'Not Me',
-      photosLoading: 'Photos Loading',
-      piecesComingSoon: 'Pieces Coming Soon',
-      refreshOutfits: 'Refresh Outfits',
-      someDaysUnfilled: 'Some Days Unfilled',
-      stylistLedNote: 'Stylist Led Note',
-      stylistNote: 'Stylist Note',
-      thePieces: 'The Pieces',
-      title: 'Title',
+      noLookbookMessage: 'Complete Decide For You to unlock your lookbook.',
+      noLookbookTitle: 'No lookbook yet',
+      notMe: 'Not me',
+      photosLoading: 'Photos loading…',
+      piecesComingSoon: 'Pieces coming soon',
+      refreshOutfits: 'Refresh outfits',
+      someDaysUnfilled: 'Some days still need outfits',
+      stylistLedNote: 'Stylist-led note',
+      stylistNote: 'Stylist note',
+      thePieces: 'The pieces',
+      title: 'Lookbook',
       today: 'Today',
-      todaysLook: 'Todays Look',
-      whatDoYouThink: 'What Do You Think',
+      todaysLook: "Today's Look",
+      whatDoYouThink: 'What do you think?',
     },
     permissionRequired: 'Permission Required',
     photoLibraryAccessWasDeniedPleaseEnableI: 'Photo library access was denied. Please enable it in Settings.',
@@ -1627,7 +1630,7 @@ const DEFAULT_TRANSLATIONS: Translations = {
     heroSubtitle: 'Your AI stylist for everyday confidence — or full life planning',
     heroTitle: 'Look Better, Stress Less',
     inviteFriends: 'Invite Friends',
-    inviteFriendsSubtitle: 'Share your code — you both get +20 AI messages & 10% off Stripe billing',
+    inviteFriendsSubtitle: 'Share your code — 10% off per friend, up to 50% each month',
     manageBilling: 'Manage Billing',
     manageSubscription: 'Manage Subscription',
     memberVideoCallingIsAvailableOnTheStylis: 'Member video calling is available on the Stylist Unlimited plan.',
@@ -2150,19 +2153,42 @@ class TranslationServiceClass {
 
     const flatToNested = (flat: Record<string, any>): Record<string, any> => {
       const result: Record<string, any> = {};
-      for (const key in flat) {
-        // Only accept string leaf values — nested objects from a bad merge would overwrite branches
+      // Longer keys first so parents that are also leaves keep their string value
+      // when a conflicting nested key exists (e.g. settings.deleteAccount vs
+      // settings.deleteAccount.appleBillingWarning).
+      const keys = Object.keys(flat).sort((a, b) => b.length - a.length || a.localeCompare(b));
+      for (const key of keys) {
         if (typeof flat[key] !== 'string') continue;
         if (isCorruptValue(flat[key])) continue;
         const parts = key.split('.');
         let current = result;
+        let blocked = false;
         for (let i = 0; i < parts.length - 1; i++) {
-          if (typeof current[parts[i]] !== 'object' || current[parts[i]] === null) {
-            current[parts[i]] = {};
+          const part = parts[i];
+          if (typeof current[part] === 'string') {
+            // Parent is already a leaf string — skip this nested conflict key
+            blocked = true;
+            break;
           }
-          current = current[parts[i]];
+          if (typeof current[part] !== 'object' || current[part] === null) {
+            current[part] = {};
+          }
+          current = current[part];
         }
-        current[parts[parts.length - 1]] = flat[key];
+        if (blocked) continue;
+        const leaf = parts[parts.length - 1];
+        // Prefer keeping an existing string leaf over overwriting with a later object path
+        if (typeof current[leaf] === 'string') continue;
+        // Don't let a short parent string (e.g. subscription.features = "Included Features")
+        // wipe a nested tree already built from longer keys (subscription.features.personalStylist.*).
+        if (
+          typeof current[leaf] === 'object' &&
+          current[leaf] !== null &&
+          typeof flat[key] === 'string'
+        ) {
+          continue;
+        }
+        current[leaf] = flat[key];
       }
       return result;
     };
@@ -2208,7 +2234,15 @@ class TranslationServiceClass {
           ...nested.styleSelection?.styles,
         },
       },
-      settings: { ...DEFAULT_TRANSLATIONS.settings, ...nested.settings },
+      settings: {
+        ...DEFAULT_TRANSLATIONS.settings,
+        ...nested.settings,
+        // Guard against flat-key collisions turning deleteAccount into an object
+        deleteAccount:
+          typeof nested.settings?.deleteAccount === 'string'
+            ? nested.settings.deleteAccount
+            : DEFAULT_TRANSLATIONS.settings.deleteAccount,
+      },
       home: { ...DEFAULT_TRANSLATIONS.home, ...nested.home },
       auth: { ...DEFAULT_TRANSLATIONS.auth, ...nested.auth },
       aiStylist: { ...DEFAULT_TRANSLATIONS.aiStylist, ...nested.aiStylist },
@@ -2228,13 +2262,111 @@ class TranslationServiceClass {
 
     for (const key of Object.keys(nested)) {
       if (!(key in core) && nested[key] && typeof nested[key] === 'object') {
-        core[key] = { ...(DEFAULT_TRANSLATIONS as any)[key], ...nested[key] };
+        const def = (DEFAULT_TRANSLATIONS as any)[key] || {};
+        const fromNested = nested[key];
+        if (key === 'dfy') {
+          core[key] = {
+            ...def,
+            ...fromNested,
+            lookbook: { ...(def.lookbook || {}), ...(fromNested.lookbook || {}) },
+            comparison: { ...(def.comparison || {}), ...(fromNested.comparison || {}) },
+            expiry: { ...(def.expiry || {}), ...(fromNested.expiry || {}) },
+            start: { ...(def.start || {}), ...(fromNested.start || {}) },
+          };
+        } else if (key === 'subscription') {
+          const nestedFeatures = fromNested.features;
+          const defFeatures = def.features || {};
+          core[key] = {
+            ...def,
+            ...fromNested,
+            features:
+              nestedFeatures && typeof nestedFeatures === 'object'
+                ? {
+                    ...defFeatures,
+                    ...nestedFeatures,
+                    free: { ...(defFeatures.free || {}), ...(nestedFeatures.free || {}) },
+                    personalStylist: {
+                      ...(defFeatures.personalStylist || {}),
+                      ...(nestedFeatures.personalStylist || {}),
+                    },
+                    stylistUnlimited: {
+                      ...(defFeatures.stylistUnlimited || {}),
+                      ...(nestedFeatures.stylistUnlimited || {}),
+                    },
+                  }
+                : defFeatures,
+            plan: {
+              ...(def.plan || {}),
+              ...(fromNested.plan || {}),
+              free: { ...(def.plan?.free || {}), ...(fromNested.plan?.free || {}) },
+              personalStylist: {
+                ...(def.plan?.personalStylist || {}),
+                ...(fromNested.plan?.personalStylist || {}),
+              },
+              stylistUnlimited: {
+                ...(def.plan?.stylistUnlimited || {}),
+                ...(fromNested.plan?.stylistUnlimited || {}),
+              },
+            },
+            dfy: {
+              ...(def.dfy || {}),
+              ...(fromNested.dfy || {}),
+              included: {
+                ...(def.dfy?.included || {}),
+                ...(fromNested.dfy?.included || {}),
+              },
+              occasion: {
+                ...(def.dfy?.occasion || {}),
+                ...(fromNested.dfy?.occasion || {}),
+              },
+              wardrobe: {
+                ...(def.dfy?.wardrobe || {}),
+                ...(fromNested.dfy?.wardrobe || {}),
+              },
+            },
+            cancel: {
+              ...(def.cancel || {}),
+              ...(fromNested.cancel || {}),
+            },
+            period: {
+              ...(def.period || {}),
+              ...(fromNested.period || {}),
+            },
+          };
+        } else {
+          core[key] = { ...def, ...fromNested };
+        }
       }
     }
 
     for (const key of Object.keys(DEFAULT_TRANSLATIONS)) {
       if (!(key in core) && (DEFAULT_TRANSLATIONS as any)[key]) {
-        core[key] = { ...(DEFAULT_TRANSLATIONS as any)[key], ...(nested[key] || {}) };
+        const def = (DEFAULT_TRANSLATIONS as any)[key];
+        const fromNested = nested[key] || {};
+        if (key === 'dfy' && typeof def === 'object' && typeof fromNested === 'object') {
+          core[key] = {
+            ...def,
+            ...fromNested,
+            lookbook: {
+              ...(def.lookbook || {}),
+              ...(fromNested.lookbook || {}),
+            },
+            comparison: {
+              ...(def.comparison || {}),
+              ...(fromNested.comparison || {}),
+            },
+            expiry: {
+              ...(def.expiry || {}),
+              ...(fromNested.expiry || {}),
+            },
+            start: {
+              ...(def.start || {}),
+              ...(fromNested.start || {}),
+            },
+          };
+        } else {
+          core[key] = { ...def, ...fromNested };
+        }
       }
     }
 

@@ -8,7 +8,6 @@ import Constants from "expo-constants";
 
 import { ScreenKeyboardAwareScrollView } from "@/components/ScreenKeyboardAwareScrollView";
 import { ThemedText } from "@/components/ThemedText";
-import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
@@ -17,7 +16,15 @@ import { apiService } from "@/services/ApiService";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
 type FeedbackType = "bug" | "feature" | "general" | "rating";
-type FeedbackCategory = "scanner" | "chat" | "login" | "wardrobe" | "other";
+type FeedbackCategory =
+  | "stylist"
+  | "wardrobe"
+  | "lookbook"
+  | "scanner"
+  | "billing"
+  | "account"
+  | "blog"
+  | "other";
 
 interface FeedbackOption {
   type: FeedbackType;
@@ -32,22 +39,126 @@ interface CategoryOption {
   icon: keyof typeof Feather.glyphMap;
 }
 
+const FEEDBACK_FALLBACKS: Record<string, string> = {
+  "feedback.screenTitle": "Send Feedback",
+  "feedback.intro":
+    "Help us improve Dripn! Your feedback is invaluable for making the app better for everyone.",
+  "feedback.whatType": "What type of feedback?",
+  "feedback.whichArea": "Which area of the app?",
+  "feedback.type.bug.label": "Bug Report",
+  "feedback.type.bug.description": "Something isn't working",
+  "feedback.type.feature.label": "Feature Request",
+  "feedback.type.feature.description": "Suggest an improvement",
+  "feedback.type.general.label": "General Feedback",
+  "feedback.type.general.description": "Share your thoughts",
+  "feedback.type.rating.label": "Rate Experience",
+  "feedback.type.rating.description": "Rate your overall experience",
+  "feedback.category.stylist": "AI Stylist",
+  "feedback.category.wardrobe": "Wardrobe",
+  "feedback.category.lookbook": "Lookbook & outfits",
+  "feedback.category.scanner": "Camera & uploads",
+  "feedback.category.billing": "Billing & subscription",
+  "feedback.category.account": "Account & login",
+  "feedback.category.blog": "Fashion Blog",
+  "feedback.category.other": "Other",
+  "feedback.ratingPrompt": "How would you rate your experience?",
+  "feedback.rating.excellent": "Excellent!",
+  "feedback.rating.great": "Great!",
+  "feedback.rating.good": "Good",
+  "feedback.rating.fair": "Fair",
+  "feedback.rating.poor": "Poor",
+  "feedback.titleLabel": "Title",
+  "feedback.titlePlaceholder": "Brief summary of your feedback",
+  "feedback.descriptionLabel": "Description",
+  "feedback.descriptionPlaceholder":
+    "Please describe in detail. What happened, what you expected, and any steps to reproduce...",
+  "feedback.submit": "Submit Feedback",
+  "feedback.footer":
+    "Your feedback helps us improve Dripn. Our team reviews every submission.",
+  "feedback.requiredTitle": "Required",
+  "feedback.requiredType": "Please select a feedback type.",
+  "feedback.requiredCategory": "Please select an area.",
+  "feedback.requiredTitleField": "Please enter a title for your feedback.",
+  "feedback.requiredDescription": "Please describe your feedback in detail.",
+  "feedback.requiredRating": "Please select a rating.",
+  "feedback.thankYouTitle": "Thank You!",
+  "feedback.thankYouMessage":
+    "Thanks — we've got your feedback.",
+  "feedback.submissionFailedTitle": "Submission Failed",
+  "feedback.submissionFailedMessage":
+    "We couldn't submit your feedback. Please try again later.",
+};
+
+const CORRUPT_VALUES = new Set([
+  "label",
+  "description",
+  "wardrobe",
+  "grid",
+  "more-horizontal",
+  "other",
+  "user",
+  "login",
+  "message-square",
+  "ok",
+  "we couldn",
+  "required title",
+  "required category",
+  "required description",
+  "required rating",
+  "required type",
+  "required title field",
+  "submission failed",
+]);
+
+function tx(t: (key: string) => string, key: string): string {
+  const fallback = FEEDBACK_FALLBACKS[key] || "";
+  const value = (t(key) || "").trim();
+  if (!value) return fallback;
+  if (CORRUPT_VALUES.has(value.toLowerCase())) return fallback;
+  if (value.includes("response.message") || value.includes('|| "')) return fallback;
+  if (key === "feedback.screenTitle" && value.toLowerCase() === "wardrobe") return fallback;
+  return value;
+}
+
 function getFeedbackTypes(t: (key: string) => string): FeedbackOption[] {
   return [
-    { type: "bug", label: t('feedback.type.bug.label'), icon: "alert-circle", description: t('feedback.type.bug.description') },
-    { type: "feature", label: t('feedback.type.feature.label'), icon: "zap", description: t('feedback.type.feature.description') },
-    { type: "general", label: t('feedback.type.general.label'), icon: "message-circle", description: t('feedback.type.general.description') },
-    { type: "rating", label: t('feedback.type.rating.label'), icon: "star", description: t('feedback.type.rating.description') },
+    {
+      type: "bug",
+      label: tx(t, "feedback.type.bug.label"),
+      icon: "alert-circle",
+      description: tx(t, "feedback.type.bug.description"),
+    },
+    {
+      type: "feature",
+      label: tx(t, "feedback.type.feature.label"),
+      icon: "zap",
+      description: tx(t, "feedback.type.feature.description"),
+    },
+    {
+      type: "general",
+      label: tx(t, "feedback.type.general.label"),
+      icon: "message-circle",
+      description: tx(t, "feedback.type.general.description"),
+    },
+    {
+      type: "rating",
+      label: tx(t, "feedback.type.rating.label"),
+      icon: "star",
+      description: tx(t, "feedback.type.rating.description"),
+    },
   ];
 }
 
 function getCategories(t: (key: string) => string): CategoryOption[] {
   return [
-    { category: "scanner", label: t('feedback.category.scanner'), icon: "camera" },
-    { category: "chat", label: t('feedback.category.chat'), icon: "message-square" },
-    { category: "login", label: t('feedback.category.login'), icon: "user" },
-    { category: "wardrobe", label: t('feedback.category.wardrobe'), icon: "grid" },
-    { category: "other", label: t('feedback.category.other'), icon: "more-horizontal" },
+    { category: "stylist", label: tx(t, "feedback.category.stylist"), icon: "message-circle" },
+    { category: "wardrobe", label: tx(t, "feedback.category.wardrobe"), icon: "grid" },
+    { category: "lookbook", label: tx(t, "feedback.category.lookbook"), icon: "calendar" },
+    { category: "scanner", label: tx(t, "feedback.category.scanner"), icon: "camera" },
+    { category: "billing", label: tx(t, "feedback.category.billing"), icon: "credit-card" },
+    { category: "account", label: tx(t, "feedback.category.account"), icon: "user" },
+    { category: "blog", label: tx(t, "feedback.category.blog"), icon: "book-open" },
+    { category: "other", label: tx(t, "feedback.category.other"), icon: "more-horizontal" },
   ];
 }
 
@@ -70,8 +181,8 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
     berry: palette.berry,
     violet: palette.violet,
     deepViolet: palette.deepViolet,
-    champagne: '#F5E6D3',
-    midnight: '#1A1A2E',
+    champagne: "#F5E6D3",
+    midnight: "#1A1A2E",
     coral: palette.coral,
     teal: palette.teal,
     emerald: palette.emerald,
@@ -81,17 +192,18 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
   const [category, setCategory] = useState<FeedbackCategory | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [descriptionHeight, setDescriptionHeight] = useState(150);
   const [rating, setRating] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: t('feedback.screenTitle') });
+    navigation.setOptions({ title: tx(t, "feedback.screenTitle") });
   }, [navigation, t]);
 
   const getDeviceInfo = (): string => {
-    const osName = Platform.OS === 'ios' ? 'iOS' : 'Android';
+    const osName = Platform.OS === "ios" ? "iOS" : Platform.OS === "web" ? "Web" : "Android";
     const osVersion = Platform.Version;
-    const deviceName = Device.modelName || 'Unknown';
+    const deviceName = Device.modelName || "Unknown";
     return `${osName} ${osVersion} (${deviceName})`;
   };
 
@@ -101,34 +213,40 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
 
   const getRatingLabel = (value: number): string => {
     switch (value) {
-      case 5: return t('feedback.rating.excellent');
-      case 4: return t('feedback.rating.great');
-      case 3: return t('feedback.rating.good');
-      case 2: return t('feedback.rating.fair');
-      case 1: return t('feedback.rating.poor');
-      default: return '';
+      case 5:
+        return tx(t, "feedback.rating.excellent");
+      case 4:
+        return tx(t, "feedback.rating.great");
+      case 3:
+        return tx(t, "feedback.rating.good");
+      case 2:
+        return tx(t, "feedback.rating.fair");
+      case 1:
+        return tx(t, "feedback.rating.poor");
+      default:
+        return "";
     }
   };
 
   const handleSubmit = async () => {
     if (!feedbackType) {
-      Alert.alert(t('feedback.requiredTitle'), t('feedback.requiredType'));
+      Alert.alert(tx(t, "feedback.requiredTitle"), tx(t, "feedback.requiredType"));
       return;
     }
     if (!category) {
-      Alert.alert(t('feedback.requiredTitle'), t('feedback.requiredCategory'));
+      Alert.alert(tx(t, "feedback.requiredTitle"), tx(t, "feedback.requiredCategory"));
       return;
     }
     if (!title.trim()) {
-      Alert.alert(t('feedback.requiredTitle'), t('feedback.requiredTitleField'));
+      Alert.alert(tx(t, "feedback.requiredTitle"), tx(t, "feedback.requiredTitleField"));
       return;
     }
     if (!description.trim()) {
-      Alert.alert(t('feedback.requiredTitle'), t('feedback.requiredDescription'));
+      Alert.alert(tx(t, "feedback.requiredTitle"), tx(t, "feedback.requiredDescription"));
       return;
     }
     if (feedbackType === "rating" && rating === 0) {
-      Alert.alert(t('feedback.requiredTitle'), t('feedback.requiredRating'));
+      Alert.alert(tx(t, "feedback.requiredTitle"), tx(t, "feedback.requiredRating"));
       return;
     }
 
@@ -151,18 +269,18 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
 
       if (response.success) {
         Alert.alert(
-          t('feedback.thankYouTitle'),
-          response.message || t('feedback.thankYouMessage'),
-          [{ text: t('common.ok'), onPress: () => navigation.goBack() }]
+          tx(t, "feedback.thankYouTitle"),
+          tx(t, "feedback.thankYouMessage"),
+          [{ text: t("common.ok") || "OK", onPress: () => navigation.goBack() }],
         );
       } else {
         throw new Error("Submission failed");
       }
     } catch (error) {
-      console.error("Feedback submission error:", error);
+      console.warn("Feedback submission error:", error instanceof Error ? error.message : error);
       Alert.alert(
-        t('feedback.submissionFailedTitle'),
-        t('feedback.submissionFailedMessage')
+        tx(t, "feedback.submissionFailedTitle"),
+        tx(t, "feedback.submissionFailedMessage"),
       );
     } finally {
       setIsSubmitting(false);
@@ -173,17 +291,13 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
     return (
       <View style={styles.ratingContainer}>
         <ThemedText type="body" style={styles.ratingLabel}>
-          {t('feedback.ratingPrompt')}
+          {tx(t, "feedback.ratingPrompt")}
         </ThemedText>
         <View style={styles.starsContainer}>
           {[1, 2, 3, 4, 5].map((star) => (
-            <Pressable
-              key={star}
-              onPress={() => setRating(star)}
-              style={styles.starButton}
-            >
+            <Pressable key={star} onPress={() => setRating(star)} style={styles.starButton}>
               <Feather
-                name={star <= rating ? "star" : "star"}
+                name="star"
                 size={32}
                 color={star <= rating ? LUXURY_COLORS.gold : theme.tabIconDefault}
                 style={star <= rating ? { opacity: 1 } : { opacity: 0.3 }}
@@ -200,6 +314,8 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
     );
   };
 
+  const inputSurface = isDark ? "rgba(255,255,255,0.08)" : "#FFFFFF";
+
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
@@ -211,16 +327,19 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
         locations={[0, 0.35, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <ScreenKeyboardAwareScrollView style={{ backgroundColor: 'transparent' }}>
+      <ScreenKeyboardAwareScrollView style={{ backgroundColor: "transparent" }}>
         <View style={styles.introSection}>
+          <ThemedText type="h3" style={styles.pageTitle}>
+            {tx(t, "feedback.screenTitle")}
+          </ThemedText>
           <ThemedText type="body" style={styles.introText}>
-            {t('feedback.intro')}
+            {tx(t, "feedback.intro")}
           </ThemedText>
         </View>
 
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>
-            {t('feedback.whatType')}
+            {tx(t, "feedback.whatType")}
           </ThemedText>
           <View style={styles.optionsGrid}>
             {feedbackTypes.map((option) => (
@@ -229,17 +348,19 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
                 onPress={() => setFeedbackType(option.type)}
                 style={[
                   styles.optionCard,
-                  { 
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
-                    borderColor: feedbackType === option.type ? LUXURY_COLORS.violet : 'transparent',
+                  {
+                    backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#FFFFFF",
+                    borderColor:
+                      feedbackType === option.type ? LUXURY_COLORS.violet : "transparent",
                     borderWidth: 2,
                   },
                 ]}
               >
                 <LinearGradient
-                  colors={feedbackType === option.type 
-                    ? [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]
-                    : [LUXURY_COLORS.teal + '40', LUXURY_COLORS.emerald + '40']
+                  colors={
+                    feedbackType === option.type
+                      ? [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]
+                      : [LUXURY_COLORS.teal + "40", LUXURY_COLORS.emerald + "40"]
                   }
                   style={styles.optionIcon}
                 >
@@ -258,7 +379,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
 
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>
-            {t('feedback.whichArea')}
+            {tx(t, "feedback.whichArea")}
           </ThemedText>
           <View style={styles.categoriesRow}>
             {categories.map((cat) => (
@@ -267,23 +388,26 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
                 onPress={() => setCategory(cat.category)}
                 style={[
                   styles.categoryChip,
-                  { 
-                    backgroundColor: category === cat.category 
-                      ? LUXURY_COLORS.violet 
-                      : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                  {
+                    backgroundColor:
+                      category === cat.category
+                        ? LUXURY_COLORS.violet
+                        : isDark
+                          ? "rgba(255,255,255,0.08)"
+                          : "rgba(0,0,0,0.05)",
                   },
                 ]}
               >
-                <Feather 
-                  name={cat.icon} 
-                  size={14} 
-                  color={category === cat.category ? '#FFFFFF' : theme.text} 
+                <Feather
+                  name={cat.icon}
+                  size={14}
+                  color={category === cat.category ? "#FFFFFF" : theme.text}
                 />
-                <ThemedText 
-                  type="small" 
+                <ThemedText
+                  type="small"
                   style={[
                     styles.categoryLabel,
-                    { color: category === cat.category ? '#FFFFFF' : theme.text }
+                    { color: category === cat.category ? "#FFFFFF" : theme.text },
                   ]}
                 >
                   {cat.label}
@@ -297,43 +421,55 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
 
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>
-            {t('feedback.titleLabel')}
+            {tx(t, "feedback.titleLabel")}
           </ThemedText>
           <TextInput
             style={[
               styles.input,
-              { 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+              {
+                backgroundColor: inputSurface,
                 color: theme.text,
               },
             ]}
-            placeholder={t('feedback.titlePlaceholder')}
+            placeholder={tx(t, "feedback.titlePlaceholder")}
             placeholderTextColor={theme.tabIconDefault}
             value={title}
             onChangeText={setTitle}
             maxLength={100}
+            multiline={false}
+            numberOfLines={1}
+            returnKeyType="next"
+            blurOnSubmit
           />
         </View>
 
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>
-            {t('feedback.descriptionLabel')}
+            {tx(t, "feedback.descriptionLabel")}
           </ThemedText>
           <TextInput
             style={[
               styles.textArea,
-              { 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+              {
+                backgroundColor: inputSurface,
                 color: theme.text,
+                height: Math.max(150, descriptionHeight),
               },
             ]}
-            placeholder={t('feedback.descriptionPlaceholder')}
+            placeholder={tx(t, "feedback.descriptionPlaceholder")}
             placeholderTextColor={theme.tabIconDefault}
             value={description}
             onChangeText={setDescription}
             multiline
-            numberOfLines={6}
+            scrollEnabled
             textAlignVertical="top"
+            blurOnSubmit={false}
+            returnKeyType="default"
+            maxLength={4000}
+            onContentSizeChange={(e) => {
+              const next = Math.min(320, Math.max(150, e.nativeEvent.contentSize.height + 24));
+              setDescriptionHeight(next);
+            }}
           />
         </View>
 
@@ -355,7 +491,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
               <>
                 <Feather name="send" size={18} color="#FFFFFF" />
                 <ThemedText type="body" style={styles.submitText}>
-                  {t('feedback.submit')}
+                  {tx(t, "feedback.submit")}
                 </ThemedText>
               </>
             )}
@@ -364,7 +500,7 @@ export default function FeedbackScreen({ navigation }: FeedbackScreenProps) {
 
         <View style={styles.footer}>
           <ThemedText type="caption" style={styles.footerText}>
-            {t('feedback.footer')}
+            {tx(t, "feedback.footer")}
           </ThemedText>
         </View>
       </ScreenKeyboardAwareScrollView>
@@ -377,73 +513,78 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
   },
+  pageTitle: {
+    color: "#FFFFFF",
+    textAlign: "center",
+    marginBottom: Spacing.sm,
+  },
   introText: {
-    color: 'rgba(255,255,255,0.7)',
-    textAlign: 'center',
+    color: "rgba(255,255,255,0.7)",
+    textAlign: "center",
   },
   section: {
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     marginBottom: Spacing.md,
   },
   optionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: Spacing.sm,
   },
   optionCard: {
-    width: '48%',
+    width: "48%",
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
-    alignItems: 'center',
+    alignItems: "center",
   },
   optionIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: Spacing.sm,
   },
   optionLabel: {
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: Spacing.xs,
-    textAlign: 'center',
+    textAlign: "center",
   },
   optionDescription: {
     opacity: 0.7,
-    textAlign: 'center',
+    textAlign: "center",
   },
   categoriesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: Spacing.sm,
   },
   categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.full,
     gap: Spacing.xs,
   },
   categoryLabel: {
-    fontWeight: '500',
+    fontWeight: "500",
   },
   ratingContainer: {
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
-    alignItems: 'center',
+    alignItems: "center",
   },
   ratingLabel: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     marginBottom: Spacing.md,
   },
   starsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.sm,
   },
   starButton: {
@@ -451,35 +592,40 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     marginTop: Spacing.sm,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   input: {
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
     fontSize: 16,
+    lineHeight: 22,
   },
   textArea: {
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
     fontSize: 16,
+    lineHeight: 24,
     minHeight: 150,
   },
   submitButton: {
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.md,
     borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   submitGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: Spacing.md,
     gap: Spacing.sm,
   },
   submitText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
   footer: {
     padding: Spacing.lg,
@@ -487,7 +633,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   footerText: {
-    textAlign: 'center',
+    textAlign: "center",
     opacity: 0.5,
   },
 });

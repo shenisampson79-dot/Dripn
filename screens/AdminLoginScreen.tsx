@@ -95,7 +95,7 @@ export default function AdminLoginScreen({ navigation, onLoginSuccess, onExit }:
             </ThemedText>
             <ThemedText type="body" style={styles.subtitle}>
               {mode === 'login'
-                ? "Sign in to manage stylists and sessions"
+                ? "Sign in for app dashboard, analytics, and staff tools"
                 : "How to create the first admin account"}
             </ThemedText>
           </View>

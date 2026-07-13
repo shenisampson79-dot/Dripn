@@ -7,7 +7,7 @@ import StylistLoginScreen from "@/screens/StylistLoginScreen";
 import StylistDashboardScreen from "@/screens/StylistDashboardScreen";
 import SessionDetailScreen from "@/screens/SessionDetailScreen";
 import AdminLoginScreen from "@/screens/AdminLoginScreen";
-import AdminStylistScreen from "@/screens/AdminStylistScreen";
+import AdminPortalHub from "@/screens/AdminPortalHub";
 import { useStylistAuth } from "@/contexts/StylistAuthContext";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { getCommonScreenOptions } from "@/navigation/screenOptions";
@@ -48,8 +48,7 @@ export default function StylistStackNavigator({ mode, onExit }: StylistStackNavi
   if (mode === 'admin') {
     if (isAdminAuth) {
       return (
-        <AdminStylistScreen
-          navigation={{} as any}
+        <AdminPortalHub
           onExit={onExit}
           onLogout={handleAdminLogout}
         />

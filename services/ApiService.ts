@@ -149,7 +149,40 @@ class ApiService {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Request failed' }));
-      let errorMessage = error.error || error.message || '';
+      const rawCode = String(error.error || error.errorCode || '').trim();
+      const humanMessage = typeof error.message === 'string' ? error.message.trim() : '';
+      const looksLikeCode = (value: string) => /^[A-Z][A-Z0-9_]{2,}$/.test(value);
+
+      // Prefer a human message; never surface SCREAMING_SNAKE API codes to users
+      let errorMessage =
+        humanMessage && !looksLikeCode(humanMessage)
+          ? humanMessage
+          : rawCode && !looksLikeCode(rawCode)
+            ? rawCode
+            : '';
+
+      const referralErrorMessages: Record<string, string> = {
+        CODE_NOT_FOUND: 'We couldn’t find that referral code. Check for typos and try again.',
+        INVALID_CODE: 'That referral code doesn’t look valid. Please check it and try again.',
+        ALREADY_REFERRED: 'You’ve already used a referral code on this account.',
+        ALREADY_APPLIED: 'You’ve already used a referral code on this account.',
+        SELF_REFERRAL: 'You can’t use your own referral code.',
+        OWN_CODE: 'You can’t use your own referral code.',
+        REFERRAL_ALREADY_APPLIED: 'You’ve already used a referral code on this account.',
+        CANNOT_REFER_SELF: 'You can’t use your own referral code.',
+        NOT_AUTHENTICATED: 'Sign in to apply a referral code.',
+        USER_NOT_FOUND: 'Account not found. Please try signing in again.',
+      };
+
+      if ((!errorMessage || looksLikeCode(errorMessage)) && referralErrorMessages[rawCode]) {
+        errorMessage = referralErrorMessages[rawCode];
+      } else if (looksLikeCode(errorMessage)) {
+        errorMessage = errorMessage
+          .split('_')
+          .join(' ')
+          .toLowerCase()
+          .replace(/^\w/, (c) => c.toUpperCase());
+      }
 
       if (error.error === 'too_many_images') {
         errorMessage = error.stylistResponse
@@ -160,9 +193,10 @@ class ApiService {
         errorMessage = error.stylistResponse;
       } else if (error.hint === 'stripe_portal_not_configured') {
         errorMessage =
+          humanMessage ||
           error.error ||
           'Billing portal is not configured in Stripe. Enable Customer Portal under Stripe Dashboard → Settings → Billing → Customer portal.';
-      } else if (error.hint && errorMessage && !errorMessage.includes(String(error.hint))) {
+      } else if (error.hint && errorMessage && !errorMessage.includes(String(error.hint)) && !looksLikeCode(String(error.hint))) {
         errorMessage = `${errorMessage} (${error.hint})`;
       } else if (!errorMessage && error.hint) {
         errorMessage = String(error.hint);
@@ -179,10 +213,10 @@ class ApiService {
       }
       
       if (!errorMessage && error.errorCode) {
-        errorMessage = error.message || String(error.errorCode);
+        errorMessage = humanMessage || String(error.errorCode);
       }
 
-      if (!errorMessage || errorMessage === 'Request failed' || errorMessage.startsWith('HTTP')) {
+      if (!errorMessage || errorMessage === 'Request failed' || errorMessage.startsWith('HTTP') || looksLikeCode(errorMessage)) {
         switch (response.status) {
           case 401:
             errorMessage = 'Authentication required. Please log in to use this feature.';
@@ -192,17 +226,18 @@ class ApiService {
             break;
           case 404:
             errorMessage = endpoint.includes('/referral')
-              ? 'Referral API is not deployed on the server yet.'
+              ? (referralErrorMessages[rawCode] ||
+                'We couldn’t find that referral code. Check for typos and try again.')
               : 'Account not found. Please check your email or sign up.';
             break;
           case 429:
             errorMessage = 'Too many attempts. Please try again later.';
             break;
           case 500:
-            errorMessage = error.message || 'Server error. Please try again later.';
+            errorMessage = humanMessage || 'Server error. Please try again later.';
             break;
           default:
-            errorMessage = 'Something went wrong. Please try again.';
+            errorMessage = humanMessage || 'Something went wrong. Please try again.';
         }
       }
       
@@ -1008,6 +1043,9 @@ class ApiService {
       referredByCode: string | null;
       referralDiscountPending: boolean;
       referralDiscountApplied: boolean;
+      referralCreditPercent?: number;
+      referralNextInvoicePercent?: number;
+      referralMaxPercentPerInvoice?: number;
     }>('/api/referral/me');
   }
 
@@ -4525,6 +4563,26 @@ class ApiService {
         totalChats: number;
         chatsToday: number;
       };
+      aiCost?: {
+        month: string;
+        totalCents: number;
+        rembgMonthCount: number;
+        rembgLifetimeCount: number;
+        activeMeteredUsers: number;
+        nearBudgetUsers: number;
+        heavyUsers: Array<{
+          id: number;
+          email: string;
+          displayName?: string | null;
+          subscriptionTier: string;
+          usedCents: number;
+          budgetCents: number;
+          remainingCents: number;
+          rembgMonthCount: number;
+          rembgLifetimeCount: number;
+          pctOfBudget: number;
+        }>;
+      } | null;
       recentUsers: Array<{
         id: string;
         email: string;
@@ -4534,6 +4592,22 @@ class ApiService {
         verified?: boolean;
       }>;
     }>('/api/admin/dashboard');
+  }
+
+  async getAiUsage() {
+    return this.request<{
+      success: boolean;
+      usage: {
+        month: string;
+        usedCents: number;
+        budgetCents: number;
+        rembgLifetimeCount: number;
+        rembgMonthCount: number;
+        remainingCents: number;
+      } | null;
+      freeRembgLifetimeLimit: number;
+      message?: string;
+    }>('/api/usage/ai');
   }
 
   async getAdminPayments() {
@@ -4901,6 +4975,46 @@ class ApiService {
     return this.request<{ success: boolean; message: string; feedbackId?: number }>('/api/feedback', {
       method: 'POST',
       body: JSON.stringify(payload),
+    });
+  }
+
+  async getAdminFeedback(limit = 40) {
+    return this.adminRequest<{
+      success: boolean;
+      feedback: Array<{
+        id: number;
+        feedbackType: string;
+        category?: string | null;
+        rating?: number | null;
+        title?: string | null;
+        description: string;
+        deviceInfo?: string | null;
+        appVersion?: string | null;
+        status?: string | null;
+        adminNotes?: string | null;
+        createdAt: string;
+        userEmail?: string | null;
+        userName?: string | null;
+      }>;
+      counts: {
+        total: number;
+        bugs: number;
+        features: number;
+        general: number;
+        ratings: number;
+        support?: number;
+        new: number;
+      };
+    }>(`/api/admin/feedback?limit=${limit}`);
+  }
+
+  async updateAdminFeedback(
+    id: number,
+    updates: { status?: string; adminNotes?: string },
+  ) {
+    return this.adminRequest<{ success: boolean; feedback: any }>(`/api/admin/feedback/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
     });
   }
 }

@@ -35,7 +35,9 @@ import apiService from "@/services/ApiService";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
-type Props = NativeStackScreenProps<ProfileStackParamList, "AnalyticsDashboard">;
+type Props = NativeStackScreenProps<ProfileStackParamList, "AnalyticsDashboard"> & {
+  embedded?: boolean;
+};
 
 const CHART_COLORS = ["#c9a961", "#1a1a2e", "#6b8e7b", "#8b5cf6", "#e07a5f", "#3d5a80"];
 
@@ -174,7 +176,7 @@ function InsightCard({
   );
 }
 
-export default function AnalyticsDashboard({ navigation }: Props) {
+export default function AnalyticsDashboard({ navigation, embedded }: Props) {
   const { theme, isDark } = useTheme();
   const { width } = useWindowDimensions();
   const { isAuthenticated, isLoading: authLoading, logout } = useAdminAuth();
@@ -198,12 +200,16 @@ export default function AnalyticsDashboard({ navigation }: Props) {
   const AUTO_REFRESH_MS = 20_000;
 
   const redirectToLogin = useCallback(() => {
+    if (embedded) {
+      setAuthRequired(true);
+      return;
+    }
     if (Platform.OS === "web" && typeof window !== "undefined") {
       window.location.href = "/admin/login";
     } else {
       setAuthRequired(true);
     }
-  }, []);
+  }, [embedded]);
 
   const formatMoney = (n: number) => `£${(n ?? 0).toFixed(2)}`;
 
@@ -333,9 +339,11 @@ export default function AnalyticsDashboard({ navigation }: Props) {
   return (
     <View style={[styles.root, { backgroundColor: theme.backgroundRoot }]}>
       <LinearGradient colors={[...ScreenGradients.profile.primary]} style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={12}>
-          <Feather name="arrow-left" size={22} color="#FFF" />
-        </Pressable>
+        {embedded ? null : (
+          <Pressable onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={12}>
+            <Feather name="arrow-left" size={22} color="#FFF" />
+          </Pressable>
+        )}
         <ThemedText type="h2" style={styles.headerTitle}>
           Revenue Intelligence
         </ThemedText>

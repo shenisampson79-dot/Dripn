@@ -35,6 +35,7 @@ import {
   fillEmptyLookbookSlots,
   countFilledLookbookDays,
   ensureLookbookOutfitsHaveFootwear,
+  filterOutfitItemsForWeather,
 } from "@/utils/dfyOutfitImages";
 import { sortOutfitItemsByVisualOrder } from "@/utils/outfitItemOrder";
 
@@ -108,8 +109,13 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     void populateLookbookOutfits(hydrated, { fillGapsOnly: filledCount > 0 });
   };
 
-  const outfitTitle = (idx: number) =>
-    idx === 0 ? t('dfy.lookbook.todaysLook') : t('dfy.lookbook.dayLook').replace('{day}', String(idx + 1));
+  const outfitTitle = (idx: number) => {
+    if (idx === 0) return t('dfy.lookbook.todaysLook') || "Today's Look";
+    const template = t('dfy.lookbook.dayLook') || 'Day {day} Look';
+    return template.includes('{day}')
+      ? template.replace('{day}', String(idx + 1))
+      : `Day ${idx + 1} Look`;
+  };
 
   const loadDelivery = async () => {
     if (!user?.id) return;
@@ -145,14 +151,24 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       const withWeather = forecast?.days?.length
         ? {
             ...hydrated,
-            outfits: hydrated.outfits.map((outfit, idx) => ({
-              ...outfit,
-              weatherNote:
-                outfit.weatherNote ||
-                weatherService.buildWeatherNoteForDay(
-                  weatherService.getForecastDay(forecast, outfit.dayNumber || idx + 1),
-                ),
-            })),
+            outfits: hydrated.outfits.map((outfit, idx) => {
+              const dayForecast = weatherService.getForecastDay(
+                forecast,
+                outfit.dayNumber || idx + 1,
+              );
+              const filteredItems = filterOutfitItemsForWeather(
+                outfit.items || [],
+                dayForecast,
+                wardrobeItems,
+              );
+              return {
+                ...outfit,
+                items: filteredItems,
+                weatherNote:
+                  outfit.weatherNote ||
+                  weatherService.buildWeatherNoteForDay(dayForecast),
+              };
+            }),
           }
         : hydrated;
       setDelivery(withWeather);
@@ -168,10 +184,14 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         const prev = normalised.outfits[idx];
         return (outfit.items?.length || 0) > (prev?.items?.length || 0);
       });
+      const droppedWarmLayers = withWeather.outfits.some((outfit, idx) => {
+        const prev = normalised.outfits[idx];
+        return (outfit.items?.length || 0) < (prev?.items?.length || 0);
+      });
       const gainedWeather = withWeather.outfits.some(
         (outfit, idx) => outfit.weatherNote && !normalised.outfits[idx]?.weatherNote,
       );
-      if (gainedImages || gainedShoes || gainedWeather) {
+      if (gainedImages || gainedShoes || gainedWeather || droppedWarmLayers) {
         await dfyService.saveDFYDelivery(withWeather);
       }
 
@@ -326,14 +346,23 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
       if (forecast?.days?.length) {
         working = {
           ...working,
-          outfits: working.outfits.map((outfit, idx) => ({
-            ...outfit,
-            weatherNote:
-              outfit.weatherNote ||
-              weatherService.buildWeatherNoteForDay(
-                weatherService.getForecastDay(forecast, outfit.dayNumber || idx + 1),
+          outfits: working.outfits.map((outfit, idx) => {
+            const dayForecast = weatherService.getForecastDay(
+              forecast,
+              outfit.dayNumber || idx + 1,
+            );
+            return {
+              ...outfit,
+              items: filterOutfitItemsForWeather(
+                outfit.items || [],
+                dayForecast,
+                wardrobeItems,
               ),
-          })),
+              weatherNote:
+                outfit.weatherNote ||
+                weatherService.buildWeatherNoteForDay(dayForecast),
+            };
+          }),
         };
       }
 
@@ -414,12 +443,36 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
     openSavePrompt('save');
   };
 
+  const getTotalDays = (): number => delivery?.totalDays || 14;
+
   const getDaysRemaining = (): number => {
-    if (!delivery) return 14;
+    if (!delivery) return getTotalDays();
     const start = new Date(delivery.startDate);
     const now = new Date();
     const elapsed = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    return Math.max(0, 14 - elapsed);
+    return Math.max(0, getTotalDays() - elapsed);
+  };
+
+  const formatDayOf = (day: number): string => {
+    const total = getTotalDays();
+    const template = t('dfy.lookbook.dayOf') || 'Day {day} of {total}';
+    if (template.includes('{day}')) {
+      return template.replace('{day}', String(day)).replace('{total}', String(total));
+    }
+    return `Day ${day} of ${total}`;
+  };
+
+  const formatDaysLeft = (count: number): string => {
+    const template =
+      t('dfy.lookbook.daysLeft') ||
+      (count === 1 ? '{count} day left' : '{count} days left');
+    if (template.includes('{count}')) {
+      // Fix awkward "1 days left" from a plural-only template
+      const filled = template.replace('{count}', String(count));
+      if (count === 1) return filled.replace(/\bdays\b/i, 'day');
+      return filled;
+    }
+    return count === 1 ? `${count} day left` : `${count} days left`;
   };
 
   const stylistColors = delivery?.outfits[0]?.stylistId
@@ -491,7 +544,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
             <View style={styles.outfitTitleRow}>
               <View style={{ flex: 1 }}>
                 <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: 2 }}>
-                  {t('dfy.lookbook.dayOf').replace('{day}', String(item.dayNumber)).replace('{total}', '14')}
+                  {formatDayOf(item.dayNumber)}
                 </ThemedText>
                 <ThemedText type="h3" numberOfLines={1}>
                   {item.title}
@@ -548,7 +601,7 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         </View>
       </Pressable>
     );
-  }, [currentDay, isDark, delivery]);
+  }, [currentDay, isDark, delivery, t]);
 
   const renderOutfitModal = () => {
     if (!selectedOutfit) return null;
@@ -754,10 +807,12 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
           <Feather name="arrow-left" size={20} color="#FFFFFF" />
         </Pressable>
         <View style={styles.headerCenter}>
-          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>{t('dfy.lookbook.title')}</ThemedText>
+          <ThemedText type="h2" style={{ color: '#FFFFFF' }}>
+            {t('dfy.lookbook.title') || 'Lookbook'}
+          </ThemedText>
           <View style={[styles.daysRemainingBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
             <ThemedText type="caption" style={{ color: '#FFFFFF' }}>
-              {t('dfy.lookbook.daysLeft').replace('{count}', String(getDaysRemaining()))}
+              {formatDaysLeft(getDaysRemaining())}
             </ThemedText>
           </View>
         </View>
@@ -775,11 +830,11 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
             colors={[stylistColors.accent, stylistColors.gradient[1]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={[styles.progressFill, { width: `${(currentDay / 14) * 100}%` }]}
+            style={[styles.progressFill, { width: `${(currentDay / getTotalDays()) * 100}%` }]}
           />
         </View>
         <ThemedText type="small" style={{ color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
-          {t('dfy.lookbook.dayOf').replace('{day}', String(currentDay)).replace('{total}', '14')}
+          {formatDayOf(currentDay)}
         </ThemedText>
       </View>
 
@@ -832,7 +887,13 @@ export default function DFYLookbookScreen({ navigation }: DFYLookbookScreenProps
         visible={showSavePrompt}
         intent={savePromptIntent}
         wardrobeItemIds={selectedOutfit?.items?.map((item) => String(item.id)) || ['lookbook']}
-        defaultTitle={selectedOutfit?.title || t('dfy.lookbook.dayLookFallback').replace('{day}', String(selectedOutfit?.dayNumber || ''))}
+        defaultTitle={
+          selectedOutfit?.title ||
+          (t('dfy.lookbook.dayLookFallback') || 'Day {day} Look').replace(
+            '{day}',
+            String(selectedOutfit?.dayNumber || ''),
+          )
+        }
         defaultDescription={selectedOutfit?.description || selectedOutfit?.stylistNote}
         onClose={() => setShowSavePrompt(false)}
         onCustomSave={async ({ name, description }) => {
@@ -984,7 +1045,8 @@ const styles = StyleSheet.create({
   stylistNotePreview: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: Spacing.sm,
+    padding: Spacing.md,
+    paddingRight: Spacing.lg,
     borderRadius: BorderRadius.md,
     gap: Spacing.sm,
   },
@@ -1103,6 +1165,8 @@ const styles = StyleSheet.create({
   },
   stylistNoteContent: {
     flex: 1,
+    paddingRight: Spacing.sm,
+    minWidth: 0,
   },
   reactionSection: {
     marginBottom: Spacing.lg,

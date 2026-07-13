@@ -199,15 +199,16 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         },
       });
 
-      const data = await response.json();
+      const data = await parseApiResponse(response);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to get stylists');
+        throw new Error(String(data.error || 'Failed to get stylists'));
       }
 
-      return data;
+      return Array.isArray(data) ? (data as unknown as StylistRecord[]) : [];
     } catch (error) {
-      console.error('Failed to get stylists:', error);
+      // Avoid red LogBox for missing/HTML endpoints — stylist registry is optional
+      console.warn('Failed to get stylists:', error instanceof Error ? error.message : error);
       return [];
     }
   };

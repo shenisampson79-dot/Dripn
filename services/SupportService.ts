@@ -48,7 +48,7 @@ export const QUICK_TROUBLESHOOTING: { id: string; label: string; response: strin
   {
     id: 'app-slow',
     label: 'App is running slow',
-    response: "I understand the app feels slow. Here are some quick fixes:\n\n1. Close and reopen the app\n2. Check your internet connection\n3. Clear the app cache in your phone's settings\n4. Make sure you have the latest app version\n\nIf it's still slow after trying these, tap the ticket icon in the bottom-left corner to create a support ticket.",
+    response: "I understand the app feels slow. Here are some quick fixes:\n\n1. Close and reopen the app\n2. Check your internet connection\n3. Clear the app cache in your phone's settings\n4. Make sure you have the latest app version\n\nIf it's still slow after trying these, tap the envelope icon to the left of the message box to create a support ticket.",
   },
   {
     id: 'login-issues',
@@ -229,7 +229,7 @@ class SupportService {
 
   private connectionTroubleshooting(signOff: string, note?: string): string {
     const prefix = note ? `${note}\n\n` : '';
-    return `${prefix}Try this:\n\n1. Check Wi‑Fi or mobile data\n2. Force-quit Dripn and open it again\n3. Wait 30–60 seconds — our backend can take a moment to wake up, then try again\n4. Toggle airplane mode off/on, or switch between Wi‑Fi and cellular\n5. Make sure you're on the latest app version\n\nIf it still fails, tap the + icon to create a support ticket, or email support@dripn.app with your phone model and what screen you were on. ${signOff}`;
+    return `${prefix}Try this:\n\n1. Check Wi‑Fi or mobile data\n2. Force-quit Dripn and open it again\n3. Wait 30–60 seconds — our backend can take a moment to wake up, then try again\n4. Toggle airplane mode off/on, or switch between Wi‑Fi and cellular\n5. Make sure you're on the latest app version\n\nIf it still fails, tap the envelope icon to the left of the message box to create a support ticket, or email support@dripn.app with your phone model and what screen you were on. ${signOff}`;
   }
 
   private getMockResponse(
@@ -259,7 +259,7 @@ class SupportService {
       (lowerMessage.includes('refer') && lowerMessage.includes('friend')) ||
       (lowerMessage.includes('invite') && lowerMessage.includes('friend'))
     ) {
-      return `Great question about referrals! Share your personal code from Settings > Invite Friends.\n\nWhen a friend joins with your code, you both get:\n- +20 bonus AI stylist chat messages\n- 10% off your next Stripe subscription charge (web/Android). Apple In-App Purchase can’t use Stripe coupons, but the +20 AI messages still apply.\n\nFriends can also enter a code under Settings > Invite Friends. ${signOff}`;
+      return `Great question about referrals! Share your personal code from Settings > Invite Friends.\n\nWhen a friend joins with your code:\n- You get 10% off per friend (stacks up to 50% off each month; extras carry to later months)\n- They get 10% off their next month's charge\n\nWorks on web/Android Stripe billing. Apple In-App Purchase can’t use those coupons.\n\nFriends can also enter a code under Settings > Invite Friends. ${signOff}`;
     }
 
     if (lowerMessage.includes('subscription') || lowerMessage.includes('plan') || lowerMessage.includes('upgrade')) {

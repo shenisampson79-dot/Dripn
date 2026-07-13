@@ -29,6 +29,10 @@ import {
 } from '@/services/TodaysOutfitGenerator';
 import type { WardrobeItem } from '@/contexts/WardrobeContext';
 import { apiService } from '@/services/ApiService';
+import {
+  getTodaysOutfitPopupPrefs,
+  isWithinTodaysOutfitPopupWindow,
+} from '@/utils/todaysOutfitPrefs';
 
 type Props = {
   onOpenStylist?: (prompt: string) => void;
@@ -41,6 +45,13 @@ const MAX_ZOOM = 2.4;
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function formatTodayBadgeDate(locale?: string) {
+  const now = new Date();
+  const weekday = now.toLocaleDateString(locale || 'en-GB', { weekday: 'long' });
+  const datePart = now.toLocaleDateString(locale || 'en-GB', { day: 'numeric', month: 'short' });
+  return `${weekday} · ${datePart}`;
 }
 
 function ZoomableOutfitVisual({
@@ -218,8 +229,10 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       try {
         const dismissedToday = await AsyncStorage.getItem(DISMISS_KEY_PREFIX + todayKey());
         const wasDismissed = dismissedToday === '1';
+        const prefs = await getTodaysOutfitPopupPrefs();
+        const inWindow = isWithinTodaysOutfitPopupWindow(prefs);
         setDismissed(wasDismissed);
-        setVisible(!wasDismissed);
+        setVisible(Boolean(prefs.enabled && inWindow && !wasDismissed));
       } catch {
         setDismissed(false);
         setVisible(true);
@@ -360,7 +373,7 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
                 <View style={styles.badge}>
                   <Feather name="sun" size={14} color="#C9A87C" />
                   <ThemedText type="caption" style={styles.badgeText}>
-                    {outfit?.dayLabel || (t('home.todaysOutfit') || "Today's outfit")}
+                    {formatTodayBadgeDate()}
                     {outfit?.occasionLabel ? ` · ${outfit.occasionLabel}` : ''}
                   </ThemedText>
                 </View>
@@ -522,7 +535,7 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
         visible={showSaveModal}
         intent="save"
         wardrobeItemIds={itemIds}
-        defaultTitle={`Today's outfit — ${outfit?.dayLabel || todayKey()}`}
+        defaultTitle={`Today's outfit — ${formatTodayBadgeDate()}`}
         defaultDescription={outfit?.stylistMessage || outfit?.vibeLabel || ''}
         occasion={outfit?.dressFor || outfit?.occasionType || 'custom'}
         onClose={() => setShowSaveModal(false)}

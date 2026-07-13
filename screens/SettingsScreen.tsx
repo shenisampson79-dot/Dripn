@@ -28,6 +28,16 @@ import { shouldUseAppleIAP } from "@/utils/platformPayments";
 import { VoiceCreditsPurchaseModal } from "@/components/VoiceCreditsPurchaseModal";
 import { LanguagePickerModal } from "@/components/LanguagePickerModal";
 import { useVoiceCredits } from "@/hooks/useVoiceCredits";
+import {
+  DEFAULT_TODAYS_OUTFIT_POPUP_PREFS,
+  formatHourLabel,
+  getOccasionPrefLabel,
+  getTodaysOutfitPopupPrefs,
+  OCCASION_PREF_OPTIONS,
+  saveTodaysOutfitPopupPrefs,
+  type TodaysOutfitOccasionPref,
+  type TodaysOutfitPopupPrefs,
+} from "@/utils/todaysOutfitPrefs";
 
 const NEWSLETTER_STATUS_KEY = "@dripn_newsletter_subscribed";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
@@ -114,7 +124,7 @@ function SettingItem({
 export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScreenProps) {
   const { theme, isDark } = useTheme();
   const { user, logout, updateProfile } = useAuth();
-  const { referralCode, totalReferrals, bonusAIRequests, shareReferral, applyReferralCode, referredByCode, referralDiscountPending } = useReferral();
+  const { referralCode, totalReferrals, shareReferral, applyReferralCode, referredByCode, referralCreditPercent, referralNextInvoicePercent } = useReferral();
   const { preferences: notificationPrefs, updatePreferences } = useSmartNotifications();
   const { settings: voiceSettings, updateSettings: updateVoiceSettings } = useVoiceSettings();
   const { t, translations, currentLanguage, availableLanguages } = useTranslations();
@@ -155,6 +165,20 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const [countrySearch, setCountrySearch] = useState("");
   const [showVoiceCreditsModal, setShowVoiceCreditsModal] = useState(false);
   const [referralCodeInput, setReferralCodeInput] = useState('');
+  const [aiUsage, setAiUsage] = useState<{
+    month: string;
+    usedCents: number;
+    budgetCents: number;
+    rembgLifetimeCount: number;
+    rembgMonthCount: number;
+    remainingCents: number;
+  } | null>(null);
+  const [aiUsageLoading, setAiUsageLoading] = useState(false);
+  const [freeRembgLifetimeLimit, setFreeRembgLifetimeLimit] = useState(10);
+  const [outfitPopupPrefs, setOutfitPopupPrefs] = useState<TodaysOutfitPopupPrefs>(
+    DEFAULT_TODAYS_OUTFIT_POPUP_PREFS,
+  );
+  const [outfitPopupPicker, setOutfitPopupPicker] = useState<'appearAt' | 'occasion' | null>(null);
   const {
     remainingCredits,
     hasMonthlyAllowance,
@@ -191,6 +215,58 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   useEffect(() => {
     loadDFYAccess();
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setAiUsage(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setAiUsageLoading(true);
+      try {
+        await apiService.init();
+        const result = await apiService.getAiUsage();
+        if (!cancelled) {
+          setAiUsage(result.usage || null);
+          if (typeof result.freeRembgLifetimeLimit === 'number') {
+            setFreeRembgLifetimeLimit(result.freeRembgLifetimeLimit);
+          }
+        }
+      } catch (err) {
+        console.warn('[Settings] AI usage load skipped:', err);
+        if (!cancelled) setAiUsage(null);
+      } finally {
+        if (!cancelled) setAiUsageLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const prefs = await getTodaysOutfitPopupPrefs();
+      if (!cancelled) setOutfitPopupPrefs(prefs);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const updateOutfitPopupPrefs = async (partial: Partial<TodaysOutfitPopupPrefs>) => {
+    try {
+      const next = await saveTodaysOutfitPopupPrefs(partial);
+      setOutfitPopupPrefs(next);
+      // Force next Stylist open to rebuild for the new occasion / window
+      await AsyncStorage.removeItem('@dripn_todays_wardrobe_outfit');
+    } catch (err) {
+      console.warn('[Settings] Failed to save outfit popup prefs:', err);
+      Alert.alert(t('common.error') || 'Error', t('settings.couldNotSaveOutfitPopup') || 'Could not save outfit popup settings.');
+    }
+  };
 
   useEffect(() => {
     if (!showTestingTools) return;
@@ -291,11 +367,11 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
 
   const handleDeleteAccount = () => {
     const appleBillingWarning = shouldUseAppleIAP()
-      ? `\n\n${t('settings.deleteAccount.appleBillingWarning')}`
+      ? `\n\n${t('settings.deleteAccountAppleBillingWarning')}`
       : '';
 
     Alert.alert(
-      t('settings.deleteAccount'),
+      t('settings.deleteAccount') || 'Delete Account',
       `${t('settings.deleteAccountConfirm')}${appleBillingWarning}`,
       [
         { text: t('common.cancel'), style: "cancel" },
@@ -366,10 +442,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
 
   const handleSupport = () => {
     navigation.navigate("Support");
-  };
-
-  const handlePartnerWithUs = () => {
-    navigation.navigate("Partner");
   };
 
   const handleLanguageSelect = () => {
@@ -501,6 +573,97 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
           />
+          {user?.id ? (
+            <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+              <LinearGradient
+                colors={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+                style={styles.settingIconGradient}
+              >
+                <Feather name="activity" size={16} color="#FFFFFF" />
+              </LinearGradient>
+              <View style={styles.settingContent}>
+                <ThemedText type="body" style={styles.settingTitle}>
+                  {t('settings.usageThisMonth') || 'Usage this month'}
+                </ThemedText>
+                {(() => {
+                  const usagePct = aiUsage
+                    ? Math.min(
+                        100,
+                        Math.round(
+                          (aiUsage.usedCents / Math.max(aiUsage.budgetCents, 1)) * 100,
+                        ),
+                      )
+                    : 0;
+                  const usageRatio = aiUsage
+                    ? aiUsage.usedCents / Math.max(aiUsage.budgetCents, 1)
+                    : 0;
+                  const isFree =
+                    normalizeSubscriptionTier(user?.subscriptionTier) === 'free';
+
+                  return (
+                    <>
+                      <ThemedText type="small" style={styles.settingSubtitle}>
+                        {aiUsageLoading
+                          ? (t('common.loading') || 'Loading…')
+                          : aiUsage
+                            ? (t('settings.usageMeterPct') || '{pct}% of monthly allowance used')
+                                .replace('{pct}', String(usagePct))
+                            : (t('settings.usageUnavailable') ||
+                              'Usage will appear after your next AI action')}
+                      </ThemedText>
+                      {aiUsage ? (
+                        <>
+                          <View
+                            style={[
+                              styles.usageTrack,
+                              {
+                                backgroundColor: isDark
+                                  ? 'rgba(255,255,255,0.08)'
+                                  : 'rgba(0,0,0,0.06)',
+                              },
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.usageFill,
+                                {
+                                  width: `${usagePct}%`,
+                                  backgroundColor:
+                                    usageRatio >= 0.9
+                                      ? '#FF3B30'
+                                      : usageRatio >= 0.7
+                                        ? LUXURY_COLORS.gold
+                                        : LUXURY_COLORS.teal,
+                                },
+                              ]}
+                            />
+                          </View>
+                          <ThemedText
+                            type="small"
+                            style={[styles.settingSubtitle, { marginTop: 6 }]}
+                          >
+                            {isFree
+                              ? (t('settings.usageRembgFreeLine') ||
+                                  'Background removals: {used} of {cap}')
+                                  .replace(
+                                    '{used}',
+                                    String(aiUsage.rembgLifetimeCount ?? aiUsage.rembgMonthCount),
+                                  )
+                                  .replace('{cap}', String(freeRembgLifetimeLimit))
+                              : (t('settings.usageRembgMonthLine') ||
+                                  'Background removals: {month} this month').replace(
+                                  '{month}',
+                                  String(aiUsage.rembgMonthCount),
+                                )}
+                          </ThemedText>
+                        </>
+                      ) : null}
+                    </>
+                  );
+                })()}
+              </View>
+            </View>
+          ) : null}
           <SettingItem
             icon="mail"
             title={t('settings.email')}
@@ -571,6 +734,62 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <LinearGradient
+            colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+            style={styles.sectionIcon}
+          >
+            <Feather name="sun" size={12} color="#FFFFFF" />
+          </LinearGradient>
+          <ThemedText type="h4" style={styles.sectionTitle}>
+            {t('settings.todaysOutfitPopup') || "Today's outfit popup"}
+          </ThemedText>
+        </View>
+        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
+          <View style={[styles.settingItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }]}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
+              style={styles.settingIconGradient}
+            >
+              <Feather name="bell" size={16} color="#FFFFFF" />
+            </LinearGradient>
+            <View style={styles.settingContent}>
+              <ThemedText type="body" style={styles.settingTitle}>
+                {t('settings.showOutfitPopup') || 'Show daily outfit popup'}
+              </ThemedText>
+              <ThemedText type="small" style={styles.settingSubtitle}>
+                {t('settings.showOutfitPopupDesc') || 'Auto-open the morning look card on Stylist'}
+              </ThemedText>
+            </View>
+            <Switch
+              value={outfitPopupPrefs.enabled}
+              onValueChange={(value) => void updateOutfitPopupPrefs({ enabled: value })}
+              trackColor={{ false: theme.tabIconDefault, true: LUXURY_COLORS.gold }}
+              thumbColor={outfitPopupPrefs.enabled ? '#FFFFFF' : '#F4F4F4'}
+            />
+          </View>
+          <SettingItem
+            icon="clock"
+            title={t('settings.outfitPopupAppearAt') || 'Appear at'}
+            subtitle={formatHourLabel(outfitPopupPrefs.appearAtHour)}
+            onPress={() => setOutfitPopupPicker('appearAt')}
+            theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.teal, LUXURY_COLORS.emerald]}
+          />
+          <SettingItem
+            icon="briefcase"
+            title={t('settings.outfitPopupOccasion') || 'Occasion'}
+            subtitle={getOccasionPrefLabel(outfitPopupPrefs.preferredOccasion)}
+            onPress={() => setOutfitPopupPicker('occasion')}
+            theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+          />
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <LinearGradient
             colors={[LUXURY_COLORS.coral, '#C46A4F']}
             style={styles.sectionIcon}
           >
@@ -598,13 +817,11 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
               </ThemedText>
               <ThemedText type="small" style={styles.settingSubtitle}>
                 {totalReferrals > 0
-                  ? (t('settings.referralStatsLine') || '{count} friends joined · {bonus} bonus AI messages')
+                  ? (t('settings.referralStatsLine') || '{count} friends joined · {next}% off next charge ({credit}% banked)')
                       .replace('{count}', String(totalReferrals))
-                      .replace('{bonus}', String(bonusAIRequests))
+                      .replace('{next}', String(referralNextInvoicePercent || Math.min(50, referralCreditPercent || 0)))
+                      .replace('{credit}', String(referralCreditPercent || 0))
                   : t('settings.inviteDescription')}
-                {referralDiscountPending
-                  ? `\n${t('settings.referralDiscountPending') || '10% off ready for your next Stripe checkout.'}`
-                  : ''}
               </ThemedText>
             </View>
             <Feather name="share-2" size={18} color={LUXURY_COLORS.coral} />
@@ -803,29 +1020,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         </View>
       </View>
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <LinearGradient
-            colors={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-            style={styles.sectionIcon}
-          >
-            <Feather name="briefcase" size={12} color={LUXURY_COLORS.midnight} />
-          </LinearGradient>
-          <ThemedText type="h4" style={styles.sectionTitle}>{t('settings.company')}</ThemedText>
-        </View>
-        <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
-          <SettingItem
-            icon="users"
-            title={t('settings.partnerWithUs')}
-            subtitle={t('settings.partnerWithUsSubtitle')}
-            onPress={handlePartnerWithUs}
-            theme={theme}
-            isDark={isDark}
-            iconGradient={[LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]}
-          />
-        </View>
-      </View>
-
       {onOpenPortal ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -838,15 +1032,6 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
             <ThemedText type="h4" style={styles.sectionTitle}>Staff Access</ThemedText>
           </View>
           <View style={[styles.sectionContent, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF' }]}>
-            <SettingItem
-              icon="scissors"
-              title={t('common.stylistPortal') || "Stylist Portal"}
-              subtitle={t('common.accessStylistDashboard') || "Access stylist dashboard"}
-              onPress={() => onOpenPortal('stylist')}
-              theme={theme}
-              isDark={isDark}
-              iconGradient={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
-            />
             <SettingItem
               icon="shield"
               title={t('common.adminPortal') || "Admin Portal"}
@@ -999,7 +1184,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           />
           <SettingItem
             icon="trash-2"
-            title={t('settings.deleteAccount')}
+            title={t('settings.deleteAccount') || 'Delete Account'}
             onPress={handleDeleteAccount}
             showChevron={false}
             danger
@@ -1019,6 +1204,76 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           </ThemedText>
         </LinearGradient>
       </View>
+
+      <Modal
+        visible={outfitPopupPicker !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setOutfitPopupPicker(null)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setOutfitPopupPicker(null)}>
+          <View style={[styles.modalContent, { backgroundColor: isDark ? LUXURY_COLORS.midnight : '#FFFFFF' }]}>
+            <View style={styles.modalHeader}>
+              <ThemedText type="h3" style={styles.modalTitle}>
+                {outfitPopupPicker === 'occasion'
+                  ? (t('settings.outfitPopupOccasion') || 'Occasion')
+                  : (t('settings.outfitPopupAppearAt') || 'Appear at')}
+              </ThemedText>
+              <Pressable
+                onPress={() => setOutfitPopupPicker(null)}
+                style={[styles.modalCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+              >
+                <Feather name="x" size={20} color={theme.text} />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+              {outfitPopupPicker === 'occasion'
+                ? OCCASION_PREF_OPTIONS.map((option) => (
+                    <Pressable
+                      key={option.id}
+                      onPress={() => {
+                        void updateOutfitPopupPrefs({
+                          preferredOccasion: option.id as TodaysOutfitOccasionPref,
+                        });
+                        setOutfitPopupPicker(null);
+                      }}
+                      style={[
+                        styles.modalOption,
+                        outfitPopupPrefs.preferredOccasion === option.id && {
+                          backgroundColor: isDark ? 'rgba(201,168,124,0.15)' : 'rgba(201,168,124,0.12)',
+                        },
+                      ]}
+                    >
+                      <ThemedText type="body">{option.label}</ThemedText>
+                      {outfitPopupPrefs.preferredOccasion === option.id ? (
+                        <Feather name="check" size={18} color={LUXURY_COLORS.gold} />
+                      ) : null}
+                    </Pressable>
+                  ))
+                : Array.from({ length: 24 }, (_, hour) => (
+                    <Pressable
+                      key={hour}
+                      onPress={() => {
+                        void updateOutfitPopupPrefs({ appearAtHour: hour });
+                        setOutfitPopupPicker(null);
+                      }}
+                      style={[
+                        styles.modalOption,
+                        outfitPopupPrefs.appearAtHour === hour && {
+                          backgroundColor: isDark ? 'rgba(201,168,124,0.15)' : 'rgba(201,168,124,0.12)',
+                        },
+                      ]}
+                    >
+                      <ThemedText type="body">{formatHourLabel(hour)}</ThemedText>
+                      {outfitPopupPrefs.appearAtHour === hour ? (
+                        <Feather name="check" size={18} color={LUXURY_COLORS.gold} />
+                      ) : null}
+                    </Pressable>
+                  ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
 
       <Modal
         visible={pickerModal.visible}
@@ -1260,6 +1515,17 @@ const styles = StyleSheet.create({
   settingSubtitle: {
     opacity: 0.6,
     marginTop: 2,
+  },
+  usageTrack: {
+    height: 6,
+    borderRadius: 3,
+    marginTop: 10,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  usageFill: {
+    height: '100%',
+    borderRadius: 3,
   },
   referralApplyRow: {
     flexDirection: 'row',

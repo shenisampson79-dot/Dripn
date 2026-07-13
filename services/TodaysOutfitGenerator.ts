@@ -10,6 +10,10 @@ import {
   countWardrobeOutfitBasics,
   describeOutfitPlanningGap,
 } from '@/utils/wardrobeOutfitReadiness';
+import {
+  getTodaysOutfitPopupPrefs,
+  type TodaysOutfitPopupPrefs,
+} from '@/utils/todaysOutfitPrefs';
 
 export type WeatherSnapshot = {
   temperature: number;
@@ -50,6 +54,8 @@ function dateKey() {
 export function resolveTodaysOccasion(
   profile: OnboardingProfile,
   user?: OutfitUserContext,
+  prefs?: Pick<TodaysOutfitPopupPrefs, 'preferredOccasion'>,
+  now: Date = new Date(),
 ): {
   dressFor: DressFor;
   occasionType: OutfitOccasionId | 'todays_look';
@@ -57,10 +63,12 @@ export function resolveTodaysOccasion(
   isWeekday: boolean;
   occasionLabel: string;
 } {
-  const now = new Date();
   const day = now.getDay();
+  const hour = now.getHours();
   const isWeekday = day >= 1 && day <= 5;
-  const dayLabel = DAY_NAMES[day];
+  const isDaytime = hour < 17; // before 5pm — commute / work / school hours
+  const datePart = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const dayLabel = `${DAY_NAMES[day]} · ${datePart}`;
   const lifestyle = user?.lifestyle;
   const goals = user?.usageGoals || [];
   const style = user?.stylePreference;
@@ -71,11 +79,22 @@ export function resolveTodaysOccasion(
     style === 'smart-casual';
 
   const explicit = profile.dressFor;
+  const forced = prefs?.preferredOccasion && prefs.preferredOccasion !== 'auto'
+    ? prefs.preferredOccasion
+    : null;
+
   let dressFor: DressFor;
-  if (isWeekday) {
+  if (forced) {
+    dressFor = forced;
+  } else if (isWeekday && isDaytime) {
+    // Weekday mornings/afternoons: never suggest date/event — honor work or everyday
     if (professional || explicit === 'work') dressFor = 'work';
-    else if (explicit === 'date' || explicit === 'event') dressFor = explicit;
     else dressFor = 'myself';
+  } else if (isWeekday) {
+    // Weekday evening: onboarding romance/event prefs can apply
+    if (explicit === 'date' || explicit === 'event' || explicit === 'friends') dressFor = explicit;
+    else if (professional || explicit === 'work') dressFor = 'myself';
+    else dressFor = explicit || 'myself';
   } else if (explicit === 'date' || explicit === 'event' || explicit === 'friends') {
     dressFor = explicit;
   } else if (explicit === 'work') {
@@ -111,7 +130,7 @@ export function resolveTodaysOccasion(
         : dressFor === 'friends'
           ? 'Weekend / friends'
           : dressFor === 'date'
-            ? 'Date'
+            ? 'Date night'
             : 'Event';
 
   return { dressFor, occasionType, dayLabel, isWeekday, occasionLabel };
@@ -198,10 +217,34 @@ export async function generateTodaysWardrobeOutfit(params: {
   if (!forceRefresh) {
     const stored = await loadStoredTodaysWardrobeOutfit();
     if (stored) {
-      const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
-      const items = stored.itemIds.map((id) => byId.get(String(id))).filter(Boolean) as WardrobeItem[];
-      if (items.length >= 3) {
-        return { ok: true, outfit: stored, items };
+      const popupPrefs = await getTodaysOutfitPopupPrefs();
+      const expected = resolveTodaysOccasion(profile, {
+        gender: user?.gender,
+        lifestyle: user?.lifestyle,
+        stylePreference: user?.stylePreference,
+        usageGoals: user?.usageGoals,
+        country: user?.country,
+        stylistId: user?.stylistPreferences?.selectedStylistId,
+      }, popupPrefs);
+      // Bust cache when time-of-day / prefs would change the occasion (e.g. morning work vs evening date)
+      if (stored.dressFor && stored.dressFor !== expected.dressFor) {
+        // fall through to regenerate
+      } else {
+        const byId = new Map(wardrobeItems.map((w) => [String(w.id), w]));
+        const items = stored.itemIds.map((id) => byId.get(String(id))).filter(Boolean) as WardrobeItem[];
+        if (items.length >= 3) {
+          return {
+            ok: true,
+            outfit: {
+              ...stored,
+              dayLabel: expected.dayLabel,
+              occasionLabel: expected.occasionLabel,
+              dressFor: expected.dressFor,
+              occasionType: expected.occasionType,
+            },
+            items,
+          };
+        }
       }
     }
   }
@@ -220,7 +263,12 @@ export async function generateTodaysWardrobeOutfit(params: {
     country: user?.country,
     stylistId: user?.stylistPreferences?.selectedStylistId,
   };
-  const { dressFor, occasionType, dayLabel, occasionLabel } = resolveTodaysOccasion(profile, userContext);
+  const popupPrefs = await getTodaysOutfitPopupPrefs();
+  const { dressFor, occasionType, dayLabel, occasionLabel } = resolveTodaysOccasion(
+    profile,
+    userContext,
+    popupPrefs,
+  );
 
   try {
     const generated = await generateWardrobeOutfit({

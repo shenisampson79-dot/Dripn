@@ -16,6 +16,8 @@ interface ReferralContextType {
   referredByCode: string | null;
   referralDiscountPending: boolean;
   referralDiscountApplied: boolean;
+  referralCreditPercent: number;
+  referralNextInvoicePercent: number;
   isLoading: boolean;
   shareReferral: () => Promise<boolean>;
   applyReferralCode: (code: string) => Promise<{ success: boolean; message: string }>;
@@ -29,9 +31,6 @@ const ReferralContext = createContext<ReferralContextType | null>(null);
 const REFERRAL_STORAGE_KEY = '@dripn_referral';
 export const PENDING_REFERRAL_KEY = '@dripn_pending_referral';
 
-const BONUS_AI = 20;
-const DISCOUNT_PERCENT = 10;
-
 export function ReferralProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [referralCode, setReferralCode] = useState('');
@@ -40,6 +39,8 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
   const [referredByCode, setReferredByCode] = useState<string | null>(null);
   const [referralDiscountPending, setReferralDiscountPending] = useState(false);
   const [referralDiscountApplied, setReferralDiscountApplied] = useState(false);
+  const [referralCreditPercent, setReferralCreditPercent] = useState(0);
+  const [referralNextInvoicePercent, setReferralNextInvoicePercent] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const applyLocalSnapshot = useCallback((data: {
@@ -49,6 +50,8 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
     referredByCode?: string | null;
     referralDiscountPending?: boolean;
     referralDiscountApplied?: boolean;
+    referralCreditPercent?: number;
+    referralNextInvoicePercent?: number;
   }) => {
     if (data.referralCode) setReferralCode(data.referralCode);
     if (typeof data.totalReferrals === 'number') setTotalReferrals(data.totalReferrals);
@@ -59,6 +62,12 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
     }
     if (typeof data.referralDiscountApplied === 'boolean') {
       setReferralDiscountApplied(data.referralDiscountApplied);
+    }
+    if (typeof data.referralCreditPercent === 'number') {
+      setReferralCreditPercent(data.referralCreditPercent);
+    }
+    if (typeof data.referralNextInvoicePercent === 'number') {
+      setReferralNextInvoicePercent(data.referralNextInvoicePercent);
     }
   }, []);
 
@@ -95,6 +104,8 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
           referredByCode: stats.referredByCode || null,
           referralDiscountPending: Boolean(stats.referralDiscountPending),
           referralDiscountApplied: Boolean(stats.referralDiscountApplied),
+          referralCreditPercent: Number(stats.referralCreditPercent || 0),
+          referralNextInvoicePercent: Number(stats.referralNextInvoicePercent || 0),
         };
         applyLocalSnapshot(snapshot);
         await persistLocal(snapshot);
@@ -114,6 +125,8 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
                 referredByCode: again.referredByCode || null,
                 referralDiscountPending: Boolean(again.referralDiscountPending),
                 referralDiscountApplied: Boolean(again.referralDiscountApplied),
+                referralCreditPercent: Number(again.referralCreditPercent || 0),
+                referralNextInvoicePercent: Number(again.referralNextInvoicePercent || 0),
               };
               applyLocalSnapshot(next);
               await persistLocal(next);
@@ -192,16 +205,30 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
         await refreshReferral();
         return {
           success: true,
-          message: result.message || `Rewards unlocked: +${BONUS_AI} AI messages and ${DISCOUNT_PERCENT}% off Stripe billing.`,
+          message: result.message || 'Referral applied! You get 10% off your next month\'s charge.',
         };
       }
-      return {
-        success: false,
-        message: result.message || 'Could not apply that code.',
+      const friendlyFromCode: Record<string, string> = {
+        CODE_NOT_FOUND: 'We couldn’t find that referral code. Check for typos and try again.',
+        INVALID_CODE: 'That referral code doesn’t look valid. Please check it and try again.',
+        ALREADY_APPLIED: 'You’ve already used a referral code on this account.',
+        SELF_REFERRAL: 'You can’t use your own referral code.',
       };
+      const raw = result.error || result.message || '';
+      const message =
+        (result.message && !/^[A-Z][A-Z0-9_]{2,}$/.test(result.message)
+          ? result.message
+          : friendlyFromCode[raw] || friendlyFromCode[String(result.error || '')]) ||
+        'Could not apply that code. Please check it and try again.';
+      return { success: false, message };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not apply that code.';
-      return { success: false, message };
+      return {
+        success: false,
+        message: /^[A-Z][A-Z0-9_]{2,}$/.test(message)
+          ? 'We couldn’t find that referral code. Check for typos and try again.'
+          : message,
+      };
     }
   };
 
@@ -233,7 +260,7 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
   };
 
   const getReferralBonusInfo = (): string => {
-    return `You both get +${BONUS_AI} AI stylist messages and ${DISCOUNT_PERCENT}% off your next Stripe subscription charge when they join with your code.`;
+    return `You get 10% off per friend who joins (stacks up to 50% off each month; extras carry over). They get 10% off their next month's charge.`;
   };
 
   const value: ReferralContextType = {
@@ -243,6 +270,8 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
     referredByCode,
     referralDiscountPending,
     referralDiscountApplied,
+    referralCreditPercent,
+    referralNextInvoicePercent,
     isLoading,
     shareReferral,
     applyReferralCode,

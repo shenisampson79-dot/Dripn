@@ -360,16 +360,29 @@ async function syncBackgroundRemovalForItems(
 
   for (const item of items) {
     if (idFilter && !idFilter.has(String(item.id))) continue;
-    if (item.imageProcessed && itemHasProcessedCdnImage(item)) {
+    // Skip anything that already has a cutout — do not re-bill Replicate
+    if (
+      item.imageProcessed ||
+      itemHasProcessedCdnImage(item) ||
+      isProcessedWardrobeCdnUrl(item.enhancedImageUri || '') ||
+      isProcessedWardrobeCdnUrl(item.imageUri || '')
+    ) {
       skipped += 1;
       continue;
     }
     const localUri =
       (await resolveLocalWardrobePhoto(item.id, item)) || getLocalImageUri(item, imageCache);
-    if (localUri && (await localWardrobeFileExists(localUri))) {
-      toProcess.push({ item, localUri });
-    } else if (itemLikelyHasWardrobePhoto(item as any) || isRemoteImageUri(item.imageUri || '')) {
+    // Prefer server reprocess (skip-aware) when a remote image already exists
+    if (
+      isRemoteImageUri(item.imageUri) ||
+      isRemoteImageUri(item.enhancedImageUri) ||
+      isProxyWardrobeImageUri(item.imageUri) ||
+      isProxyWardrobeImageUri(item.enhancedImageUri) ||
+      itemLikelyHasWardrobePhoto(item as any)
+    ) {
       toServerReprocess.push(item);
+    } else if (localUri && (await localWardrobeFileExists(localUri))) {
+      toProcess.push({ item, localUri });
     } else {
       noLocal += 1;
     }
@@ -435,6 +448,27 @@ async function syncBackgroundRemovalForItems(
   let cursor = 0;
   const processOne = async ({ item, localUri }: { item: WardrobeItem; localUri: string }) => {
     try {
+      // Ask server first — returns alreadyProcessed without rembg if cutout exists;
+      // if create-path rembg is in flight, server dedupes to the same job.
+      try {
+        const existing = await apiService.reprocessItemBackground(String(item.id));
+        if (existing.success && existing.imageUrl) {
+          const applied = await applyProcessedImage(item, existing.imageUrl);
+          if (applied) {
+            fixed += 1;
+            onProgress?.({ processed: fixed + failed, total, failed });
+            return;
+          }
+          if (existing.alreadyProcessed) {
+            skipped += 1;
+            onProgress?.({ processed: fixed + failed, total, failed });
+            return;
+          }
+        }
+      } catch {
+        // fall through to local upload
+      }
+
       const base64 = await convertImageToBase64(localUri);
       const result = await apiService.uploadWardrobeItemImage(String(item.id), base64, { sync: true });
       if (result.success && result.imageUrl && result.imageProcessed) {
@@ -462,6 +496,9 @@ async function syncBackgroundRemovalForItems(
         const applied = await applyProcessedImage(item, result.imageUrl);
         if (applied) {
           fixed += 1;
+        } else if (result.alreadyProcessed) {
+          // Server has cutout but apply failed (e.g. proxy) — still count as done
+          skipped += 1;
         } else {
           failed += 1;
         }

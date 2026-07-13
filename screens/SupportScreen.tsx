@@ -320,7 +320,7 @@ export default function SupportScreen() {
           { backgroundColor: theme.link, opacity: pressed ? 0.8 : 1 },
         ]}
       >
-        <Feather name="file-plus" size={18} color="#FFFFFF" />
+        <Feather name="mail" size={18} color="#FFFFFF" />
         <ThemedText type="body" style={styles.createTicketText}>
           {t('support.createTicket')}
         </ThemedText>
@@ -550,7 +550,7 @@ export default function SupportScreen() {
               { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.7 : 1 },
             ]}
           >
-            <Feather name="file-plus" size={20} color={theme.link} />
+            <Feather name="mail" size={20} color={theme.link} />
           </Pressable>
           <TextInput
             style={[

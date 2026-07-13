@@ -1,0 +1,12 @@
+﻿.git
+.local
+.expo
+.kotlin
+node_modules
+dist
+web-build
+attached_assets
+ios
+android
+marketing-website
+*.pack

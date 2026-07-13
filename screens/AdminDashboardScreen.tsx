@@ -17,7 +17,9 @@ import apiService from "@/services/ApiService";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 
-type Props = NativeStackScreenProps<ProfileStackParamList, "AdminDashboard">;
+type Props = NativeStackScreenProps<ProfileStackParamList, "AdminDashboard"> & {
+  embedded?: boolean;
+};
 
 interface DashboardData {
   users: {
@@ -33,6 +35,26 @@ interface DashboardData {
     totalChats: number;
     chatsToday: number;
   };
+  aiCost?: {
+    month: string;
+    totalCents: number;
+    rembgMonthCount: number;
+    rembgLifetimeCount: number;
+    activeMeteredUsers: number;
+    nearBudgetUsers: number;
+    heavyUsers: Array<{
+      id: number;
+      email: string;
+      displayName?: string | null;
+      subscriptionTier: string;
+      usedCents: number;
+      budgetCents: number;
+      remainingCents: number;
+      rembgMonthCount: number;
+      rembgLifetimeCount: number;
+      pctOfBudget: number;
+    }>;
+  } | null;
   recentUsers: Array<{
     id: string;
     email: string;
@@ -84,7 +106,35 @@ interface ModelStatusData {
   lastChecked: string;
 }
 
-export default function AdminDashboardScreen({ navigation }: Props) {
+interface AdminFeedbackItem {
+  id: number;
+  feedbackType: string;
+  category?: string | null;
+  rating?: number | null;
+  title?: string | null;
+  description: string;
+  deviceInfo?: string | null;
+  appVersion?: string | null;
+  status?: string | null;
+  createdAt: string;
+  userEmail?: string | null;
+  userName?: string | null;
+}
+
+interface AdminFeedbackData {
+  feedback: AdminFeedbackItem[];
+  counts: {
+    total: number;
+    bugs: number;
+    features: number;
+    general: number;
+    ratings: number;
+    support?: number;
+    new: number;
+  };
+}
+
+export default function AdminDashboardScreen({ navigation, embedded }: Props) {
   const { theme, isDark } = useTheme();
   const { palette } = useColorScheme();
 
@@ -92,7 +142,9 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const [paymentsData, setPaymentsData] = useState<PaymentsData | null>(null);
   const [subscriptionsData, setSubscriptionsData] = useState<SubscriptionsData | null>(null);
   const [modelStatus, setModelStatus] = useState<ModelStatusData | null>(null);
+  const [feedbackData, setFeedbackData] = useState<AdminFeedbackData | null>(null);
   const [isCheckingModels, setIsCheckingModels] = useState(false);
+  const [updatingFeedbackId, setUpdatingFeedbackId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,16 +164,22 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const fetchData = useCallback(async () => {
     try {
       setError(null);
-      const [dashboard, payments, subscriptions, models] = await Promise.all([
+      const [dashboard, payments, subscriptions, models, feedback] = await Promise.all([
         apiService.getAdminDashboard(),
         apiService.getAdminPayments(),
         apiService.getAdminSubscriptions(),
         apiService.getAdminModels().catch(() => null),
+        apiService.getAdminFeedback(30).catch(() => null),
       ]);
       setDashboardData(dashboard);
       setPaymentsData(payments);
       setSubscriptionsData(subscriptions);
       setModelStatus(models);
+      setFeedbackData(
+        feedback
+          ? { feedback: feedback.feedback || [], counts: feedback.counts }
+          : null,
+      );
     } catch (err: any) {
       console.error("Failed to fetch admin data:", err);
       setError(err.message || "Failed to load dashboard data");
@@ -130,6 +188,30 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       setIsRefreshing(false);
     }
   }, []);
+
+  const markFeedbackReviewed = async (id: number) => {
+    setUpdatingFeedbackId(id);
+    try {
+      await apiService.updateAdminFeedback(id, { status: "reviewed" });
+      setFeedbackData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          feedback: prev.feedback.map((item) =>
+            item.id === id ? { ...item, status: "reviewed" } : item,
+          ),
+          counts: {
+            ...prev.counts,
+            new: Math.max(0, (prev.counts.new || 0) - 1),
+          },
+        };
+      });
+    } catch (err) {
+      console.error("Failed to update feedback:", err);
+    } finally {
+      setUpdatingFeedbackId(null);
+    }
+  };
 
   const handleCheckModels = async () => {
     setIsCheckingModels(true);
@@ -288,9 +370,13 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         }
       >
         <View style={styles.header}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color="#FFFFFF" />
-          </Pressable>
+          {embedded ? (
+            <View style={{ width: 40 }} />
+          ) : (
+            <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Feather name="arrow-left" size={24} color="#FFFFFF" />
+            </Pressable>
+          )}
           <ThemedText type="h2" style={{ color: "#FFFFFF" }}>
             Admin Dashboard
           </ThemedText>
@@ -322,6 +408,86 @@ export default function AdminDashboardScreen({ navigation }: Props) {
               [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold]
             )}
           </View>
+        </View>
+
+        <View style={styles.section}>
+          <ThemedText type="h3" style={styles.sectionTitle}>
+            AI Cost Meter
+          </ThemedText>
+          <ThemedText type="small" style={[styles.statSubtitle, { marginBottom: Spacing.sm }]}>
+            {dashboardData?.aiCost?.month
+              ? `Metered COGS for ${dashboardData.aiCost.month} (USD)`
+              : "Deploy server meter to see live AI spend"}
+          </ThemedText>
+          <View style={styles.statsGrid}>
+            {renderStatCard(
+              "Est. AI spend",
+              `$${((dashboardData?.aiCost?.totalCents || 0) / 100).toFixed(2)}`,
+              "cpu",
+              [LUXURY_COLORS.coral, LUXURY_COLORS.rose],
+              `${dashboardData?.aiCost?.activeMeteredUsers || 0} active users`
+            )}
+            {renderStatCard(
+              "Rembg this month",
+              dashboardData?.aiCost?.rembgMonthCount || 0,
+              "image",
+              [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet],
+              `${dashboardData?.aiCost?.rembgLifetimeCount || 0} lifetime`
+            )}
+            {renderStatCard(
+              "Near budget",
+              dashboardData?.aiCost?.nearBudgetUsers || 0,
+              "alert-triangle",
+              [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold],
+              "≥80% of plan cap"
+            )}
+          </View>
+
+          {dashboardData?.aiCost?.heavyUsers && dashboardData.aiCost.heavyUsers.length > 0 ? (
+            <View
+              style={[
+                styles.recentTransactions,
+                { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#FFFFFF" },
+              ]}
+            >
+              <ThemedText type="body" style={styles.subsectionTitle}>
+                Highest AI usage
+              </ThemedText>
+              {dashboardData.aiCost.heavyUsers.slice(0, 10).map((row) => (
+                <View key={String(row.id)} style={styles.transactionRow}>
+                  <View style={styles.transactionInfo}>
+                    <ThemedText type="body" style={styles.transactionEmail}>
+                      {row.displayName || row.email}
+                    </ThemedText>
+                    <ThemedText type="small" style={styles.transactionProduct}>
+                      {(row.subscriptionTier || "free").replace(/_/g, " ")} · rembg {row.rembgMonthCount}/mo
+                    </ThemedText>
+                  </View>
+                  <View style={styles.transactionAmount}>
+                    <ThemedText
+                      type="body"
+                      style={[
+                        styles.transactionValue,
+                        {
+                          color:
+                            row.pctOfBudget >= 90
+                              ? LUXURY_COLORS.coral
+                              : row.pctOfBudget >= 70
+                                ? LUXURY_COLORS.gold
+                                : LUXURY_COLORS.emerald,
+                        },
+                      ]}
+                    >
+                      ${(row.usedCents / 100).toFixed(2)}
+                    </ThemedText>
+                    <ThemedText type="small" style={styles.transactionDate}>
+                      {row.pctOfBudget}% of ${(row.budgetCents / 100).toFixed(2)}
+                    </ThemedText>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.section}>
@@ -527,6 +693,129 @@ export default function AdminDashboardScreen({ navigation }: Props) {
             </View>
           </View>
         ) : null}
+
+        <View style={styles.section}>
+          <ThemedText type="h3" style={styles.sectionTitle}>
+            Feedback & Support Inbox
+          </ThemedText>
+          <View style={styles.statsGrid}>
+            {renderStatCard(
+              "New",
+              feedbackData?.counts.new || 0,
+              "inbox",
+              [LUXURY_COLORS.coral, LUXURY_COLORS.rose],
+            )}
+            {renderStatCard(
+              "Total",
+              feedbackData?.counts.total || 0,
+              "message-square",
+              [LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet],
+            )}
+            {renderStatCard(
+              "Bugs",
+              feedbackData?.counts.bugs || 0,
+              "alert-circle",
+              [LUXURY_COLORS.gold, LUXURY_COLORS.deepGold],
+            )}
+            {renderStatCard(
+              "Support",
+              feedbackData?.counts.support || 0,
+              "headphones",
+              [LUXURY_COLORS.teal, LUXURY_COLORS.emerald],
+            )}
+          </View>
+
+          <View
+            style={[
+              styles.recentSignups,
+              { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#FFFFFF", marginTop: Spacing.md },
+            ]}
+          >
+            {feedbackData?.feedback && feedbackData.feedback.length > 0 ? (
+              feedbackData.feedback.map((item, index) => (
+                <View
+                  key={item.id}
+                  style={[
+                    styles.feedbackRow,
+                    index < feedbackData.feedback.length - 1 && styles.userRowBorder,
+                  ]}
+                >
+                  <View style={styles.feedbackHeader}>
+                    <View style={styles.feedbackBadges}>
+                      <View
+                        style={[
+                          styles.tierBadge,
+                          {
+                            backgroundColor:
+                              item.feedbackType === "bug"
+                                ? LUXURY_COLORS.coral + "33"
+                                : item.feedbackType === "support"
+                                  ? LUXURY_COLORS.teal + "33"
+                                  : LUXURY_COLORS.violet + "33",
+                          },
+                        ]}
+                      >
+                        <ThemedText type="small" style={styles.tierText}>
+                          {(item.feedbackType || "general").toUpperCase()}
+                        </ThemedText>
+                      </View>
+                      {item.category ? (
+                        <ThemedText type="small" style={styles.feedbackMeta}>
+                          {item.category}
+                        </ThemedText>
+                      ) : null}
+                      {item.status === "new" ? (
+                        <View style={[styles.tierBadge, { backgroundColor: LUXURY_COLORS.gold + "44" }]}>
+                          <ThemedText type="small" style={styles.tierText}>
+                            NEW
+                          </ThemedText>
+                        </View>
+                      ) : null}
+                    </View>
+                    <ThemedText type="small" style={styles.feedbackMeta}>
+                      {formatRelativeTime(item.createdAt)}
+                    </ThemedText>
+                  </View>
+
+                  <ThemedText type="body" style={styles.feedbackTitle}>
+                    {item.title || "Untitled feedback"}
+                  </ThemedText>
+                  <ThemedText type="small" style={styles.feedbackBody} numberOfLines={4}>
+                    {item.description}
+                  </ThemedText>
+                  <ThemedText type="small" style={styles.feedbackMeta}>
+                    {[item.userName || item.userEmail || "Guest", item.appVersion ? `v${item.appVersion}` : null, item.deviceInfo]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </ThemedText>
+
+                  {item.status === "new" ? (
+                    <Pressable
+                      onPress={() => markFeedbackReviewed(item.id)}
+                      disabled={updatingFeedbackId === item.id}
+                      style={[
+                        styles.feedbackAction,
+                        { backgroundColor: LUXURY_COLORS.violet + "22", opacity: updatingFeedbackId === item.id ? 0.6 : 1 },
+                      ]}
+                    >
+                      {updatingFeedbackId === item.id ? (
+                        <ActivityIndicator size="small" color={LUXURY_COLORS.violet} />
+                      ) : (
+                        <ThemedText type="small" style={{ color: LUXURY_COLORS.violet, fontWeight: "600" }}>
+                          Mark reviewed
+                        </ThemedText>
+                      )}
+                    </Pressable>
+                  ) : null}
+                </View>
+              ))
+            ) : (
+              <ThemedText type="body" style={{ textAlign: "center", opacity: 0.6, padding: Spacing.lg }}>
+                No feedback or support tickets yet
+              </ThemedText>
+            )}
+          </View>
+        </View>
 
         <View style={[styles.section, { marginBottom: Spacing["2xl"] }]}>
           <ThemedText type="h3" style={styles.sectionTitle}>
@@ -780,5 +1069,39 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
+  },
+  feedbackRow: {
+    padding: Spacing.md,
+    gap: Spacing.xs,
+  },
+  feedbackHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  feedbackBadges: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: Spacing.xs,
+    flex: 1,
+  },
+  feedbackTitle: {
+    fontWeight: "600",
+  },
+  feedbackBody: {
+    opacity: 0.8,
+    lineHeight: 18,
+  },
+  feedbackMeta: {
+    opacity: 0.55,
+  },
+  feedbackAction: {
+    alignSelf: "flex-start",
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
   },
 });

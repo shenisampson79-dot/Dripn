@@ -148,19 +148,147 @@ function wardrobeItemToOutfitItem(item: WardrobeItem): DFYOutfitItem {
 
 const LOCAL_OCCASIONS: DFYOccasion[] = ['work', 'casual', 'casual', 'event', 'browsing', 'holiday', 'work'];
 
-function shouldIncludeOuterwear(dayForecast?: DailyForecastDay | null, dayNumber?: number): boolean {
-  if (!dayForecast) return (dayNumber ?? 1) % 3 !== 0;
-  if (dayForecast.tempMax >= 26) return false;
-  if (dayForecast.tempMax < 14) return true;
+function itemStyleText(item: { name?: string; subcategory?: string; category?: string; brand?: string }): string {
+  return `${item.name || ''} ${item.subcategory || ''} ${item.category || ''} ${item.brand || ''}`.toLowerCase();
+}
+
+/** Insulated/winter layers that should not appear on warm days. */
+export function isHeavyWarmthOuterwear(item: {
+  name?: string;
+  subcategory?: string;
+  category?: string;
+  brand?: string;
+}): boolean {
+  return /down|puffer|puffa|parka|winter|ski|quilted|insulated|thermal|duvet|heavy\s*coat|padded|gore-?tex\s*park/i.test(
+    itemStyleText(item),
+  );
+}
+
+/** Warm midlayers (often tagged as tops) — too hot for high-20s/30°C days. */
+export function isWarmMidlayer(item: {
+  name?: string;
+  subcategory?: string;
+  category?: string;
+  brand?: string;
+}): boolean {
+  const text = itemStyleText(item);
+  if (isHeavyWarmthOuterwear(item)) return true;
   if (
-    dayForecast.precipitationProbability >= 40 ||
-    dayForecast.condition === 'rainy' ||
-    dayForecast.condition === 'stormy' ||
-    dayForecast.condition === 'snowy'
+    /\bfleece\b|hoodie|sweatshirt|\bsweater\b|\bjumper\b|full-?zip\s*fleece|half-?zip\s*fleece|knit\s*jacket|track\s*top|sherpa|polar\s*fleece|french\s*terry|heavy\s*knit/i.test(
+      text,
+    )
   ) {
     return true;
   }
+  // "Full-zip" without rain/shell language is almost always a warm midlayer
+  if (/full-?zip/i.test(text) && !/rain|shell|windbreaker|softshell|anorak|denim|blazer/i.test(text)) {
+    return true;
+  }
+  return false;
+}
+
+export function isLightOuterwear(item: {
+  name?: string;
+  subcategory?: string;
+  category?: string;
+  brand?: string;
+}): boolean {
+  if (isHeavyWarmthOuterwear(item) || isWarmMidlayer(item)) return false;
+  return /rain|trench|blazer|denim|windbreaker|anorak|shacket|overshirt|softshell|light\s*jacket|utility|chore|bomber(?!\s*padded)/i.test(
+    itemStyleText(item),
+  );
+}
+
+function isMeaningfullyWetDay(dayForecast: DailyForecastDay): boolean {
+  if (dayForecast.condition === 'stormy' || dayForecast.condition === 'snowy') return true;
+  if (dayForecast.precipitationProbability >= 40) return true;
+  // Ignore vague "light drizzle" with low rain chance — not enough to justify warm layers
+  if (
+    dayForecast.precipitationProbability >= 25 &&
+    (dayForecast.condition === 'rainy' || /rain|drizzle|shower/i.test(dayForecast.description || ''))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function shouldIncludeOuterwear(dayForecast?: DailyForecastDay | null, dayNumber?: number): boolean {
+  if (!dayForecast) return (dayNumber ?? 1) % 3 !== 0;
+  // Hot days: never add coats/jackets for warmth (light rain shell handled separately only when truly wet)
+  if (dayForecast.tempMax >= 26) {
+    return isMeaningfullyWetDay(dayForecast);
+  }
+  if (dayForecast.tempMax < 14) return true;
+  if (isMeaningfullyWetDay(dayForecast)) return true;
+  // Mild days: only when under 20°C
   return dayForecast.tempMax < 20;
+}
+
+function pickOuterwearForWeather(
+  outerwear: WardrobeItem[],
+  day: number,
+  dayForecast?: DailyForecastDay | null,
+): WardrobeItem | null {
+  if (!outerwear.length || !shouldIncludeOuterwear(dayForecast, day)) return null;
+
+  const tempMax = dayForecast?.tempMax;
+  let pool = outerwear;
+
+  if (typeof tempMax === 'number') {
+    if (tempMax >= 22) {
+      // Warm/hot: light rain shells / blazers only — never fleece/down
+      pool = outerwear.filter(isLightOuterwear);
+      if (!pool.length) return null;
+    } else if (tempMax < 12) {
+      const heavy = outerwear.filter(isHeavyWarmthOuterwear);
+      pool = heavy.length ? heavy : outerwear;
+    } else {
+      const lightOrMid = outerwear.filter((i) => !isHeavyWarmthOuterwear(i) && !isWarmMidlayer(i));
+      pool = lightOrMid.length ? lightOrMid : outerwear.filter((i) => !isHeavyWarmthOuterwear(i));
+      if (!pool.length) pool = outerwear;
+    }
+  }
+
+  return pool[day % pool.length];
+}
+
+/** Drop warmth-inappropriate coats/fleeces when a forecast is known. */
+export function filterOutfitItemsForWeather(
+  items: DFYOutfitItem[],
+  dayForecast?: DailyForecastDay | null,
+  wardrobeItems?: WardrobeItem[],
+): DFYOutfitItem[] {
+  if (!items?.length || !dayForecast || typeof dayForecast.tempMax !== 'number') return items;
+
+  const wet = isMeaningfullyWetDay(dayForecast);
+
+  return items.filter((item) => {
+    const wardrobe = wardrobeItems?.length
+      ? findWardrobeItemForDFYOutfitItem(item, wardrobeItems)
+      : undefined;
+    const asWardrobe = {
+      category: item.category || wardrobe?.category,
+      name: item.name || wardrobe?.name,
+      subcategory: (item as any).subcategory || wardrobe?.subcategory,
+      brand: (item as any).brand || wardrobe?.brand,
+    } as WardrobeItem;
+    const cat = categorizeWardrobeItem(asWardrobe);
+    const warmLayer = isWarmMidlayer(asWardrobe) || isHeavyWarmthOuterwear(asWardrobe);
+
+    // Hot day (high ≥26°C): no fleece/hoodie/down; only a light rain shell if rain is meaningful
+    if (dayForecast.tempMax >= 26) {
+      if (warmLayer) return false;
+      if (cat === 'outerwear') return wet && isLightOuterwear(asWardrobe);
+      return true;
+    }
+
+    // Warm day (high ≥22°C): strip fleeces and heavy coats even if tagged as tops
+    if (dayForecast.tempMax >= 22 && warmLayer) return false;
+
+    if (cat === 'outerwear' && dayForecast.tempMax >= 22 && !isLightOuterwear(asWardrobe)) return false;
+
+    return true;
+  });
 }
 
 function pickFootwearItem(
@@ -197,7 +325,12 @@ export function buildLocalOutfitForDay(
 ): DFYOutfit | null {
   if (wardrobeItems.length === 0) return null;
 
-  const tops = wardrobeItems.filter((i) => categorizeWardrobeItem(i) === 'tops');
+  const tops = wardrobeItems.filter(
+    (i) => categorizeWardrobeItem(i) === 'tops' && !isWarmMidlayer(i),
+  );
+  const warmTops = wardrobeItems.filter(
+    (i) => categorizeWardrobeItem(i) === 'tops' && isWarmMidlayer(i),
+  );
   const bottoms = wardrobeItems.filter((i) => categorizeWardrobeItem(i) === 'bottoms');
   const dresses = wardrobeItems.filter((i) => categorizeWardrobeItem(i) === 'dresses');
   const outerwear = wardrobeItems.filter((i) => categorizeWardrobeItem(i) === 'outerwear');
@@ -205,22 +338,29 @@ export function buildLocalOutfitForDay(
 
   const items: DFYOutfitItem[] = [];
   const day = dayNumber;
+  const hotDay = !!dayForecast && dayForecast.tempMax >= 22;
+  // Never fall back to fleeces/hoodies as the top on a warm/hot day
+  const topPool = hotDay
+    ? tops
+    : tops.length
+      ? [...tops, ...warmTops]
+      : warmTops;
 
   if (dresses.length && day % 4 === 0) {
     items.push(wardrobeItemToOutfitItem(dresses[day % dresses.length]));
   } else {
-    if (tops.length) items.push(wardrobeItemToOutfitItem(tops[day % tops.length]));
+    if (topPool.length) items.push(wardrobeItemToOutfitItem(topPool[day % topPool.length]));
     if (bottoms.length) items.push(wardrobeItemToOutfitItem(bottoms[day % bottoms.length]));
   }
-  if (outerwear.length && shouldIncludeOuterwear(dayForecast, day)) {
-    items.push(wardrobeItemToOutfitItem(outerwear[day % outerwear.length]));
-  }
+  const layer = pickOuterwearForWeather(outerwear, day, dayForecast);
+  if (layer) items.push(wardrobeItemToOutfitItem(layer));
   const shoe = pickFootwearItem(footwear, day, dayForecast);
   if (shoe) items.push(wardrobeItemToOutfitItem(shoe));
 
   if (items.length < 2) {
     for (let i = 0; i < wardrobeItems.length && items.length < 3; i++) {
       const candidate = wardrobeItems[(dayIndex + i) % wardrobeItems.length];
+      if (hotDay && (isWarmMidlayer(candidate) || isHeavyWarmthOuterwear(candidate))) continue;
       if (!items.some((it) => it.id === String(candidate.id))) {
         items.push(wardrobeItemToOutfitItem(candidate));
       }
@@ -320,7 +460,9 @@ export function buildLocalAlternatives(
   if (wardrobeItems.length < 3) return [];
 
   const currentIds = new Set(currentItemIds.map(String));
-  const tops = wardrobeItems.filter((i) => categorizeWardrobeItem(i) === 'tops');
+  const tops = wardrobeItems.filter(
+    (i) => categorizeWardrobeItem(i) === 'tops' && !isWarmMidlayer(i),
+  );
   const bottoms = wardrobeItems.filter((i) => categorizeWardrobeItem(i) === 'bottoms');
   const dresses = wardrobeItems.filter((i) => categorizeWardrobeItem(i) === 'dresses');
   const outerwear = wardrobeItems.filter((i) => categorizeWardrobeItem(i) === 'outerwear');
@@ -357,9 +499,15 @@ export function buildLocalAlternatives(
       }
     }
 
-    if (outerwear.length && (dayNumber + altIdx) % 2 === 0) {
-      const layer = pickDifferentItem(outerwear, offset + 2, new Set([...currentIds, ...usedIds]));
-      if (layer) {
+    if (outerwear.length && shouldIncludeOuterwear(null, dayNumber + altIdx)) {
+      const lightPool = outerwear.filter(isLightOuterwear);
+      const pool = lightPool.length ? lightPool : outerwear.filter((i) => !isWarmMidlayer(i) && !isHeavyWarmthOuterwear(i));
+      const layer = pickDifferentItem(
+        pool.length ? pool : outerwear,
+        offset + 2,
+        new Set([...currentIds, ...usedIds]),
+      );
+      if (layer && !isWarmMidlayer(layer) && !isHeavyWarmthOuterwear(layer)) {
         items.push(wardrobeItemToOutfitItem(layer));
         usedIds.add(String(layer.id));
       }

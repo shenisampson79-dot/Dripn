@@ -78,31 +78,38 @@ interface Plan {
 
 type DisplayTier = 'free' | 'personal_stylist' | 'stylist_unlimited';
 
-const getPlanFeatures = (t: (key: string) => string): Record<DisplayTier, PlanFeature[]> => ({
-  free: [
-    { text: t('subscription.features.free.dailyDecision'), included: true },
-    { text: t('subscription.features.free.compareTwo'), included: true },
-    { text: t('subscription.features.free.wardrobe15'), included: true },
-    { text: t('subscription.features.free.basicChat'), included: true },
-    { text: t('subscription.features.free.decisionHistory'), included: false },
-    { text: t('subscription.features.free.wardrobeAdvice'), included: false },
-    { text: t('subscription.features.free.outfitCalendar'), included: false },
-  ],
-  personal_stylist: [
-    { text: t('subscription.features.personalStylist.instantDecisions'), included: true },
-    { text: t('subscription.features.personalStylist.looksGood'), included: true },
-    { text: t('subscription.features.personalStylist.confidence'), included: true },
-    { text: t('subscription.features.personalStylist.voiceAnswers'), included: true },
-    { text: t('subscription.features.personalStylist.learnsStyle'), included: true },
-  ],
-  stylist_unlimited: [
-    { text: t('subscription.features.stylistUnlimited.everythingPersonal'), included: true, bold: true },
-    { text: t('subscription.features.stylistUnlimited.planAhead'), included: true },
-    { text: t('subscription.features.stylistUnlimited.fullWardrobe'), included: true },
-    { text: t('subscription.features.stylistUnlimited.systemWorks'), included: true },
-    { text: t('subscription.features.stylistUnlimited.voiceAnytime'), included: true },
-  ],
-});
+const getPlanFeatures = (t: (key: string) => string): Record<DisplayTier, PlanFeature[]> => {
+  const tx = (key: string, fallback: string) => {
+    const value = (t(key) || '').trim();
+    return value || fallback;
+  };
+
+  return {
+    free: [
+      { text: tx('subscription.features.free.dailyDecision', '1 stylist decision per day'), included: true },
+      { text: tx('subscription.features.free.compareTwo', 'Compare 2 shopping options'), included: true },
+      { text: tx('subscription.features.free.wardrobe15', 'Up to 15 wardrobe items'), included: true },
+      { text: tx('subscription.features.free.basicChat', 'Basic AI chat (10/day)'), included: true },
+      { text: tx('subscription.features.free.decisionHistory', 'Decision history'), included: false },
+      { text: tx('subscription.features.free.wardrobeAdvice', 'Wardrobe-aware advice'), included: false },
+      { text: tx('subscription.features.free.outfitCalendar', 'Outfit calendar'), included: false },
+    ],
+    personal_stylist: [
+      { text: tx('subscription.features.personalStylist.instantDecisions', 'Get instant outfit decisions (no overthinking)'), included: true },
+      { text: tx('subscription.features.personalStylist.looksGood', 'Know what actually looks good on you'), included: true },
+      { text: tx('subscription.features.personalStylist.confidence', 'Build confidence before you leave the house'), included: true },
+      { text: tx('subscription.features.personalStylist.voiceAnswers', 'Voice your outfit and get instant answers'), included: true },
+      { text: tx('subscription.features.personalStylist.learnsStyle', 'Stylists learn your style over time'), included: true },
+    ],
+    stylist_unlimited: [
+      { text: tx('subscription.features.stylistUnlimited.everythingPersonal', 'Everything in Personal Stylist'), included: true, bold: true },
+      { text: tx('subscription.features.stylistUnlimited.planAhead', 'Plan outfits days or weeks ahead'), included: true },
+      { text: tx('subscription.features.stylistUnlimited.fullWardrobe', 'See your full wardrobe instantly'), included: true },
+      { text: tx('subscription.features.stylistUnlimited.systemWorks', 'Build a system that always works'), included: true },
+      { text: tx('subscription.features.stylistUnlimited.voiceAnytime', 'Talk to your stylist by voice, anytime'), included: true },
+    ],
+  };
+};
 
 const getPlanMetadata = (t: (key: string) => string, isYearly: boolean): Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean; bestValue?: boolean; tagline?: string; footerLine?: string }> => ({
   free: { name: t('subscription.plan.free.name'), period: t('subscription.plan.free.period'), description: t('subscription.plan.free.description') },

@@ -18,9 +18,10 @@ type AdminStylistScreenProps = {
   navigation: NativeStackNavigationProp<any>;
   onExit?: () => void;
   onLogout?: () => void;
+  embedded?: boolean;
 };
 
-export default function AdminStylistScreen({ navigation, onExit, onLogout }: AdminStylistScreenProps) {
+export default function AdminStylistScreen({ navigation, onExit, onLogout, embedded }: AdminStylistScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const { admin, getStylists, registerStylist, approveStylist, revokeStylist } = useAdminAuth();
@@ -229,6 +230,7 @@ export default function AdminStylistScreen({ navigation, onExit, onLogout }: Adm
 
   return (
     <ThemedView style={styles.container}>
+      {embedded ? null : (
       <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
         <View style={styles.headerTop}>
           <View style={styles.headerLeft}>
@@ -259,10 +261,16 @@ export default function AdminStylistScreen({ navigation, onExit, onLogout }: Adm
           </Pressable>
         </View>
       </View>
+      )}
 
       <ScreenKeyboardAwareScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl, paddingTop: embedded ? Spacing.md : undefined }]}
       >
+        {embedded ? (
+          <ThemedText type="h3" style={{ marginBottom: Spacing.sm }}>
+            Stylist Management
+          </ThemedText>
+        ) : null}
         <Pressable
           onPress={() => setShowAddModal(true)}
           style={[styles.addButton, { backgroundColor: theme.link }]}

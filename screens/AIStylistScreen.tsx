@@ -113,8 +113,23 @@ const WaveformBar = ({ bar, color, style }: WaveformBarProps) => {
 };
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-/** Width available for outfit stack inside assistant row (avatar + padding). */
-const WARDROBE_CHAT_CANVAS_WIDTH = SCREEN_WIDTH - Spacing.xl * 2 - 32 - Spacing.sm;
+/** Chat row geometry — keep outfit bubbles inside the screen with readable text inset. */
+const CHAT_ROW_PADDING = Spacing.xl;
+const CHAT_AVATAR_SIZE = 32;
+const CHAT_AVATAR_GAP = Spacing.sm;
+const CHAT_BUBBLE_PADDING_H = Spacing.lg;
+const CHAT_EDGE_SAFE = Spacing.sm;
+/** Inner width for outfit visuals inside the assistant bubble. */
+const WARDROBE_CHAT_CANVAS_WIDTH =
+  SCREEN_WIDTH -
+  CHAT_ROW_PADDING * 2 -
+  CHAT_AVATAR_SIZE -
+  CHAT_AVATAR_GAP -
+  CHAT_BUBBLE_PADDING_H * 2 -
+  CHAT_EDGE_SAFE;
+/** Outer max width for assistant bubbles that include wardrobe visuals. */
+const WARDROBE_CHAT_BUBBLE_MAX_WIDTH =
+  SCREEN_WIDTH - CHAT_ROW_PADDING * 2 - CHAT_AVATAR_SIZE - CHAT_AVATAR_GAP - CHAT_EDGE_SAFE;
 const INPUT_CONTAINER_HEIGHT = 80;
 const TAB_BAR_HEIGHT = 56;
 
@@ -3497,8 +3512,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     marginBottom: Spacing.lg,
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.xl,
+    gap: CHAT_AVATAR_GAP,
+    paddingHorizontal: CHAT_ROW_PADDING,
   },
   userMessageContainer: {
     justifyContent: 'flex-end',
@@ -3507,15 +3522,15 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   avatarContainer: {
-    width: 32,
-    height: 32,
+    width: CHAT_AVATAR_SIZE,
+    height: CHAT_AVATAR_SIZE,
     borderRadius: BorderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   userAvatar: {
-    width: 32,
-    height: 32,
+    width: CHAT_AVATAR_SIZE,
+    height: CHAT_AVATAR_SIZE,
     borderRadius: BorderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
@@ -3586,13 +3601,14 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
   },
   messageBubble: {
-    maxWidth: SCREEN_WIDTH * 0.7,
+    maxWidth: SCREEN_WIDTH * 0.72,
     padding: Spacing.lg,
     borderRadius: BorderRadius.lg,
+    flexShrink: 1,
   },
   messageBubbleWardrobe: {
-    maxWidth: WARDROBE_CHAT_CANVAS_WIDTH + Spacing.lg * 2,
-    paddingHorizontal: Spacing.md,
+    maxWidth: WARDROBE_CHAT_BUBBLE_MAX_WIDTH,
+    paddingHorizontal: CHAT_BUBBLE_PADDING_H,
     paddingVertical: Spacing.md,
     overflow: 'visible',
   },
@@ -3605,6 +3621,7 @@ const styles = StyleSheet.create({
   messageText: {
     ...Typography.body,
     lineHeight: 22,
+    paddingRight: Spacing.xs,
   },
   messageImage: {
     width: 200,
