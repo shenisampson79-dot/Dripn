@@ -1,165 +1,111 @@
-# Dripn - App Store Submission Guide
+# Dripn — App Store Submission Guide
 
-## App Information
+## Store listing (paste into App Store Connect)
 
-### App Name
-**Dripn**
+Use `store/app-store-listing.json` as the source of truth.
 
-### Subtitle (30 characters max)
-Fashion Advice & Style Tips
+### Name
+**Dripn: AI Outfit Stylist**
+
+### Subtitle (≤30 characters)
+**AI outfit suggestions**
+
+### Description
+Copy the `ios.description` field from `store/app-store-listing.json`.
+
+### Keywords
+`outfit,stylist,fashion,ai,clothes,wardrobe,style,looks,outfits,shopping,wear,match`
+
+### URLs
+- Privacy: https://dripnapp.com/privacy
+- Terms: https://dripnapp.com/terms
+- Support: https://dripnapp.com
+- Marketing: https://dripnapp.com
 
 ### Category
 - Primary: Lifestyle
-- Secondary: Social Networking
+- Secondary: Shopping (or Productivity if preferred)
 
-### App Description (4000 characters max)
+### Screenshots (pixel sizes)
+- **Required 6.7":** 1290 × 2796
+- Backup 6.5": 1242 × 2688
 
-**Short Description (Google Play - 80 characters):**
-Get personalized fashion advice from AI and a supportive style community.
-
-**Full Description:**
-
-Dripn is your personal fashion advisor in your pocket. Whether you're getting ready for a big event, updating your wardrobe, or just want a second opinion on an outfit, Dripn connects you with AI-powered styling advice.
-
-**Key Features:**
-
-**AI Fashion Advice**  
-Upload your outfit photos and receive instant, personalized styling recommendations. Our AI analyzes colors, patterns, and proportions to help you look your best for any occasion.
-
-**Size-Inclusive**  
-Fashion advice for every body type.
-
-**Subscription Tiers:**
-- Free
-- Style Chat (£9.99/month)
-- Personal Stylist (£14.99/month)
-- Stylist Unlimited (£19.99/month)
+Do not upscale blurry images. Export at exact dimensions.
 
 ---
 
-## Keywords (100 characters max, comma-separated)
+## Demo / App Review account
 
-fashion,style,outfit,clothing,wardrobe,advice,AI,styling,look,dress,tips,community,poll,trend
+Server seeds a review account on boot when env vars are set on Render:
 
----
-
-## Privacy Policy URL
-https://dripnapp.com/privacy
-
-## Terms URL
-https://dripnapp.com/terms
-
-## Support URL
-https://dripnapp.com
-
-## Marketing URL (optional)
-https://dripnapp.com
-
----
-
-## Screenshots Needed
-
-### iPhone Screenshots (Required: 3-10)
-Sizes: 6.7" (1290x2796), 6.5" (1284x2778), 5.5" (1242x2208)
-
-Suggested screenshots:
-1. Home feed showing outfit posts
-2. AI advice feature in action
-3. Create post screen
-4. Subscription plans
-5. Profile page with achievements
-6. Discover/trending page
-
-### iPad Screenshots (if supporting tablet)
-Sizes: 12.9" (2048x2732)
-
-### Android Screenshots
-Phone: 1080x1920 minimum
-Tablet: 1200x1920 minimum (if supporting)
-
----
-
-## App Store Review Information
-
-### Demo Account (if app requires login)
-Email: demo@dripn.com
-Password: create a test account
-
-### Notes for Reviewers
-Dripn is a fashion advice app that allows users to share outfit photos and receive styling suggestions from AI. The app includes in-app purchases for premium subscription tiers.
-
----
-
-## Pre-Submission Checklist
-
-### Developer Accounts
-- [x] Apple Developer Account
-- [x] Google Play Developer Account
-
-### Required Items
-- [x] Privacy Policy URL (hosted on your website)
-- [x] App icon (configured in app.json)
-- [ ] Screenshots for all required sizes
-- [ ] Age rating questionnaire completed
-- [x] Content rights declaration
-
-### Before Building
-- [ ] Test all features work correctly
-- [ ] Remove any test/debug code
-- [x] Verify all links work (privacy policy, support, etc.)
-- [x] Check subscription pricing matches App Store Connect / Play Console
-
----
-
-## Build & Submit Commands
-
-### Install EAS CLI
-```bash
-npm install -g eas-cli
-eas login
+```
+APP_REVIEW_EMAIL=review@dripn.app
+APP_REVIEW_PASSWORD=<choose a strong password, 8+ chars>
 ```
 
-### Build for iOS
+- Default email if unset: `review@dripn.app`
+- Password is **required** for seeding (`APP_REVIEW_PASSWORD`)
+- Account is created email-verified with onboarding marked complete
+- Password is reset to the env value on every boot (so you can rotate it before review)
+
+After deploy, sign in once on a device to confirm login works, then paste credentials into App Review notes.
+
+### App Review Notes (paste into App Store Connect)
+
+```
+Dripn is an AI-powered outfit stylist. It helps users get styling suggestions from wardrobe photos and chat — not guaranteed fashion results.
+
+DEMO ACCOUNT (required for review)
+Email: review@dripn.app
+Password: <SAME AS APP_REVIEW_PASSWORD ON RENDER>
+
+Please use the demo account above. New signup also works, but the demo account skips verification so the core flow is immediate.
+
+CORE REVIEW FLOW (2–3 minutes)
+1. Sign in with the demo account.
+2. Open Wardrobe — add a clothing photo or browse existing items.
+3. Open Stylist → chat with a stylist and ask for an everyday outfit idea.
+4. Settings → Subscription to view plans (iOS uses Apple In-App Purchase; no external Stripe checkout for new iOS subscriptions).
+5. Privacy Policy and Terms of Service are under Settings (also https://dripnapp.com/privacy and /terms).
+
+PERMISSIONS
+- Camera / Photos: upload clothing for styling advice
+- Microphone: optional voice replies
+- Location: optional weather-aware outfit context
+
+NOTES
+- AI replies are suggestions only; users make their own clothing decisions.
+- Referral discounts (Stripe) do not apply to Apple IAP subscriptions.
+- Staff/Admin tools are for internal use and are not required for review.
+```
+
+---
+
+## Payments (review-critical)
+
+- Production **iOS** builds must sell subscriptions via **Apple IAP** (RevenueCat / StoreKit).
+- Do **not** show Stripe checkout or “pay on website” for new subscriptions in the App Store binary.
+- Web/Android may use Stripe.
+
+---
+
+## Pre-submit checklist
+
+- [ ] Smoke test: login → wardrobe → stylist chat → settings (no crash)
+- [ ] Demo account logs in on production
+- [ ] Privacy & Terms open from Settings and in Safari
+- [ ] Screenshots are exact 1290×2796
+- [ ] Description/subtitle are Apple-safe (no “perfect / guaranteed / better than humans”)
+- [ ] IAP products configured in App Store Connect match the app
+- [ ] App Review Notes include working demo credentials
+
+---
+
+## Build commands (from StyleWise app folder)
+
 ```bash
+cd C:\Users\sheni\Downloads\dripn\StyleWise
 eas build --platform ios --profile production
 ```
 
-### Build for Android
-```bash
-eas build --platform android --profile production
-```
-
-### Submit to App Stores
-```bash
-# iOS
-eas submit -p ios
-
-# Android
-eas submit -p android
-```
-
----
-
-## Post-Submission
-
-### iOS App Store
-1. Upload build
-2. Complete app information
-3. Submit for review
-4. Wait for review
-
-### Google Play Store
-1. Upload build
-2. Complete store listing
-3. Set up pricing and distribution
-4. Submit for review
-
----
-
-## Important Notes
-
-- Apple requires all apps with subscriptions to clearly display pricing
-- Both stores require a privacy policy
-- Age rating: Dripn should likely be rated 12+
-- In-app purchases must be configured in App Store Connect and Play Console
-- Stripe payments work through the web; in-app subscriptions require platform billing
+Do **not** run EAS build from `Dripn-Server` (backend).

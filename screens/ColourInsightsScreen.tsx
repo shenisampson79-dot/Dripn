@@ -303,14 +303,19 @@ export default function ColourInsightsScreen() {
       {/* Colour of the Year */}
       {colorOfTheYear ? (
         <View style={[s.yearCard, { borderLeftColor: colorOfTheYear.hexCode }]}>
-          <View style={[s.yearBadge, { backgroundColor: colorOfTheYear.hexCode }]}>
-            <Feather name="award" size={12} color="#FFFFFF" />
-            <ThemedText type="small" style={s.yearBadgeText}>
+          <View style={[s.cardHeader, { marginBottom: Spacing.md }]}>
+            <LinearGradient
+              colors={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+              style={s.cardIconBadge}
+            >
+              <Feather name="award" size={12} color="#FFFFFF" />
+            </LinearGradient>
+            <ThemedText type="small" style={s.cardBadgeText}>
               COLOUR OF THE YEAR {colorOfTheYear.year}
             </ThemedText>
           </View>
           <View style={s.yearContent}>
-            <View style={[s.yearSwatch, { backgroundColor: colorOfTheYear.hexCode }]} />
+            <View style={[s.yearSwatch, { backgroundColor: colorOfTheYear.hexCode, borderColor: theme.border, borderWidth: 1 }]} />
             <View style={s.yearInfo}>
               <ThemedText type="body" style={s.yearName}>{colorOfTheYear.name}</ThemedText>
               <ThemedText type="small" style={s.yearHex}>{colorOfTheYear.hexCode}</ThemedText>
