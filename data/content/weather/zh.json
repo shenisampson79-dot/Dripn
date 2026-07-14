@@ -1,0 +1,247 @@
+{
+  "descriptions": {
+    "0": "晴空",
+    "1": "大部晴朗",
+    "2": "局部多云",
+    "3": "阴天",
+    "45": "有雾",
+    "48": "霜雾",
+    "51": "小毛毛雨",
+    "53": "中等毛毛雨",
+    "55": "浓密毛毛雨",
+    "61": "小雨",
+    "63": "中雨",
+    "65": "大雨",
+    "71": "小雪",
+    "73": "中雪",
+    "75": "大雪",
+    "80": "小阵雨",
+    "81": "中等阵雨",
+    "82": "猛烈阵雨",
+    "95": "雷暴",
+    "96": "雷暴伴轻冰雹",
+    "99": "雷暴伴强冰雹"
+  },
+  "descriptionFallback": "未知",
+  "defaultDescription": "局部多云",
+  "locationFallback": "你的位置",
+  "unknownLocation": {
+    "yourLocation": "你的位置",
+    "yourLocationTitle": "你的位置",
+    "unknown": "未知"
+  },
+  "bands": {
+    "hot": {
+      "layers": [
+        "单层透气穿搭——无需额外叠加"
+      ],
+      "keyPiecesFemale": [
+        "亚麻连衣裙或半裙",
+        "棉质衬衫",
+        "透气短裤",
+        "凉鞋或乐福鞋"
+      ],
+      "keyPiecesMale": [
+        "亚麻或棉质衬衫",
+        "轻薄卡其裤或短裤",
+        "透气 Polo 衫",
+        "运动鞋或乐福鞋"
+      ],
+      "accessories": [
+        "太阳镜",
+        "宽檐帽",
+        "水杯"
+      ],
+      "colors": [
+        "白色",
+        "奶油色",
+        "柔和粉彩",
+        "浅蓝色"
+      ],
+      "fabricTips": "只用亚麻和棉——这种高温下跳过针织、叠穿和外套。",
+      "stylingNoteTemplate": "炎热天气（{peakTemp}°C）。一套轻薄穿搭就够——外套和叠层请留在家里。"
+    },
+    "warm": {
+      "layers": [
+        "轻薄内层",
+        "可选轻量罩衫"
+      ],
+      "keyPiecesFemale": [
+        "中长连衣裙",
+        "高腰牛仔裤",
+        "轻薄棉质衬衫",
+        "透气长裤"
+      ],
+      "keyPiecesMale": [
+        "棉质衬衫",
+        "卡其裤",
+        "轻薄针织 Polo",
+        "无衬西装外套"
+      ],
+      "accessories": [
+        "太阳镜",
+        "帆布包"
+      ],
+      "colors": [
+        "大地色",
+        "灰绿色",
+        "灰粉色",
+        "骆驼色"
+      ],
+      "fabricTips": "气温升高时，棉质与轻薄针织都很合适。",
+      "stylingNoteTemplate": "舒适的温暖天气穿搭——仅在早晚需要时加一件轻薄外搭。"
+    },
+    "mild": {
+      "layers": [
+        "内层",
+        "中层",
+        "轻薄外层"
+      ],
+      "keyPiecesFemale": [
+        "轻薄风衣或大衣",
+        "细针织毛衣",
+        "长裤",
+        "中长裙配踝靴"
+      ],
+      "keyPiecesMale": [
+        "轻量夹克",
+        "细针距针织",
+        "卡其裤",
+        "非结构西装外套"
+      ],
+      "accessories": [
+        "轻薄围巾",
+        "有型手袋"
+      ],
+      "colors": [
+        "酒红色",
+        "森林绿",
+        "巧克力棕",
+        "海军蓝"
+      ],
+      "fabricTips": "细针织搭配轻薄外套——厚羊毛留给更冷的日子。",
+      "stylingNoteTemplate": "凉爽但不寒冷——巧妙叠穿，避免臃肿。"
+    },
+    "cold": {
+      "layers": [
+        "内层",
+        "保暖中层",
+        "保暖外层"
+      ],
+      "keyPiecesFemale": [
+        "羽绒服",
+        "羊毛大衣",
+        "保暖打底裤",
+        "粗针织毛衣"
+      ],
+      "keyPiecesMale": [
+        "羽绒服",
+        "羊毛长大衣",
+        "保暖内衣",
+        "厚针织毛衣"
+      ],
+      "accessories": [
+        "毛线帽",
+        "羊毛围巾",
+        "保暖手套",
+        "保暖靴"
+      ],
+      "colors": [
+        "黑色",
+        "木炭灰",
+        "深酒红",
+        "奶油色"
+      ],
+      "fabricTips": "美利奴羊毛内层可锁住热量并排湿。",
+      "stylingNoteTemplate": "投资优质外套。保暖与风格同样重要。"
+    },
+    "freezing": {
+      "layers": [
+        "保暖底层",
+        "厚隔热层",
+        "防水外层"
+      ],
+      "keyPiecesFemale": [
+        "长款羽绒服",
+        "摇粒绒内衬长裤",
+        "粗针高领毛衣",
+        "保暖靴"
+      ],
+      "keyPiecesMale": [
+        "长款派克大衣",
+        "摇粒绒内衬长裤",
+        "厚羊毛毛衣",
+        "保暖靴"
+      ],
+      "accessories": [
+        "保暖毛线帽",
+        "羊绒围巾",
+        "保暖手套",
+        "耳罩"
+      ],
+      "colors": [
+        "黑色",
+        "深海军蓝",
+        "酒红色",
+        "奶油色点缀"
+      ],
+      "fabricTips": "功能面料与羽绒填充是你的好帮手。",
+      "stylingNoteTemplate": "优先保暖。正确叠穿依然可以很时髦。"
+    }
+  },
+  "overlays": {
+    "rain": {
+      "keyPiece": "防水夹克或风衣",
+      "accessories": [
+        "雨伞",
+        "防水靴"
+      ],
+      "fabricTipsSuffix": " 选择防水面料。",
+      "stylingNoteSuffix": " 一件有型的雨衣必不可少。可考虑切尔西雨靴，既防雨又有品位。"
+    },
+    "snow": {
+      "accessories": [
+        "雪地靴",
+        "防水手套"
+      ],
+      "stylingNoteSuffix": " 功能与时尚兼备。优质雪地靴和保暖派克大衣不可或缺。"
+    },
+    "wind": {
+      "accessory": "防风围巾",
+      "accessories": [
+        "防风围巾"
+      ],
+      "stylingNoteSuffix": " 固定宽松单品，大风天选择更贴合的廓形。"
+    }
+  },
+  "dailyRange": {
+    "layersHotMorning": [
+      "应对中午高温的轻薄穿搭",
+      "仅清晨可选的轻薄开衫"
+    ],
+    "layersHotDay": [
+      "全天轻薄穿搭——无需内层或中层"
+    ],
+    "sunglasses": "太阳镜",
+    "heatSwingNoteTemplate": "现在 {lowTemp}°C，最高可达 {peakTemp}°C——按高温着装。轻薄外搭只留给凉意尚存的清晨。",
+    "wideSwingLayer": "应对温差的可卸外层",
+    "wideSwingNoteTemplate": "今日 {lowTemp}–{peakTemp}°C——叠穿以便随升温或降温灵活调整。",
+    "modestSwingNoteTemplate": "日温差 {lowTemp}–{peakTemp}°C。{existing}",
+    "coldMorningFemale": [
+      "轻薄大衣或风衣",
+      "细针织",
+      "长裤",
+      "包头鞋"
+    ],
+    "coldMorningMale": [
+      "轻薄夹克",
+      "细针距针织或衬衫",
+      "卡其裤",
+      "乐福鞋或运动鞋"
+    ],
+    "coldMorningLayers": [
+      "早晨足够保暖",
+      "下午可轻松减衣"
+    ]
+  }
+}

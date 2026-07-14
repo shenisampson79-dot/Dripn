@@ -1,0 +1,247 @@
+{
+  "descriptions": {
+    "0": "Klar himmel",
+    "1": "Overvejende klart",
+    "2": "Delvist skyet",
+    "3": "Overskyet",
+    "45": "Tåge",
+    "48": "Rimtåge",
+    "51": "Let støvregn",
+    "53": "Moderat støvregn",
+    "55": "Tæt støvregn",
+    "61": "Let regn",
+    "63": "Moderat regn",
+    "65": "Kraftig regn",
+    "71": "Let sne",
+    "73": "Moderat sne",
+    "75": "Kraftig sne",
+    "80": "Lette regnbyger",
+    "81": "Moderate regnbyger",
+    "82": "Kraftige regnbyger",
+    "95": "Tordenvejr",
+    "96": "Tordenvejr med let hagl",
+    "99": "Tordenvejr med kraftigt hagl"
+  },
+  "descriptionFallback": "Ukendt",
+  "defaultDescription": "Delvist skyet",
+  "locationFallback": "Din placering",
+  "unknownLocation": {
+    "yourLocation": "Din placering",
+    "yourLocationTitle": "Din placering",
+    "unknown": "Ukendt"
+  },
+  "bands": {
+    "hot": {
+      "layers": [
+        "Et åndbart lag — ingen ekstra lag nødvendige"
+      ],
+      "keyPiecesFemale": [
+        "Hørkjole eller nederdel",
+        "Bomuldsbluse",
+        "Åndbare shorts",
+        "Sandaler eller loafers"
+      ],
+      "keyPiecesMale": [
+        "Hør- eller bomuldsskjorte",
+        "Lette chinos eller shorts",
+        "Åndbar polo",
+        "Sneakers eller loafers"
+      ],
+      "accessories": [
+        "Solbriller",
+        "Bredskygget hat",
+        "Vandflaske"
+      ],
+      "colors": [
+        "Hvid",
+        "Creme",
+        "Pasteller",
+        "Lyseblå"
+      ],
+      "fabricTips": "Kun hør og bomuld — spring strik, lag og jakker over i denne varme.",
+      "stylingNoteTemplate": "Varm dag ({peakTemp}°C). Ét let outfit er nok — lad frakker og lag blive hjemme."
+    },
+    "warm": {
+      "layers": [
+        "Let basislag",
+        "Valgfrit let overtræk"
+      ],
+      "keyPiecesFemale": [
+        "Midikjole",
+        "Højtaljede jeans",
+        "Let bomuldsbluse",
+        "Åndbare bukser"
+      ],
+      "keyPiecesMale": [
+        "Bomuldsskjorte",
+        "Chinos",
+        "Let strikpolo",
+        "Ufodrret blazer"
+      ],
+      "accessories": [
+        "Solbriller",
+        "Canvas taske"
+      ],
+      "colors": [
+        "Jordtoner",
+        "Salviegrøn",
+        "Dæmpet rosa",
+        "Camel"
+      ],
+      "fabricTips": "Bomuld og let strik fungerer godt, når temperaturen stiger i løbet af dagen.",
+      "stylingNoteTemplate": "Behageligt varmt vejr — tilføj kun et let lag, hvis du har brug for det tidligt eller sent."
+    },
+    "mild": {
+      "layers": [
+        "Basislag",
+        "Mellemlag",
+        "Let yderlag"
+      ],
+      "keyPiecesFemale": [
+        "Let trenchcoat eller frakke",
+        "Fintstrikket sweater",
+        "Bukser",
+        "Midinederdel med ankelstøvler"
+      ],
+      "keyPiecesMale": [
+        "Let jakke",
+        "Fingauges strik",
+        "Chinos",
+        "Ustruktureret blazer"
+      ],
+      "accessories": [
+        "Let tørklæde",
+        "Struktureret taske"
+      ],
+      "colors": [
+        "Bourgogne",
+        "Skovgrøn",
+        "Chokoladebrun",
+        "Marineblå"
+      ],
+      "fabricTips": "Læg fint strik under en lettere frakke — gem tung uld til koldere dage.",
+      "stylingNoteTemplate": "Køligt men ikke koldt — lag uden bulk."
+    },
+    "cold": {
+      "layers": [
+        "Basislag",
+        "Isolerende mellemlag",
+        "Varmt yderlag"
+      ],
+      "keyPiecesFemale": [
+        "Dunjakke",
+        "Uldfrakke",
+        "Termoleggings",
+        "Grovstrikket sweater"
+      ],
+      "keyPiecesMale": [
+        "Dunjakke",
+        "Uldoverfrakke",
+        "Termisk basislag",
+        "Tung strikket sweater"
+      ],
+      "accessories": [
+        "Hue",
+        "Uldtørklæde",
+        "Varme handsker",
+        "Varme støvler"
+      ],
+      "colors": [
+        "Sort",
+        "Kulgrå",
+        "Dyb bourgogne",
+        "Creme"
+      ],
+      "fabricTips": "Basislag i merinould holder på varmen og transporterer fugt væk.",
+      "stylingNoteTemplate": "Investér i kvalitetsyttertøj. Varme og stil er begge essentielle."
+    },
+    "freezing": {
+      "layers": [
+        "Termisk base",
+        "Tung isolering",
+        "Vandtæt yderlag"
+      ],
+      "keyPiecesFemale": [
+        "Lang dunjakke",
+        "Fleeceforede bukser",
+        "Grov rullekrave",
+        "Isolerede støvler"
+      ],
+      "keyPiecesMale": [
+        "Lang parka",
+        "Fleeceforede bukser",
+        "Tung uldsweater",
+        "Isolerede støvler"
+      ],
+      "accessories": [
+        "Varm hue",
+        "Kashmirtørklæde",
+        "Isolerede handsker",
+        "Ørevarmere"
+      ],
+      "colors": [
+        "Sort",
+        "Dyb marineblå",
+        "Bourgogne",
+        "Cremeaccenter"
+      ],
+      "fabricTips": "Tekniske stoffer og dunisolering er dine venner.",
+      "stylingNoteTemplate": "Prioritér varme. Med den rette lagteknik kan du stadig se chic ud."
+    }
+  },
+  "overlays": {
+    "rain": {
+      "keyPiece": "Vandtæt jakke eller trenchcoat",
+      "accessories": [
+        "Paraply",
+        "Vandtætte støvler"
+      ],
+      "fabricTipsSuffix": " Vælg vandafvisende materialer.",
+      "stylingNoteSuffix": " En stilfuld regnjakke er essentiel. Overvej Chelsea-regnstøvler til chic beskyttelse."
+    },
+    "snow": {
+      "accessories": [
+        "Snestøvler",
+        "Vandtætte handsker"
+      ],
+      "stylingNoteSuffix": " Funktion møder mode. Kvalitetssnestøvler og en varm parka er ufravigelige."
+    },
+    "wind": {
+      "accessory": "Vindtæt tørklæde",
+      "accessories": [
+        "Vindtæt tørklæde"
+      ],
+      "stylingNoteSuffix": " Fastgør løse items og vælg tætsiddende silhuetter i vind."
+    }
+  },
+  "dailyRange": {
+    "layersHotMorning": [
+      "Let outfit til middagsheden",
+      "Valgfri cardigan kun til morgenen"
+    ],
+    "layersHotDay": [
+      "Let outfit til dagen — ingen basis- eller mellemlag nødvendige"
+    ],
+    "sunglasses": "Solbriller",
+    "heatSwingNoteTemplate": "{lowTemp}°C nu, top på {peakTemp}°C — klæd dig på til varmen. Et let lag kun til den kølige morgen, hvis du har brug for det.",
+    "wideSwingLayer": "Aftageligt lag til temperatursvingninger",
+    "wideSwingNoteTemplate": "{lowTemp}–{peakTemp}°C i dag — lag, så du kan justere, når dagen bliver varmere eller køligere.",
+    "modestSwingNoteTemplate": "Dagens spænd {lowTemp}–{peakTemp}°C. {existing}",
+    "coldMorningFemale": [
+      "Let frakke eller trenchcoat",
+      "Fint strik",
+      "Bukser",
+      "Lukkede sko"
+    ],
+    "coldMorningMale": [
+      "Let jakke",
+      "Fingauges strik eller skjorte",
+      "Chinos",
+      "Loafers eller sneakers"
+    ],
+    "coldMorningLayers": [
+      "Varm nok til morgenen",
+      "Nem at lette om eftermiddagen"
+    ]
+  }
+}

@@ -1,0 +1,439 @@
+{
+  "1": {
+    "title": "The Rule of Three",
+    "content": "Limit your outfit to three main colours maximum. This creates visual harmony and prevents your look from appearing chaotic or overwhelming.",
+    "colorSwatches": {
+      "Navy": "Navy",
+      "White": "White",
+      "Camel": "Camel"
+    }
+  },
+  "2": {
+    "title": "Dress for Your Colour Season",
+    "content": "Wearing colours that complement your natural colouring (skin tone, hair, eyes) makes you look healthier and more vibrant. Discover whether you're a Spring, Summer, Autumn, or Winter.",
+    "colorSwatches": {
+      "Warm Gold": "Warm Gold",
+      "Cool Silver": "Cool Silver"
+    }
+  },
+  "3": {
+    "title": "Neutral Foundation, Colour Accent",
+    "content": "Build outfits on neutral foundations (black, white, grey, navy, beige) and introduce colour through accessories or one statement piece."
+  },
+  "4": {
+    "title": "Understanding Warm vs Cool Tones",
+    "content": "Warm undertones pair beautifully with earthy colours (olive, mustard, coral), while cool undertones shine in jewel tones (emerald, sapphire, ruby). Knowing yours transforms your shopping.",
+    "colorSwatches": {
+      "Mustard": "Mustard",
+      "Emerald": "Emerald"
+    }
+  },
+  "5": {
+    "title": "The Power of Monochrome",
+    "content": "Dressing in one colour family creates an elongating, sophisticated effect. Vary shades and textures within the same hue for depth and interest."
+  },
+  "6": {
+    "title": "Complementary Colour Mastery",
+    "content": "Colours opposite on the colour wheel (blue/orange, purple/yellow, red/green) create striking, dynamic outfits when balanced properly.",
+    "colorSwatches": {
+      "Royal Blue": "Royal Blue",
+      "Burnt Orange": "Burnt Orange"
+    }
+  },
+  "7": {
+    "title": "Navy is the New Black",
+    "content": "Navy is universally flattering and pairs beautifully with more colours than black. It's softer, more approachable, and equally versatile."
+  },
+  "8": {
+    "title": "White Brightens Your Face",
+    "content": "Wearing white or cream near your face reflects light upward, making you look more awake and vibrant. Ideal for video calls and photographs."
+  },
+  "9": {
+    "title": "Pattern Mixing with Colour",
+    "content": "When mixing patterns, ensure they share at least one common colour. This creates cohesion even with different scales and styles of print."
+  },
+  "10": {
+    "title": "The 60-30-10 Colour Rule",
+    "content": "Use your dominant colour for 60% of your outfit, secondary colour for 30%, and accent colour for 10%. This creates balanced, visually pleasing looks."
+  },
+  "11": {
+    "title": "Seasonal Colour Rotation",
+    "content": "Rotate your colour palette with seasons: rich jewel tones for autumn/winter, soft pastels and brights for spring/summer. This keeps your wardrobe feeling fresh."
+  },
+  "12": {
+    "title": "Black from Head to Toe",
+    "content": "All-black outfits are timeless and slimming but require texture variation (matte, shine, knit) to avoid looking flat or costume-like."
+  },
+  "13": {
+    "title": "Colour Blocking Basics",
+    "content": "Colour blocking uses blocks of solid, contrasting colours for bold impact. Keep silhouettes simple and let the colours do the talking."
+  },
+  "14": {
+    "title": "Metallic as a Neutral",
+    "content": "Gold and silver metallics work as neutrals and can be paired with almost any colour. Match metallics to your undertone for the most flattering effect."
+  },
+  "15": {
+    "title": "Print Scale Matters",
+    "content": "Choose print sizes that work with your frame - smaller frames suit smaller prints, larger frames can carry bolder patterns without being overwhelmed."
+  },
+  "16": {
+    "title": "The Third Piece Rule",
+    "content": "Elevate any outfit by adding a third piece - a blazer, cardigan, scarf, or structured bag. This transforms basic combinations into complete, intentional looks."
+  },
+  "17": {
+    "title": "Proportion Play",
+    "content": "Balance volume in your outfit: if wearing something loose on top, go fitted on bottom (and vice versa). This creates flattering silhouettes on all body types."
+  },
+  "18": {
+    "title": "The One-Statement Rule",
+    "content": "Let one piece be the star of your outfit. If wearing a bold pattern or statement accessory, keep everything else understated to avoid visual competition."
+  },
+  "19": {
+    "title": "Define Your Waist",
+    "content": "Creating definition at your natural waist, whether through belts, tucking, or tailored cuts, creates an hourglass silhouette that flatters most body types."
+  },
+  "20": {
+    "title": "The Rule of Thirds",
+    "content": "Instead of dividing your body in half, aim for a 1/3 to 2/3 ratio (short top with high-waisted bottoms, or longer top with shorter skirt) for more dynamic proportions."
+  },
+  "21": {
+    "title": "Vertical Lines Elongate",
+    "content": "Vertical stripes, long necklaces, and open cardigans create the illusion of height and a leaner silhouette. Use strategically for lengthening effects."
+  },
+  "22": {
+    "title": "V-Necks Flatter Everyone",
+    "content": "V-necklines elongate the neck, draw the eye vertically, and flatter virtually every face shape and body type. A universally flattering choice."
+  },
+  "23": {
+    "title": "The Power of High-Waisted",
+    "content": "High-waisted bottoms visually lengthen legs and create a longer, leaner silhouette. They work particularly well when tops are tucked in."
+  },
+  "24": {
+    "title": "Structured vs Unstructured Balance",
+    "content": "Pair structured pieces (blazers, tailored trousers) with softer items (silk blouses, knit tops) for outfits that feel polished yet approachable."
+  },
+  "25": {
+    "title": "Layering Without Bulk",
+    "content": "Layer thin, quality fabrics rather than thick ones. Start with fitted base layers and add progressively looser pieces to avoid adding unnecessary volume."
+  },
+  "26": {
+    "title": "The Half-Tuck",
+    "content": "A casual half-tuck (tucking just the front of your shirt) creates waist definition while maintaining a relaxed, effortless vibe. Perfect for casual elegance."
+  },
+  "27": {
+    "title": "Dress for Your Body Shape",
+    "content": "Understanding whether you're an apple, pear, hourglass, or rectangle helps you choose cuts that enhance your natural proportions rather than fighting them."
+  },
+  "28": {
+    "title": "Match Your Metals",
+    "content": "Keep your jewellery and hardware (belt buckles, bag clasps, shoe details) in the same metal family for a cohesive, polished look."
+  },
+  "29": {
+    "title": "Bags Should Suit Your Frame",
+    "content": "Choose bag sizes proportional to your body - petite frames suit smaller bags, while taller frames can carry larger styles without being overwhelmed."
+  },
+  "30": {
+    "title": "Watches as Statement Pieces",
+    "content": "A quality watch is both functional and fashionable. Choose a style that reflects your personality - classic, sporty, or minimalist - and wear it daily."
+  },
+  "31": {
+    "title": "Scarves Transform Outfits",
+    "content": "A silk scarf can be worn around the neck, as a headband, tied to a bag, or as a belt. This versatile accessory elevates simple outfits instantly."
+  },
+  "32": {
+    "title": "Belt Placement Matters",
+    "content": "Wear belts at your natural waist for the most flattering effect. Low-slung belts can shorten your torso while high belts elongate legs."
+  },
+  "33": {
+    "title": "Sunglasses Shape Your Face",
+    "content": "Choose sunglasses that contrast with your face shape - round faces suit angular frames, square faces look great in rounded styles."
+  },
+  "34": {
+    "title": "Less is More with Jewellery",
+    "content": "Choose one focal point - statement earrings OR a bold necklace OR stacked bracelets. Wearing everything at once dilutes impact."
+  },
+  "35": {
+    "title": "Match Bag and Shoes Loosely",
+    "content": "Perfectly matching bags and shoes looks dated. Instead, aim for complementary colours or one shared element (both leather, both metallic hardware)."
+  },
+  "36": {
+    "title": "Hats Complete Outfits",
+    "content": "The right hat adds personality and polish. Choose styles that suit your face shape and lifestyle - from fedoras to baseball caps to berets."
+  },
+  "37": {
+    "title": "Invest in Quality Leather Goods",
+    "content": "A well-made leather bag and belt last decades and develop beautiful patina. Choose classic shapes in versatile colours for maximum wearability."
+  },
+  "38": {
+    "title": "Layered Necklaces",
+    "content": "Layer necklaces in varying lengths (choker, princess, opera) for modern dimension. Keep metals consistent and vary chain textures and pendant sizes."
+  },
+  "39": {
+    "title": "Earrings Frame Your Face",
+    "content": "Earrings draw attention to your face. Choose styles that complement your face shape - studs for everyday, drops for evening, hoops for versatility."
+  },
+  "40": {
+    "title": "Texture Mixing",
+    "content": "Combine different textures (silk with denim, cashmere with leather, linen with wool) to add depth and visual interest to monochromatic or simple outfits."
+  },
+  "41": {
+    "title": "Natural Fibres Breathe Better",
+    "content": "Cotton, linen, wool, and silk regulate temperature better than synthetics. Prioritise natural fabrics for comfort and longevity."
+  },
+  "42": {
+    "title": "Knit for Comfort, Woven for Structure",
+    "content": "Knit fabrics (jersey, ponte) offer stretch and comfort. Woven fabrics (cotton poplin, denim) provide structure. Choose based on desired effect."
+  },
+  "43": {
+    "title": "Silk for Special Occasions",
+    "content": "Silk adds instant luxury and elegance. Reserve it for occasions when you want to feel special - the weight and drape are unmatched."
+  },
+  "44": {
+    "title": "Cashmere is Worth It",
+    "content": "Quality cashmere is soft, warm, and lightweight. Invest in classic pieces that you'll wear for years - the cost per wear makes it worthwhile."
+  },
+  "45": {
+    "title": "Denim Versatility",
+    "content": "Quality denim is the backbone of casual style. Own at least one pair of well-fitting jeans and a denim jacket - both work across seasons and occasions."
+  },
+  "46": {
+    "title": "Linen Embraces Wrinkles",
+    "content": "Linen is meant to wrinkle - it's part of its relaxed charm. Embrace the natural creasing rather than fighting it. Reserve for casual settings."
+  },
+  "47": {
+    "title": "Velvet for Drama",
+    "content": "Velvet catches light beautifully and adds instant drama to any outfit. Reserve for evening, autumn/winter, or when you want to make an entrance."
+  },
+  "48": {
+    "title": "Leather as a Statement",
+    "content": "Leather (or quality vegan alternatives) adds edge and structure. A leather jacket is a wardrobe staple that works across seasons and styles."
+  },
+  "49": {
+    "title": "Sheer Fabric Layering",
+    "content": "Sheer fabrics add dimension when layered properly. Always consider what's visible underneath - use intentional layering pieces for polished looks."
+  },
+  "50": {
+    "title": "Dress for the Occasion Plus One",
+    "content": "Aim to be slightly better dressed than the occasion requires. Being underdressed feels awkward, while being slightly overdressed signals effort and respect."
+  },
+  "51": {
+    "title": "Understand Dress Codes",
+    "content": "From black-tie to smart casual, understanding dress codes prevents embarrassment. When in doubt, ask the host or err on the side of formality."
+  },
+  "52": {
+    "title": "Workwear Foundations",
+    "content": "Build a work wardrobe of interchangeable pieces: blazers, tailored trousers, quality blouses, and modest dresses. Aim for one week's worth of outfits."
+  },
+  "53": {
+    "title": "Weekend Casual vs Sloppy",
+    "content": "Casual doesn't mean careless. Well-fitting jeans, clean trainers, and a quality t-shirt look effortlessly stylish. Stains and rips look sloppy."
+  },
+  "54": {
+    "title": "Date Night Effort",
+    "content": "Dressing up for dates shows effort and respect. Choose pieces that make you feel confident and attractive - your energy will shine through."
+  },
+  "55": {
+    "title": "Travel in Comfort and Style",
+    "content": "Airport style should prioritise comfort without sacrificing polish. Stretchy fabrics, slip-on shoes, and layers handle temperature changes and long journeys."
+  },
+  "56": {
+    "title": "Interview Impressions",
+    "content": "First impressions matter in interviews. Research the company culture and dress one level more formal than daily wear. Avoid distracting patterns or accessories."
+  },
+  "57": {
+    "title": "Wedding Guest Etiquette",
+    "content": "Never wear white to a wedding (unless specifically requested). Match formality to the venue and time. When in doubt, cocktail attire is safe."
+  },
+  "58": {
+    "title": "Funeral Respect",
+    "content": "Funerals call for dark, conservative clothing. Black, navy, or charcoal in simple, modest cuts show respect. Save bright colours for celebrations of life."
+  },
+  "59": {
+    "title": "Cultural Context Matters",
+    "content": "Research dress expectations when visiting different cultures or religious sites. Modesty requirements, head coverings, or shoe removal may apply."
+  },
+  "60": {
+    "title": "Invest in Quality Basics",
+    "content": "Build your wardrobe foundation with well-made basics: a white shirt, dark trousers, quality denim, and a versatile blazer. Quality over quantity always wins."
+  },
+  "61": {
+    "title": "The Power of Tailoring",
+    "content": "Well-fitted clothes look more expensive than ill-fitting designer pieces. Invest in alterations for key pieces - the difference is transformative."
+  },
+  "62": {
+    "title": "The 80/20 Wardrobe Rule",
+    "content": "You wear 20% of your wardrobe 80% of the time. Identify those key pieces and invest in their quality. Audit and edit your wardrobe regularly."
+  },
+  "63": {
+    "title": "Cost Per Wear Calculation",
+    "content": "Divide the price by expected wears. A £200 coat worn 100 times costs £2 per wear - better value than a £50 coat worn 10 times."
+  },
+  "64": {
+    "title": "Classic Over Trendy",
+    "content": "Invest in timeless pieces and save trends for inexpensive accessories. A classic trench outlasts a trendy silhouette by decades."
+  },
+  "65": {
+    "title": "Quality Shoes Matter Most",
+    "content": "People notice shoes. Invest in well-made, classic styles that can be resoled. Your feet will thank you and your outfits will look elevated."
+  },
+  "66": {
+    "title": "The Perfect White Shirt",
+    "content": "Every wardrobe needs a crisp white shirt. Look for quality cotton, proper fit through the shoulders, and a collar that lies flat."
+  },
+  "67": {
+    "title": "Investment Outerwear",
+    "content": "Coats are visible and make first impressions. Invest in quality outerwear in versatile colours - they frame your entire look."
+  },
+  "68": {
+    "title": "Build Slowly and Thoughtfully",
+    "content": "A curated wardrobe takes time. Add pieces gradually, ensuring each one works with what you already own. Resist impulse purchases."
+  },
+  "69": {
+    "title": "Know Your Non-Negotiables",
+    "content": "Identify which items you refuse to compromise on (comfort, ethical production, specific brands) and prioritise spending there."
+  },
+  "70": {
+    "title": "Care for Your Clothes",
+    "content": "Read care labels, use proper hangers, and store items correctly. Well-maintained clothes last longer and look better with every wear."
+  },
+  "71": {
+    "title": "Wash Less, Air More",
+    "content": "Most clothes don't need washing after every wear. Airing garments between wears extends their life and reduces environmental impact."
+  },
+  "72": {
+    "title": "Proper Hanger Selection",
+    "content": "Use wooden or padded hangers for structured items, velvet for slippery fabrics, and fold knits to prevent shoulder bumps."
+  },
+  "73": {
+    "title": "Shoe Care Routine",
+    "content": "Clean, condition, and protect shoes regularly. Use shoe trees to maintain shape. Rotate pairs to allow them to dry between wears."
+  },
+  "74": {
+    "title": "Repair Before Replace",
+    "content": "A loose button, small hole, or broken zip can often be repaired cheaply. Extend garment life through prompt repairs rather than replacing."
+  },
+  "75": {
+    "title": "Seasonal Storage",
+    "content": "Clean items before storing, use breathable garment bags, and add cedar or lavender for moth prevention. Proper storage preserves quality."
+  },
+  "76": {
+    "title": "Pilling Prevention",
+    "content": "Pill removal tools restore knits to near-new condition. Prevent pilling by washing inside-out, using gentle cycles, and avoiding friction."
+  },
+  "77": {
+    "title": "Stain Treatment Basics",
+    "content": "Treat stains immediately, working from outside in. Know which treatments work for which stains - cold water for blood, club soda for wine."
+  },
+  "78": {
+    "title": "Professional Care When Needed",
+    "content": "Some items require professional cleaning. Suits, silk, leather, and heavily beaded pieces should go to trusted dry cleaners or specialists."
+  },
+  "79": {
+    "title": "Iron and Steam Properly",
+    "content": "Different fabrics need different heat settings. Always iron inside-out for delicates, use pressing cloths, and steam to refresh between washes."
+  },
+  "80": {
+    "title": "Seasonal Fabric Choices",
+    "content": "Match fabric weights to seasons: linen and cotton for summer, wool and cashmere for winter. This keeps you comfortable and appropriately dressed."
+  },
+  "81": {
+    "title": "Layering for Transitional Weather",
+    "content": "Spring and autumn require versatile layering. Build outfits that can adapt to temperature changes throughout the day."
+  },
+  "82": {
+    "title": "Summer Heat Strategies",
+    "content": "Light colours reflect heat, loose fits allow airflow, and natural fibres breathe. Dress strategically for summer comfort and style."
+  },
+  "83": {
+    "title": "Winter Warmth Layers",
+    "content": "Layer for winter warmth: moisture-wicking base, insulating middle, weather-resistant outer. This system keeps you warm without bulk."
+  },
+  "84": {
+    "title": "Transitional Wardrobe Pieces",
+    "content": "Trench coats, lightweight knits, and versatile blazers work across seasons. Invest in pieces that bridge weather transitions."
+  },
+  "85": {
+    "title": "Weather-Appropriate Footwear",
+    "content": "Match shoes to conditions: water-resistant for rain, insulated for cold, breathable for heat. Style and function can coexist."
+  },
+  "86": {
+    "title": "Colour Palette by Season",
+    "content": "Shift your colour palette with seasons: earthy tones for autumn, cool neutrals for winter, soft pastels for spring, vibrant brights for summer."
+  },
+  "87": {
+    "title": "Holiday Dressing",
+    "content": "Build a small collection of festive pieces that work across holiday occasions. Metallics, velvet, and jewel tones suit most celebrations."
+  },
+  "88": {
+    "title": "Outdoor Event Preparation",
+    "content": "For outdoor events, prepare for weather changes: bring layers, waterproofs, or sun protection as needed. Check the forecast and venue."
+  },
+  "89": {
+    "title": "Seasonal Wardrobe Rotation",
+    "content": "Rotate your wardrobe seasonally. Store off-season items properly and bring out fresh pieces - it keeps your closet manageable and inspiring."
+  },
+  "90": {
+    "title": "Confidence is Your Best Accessory",
+    "content": "Wear what makes you feel confident and comfortable. The best-dressed people own their personal style rather than following every trend."
+  },
+  "91": {
+    "title": "Dress for Now, Not Later",
+    "content": "Don't wait until you lose weight or reach a goal. Dress beautifully for the body you have today - you deserve to feel good now."
+  },
+  "92": {
+    "title": "Ignore Size Labels",
+    "content": "Sizes vary wildly between brands. Focus on fit, not the number on the label. The best-fitting size is the right size."
+  },
+  "93": {
+    "title": "Highlight What You Love",
+    "content": "Instead of hiding perceived flaws, draw attention to features you love. Great arms? Show them. Love your legs? Wear shorter hemlines."
+  },
+  "94": {
+    "title": "Comfort Breeds Confidence",
+    "content": "When you're constantly adjusting or uncomfortable, it shows. Prioritise clothes that fit well and feel good - your confidence will follow."
+  },
+  "95": {
+    "title": "Personal Style Over Fashion Rules",
+    "content": "Style rules are guidelines, not laws. If a 'rule' doesn't work for you or make you happy, break it. Authentic personal style trumps all."
+  },
+  "96": {
+    "title": "Embrace Your Unique Features",
+    "content": "What makes you different makes you memorable. Embrace unique features - unusual proportions, distinctive colouring, or atypical shapes can become signature style elements."
+  },
+  "97": {
+    "title": "Age Appropriateness is a Myth",
+    "content": "There's no age limit on style. Wear what makes you feel wonderful, whether that's mini skirts at 60 or sophisticated suits at 25."
+  },
+  "98": {
+    "title": "Quality Over Quantity",
+    "content": "Invest in fewer, better pieces rather than fast fashion. Quality fabrics, construction, and timeless design outlast trends and cost less per wear."
+  },
+  "99": {
+    "title": "Secondhand First",
+    "content": "Before buying new, check secondhand options. Charity shops, vintage stores, and resale platforms offer unique pieces with lower environmental impact."
+  },
+  "100": {
+    "title": "Know Your Brands",
+    "content": "Research the ethics and sustainability practices of brands you buy from. Support those aligned with your values for production, workers, and environment."
+  },
+  "101": {
+    "title": "The One In, One Out Rule",
+    "content": "For every new item added to your wardrobe, donate or sell one. This maintains a manageable wardrobe and encourages thoughtful purchasing."
+  },
+  "102": {
+    "title": "Capsule Wardrobe Mindset",
+    "content": "A capsule wardrobe of 30-40 versatile pieces that all work together reduces decision fatigue and environmental impact while maximising style."
+  },
+  "103": {
+    "title": "Repair and Upcycle",
+    "content": "Learn basic repairs or find a good tailor. Breathe new life into old pieces through alterations, dyeing, or creative reimagining."
+  },
+  "104": {
+    "title": "Rent for Special Occasions",
+    "content": "For one-time events, consider rental services. Access designer pieces without the cost or environmental impact of single-use purchases."
+  },
+  "105": {
+    "title": "Natural Fibre Priority",
+    "content": "Choose natural, biodegradable fibres (cotton, linen, wool, silk) over synthetics when possible. They're better for the planet and often more comfortable."
+  }
+}

@@ -48,7 +48,7 @@ const WEATHER_GRADIENTS: Record<string, [string, string]> = {
 
 export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenProps) {
   const { theme } = useTheme();
-  const { translations } = useTranslations();
+  const { translations, t, currentLanguage } = useTranslations();
   const { user } = useAuth();
   const { items } = useWardrobe();
   const [weather, setWeather] = useState<WeatherCondition | null>(null);
@@ -69,8 +69,13 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
       }
       const weatherData = await weatherService.getWeatherForOutfits(skipCache);
       if (weatherData) {
-        setWeather(weatherData);
-        const rec = weatherService.getOutfitRecommendation(weatherData, user?.gender || 'unspecified');
+        const localized = weatherService.localizeWeatherCondition(weatherData, currentLanguage);
+        setWeather(localized);
+        const rec = weatherService.getOutfitRecommendation(
+          localized,
+          user?.gender || 'unspecified',
+          currentLanguage,
+        );
         setRecommendation(rec);
       }
     } else if (permStatus.canAskAgain) {
@@ -80,7 +85,7 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
     }
     
     setIsLoading(false);
-  }, [user?.gender]);
+  }, [user?.gender, currentLanguage]);
 
   useEffect(() => {
     checkPermissionAndFetch();
@@ -102,8 +107,13 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
       setIsLoading(true);
       const weatherData = await weatherService.getWeatherForOutfits(true);
       if (weatherData) {
-        setWeather(weatherData);
-        const rec = weatherService.getOutfitRecommendation(weatherData, user?.gender || 'unspecified');
+        const localized = weatherService.localizeWeatherCondition(weatherData, currentLanguage);
+        setWeather(localized);
+        const rec = weatherService.getOutfitRecommendation(
+          localized,
+          user?.gender || 'unspecified',
+          currentLanguage,
+        );
         setRecommendation(rec);
       }
       setIsLoading(false);
@@ -249,8 +259,8 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
                 </ThemedText>
                 {weather.tempMax != null ? (
                   <ThemedText type="small" style={styles.weatherHighLow}>
-                    High {weather.tempMax}°C
-                    {weather.tempMin != null ? ` · Low ${weather.tempMin}°C` : ''}
+                    {t('weatherOutfit.high') || 'High'} {weather.tempMax}°C
+                    {weather.tempMin != null ? ` · ${t('weatherOutfit.low') || 'Low'} ${weather.tempMin}°C` : ''}
                   </ThemedText>
                 ) : null}
               </View>
@@ -263,7 +273,7 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
                 <View style={styles.weatherDetail}>
                   <Feather name="arrow-up" size={16} color="rgba(255,255,255,0.9)" />
                   <ThemedText type="small" style={styles.weatherDetailText}>
-                    High {weather.tempMax}°C
+                    {t('weatherOutfit.high') || 'High'} {weather.tempMax}°C
                   </ThemedText>
                 </View>
               ) : null}
@@ -271,26 +281,26 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
                 <View style={styles.weatherDetail}>
                   <Feather name="arrow-down" size={16} color="rgba(255,255,255,0.9)" />
                   <ThemedText type="small" style={styles.weatherDetailText}>
-                    Low {weather.tempMin}°C
+                    {t('weatherOutfit.low') || 'Low'} {weather.tempMin}°C
                   </ThemedText>
                 </View>
               ) : null}
               <View style={styles.weatherDetail}>
                 <Feather name="thermometer" size={16} color="rgba(255,255,255,0.8)" />
                 <ThemedText type="small" style={styles.weatherDetailText}>
-                  Feels like {weather.feelsLike}°C
+                  {t('weatherOutfit.feelsLike') || 'Feels like'} {weather.feelsLike}°C
                 </ThemedText>
               </View>
               <View style={styles.weatherDetail}>
                 <Feather name="droplet" size={16} color="rgba(255,255,255,0.8)" />
                 <ThemedText type="small" style={styles.weatherDetailText}>
-                  {weather.humidity}% humidity
+                  {weather.humidity}% {t('weatherOutfit.humidity') || 'humidity'}
                 </ThemedText>
               </View>
               <View style={styles.weatherDetail}>
                 <Feather name="wind" size={16} color="rgba(255,255,255,0.8)" />
                 <ThemedText type="small" style={styles.weatherDetailText}>
-                  {weather.windSpeed} km/h wind
+                  {weather.windSpeed} km/h {t('weatherOutfit.wind') || 'wind'}
                 </ThemedText>
               </View>
             </View>
@@ -302,14 +312,14 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
         <>
           <Animated.View entering={FadeInUp.delay(200).duration(400)}>
             <ThemedText type="h3" style={styles.sectionTitle}>
-              Today's Outfit Recommendation
+              {t('weatherOutfit.todaysRecommendation') || "Today's Outfit Recommendation"}
             </ThemedText>
             
             <Card style={styles.recommendationCard}>
               <View style={styles.layersSection}>
                 <Feather name="layers" size={20} color={theme.link} />
                 <View style={styles.layersContent}>
-                  <ThemedText type="caption" style={{ opacity: 0.7 }}>Layering</ThemedText>
+                  <ThemedText type="caption" style={{ opacity: 0.7 }}>{t('weatherOutfit.layering') || 'Layering'}</ThemedText>
                   <ThemedText type="body">{recommendation.layers.join(' + ')}</ThemedText>
                 </View>
               </View>
@@ -318,7 +328,7 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
 
           <Animated.View entering={FadeInUp.delay(300).duration(400)}>
             <ThemedText type="h3" style={styles.sectionTitle}>
-              Key Pieces
+              {t('weatherOutfit.keyPieces') || 'Key Pieces'}
             </ThemedText>
             <View style={styles.piecesGrid}>
               {recommendation.keyPieces.map((piece, index) => (
@@ -335,7 +345,7 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
 
           <Animated.View entering={FadeInUp.delay(400).duration(400)}>
             <ThemedText type="h3" style={styles.sectionTitle}>
-              Accessories
+              {t('weatherOutfit.accessories') || 'Accessories'}
             </ThemedText>
             <View style={styles.accessoriesRow}>
               {recommendation.accessories.map((accessory, index) => (
@@ -351,7 +361,7 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
 
           <Animated.View entering={FadeInUp.delay(500).duration(400)}>
             <ThemedText type="h3" style={styles.sectionTitle}>
-              Color Palette
+              {t('weatherOutfit.colorPalette') || 'Color Palette'}
             </ThemedText>
             <View style={styles.colorsRow}>
               {recommendation.colors.map((color, index) => (
@@ -370,7 +380,7 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
             <Card style={styles.tipCard}>
               <View style={styles.tipHeader}>
                 <Feather name="info" size={18} color={theme.link} />
-                <ThemedText type="caption" style={{ fontWeight: '600' }}>Fabric Tip</ThemedText>
+                <ThemedText type="caption" style={{ fontWeight: '600' }}>{t('weatherOutfit.fabricTip') || 'Fabric Tip'}</ThemedText>
               </View>
               <ThemedText type="body" style={styles.tipText}>
                 {recommendation.fabricTips}

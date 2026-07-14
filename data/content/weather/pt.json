@@ -1,0 +1,247 @@
+{
+  "descriptions": {
+    "0": "Céu limpo",
+    "1": "Predominantemente limpo",
+    "2": "Parcialmente nublado",
+    "3": "Nublado",
+    "45": "Neblina",
+    "48": "Neblina com geada",
+    "51": "Garoa leve",
+    "53": "Garoa moderada",
+    "55": "Garoa densa",
+    "61": "Chuva leve",
+    "63": "Chuva moderada",
+    "65": "Chuva forte",
+    "71": "Neve leve",
+    "73": "Neve moderada",
+    "75": "Neve intensa",
+    "80": "Pancadas de chuva leves",
+    "81": "Pancadas de chuva moderadas",
+    "82": "Pancadas de chuva violentas",
+    "95": "Tempestade",
+    "96": "Tempestade com granizo leve",
+    "99": "Tempestade com granizo intenso"
+  },
+  "descriptionFallback": "Desconhecido",
+  "defaultDescription": "Parcialmente nublado",
+  "locationFallback": "Sua localização",
+  "unknownLocation": {
+    "yourLocation": "Sua localização",
+    "yourLocationTitle": "Sua localização",
+    "unknown": "Desconhecida"
+  },
+  "bands": {
+    "hot": {
+      "layers": [
+        "Uma única camada respirável — sem camadas extras"
+      ],
+      "keyPiecesFemale": [
+        "Vestido ou saia de linho",
+        "Blusa de algodão",
+        "Shorts respiráveis",
+        "Sandálias ou loafers"
+      ],
+      "keyPiecesMale": [
+        "Camisa de linho ou algodão",
+        "Chinos leves ou shorts",
+        "Polo respirável",
+        "Tênis ou loafers"
+      ],
+      "accessories": [
+        "Óculos de sol",
+        "Chapéu de aba larga",
+        "Garrafa de água"
+      ],
+      "colors": [
+        "Branco",
+        "Creme",
+        "Pastéis",
+        "Azul claro"
+      ],
+      "fabricTips": "Só linho e algodão — evite malhas, camadas e jaquetas com esse calor.",
+      "stylingNoteTemplate": "Dia quente ({peakTemp}°C). Um look leve basta — deixe casacos e camadas em casa."
+    },
+    "warm": {
+      "layers": [
+        "Camada base leve",
+        "Cobertura leve opcional"
+      ],
+      "keyPiecesFemale": [
+        "Vestido midi",
+        "Jeans de cintura alta",
+        "Blusa leve de algodão",
+        "Calça respirável"
+      ],
+      "keyPiecesMale": [
+        "Camisa de algodão",
+        "Chinos",
+        "Polo de malha leve",
+        "Blazer sem forro"
+      ],
+      "accessories": [
+        "Óculos de sol",
+        "Bolsa de lona"
+      ],
+      "colors": [
+        "Tons terrosos",
+        "Verde sálvia",
+        "Rosa antigo",
+        "Camel"
+      ],
+      "fabricTips": "Algodão e malhas leves funcionam bem quando a temperatura sobe ao longo do dia.",
+      "stylingNoteTemplate": "Looks confortáveis para clima quente — adicione uma camada leve só se precisar cedo ou no fim do dia."
+    },
+    "mild": {
+      "layers": [
+        "Camada base",
+        "Camada intermediária",
+        "Camada externa leve"
+      ],
+      "keyPiecesFemale": [
+        "Trench ou casaco leve",
+        "Suéter de malha fina",
+        "Calça",
+        "Saia midi com botinhas"
+      ],
+      "keyPiecesMale": [
+        "Jaqueta leve",
+        "Malha fina",
+        "Chinos",
+        "Blazer sem estrutura"
+      ],
+      "accessories": [
+        "Lenço leve",
+        "Bolsa estruturada"
+      ],
+      "colors": [
+        "Bordô",
+        "Verde floresta",
+        "Marrom chocolate",
+        "Marinho"
+      ],
+      "fabricTips": "Sobreponha malha fina sob um casaco mais leve — reserve a lã pesada para dias mais frios.",
+      "stylingNoteTemplate": "Fresco, mas não frio — use camadas sem volume."
+    },
+    "cold": {
+      "layers": [
+        "Camada base",
+        "Camada intermediária isolante",
+        "Camada externa quente"
+      ],
+      "keyPiecesFemale": [
+        "Jaqueta puffer",
+        "Casaco de lã",
+        "Leggings térmicas",
+        "Suéter de malha grossa"
+      ],
+      "keyPiecesMale": [
+        "Jaqueta puffer",
+        "Casaco de lã",
+        "Camada base térmica",
+        "Suéter de malha pesada"
+      ],
+      "accessories": [
+        "Gorro",
+        "Cachecol de lã",
+        "Luvas quentes",
+        "Botas quentes"
+      ],
+      "colors": [
+        "Preto",
+        "Carvão",
+        "Bordô profundo",
+        "Creme"
+      ],
+      "fabricTips": "Camadas base de lã merino retêm o calor e eliminam a umidade.",
+      "stylingNoteTemplate": "Invista em casacos de qualidade. Calor e estilo são igualmente essenciais."
+    },
+    "freezing": {
+      "layers": [
+        "Base térmica",
+        "Isolamento pesado",
+        "Externo impermeável"
+      ],
+      "keyPiecesFemale": [
+        "Casaco puffer longo",
+        "Calça forrada com fleece",
+        "Gola alta grossa",
+        "Botas isolantes"
+      ],
+      "keyPiecesMale": [
+        "Parka longa",
+        "Calça forrada com fleece",
+        "Suéter de lã pesada",
+        "Botas isolantes"
+      ],
+      "accessories": [
+        "Gorro quente",
+        "Cachecol de cashmere",
+        "Luvas isolantes",
+        "Protetores de orelha"
+      ],
+      "colors": [
+        "Preto",
+        "Marinho profundo",
+        "Bordô",
+        "Toques de creme"
+      ],
+      "fabricTips": "Tecidos técnicos e isolamento de pluma são seus aliados.",
+      "stylingNoteTemplate": "Priorize o calor. Com a técnica certa de camadas, você ainda fica chic."
+    }
+  },
+  "overlays": {
+    "rain": {
+      "keyPiece": "Jaqueta impermeável ou trench",
+      "accessories": [
+        "Guarda-chuva",
+        "Botas impermeáveis"
+      ],
+      "fabricTipsSuffix": " Escolha materiais resistentes à água.",
+      "stylingNoteSuffix": " Uma jaqueta de chuva estilosa é essencial. Considere botas Chelsea impermeáveis para proteção chic."
+    },
+    "snow": {
+      "accessories": [
+        "Botas de neve",
+        "Luvas impermeáveis"
+      ],
+      "stylingNoteSuffix": " Função encontra moda. Botas de neve de qualidade e uma parka quente são imprescindíveis."
+    },
+    "wind": {
+      "accessory": "Cachecol corta-vento",
+      "accessories": [
+        "Cachecol corta-vento"
+      ],
+      "stylingNoteSuffix": " Prenda peças soltas e opte por silhuetas mais ajustadas com vento."
+    }
+  },
+  "dailyRange": {
+    "layersHotMorning": [
+      "Look leve para o calor do meio-dia",
+      "Cardigã opcional só pela manhã"
+    ],
+    "layersHotDay": [
+      "Look leve para o dia — sem camadas base ou intermediárias"
+    ],
+    "sunglasses": "Óculos de sol",
+    "heatSwingNoteTemplate": "{lowTemp}°C agora, pico de {peakTemp}°C — vista-se para o calor. Uma camada leve só para a manhã fresca se precisar.",
+    "wideSwingLayer": "Camada removível para oscilações de temperatura",
+    "wideSwingNoteTemplate": "{lowTemp}–{peakTemp}°C hoje — use camadas para ajustar quando o dia esquentar ou esfriar.",
+    "modestSwingNoteTemplate": "Amplitude do dia {lowTemp}–{peakTemp}°C. {existing}",
+    "coldMorningFemale": [
+      "Casaco ou trench leve",
+      "Malha fina",
+      "Calça",
+      "Sapatos fechados"
+    ],
+    "coldMorningMale": [
+      "Jaqueta leve",
+      "Malha fina ou camisa",
+      "Chinos",
+      "Loafers ou tênis"
+    ],
+    "coldMorningLayers": [
+      "Quente o bastante pela manhã",
+      "Fácil de aliviar à tarde"
+    ]
+  }
+}

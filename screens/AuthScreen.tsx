@@ -10,8 +10,6 @@ import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
 
-WebBrowser.maybeCompleteAuthSession();
-
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
@@ -22,6 +20,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import type { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 import { LanguageEntryButton, LanguagePickerModal } from "@/components/LanguagePickerModal";
+
+WebBrowser.maybeCompleteAuthSession();
+
+/** Hide Apple/Google/Facebook until OAuth is configured & verified. Re-enable after App Review. */
+const SHOW_SOCIAL_LOGIN = false;
 
 type AuthScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Auth">;
@@ -46,12 +49,18 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
   const isSignup = mode === "signup";
 
+  const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '';
+  const googleIosClientId =
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
+    || Constants.expoConfig?.ios?.config?.googleSignIn?.reservedClientId
+    || googleClientId;
+
   // Google OAuth hook — uses authorization code + PKCE (correct modern flow)
-  const redirectUrl = AuthSession.makeRedirectUri();
+  const redirectUrl = AuthSession.makeRedirectUri({ scheme: 'dripn' });
   const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
+    clientId: googleClientId,
+    iosClientId: googleIosClientId,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || googleClientId,
     redirectUri: redirectUrl,
     scopes: ['openid', 'profile', 'email'],
   });
@@ -71,7 +80,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           } else if (googleResponse.params?.code && googleRequest) {
             const tokenResult = await AuthSession.exchangeCodeAsync(
               {
-                clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
+                clientId: Platform.OS === 'ios' ? googleIosClientId : googleClientId,
                 code: googleResponse.params.code,
                 redirectUri: redirectUrl,
                 extraParams: {
@@ -111,6 +120,11 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
     setSocialLoading(provider);
     setErrorMessage(null);
     if (provider === 'google') {
+      if (!googleClientId && !googleIosClientId) {
+        setSocialLoading(null);
+        setErrorMessage('Google Sign-In is not configured yet. Please use email and password.');
+        return;
+      }
       if (isExpoGo && Platform.OS !== 'web') {
         setSocialLoading(null);
         Alert.alert(t('common.googleSignin') || "Google Sign-In", t('common.googleSigninIsAvailableInTheFullDripnApp') || "Google Sign-In is available in the full Dripn app. For now, please use your email and password to sign in.",
@@ -121,11 +135,19 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
       await googlePromptAsync();
       return;
     }
+    if (provider === 'facebook' && !process.env.EXPO_PUBLIC_FACEBOOK_APP_ID) {
+      setSocialLoading(null);
+      setErrorMessage('Facebook Sign-In is not configured yet. Please use email and password.');
+      return;
+    }
     try {
       await socialLogin(provider);
       navigation.replace("Onboarding");
     } catch (error) {
-      const message = `Could not sign in with ${provider.charAt(0).toUpperCase() + provider.slice(1)}. Please try again.`;
+      const detail = error instanceof Error ? error.message : '';
+      const message = detail && !detail.startsWith('Could not')
+        ? detail
+        : `Could not sign in with ${provider.charAt(0).toUpperCase() + provider.slice(1)}. Please try again.`;
       setErrorMessage(message);
     } finally {
       setSocialLoading(null);
@@ -205,85 +227,89 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           </ThemedText>
         </View>
 
-        <View style={styles.socialButtonsContainer}>
-          <Pressable
-            onPress={() => handleSocialAuth('google')}
-            disabled={socialLoading !== null || isAuthenticating}
-            style={({ pressed }) => [
-              styles.socialButton,
-              { 
-                backgroundColor: '#FFFFFF',
-                borderColor: theme.border,
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            {socialLoading === 'google' ? (
-              <ActivityIndicator color="#DB4437" size="small" />
-            ) : (
-              <>
-                <FontAwesome name="google" size={20} color="#DB4437" />
-                <ThemedText style={[styles.socialButtonText, { color: '#333333' }]}>
-                  {t('auth.continueWithGoogle')}
-                </ThemedText>
-              </>
-            )}
-          </Pressable>
+        {SHOW_SOCIAL_LOGIN ? (
+          <>
+            <View style={styles.socialButtonsContainer}>
+              <Pressable
+                onPress={() => handleSocialAuth('google')}
+                disabled={socialLoading !== null || isAuthenticating}
+                style={({ pressed }) => [
+                  styles.socialButton,
+                  {
+                    backgroundColor: '#FFFFFF',
+                    borderColor: theme.border,
+                    opacity: pressed ? 0.8 : 1,
+                  },
+                ]}
+              >
+                {socialLoading === 'google' ? (
+                  <ActivityIndicator color="#DB4437" size="small" />
+                ) : (
+                  <>
+                    <FontAwesome name="google" size={20} color="#DB4437" />
+                    <ThemedText style={[styles.socialButtonText, { color: '#333333' }]}>
+                      {t('auth.continueWithGoogle')}
+                    </ThemedText>
+                  </>
+                )}
+              </Pressable>
 
-          <Pressable
-            onPress={() => handleSocialAuth('facebook')}
-            disabled={socialLoading !== null || isAuthenticating}
-            style={({ pressed }) => [
-              styles.socialButton,
-              { 
-                backgroundColor: '#1877F2',
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            {socialLoading === 'facebook' ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <>
-                <FontAwesome name="facebook" size={20} color="#FFFFFF" />
-                <ThemedText style={[styles.socialButtonText, { color: '#FFFFFF' }]}>
-                  {t('auth.continueWithFacebook')}
-                </ThemedText>
-              </>
-            )}
-          </Pressable>
+              <Pressable
+                onPress={() => handleSocialAuth('facebook')}
+                disabled={socialLoading !== null || isAuthenticating}
+                style={({ pressed }) => [
+                  styles.socialButton,
+                  {
+                    backgroundColor: '#1877F2',
+                    opacity: pressed ? 0.8 : 1,
+                  },
+                ]}
+              >
+                {socialLoading === 'facebook' ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <FontAwesome name="facebook" size={20} color="#FFFFFF" />
+                    <ThemedText style={[styles.socialButtonText, { color: '#FFFFFF' }]}>
+                      {t('auth.continueWithFacebook')}
+                    </ThemedText>
+                  </>
+                )}
+              </Pressable>
 
-          {Platform.OS === 'ios' ? (
-            <Pressable
-              onPress={() => handleSocialAuth('apple')}
-              disabled={socialLoading !== null || isAuthenticating}
-              style={({ pressed }) => [
-                styles.socialButton,
-                { 
-                  backgroundColor: isDark ? '#FFFFFF' : '#000000',
-                  opacity: pressed ? 0.8 : 1,
-                },
-              ]}
-            >
-              {socialLoading === 'apple' ? (
-                <ActivityIndicator color={isDark ? '#000000' : '#FFFFFF'} size="small" />
-              ) : (
-                <>
-                  <FontAwesome name="apple" size={22} color={isDark ? '#000000' : '#FFFFFF'} />
-                  <ThemedText style={[styles.socialButtonText, { color: isDark ? '#000000' : '#FFFFFF' }]}>
-                    {t('auth.continueWithApple')}
-                  </ThemedText>
-                </>
-              )}
-            </Pressable>
-          ) : null}
-        </View>
+              {Platform.OS === 'ios' ? (
+                <Pressable
+                  onPress={() => handleSocialAuth('apple')}
+                  disabled={socialLoading !== null || isAuthenticating}
+                  style={({ pressed }) => [
+                    styles.socialButton,
+                    {
+                      backgroundColor: isDark ? '#FFFFFF' : '#000000',
+                      opacity: pressed ? 0.8 : 1,
+                    },
+                  ]}
+                >
+                  {socialLoading === 'apple' ? (
+                    <ActivityIndicator color={isDark ? '#000000' : '#FFFFFF'} size="small" />
+                  ) : (
+                    <>
+                      <FontAwesome name="apple" size={22} color={isDark ? '#000000' : '#FFFFFF'} />
+                      <ThemedText style={[styles.socialButtonText, { color: isDark ? '#000000' : '#FFFFFF' }]}>
+                        {t('auth.continueWithApple')}
+                      </ThemedText>
+                    </>
+                  )}
+                </Pressable>
+              ) : null}
+            </View>
 
-        <View style={styles.dividerContainer}>
-          <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
-          <ThemedText type="small" style={styles.dividerText}>{t('auth.or')}</ThemedText>
-          <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
-        </View>
+            <View style={styles.dividerContainer}>
+              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+              <ThemedText type="small" style={styles.dividerText}>{t('auth.or')}</ThemedText>
+              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+            </View>
+          </>
+        ) : null}
 
         <View style={styles.form}>
           {isSignup ? (

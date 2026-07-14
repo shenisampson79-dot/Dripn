@@ -6,12 +6,35 @@ import {
   mapUserGenderToRuleFilter,
   type CalendarSeason,
 } from '@/utils/fashionSeason';
+import { resolveContentLang } from '@/utils/contentLang';
 
 export interface PersonalizedRulesResult {
   orderedRules: FashionRule[];
   highlightRule: FashionRule | null;
   contextLabel: string | null;
 }
+
+const SEASON_LABELS: Record<string, Record<CalendarSeason, string>> = {
+  en: { spring: 'Spring', summer: 'Summer', autumn: 'Autumn', winter: 'Winter' },
+  es: { spring: 'Primavera', summer: 'Verano', autumn: 'Otoño', winter: 'Invierno' },
+  fr: { spring: 'Printemps', summer: 'Été', autumn: 'Automne', winter: 'Hiver' },
+  de: { spring: 'Frühling', summer: 'Sommer', autumn: 'Herbst', winter: 'Winter' },
+  it: { spring: 'Primavera', summer: 'Estate', autumn: 'Autunno', winter: 'Inverno' },
+  pt: { spring: 'Primavera', summer: 'Verão', autumn: 'Outono', winter: 'Inverno' },
+  nl: { spring: 'Lente', summer: 'Zomer', autumn: 'Herfst', winter: 'Winter' },
+  pl: { spring: 'Wiosna', summer: 'Lato', autumn: 'Jesień', winter: 'Zima' },
+  ru: { spring: 'Весна', summer: 'Лето', autumn: 'Осень', winter: 'Зима' },
+  zh: { spring: '春季', summer: '夏季', autumn: '秋季', winter: '冬季' },
+  ja: { spring: '春', summer: '夏', autumn: '秋', winter: '冬' },
+  ko: { spring: '봄', summer: '여름', autumn: '가을', winter: '겨울' },
+  ar: { spring: 'الربيع', summer: 'الصيف', autumn: 'الخريف', winter: 'الشتاء' },
+  hi: { spring: 'वसंत', summer: 'ग्रीष्म', autumn: 'शरद', winter: 'शीत' },
+  tr: { spring: 'İlkbahar', summer: 'Yaz', autumn: 'Sonbahar', winter: 'Kış' },
+  sv: { spring: 'Vår', summer: 'Sommar', autumn: 'Höst', winter: 'Vinter' },
+  da: { spring: 'Forår', summer: 'Sommer', autumn: 'Efterår', winter: 'Vinter' },
+  no: { spring: 'Vår', summer: 'Sommer', autumn: 'Høst', winter: 'Vinter' },
+  fi: { spring: 'Kevät', summer: 'Kesä', autumn: 'Syksy', winter: 'Talvi' },
+};
 
 const SEASON_TAG_KEYWORDS: Record<CalendarSeason, string[]> = {
   spring: ['spring', 'transitional', 'layering', 'rotation'],
@@ -83,11 +106,14 @@ export function personalizeStyleRules(
     wardrobeItems?: WardrobeItem[];
     weather?: WeatherCondition | null;
     bodyShape?: string | null;
+    language?: string | null;
   },
 ): PersonalizedRulesResult {
   const season = getCurrentCalendarSeason();
   const gender = mapUserGenderToRuleFilter(options.gender);
   const peakTemp = options.weather?.tempMax ?? options.weather?.temperature;
+  const lang = resolveContentLang(options.language);
+  const seasonLabel = SEASON_LABELS[lang]?.[season] ?? SEASON_LABELS.en[season];
   const wardrobeColors = new Set(
     (options.wardrobeItems ?? [])
       .map((item) => item.color?.toLowerCase())
@@ -115,12 +141,18 @@ export function personalizeStyleRules(
     const low = options.weather.tempMin;
     const high = options.weather.tempMax;
     if (low != null && high != null) {
-      contextLabel = `${getCurrentCalendarSeason()} · ${low}–${high}°C today`;
+      contextLabel = lang === 'es'
+        ? `${seasonLabel} · ${low}–${high}°C hoy`
+        : `${seasonLabel} · ${low}–${high}°C today`;
     } else {
-      contextLabel = `${getCurrentCalendarSeason()} · ${peakTemp}°C peak`;
+      contextLabel = lang === 'es'
+        ? `${seasonLabel} · pico ${peakTemp}°C`
+        : `${seasonLabel} · ${peakTemp}°C peak`;
     }
   } else {
-    contextLabel = `${season.charAt(0).toUpperCase() + season.slice(1)} style focus`;
+    contextLabel = lang === 'es'
+      ? `Enfoque de estilo ${seasonLabel.toLowerCase()}`
+      : `${seasonLabel} style focus`;
   }
 
   return {

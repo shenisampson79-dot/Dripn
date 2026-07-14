@@ -1,0 +1,439 @@
+{
+  "1": {
+    "title": "De regel van drie",
+    "content": "Beperk je outfit tot maximaal drie hoofdkleuren. Dit creëert visuele harmonie en voorkomt dat uw look chaotisch of overweldigend overkomt.",
+    "colorSwatches": {
+      "Navy": "Marine",
+      "White": "Wit",
+      "Camel": "Kameel"
+    }
+  },
+  "2": {
+    "title": "Kleed je voor jouw kleurseizoen",
+    "content": "Als u kleuren draagt ​​die uw natuurlijke kleur aanvullen (huidskleur, haar, ogen), ziet u er gezonder en levendiger uit. Ontdek of u een lente-, zomer-, herfst- of wintertype bent.",
+    "colorSwatches": {
+      "Warm Gold": "Warm goud",
+      "Cool Silver": "Koel zilver"
+    }
+  },
+  "3": {
+    "title": "Neutrale foundation, kleuraccent",
+    "content": "Bouw outfits op een neutrale basis (zwart, wit, grijs, marineblauw, beige) en introduceer kleur via accessoires of een statement-stuk."
+  },
+  "4": {
+    "title": "Warme versus koele tonen begrijpen",
+    "content": "Warme ondertonen passen prachtig bij aardse kleuren (olijf, mosterd, koraal), terwijl koele ondertonen schitteren in juweeltinten (smaragd, saffier, robijn). Als u de uwe kent, verandert uw winkelgedrag.",
+    "colorSwatches": {
+      "Mustard": "Mosterd",
+      "Emerald": "Smaragd"
+    }
+  },
+  "5": {
+    "title": "De kracht van zwart-wit",
+    "content": "Door u in één kleurenfamilie te kleden, ontstaat een langwerpig, verfijnd effect. Varieer tinten en texturen binnen dezelfde tint voor diepte en interesse."
+  },
+  "6": {
+    "title": "Complementaire kleurbeheersing",
+    "content": "Kleuren tegenovergesteld op het kleurenwiel (blauw/oranje, paars/geel, rood/groen) creëren opvallende, dynamische outfits als ze goed in balans zijn.",
+    "colorSwatches": {
+      "Royal Blue": "Koningsblauw",
+      "Burnt Orange": "Verbrande sinaasappel"
+    }
+  },
+  "7": {
+    "title": "Marine is het nieuwe zwart",
+    "content": "Marineblauw is universeel flatterend en past prachtig bij meer kleuren dan zwart. Het is zachter, toegankelijker en even veelzijdig."
+  },
+  "8": {
+    "title": "Wit verheldert je gezicht",
+    "content": "Het dragen van wit of crème in de buurt van uw gezicht reflecteert het licht naar boven, waardoor u er wakkerder en levendiger uitziet. Ideaal voor videogesprekken en foto's."
+  },
+  "9": {
+    "title": "Patroonmenging met kleur",
+    "content": "Zorg er bij het mixen van patronen voor dat ze minstens één gemeenschappelijke kleur hebben. Dit creëert samenhang, zelfs bij verschillende printschalen en -stijlen."
+  },
+  "10": {
+    "title": "De 60-30-10 kleurenregel",
+    "content": "Gebruik je dominante kleur voor 60% van je outfit, secundaire kleur voor 30% en accentkleur voor 10%. Dit zorgt voor een evenwichtige, visueel aantrekkelijke uitstraling."
+  },
+  "11": {
+    "title": "Seizoensgebonden kleurrotatie",
+    "content": "Wissel uw kleurenpalet af met de seizoenen: rijke juweeltinten voor de herfst/winter, zachte pastelkleuren en heldere tinten voor de lente/zomer. Hierdoor blijft je garderobe fris aanvoelen."
+  },
+  "12": {
+    "title": "Zwart van top tot teen",
+    "content": "Volledig zwarte outfits zijn tijdloos en slankmakend, maar vereisen textuurvariatie (mat, glans, gebreid) om te voorkomen dat ze er plat of kostuumachtig uitzien."
+  },
+  "13": {
+    "title": "Basisprincipes van kleurblokkering",
+    "content": "Bij kleurblokkering worden blokken met effen, contrasterende kleuren gebruikt voor een opvallende impact. Houd silhouetten eenvoudig en laat de kleuren voor zich spreken."
+  },
+  "14": {
+    "title": "Metallic als neutraal",
+    "content": "Goud- en zilvermetallics werken als neutrale kleuren en kunnen met vrijwel elke kleur worden gecombineerd. Match metallic kleuren met je ondertoon voor het meest flatterende effect."
+  },
+  "15": {
+    "title": "Printschaal is belangrijk",
+    "content": "Kies afdrukformaten die bij uw lijst passen - kleinere lijsten passen bij kleinere prints, grotere lijsten kunnen opvallendere patronen dragen zonder dat ze overweldigd worden."
+  },
+  "16": {
+    "title": "De derde stukregel",
+    "content": "Geef elke outfit een boost door een derde kledingstuk toe te voegen: een blazer, vest, sjaal of tas met structuur. Dit transformeert basiscombinaties in complete, opzettelijke looks."
+  },
+  "17": {
+    "title": "Proportie spelen",
+    "content": "Breng balans in het volume van je outfit: als je iets losjes aan de bovenkant draagt, ga dan getailleerd aan de onderkant (en omgekeerd). Hierdoor ontstaan ​​flatterende silhouetten op alle lichaamstypes."
+  },
+  "18": {
+    "title": "De één-verklaring-regel",
+    "content": "Laat één kledingstuk de ster van je outfit zijn. Als je een opvallend patroon of statement-accessoire draagt, houd al het andere dan ingetogen om visuele concurrentie te voorkomen."
+  },
+  "19": {
+    "title": "Definieer uw taille",
+    "content": "Door definitie te creëren aan uw natuurlijke taille, of dit nu door middel van riemen, plooien of op maat gemaakte snitten is, ontstaat een zandlopersilhouet dat de meeste lichaamstypes flatteert."
+  },
+  "20": {
+    "title": "De regel van derden",
+    "content": "In plaats van je lichaam in tweeën te verdelen, streef je naar een verhouding van 1/3 tot 2/3 (korte top met broekje met hoge taille, of langere top met kortere rok) voor meer dynamische proporties."
+  },
+  "21": {
+    "title": "Verticale lijnen verlengen",
+    "content": "Verticale strepen, lange kettingen en open vesten creëren de illusie van hoogte en een slanker silhouet. Gebruik strategisch voor verlengende effecten."
+  },
+  "22": {
+    "title": "V-hals flatteert iedereen",
+    "content": "V-halslijnen verlengen de nek, trekken de aandacht verticaal en flatteren vrijwel elke gezichtsvorm en lichaamstype. Een universeel vleiende keuze."
+  },
+  "23": {
+    "title": "De kracht van hoge taille",
+    "content": "Broekjes met hoge taille verlengen de benen optisch langer en creëren een langer, slanker silhouet. Ze werken vooral goed als de topjes ingestopt zijn."
+  },
+  "24": {
+    "title": "Gestructureerd versus ongestructureerd evenwicht",
+    "content": "Combineer gestructureerde stukken (blazers, op maat gemaakte broeken) met zachtere items (zijden blouses, gebreide tops) voor outfits die gepolijst en toch toegankelijk aanvoelen."
+  },
+  "25": {
+    "title": "Gelaagdheid zonder bulk",
+    "content": "Laag dunne stoffen van hoge kwaliteit in plaats van dikke stoffen. Begin met aansluitende basislagen en voeg geleidelijk lossere stukken toe om onnodig volume te voorkomen."
+  },
+  "26": {
+    "title": "De Half-Tuck",
+    "content": "Een casual halve plooi (waarbij je alleen de voorkant van je overhemd instopt) creëert taille-definitie terwijl een ontspannen, moeiteloze sfeer behouden blijft. Perfect voor casual elegantie."
+  },
+  "27": {
+    "title": "Kleed je naar je lichaamsvorm",
+    "content": "Als u begrijpt of u een appel, peer, zandloper of rechthoek bent, kunt u snitten kiezen die uw natuurlijke verhoudingen versterken in plaats van ertegen te vechten."
+  },
+  "28": {
+    "title": "Match uw metalen",
+    "content": "Bewaar je sieraden en hardware (riemgespen, tassluitingen, schoendetails) in dezelfde metaalfamilie voor een samenhangende, gepolijste look."
+  },
+  "29": {
+    "title": "Tassen moeten bij uw frame passen",
+    "content": "Kies tasformaten die in verhouding staan ​​tot uw lichaam: kleine frames passen bij kleinere tassen, terwijl grotere frames grotere modellen kunnen dragen zonder overweldigd te raken."
+  },
+  "30": {
+    "title": "Horloges als statement-stukken",
+    "content": "Een kwaliteitshorloge is zowel functioneel als modieus. Kies een stijl die jouw persoonlijkheid weerspiegelt – klassiek, sportief of minimalistisch – en draag hem dagelijks."
+  },
+  "31": {
+    "title": "Sjaals transformeren outfits",
+    "content": "Een zijden sjaal kan om de nek worden gedragen, als hoofdband, aan een tas worden vastgebonden of als riem. Dit veelzijdige accessoire tilt eenvoudige outfits meteen naar een hoger niveau."
+  },
+  "32": {
+    "title": "De plaatsing van de riem is belangrijk",
+    "content": "Draag riemen in je natuurlijke taille voor het meest flatterende effect. Laaghangende riemen kunnen uw romp korter maken, terwijl hoge riemen de benen verlengen."
+  },
+  "33": {
+    "title": "Zonnebrillen vormen je gezicht",
+    "content": "Kies een zonnebril die contrasteert met uw gezichtsvorm: ronde gezichten passen bij hoekige monturen, vierkante gezichten zien er geweldig uit bij ronde stijlen."
+  },
+  "34": {
+    "title": "Minder is meer bij sieraden",
+    "content": "Kies één focuspunt: statement oorbellen OF een opvallende ketting OF gestapelde armbanden. Alles tegelijk dragen verdunt de impact."
+  },
+  "35": {
+    "title": "Match tas en schoenen losjes",
+    "content": "Perfect bij elkaar passende tassen en schoenen zien er gedateerd uit. Streef in plaats daarvan naar complementaire kleuren of één gemeenschappelijk element (beide leer, beide metalen hardware)."
+  },
+  "36": {
+    "title": "Hoeden Complete outfits",
+    "content": "De juiste hoed voegt persoonlijkheid en glans toe. Kies stijlen die bij uw gezichtsvorm en levensstijl passen - van fedora's tot baseballpetten en baretten."
+  },
+  "37": {
+    "title": "Investeer in hoogwaardige lederwaren",
+    "content": "Een goed gemaakte leren tas en riem gaan tientallen jaren mee en ontwikkelen een prachtige patina. Kies klassieke vormen in veelzijdige kleuren voor maximale draagbaarheid."
+  },
+  "38": {
+    "title": "Gelaagde kettingen",
+    "content": "Laagkettingen in verschillende lengtes (choker, prinses, opera) voor een moderne dimensie. Houd de metalen consistent en varieer met kettingtexturen en hangerformaten."
+  },
+  "39": {
+    "title": "Oorbellen omlijsten je gezicht",
+    "content": "Oorbellen trekken de aandacht naar je gezicht. Kies stijlen die bij je gezichtsvorm passen: studs voor elke dag, dropjes voor 's avonds, hoepels voor veelzijdigheid."
+  },
+  "40": {
+    "title": "Textuur mengen",
+    "content": "Combineer verschillende texturen (zijde met denim, kasjmier met leer, linnen met wol) om diepte en visuele interesse toe te voegen aan monochrome of eenvoudige outfits."
+  },
+  "41": {
+    "title": "Natuurlijke vezels ademen beter",
+    "content": "Katoen, linnen, wol en zijde reguleren de temperatuur beter dan synthetische stoffen. Geef prioriteit aan natuurlijke stoffen voor comfort en een lange levensduur."
+  },
+  "42": {
+    "title": "Gebreid voor comfort, geweven voor structuur",
+    "content": "Gebreide stoffen (jersey, ponte) bieden stretch en comfort. Geweven stoffen (katoenpopeline, denim) zorgen voor structuur. Kies op basis van gewenst effect."
+  },
+  "43": {
+    "title": "Zijde voor speciale gelegenheden",
+    "content": "Zijde voegt instant luxe en elegantie toe. Reserveer hem voor gelegenheden waarbij u zich speciaal wilt voelen; het gewicht en de drapering zijn ongeëvenaard."
+  },
+  "44": {
+    "title": "Kasjmier is het waard",
+    "content": "Kwaliteitskasjmier is zacht, warm en lichtgewicht. Investeer in klassieke stukken die u jarenlang zult dragen; de kosten per keer dat u ze draagt, maken het de moeite waard."
+  },
+  "45": {
+    "title": "Veelzijdigheid van denim",
+    "content": "Kwaliteitsdenim is de ruggengraat van casual stijl. Zorg dat je ten minste één goed passende spijkerbroek en een spijkerjasje hebt; beide zijn geschikt voor alle seizoenen en gelegenheden."
+  },
+  "46": {
+    "title": "Linnen omarmt rimpels",
+    "content": "Linnen is bedoeld om te kreuken; het maakt deel uit van zijn ontspannen charme. Omarm de natuurlijke plooien in plaats van ertegen te vechten. Reserveer voor informele instellingen."
+  },
+  "47": {
+    "title": "Fluweel voor drama",
+    "content": "Fluweel vangt prachtig licht en voegt instant drama toe aan elke outfit. Reserveer voor de avond, herfst/winter of wanneer u een entree wilt maken."
+  },
+  "48": {
+    "title": "Leer als statement",
+    "content": "Leer (of veganistische kwaliteitsalternatieven) voegt rand en structuur toe. Een leren jack is een onmisbaar onderdeel van je garderobe en past in alle seizoenen en stijlen."
+  },
+  "49": {
+    "title": "Doorschijnende stoffenlagen",
+    "content": "Doorschijnende stoffen voegen dimensie toe als ze op de juiste manier worden gelaagd. Houd altijd rekening met wat eronder zichtbaar is; gebruik opzettelijk laagjes voor een gepolijste look."
+  },
+  "50": {
+    "title": "Jurk voor de gelegenheid Plus One",
+    "content": "Probeer iets beter gekleed te zijn dan de gelegenheid vereist. Underdressing voelt ongemakkelijk, terwijl iets overdressed inspanning en respect uitstraalt."
+  },
+  "51": {
+    "title": "Begrijp kledingvoorschriften",
+    "content": "Van black tie tot smart casual: het begrijpen van kledingvoorschriften voorkomt schaamte. Als u twijfelt, vraag het dan aan de gastheer of kies voor de formaliteit."
+  },
+  "52": {
+    "title": "Werkkledingfundamenten",
+    "content": "Stel een werkgarderobe samen met verwisselbare stukken: blazers, op maat gemaakte broeken, kwaliteitsblouses en bescheiden jurken. Streef naar outfits voor een week."
+  },
+  "53": {
+    "title": "Weekend casual versus slordig",
+    "content": "Casual betekent niet onzorgvuldig. Een goed passende jeans, strakke sportschoenen en een kwaliteits-T-shirt zien er moeiteloos stijlvol uit. Vlekken en scheuren zien er slordig uit."
+  },
+  "54": {
+    "title": "Date Night-inspanning",
+    "content": "Verkleden voor dates toont inspanning en respect. Kies stukken waardoor u zich zelfverzekerd en aantrekkelijk voelt - uw energie zal erdoorheen schijnen."
+  },
+  "55": {
+    "title": "Reis in comfort en stijl",
+    "content": "De stijl van een luchthaven moet prioriteit geven aan comfort zonder in te boeten aan glans. Rekbare stoffen, instapschoenen en laagjes zijn bestand tegen temperatuurschommelingen en lange reizen."
+  },
+  "56": {
+    "title": "Interviewindrukken",
+    "content": "Eerste indrukken zijn belangrijk in interviews. Onderzoek de bedrijfscultuur en kleed je een niveau formeler dan dagelijkse kleding. Vermijd afleidende patronen of accessoires."
+  },
+  "57": {
+    "title": "Etiquette voor bruiloftsgasten",
+    "content": "Draag nooit wit naar een bruiloft (tenzij specifiek gevraagd). Match de formaliteit met de locatie en tijd. Bij twijfel is cocktailkleding veilig."
+  },
+  "58": {
+    "title": "Begrafenis respect",
+    "content": "Begrafenissen vragen om donkere, conservatieve kleding. Zwart, marineblauw of antraciet in eenvoudige, bescheiden snitten tonen respect. Bewaar felle kleuren voor vieringen van het leven."
+  },
+  "59": {
+    "title": "Culturele context is belangrijk",
+    "content": "Onderzoek kledingverwachtingen bij het bezoeken van verschillende culturen of religieuze locaties. Bescheidenheidseisen, hoofdbedekking of het uittrekken van schoenen kunnen van toepassing zijn."
+  },
+  "60": {
+    "title": "Investeer in kwaliteitsbeginselen",
+    "content": "Bouw de basis van je garderobe met goed gemaakte basics: een wit overhemd, een donkere broek, kwaliteitsdenim en een veelzijdige blazer. Kwaliteit boven kwantiteit wint altijd."
+  },
+  "61": {
+    "title": "De kracht van maatwerk",
+    "content": "Goed passende kleding ziet er duurder uit dan slecht passende designerkleding. Investeer in aanpassingen voor belangrijke stukken - het verschil is transformatief."
+  },
+  "62": {
+    "title": "De 80/20 garderoberegel",
+    "content": "20% van je garderobe draag je 80% van de tijd. Identificeer die sleutelstukken en investeer in hun kwaliteit. Controleer en bewerk uw garderobe regelmatig."
+  },
+  "63": {
+    "title": "Berekening van de kosten per slijtage",
+    "content": "Deel de prijs door de verwachte slijtage. Een jas van € 200 die 100 keer wordt gedragen, kost € 2 per keer dragen - een betere waarde dan een jas van € 50 die 10 keer wordt gedragen."
+  },
+  "64": {
+    "title": "Klassiek boven trendy",
+    "content": "Investeer in tijdloze stukken en bewaar trends voor goedkope accessoires. Een klassieke trenchcoat gaat tientallen jaren langer mee dan een trendy silhouet."
+  },
+  "65": {
+    "title": "Kwaliteitsschoenen zijn het belangrijkst",
+    "content": "Mensen merken schoenen op. Investeer in goed gemaakte, klassieke stijlen die kunnen worden aangepast. Je voeten zullen je dankbaar zijn en je outfits zullen er chic uitzien."
+  },
+  "66": {
+    "title": "Het perfecte witte overhemd",
+    "content": "Elke garderobe heeft een fris wit overhemd nodig. Zoek naar kwaliteitskatoen, een goede pasvorm rond de schouders en een kraag die plat ligt."
+  },
+  "67": {
+    "title": "Investeringsbovenkleding",
+    "content": "Jassen zijn zichtbaar en maken eerste indrukken. Investeer in hoogwaardige bovenkleding in veelzijdige kleuren - ze omlijsten je hele look."
+  },
+  "68": {
+    "title": "Bouw langzaam en bedachtzaam",
+    "content": "Een samengestelde garderobe kost tijd. Voeg geleidelijk stukken toe en zorg ervoor dat ze allemaal werken met wat je al hebt. Weersta impulsaankopen."
+  },
+  "69": {
+    "title": "Ken uw niet-onderhandelbare zaken",
+    "content": "Bepaal op welke punten u geen compromissen wilt sluiten (comfort, ethische productie, specifieke merken) en geef prioriteit aan de uitgaven daaraan."
+  },
+  "70": {
+    "title": "Zorg voor je kleding",
+    "content": "Lees de onderhoudsetiketten, gebruik de juiste hangers en berg artikelen op de juiste manier op. Goed onderhouden kleding gaat langer mee en ziet er bij elke slijtage beter uit."
+  },
+  "71": {
+    "title": "Minder wassen, meer luchten",
+    "content": "De meeste kleding hoeft niet na elk dragen gewassen te worden. Door kledingstukken tussen het dragen door te luchten, wordt de levensduur ervan verlengd en wordt de impact op het milieu verminderd."
+  },
+  "72": {
+    "title": "Juiste hangerselectie",
+    "content": "Gebruik houten of gewatteerde hangers voor gestructureerde artikelen, fluweel voor gladde stoffen en vouwbreisels om schouderstoten te voorkomen."
+  },
+  "73": {
+    "title": "Schoenverzorgingsroutine",
+    "content": "Maak schoenen regelmatig schoon, conditioneer en bescherm ze. Gebruik schoenspanners om de vorm te behouden. Draai paren zodat ze tussen het dragen door kunnen drogen."
+  },
+  "74": {
+    "title": "Repareren vóór vervangen",
+    "content": "Een losse knoop, een klein gaatje of een kapotte rits kun je vaak goedkoop repareren. Verleng de levensduur van kledingstukken door snelle reparaties in plaats van vervanging."
+  },
+  "75": {
+    "title": "Seizoensgebonden opslag",
+    "content": "Maak kledingstukken schoon voordat u ze opbergt, gebruik ademende kledingzakken en voeg cederhout of lavendel toe om motten te voorkomen. Door een goede bewaring blijft de kwaliteit behouden."
+  },
+  "76": {
+    "title": "Preventie van pilling",
+    "content": "Hulpmiddelen voor het verwijderen van pillen herstellen breisels in een bijna nieuwe staat. Voorkom pilling door binnenstebuiten te wassen, zachte programma's te gebruiken en wrijving te vermijden."
+  },
+  "77": {
+    "title": "Basisprincipes van vlekbehandeling",
+    "content": "Behandel vlekken onmiddellijk en werk van buiten naar binnen. Weet welke behandelingen voor welke vlekken werken: koud water voor bloed, frisdrank voor wijn."
+  },
+  "78": {
+    "title": "Professionele zorg wanneer dat nodig is",
+    "content": "Sommige items vereisen professionele reiniging. Pakken, zijde, leer en stukken met veel kralen moeten naar vertrouwde stomerijen of specialisten gaan."
+  },
+  "79": {
+    "title": "Strijk en stoom op de juiste manier",
+    "content": "Verschillende stoffen hebben verschillende warmte-instellingen nodig. Strijk bij fijne was altijd binnenstebuiten, gebruik persdoeken en stoom om tussen de wasbeurten door op te frissen."
+  },
+  "80": {
+    "title": "Seizoensgebonden stoffenkeuzes",
+    "content": "Stem de stofdikte af op de seizoenen: linnen en katoen voor de zomer, wol en kasjmier voor de winter. Hierdoor blijf je comfortabel en passend gekleed."
+  },
+  "81": {
+    "title": "Gelaagdheid voor overgangsweer",
+    "content": "De lente en herfst vereisen veelzijdige laagjes. Bouw outfits die zich gedurende de dag kunnen aanpassen aan temperatuurveranderingen."
+  },
+  "82": {
+    "title": "Strategieën voor zomerhitte",
+    "content": "Lichte kleuren reflecteren warmte, losse pasvormen zorgen voor luchtstroom en natuurlijke vezels ademen. Kleed je strategisch voor zomercomfort en stijl."
+  },
+  "83": {
+    "title": "Winterwarmtelagen",
+    "content": "Laag voor winterwarmte: vochtafvoerende onderkant, isolerend midden, weerbestendige buitenkant. Dit systeem houdt je warm zonder bulk."
+  },
+  "84": {
+    "title": "Overgangsgarderobestukken",
+    "content": "Trenchcoats, lichtgewicht breisels en veelzijdige blazers zijn geschikt voor alle seizoenen. Investeer in stukken die weersovergangen overbruggen."
+  },
+  "85": {
+    "title": "Weergeschikt schoeisel",
+    "content": "Pas schoenen aan de omstandigheden aan: waterbestendig tegen regen, geïsoleerd tegen kou, ademend tegen hitte. Stijl en functie kunnen naast elkaar bestaan."
+  },
+  "86": {
+    "title": "Kleurenpalet per seizoen",
+    "content": "Verander je kleurenpalet met de seizoenen: aardetinten voor de herfst, koele neutrale kleuren voor de winter, zachte pastelkleuren voor de lente, levendige felle kleuren voor de zomer."
+  },
+  "87": {
+    "title": "Vakantiekleding",
+    "content": "Bouw een kleine verzameling feestelijke stukken op die geschikt zijn voor alle feestdagen. Metallics, fluweel en juweeltinten passen bij de meeste feesten."
+  },
+  "88": {
+    "title": "Voorbereiding van buitenevenementen",
+    "content": "Voor buitenevenementen dient u zich voor te bereiden op weersveranderingen: neem indien nodig lagen, waterdichte kleding of bescherming tegen de zon mee. Bekijk de weersvoorspelling en locatie."
+  },
+  "89": {
+    "title": "Seizoensgebonden garderoberotatie",
+    "content": "Wissel uw garderobe per seizoen af. Bewaar artikelen buiten het seizoen goed en haal nieuwe stukken tevoorschijn - het houdt je kast overzichtelijk en inspirerend."
+  },
+  "90": {
+    "title": "Vertrouwen is je beste accessoire",
+    "content": "Draag waar u zich zelfverzekerd en comfortabel bij voelt. De best geklede mensen bezitten hun persoonlijke stijl in plaats van elke trend te volgen."
+  },
+  "91": {
+    "title": "Kleed je voor nu, niet later",
+    "content": "Wacht niet tot u gewicht verliest of een doel bereikt. Kleed je mooi voor het lichaam dat je vandaag hebt - je verdient het om je nu goed te voelen."
+  },
+  "92": {
+    "title": "Negeer maatlabels",
+    "content": "Maten variëren enorm tussen merken. Focus op pasvorm, niet op het nummer op het label. De best passende maat is de juiste maat."
+  },
+  "93": {
+    "title": "Markeer waar je van houdt",
+    "content": "In plaats van waargenomen gebreken te verbergen, vestigt u de aandacht op de kenmerken waar u van houdt. Grote armen? Laat ze zien. Houd je van je benen? Draag kortere zoomlijnen."
+  },
+  "94": {
+    "title": "Comfort geeft vertrouwen",
+    "content": "Als je je voortdurend aan het aanpassen bent of je ongemakkelijk voelt, is dat te zien. Geef prioriteit aan kleding die goed past en goed aanvoelt - uw zelfvertrouwen zal volgen."
+  },
+  "95": {
+    "title": "Persoonlijke stijl boven moderegels",
+    "content": "Stijlregels zijn richtlijnen, geen wetten. Als een ‘regel’ niet voor je werkt of je niet gelukkig maakt, overtreed hem dan. Authentieke persoonlijke stijl overtreft alles."
+  },
+  "96": {
+    "title": "Omarm uw unieke eigenschappen",
+    "content": "Wat jou anders maakt, maakt jou onvergetelijk. Omarm unieke kenmerken: ongebruikelijke proporties, opvallende kleuren of atypische vormen kunnen kenmerkende stijlelementen worden."
+  },
+  "97": {
+    "title": "Geschiktheid voor de leeftijd is een mythe",
+    "content": "Er is geen leeftijdsgrens op stijl. Draag waar jij je fantastisch bij voelt, of dat nu minirokken zijn op je 60e of verfijnde pakken op je 25e."
+  },
+  "98": {
+    "title": "Kwaliteit boven kwantiteit",
+    "content": "Investeer in minder, betere stukken in plaats van in fast fashion. Kwaliteitsstoffen, constructie en tijdloos design gaan langer mee dan trends en kosten minder per keer dat u ze draagt."
+  },
+  "99": {
+    "title": "Tweedehands eerst",
+    "content": "Controleer tweedehands opties voordat u een nieuwe koopt. Liefdadigheidswinkels, vintagewinkels en wederverkoopplatforms bieden unieke stukken met een lagere impact op het milieu."
+  },
+  "100": {
+    "title": "Ken uw merken",
+    "content": "Onderzoek de ethische en duurzaamheidspraktijken van merken waarvan u koopt. Ondersteun degenen die aansluiten bij uw waarden voor productie, werknemers en milieu."
+  },
+  "101": {
+    "title": "De één in, één uit-regel",
+    "content": "Voor elk nieuw item dat aan je garderobe wordt toegevoegd, doneer of verkoop je er een. Dit zorgt voor een overzichtelijke garderobe en stimuleert doordachte aankopen."
+  },
+  "102": {
+    "title": "Capsule Garderobe-mentaliteit",
+    "content": "Een capsulegarderobe van 30-40 veelzijdige stukken die allemaal samenwerken, vermindert beslissingsmoeheid en impact op het milieu, terwijl de stijl wordt gemaximaliseerd."
+  },
+  "103": {
+    "title": "Reparatie en upcycle",
+    "content": "Leer basisreparaties of zoek een goede kleermaker. Blaas nieuw leven in oude stukken door middel van aanpassingen, verven of creatieve nieuwe ideeën."
+  },
+  "104": {
+    "title": "Huur voor speciale gelegenheden",
+    "content": "Voor eenmalige evenementen kunt u huurdiensten overwegen. Krijg toegang tot designerstukken zonder de kosten of de gevolgen voor het milieu van aankopen voor eenmalig gebruik."
+  },
+  "105": {
+    "title": "Prioriteit voor natuurlijke vezels",
+    "content": "Kies waar mogelijk natuurlijke, biologisch afbreekbare vezels (katoen, linnen, wol, zijde) boven synthetische stoffen. Ze zijn beter voor de planeet en vaak comfortabeler."
+  }
+}

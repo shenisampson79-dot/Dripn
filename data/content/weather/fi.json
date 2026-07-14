@@ -1,0 +1,247 @@
+{
+  "descriptions": {
+    "0": "Selkeä taivas",
+    "1": "Enimmäkseen selkeää",
+    "2": "Puolipilvistä",
+    "3": "Pilvistä",
+    "45": "Sumua",
+    "48": "Kuurasumu",
+    "51": "Kevyt tihkusade",
+    "53": "Kohtalainen tihkusade",
+    "55": "Tiheä tihkusade",
+    "61": "Kevyt sade",
+    "63": "Kohtalainen sade",
+    "65": "Rankka sade",
+    "71": "Kevyt lumi",
+    "73": "Kohtalainen lumi",
+    "75": "Rankka lumi",
+    "80": "Kevyet sadekuurot",
+    "81": "Kohtalaiset sadekuurot",
+    "82": "Rankat sadekuurot",
+    "95": "Ukkosmyrsky",
+    "96": "Ukkosmyrsky kevyellä rakeella",
+    "99": "Ukkosmyrsky rankalla rakeella"
+  },
+  "descriptionFallback": "Tuntematon",
+  "defaultDescription": "Puolipilvistä",
+  "locationFallback": "Sijaintisi",
+  "unknownLocation": {
+    "yourLocation": "Sijaintisi",
+    "yourLocationTitle": "Sijaintisi",
+    "unknown": "Tuntematon"
+  },
+  "bands": {
+    "hot": {
+      "layers": [
+        "Yksi hengittävä kerros — lisäkerroksia ei tarvita"
+      ],
+      "keyPiecesFemale": [
+        "Pellavamekko tai hame",
+        "Puuvillapaita",
+        "Hengittävät shortsit",
+        "Sandaalit tai loafersit"
+      ],
+      "keyPiecesMale": [
+        "Pellava- tai puuvillapaita",
+        "Kevyet chinot tai shortsit",
+        "Hengittävä pikeepaita",
+        "Tennarit tai loafersit"
+      ],
+      "accessories": [
+        "Aurinkolasit",
+        "Leveälierinen hattu",
+        "Vesipullo"
+      ],
+      "colors": [
+        "Valkoinen",
+        "Kerma",
+        "Pastellit",
+        "Vaaleansininen"
+      ],
+      "fabricTips": "Vain pellava ja puuvilla — ohita neuleet, kerrokset ja takit tässä helteessä.",
+      "stylingNoteTemplate": "Kuuma päivä ({peakTemp}°C). Yksi kevyt asu riittää — jätä takit ja kerrokset kotiin."
+    },
+    "warm": {
+      "layers": [
+        "Kevyt pohjakerros",
+        "Valinnainen kevyt peite"
+      ],
+      "keyPiecesFemale": [
+        "Midi-mekko",
+        "Korkeavyötäröiset farkut",
+        "Kevyt puuvillapaita",
+        "Hengittävät housut"
+      ],
+      "keyPiecesMale": [
+        "Puuvillapaita",
+        "Chinot",
+        "Kevyt neulepikee",
+        "Vuoreton bleiseri"
+      ],
+      "accessories": [
+        "Aurinkolasit",
+        "Canvas-laukku"
+      ],
+      "colors": [
+        "Maavärit",
+        "Salvia vihreä",
+        "Hillitty ruusu",
+        "Camel"
+      ],
+      "fabricTips": "Puuvilla ja kevyet neuleet toimivat hyvin, kun lämpötila nousee päivän mittaan.",
+      "stylingNoteTemplate": "Mukava pukeutuminen lämpimään säähän — lisää kevyt kerros vain, jos tarvitset sitä aamulla tai illalla."
+    },
+    "mild": {
+      "layers": [
+        "Pohjakerros",
+        "Välikerros",
+        "Kevyt ulkokerros"
+      ],
+      "keyPiecesFemale": [
+        "Kevyt trenssi tai takki",
+        "Hieno neule",
+        "Housut",
+        "Midi-hame nilkkureilla"
+      ],
+      "keyPiecesMale": [
+        "Kevyt takki",
+        "Hieno neule",
+        "Chinot",
+        "Rakenteeton bleiseri"
+      ],
+      "accessories": [
+        "Kevyt huivi",
+        "Rakenteellinen laukku"
+      ],
+      "colors": [
+        "Burgundi",
+        "Metsänvihreä",
+        "Suklaanruskea",
+        "Laivastonsininen"
+      ],
+      "fabricTips": "Kerrosta hienoja neuleita kevyemmän takin alle — säästä paksu villa kylmempiin päiviin.",
+      "stylingNoteTemplate": "Viileä mutta ei kylmä — kerrosta ilman bulkia."
+    },
+    "cold": {
+      "layers": [
+        "Pohjakerros",
+        "Eristävä välikerros",
+        "Lämmin ulkokerros"
+      ],
+      "keyPiecesFemale": [
+        "Untuvatakki",
+        "Villakangastakki",
+        "Thermoleggingsit",
+        "Paksu neule"
+      ],
+      "keyPiecesMale": [
+        "Untuvatakki",
+        "Villakangastakki",
+        "Thermopohjakerros",
+        "Paksu neule"
+      ],
+      "accessories": [
+        "Pipo",
+        "Villahuivi",
+        "Lämpimät käsineet",
+        "Lämpimät saappaat"
+      ],
+      "colors": [
+        "Musta",
+        "Hiilenharmaa",
+        "Syvä burgundi",
+        "Kerma"
+      ],
+      "fabricTips": "Merinovillaiset pohjakerrokset pitävät lämmön ja siirtävät kosteutta pois.",
+      "stylingNoteTemplate": "Sijoita laadukkaisiin ulkovaatteisiin. Lämpö ja tyyli ovat molemmat välttämättömiä."
+    },
+    "freezing": {
+      "layers": [
+        "Thermopohja",
+        "Paksu eristys",
+        "Vedenpitävä ulkokerros"
+      ],
+      "keyPiecesFemale": [
+        "Pitkä untuvatakki",
+        "Fleecerepäiset housut",
+        "Paksu pooloneule",
+        "Eristetyt saappaat"
+      ],
+      "keyPiecesMale": [
+        "Pitkä parka",
+        "Fleecerepäiset housut",
+        "Paksu villaneule",
+        "Eristetyt saappaat"
+      ],
+      "accessories": [
+        "Lämmin pipo",
+        "Kasmirhuivi",
+        "Eristetyt käsineet",
+        "Korvaläpät"
+      ],
+      "colors": [
+        "Musta",
+        "Syvä laivastonsininen",
+        "Burgundi",
+        "Kerma-aksentit"
+      ],
+      "fabricTips": "Tekniset kankaat ja untuvaeristys ovat ystäviäsi.",
+      "stylingNoteTemplate": "Priorisoi lämpö. Oikealla kerrostekniikalla voit silti näyttää tyylikkäältä."
+    }
+  },
+  "overlays": {
+    "rain": {
+      "keyPiece": "Vedenpitävä takki tai trenssi",
+      "accessories": [
+        "Sateenvarjo",
+        "Vedenpitävät saappaat"
+      ],
+      "fabricTipsSuffix": " Valitse vedenkestäviä materiaaleja.",
+      "stylingNoteSuffix": " Tyylikäs sadetakki on välttämätön. Harkitse Chelsea-sadesaappaita tyylikkääseen suojaan."
+    },
+    "snow": {
+      "accessories": [
+        "Lumisaappaat",
+        "Vedenpitävät käsineet"
+      ],
+      "stylingNoteSuffix": " Toiminnallisuus kohtaa muodin. Laadukkaat lumisaappaat ja lämmin parka ovat välttämättömiä."
+    },
+    "wind": {
+      "accessory": "Tuulenpitävä huivi",
+      "accessories": [
+        "Tuulenpitävä huivi"
+      ],
+      "stylingNoteSuffix": " Kiinnitä löysät vaatteet ja valitse istuvia siluetteja tuulella."
+    }
+  },
+  "dailyRange": {
+    "layersHotMorning": [
+      "Kevyt asu keskipäivän helteeseen",
+      "Valinnainen neuletakki vain aamuun"
+    ],
+    "layersHotDay": [
+      "Kevyt asu päiväksi — pohja- tai välikerroksia ei tarvita"
+    ],
+    "sunglasses": "Aurinkolasit",
+    "heatSwingNoteTemplate": "{lowTemp}°C nyt, huippu {peakTemp}°C — pukeudu helteeseen. Kevyt kerros vain viileään aamuun, jos tarvitset.",
+    "wideSwingLayer": "Irrotettava kerros lämpötilavaihteluihin",
+    "wideSwingNoteTemplate": "{lowTemp}–{peakTemp}°C tänään — kerrosta, jotta voit säätää päivän lämmetessä tai viiletessä.",
+    "modestSwingNoteTemplate": "Päivän vaihteluväli {lowTemp}–{peakTemp}°C. {existing}",
+    "coldMorningFemale": [
+      "Kevyt takki tai trenssi",
+      "Hieno neule",
+      "Housut",
+      "Suljetut kengät"
+    ],
+    "coldMorningMale": [
+      "Kevyt takki",
+      "Hieno neule tai paita",
+      "Chinot",
+      "Loafersit tai tennarit"
+    ],
+    "coldMorningLayers": [
+      "Riittävän lämmin aamuun",
+      "Helppo keventää iltapäivällä"
+    ]
+  }
+}

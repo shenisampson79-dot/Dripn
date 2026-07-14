@@ -24,6 +24,14 @@ import { OnboardingService, BodyScanResult, ColorScanResult, StyleQuizQuestion, 
 import { useTranslations } from "@/contexts/TranslationContext";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { setCurrentOnboardingStep } from "@/components/ErrorFallback";
+import { getLocalizedCountryName, filterCountriesBySearch } from "@/utils/countryLocalization";
+
+const REGION_I18N_KEYS: Record<string, string> = {
+  Americas: "americas",
+  Europe: "europe",
+  "Asia & Pacific": "asiaPacific",
+  "Middle East & Africa": "middleEastAfrica",
+};
 
 const GENDER_OPTIONS: { id: Exclude<Gender, null>; name: string; icon: keyof typeof Feather.glyphMap }[] = [
   { id: "woman", name: "Woman", icon: "user" },
@@ -540,8 +548,18 @@ let hasPromptedForPronunciationThisSession = false;
 export default function OnboardingScreen({ navigation, route }: OnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
-  const { t, isRTL, translations } = useTranslations();
+  const { t, isRTL, translations, currentLanguage } = useTranslations();
   const { completeOnboarding, user } = useAuth();
+
+  const localizeCountry = useCallback(
+    (englishName: string) => getLocalizedCountryName(englishName, currentLanguage, t),
+    [currentLanguage, t],
+  );
+
+  const localizeRegion = useCallback(
+    (region: string) => t(`onboarding.regions.${REGION_I18N_KEYS[region] || region}`) || region,
+    [t],
+  );
 
   const translatedGenderOptions = useMemo(() => {
     const genderKeyMap: Record<string, string> = {
@@ -1207,9 +1225,8 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
   const filteredCountries = useMemo(() => {
     if (!countrySearchQuery.trim()) return [];
-    const query = countrySearchQuery.toLowerCase().trim();
-    return ALL_COUNTRIES.filter(c => c.toLowerCase().includes(query)).slice(0, 10);
-  }, [countrySearchQuery]);
+    return filterCountriesBySearch(ALL_COUNTRIES, countrySearchQuery, currentLanguage, t).slice(0, 10);
+  }, [countrySearchQuery, currentLanguage, t]);
 
   const detectLocation = useCallback(async () => {
     const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
@@ -1449,7 +1466,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                           type="body"
                           style={{ color: country === c ? "#FFFFFF" : theme.text, fontWeight: country === c ? '600' : '400' }}
                         >
-                          {c}
+                          {localizeCountry(c)}
                         </ThemedText>
                         {country === c ? (
                           <Feather name="check" size={18} color="#FFFFFF" />
@@ -1510,7 +1527,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                             fontWeight: country === c ? '600' : '400',
                           }}
                         >
-                          {c}
+                          {localizeCountry(c)}
                         </ThemedText>
                       </Pressable>
                     ))}
@@ -1525,7 +1542,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                         onPress={() => setExpandedRegion(expandedRegion === region ? null : region)}
                         style={[styles.regionHeader, { backgroundColor: theme.backgroundDefault }]}
                       >
-                        <ThemedText type="body" style={{ fontWeight: '600' }}>{region}</ThemedText>
+                        <ThemedText type="body" style={{ fontWeight: '600' }}>{localizeRegion(region)}</ThemedText>
                         <Feather 
                           name={expandedRegion === region ? "chevron-up" : "chevron-down"} 
                           size={20} 
@@ -1553,7 +1570,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                                   fontWeight: country === c ? '600' : '400',
                                 }}
                               >
-                                {c}
+                                {localizeCountry(c)}
                               </ThemedText>
                               {country === c ? (
                                 <Feather name="check" size={18} color="#FFFFFF" />
@@ -2043,10 +2060,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         return (
           <View style={styles.stepContent}>
             <ThemedText type="h2" style={styles.stepTitle}>
-              {translations.styleSelection.title}
+              {t('styleSelection.title') || translations.styleSelection?.title || "What's your style?"}
             </ThemedText>
             <ThemedText type="body" style={styles.stepSubtitle}>
-              {translations.styleSelection.subtitle}
+              {t('styleSelection.subtitle') || translations.styleSelection?.subtitle || 'Pick the aesthetic that speaks to you'}
             </ThemedText>
             
             <Pressable
@@ -2110,13 +2127,17 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                       </View>
                       <View style={styles.lifestyleTextContainer}>
                         <ThemedText type="body" style={{ fontWeight: '600' }}>
-                          {translations.styleSelection.styles[s.id.replace('-', '') as keyof typeof translations.styleSelection.styles]?.name || s.name}
+                          {t(`styleSelection.styles.${s.id.replace(/-/g, '')}.name`)
+                            || translations.styleSelection?.styles?.[s.id.replace(/-/g, '') as keyof typeof translations.styleSelection.styles]?.name
+                            || s.name}
                         </ThemedText>
                         <ThemedText
                           type="small"
                           style={{ opacity: 0.7 }}
                         >
-                          {translations.styleSelection.styles[s.id.replace('-', '') as keyof typeof translations.styleSelection.styles]?.description || s.description}
+                          {t(`styleSelection.styles.${s.id.replace(/-/g, '')}.description`)
+                            || translations.styleSelection?.styles?.[s.id.replace(/-/g, '') as keyof typeof translations.styleSelection.styles]?.description
+                            || s.description}
                         </ThemedText>
                       </View>
                       {isSelected ? (
@@ -3023,6 +3044,29 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
         );
 
       case 14: {
+        const dressCodeKeyMap: Record<string, string> = {
+          'hijab-friendly': 'hijabFriendly',
+          'tzniut': 'tzniut',
+          'lds-modest': 'ldsModest',
+          'hindu-traditional': 'hinduTraditional',
+          'sikh': 'sikh',
+          'modest-general': 'modestGeneral',
+          'other': 'other',
+        };
+        const subcultureKeyMap: Record<string, string> = {
+          'goth': 'goth',
+          'punk': 'punk',
+          'cottagecore': 'cottagecore',
+          'dark-academia': 'darkAcademia',
+          'light-academia': 'lightAcademia',
+          'y2k': 'y2k',
+          'vintage': 'vintage',
+          'grunge': 'grunge',
+          'streetwear': 'streetwear',
+          'old-money': 'oldMoney',
+          'clean-girl': 'cleanGirl',
+          'other': 'other',
+        };
         const DRESS_CODE_OPTIONS: { id: DressCodePreference; name: string; description: string; icon: keyof typeof Feather.glyphMap }[] = [
           { id: "hijab-friendly", name: "Hijab-Friendly", description: "Modest fashion with hijab considerations", icon: "heart" },
           { id: "tzniut", name: "Tzniut (Jewish Modesty)", description: "Traditional Jewish modesty standards", icon: "heart" },
@@ -3031,7 +3075,14 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           { id: "sikh", name: "Sikh", description: "Attire compatible with Sikh practices", icon: "heart" },
           { id: "modest-general", name: "Modest (General)", description: "Generally modest clothing preferences", icon: "heart" },
           { id: "other", name: "Other", description: "Tell us about your religious or cultural dress code", icon: "edit-2" },
-        ];
+        ].map((option) => {
+          const key = dressCodeKeyMap[option.id] || option.id;
+          return {
+            ...option,
+            name: t(`onboarding.dressCode.${key}.name`) || option.name,
+            description: t(`onboarding.dressCode.${key}.description`) || option.description,
+          };
+        });
 
         const SUBCULTURE_OPTIONS: { id: SubcultureStyle; name: string; icon: keyof typeof Feather.glyphMap }[] = [
           { id: "goth", name: "Goth", icon: "moon" },
@@ -3046,13 +3097,20 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
           { id: "old-money", name: "Old Money", icon: "dollar-sign" },
           { id: "clean-girl", name: "Clean Girl", icon: "droplet" },
           { id: "other", name: "Other", icon: "edit-2" },
-        ];
+        ].map((option) => ({
+          ...option,
+          name: t(`onboarding.subculture.${subcultureKeyMap[option.id] || option.id}`) || option.name,
+        }));
 
         const STRICTNESS_OPTIONS: { id: DressCodeStrictness; name: string; description: string }[] = [
           { id: "flexible", name: "Flexible", description: "General guidance, occasional exceptions okay" },
           { id: "moderate", name: "Moderate", description: "Follow guidelines with some flexibility" },
           { id: "strict", name: "Strict", description: "Always follow dress code requirements" },
-        ];
+        ].map((option) => ({
+          ...option,
+          name: t(`onboarding.strictness.${option.id}.name`) || option.name,
+          description: t(`onboarding.strictness.${option.id}.description`) || option.description,
+        }));
 
         return (
           <View style={styles.stepContent}>

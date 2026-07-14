@@ -88,7 +88,8 @@
     "demoPasswordEnv": "APP_REVIEW_PASSWORD",
     "privacyUrl": "https://dripnapp.com/privacy",
     "termsUrl": "https://dripnapp.com/terms",
-    "supportUrl": "https://dripnapp.com"
+    "supportUrl": "https://dripnapp.com",
+    "socialLogin": "Hidden for this build. Social login (Apple/Google/Facebook) is not required for review — use the demo account."
   },
   "notes": [
     "Avoid words like perfect, instantly, guaranteed, better than humans.",

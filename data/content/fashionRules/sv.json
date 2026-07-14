@@ -1,0 +1,439 @@
+{
+  "1": {
+    "title": "Treregeln",
+    "content": "Begränsa din outfit till maximalt tre huvudfärger. Detta skapar visuell harmoni och förhindrar att ditt utseende ser kaotiskt eller överväldigande ut.",
+    "colorSwatches": {
+      "Navy": "Marin",
+      "White": "Vit",
+      "Camel": "Kamel"
+    }
+  },
+  "2": {
+    "title": "Klä dig för din färgsäsong",
+    "content": "Att bära färger som kompletterar din naturliga färg (hudton, hår, ögon) gör att du ser friskare och mer levande ut. Upptäck om du är vår, sommar, höst eller vinter.",
+    "colorSwatches": {
+      "Warm Gold": "Varmt guld",
+      "Cool Silver": "Kallt silver"
+    }
+  },
+  "3": {
+    "title": "Neutral foundation, färgaccent",
+    "content": "Bygg outfits på neutrala grunder (svart, vit, grå, marin, beige) och introducera färg genom accessoarer eller ett statement."
+  },
+  "4": {
+    "title": "Förstå varma vs kalla toner",
+    "content": "Varma undertoner kombineras vackert med jordnära färger (oliv, senap, korall), medan svala undertoner lyser i juveltoner (smaragd, safir, rubin). Att känna till ditt förändrar din shopping.",
+    "colorSwatches": {
+      "Mustard": "Senap",
+      "Emerald": "Smaragd"
+    }
+  },
+  "5": {
+    "title": "Kraften i monokrom",
+    "content": "Att klä sig i en färgfamilj skapar en långsträckt, sofistikerad effekt. Variera nyanser och texturer inom samma nyans för djup och intresse."
+  },
+  "6": {
+    "title": "Kompletterande färgbehärskning",
+    "content": "Färgerna mittemot på färghjulet (blå/orange, lila/gul, röd/grön) skapar slående, dynamiska outfits när de är rätt balanserade.",
+    "colorSwatches": {
+      "Royal Blue": "Kungsblå",
+      "Burnt Orange": "Bränd apelsin"
+    }
+  },
+  "7": {
+    "title": "Navy är den nya svarta",
+    "content": "Marinblå är universellt smickrande och passar vackert med fler färger än svart. Den är mjukare, mer lättillgänglig och lika mångsidig."
+  },
+  "8": {
+    "title": "Vit lyser upp ditt ansikte",
+    "content": "Att bära vitt eller krämfärgat nära ansiktet reflekterar ljuset uppåt, vilket gör att du ser mer vaken och levande ut. Idealisk för videosamtal och fotografier."
+  },
+  "9": {
+    "title": "Mönsterblandning med färg",
+    "content": "När du blandar mönster, se till att de delar minst en gemensam färg. Detta skapar sammanhållning även med olika skalor och tryckstilar."
+  },
+  "10": {
+    "title": "60-30-10 färgregeln",
+    "content": "Använd din dominerande färg för 60 % av din outfit, sekundärfärg för 30 % och accentfärg för 10 %. Detta skapar balanserade, visuellt tilltalande utseenden."
+  },
+  "11": {
+    "title": "Säsongsbetonad färgrotation",
+    "content": "Vänd din färgpalett med årstider: fylliga juveltoner för höst/vinter, mjuka pasteller och ljusa för vår/sommar. Detta håller din garderob fräsch."
+  },
+  "12": {
+    "title": "Svart från topp till tå",
+    "content": "Helsvarta outfits är tidlösa och smala men kräver texturvariation (matt, glans, stickad) för att undvika att se platt eller kostymlik ut."
+  },
+  "13": {
+    "title": "Grundläggande om färgblockering",
+    "content": "Färgblockering använder block av solida, kontrasterande färger för djärv effekt. Håll silhuetter enkla och låt färgerna tala."
+  },
+  "14": {
+    "title": "Metallisk som neutral",
+    "content": "Guld- och silvermetallic fungerar som neutrala färger och kan kombineras med nästan vilken färg som helst. Matcha metallics till din underton för den mest smickrande effekten."
+  },
+  "15": {
+    "title": "Tryckskalan spelar roll",
+    "content": "Välj tryckstorlekar som fungerar med din ram - mindre ramar passar mindre tryck, större ramar kan bära djärvare mönster utan att bli överväldigade."
+  },
+  "16": {
+    "title": "Tredje styckets regel",
+    "content": "Lyft vilken outfit som helst genom att lägga till en tredje del - en kavaj, kofta, halsduk eller strukturerad väska. Detta förvandlar grundläggande kombinationer till kompletta, avsiktliga utseenden."
+  },
+  "17": {
+    "title": "Proportionspel",
+    "content": "Balansera volymen i din outfit: om du bär något löst ovanpå, ska du montera på undersidan (och vice versa). Detta skapar smickrande silhuetter på alla kroppstyper."
+  },
+  "18": {
+    "title": "Regeln med ett uttalande",
+    "content": "Låt en bit vara stjärnan i din outfit. Om du bär ett djärvt mönster eller ett uttalande tillbehör, håll allt annat diskret för att undvika visuell konkurrens."
+  },
+  "19": {
+    "title": "Definiera din midja",
+    "content": "Genom att skapa definition i din naturliga midja, oavsett om det är genom bälten, tucking eller skräddarsydda snitt, skapas en timglassiluett som smickrar de flesta kroppstyper."
+  },
+  "20": {
+    "title": "Tredjeregeln",
+    "content": "Istället för att dela kroppen på mitten, sikta på ett förhållande på 1/3 till 2/3 (kort topp med hög midja, eller längre topp med kortare kjol) för mer dynamiska proportioner."
+  },
+  "21": {
+    "title": "Vertikala linjer långsträckta",
+    "content": "Vertikala ränder, långa halsband och öppna koftor skapar en illusion av höjd och en smalare siluett. Använd strategiskt för att förlänga effekter."
+  },
+  "22": {
+    "title": "V-halsar plattare alla",
+    "content": "V-ringningar förlänger halsen, drar ögat vertikalt och smickrar nästan alla ansiktsformer och kroppstyper. Ett universellt smickrande val."
+  },
+  "23": {
+    "title": "Kraften med hög midja",
+    "content": "Underdel med hög midja förlänger visuellt benen och skapar en längre, smalare siluett. De fungerar särskilt bra när toppar är instoppade."
+  },
+  "24": {
+    "title": "Strukturerad vs ostrukturerad balans",
+    "content": "Kombinera strukturerade plagg (blazers, skräddarsydda byxor) med mjukare plagg (silkesblusar, stickade toppar) för outfits som känns polerade men ändå lättillgängliga."
+  },
+  "25": {
+    "title": "Skiktning utan bulk",
+    "content": "Varva tunna kvalitetstyger i lager istället för tjocka. Börja med monterade baslager och lägg till allt lösare bitar för att undvika onödig volym."
+  },
+  "26": {
+    "title": "Halvt instoppad",
+    "content": "En avslappnad halvtuck (som bara drar in framsidan av din skjorta) skapar midjans definition samtidigt som den behåller en avslappnad, enkel atmosfär. Perfekt för avslappnad elegans."
+  },
+  "27": {
+    "title": "Klä dig efter din kroppsform",
+    "content": "Att förstå om du är ett äpple, päron, timglas eller rektangel hjälper dig att välja snitt som förbättrar dina naturliga proportioner istället för att bekämpa dem."
+  },
+  "28": {
+    "title": "Matcha dina metaller",
+    "content": "Förvara dina smycken och hårdvara (bältesspännen, väskspännen, skodetaljer) i samma metallfamilj för en sammanhållen, polerad look."
+  },
+  "29": {
+    "title": "Väskor bör passa din ram",
+    "content": "Välj väskstorlekar som är proportionella mot din kropp - små bågar passar mindre väskor, medan högre bågar kan bära större stilar utan att bli överväldigad."
+  },
+  "30": {
+    "title": "Klockor som Statement Pieces",
+    "content": "En kvalitetsklocka är både funktionell och moderiktig. Välj en stil som speglar din personlighet - klassisk, sportig eller minimalistisk - och bär den dagligen."
+  },
+  "31": {
+    "title": "Halsdukar Transform Outfits",
+    "content": "En sidenscarf kan bäras runt halsen, som ett pannband, knytas till en väska eller som ett bälte. Detta mångsidiga tillbehör lyfter enkla outfits direkt."
+  },
+  "32": {
+    "title": "Bältes placering är viktigt",
+    "content": "Bär bälten i din naturliga midja för den mest smickrande effekten. Lågt hängande bälten kan förkorta din bål medan höga bälten förlänger benen."
+  },
+  "33": {
+    "title": "Solglasögon formar ditt ansikte",
+    "content": "Välj solglasögon som kontrasterar mot din ansiktsform - runda ansikten passar kantiga bågar, fyrkantiga ansikten ser bra ut i rundade stilar."
+  },
+  "34": {
+    "title": "Less is More med smycken",
+    "content": "Välj en fokuspunkt - statement-örhängen ELLER ett djärvt halsband ELLER staplade armband. Att bära allt på en gång späder ut effekten."
+  },
+  "35": {
+    "title": "Matcha väska och skor löst",
+    "content": "Perfekt matchande väskor och skor ser daterad ut. Sträva istället efter komplementfärger eller ett delat element (båda läder, båda metalliska hårdvara)."
+  },
+  "36": {
+    "title": "Hattar Kompletta kläder",
+    "content": "Den rätta hatten tillför personlighet och polering. Välj stilar som passar din ansiktsform och livsstil - från fedoras till basebollkepsar till basker."
+  },
+  "37": {
+    "title": "Investera i kvalitetslädervaror",
+    "content": "En välgjord läderväska och bälte håller i decennier och utvecklar vacker patina. Välj klassiska former i mångsidiga färger för maximal bärbarhet."
+  },
+  "38": {
+    "title": "Lagerhalsband",
+    "content": "Lagerhalsband i olika längder (choker, prinsessa, opera) för modern dimension. Håll metallerna konsekventa och variera kedjetexturer och hängestorlekar."
+  },
+  "39": {
+    "title": "Örhängen ramar in ditt ansikte",
+    "content": "Örhängen drar uppmärksamheten till ditt ansikte. Välj stilar som kompletterar din ansiktsform - nitar för vardagen, droppar för kvällen, bågar för mångsidighet."
+  },
+  "40": {
+    "title": "Texturblandning",
+    "content": "Kombinera olika texturer (silke med denim, kashmir med läder, linne med ull) för att lägga till djup och visuellt intresse till monokromatiska eller enkla outfits."
+  },
+  "41": {
+    "title": "Naturliga fibrer andas bättre",
+    "content": "Bomull, linne, ull och siden reglerar temperaturen bättre än syntet. Prioritera naturliga tyger för komfort och lång livslängd."
+  },
+  "42": {
+    "title": "Stickad för komfort, vävd för struktur",
+    "content": "Stickade tyger (jersey, ponte) erbjuder stretch och komfort. Vävda tyger (bomullspoplin, denim) ger struktur. Välj utifrån önskad effekt."
+  },
+  "43": {
+    "title": "Silke för speciella tillfällen",
+    "content": "Siden tillför omedelbar lyx och elegans. Reservera den för tillfällen när du vill känna dig speciell - vikten och draperingen är oöverträffad."
+  },
+  "44": {
+    "title": "Cashmere är värt det",
+    "content": "Kvalitetskashmir är mjuk, varm och lätt. Investera i klassiska plagg som du kommer att bära i flera år - kostnaden per slitage gör det värt besväret."
+  },
+  "45": {
+    "title": "Denim mångsidighet",
+    "content": "Kvalitetsdenim är ryggraden i avslappnad stil. Äg minst ett par välsittande jeans och en jeansjacka – båda fungerar över säsonger och tillfällen."
+  },
+  "46": {
+    "title": "Linne omfamnar rynkor",
+    "content": "Linne är tänkt att skrynkla - det är en del av dess avslappnade charm. Omfamna det naturliga vecket istället för att bekämpa det. Reservera för tillfälliga inställningar."
+  },
+  "47": {
+    "title": "Sammet för drama",
+    "content": "Sammet fångar ljuset vackert och ger omedelbar dramatik till alla kläder. Boka för kväll, höst/vinter, eller när du vill göra entré."
+  },
+  "48": {
+    "title": "Läder som ett uttalande",
+    "content": "Läder (eller veganska kvalitetsalternativ) ger kant och struktur. En skinnjacka är en garderobsvara som fungerar över säsonger och stilar."
+  },
+  "49": {
+    "title": "Skir tygskiktning",
+    "content": "Skira tyger ger dimension när de läggs på rätt lager. Tänk alltid på vad som är synligt under - använd avsiktliga lagerbitar för polerade utseenden."
+  },
+  "50": {
+    "title": "Klänning för tillfället Plus One",
+    "content": "Sikta på att vara något bättre klädd än tillfället kräver. Att vara underklädd känns obekvämt, medan att vara lätt överklädd signalerar ansträngning och respekt."
+  },
+  "51": {
+    "title": "Förstå klädkoder",
+    "content": "Från svart slips till smart casual, förståelse för klädkoder förhindrar pinsamhet. När du är osäker, fråga värden eller ta fel på formalitetens sida."
+  },
+  "52": {
+    "title": "Arbetskläder Foundations",
+    "content": "Bygg en arbetsgarderob av utbytbara plagg: kavajer, skräddarsydda byxor, kvalitetsblusar och anspråkslösa klänningar. Sikta på en veckas kläder."
+  },
+  "53": {
+    "title": "Vardagscasual vs slarvig",
+    "content": "Casual betyder inte slarvig. Välsittande jeans, rena sneakers och en kvalitets-t-shirt ser elegant ut utan ansträngning. Fläckar och revor ser slarvigt ut."
+  },
+  "54": {
+    "title": "Ansträngning på dejt",
+    "content": "Att klä ut sig för dejter visar ansträngning och respekt. Välj bitar som får dig att känna dig säker och attraktiv – din energi kommer att lysa igenom."
+  },
+  "55": {
+    "title": "Res i komfort och stil",
+    "content": "Flygplatsstil bör prioritera komfort utan att ge avkall på polish. Stretchiga tyger, slip-on skor och lager hanterar temperaturförändringar och långa resor."
+  },
+  "56": {
+    "title": "Intervjuintryck",
+    "content": "Första intrycket är viktigt i intervjuer. Undersök företagskulturen och klä dig en nivå mer formell än daglig klädsel. Undvik distraherande mönster eller tillbehör."
+  },
+  "57": {
+    "title": "Bröllopsgästetikett",
+    "content": "Bär aldrig vitt på ett bröllop (såvida det inte särskilt begärts). Matcha formaliteten till plats och tid. När du är osäker är cocktailklädsel säker."
+  },
+  "58": {
+    "title": "Begravningsrespekt",
+    "content": "Begravningar kräver mörka, konservativa kläder. Svart, marinblått eller kol i enkla, blygsamma snitt visar respekt. Spara ljusa färger för att fira livet."
+  },
+  "59": {
+    "title": "Kulturell kontext spelar roll",
+    "content": "Undersök klänningsförväntningar när du besöker olika kulturer eller religiösa platser. Anspråkslöshet, huvudbeklädnad eller skoborttagning kan gälla."
+  },
+  "60": {
+    "title": "Investera i kvalitetsgrunderna",
+    "content": "Bygg din garderobsbas med välgjorda baser: en vit skjorta, mörka byxor, kvalitetsdenim och en mångsidig kavaj. Kvalitet framför kvantitet vinner alltid."
+  },
+  "61": {
+    "title": "Kraften i att skräddarsy",
+    "content": "Välpassade kläder ser dyrare ut än illasittande designerplagg. Investera i förändringar för nyckelstycken - skillnaden är transformerande."
+  },
+  "62": {
+    "title": "80/20 garderobsregeln",
+    "content": "Du bär 20% av din garderob 80% av tiden. Identifiera nyckeldelarna och investera i deras kvalitet. Granska och redigera din garderob regelbundet."
+  },
+  "63": {
+    "title": "Beräkning av kostnad per slitage",
+    "content": "Dela priset med förväntat slitage. En kappa på 200 GBP som bärs 100 gånger kostar 2 GBP per slitage - bättre värde än en kappa på 50 GBP som bärs 10 gånger."
+  },
+  "64": {
+    "title": "Klassiskt över trendigt",
+    "content": "Investera i tidlösa plagg och spara trender för billiga accessoarer. En klassisk trench överträffar en trendig siluett i årtionden."
+  },
+  "65": {
+    "title": "Kvalitetsskor betyder mest",
+    "content": "Folk lägger märke till skor. Investera i välgjorda, klassiska stilar som går att lösa om. Dina fötter kommer att tacka dig och dina outfits kommer att se upphöjda ut."
+  },
+  "66": {
+    "title": "Den perfekta vita skjortan",
+    "content": "Varje garderob behöver en krispig vit skjorta. Leta efter kvalitetsbomull, rätt passform genom axlarna och en krage som ligger platt."
+  },
+  "67": {
+    "title": "Investering Ytterkläder",
+    "content": "Rockar är synliga och gör första intryck. Investera i kvalitetsytterkläder i mångsidiga färger – de ramar in hela din look."
+  },
+  "68": {
+    "title": "Bygg långsamt och eftertänksamt",
+    "content": "En utvald garderob tar tid. Lägg till bitar gradvis och se till att var och en fungerar med det du redan äger. Motstå impulsköp."
+  },
+  "69": {
+    "title": "Känn dina icke-förhandlingsbara saker",
+    "content": "Identifiera vilka föremål du vägrar att kompromissa med (komfort, etisk produktion, specifika varumärken) och prioritera utgifterna där."
+  },
+  "70": {
+    "title": "Ta hand om dina kläder",
+    "content": "Läs skötseletiketter, använd rätt hängare och förvara föremål på rätt sätt. Välskötta kläder håller längre och ser bättre ut för varje användning."
+  },
+  "71": {
+    "title": "Tvätta mindre, lufta mer",
+    "content": "De flesta kläder behöver inte tvättas efter varje användning. Att vädra plagg mellan kläderna förlänger deras livslängd och minskar miljöpåverkan."
+  },
+  "72": {
+    "title": "Korrekt hängare val",
+    "content": "Använd trä- eller vadderade galgar för strukturerade föremål, sammet för hala tyger och vikstickningar för att förhindra axelknölar."
+  },
+  "73": {
+    "title": "Rutin för skovård",
+    "content": "Rengör, konditionerar och skyddar skorna regelbundet. Använd skoträd för att behålla formen. Vrid paren så att de torkar mellan användningarna."
+  },
+  "74": {
+    "title": "Reparera före byte",
+    "content": "En lös knapp, litet hål eller trasig dragkedja kan ofta repareras billigt. Förläng plaggets livslängd genom snabba reparationer istället för att byta ut dem."
+  },
+  "75": {
+    "title": "Säsongsförvaring",
+    "content": "Rengör föremål före förvaring, använd plaggpåsar som andas och lägg till cederträ eller lavendel för att förhindra mal. Korrekt förvaring bevarar kvaliteten."
+  },
+  "76": {
+    "title": "Pilling förebyggande",
+    "content": "Verktyg för borttagning av piller återställer stickat till nästan nyskick. Förhindra pilling genom att tvätta ut och in, använda skonsamma cykler och undvika friktion."
+  },
+  "77": {
+    "title": "Grundläggande om fläckbehandling",
+    "content": "Behandla fläckar omedelbart, arbeta utifrån och in. Vet vilka behandlingar som fungerar för vilka fläckar - kallt vatten för blod, club soda för vin."
+  },
+  "78": {
+    "title": "Professionell vård när det behövs",
+    "content": "Vissa föremål kräver professionell rengöring. Kostymer, siden, läder och pärlor med kraftiga pärlor bör gå till pålitliga kemtvättar eller specialister."
+  },
+  "79": {
+    "title": "Stryk och ånga ordentligt",
+    "content": "Olika tyger behöver olika värmeinställningar. Stryk alltid ut och in för ömtåliga plagg, använd pressdukar och ånga för att fräscha upp mellan tvättarna."
+  },
+  "80": {
+    "title": "Säsongsbetonade tygval",
+    "content": "Matcha tygvikter efter årstider: linne och bomull för sommaren, ull och kashmir för vintern. Detta håller dig bekväm och lämpligt klädd."
+  },
+  "81": {
+    "title": "Skiktning för övergångsväder",
+    "content": "Vår och höst kräver mångsidig skiktning. Bygg kläder som kan anpassa sig till temperaturförändringar under dagen."
+  },
+  "82": {
+    "title": "Sommarvärmestrategier",
+    "content": "Ljusa färger reflekterar värme, lösa passningar tillåter luftflöde och naturliga fibrer andas. Klä dig strategiskt för sommarkomfort och stil."
+  },
+  "83": {
+    "title": "Vintervärmelager",
+    "content": "Skikt för vintervärme: fukttransporterande bas, isolerande mitt, väderbeständig utsida. Detta system håller dig varm utan bulk."
+  },
+  "84": {
+    "title": "Övergångsgarderobsdelar",
+    "content": "Trenchcoats, lättstickade stickor och mångsidiga kavajer fungerar över säsonger. Investera i bitar som överbryggar väderövergångar."
+  },
+  "85": {
+    "title": "Skor som lämpar sig för väder",
+    "content": "Matcha skor efter förhållanden: vattentät för regn, isolerad för kyla, andas för värme. Stil och funktion kan samexistera."
+  },
+  "86": {
+    "title": "Färgpalett efter säsong",
+    "content": "Förändra din färgpalett med årstider: jordnära toner för hösten, coola neutrala färger för vintern, mjuka pasteller för våren, livfulla ljus för sommaren."
+  },
+  "87": {
+    "title": "Semesterdressing",
+    "content": "Bygg en liten samling av festliga plagg som fungerar över semestertillfällen. Metallic, sammet och juveltoner passar de flesta fester."
+  },
+  "88": {
+    "title": "Förberedelser för utomhusevenemang",
+    "content": "För utomhusevenemang, förbered dig på väderomslag: ta med lager, vattentäta eller solskydd vid behov. Kolla prognosen och plats."
+  },
+  "89": {
+    "title": "Säsongsbetonad garderobsrotation",
+    "content": "Vänd din garderob efter säsong. Förvara varor under lågsäsong på rätt sätt och ta fram färska bitar - det håller din garderob hanterbar och inspirerande."
+  },
+  "90": {
+    "title": "Självförtroende är ditt bästa tillbehör",
+    "content": "Bär det som får dig att känna dig trygg och bekväm. De bäst klädda människorna äger sin personliga stil snarare än att följa varje trend."
+  },
+  "91": {
+    "title": "Klä dig nu, inte senare",
+    "content": "Vänta inte tills du går ner i vikt eller når ett mål. Klä dig vackert efter den kropp du har idag – du förtjänar att må bra nu."
+  },
+  "92": {
+    "title": "Ignorera storleksetiketter",
+    "content": "Storlekarna varierar kraftigt mellan märken. Fokusera på passformen, inte numret på etiketten. Den bäst passande storleken är rätt storlek."
+  },
+  "93": {
+    "title": "Markera det du älskar",
+    "content": "Istället för att dölja upplevda brister, uppmärksamma funktioner du älskar. Stora armar? Visa dem. Älskar dina ben? Använd kortare fållkanter."
+  },
+  "94": {
+    "title": "Komfort föder självförtroende",
+    "content": "När du ständigt anpassar dig eller är obekväm syns det. Prioritera kläder som sitter bra och känns bra – ditt självförtroende följer efter."
+  },
+  "95": {
+    "title": "Personlig stil över moderegler",
+    "content": "Stilregler är riktlinjer, inte lagar. Om en \"regel\" inte fungerar för dig eller gör dig lycklig, bryt den. Autentisk personlig stil överträffar allt."
+  },
+  "96": {
+    "title": "Omfamna dina unika egenskaper",
+    "content": "Det som gör dig annorlunda gör dig minnesvärd. Omfamna unika egenskaper - ovanliga proportioner, distinkta färger eller atypiska former kan bli karaktäristiska stilelement."
+  },
+  "97": {
+    "title": "Lämplig ålder är en myt",
+    "content": "Det finns ingen åldersgräns för stil. Bär det som får dig att känna dig underbar, oavsett om det är minikjolar vid 60 eller sofistikerade kostymer vid 25."
+  },
+  "98": {
+    "title": "Kvalitet framför kvantitet",
+    "content": "Investera i färre, bättre plagg snarare än snabbt mode. Kvalitetstyger, konstruktion och tidlös design överträffar trender och kostar mindre per slitage."
+  },
+  "99": {
+    "title": "Secondhand först",
+    "content": "Innan du köper nytt, kontrollera begagnade alternativ. Välgörenhetsbutiker, vintagebutiker och återförsäljningsplattformar erbjuder unika föremål med lägre miljöpåverkan."
+  },
+  "100": {
+    "title": "Lär känna dina varumärken",
+    "content": "Undersök etik och hållbarhetspraxis för varumärken du köper från. Stöd dem som är i linje med dina värderingar för produktion, arbetare och miljö."
+  },
+  "101": {
+    "title": "En in, en ut-regeln",
+    "content": "För varje nytt föremål som läggs till din garderob, donera eller sälj en. Detta upprätthåller en hanterbar garderob och uppmuntrar till omtänksamma inköp."
+  },
+  "102": {
+    "title": "Kapselgarderob Tankesätt",
+    "content": "En kapselgarderob med 30-40 mångsidiga delar som alla fungerar tillsammans minskar beslutströtthet och miljöpåverkan samtidigt som stilen maximeras."
+  },
+  "103": {
+    "title": "Reparation och Upcycle",
+    "content": "Lär dig grundläggande reparationer eller hitta en bra skräddare. Blås nytt liv i gamla delar genom förändringar, färgning eller kreativ omformning."
+  },
+  "104": {
+    "title": "Hyr för speciella tillfällen",
+    "content": "För engångsevenemang, överväg uthyrningstjänster. Få tillgång till designerdetaljer utan kostnad eller miljöpåverkan från engångsköp."
+  },
+  "105": {
+    "title": "Naturlig fiberprioritet",
+    "content": "Välj naturliga, biologiskt nedbrytbara fibrer (bomull, linne, ull, siden) framför syntetmaterial när det är möjligt. De är bättre för planeten och ofta mer bekväma."
+  }
+}

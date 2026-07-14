@@ -5,6 +5,13 @@
 
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { resolveContentLang, type ContentLang } from '@/utils/contentLang';
+import {
+  buildLocalizedOutfitRecommendation,
+  getDefaultWeatherDescription,
+  getWeatherDescription as getLocalizedWeatherDescription,
+  UNKNOWN_LOCATION,
+} from '@/data/weatherOutfitCopy';
 
 const WEATHER_CACHE_KEY = '@dripn_weather_cache_v2';
 const LEGACY_WEATHER_CACHE_KEY = '@dripn_weather_cache';
@@ -20,6 +27,8 @@ export interface WeatherCondition {
   condition: 'sunny' | 'cloudy' | 'rainy' | 'snowy' | 'windy' | 'foggy' | 'stormy';
   location: string;
   timestamp: number;
+  /** Open-Meteo WMO weather code — used to re-localize description */
+  weatherCode?: number;
   /** Today's forecast low (°C), when available */
   tempMin?: number;
   /** Today's forecast high (°C), when available */
@@ -305,6 +314,7 @@ class WeatherService {
         condition,
         location: locationName,
         timestamp: Date.now(),
+        weatherCode,
         tempMin,
         tempMax,
       };
@@ -326,31 +336,20 @@ class WeatherService {
     return 'cloudy';
   }
 
-  private getWeatherDescription(code: number): string {
-    const descriptions: Record<number, string> = {
-      0: 'Clear sky',
-      1: 'Mainly clear',
-      2: 'Partly cloudy',
-      3: 'Overcast',
-      45: 'Fog',
-      48: 'Depositing rime fog',
-      51: 'Light drizzle',
-      53: 'Moderate drizzle',
-      55: 'Dense drizzle',
-      61: 'Slight rain',
-      63: 'Moderate rain',
-      65: 'Heavy rain',
-      71: 'Slight snow',
-      73: 'Moderate snow',
-      75: 'Heavy snow',
-      80: 'Slight rain showers',
-      81: 'Moderate rain showers',
-      82: 'Violent rain showers',
-      95: 'Thunderstorm',
-      96: 'Thunderstorm with slight hail',
-      99: 'Thunderstorm with heavy hail',
-    };
-    return descriptions[code] || 'Unknown';
+  private getWeatherDescription(code: number, lang: ContentLang = 'en'): string {
+    return getLocalizedWeatherDescription(code, lang);
+  }
+
+  /** Re-localize a weather condition description for the UI language. */
+  localizeWeatherCondition(weather: WeatherCondition, language?: string | null): WeatherCondition {
+    const lang = resolveContentLang(language);
+    if (weather.weatherCode != null) {
+      return {
+        ...weather,
+        description: getLocalizedWeatherDescription(weather.weatherCode, lang),
+      };
+    }
+    return weather;
   }
 
   private getWeatherIcon(code: number): string {
@@ -370,12 +369,13 @@ class WeatherService {
       temperature: 18,
       feelsLike: 17,
       humidity: 60,
-      description: 'Partly cloudy',
+      description: getDefaultWeatherDescription('en'),
       icon: 'cloud',
       windSpeed: 10,
       condition: 'cloudy',
-      location: 'Unknown',
+      location: UNKNOWN_LOCATION.en.unknown,
       timestamp: Date.now(),
+      weatherCode: 2,
     };
   }
 
@@ -418,173 +418,36 @@ class WeatherService {
     }
   }
 
-  getOutfitRecommendation(weather: WeatherCondition, gender: string = 'unspecified'): WeatherOutfitRecommendation {
+  getOutfitRecommendation(
+    weather: WeatherCondition,
+    gender: string = 'unspecified',
+    language?: string | null,
+  ): WeatherOutfitRecommendation {
     const { temperature, condition, windSpeed, tempMin, tempMax } = weather;
-    const isFemale = gender === 'female';
-    const isMale = gender === 'male';
-
-    // Plan for the warmest part of the day — not just the current reading.
     const peakTemp = tempMax ?? temperature;
     const lowTemp = tempMin ?? temperature;
     const tempSpread = peakTemp - lowTemp;
     const hasDailyRange = tempMin != null && tempMax != null;
+    const lang = resolveContentLang(language);
 
-    let recommendation = this.buildBaseOutfitForTemp(peakTemp, isFemale, isMale);
+    // Auth gender uses woman/man; older callers may pass female/male
+    const normalizedGender =
+      gender === 'woman' || gender === 'female'
+        ? 'female'
+        : gender === 'man' || gender === 'male'
+          ? 'male'
+          : gender;
 
-    if (hasDailyRange && tempSpread >= 6) {
-      recommendation = this.applyDailyRangeAdjustments(
-        recommendation,
-        lowTemp,
-        peakTemp,
-        tempSpread,
-        isFemale,
-        isMale,
-      );
-    }
-
-    if (condition === 'rainy' || condition === 'stormy') {
-      recommendation.keyPieces.unshift('Waterproof jacket or trench');
-      recommendation.accessories.push('Umbrella', 'Waterproof boots');
-      recommendation.fabricTips += ' Choose water-resistant materials.';
-      recommendation.stylingNote += ' A stylish rain jacket is essential. Consider Chelsea rain boots for chic protection.';
-    }
-
-    if (condition === 'snowy') {
-      recommendation.accessories.push('Snow boots', 'Waterproof gloves');
-      recommendation.stylingNote += ' Function meets fashion. Quality snow boots and a warm parka are non-negotiable.';
-    }
-
-    if (windSpeed > 20) {
-      recommendation.accessories.push('Windproof scarf');
-      recommendation.stylingNote += ' Secure loose items and opt for fitted silhouettes in wind.';
-    }
-
-    return recommendation;
-  }
-
-  /** Core outfit bucket keyed on the day's peak temperature. */
-  private buildBaseOutfitForTemp(
-    peakTemp: number,
-    isFemale: boolean,
-    isMale: boolean,
-  ): WeatherOutfitRecommendation {
-    if (peakTemp >= 25) {
-      return {
-        layers: ['Single breathable layer — no extra layers needed'],
-        keyPieces: isFemale
-          ? ['Linen dress or skirt', 'Cotton blouse', 'Breathable shorts', 'Sandals or loafers']
-          : ['Linen or cotton shirt', 'Light chinos or shorts', 'Breathable polo', 'Trainers or loafers'],
-        accessories: ['Sunglasses', 'Wide-brim hat', 'Water bottle'],
-        colors: ['White', 'Cream', 'Pastels', 'Light blue'],
-        fabricTips: 'Linen and cotton only — skip knits, layers, and jackets in this heat.',
-        stylingNote: `Hot day (${peakTemp}°C). One light outfit is enough — leave coats and layers at home.`,
-      };
-    }
-
-    if (peakTemp >= 18) {
-      return {
-        layers: ['Light base layer', 'Optional light cover-up'],
-        keyPieces: isFemale
-          ? ['Midi dress', 'High-waisted jeans', 'Light cotton blouse', 'Breathable trousers']
-          : ['Cotton shirt', 'Chinos', 'Light knit polo', 'Unlined blazer'],
-        accessories: ['Sunglasses', 'Canvas bag'],
-        colors: ['Earth tones', 'Sage green', 'Dusty rose', 'Camel'],
-        fabricTips: 'Cotton and light knits work well when temperatures climb through the day.',
-        stylingNote: 'Comfortable warm-weather dressing — add a light layer only if you need it early or late.',
-      };
-    }
-
-    if (peakTemp >= 10) {
-      return {
-        layers: ['Base layer', 'Mid layer', 'Light outer layer'],
-        keyPieces: isFemale
-          ? ['Light trench or coat', 'Fine knit sweater', 'Trousers', 'Midi skirt with ankle boots']
-          : ['Lightweight jacket', 'Fine-gauge knit', 'Chinos', 'Unstructured blazer'],
-        accessories: ['Light scarf', 'Structured bag'],
-        colors: ['Burgundy', 'Forest green', 'Chocolate brown', 'Navy'],
-        fabricTips: 'Layer fine knits under a lighter coat — save heavy wool for colder days.',
-        stylingNote: 'Cool but not cold — layer without bulk.',
-      };
-    }
-
-    if (peakTemp >= 0) {
-      return {
-        layers: ['Base layer', 'Insulating mid layer', 'Warm outer layer'],
-        keyPieces: isFemale
-          ? ['Puffer jacket', 'Wool coat', 'Thermal leggings', 'Chunky knit sweater']
-          : ['Puffer jacket', 'Wool overcoat', 'Thermal base layer', 'Heavy knit sweater'],
-        accessories: ['Beanie', 'Wool scarf', 'Warm gloves', 'Warm boots'],
-        colors: ['Black', 'Charcoal', 'Deep burgundy', 'Cream'],
-        fabricTips: 'Merino wool base layers trap heat while wicking moisture.',
-        stylingNote: 'Invest in quality outerwear. Warmth and style are both essential.',
-      };
-    }
-
-    return {
-      layers: ['Thermal base', 'Heavy insulation', 'Waterproof outer'],
-      keyPieces: isFemale
-        ? ['Long puffer coat', 'Fleece-lined trousers', 'Chunky turtleneck', 'Insulated boots']
-        : ['Long parka', 'Fleece-lined pants', 'Heavy wool sweater', 'Insulated boots'],
-      accessories: ['Warm beanie', 'Cashmere scarf', 'Insulated gloves', 'Ear muffs'],
-      colors: ['Black', 'Deep navy', 'Burgundy', 'Cream accents'],
-      fabricTips: 'Technical fabrics and down insulation are your friends.',
-      stylingNote: 'Prioritize warmth. You can still look chic with the right layering technique.',
-    };
-  }
-
-  /** Morning/evening is cooler than the midday peak — adjust layers, not the core outfit. */
-  private applyDailyRangeAdjustments(
-    recommendation: WeatherOutfitRecommendation,
-    lowTemp: number,
-    peakTemp: number,
-    tempSpread: number,
-    isFemale: boolean,
-    isMale: boolean,
-  ): WeatherOutfitRecommendation {
-    const adjusted = { ...recommendation };
-
-    // Strip winter accessories if the day will be warm.
-    if (peakTemp >= 20) {
-      adjusted.accessories = adjusted.accessories.filter(
-        (item) => !/gloves|wool scarf|beanie|ear muff|puffer|heavy|wool coat|cable knit/i.test(item),
-      );
-      adjusted.keyPieces = adjusted.keyPieces.filter(
-        (item) => !/wool coat|cable knit|puffer|thermal|heavy knit|chunky turtleneck/i.test(item),
-      );
-    }
-
-    if (peakTemp >= 22 && lowTemp <= 18) {
-      adjusted.layers = lowTemp <= 14
-        ? ['Light outfit for midday heat', 'Optional cardigan for the morning only']
-        : ['Light outfit for the day — no base or mid layers needed'];
-
-      adjusted.accessories = adjusted.accessories.filter(
-        (item) => !/scarf|gloves|structured bag/i.test(item),
-      );
-      if (!adjusted.accessories.includes('Sunglasses')) {
-        adjusted.accessories.unshift('Sunglasses');
-      }
-
-      adjusted.stylingNote =
-        `${lowTemp}°C now, peaking at ${peakTemp}°C — dress for the heat. A light layer is only for the cool morning if you need it.`;
-    } else if (tempSpread >= 10) {
-      adjusted.layers = [...adjusted.layers, 'Removable layer for temperature swings'];
-      adjusted.stylingNote =
-        `${lowTemp}–${peakTemp}°C today — layer so you can adjust as the day warms up or cools down.`;
-    } else if (tempSpread >= 6) {
-      adjusted.stylingNote =
-        `Day range ${lowTemp}–${peakTemp}°C. ${adjusted.stylingNote}`;
-    }
-
-    // Very cold start but mild peak: don't overdress for the afternoon.
-    if (lowTemp < 10 && peakTemp >= 16 && peakTemp < 22) {
-      adjusted.keyPieces = isFemale
-        ? ['Light coat or trench', 'Fine knit', 'Trousers', 'Closed-toe shoes']
-        : ['Light jacket', 'Fine-gauge knit or shirt', 'Chinos', 'Loafers or trainers'];
-      adjusted.layers = ['Warm enough for morning', 'Easy to lighten by afternoon'];
-    }
-
-    return adjusted;
+    return buildLocalizedOutfitRecommendation({
+      peakTemp,
+      lowTemp,
+      tempSpread,
+      hasDailyRange,
+      condition,
+      windSpeed,
+      gender: normalizedGender,
+      lang,
+    });
   }
 
   /** Pick season for wardrobe matching using the warmer end of today's range. */

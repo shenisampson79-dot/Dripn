@@ -1,0 +1,247 @@
+{
+  "descriptions": {
+    "0": "Klarer Himmel",
+    "1": "Überwiegend klar",
+    "2": "Teilweise bewölkt",
+    "3": "Bedeckt",
+    "45": "Nebel",
+    "48": "Reifnebel",
+    "51": "Leichter Nieselregen",
+    "53": "Mäßiger Nieselregen",
+    "55": "Dichter Nieselregen",
+    "61": "Leichter Regen",
+    "63": "Mäßiger Regen",
+    "65": "Starker Regen",
+    "71": "Leichter Schnee",
+    "73": "Mäßiger Schnee",
+    "75": "Starker Schneefall",
+    "80": "Leichte Regenschauer",
+    "81": "Mäßige Regenschauer",
+    "82": "Heftige Regenschauer",
+    "95": "Gewitter",
+    "96": "Gewitter mit leichtem Hagel",
+    "99": "Gewitter mit starkem Hagel"
+  },
+  "descriptionFallback": "Unbekannt",
+  "defaultDescription": "Teilweise bewölkt",
+  "locationFallback": "Ihr Standort",
+  "unknownLocation": {
+    "yourLocation": "Ihr Standort",
+    "yourLocationTitle": "Ihr Standort",
+    "unknown": "Unbekannt"
+  },
+  "bands": {
+    "hot": {
+      "layers": [
+        "Eine atmungsaktive Schicht — keine zusätzlichen Lagen nötig"
+      ],
+      "keyPiecesFemale": [
+        "Leinenkleid oder -rock",
+        "Baumwollbluse",
+        "Atmungsaktive Shorts",
+        "Sandalen oder Loafer"
+      ],
+      "keyPiecesMale": [
+        "Leinen- oder Baumwollhemd",
+        "Leichte Chinos oder Shorts",
+        "Atmungsaktives Polo",
+        "Sneaker oder Loafer"
+      ],
+      "accessories": [
+        "Sonnenbrille",
+        "Breitkrempiger Hut",
+        "Wasserflasche"
+      ],
+      "colors": [
+        "Weiß",
+        "Creme",
+        "Pastelltöne",
+        "Hellblau"
+      ],
+      "fabricTips": "Nur Leinen und Baumwolle — verzichten Sie bei dieser Hitze auf Strick, Lagen und Jacken.",
+      "stylingNoteTemplate": "Heißer Tag ({peakTemp}°C). Ein leichtes Outfit reicht — Mäntel und Lagen zu Hause lassen."
+    },
+    "warm": {
+      "layers": [
+        "Leichte Basisschicht",
+        "Optionales leichtes Cover-up"
+      ],
+      "keyPiecesFemale": [
+        "Midi-Kleid",
+        "High-Waist-Jeans",
+        "Leichte Baumwollbluse",
+        "Atmungsaktive Hose"
+      ],
+      "keyPiecesMale": [
+        "Baumwollhemd",
+        "Chinos",
+        "Leichtes Strickpolo",
+        "Ungefütterter Blazer"
+      ],
+      "accessories": [
+        "Sonnenbrille",
+        "Canvas-Tasche"
+      ],
+      "colors": [
+        "Erdtöne",
+        "Salbeigrün",
+        "Dusty Rose",
+        "Kamel"
+      ],
+      "fabricTips": "Baumwolle und leichter Strick funktionieren gut, wenn die Temperatur im Tagesverlauf steigt.",
+      "stylingNoteTemplate": "Bequemes Warmwetter-Styling — eine leichte Schicht nur bei Bedarf früh oder spät."
+    },
+    "mild": {
+      "layers": [
+        "Basisschicht",
+        "Zwischenschicht",
+        "Leichte Außenschicht"
+      ],
+      "keyPiecesFemale": [
+        "Leichter Trench oder Mantel",
+        "Feiner Strickpullover",
+        "Hose",
+        "Midi-Rock mit Stiefeletten"
+      ],
+      "keyPiecesMale": [
+        "Leichte Jacke",
+        "Feiner Strick",
+        "Chinos",
+        "Unstrukturierter Blazer"
+      ],
+      "accessories": [
+        "Leichter Schal",
+        "Strukturierte Tasche"
+      ],
+      "colors": [
+        "Burgunderrot",
+        "Waldgrün",
+        "Schokoladenbraun",
+        "Navy"
+      ],
+      "fabricTips": "Feinen Strick unter einem leichteren Mantel tragen — schwere Wolle für kältere Tage aufbewahren.",
+      "stylingNoteTemplate": "Kühl, aber nicht kalt — schichten ohne Volumen."
+    },
+    "cold": {
+      "layers": [
+        "Basisschicht",
+        "Isolierende Zwischenschicht",
+        "Warme Außenschicht"
+      ],
+      "keyPiecesFemale": [
+        "Daunenjacke",
+        "Wollmantel",
+        "Thermoleggings",
+        "Grober Strickpullover"
+      ],
+      "keyPiecesMale": [
+        "Daunenjacke",
+        "Wollmantel",
+        "Thermounterwäsche",
+        "Schwerer Strickpullover"
+      ],
+      "accessories": [
+        "Mütze",
+        "Wollschal",
+        "Warme Handschuhe",
+        "Warme Stiefel"
+      ],
+      "colors": [
+        "Schwarz",
+        "Anthrazit",
+        "Tiefes Burgunderrot",
+        "Creme"
+      ],
+      "fabricTips": "Basisschichten aus Merinowolle speichern Wärme und leiten Feuchtigkeit ab.",
+      "stylingNoteTemplate": "Investieren Sie in hochwertige Oberbekleidung. Wärme und Stil sind gleichermaßen wichtig."
+    },
+    "freezing": {
+      "layers": [
+        "Thermische Basis",
+        "Starke Isolierung",
+        "Wasserdichte Außenschicht"
+      ],
+      "keyPiecesFemale": [
+        "Langer Daunenmantel",
+        "Fleecegefütterte Hose",
+        "Grober Rollkragen",
+        "Isolierte Stiefel"
+      ],
+      "keyPiecesMale": [
+        "Lange Parka",
+        "Fleecegefütterte Hose",
+        "Schwerer Wollpullover",
+        "Isolierte Stiefel"
+      ],
+      "accessories": [
+        "Warme Mütze",
+        "Kaschmirschal",
+        "Isolierte Handschuhe",
+        "Ohrenschützer"
+      ],
+      "colors": [
+        "Schwarz",
+        "Tiefes Navy",
+        "Burgunderrot",
+        "Creme-Akzente"
+      ],
+      "fabricTips": "Technische Stoffe und Daunenisolierung sind Ihre Verbündeten.",
+      "stylingNoteTemplate": "Wärme hat Vorrang. Mit der richtigen Schichtentechnik bleiben Sie trotzdem chic."
+    }
+  },
+  "overlays": {
+    "rain": {
+      "keyPiece": "Wasserdichte Jacke oder Trench",
+      "accessories": [
+        "Regenschirm",
+        "Wasserdichte Stiefel"
+      ],
+      "fabricTipsSuffix": " Wählen Sie wasserabweisende Materialien.",
+      "stylingNoteSuffix": " Eine stilvolle Regenjacke ist unverzichtbar. Chelsea-Regenstiefel bieten eleganten Schutz."
+    },
+    "snow": {
+      "accessories": [
+        "Schneestiefel",
+        "Wasserdichte Handschuhe"
+      ],
+      "stylingNoteSuffix": " Funktion trifft Mode. Hochwertige Schneestiefel und eine warme Parka sind Pflicht."
+    },
+    "wind": {
+      "accessory": "Winddichter Schal",
+      "accessories": [
+        "Winddichter Schal"
+      ],
+      "stylingNoteSuffix": " Sichere lose Teile und setze auf taillierte Silhouetten bei Wind."
+    }
+  },
+  "dailyRange": {
+    "layersHotMorning": [
+      "Leichtes Outfit für die Mittagshitze",
+      "Optionaler Cardigan nur für den Morgen"
+    ],
+    "layersHotDay": [
+      "Leichtes Outfit für den Tag — keine Basis- oder Zwischenschicht nötig"
+    ],
+    "sunglasses": "Sonnenbrille",
+    "heatSwingNoteTemplate": "{lowTemp}°C jetzt, Höchstwert {peakTemp}°C — kleide dich für die Hitze. Eine leichte Schicht nur für den kühlen Morgen, falls nötig.",
+    "wideSwingLayer": "Abnehmbare Schicht für Temperaturschwankungen",
+    "wideSwingNoteTemplate": "{lowTemp}–{peakTemp}°C heute — schichte so, dass du dich anpassen kannst, wenn es wärmer oder kühler wird.",
+    "modestSwingNoteTemplate": "Tagesspanne {lowTemp}–{peakTemp}°C. {existing}",
+    "coldMorningFemale": [
+      "Leichter Mantel oder Trench",
+      "Feiner Strick",
+      "Hose",
+      "Geschlossene Schuhe"
+    ],
+    "coldMorningMale": [
+      "Leichte Jacke",
+      "Feiner Strick oder Hemd",
+      "Chinos",
+      "Loafer oder Sneaker"
+    ],
+    "coldMorningLayers": [
+      "Warm genug für den Morgen",
+      "Am Nachmittag leicht abzulegen"
+    ]
+  }
+}

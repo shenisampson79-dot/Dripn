@@ -1,0 +1,247 @@
+{
+  "descriptions": {
+    "0": "Klar himmel",
+    "1": "Mestadels klart",
+    "2": "Delvis molnigt",
+    "3": "Mulet",
+    "45": "Dimma",
+    "48": "Rimfrostdimma",
+    "51": "Lätt duggregn",
+    "53": "Måttligt duggregn",
+    "55": "Tätt duggregn",
+    "61": "Lätt regn",
+    "63": "Måttligt regn",
+    "65": "Kraftigt regn",
+    "71": "Lätt snö",
+    "73": "Måttlig snö",
+    "75": "Kraftig snö",
+    "80": "Lätta regnskurar",
+    "81": "Måttliga regnskurar",
+    "82": "Kraftiga regnskurar",
+    "95": "Åska",
+    "96": "Åska med lätt hagel",
+    "99": "Åska med kraftigt hagel"
+  },
+  "descriptionFallback": "Okänt",
+  "defaultDescription": "Delvis molnigt",
+  "locationFallback": "Din plats",
+  "unknownLocation": {
+    "yourLocation": "Din plats",
+    "yourLocationTitle": "Din plats",
+    "unknown": "Okänd"
+  },
+  "bands": {
+    "hot": {
+      "layers": [
+        "Ett andningsbart lager — inga extra lager behövs"
+      ],
+      "keyPiecesFemale": [
+        "Linneklänning eller kjol",
+        "Bomullsblus",
+        "Andningsbara shorts",
+        "Sandaler eller loafers"
+      ],
+      "keyPiecesMale": [
+        "Linneskjorta eller bomullsskjorta",
+        "Lätta chinos eller shorts",
+        "Andningsbar piké",
+        "Sneakers eller loafers"
+      ],
+      "accessories": [
+        "Solglasögon",
+        "Bredbrättad hatt",
+        "Vattenflaska"
+      ],
+      "colors": [
+        "Vitt",
+        "Creme",
+        "Pasteller",
+        "Ljusblått"
+      ],
+      "fabricTips": "Bara linne och bomull — skippa stickat, lager och jackor i denna hetta.",
+      "stylingNoteTemplate": "Het dag ({peakTemp}°C). Ett lätt outfit räcker — lämna rockar och lager hemma."
+    },
+    "warm": {
+      "layers": [
+        "Lätt baslager",
+        "Valfritt lätt övertäck"
+      ],
+      "keyPiecesFemale": [
+        "Midiklänning",
+        "Högt midjade jeans",
+        "Lätt bomullsblus",
+        "Andningsbara byxor"
+      ],
+      "keyPiecesMale": [
+        "Bomullsskjorta",
+        "Chinos",
+        "Lätt stickad piké",
+        "Ofodrad kavaj"
+      ],
+      "accessories": [
+        "Solglasögon",
+        "Canvasväska"
+      ],
+      "colors": [
+        "Jordtoner",
+        "Salviagrönt",
+        "Dämpad rosa",
+        "Camel"
+      ],
+      "fabricTips": "Bomull och lätt stickat fungerar bra när temperaturen stiger under dagen.",
+      "stylingNoteTemplate": "Bekväm klädsel för varmt väder — lägg till ett lätt lager bara om du behöver det tidigt eller sent."
+    },
+    "mild": {
+      "layers": [
+        "Baslager",
+        "Mellanlager",
+        "Lätt ytterlager"
+      ],
+      "keyPiecesFemale": [
+        "Lätt trenchcoat eller rock",
+        "Fint stickad tröja",
+        "Byxor",
+        "Midikjol med ankelboots"
+      ],
+      "keyPiecesMale": [
+        "Lätt jacka",
+        "Fingauges stickat",
+        "Chinos",
+        "Ostrukturerad kavaj"
+      ],
+      "accessories": [
+        "Lätt scarf",
+        "Strukturerad väska"
+      ],
+      "colors": [
+        "Bourgogne",
+        "Skogsgrönt",
+        "Chokladbrunt",
+        "Marinblått"
+      ],
+      "fabricTips": "Lagera fint stickat under en lättare rock — spara tung ull till kallare dagar.",
+      "stylingNoteTemplate": "Svalt men inte kallt — lagera utan bulk."
+    },
+    "cold": {
+      "layers": [
+        "Baslager",
+        "Isolerande mellanlager",
+        "Varmt ytterlager"
+      ],
+      "keyPiecesFemale": [
+        "Dunjacka",
+        "Yllekappa",
+        "Termoleggings",
+        "Grovstickad tröja"
+      ],
+      "keyPiecesMale": [
+        "Dunjacka",
+        "Ylleöverrock",
+        "Termiskt baslager",
+        "Tung stickad tröja"
+      ],
+      "accessories": [
+        "Mössa",
+        "Yllescart",
+        "Varma handskar",
+        "Varma stövlar"
+      ],
+      "colors": [
+        "Svart",
+        "Kolgrått",
+        "Djup bourgogne",
+        "Creme"
+      ],
+      "fabricTips": "Baslager i merinoull håller värmen och leder bort fukt.",
+      "stylingNoteTemplate": "Investera i kvalitetsytterplagg. Värme och stil är lika viktiga."
+    },
+    "freezing": {
+      "layers": [
+        "Termisk bas",
+        "Tung isolering",
+        "Vattentätt ytterlager"
+      ],
+      "keyPiecesFemale": [
+        "Lång dunjacka",
+        "Fleecefodrade byxor",
+        "Grov polokrage",
+        "Isolerade stövlar"
+      ],
+      "keyPiecesMale": [
+        "Lång parka",
+        "Fleecefodrade byxor",
+        "Tung ylletröja",
+        "Isolerade stövlar"
+      ],
+      "accessories": [
+        "Varm mössa",
+        "Kashmirscarf",
+        "Isolerade handskar",
+        "Öronvärmare"
+      ],
+      "colors": [
+        "Svart",
+        "Djup marinblått",
+        "Bourgogne",
+        "Cremeaccenter"
+      ],
+      "fabricTips": "Tekniska tyger och dunisolering är dina vänner.",
+      "stylingNoteTemplate": "Prioritera värme. Med rätt lagerteknik kan du fortfarande se chic ut."
+    }
+  },
+  "overlays": {
+    "rain": {
+      "keyPiece": "Vattentät jacka eller trenchcoat",
+      "accessories": [
+        "Paraply",
+        "Vattentäta stövlar"
+      ],
+      "fabricTipsSuffix": " Välj vattenavvisande material.",
+      "stylingNoteSuffix": " En stilren regnjacka är essentiell. Överväg Chelsea-regnstövlar för chic skydd."
+    },
+    "snow": {
+      "accessories": [
+        "Snöstövlar",
+        "Vattentäta handskar"
+      ],
+      "stylingNoteSuffix": " Funktion möter mode. Kvalitetssnöstövlar och en varm parka är icke-förhandlingsbara."
+    },
+    "wind": {
+      "accessory": "Vindtät scarf",
+      "accessories": [
+        "Vindtät scarf"
+      ],
+      "stylingNoteSuffix": " Fäst lösa plagg och välj åtsittande siluetter vid vind."
+    }
+  },
+  "dailyRange": {
+    "layersHotMorning": [
+      "Lätt outfit för mittagens hetta",
+      "Valfri cardigan bara på morgonen"
+    ],
+    "layersHotDay": [
+      "Lätt outfit för dagen — inga bas- eller mellanlager behövs"
+    ],
+    "sunglasses": "Solglasögon",
+    "heatSwingNoteTemplate": "{lowTemp}°C nu, topp på {peakTemp}°C — klä dig för hettan. Ett lätt lager bara för den svala morgonen om du behöver det.",
+    "wideSwingLayer": "Avtagbart lager för temperaturväxlingar",
+    "wideSwingNoteTemplate": "{lowTemp}–{peakTemp}°C idag — lagera så du kan justera när dagen värms upp eller kyls ner.",
+    "modestSwingNoteTemplate": "Dagens spann {lowTemp}–{peakTemp}°C. {existing}",
+    "coldMorningFemale": [
+      "Lätt kappa eller trenchcoat",
+      "Fint stickat",
+      "Byxor",
+      "Slutna skor"
+    ],
+    "coldMorningMale": [
+      "Lätt jacka",
+      "Fingauges stickat eller skjorta",
+      "Chinos",
+      "Loafers eller sneakers"
+    ],
+    "coldMorningLayers": [
+      "Tillräckligt varmt för morgonen",
+      "Lätt att lätta upp på eftermiddagen"
+    ]
+  }
+}

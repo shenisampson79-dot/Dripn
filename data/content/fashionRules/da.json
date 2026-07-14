@@ -1,0 +1,439 @@
+{
+  "1": {
+    "title": "Reglen om tre",
+    "content": "Begræns dit outfit til maksimalt tre hovedfarver. Dette skaber visuel harmoni og forhindrer dit look i at virke kaotisk eller overvældende.",
+    "colorSwatches": {
+      "Navy": "Flåde",
+      "White": "Hvid",
+      "Camel": "Kamel"
+    }
+  },
+  "2": {
+    "title": "Klæd dig til din farvesæson",
+    "content": "At bære farver, der komplementerer din naturlige farve (hudfarve, hår, øjne), får dig til at se sundere og mere levende ud. Find ud af, om du er forår, sommer, efterår eller vinter.",
+    "colorSwatches": {
+      "Warm Gold": "Varmt guld",
+      "Cool Silver": "Cool Sølv"
+    }
+  },
+  "3": {
+    "title": "Neutral Foundation, Farve Accent",
+    "content": "Byg outfits på neutrale fundamenter (sort, hvid, grå, marineblå, beige) og introducer farve gennem tilbehør eller et enkelt statement."
+  },
+  "4": {
+    "title": "Forstå varme vs kølige toner",
+    "content": "Varme undertoner passer smukt sammen med jordfarver (oliven, sennep, koral), mens kølige undertoner skinner i juveltoner (smaragd, safir, rubin). At kende din forvandler din shopping.",
+    "colorSwatches": {
+      "Mustard": "Sennep",
+      "Emerald": "Smaragd"
+    }
+  },
+  "5": {
+    "title": "Monokrom kraft",
+    "content": "Påklædning i én farvefamilie skaber en forlængende, sofistikeret effekt. Varier nuancer og teksturer inden for samme nuance for dybde og interesse."
+  },
+  "6": {
+    "title": "Komplementær farvebeherskelse",
+    "content": "Farverne modsat på farvehjulet (blå/orange, lilla/gul, rød/grøn) skaber slående, dynamiske outfits, når de er afbalanceret korrekt.",
+    "colorSwatches": {
+      "Royal Blue": "Kongeblå",
+      "Burnt Orange": "Brændt orange"
+    }
+  },
+  "7": {
+    "title": "Navy er den nye sorte",
+    "content": "Navy er universelt flatterende og passer smukt sammen med flere farver end sort. Det er blødere, mere tilgængeligt og lige så alsidigt."
+  },
+  "8": {
+    "title": "Hvid lysner dit ansigt",
+    "content": "At bære hvid eller creme i nærheden af ​​dit ansigt reflekterer lyset opad, hvilket får dig til at se mere vågen og levende ud. Ideel til videoopkald og fotografier."
+  },
+  "9": {
+    "title": "Mønsterblanding med farve",
+    "content": "Når du blander mønstre, skal du sikre dig, at de har mindst én fælles farve. Dette skaber sammenhæng selv med forskellige skalaer og printstile."
+  },
+  "10": {
+    "title": "60-30-10 farvereglen",
+    "content": "Brug din dominerende farve til 60 % af dit outfit, sekundærfarve til 30 % og accentfarve til 10 %. Dette skaber afbalancerede, visuelt tiltalende udseende."
+  },
+  "11": {
+    "title": "Sæsonbestemt farverotation",
+    "content": "Roter din farvepalet med årstider: rige juveltoner til efterår/vinter, bløde pasteller og lyse farver til forår/sommer. Dette holder din garderobe frisk."
+  },
+  "12": {
+    "title": "Sort fra top til tå",
+    "content": "Helt sorte outfits er tidløse og slankende, men kræver teksturvariation (mat, glans, strik) for at undgå at se flad eller kostumeagtig ud."
+  },
+  "13": {
+    "title": "Grundlæggende om farveblokering",
+    "content": "Farveblokering bruger blokke af solide, kontrasterende farver for at give et fed effekt. Hold silhuetter enkle og lad farverne tale."
+  },
+  "14": {
+    "title": "Metallisk som neutral",
+    "content": "Guld og sølv metallics fungerer som neutrale og kan parres med næsten alle farver. Match metallics til din undertone for den mest flatterende effekt."
+  },
+  "15": {
+    "title": "Udskriftsskala betyder noget",
+    "content": "Vælg printstørrelser, der fungerer sammen med din ramme - mindre rammer passer til mindre print, større rammer kan bære dristigere mønstre uden at blive overvældet."
+  },
+  "16": {
+    "title": "Tredje Stykke Regel",
+    "content": "Løft ethvert outfit ved at tilføje et tredje stykke - en blazer, cardigan, tørklæde eller struktureret taske. Dette forvandler grundlæggende kombinationer til komplette, tilsigtede looks."
+  },
+  "17": {
+    "title": "Proportionspil",
+    "content": "Balancer volumen i dit outfit: hvis du har noget løst på toppen, skal du passe på bunden (og omvendt). Dette skaber flatterende silhuetter på alle kropstyper."
+  },
+  "18": {
+    "title": "Ét-erklæringsreglen",
+    "content": "Lad ét stykke være stjernen i dit outfit. Hvis du bærer et fedt mønster eller et statement-tilbehør, skal du holde alt andet underspillet for at undgå visuel konkurrence."
+  },
+  "19": {
+    "title": "Definer din talje",
+    "content": "At skabe definition ved din naturlige talje, uanset om det er gennem bælter, tucking eller skræddersyede snit, skaber en timeglas-silhuet, der smigrer de fleste kropstyper."
+  },
+  "20": {
+    "title": "Tredjedelsreglen",
+    "content": "I stedet for at dele din krop i to, sigt efter et forhold på 1/3 til 2/3 (kort top med højtaljet underdel eller længere top med kortere nederdel) for mere dynamiske proportioner."
+  },
+  "21": {
+    "title": "Lodrette linjer forlænger",
+    "content": "Lodrette striber, lange halskæder og åbne cardigans skaber illusionen af ​​højde og en slankere silhuet. Brug strategisk til at forlænge effekter."
+  },
+  "22": {
+    "title": "V-hals fladere alle",
+    "content": "V-udskæringer forlænger halsen, trækker øjet lodret og fladere stort set enhver ansigtsform og kropstype. Et universelt flatterende valg."
+  },
+  "23": {
+    "title": "Højtaljets kraft",
+    "content": "Højtaljede underdele forlænger visuelt benene og skaber en længere, slankere silhuet. De fungerer særligt godt, når toppe er gemt ind."
+  },
+  "24": {
+    "title": "Struktureret vs ustruktureret balance",
+    "content": "Par strukturerede stykker (blazere, skræddersyede bukser) med blødere genstande (silkebluser, striktoppe) til outfits, der føles poleret, men alligevel tilgængelig."
+  },
+  "25": {
+    "title": "Lagdeling uden bulk",
+    "content": "Læg tynde kvalitetsstoffer i stedet for tykke. Start med tilpassede basislag og tilføj gradvist løsere stykker for at undgå at tilføje unødvendig volumen."
+  },
+  "26": {
+    "title": "Det halve optræk",
+    "content": "Et afslappet halvt tuck (tucking kun foran på din skjorte) skaber taljedefinition, mens du bevarer en afslappet, ubesværet stemning. Perfekt til afslappet elegance."
+  },
+  "27": {
+    "title": "Klæd dig til din kropsform",
+    "content": "At forstå, om du er et æble, en pære, et timeglas eller et rektangel, hjælper dig med at vælge udskæringer, der forbedrer dine naturlige proportioner i stedet for at bekæmpe dem."
+  },
+  "28": {
+    "title": "Match dine metaller",
+    "content": "Opbevar dine smykker og hardware (bæltespænder, taskespænder, skodetaljer) i den samme metalfamilie for et sammenhængende, poleret look."
+  },
+  "29": {
+    "title": "Tasker skal passe til dit stel",
+    "content": "Vælg taskestørrelser, der er proportionale med din krop - petite stel passer til mindre tasker, mens højere stel kan bære større styles uden at blive overvældet."
+  },
+  "30": {
+    "title": "Ure som Statement Pieces",
+    "content": "Et kvalitetsur er både funktionelt og moderigtigt. Vælg en stil, der afspejler din personlighed - klassisk, sporty eller minimalistisk - og brug den dagligt."
+  },
+  "31": {
+    "title": "Tørklæder Transform Outfits",
+    "content": "Et silketørklæde kan bæres rundt om halsen, som pandebånd, bindes til en taske eller som bælte. Dette alsidige tilbehør løfter simple outfits med det samme."
+  },
+  "32": {
+    "title": "Bælteplacering betyder noget",
+    "content": "Bær bælter i din naturlige talje for den mest flatterende effekt. Lavtslyngede bælter kan forkorte din torso, mens høje bælter forlænger benene."
+  },
+  "33": {
+    "title": "Solbriller former dit ansigt",
+    "content": "Vælg solbriller, der står i kontrast til din ansigtsform - runde ansigter passer til kantede stel, firkantede ansigter ser godt ud i afrundede stilarter."
+  },
+  "34": {
+    "title": "Less is More med smykker",
+    "content": "Vælg ét fokuspunkt - statement-øreringe ELLER en fed halskæde ELLER stablede armbånd. At bære alt på én gang fortynder virkningen."
+  },
+  "35": {
+    "title": "Match taske og sko løst",
+    "content": "Perfekt matchende tasker og sko ser dateret ud. Sigt i stedet efter komplementære farver eller ét fælles element (begge læder, begge metallisk hardware)."
+  },
+  "36": {
+    "title": "Hatte komplette outfits",
+    "content": "Den rigtige hat tilføjer personlighed og polering. Vælg stilarter, der passer til din ansigtsform og livsstil - fra fedoraer til baseballkasketter til baretter."
+  },
+  "37": {
+    "title": "Invester i kvalitetslædervarer",
+    "content": "En vellavet lædertaske og -bælte holder årtier og udvikler smuk patina. Vælg klassiske former i alsidige farver for maksimal slidstyrke."
+  },
+  "38": {
+    "title": "Lagdelte halskæder",
+    "content": "Lag halskæder i forskellige længder (choker, prinsesse, opera) for moderne dimension. Hold metaller konsistente og varier kædeteksturer og vedhængsstørrelser."
+  },
+  "39": {
+    "title": "Øreringe rammer dit ansigt ind",
+    "content": "Øreringe henleder opmærksomheden på dit ansigt. Vælg stilarter, der komplementerer din ansigtsform - nitter til hverdag, drops til aften, bøjler for alsidighed."
+  },
+  "40": {
+    "title": "Teksturblanding",
+    "content": "Kombiner forskellige teksturer (silke med denim, kashmir med læder, hør med uld) for at tilføje dybde og visuel interesse til monokromatiske eller enkle outfits."
+  },
+  "41": {
+    "title": "Naturlige fibre ånder bedre",
+    "content": "Bomuld, hør, uld og silke regulerer temperaturen bedre end syntetiske stoffer. Prioriter naturlige stoffer for komfort og lang levetid."
+  },
+  "42": {
+    "title": "Strik for komfort, vævet for struktur",
+    "content": "Strikstoffer (jersey, ponte) giver stretch og komfort. Vævede stoffer (bomuldspoplin, denim) giver struktur. Vælg ud fra ønsket effekt."
+  },
+  "43": {
+    "title": "Silke til særlige lejligheder",
+    "content": "Silke tilføjer øjeblikkelig luksus og elegance. Reserver den til lejligheder, hvor du vil føle dig speciel - vægten og draperingen er uovertruffen."
+  },
+  "44": {
+    "title": "Cashmere er det værd",
+    "content": "Kvalitetskashmir er blød, varm og let. Invester i klassiske stykker, som du vil bære i årevis - prisen pr. slid gør det umagen værd."
+  },
+  "45": {
+    "title": "Denim alsidighed",
+    "content": "Kvalitetsdenim er rygraden i afslappet stil. Ejer mindst et par velsiddende jeans og en denimjakke - begge fungerer på tværs af sæsoner og lejligheder."
+  },
+  "46": {
+    "title": "Linned omfavner rynker",
+    "content": "Linned er beregnet til at rynke - det er en del af dets afslappede charme. Omfavn den naturlige krølning i stedet for at bekæmpe den. Reserver til afslappede omgivelser."
+  },
+  "47": {
+    "title": "Fløjl til drama",
+    "content": "Fløjl fanger smukt lys og tilføjer øjeblikkeligt drama til ethvert outfit. Reserver til aften, efterår/vinter, eller når du vil gøre entré."
+  },
+  "48": {
+    "title": "Læder som Statement",
+    "content": "Læder (eller kvalitetsveganske alternativer) tilføjer kant og struktur. En læderjakke er en garderobe, der fungerer på tværs af sæsoner og stilarter."
+  },
+  "49": {
+    "title": "Gennemsigtigt stoflag",
+    "content": "Gennemsigtige stoffer tilføjer dimension, når de lægges korrekt. Overvej altid, hvad der er synligt nedenunder - brug bevidste lagdelte stykker til polerede looks."
+  },
+  "50": {
+    "title": "Kjole til lejligheden Plus One",
+    "content": "Sigt efter at være lidt bedre klædt end lejligheden kræver. At være underklædt føles akavet, mens det at være lidt overklædt signalerer indsats og respekt."
+  },
+  "51": {
+    "title": "Forstå dresscodes",
+    "content": "Fra black-tie til smart afslappet, at forstå dresscodes forhindrer forlegenhed. Spørg værten, hvis du er i tvivl, eller tag fejl af formaliteterne."
+  },
+  "52": {
+    "title": "Arbejdstøj Fundamenter",
+    "content": "Byg en arbejdsgarderobe af udskiftelige stykker: blazere, skræddersyede bukser, kvalitetsbluser og beskedne kjoler. Sigt efter en uges outfits."
+  },
+  "53": {
+    "title": "Weekend afslappet vs sjusket",
+    "content": "Casual betyder ikke skødesløs. Velsiddende jeans, rene sneakers og en kvalitets-t-shirt ser ubesværet stilfuldt ud. Pletter og rifter ser sjusket ud."
+  },
+  "54": {
+    "title": "Date Night-indsats",
+    "content": "At klæde sig ud til dates viser indsats og respekt. Vælg stykker, der får dig til at føle dig selvsikker og attraktiv – din energi vil skinne igennem."
+  },
+  "55": {
+    "title": "Rejs i komfort og stil",
+    "content": "Lufthavnsstil bør prioritere komfort uden at ofre polish. Elastiske stoffer, slip-on sko og lag håndterer temperaturændringer og lange rejser."
+  },
+  "56": {
+    "title": "Interviewindtryk",
+    "content": "Første indtryk betyder noget i interviews. Undersøg virksomhedskulturen og klæde dig et niveau mere formelt end dagligt slid. Undgå distraherende mønstre eller tilbehør."
+  },
+  "57": {
+    "title": "Bryllupsgæsteetikette",
+    "content": "Bær aldrig hvidt til et bryllup (medmindre det er specifikt anmodet). Match formaliteten til sted og tidspunkt. Når du er i tvivl, er cocktailbeklædning sikkert."
+  },
+  "58": {
+    "title": "Begravelse Respekt",
+    "content": "Begravelser kræver mørkt, konservativt tøj. Sort, marineblå eller kul i enkle, beskedne snit viser respekt. Gem lyse farver til fejring af livet."
+  },
+  "59": {
+    "title": "Kulturel kontekst betyder noget",
+    "content": "Undersøg påklædningsforventninger, når du besøger forskellige kulturer eller religiøse steder. Beskedenhedskrav, hovedbeklædning eller skofjernelse kan være gældende."
+  },
+  "60": {
+    "title": "Invester i grundlæggende kvalitet",
+    "content": "Byg dit garderobefundament med vellavede basics: en hvid skjorte, mørke bukser, kvalitetsdenim og en alsidig blazer. Kvalitet frem for kvantitet vinder altid."
+  },
+  "61": {
+    "title": "Styrken ved at skræddersy",
+    "content": "Velsiddende tøj ser dyrere ud end dårligtsiddende designertøj. Invester i ændringer til nøgledele - forskellen er transformerende."
+  },
+  "62": {
+    "title": "80/20 garderobereglen",
+    "content": "Du bærer 20% af din garderobe 80% af tiden. Identificer disse nøgleelementer og invester i deres kvalitet. Revider og rediger din garderobe regelmæssigt."
+  },
+  "63": {
+    "title": "Beregning af omkostninger pr. slid",
+    "content": "Divider prisen med forventet slid. En 200 £ frakke brugt 100 gange koster £ 2 pr. slid - bedre værdi end en £ 50 frakke brugt 10 gange."
+  },
+  "64": {
+    "title": "Klassisk over trendy",
+    "content": "Invester i tidløse smykker og gem trends til billigt tilbehør. En klassisk trench overlever en trendy silhuet i årtier."
+  },
+  "65": {
+    "title": "Kvalitetssko betyder mest",
+    "content": "Folk bemærker sko. Invester i vellavede, klassiske styles, der kan løses. Dine fødder vil takke dig, og dine outfits vil se forhøjede ud."
+  },
+  "66": {
+    "title": "Den perfekte hvide skjorte",
+    "content": "Hver garderobe har brug for en sprød hvid skjorte. Kig efter kvalitetsbomuld, den rigtige pasform gennem skuldrene og en krave, der ligger fladt."
+  },
+  "67": {
+    "title": "Investering Overtøj",
+    "content": "Frakker er synlige og giver det første indtryk. Invester i kvalitetsovertøj i alsidige farver – de indrammer hele dit look."
+  },
+  "68": {
+    "title": "Byg langsomt og eftertænksomt",
+    "content": "En kureret garderobe tager tid. Tilføj stykker gradvist, og sørg for, at hver enkelt fungerer med det, du allerede ejer. Modstå impulskøb."
+  },
+  "69": {
+    "title": "Kend dine ikke-negotiables",
+    "content": "Identificer hvilke varer du nægter at gå på kompromis med (komfort, etisk produktion, specifikke mærker) og prioriter udgifterne der."
+  },
+  "70": {
+    "title": "Pas på dit tøj",
+    "content": "Læs plejeetiketter, brug rigtige bøjler, og opbevar genstande korrekt. Velholdt tøj holder længere og ser bedre ud hver gang."
+  },
+  "71": {
+    "title": "Vask mindre, luft mere",
+    "content": "Det meste tøj behøver ikke vaskes efter hver brug. Luftning af beklædningsgenstande mellem brug forlænger deres levetid og reducerer miljøpåvirkningen."
+  },
+  "72": {
+    "title": "Korrekt bøjlevalg",
+    "content": "Brug træ- eller polstrede bøjler til strukturerede genstande, fløjl til glatte stoffer, og foldstrik for at forhindre skulderbuler."
+  },
+  "73": {
+    "title": "Skoplejerutine",
+    "content": "Rengør, pleje og beskyt sko regelmæssigt. Brug skotræer til at bevare formen. Drej parrene for at lade dem tørre mellem brug."
+  },
+  "74": {
+    "title": "Reparation før udskiftning",
+    "content": "En løs knap, lille hul eller knækket lynlås kan ofte repareres billigt. Forlæng tøjets levetid gennem hurtige reparationer i stedet for udskiftning."
+  },
+  "75": {
+    "title": "Sæsonopbevaring",
+    "content": "Rengør genstande før opbevaring, brug åndbare tøjposer, og tilføj cedertræ eller lavendel for at forhindre møl. Korrekt opbevaring bevarer kvaliteten."
+  },
+  "76": {
+    "title": "Pilling forebyggelse",
+    "content": "Pillefjernelsesværktøjer genopretter strik til næsten ny tilstand. Undgå pilling ved at vaske vrangen ud, bruge blide cyklusser og undgå friktion."
+  },
+  "77": {
+    "title": "Grundlæggende om pletbehandling",
+    "content": "Behandl pletter med det samme, arbejd udefra og ind. Ved, hvilke behandlinger der virker til hvilke pletter - koldt vand til blod, club sodavand til vin."
+  },
+  "78": {
+    "title": "Professionel pleje, når det er nødvendigt",
+    "content": "Nogle genstande kræver professionel rengøring. Dragter, silke, læder og stykker med kraftige perler bør gå til betroede renserier eller specialister."
+  },
+  "79": {
+    "title": "Stryg og damp ordentligt",
+    "content": "Forskellige stoffer har brug for forskellige varmeindstillinger. Stryg altid vrangen ud for sarte stoffer, brug presseklude og damp for at friske op mellem vaskene."
+  },
+  "80": {
+    "title": "Sæsonbestemte stofvalg",
+    "content": "Match stofvægten til årstiden: hør og bomuld til sommeren, uld og kashmir til vinteren. Dette holder dig komfortabel og passende klædt på."
+  },
+  "81": {
+    "title": "Lagdeling til overgangsvejr",
+    "content": "Forår og efterår kræver alsidig lagdeling. Byg outfits, der kan tilpasse sig temperaturændringer i løbet af dagen."
+  },
+  "82": {
+    "title": "Sommervarmestrategier",
+    "content": "Lyse farver reflekterer varme, løse pasformer tillader luftstrøm, og naturlige fibre ånder. Klæd dig strategisk på for sommerkomfort og stil."
+  },
+  "83": {
+    "title": "Vinter varme lag",
+    "content": "Lag til vintervarme: fugttransporterende base, isolerende midterste, vejrbestandig yderside. Dette system holder dig varm uden at fylde."
+  },
+  "84": {
+    "title": "Overgangsgarderobestykker",
+    "content": "Trenchcoats, letvægtsstrik og alsidige blazere fungerer på tværs af sæsoner. Invester i stykker, der bygger bro over vejrovergange."
+  },
+  "85": {
+    "title": "Fodtøj, der passer til vejret",
+    "content": "Match sko til forholdene: vandafvisende til regn, isoleret til kulde, åndbar for varme. Stil og funktion kan eksistere side om side."
+  },
+  "86": {
+    "title": "Farvepalet efter sæson",
+    "content": "Skift din farvepalet med årstider: jordfarver til efteråret, kølige neutrale farver til vinteren, bløde pasteller til foråret, livlige farver til sommeren."
+  },
+  "87": {
+    "title": "Ferie dressing",
+    "content": "Byg en lille samling af festlige stykker, der fungerer på tværs af feriebegivenheder. Metallic, fløjl og juveltoner passer til de fleste festligheder."
+  },
+  "88": {
+    "title": "Forberedelse af udendørs arrangementer",
+    "content": "Til udendørs arrangementer skal du forberede dig på vejrændringer: medbring lag, vandtæt eller solbeskyttelse efter behov. Tjek vejrudsigt og mødested."
+  },
+  "89": {
+    "title": "Sæsonbestemt garderoberotation",
+    "content": "Roter din garderobe efter årstiden. Opbevar varer uden for sæsonen korrekt, og tag friske stykker frem - det holder dit skab overskueligt og inspirerende."
+  },
+  "90": {
+    "title": "Selvtillid er dit bedste tilbehør",
+    "content": "Bær det, der får dig til at føle dig selvsikker og komfortabel. De bedst klædte mennesker ejer deres personlige stil frem for at følge enhver trend."
+  },
+  "91": {
+    "title": "Klæd dig til nu, ikke senere",
+    "content": "Vent ikke, indtil du taber dig eller når et mål. Klæd dig smukt på til den krop du har i dag – du fortjener at have det godt nu."
+  },
+  "92": {
+    "title": "Ignorer størrelsesetiketter",
+    "content": "Størrelser varierer voldsomt mellem mærker. Fokuser på pasform, ikke nummeret på etiketten. Den bedst passende størrelse er den rigtige størrelse."
+  },
+  "93": {
+    "title": "Fremhæv det du elsker",
+    "content": "I stedet for at skjule opfattede fejl, skal du henlede opmærksomheden på funktioner, du elsker. Store arme? Vis dem. Elsker dine ben? Bær kortere kant."
+  },
+  "94": {
+    "title": "Komfort avler selvtillid",
+    "content": "Når du konstant justerer eller er utilpas, viser det sig. Prioriter tøj, der sidder godt og føles godt – din selvtillid følger med."
+  },
+  "95": {
+    "title": "Personlig stil over moderegler",
+    "content": "Stilregler er retningslinjer, ikke love. Hvis en 'regel' ikke virker for dig eller gør dig glad, så bryd den. Autentisk personlig stil overtrumfer alt."
+  },
+  "96": {
+    "title": "Omfavn dine unikke funktioner",
+    "content": "Det, der gør dig anderledes, gør dig mindeværdig. Omfavn unikke egenskaber - usædvanlige proportioner, karakteristiske farver eller atypiske former kan blive karakteristiske stilelementer."
+  },
+  "97": {
+    "title": "Aldersegnethed er en myte",
+    "content": "Der er ingen aldersgrænse for stil. Bær det, der får dig til at føle dig vidunderlig, uanset om det er mini-nederdele på 60 eller sofistikerede jakkesæt på 25."
+  },
+  "98": {
+    "title": "Kvalitet frem for kvantitet",
+    "content": "Invester i færre, bedre stykker frem for hurtig mode. Kvalitetsstoffer, konstruktion og tidløst design overlever trends og koster mindre pr. slid."
+  },
+  "99": {
+    "title": "Secondhand først",
+    "content": "Inden du køber nyt, skal du tjekke brugte muligheder. Velgørenhedsbutikker, vintagebutikker og videresalgsplatforme tilbyder unikke genstande med lavere miljøpåvirkning."
+  },
+  "100": {
+    "title": "Kend dine brands",
+    "content": "Undersøg etik og bæredygtighedspraksis for mærker, du køber fra. Støt dem, der er tilpasset dine værdier for produktion, arbejdere og miljø."
+  },
+  "101": {
+    "title": "En ind, én ud-reglen",
+    "content": "For hver ny vare, der føjes til din garderobe, doner eller sælg en. Dette bevarer en overskuelig garderobe og tilskynder til tankevækkende køb."
+  },
+  "102": {
+    "title": "Kapselgarderobe tankegang",
+    "content": "En kapselgarderobe med 30-40 alsidige dele, der alle arbejder sammen, reducerer beslutningstræthed og miljøpåvirkning, mens stilen maksimeres."
+  },
+  "103": {
+    "title": "Reparation og Upcycle",
+    "content": "Lær grundlæggende reparationer eller find en god skrædder. Pust nyt liv i gamle stykker gennem ændringer, farvning eller kreativ nytænkning."
+  },
+  "104": {
+    "title": "Leje til særlige lejligheder",
+    "content": "For engangsbegivenheder, overvej udlejningstjenester. Få adgang til designerartikler uden omkostningerne eller miljøpåvirkningen ved engangskøb."
+  },
+  "105": {
+    "title": "Naturlige fibre prioritet",
+    "content": "Vælg naturlige, biologisk nedbrydelige fibre (bomuld, hør, uld, silke) frem for syntetiske, når det er muligt. De er bedre for planeten og ofte mere komfortable."
+  }
+}

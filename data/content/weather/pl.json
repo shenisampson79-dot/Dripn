@@ -1,0 +1,247 @@
+{
+  "descriptions": {
+    "0": "Czyste niebo",
+    "1": "Przeważnie bezchmurnie",
+    "2": "Częściowe zachmurzenie",
+    "3": "Pochmurno",
+    "45": "Mgła",
+    "48": "Mgła szronowa",
+    "51": "Lekka mżawka",
+    "53": "Umiarkowana mżawka",
+    "55": "Gęsta mżawka",
+    "61": "Lekki deszcz",
+    "63": "Umiarkowany deszcz",
+    "65": "Ulewny deszcz",
+    "71": "Lekki śnieg",
+    "73": "Umiarkowany śnieg",
+    "75": "Intensywny śnieg",
+    "80": "Lekkie przelotne deszcze",
+    "81": "Umiarkowane przelotne deszcze",
+    "82": "Gwałtowne przelotne deszcze",
+    "95": "Burza",
+    "96": "Burza z lekkim gradem",
+    "99": "Burza z intensywnym gradem"
+  },
+  "descriptionFallback": "Nieznane",
+  "defaultDescription": "Częściowe zachmurzenie",
+  "locationFallback": "Twoja lokalizacja",
+  "unknownLocation": {
+    "yourLocation": "Twoja lokalizacja",
+    "yourLocationTitle": "Twoja lokalizacja",
+    "unknown": "Nieznana"
+  },
+  "bands": {
+    "hot": {
+      "layers": [
+        "Jedna oddychająca warstwa — dodatkowe warstwy zbędne"
+      ],
+      "keyPiecesFemale": [
+        "Lniana sukienka lub spódnica",
+        "Bawełniana bluzka",
+        "Oddychające szorty",
+        "Sandały lub loafersy"
+      ],
+      "keyPiecesMale": [
+        "Lniana lub bawełniana koszula",
+        "Lekkie chino lub szorty",
+        "Oddychające polo",
+        "Trampki lub loafersy"
+      ],
+      "accessories": [
+        "Okulary przeciwsłoneczne",
+        "Kapelusz z szerokim rondem",
+        "Butelka wody"
+      ],
+      "colors": [
+        "Biel",
+        "Kremowy",
+        "Pastele",
+        "Jasny błękit"
+      ],
+      "fabricTips": "Tylko len i bawełna — omijaj dzianiny, warstwy i kurtki w takie upały.",
+      "stylingNoteTemplate": "Upalny dzień ({peakTemp}°C). Wystarczy jeden lekki zestaw — zostaw płaszcze i warstwy w domu."
+    },
+    "warm": {
+      "layers": [
+        "Lekka warstwa bazowa",
+        "Opcjonalne lekkie okrycie"
+      ],
+      "keyPiecesFemale": [
+        "Sukienka midi",
+        "Jeansy high-waist",
+        "Lekka bawełniana bluzka",
+        "Oddychające spodnie"
+      ],
+      "keyPiecesMale": [
+        "Bawełniana koszula",
+        "Chino",
+        "Lekkie dzianinowe polo",
+        "Marynarka bez podszewki"
+      ],
+      "accessories": [
+        "Okulary przeciwsłoneczne",
+        "Torba canvas"
+      ],
+      "colors": [
+        "Barwy ziemi",
+        "Szałwiowa zieleń",
+        "Przygaszony róż",
+        "Camel"
+      ],
+      "fabricTips": "Bawełna i lekkie dzianiny sprawdzają się, gdy temperatura rośnie w ciągu dnia.",
+      "stylingNoteTemplate": "Wygodny styl na ciepłą pogodę — dodaj lekką warstwę tylko rano lub wieczorem, jeśli potrzebujesz."
+    },
+    "mild": {
+      "layers": [
+        "Warstwa bazowa",
+        "Warstwa środkowa",
+        "Lekka warstwa zewnętrzna"
+      ],
+      "keyPiecesFemale": [
+        "Lekki trencz lub płaszcz",
+        "Cienki sweter z dzianiny",
+        "Spodnie",
+        "Spódnica midi z botkami"
+      ],
+      "keyPiecesMale": [
+        "Lekka kurtka",
+        "Cienka dzianina",
+        "Chino",
+        "Nieusztywniana marynarka"
+      ],
+      "accessories": [
+        "Lekki szalik",
+        "Strukturalna torba"
+      ],
+      "colors": [
+        "Burgund",
+        "Leśna zieleń",
+        "Czekoladowy brąz",
+        "Granat"
+      ],
+      "fabricTips": "Warstwuj cienkie dzianiny pod lżejszy płaszcz — grubą wełnę zostaw na chłodniejsze dni.",
+      "stylingNoteTemplate": "Chłodno, ale nie zimno — warstwy bez nadmiaru objętości."
+    },
+    "cold": {
+      "layers": [
+        "Warstwa bazowa",
+        "Izolująca warstwa środkowa",
+        "Ciepła warstwa zewnętrzna"
+      ],
+      "keyPiecesFemale": [
+        "Kurtka puchowa",
+        "Wełniany płaszcz",
+        "Termolegginy",
+        "Gruby sweter z dzianiny"
+      ],
+      "keyPiecesMale": [
+        "Kurtka puchowa",
+        "Wełniany płaszcz",
+        "Termiczna warstwa bazowa",
+        "Gruby sweter z dzianiny"
+      ],
+      "accessories": [
+        "Czapka",
+        "Wełniany szalik",
+        "Ciepłe rękawiczki",
+        "Ciepłe buty"
+      ],
+      "colors": [
+        "Czerń",
+        "Grafit",
+        "Głęboki burgund",
+        "Kremowy"
+      ],
+      "fabricTips": "Bazy z wełny merino zatrzymują ciepło i odprowadzają wilgoć.",
+      "stylingNoteTemplate": "Zainwestuj w jakościowe okrycia wierzchnie. Ciepło i styl są równie ważne."
+    },
+    "freezing": {
+      "layers": [
+        "Termiczna baza",
+        "Gruba izolacja",
+        "Wodoodporna warstwa zewnętrzna"
+      ],
+      "keyPiecesFemale": [
+        "Długa kurtka puchowa",
+        "Spodnie z flisową podszewką",
+        "Gruby golf",
+        "Ocieplane buty"
+      ],
+      "keyPiecesMale": [
+        "Długa parka",
+        "Spodnie z flisową podszewką",
+        "Gruby wełniany sweter",
+        "Ocieplane buty"
+      ],
+      "accessories": [
+        "Ciepła czapka",
+        "Szalik z kaszmiru",
+        "Ocieplane rękawiczki",
+        "Nauszniki"
+      ],
+      "colors": [
+        "Czerń",
+        "Głęboki granat",
+        "Burgund",
+        "Kremowe akcenty"
+      ],
+      "fabricTips": "Tkaniny techniczne i izolacja puchem to Twoi sprzymierzeńcy.",
+      "stylingNoteTemplate": "Priorytetem jest ciepło. Przy dobrym warstwowaniu nadal możesz wyglądać szykownie."
+    }
+  },
+  "overlays": {
+    "rain": {
+      "keyPiece": "Wodoodporna kurtka lub trencz",
+      "accessories": [
+        "Parasol",
+        "Wodoodporne buty"
+      ],
+      "fabricTipsSuffix": " Wybieraj materiały wodoodporne.",
+      "stylingNoteSuffix": " Stylowa kurtka przeciwdeszczowa jest niezbędna. Rozważ kalosze Chelsea dla szykowniczej ochrony."
+    },
+    "snow": {
+      "accessories": [
+        "Buty śniegowe",
+        "Wodoodporne rękawiczki"
+      ],
+      "stylingNoteSuffix": " Funkcja spotyka modę. Jakościowe buty śniegowe i ciepła parka są obowiązkowe."
+    },
+    "wind": {
+      "accessory": "Wiatroszczelny szalik",
+      "accessories": [
+        "Wiatroszczelny szalik"
+      ],
+      "stylingNoteSuffix": " Zabezpiecz luźne elementy i wybieraj dopasowane sylwetki przy wietrze."
+    }
+  },
+  "dailyRange": {
+    "layersHotMorning": [
+      "Lekki zestaw na południowy upał",
+      "Opcjonalny kardigan tylko na rano"
+    ],
+    "layersHotDay": [
+      "Lekki zestaw na dzień — bez warstw bazowych i środkowych"
+    ],
+    "sunglasses": "Okulary przeciwsłoneczne",
+    "heatSwingNoteTemplate": "{lowTemp}°C teraz, szczyt {peakTemp}°C — ubierz się na upał. Lekka warstwa tylko na chłodny poranek, jeśli potrzebujesz.",
+    "wideSwingLayer": "Zdejmowana warstwa na wahania temperatury",
+    "wideSwingNoteTemplate": "{lowTemp}–{peakTemp}°C dziś — warstwy, by dostosować się, gdy dzień się ociepli lub ochłodzi.",
+    "modestSwingNoteTemplate": "Zakres dnia {lowTemp}–{peakTemp}°C. {existing}",
+    "coldMorningFemale": [
+      "Lekki płaszcz lub trencz",
+      "Cienka dzianina",
+      "Spodnie",
+      "Zamknięte buty"
+    ],
+    "coldMorningMale": [
+      "Lekka kurtka",
+      "Cienka dzianina lub koszula",
+      "Chino",
+      "Loafersy lub trampki"
+    ],
+    "coldMorningLayers": [
+      "Wystarczająco ciepło na rano",
+      "Łatwo odciążyć po południu"
+    ]
+  }
+}

@@ -1,0 +1,439 @@
+{
+  "1": {
+    "title": "Die Drei-Farben-Regel",
+    "content": "Beschränken Sie Ihr Outfit auf maximal drei Hauptfarben. Das schafft visuelle Harmonie und verhindert einen chaotischen oder überladenen Look.",
+    "colorSwatches": {
+      "Navy": "Navy",
+      "White": "Weiß",
+      "Camel": "Kamel"
+    }
+  },
+  "2": {
+    "title": "Kleiden Sie sich nach Ihrer Farbjahreszeit",
+    "content": "Farben, die zu Ihrem natürlichen Kolorit passen (Hautton, Haar, Augen), lassen Sie gesünder und strahlender wirken. Finden Sie heraus, ob Sie Frühling, Sommer, Herbst oder Winter sind.",
+    "colorSwatches": {
+      "Warm Gold": "Warmes Gold",
+      "Cool Silver": "Kühles Silber"
+    }
+  },
+  "3": {
+    "title": "Neutrale Basis, Farbakzent",
+    "content": "Bauen Sie Outfits auf neutralen Grundlagen auf (Schwarz, Weiß, Grau, Navy, Beige) und bringen Sie Farbe über Accessoires oder ein Statement-Piece ein."
+  },
+  "4": {
+    "title": "Warme vs. kühle Untertöne verstehen",
+    "content": "Warme Untertöne harmonieren wunderbar mit Erdtönen (Oliv, Senf, Koralle), kühle Untertöne strahlen in Juwelentönen (Smaragd, Saphir, Rubin). Wer das weiß, kauft gezielter.",
+    "colorSwatches": {
+      "Mustard": "Senf",
+      "Emerald": "Smaragd"
+    }
+  },
+  "5": {
+    "title": "Die Kraft von Monochrom",
+    "content": "Outfits in einer Farbfamilie wirken verlängernd und elegant. Variieren Sie Nuancen und Texturen innerhalb derselben Farbe für Tiefe und Interesse."
+  },
+  "6": {
+    "title": "Komplementärfarben meistern",
+    "content": "Gegenüberliegende Farben im Farbkreis (Blau/Orange, Violett/Gelb, Rot/Grün) erzeugen bei richtigem Ausgleich auffällige, dynamische Looks.",
+    "colorSwatches": {
+      "Royal Blue": "Königsblau",
+      "Burnt Orange": "Verbranntes Orange"
+    }
+  },
+  "7": {
+    "title": "Navy ist das neue Schwarz",
+    "content": "Navy steht nahezu jedem und kombiniert mit mehr Farben als Schwarz. Weicher, zugänglicher und genauso vielseitig."
+  },
+  "8": {
+    "title": "Weiß hellt das Gesicht auf",
+    "content": "Weiß oder Creme nah am Gesicht reflektiert Licht nach oben – Sie wirken wacher und strahlender. Ideal für Video-Calls und Fotos."
+  },
+  "9": {
+    "title": "Muster mischen mit Farbe",
+    "content": "Beim Mischen von Mustern sollten sie mindestens eine gemeinsame Farbe teilen. So entsteht Zusammenhalt – auch bei unterschiedlichen Skalen und Stilen."
+  },
+  "10": {
+    "title": "Die 60-30-10-Farbregel",
+    "content": "Nutzen Sie die dominante Farbe für 60 % des Outfits, die sekundäre für 30 % und den Akzent für 10 %. Das ergibt ausgewogene, angenehme Looks."
+  },
+  "11": {
+    "title": "Saisonale Farbrotation",
+    "content": "Rotieren Sie Ihre Palette mit den Jahreszeiten: reiche Juwelentöne im Herbst/Winter, weiche Pastelle und Brights im Frühling/Sommer. Der Kleiderschrank bleibt frisch."
+  },
+  "12": {
+    "title": "Schwarz von Kopf bis Fuß",
+    "content": "All-Black ist zeitlos und schlankend, braucht aber Texturvariation (matt, glänzend, Strick), sonst wirkt es flach oder kostümiert."
+  },
+  "13": {
+    "title": "Colour-Blocking-Basics",
+    "content": "Colour Blocking setzt auf Blöcke kontrastreicher Vollfarben für starken Impact. Halten Sie Silhouetten schlicht und lassen Sie die Farben wirken."
+  },
+  "14": {
+    "title": "Metallic als Neutral",
+    "content": "Gold und Silber funktionieren als Neutrale und passen zu fast jeder Farbe. Stimmen Sie Metallic auf Ihren Unterton ab für den schmeichelhaftesten Effekt."
+  },
+  "15": {
+    "title": "Die Mustergröße zählt",
+    "content": "Wählen Sie Printgrößen, die zu Ihrer Figur passen – kleinere Frames zu kleineren Prints, größere Frames tragen kräftigere Muster, ohne überwältigt zu wirken."
+  },
+  "16": {
+    "title": "Die Drei-Teile-Regel",
+    "content": "Heben Sie jedes Outfit mit einem dritten Teil – Blazer, Cardigan, Schal oder strukturierter Tasche. So werden Basics zu kompletten, bewussten Looks."
+  },
+  "17": {
+    "title": "Proportionsspiel",
+    "content": "Balancieren Sie Volumen: Weites oben, enger unten (und umgekehrt). Das schafft schmeichelhafte Silhouetten für alle Körpertypen."
+  },
+  "18": {
+    "title": "Die Ein-Statement-Regel",
+    "content": "Lassen Sie ein Teil der Star sein. Bei mutigem Muster oder Statement-Accessoire halten Sie den Rest zurückhaltend – keine visuelle Konkurrenz."
+  },
+  "19": {
+    "title": "Die Taille definieren",
+    "content": "Definition an der natürlichen Taille – durch Gürtel, Einstecken oder taillierte Schnitte – zeichnet eine Sanduhr-Silhouette, die den meisten schmeichelt."
+  },
+  "20": {
+    "title": "Die Drittel-Regel",
+    "content": "Statt den Körper halbieren, streben Sie ein 1/3-zu-2/3-Verhältnis an (kurzes Top mit High-Waist, oder längeres Top mit kürzerem Rock) für dynamischere Proportionen."
+  },
+  "21": {
+    "title": "Vertikale Linien verlängern",
+    "content": "Vertikale Streifen, lange Ketten und offene Cardigans erzeugen Höhe und eine schlankere Silhouette. Strategisch für den Verlängerungseffekt einsetzen."
+  },
+  "22": {
+    "title": "V-Ausschnitte schmeicheln jedem",
+    "content": "V-Ausschnitte verlängern den Hals, führen den Blick vertikal und schmeicheln nahezu jeder Gesichtsform und Figur. Eine universell schmeichelhafte Wahl."
+  },
+  "23": {
+    "title": "Die Kraft der High-Waist",
+    "content": "High-Waist-Hosen und -Röcke verlängern optisch die Beine und schaffen eine längere, schlankere Linie. Besonders wirksam mit eingestecktem Top."
+  },
+  "24": {
+    "title": "Strukturiert vs. unstrukturiert ausbalancieren",
+    "content": "Kombinieren Sie strukturierte Teile (Blazer, maßgeschneiderte Hosen) mit weicheren Stücken (Seidenblusen, Stricktops) für polierte, aber zugängliche Outfits."
+  },
+  "25": {
+    "title": "Schichten ohne Volumen",
+    "content": "Schichten Sie dünne Qualitätsstoffe statt dicker. Beginnen Sie mit figurbetonter Basis und fügen Sie zunehmend lockerere Teile hinzu."
+  },
+  "26": {
+    "title": "Der Half-Tuck",
+    "content": "Ein lässiger Half-Tuck (nur die Vorderseite der Bluse einstecken) definiert die Taille und bleibt entspannt. Perfekt für Casual-Eleganz."
+  },
+  "27": {
+    "title": "Für Ihre Figur kleiden",
+    "content": "Zu wissen, ob Sie Apfel, Birne, Sanduhr oder Rechteck sind, hilft, Schnitte zu wählen, die Ihre natürlichen Proportionen betonen statt gegen sie zu arbeiten."
+  },
+  "28": {
+    "title": "Metalle aufeinander abstimmen",
+    "content": "Halten Sie Schmuck und Hardware (Gürtelschnallen, Taschenverschlüsse, Schuhdetails) in derselben Metallfamilie für einen kohärenten, polierten Look."
+  },
+  "29": {
+    "title": "Taschen sollten zur Figur passen",
+    "content": "Wählen Sie Taschengrößen proportional zum Körper – petite Frames zu kleineren Taschen; größere Frames tragen größere Modelle, ohne überwältigt zu wirken."
+  },
+  "30": {
+    "title": "Uhren als Statement-Pieces",
+    "content": "Eine gute Uhr ist funktional und fashionabel. Wählen Sie einen Stil, der Ihre Persönlichkeit spiegelt – klassisch, sportlich oder minimalistisch – und tragen Sie sie täglich."
+  },
+  "31": {
+    "title": "Schals verwandeln Outfits",
+    "content": "Ein Seidenschal geht um den Hals, als Haarband, an der Tasche oder als Gürtel. Dieses vielseitige Accessoire hebt schlichte Outfits sofort an."
+  },
+  "32": {
+    "title": "Die Gürtelposition zählt",
+    "content": "Tragen Sie Gürtel an der natürlichen Taille für den schmeichelhaftesten Effekt. Zu tief verkürzt den Oberkörper; hoch getragen verlängert die Beine."
+  },
+  "33": {
+    "title": "Sonnenbrillen formen das Gesicht",
+    "content": "Wählen Sie Sonnenbrillen, die Ihrer Gesichtsform entgegenwirken – runde Gesichter zu eckigen Fassungen, eckige Gesichter zu runden Formen."
+  },
+  "34": {
+    "title": "Weniger ist mehr beim Schmuck",
+    "content": "Wählen Sie einen Fokus – Statement-Ohrringe ODER eine kühne Kette ODER gestapelte Armbänder. Alles auf einmal verwässert die Wirkung."
+  },
+  "35": {
+    "title": "Tasche und Schuhe locker abstimmen",
+    "content": "Perfekt passende Tasche und Schuhe wirken veraltet. Streben Sie eher komplementäre Farben oder ein gemeinsames Element an (Leder, metallic Hardware)."
+  },
+  "36": {
+    "title": "Hüte vervollständigen Outfits",
+    "content": "Der richtige Hut verleiht Persönlichkeit und Finish. Wählen Sie Styles, die zu Gesicht und Lebensstil passen – vom Fedora über Baseballcap bis Baskenmütze."
+  },
+  "37": {
+    "title": "In Qualität aus Leder investieren",
+    "content": "Eine gut gemachte Ledertasche und ein Gürtel halten Jahrzehnte und entwickeln eine schöne Patina. Klassische Formen in vielseitigen Farben."
+  },
+  "38": {
+    "title": "Geschichtete Ketten",
+    "content": "Layeren Sie Ketten in unterschiedlichen Längen (Choker, Prinzessin, Opera) für moderne Dimension. Metalle einheitlich halten, Texturen und Anhänger variieren."
+  },
+  "39": {
+    "title": "Ohrringe rahmen das Gesicht",
+    "content": "Ohrringe lenken den Blick aufs Gesicht. Wählen Sie passende Styles – Stecker für den Alltag, Hänger für den Abend, Creolen für Vielseitigkeit."
+  },
+  "40": {
+    "title": "Texturen mischen",
+    "content": "Kombinieren Sie unterschiedliche Texturen (Seide mit Denim, Kaschmir mit Leder, Leinen mit Wolle), um monochromen oder schlichten Outfits Tiefe zu geben."
+  },
+  "41": {
+    "title": "Naturfasern atmen besser",
+    "content": "Baumwolle, Leinen, Wolle und Seide regulieren die Temperatur besser als Synthetik. Priorisieren Sie Naturfasern für Komfort und Langlebigkeit."
+  },
+  "42": {
+    "title": "Strick für Komfort, Gewebe für Struktur",
+    "content": "Strickstoffe (Jersey, Ponte) bieten Stretch und Komfort. Gewebte Stoffe (Popeline, Denim) geben Struktur. Wählen Sie nach dem gewünschten Effekt."
+  },
+  "43": {
+    "title": "Seide für besondere Anlässe",
+    "content": "Seide bringt sofort Luxus und Eleganz. Reservieren Sie sie für Momente, in denen Sie sich besonders fühlen wollen – Gewicht und Fall sind unübertroffen."
+  },
+  "44": {
+    "title": "Kaschmir lohnt sich",
+    "content": "Gutes Kaschmir ist weich, warm und leicht. Investieren Sie in klassische Stücke, die Sie jahrelang tragen – die Kosten pro Tragen machen es lohnenswert."
+  },
+  "45": {
+    "title": "Vielseitigkeit von Denim",
+    "content": "Qualitätsdenim ist das Rückgrat des Casual-Looks. Besitzen Sie mindestens eine gut sitzende Jeans und eine Jeansjacke – beide funktionieren über Jahreszeiten und Anlässe."
+  },
+  "46": {
+    "title": "Leinen umarmt Falten",
+    "content": "Leinen darf knicken – das ist Teil seines entspannten Charmes. Nehmen Sie die natürlichen Falten an, statt dagegen zu kämpfen. Für lockere Settings."
+  },
+  "47": {
+    "title": "Samt für Drama",
+    "content": "Samt fängt Licht wunderschön ein und bringt sofort Drama. Reservieren Sie ihn für den Abend, Herbst/Winter oder große Auftritte."
+  },
+  "48": {
+    "title": "Leder als Statement",
+    "content": "Leder (oder hochwertige vegane Alternativen) gibt Kante und Struktur. Eine Lederjacke ist ein Staple über Jahreszeiten und Stile hinweg."
+  },
+  "49": {
+    "title": "Transparente Stoffe layering",
+    "content": "Transparente Stoffe geben Dimension, wenn richtig geschichtet. Denken Sie immer an das, was darunter sichtbar ist – intentionale Layer für einen polierten Look."
+  },
+  "50": {
+    "title": "Für den Anlass plus eins kleiden",
+    "content": "Zielen Sie darauf ab, etwas besser gekleidet zu sein, als der Anlass verlangt. Unterkleidet fühlt sich unangenehm an; etwas übertrieben signalisiert Effort und Respekt."
+  },
+  "51": {
+    "title": "Dresscodes verstehen",
+    "content": "Von Black-Tie bis Smart Casual: Dresscodes kennen verhindert Peinlichkeiten. Im Zweifel den Gastgeber fragen oder etwas formeller wählen."
+  },
+  "52": {
+    "title": "Workwear-Grundlagen",
+    "content": "Bauen Sie eine Arbeitsgarderobe aus austauschbaren Teilen: Blazer, maßgeschneiderte Hosen, gute Blusen und dezente Kleider. Ziel: Outfits für eine Woche."
+  },
+  "53": {
+    "title": "Wochenend-Casual vs. schlampig",
+    "content": "Casual heißt nicht achtlos. Gut sitzende Jeans, saubere Sneaker und ein qualitatives T-Shirt wirken mühelos stilvoll. Flecken und Risse wirken schlampig."
+  },
+  "54": {
+    "title": "Date-Night-Effort",
+    "content": "Sich für Dates schick zu machen zeigt Effort und Respekt. Wählen Sie Teile, in denen Sie sich selbstbewusst und attraktiv fühlen – Ihre Energie strahlt."
+  },
+  "55": {
+    "title": "Reisen mit Komfort und Stil",
+    "content": "Airport-Style priorisiert Komfort ohne Polish zu opfern. Stretchstoffe, Slip-ons und Layer meistern Temperaturwechsel und lange Wege."
+  },
+  "56": {
+    "title": "Eindruck im Vorstellungsgespräch",
+    "content": "Erste Eindrücke zählen. Recherchieren Sie die Unternehmenskultur und kleiden Sie sich eine Stufe formeller als der Alltag. Vermeiden Sie ablenkende Muster oder Accessoires."
+  },
+  "57": {
+    "title": "Hochzeit-Gast-Etikette",
+    "content": "Nie Weiß zur Hochzeit (außer explizit erlaubt). Formalität an Ort und Uhrzeit anpassen. Im Zweifel ist Cocktail-Attire sicher."
+  },
+  "58": {
+    "title": "Respekt bei Trauerfeiern",
+    "content": "Beerdigungen erfordern dunkle, zurückhaltende Kleidung. Schwarz, Navy oder Anthrazit in einfachen, dezenten Schnitten. Helle Farben für Lebensfeiern aufheben."
+  },
+  "59": {
+    "title": "Kultureller Kontext zählt",
+    "content": "Informieren Sie sich über Kleidererwartungen in anderen Kulturen oder an religiösen Orten. Bescheidenheit, Kopfbedeckung oder Schuhe ausziehen können gelten."
+  },
+  "60": {
+    "title": "In Qualitätsbasics investieren",
+    "content": "Bauen Sie Fundament mit guten Basics: weißes Hemd, dunkle Hose, Qualitätsdenim und vielseitiger Blazer. Qualität schlägt Quantität immer."
+  },
+  "61": {
+    "title": "Die Kraft der Maßarbeit",
+    "content": "Gut sitzende Kleidung wirkt teurer als schlecht sitzende Designerware. Investieren Sie in Änderungen für Schlüsselteile – der Unterschied ist transformierend."
+  },
+  "62": {
+    "title": "Die 80/20-Kleiderschrank-Regel",
+    "content": "Sie tragen 20 % Ihrer Garderobe 80 % der Zeit. Identifizieren Sie diese Teile und investieren Sie in ihre Qualität. Regelmäßig auditieren und ausmisten."
+  },
+  "63": {
+    "title": "Kosten-pro-Tragen berechnen",
+    "content": "Teilen Sie den Preis durch erwartete Tragezeiten. Ein 200-€-Mantel, 100-mal getragen, kostet 2 € pro Mal – besser als ein 50-€-Mantel, 10-mal getragen."
+  },
+  "64": {
+    "title": "Klassisch statt trendy",
+    "content": "Investieren Sie in zeitlose Stücke und reservieren Sie Trends für günstige Accessoires. Ein klassischer Trench übersteht Jahrzehnte länger als eine Mode-Silhouette."
+  },
+  "65": {
+    "title": "Gute Schuhe zählen am meisten",
+    "content": "Menschen bemerken Schuhe. Investieren Sie in gut gemachte Klassiker, die neu besohlt werden können. Ihre Füße und Outfits danken es Ihnen."
+  },
+  "66": {
+    "title": "Das perfekte weiße Hemd",
+    "content": "Jeder Kleiderschrank braucht ein knackig weißes Hemd. Achten Sie auf Qualitätsbaumwolle, Passform in den Schultern und einen Kragen, der flach liegt."
+  },
+  "67": {
+    "title": "Investment Outerwear",
+    "content": "Mäntel sind sichtbar und prägen erste Eindrücke. Investieren Sie in Qualitäts-Outerwear in vielseitigen Farben – sie rahmen Ihren gesamten Look."
+  },
+  "68": {
+    "title": "Langsam und überlegt aufbauen",
+    "content": "Ein kuratierter Kleiderschrank braucht Zeit. Fügen Sie Stücke schrittweise hinzu und stellen Sie sicher, dass jedes zu dem passt, was Sie schon haben. Impulskäufe vermeiden."
+  },
+  "69": {
+    "title": "Ihre Nicht-Verhandelbaren kennen",
+    "content": "Identifizieren Sie, worauf Sie nicht verzichten (Komfort, ethische Produktion, bestimmte Marken) und priorisieren Sie Ausgaben dort."
+  },
+  "70": {
+    "title": "Pflegen Sie Ihre Kleidung",
+    "content": "Pflegeetiketten lesen, richtige Bügel verwenden, korrekt lagern. Gut gepflegte Kleidung hält länger und sieht bei jedem Tragen besser aus."
+  },
+  "71": {
+    "title": "Weniger waschen, mehr lüften",
+    "content": "Die meisten Kleidungsstücke brauchen keine Wäsche nach jedem Tragen. Lüften dazwischen verlängert die Lebensdauer und mindert die Umweltbelastung."
+  },
+  "72": {
+    "title": "Richtige Bügelwahl",
+    "content": "Holz- oder Polsterbügel für strukturierte Teile, Samtbügel für glatte Stoffe, Strick falten, um Schulterbeulen zu vermeiden."
+  },
+  "73": {
+    "title": "Schuhpflege-Routine",
+    "content": "Schuhe regelmäßig reinigen, pflegen und schützen. Schuhspanner für die Form. Paare rotieren, damit sie zwischen dem Tragen trocknen können."
+  },
+  "74": {
+    "title": "Reparieren vor Ersetzen",
+    "content": "Ein loser Knopf, kleines Loch oder kaputter Reißverschluss lässt sich oft günstig reparieren. Verlängern Sie die Lebensdauer durch schnelle Reparaturen."
+  },
+  "75": {
+    "title": "Saisonale Lagerung",
+    "content": "Vor dem Einlagern reinigen, atmungsaktive Hüllen nutzen und Zedernholz oder Lavendel gegen Motten. Richtige Lagerung erhält Qualität."
+  },
+  "76": {
+    "title": "Pilling vorbeugen",
+    "content": "Fusselentferner stellen Strick fast wie neu her. Vorbeugen durch Links herum waschen, Schonprogramme und Reibung vermeiden."
+  },
+  "77": {
+    "title": "Fleckenbehandlung Basics",
+    "content": "Flecken sofort behandeln, von außen nach innen. Wissen, welches Mittel zu welchem Fleck gehört – kaltes Wasser bei Blut, Sodawasser bei Wein."
+  },
+  "78": {
+    "title": "Professionelle Pflege wenn nötig",
+    "content": "Manches braucht Profi-Reinigung. Anzüge, Seide, Leder und stark verzierte Stücke gehören zu vertrauenswürdigen Reinigungen oder Spezialisten."
+  },
+  "79": {
+    "title": "Richtig bügeln und dampfen",
+    "content": "Unterschiedliche Stoffe brauchen unterschiedliche Hitze. Delikates links bügeln, Presslappen nutzen und zwischen Wäschen mit Dampf auffrischen."
+  },
+  "80": {
+    "title": "Saisonale Stoffwahl",
+    "content": "Stoffgewichte an die Jahreszeit anpassen: Leinen und Baumwolle im Sommer, Wolle und Kaschmir im Winter. So bleiben Sie komfortabel und angemessen gekleidet."
+  },
+  "81": {
+    "title": "Layering für Übergangszeiten",
+    "content": "Frühling und Herbst brauchen vielseitiges Layering. Bauen Sie Outfits, die sich Temperaturwechseln im Tagesverlauf anpassen."
+  },
+  "82": {
+    "title": "Strategien für Sommerhitze",
+    "content": "Helle Farben reflektieren Hitze, weite Schnitte lassen Luft zirkulieren, Naturfasern atmen. Strategisch für Sommerkomfort und Stil kleiden."
+  },
+  "83": {
+    "title": "Winterliche Wärmeschichten",
+    "content": "Im Winter: feuchtigkeitsableitende Basis, isolierende Mitte, wetterfeste Außenschicht. Dieses System hält warm ohne Volumen."
+  },
+  "84": {
+    "title": "Übergangs-Garderobenteile",
+    "content": "Trenches, leichter Strick und vielseitige Blazer funktionieren jahreszeitenübergreifend. Investieren Sie in Stücke, die Wetterübergänge überbrücken."
+  },
+  "85": {
+    "title": "Wettergerechtes Schuhwerk",
+    "content": "Schuhe an Bedingungen anpassen: wasserabweisend bei Regen, isoliert bei Kälte, atmungsaktiv bei Hitze. Stil und Funktion können koexistieren."
+  },
+  "86": {
+    "title": "Farbpalette nach Saison",
+    "content": "Verschieben Sie Ihre Palette: Erdtöne im Herbst, kühle Neutrale im Winter, weiche Pastelle im Frühling, vibrierende Brights im Sommer."
+  },
+  "87": {
+    "title": "Festliches Ankleiden",
+    "content": "Bauen Sie eine kleine Sammlung festlicher Stücke für Feiertage. Metallics, Samt und Juwelentöne passen zu den meisten Feiern."
+  },
+  "88": {
+    "title": "Vorbereitung für Outdoor-Events",
+    "content": "Für Outdoor-Events auf Wetterwechsel vorbereiten: Layer, Regenjacken oder Sonnenschutz mitbringen. Forecast und Venue checken."
+  },
+  "89": {
+    "title": "Saisonale Kleiderschrank-Rotation",
+    "content": "Rotieren Sie die Garderobe saisonal. Off-Season richtig lagern und frische Stücke hervorholen – der Schrank bleibt handhabbar und inspirierend."
+  },
+  "90": {
+    "title": "Selbstvertrauen ist Ihr bestes Accessoire",
+    "content": "Tragen Sie, was Sie selbstbewusst und komfortabel macht. Die Bestgekleideten besitzen ihren Personal Style, statt jedem Trend zu folgen."
+  },
+  "91": {
+    "title": "Für jetzt kleiden, nicht für später",
+    "content": "Warten Sie nicht aufs Abnehmen oder ein Ziel. Kleiden Sie den Körper von heute schön – Sie verdienen, sich jetzt gut zu fühlen."
+  },
+  "92": {
+    "title": "Größenetiketten ignorieren",
+    "content": "Größen variieren stark zwischen Marken. Fokus auf Passform, nicht auf die Zahl. Die bestpassende Größe ist die richtige."
+  },
+  "93": {
+    "title": "Betonen, was Sie lieben",
+    "content": "Statt vermeintliche Fehler zu verstecken, lenken Sie Aufmerksamkeit auf Features, die Sie lieben. Schöne Arme? Zeigen. Schöne Beine? Kürzere Hemden."
+  },
+  "94": {
+    "title": "Komfort erzeugt Selbstvertrauen",
+    "content": "Wenn Sie ständig zurechtrücken oder unwohl sind, sieht man das. Priorisieren Sie gut sitzende, angenehme Kleidung – Selbstvertrauen folgt."
+  },
+  "95": {
+    "title": "Personal Style vor Mode-Regeln",
+    "content": "Style-Regeln sind Leitlinien, keine Gesetze. Passt eine „Regel“ nicht oder macht sie unglücklich – brechen. Authentischer Personal Style schlägt alles."
+  },
+  "96": {
+    "title": "Einzigartige Features annehmen",
+    "content": "Was Sie anders macht, macht Sie erinnerungswürdig. Umarmen Sie Besonderheiten – ungewohnte Proportionen, markantes Kolorit – als Signature-Style."
+  },
+  "97": {
+    "title": "Altersangemessenheit ist ein Mythos",
+    "content": "Es gibt kein Alterslimit für Style. Tragen Sie, was Sie sich wunderbar fühlen lässt – Minirock mit 60 oder souveräner Anzug mit 25."
+  },
+  "98": {
+    "title": "Qualität vor Quantität",
+    "content": "Investieren Sie in weniger, bessere Stücke statt Fast Fashion. Qualitätsstoffe, Verarbeitung und zeitloses Design überdauern Trends und kosten weniger pro Tragen."
+  },
+  "99": {
+    "title": "Zuerst Secondhand",
+    "content": "Bevor Sie neu kaufen, Secondhand prüfen. Secondhand-Läden, Vintage und Resale-Plattformen bieten Unique Pieces mit geringerem Umweltimpact."
+  },
+  "100": {
+    "title": "Ihre Marken kennen",
+    "content": "Recherchieren Sie Ethik und Nachhaltigkeit der Marken, bei denen Sie kaufen. Unterstützen Sie jene, die zu Ihren Werten zu Produktion, Arbeitskräften und Umwelt passen."
+  },
+  "101": {
+    "title": "Die Eins-rein-eins-raus-Regel",
+    "content": "Für jedes neue Teil eins spenden oder verkaufen. So bleibt die Garderobe handhabbar und Käufe werden bewusster."
+  },
+  "102": {
+    "title": "Capsule-Wardrobe-Mindset",
+    "content": "Eine Capsule mit 30–40 vielseitigen Teilen, die alle zusammenpassen, reduziert Entscheidungsmüdigkeit und Umweltimpact und maximiert Style."
+  },
+  "103": {
+    "title": "Reparieren und upcyclen",
+    "content": "Lernen Sie Basis-Reparaturen oder finden Sie einen guten Schneider. Alte Stücke durch Änderungen, Färben oder kreatives Neu-Denken wiederbeleben."
+  },
+  "104": {
+    "title": "Für besondere Anlässe mieten",
+    "content": "Für einmalige Events Mietservices erwägen. Access zu Designerteilen ohne Kosten und Umweltimpact eines Einmal-Kaufs."
+  },
+  "105": {
+    "title": "Naturfasern priorisieren",
+    "content": "Wählen Sie wo möglich natürliche, biologisch abbaubare Fasern (Baumwolle, Leinen, Wolle, Seide) statt Synthetik. Besser für den Planeten und oft komfortabler."
+  }
+}

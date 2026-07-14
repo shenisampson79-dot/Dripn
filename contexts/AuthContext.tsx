@@ -646,6 +646,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userName = credential.fullName?.givenName 
           ? `${credential.fullName.givenName} ${credential.fullName.familyName || ''}`.trim()
           : undefined;
+        if (!idToken) {
+          throw new Error('Apple Sign-In did not return an identity token');
+        }
+        const result = await apiService.socialLogin('apple', '', idToken, {
+          email: userEmail,
+          displayName: userName,
+          providerUserId: credential.user,
+        });
+        if (!result || !result.token || !result.user) {
+          throw new Error('Invalid response from authentication server');
+        }
+        const backendUser = result.user;
+        if (!backendUser.id) {
+          throw new Error('Authentication failed: No user ID received');
+        }
+        let newUser = createDefaultUser(
+          backendUser.email || userEmail || 'apple_user@privaterelay.appleid.com',
+          backendUser.displayName || userName || 'Apple User'
+        );
+        newUser.id = backendUser.id.toString();
+        if (backendUser.hasCompletedOnboarding !== undefined) {
+          newUser.hasCompletedOnboarding = backendUser.hasCompletedOnboarding;
+        }
+        newUser = await hydrateAndSyncUserProfileAfterAuth(newUser, {
+          backendLoginUser: backendUser,
+          preserveLocalEmail: backendUser.email || userEmail || newUser.email,
+        });
+        await saveUserLocalOnly(newUser);
+        return;
       } else if (provider === 'google') {
         const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
         if (!googleClientId) {

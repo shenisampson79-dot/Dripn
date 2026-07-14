@@ -1,0 +1,439 @@
+{
+  "1": {
+    "title": "La règle de trois",
+    "content": "Limitez votre tenue à trois couleurs principales maximum. Cela crée une harmonie visuelle et évite un look chaotique ou trop chargé.",
+    "colorSwatches": {
+      "Navy": "Marine",
+      "White": "Blanc",
+      "Camel": "Camel"
+    }
+  },
+  "2": {
+    "title": "Habillez-vous selon votre saison de couleur",
+    "content": "Porter des couleurs qui complètent votre coloris naturel (teint, cheveux, yeux) vous rend plus lumineux et rayonnant. Découvrez si vous êtes Printemps, Été, Automne ou Hiver.",
+    "colorSwatches": {
+      "Warm Gold": "Or chaud",
+      "Cool Silver": "Argent froid"
+    }
+  },
+  "3": {
+    "title": "Base neutre, accent de couleur",
+    "content": "Construisez vos tenues sur des fondations neutres (noir, blanc, gris, marine, beige) et introduisez la couleur via les accessoires ou une pièce signature."
+  },
+  "4": {
+    "title": "Comprendre les tons chauds vs froids",
+    "content": "Les sous-tons chauds s'accordent superbement aux couleurs terreuses (olive, moutarde, corail), tandis que les sous-tons froids brillent dans les tons bijou (émeraude, saphir, rubis). Les connaître transforme vos achats.",
+    "colorSwatches": {
+      "Mustard": "Moutarde",
+      "Emerald": "Émeraude"
+    }
+  },
+  "5": {
+    "title": "Le pouvoir du monochrome",
+    "content": "S'habiller dans une même famille de couleurs allonge et sophistique la silhouette. Variez les nuances et les textures dans la même teinte pour plus de profondeur."
+  },
+  "6": {
+    "title": "Maîtriser les couleurs complémentaires",
+    "content": "Les couleurs opposées sur le cercle chromatique (bleu/orange, violet/jaune, rouge/vert) créent des tenues frappantes et dynamiques lorsqu'elles sont bien équilibrées.",
+    "colorSwatches": {
+      "Royal Blue": "Bleu royal",
+      "Burnt Orange": "Orange brûlé"
+    }
+  },
+  "7": {
+    "title": "Le marine est le nouveau noir",
+    "content": "Le marine est universellement flatteur et s'associe à davantage de couleurs que le noir. Plus doux, plus accessible, et tout aussi polyvalent."
+  },
+  "8": {
+    "title": "Le blanc illumine le visage",
+    "content": "Porter du blanc ou de la crème près du visage réfléchit la lumière vers le haut : vous paraissez plus éveillé et lumineux. Idéal pour les visioconférences et les photos."
+  },
+  "9": {
+    "title": "Mélanger les motifs avec la couleur",
+    "content": "En mélangeant les motifs, assurez-vous qu'ils partagent au moins une couleur commune. Cela crée de la cohérence même avec des échelles et styles différents."
+  },
+  "10": {
+    "title": "La règle des couleurs 60-30-10",
+    "content": "Utilisez votre couleur dominante pour 60 % de la tenue, la secondaire pour 30 %, et l'accent pour 10 %. Résultat : des looks équilibrés et agréables."
+  },
+  "11": {
+    "title": "Rotation saisonnière des couleurs",
+    "content": "Faites tourner votre palette avec les saisons : tons bijou riches en automne/hiver, pastels et teintes vives au printemps/été. Votre garde-robe reste fraîche."
+  },
+  "12": {
+    "title": "Noir de la tête aux pieds",
+    "content": "Les looks tout noir sont intemporels et amincissants, mais demandent une variation de textures (mat, brillant, maille) pour éviter un rendu plat ou costumé."
+  },
+  "13": {
+    "title": "Les bases du color blocking",
+    "content": "Le color blocking utilise des blocs de couleurs unies contrastées pour un impact audacieux. Gardez des silhouettes simples et laissez parler les couleurs."
+  },
+  "14": {
+    "title": "Les métalliques comme neutres",
+    "content": "L'or et l'argent fonctionnent comme des neutres et s'associent à presque toutes les couleurs. Accordez le métallique à votre sous-ton pour l'effet le plus flatteur."
+  },
+  "15": {
+    "title": "L'échelle du motif compte",
+    "content": "Choisissez des motifs adaptés à votre morphologie : les silhouettes plus petites se favorisent avec des petits motifs ; les plus grandes portent mieux les imprimés audacieux."
+  },
+  "16": {
+    "title": "La règle de la troisième pièce",
+    "content": "Élevez toute tenue en ajoutant une troisième pièce — blazer, cardigan, foulard ou sac structuré. Les combinaisons basiques deviennent des looks intentionnels."
+  },
+  "17": {
+    "title": "Jouer avec les proportions",
+    "content": "Équilibrez les volumes : si le haut est ample, optez pour un bas près du corps (et inversement). Des silhouettes flatteuses pour toutes les morphologies."
+  },
+  "18": {
+    "title": "La règle d'une seule pièce statement",
+    "content": "Laissez une pièce être la star. Avec un motif audacieux ou un accessoire fort, gardez le reste sobre pour éviter la compétition visuelle."
+  },
+  "19": {
+    "title": "Définir la taille",
+    "content": "Créer une définition à la taille naturelle — ceinture, rentrage ou coupe ajustée — dessine une silhouette sablier flatteuse pour la plupart des morphologies."
+  },
+  "20": {
+    "title": "La règle des tiers",
+    "content": "Au lieu de couper le corps en deux, visez un ratio 1/3–2/3 (haut court avec bas taille haute, ou haut long avec jupe plus courte) pour des proportions plus dynamiques."
+  },
+  "21": {
+    "title": "Les lignes verticales allongent",
+    "content": "Rayures verticales, longs colliers et gilets ouverts créent une illusion de hauteur et d'élancement. Utilisez-les stratégiquement pour allonger."
+  },
+  "22": {
+    "title": "Les décolletés en V flattent tout le monde",
+    "content": "Les encolures en V allongent le cou, guident le regard verticalement et flatteent presque toutes les formes de visage et morphologies. Un choix universel."
+  },
+  "23": {
+    "title": "Le pouvoir de la taille haute",
+    "content": "Les bas taille haute allongent visuellement les jambes et créent une silhouette plus longue et élancée. Particulièrement efficaces avec un haut rentré."
+  },
+  "24": {
+    "title": "Équilibre structuré vs non structuré",
+    "content": "Associez des pièces structurées (blazers, pantalons tailleur) à des articles plus souples (chemisier soie, tops maille) pour un look soigné mais accessible."
+  },
+  "25": {
+    "title": "Superposer sans volume",
+    "content": "Superposez des tissus fins de qualité plutôt qu'épais. Commencez par des couches de base près du corps, puis ajoutez des pièces progressivement plus amples."
+  },
+  "26": {
+    "title": "Le half-tuck",
+    "content": "Un rentrage partiel (juste le devant de la chemise) définit la taille tout en gardant un côté décontracté et effortless. Parfait pour l'élégance casual."
+  },
+  "27": {
+    "title": "Habillez-vous pour votre morphologie",
+    "content": "Savoir si vous êtes pomme, poire, sablier ou rectangle vous aide à choisir des coupes qui mettent en valeur vos proportions naturelles plutôt que de les combattre."
+  },
+  "28": {
+    "title": "Accordez vos métaux",
+    "content": "Gardez bijoux et quincaillerie (boucles de ceinture, fermoirs de sac, détails de chaussures) dans la même famille métallique pour un look cohérent et soigné."
+  },
+  "29": {
+    "title": "Les sacs doivent convenir à votre silhouette",
+    "content": "Choisissez des tailles de sac proportionnées à votre corps — petites silhouettes pour petits sacs ; plus grandes pour des modèles plus volumineux sans être écrasées."
+  },
+  "30": {
+    "title": "Les montres comme pièces statements",
+    "content": "Une montre de qualité est à la fois fonctionnelle et fashion. Choisissez un style qui reflète votre personnalité — classique, sportif ou minimaliste — et portez-la au quotidien."
+  },
+  "31": {
+    "title": "Les foulards transforment les tenues",
+    "content": "Un foulard en soie se porte autour du cou, en bandeau, noué au sac ou en ceinture. Cet accessoire polyvalent élève instantanément une tenue simple."
+  },
+  "32": {
+    "title": "Le placement de la ceinture compte",
+    "content": "Portez la ceinture à la taille naturelle pour l'effet le plus flatteur. Trop basse, elle raccourcit le buste ; trop haute, elle allonge les jambes."
+  },
+  "33": {
+    "title": "Les lunettes de soleil sculptent le visage",
+    "content": "Choisissez des lunettes qui contrastent avec la forme de votre visage — visages ronds avec montures angulaires, visages carrés avec formes arrondies."
+  },
+  "34": {
+    "title": "Moins, c'est plus avec les bijoux",
+    "content": "Choisissez un point focal — boucles d'oreilles statements OU collier audacieux OU bracelets empilés. Tout porter dilue l'impact."
+  },
+  "35": {
+    "title": "Accordez sac et chaussures avec souplesse",
+    "content": "Le matching parfait sac/chaussures fait daté. Visez plutôt des couleurs complémentaires ou un élément partagé (cuir, quincaillerie métallique)."
+  },
+  "36": {
+    "title": "Les chapeaux complètent les tenues",
+    "content": "Le bon chapeau ajoute personnalité et polish. Choisissez des styles adaptés à votre visage et votre style de vie — du fedora à la casquette en passant par le béret."
+  },
+  "37": {
+    "title": "Investissez dans de beaux articles en cuir",
+    "content": "Un sac et une ceinture en cuir bien faits durent des décennies et développent une belle patine. Choisissez des formes classiques en couleurs polyvalentes."
+  },
+  "38": {
+    "title": "Colliers superposés",
+    "content": "Superposez des colliers de longueurs variées (ras-de-cou, princesse, opera) pour une dimension moderne. Gardez les métaux cohérents et variez textures et pendentifs."
+  },
+  "39": {
+    "title": "Les boucles d'oreilles encadrent le visage",
+    "content": "Les boucles d'oreilles attirent l'attention sur le visage. Choisissez des styles adaptés — clous au quotidien, gouttes pour le soir, créoles pour la versatilité."
+  },
+  "40": {
+    "title": "Mélanger les textures",
+    "content": "Combinez des textures différentes (soie et denim, cachemire et cuir, lin et laine) pour ajouter profondeur et intérêt aux tenues monochromes ou simples."
+  },
+  "41": {
+    "title": "Les fibres naturelles respirent mieux",
+    "content": "Coton, lin, laine et soie régulent mieux la température que les synthétiques. Privilegiez les tissus naturels pour le confort et la longévité."
+  },
+  "42": {
+    "title": "Maille pour le confort, tissé pour la structure",
+    "content": "Les tissus maille (jersey, ponte) offrent stretch et confort. Les tissés (popeline, denim) apportent de la structure. Choisissez selon l'effet voulu."
+  },
+  "43": {
+    "title": "La soie pour les occasions spéciales",
+    "content": "La soie ajoute luxue et élégance instantanément. Réservez-la aux moments où vous voulez vous sentir spéciale — poids et drapé sont inégalés."
+  },
+  "44": {
+    "title": "Le cachemire en vaut la peine",
+    "content": "Un cachemire de qualité est doux, chaud et léger. Investissez dans des pièces classiques que vous porterez des années — le coût par port le justifie."
+  },
+  "45": {
+    "title": "La polyvalence du denim",
+    "content": "Un bon denim est le pilier du style casual. Possédez au moins un jean bien coupé et une veste en jean — les deux fonctionnent toutes saisons et occasions."
+  },
+  "46": {
+    "title": "Le lin embrasse les froissements",
+    "content": "Le lin est fait pour se froisser — c'est son charme décontracté. Acceptez les plis naturels plutôt que de les combattre. À réserver au casual."
+  },
+  "47": {
+    "title": "Le velours pour le drama",
+    "content": "Le velours capte magnifiquement la lumière et ajoute un drama instantané. Réservez-le au soir, à l'automne/hiver, ou quand vous voulez faire une entrée."
+  },
+  "48": {
+    "title": "Le cuir comme statement",
+    "content": "Le cuir (ou de bonnes alternatives vegan) ajoute du caractère et de la structure. Une veste en cuir est un indispensable transversal."
+  },
+  "49": {
+    "title": "Superposer les tissus transparents",
+    "content": "Les tissus transparents ajoutent de la dimension lorsqu'ils sont bien superposés. Pensez toujours à ce qui se voit en dessous — une superposition intentionnelle pour un rendu soigné."
+  },
+  "50": {
+    "title": "Habillez-vous pour l'occasion plus un cran",
+    "content": "Visez d'être légèrement mieux habillé que ne l'exige l'occasion. Être sous-habillé est gênant ; être un peu trop bien marque l'effort et le respect."
+  },
+  "51": {
+    "title": "Comprendre les codes vestimentaires",
+    "content": "Du black-tie au smart casual, comprendre les dress codes évite les malaises. En cas de doute, demandez à l'hôte ou privilégiez un cran plus formel."
+  },
+  "52": {
+    "title": "Fondations du workwear",
+    "content": "Construisez une garde-robe pro d'éléments interchangeables : blazers, pantalons tailleur, chemisiers de qualité et robes sobres. Visez une semaine de tenues."
+  },
+  "53": {
+    "title": "Casual weekend vs négligé",
+    "content": "Casual ne veut pas dire négligé. Un jean bien coupé, des baskets propres et un t-shirt de qualité font un style effortless. Taches et trous font négligé."
+  },
+  "54": {
+    "title": "L'effort du soir de rendez-vous",
+    "content": "S'habiller pour un rendez-vous montre effort et respect. Choisissez des pièces qui vous donnent confiance — votre énergie rayonnera."
+  },
+  "55": {
+    "title": "Voyager avec confort et style",
+    "content": "Le style aéroport doit prioriser le confort sans sacrifier le polish. Tissus stretch, chaussures enfilables et couches gèrent température et longs trajets."
+  },
+  "56": {
+    "title": "Premières impressions en entretien",
+    "content": "Les premières impressions comptent. Renseignez-vous sur la culture de l'entreprise et habillez-vous un cran plus formel que le quotidien. Évitez motifs et accessoires distrayants."
+  },
+  "57": {
+    "title": "Étiquette d'invité de mariage",
+    "content": "Ne portez jamais de blanc à un mariage (sauf demande explicite). Accordez la formalité au lieu et à l'horaire. En cas de doute, la tenue cocktail est sûre."
+  },
+  "58": {
+    "title": "Respect pour un enterrement",
+    "content": "Les obsèques appellent des vêtements sombres et sobres. Noir, marine ou anthracite en coupes simples et modestes. Réservez les couleurs vives aux célébrations de la vie."
+  },
+  "59": {
+    "title": "Le contexte culturel compte",
+    "content": "Renseignez-vous sur les attentes vestimentaires dans d'autres cultures ou lieux religieux. Modestie, couvre-chef ou retrait des chaussures peuvent s'appliquer."
+  },
+  "60": {
+    "title": "Investissez dans des basiques de qualité",
+    "content": "Bâtissez vos fondations avec de bons basiques : chemise blanche, pantalon sombre, denim de qualité et blazer polyvalent. Qualité avant quantité."
+  },
+  "61": {
+    "title": "Le pouvoir de l'ajustement",
+    "content": "Des vêtements bien ajustés paraissent plus chers que du designer mal coupé. Investissez dans les retouches pour les pièces clés — la différence est transformative."
+  },
+  "62": {
+    "title": "La règle garde-robe 80/20",
+    "content": "Vous portez 20 % de votre garde-robe 80 % du temps. Identifiez ces pièces clés et investissez dans leur qualité. Auditez et éditez régulièrement."
+  },
+  "63": {
+    "title": "Calculer le coût par port",
+    "content": "Divisez le prix par le nombre de ports attendus. Un manteau à 200 € porté 100 fois coûte 2 € par port — meilleur rapport qu'un manteau à 50 € porté 10 fois."
+  },
+  "64": {
+    "title": "Classique plutôt que tendance",
+    "content": "Investissez dans des pièces intemporelles et réservez les tendances aux accessoires abordables. Un trench classique survit des décennies à une silhouette à la mode."
+  },
+  "65": {
+    "title": "Les chaussures de qualité comptent le plus",
+    "content": "On remarque les chaussures. Investissez dans des modèles classiques bien faits qui se ressemellent. Vos pieds et vos tenues vous en remercieront."
+  },
+  "66": {
+    "title": "La chemise blanche parfaite",
+    "content": "Toute garde-robe a besoin d'une chemise blanche impeccable. Cherchez un coton de qualité, une bonne coupe d'épaules et un col qui tombe bien à plat."
+  },
+  "67": {
+    "title": "Investir dans les manteaux",
+    "content": "Les manteaux sont visibles et font la première impression. Investissez dans des pièces de qualité en couleurs polyvalentes — elles encadrent tout le look."
+  },
+  "68": {
+    "title": "Construire lentement et avec intention",
+    "content": "Une garde-robe curatée prend du temps. Ajoutez progressivement, en vous assurant que chaque pièce s'accorde avec l'existant. Résistez aux achats impulsifs."
+  },
+  "69": {
+    "title": "Connaître vos non-négociables",
+    "content": "Identifiez ce sur quoi vous refusez de transiger (confort, production éthique, certaines marques) et priorisez vos dépenses là."
+  },
+  "70": {
+    "title": "Prenez soin de vos vêtements",
+    "content": "Lisez les étiquettes d'entretien, utilisez de bons cintres et rangez correctement. Des vêtements bien entretenus durent plus longtemps et restent beaux."
+  },
+  "71": {
+    "title": "Lavez moins, aérez plus",
+    "content": "La plupart des vêtements n'ont pas besoin d'être lavés après chaque port. Aérer entre deux ports prolonge leur vie et réduit l'impact environnemental."
+  },
+  "72": {
+    "title": "Choisir les bons cintres",
+    "content": "Cintres en bois ou rembourrés pour les pièces structurées, velours pour les tissus glissants, et pliez les mailles pour éviter les bosses aux épaules."
+  },
+  "73": {
+    "title": "Routine d'entretien des chaussures",
+    "content": "Nettoyez, nourrissez et protégez régulièrement. Utilisez des embauchoirs pour garder la forme. Alternez les paires pour les laisser sécher entre les ports."
+  },
+  "74": {
+    "title": "Réparer avant de remplacer",
+    "content": "Un bouton lâche, un petit trou ou une fermeture cassée se réparent souvent à peu de frais. Prolongez la vie des vêtements par des réparations rapides."
+  },
+  "75": {
+    "title": "Rangement saisonnier",
+    "content": "Nettoyez avant de ranger, utilisez des housses respirantes et ajoutez cèdre ou lavande contre les mites. Un bon stockage préserve la qualité."
+  },
+  "76": {
+    "title": "Prévenir le boulochage",
+    "content": "Les anti-bouloches restaurent les mailles presque comme neuves. Prévenez en lavant à l'envers, en cycle doux, et en évitant les frottements."
+  },
+  "77": {
+    "title": "Bases du traitement des taches",
+    "content": "Traitez immédiatement, de l'extérieur vers l'intérieur. Sachez quels traitements pour quelles taches — eau froide pour le sang, eau pétillante pour le vin."
+  },
+  "78": {
+    "title": "Soin professionnel quand nécessaire",
+    "content": "Certains articles demandent un nettoyage pro. Costumes, soie, cuir et pièces très ornées vont chez un teinturier ou un spécialiste de confiance."
+  },
+  "79": {
+    "title": "Repasser et vaporiser correctement",
+    "content": "Chaque tissu a sa température. Repassez à l'envers les délicats, utilisez un linge de protection, et vaposez pour rafraîchir entre deux lavages."
+  },
+  "80": {
+    "title": "Choix de tissus saisonniers",
+    "content": "Adaptez le poids des tissus aux saisons : lin et coton en été, laine et cachemire en hiver. Confort et tenue appropriée garantis."
+  },
+  "81": {
+    "title": "Superposer pour le temps de transition",
+    "content": "Printemps et automne demandent une superposition polyvalente. Construisez des tenues qui s'adaptent aux changements de température dans la journée."
+  },
+  "82": {
+    "title": "Stratégies pour la chaleur estivale",
+    "content": "Les couleurs claires réfléchissent la chaleur, les coupes amples laissent circuler l'air, et les fibres naturelles respirent. Habillez-vous stratégiquement pour l'été."
+  },
+  "83": {
+    "title": "Couches pour la chaleur hivernale",
+    "content": "Superposez pour l'hiver : base qui évacue l'humidité, milieu isolant, extérieur résistant. Ce système réchauffe sans volume excessif."
+  },
+  "84": {
+    "title": "Pièces de transition",
+    "content": "Trenches, mailles légères et blazers polyvalents fonctionnent toutes saisons. Investissez dans des pièces qui bridgent les transitions météo."
+  },
+  "85": {
+    "title": "Chaussures adaptées à la météo",
+    "content": "Adaptez les chaussures aux conditions : résistantes à l'eau pour la pluie, isolantes pour le froid, respirantes pour la chaleur. Style et fonction coexistent."
+  },
+  "86": {
+    "title": "Palette de couleurs par saison",
+    "content": "Faites évoluer votre palette : tons terre en automne, neutres froids en hiver, pastels doux au printemps, brights vibrants en été."
+  },
+  "87": {
+    "title": "S'habiller pour les fêtes",
+    "content": "Constituez une petite collection festive polyvalente. Métalliques, velours et tons bijou conviennent à la plupart des célébrations."
+  },
+  "88": {
+    "title": "Préparer un événement en extérieur",
+    "content": "Pour l'extérieur, prévoyez les changements météo : couches, imperméables ou protection solaire. Vérifiez la météo et le lieu."
+  },
+  "89": {
+    "title": "Rotation saisonnière de la garde-robe",
+    "content": "Faites tourner votre garde-robe avec les saisons. Rangez correctement le hors-saison et sortez des pièces fraîches — dressing gérable et inspirant."
+  },
+  "90": {
+    "title": "La confiance est votre meilleur accessoire",
+    "content": "Portez ce qui vous donne confiance et confort. Les mieux habillés s'approprient leur style personnel plutôt que de suivre chaque tendance."
+  },
+  "91": {
+    "title": "Habillez-vous pour aujourd'hui, pas pour plus tard",
+    "content": "N'attendez pas de perdre du poids ou d'atteindre un objectif. Habillez-vous joliment pour le corps que vous avez aujourd'hui — vous méritez de vous sentir bien maintenant."
+  },
+  "92": {
+    "title": "Ignorez les étiquettes de taille",
+    "content": "Les tailles varient énormément selon les marques. Concentrez-vous sur la coupe, pas sur le chiffre. La bonne taille est celle qui vous va."
+  },
+  "93": {
+    "title": "Mettez en valeur ce que vous aimez",
+    "content": "Au lieu de cacher des « défauts » perçus, attirez l'attention sur ce que vous aimez. Beaux bras ? Montrez-les. Jambes ? Optez pour des ourlets plus courts."
+  },
+  "94": {
+    "title": "Le confort nourrit la confiance",
+    "content": "Quand vous vous ajustez sans cesse ou êtes mal à l'aise, cela se voit. Privilegiez des vêtements bien coupés et agréables — la confiance suivra."
+  },
+  "95": {
+    "title": "Style personnel plutôt que règles de mode",
+    "content": "Les règles de style sont des guides, pas des lois. Si une « règle » ne vous convient pas, cassez-la. Un style authentique prime sur tout."
+  },
+  "96": {
+    "title": "Embrassez vos particularités",
+    "content": "Ce qui vous rend différent vous rend mémorable. Embrassez vos traits uniques — proportions atypiques, coloris distinctif — comme signatures de style."
+  },
+  "97": {
+    "title": "L'âge approprié est un mythe",
+    "content": "Il n'y a pas d'âge pour le style. Portez ce qui vous fait vous sentir bien, que ce soit une mini jupe à 60 ans ou un costume sophistiqué à 25."
+  },
+  "98": {
+    "title": "Qualité plutôt que quantité",
+    "content": "Investissez dans moins de pièces, mais de meilleures — plutôt que la fast fashion. Tissus, construction et design intemporel durent plus longtemps."
+  },
+  "99": {
+    "title": "Seconde main d'abord",
+    "content": "Avant d'acheter neuf, regardez la seconde main. Friperies, vintage et plateformes de revente offrent des pièces uniques avec moins d'impact environnemental."
+  },
+  "100": {
+    "title": "Connaître vos marques",
+    "content": "Renseignez-vous sur l'éthique et la durabilité des marques que vous achetez. Soutenez celles alignées avec vos valeurs pour la production, les travailleurs et l'environnement."
+  },
+  "101": {
+    "title": "La règle un entre, un sort",
+    "content": "Pour chaque nouvel article, donnez ou vendez-en un. Cela maintient une garde-robe gérable et encourage des achats réfléchis."
+  },
+  "102": {
+    "title": "L'état d'esprit capsule",
+    "content": "Une garde-robe capsule de 30 à 40 pièces polyvalentes qui s'accordent toutes réduit la fatigue décisionnelle et l'impact environnemental tout en maximisant le style."
+  },
+  "103": {
+    "title": "Réparer et upcycler",
+    "content": "Apprenez les réparations de base ou trouvez un bon tailleur. Redonnez vie aux anciennes pièces par retouches, teinture ou réinterprétation créative."
+  },
+  "104": {
+    "title": "Louer pour les occasions spéciales",
+    "content": "Pour un événement ponctuel, envisagez la location. Accédez à du designer sans le coût ni l'impact d'un achat à usage unique."
+  },
+  "105": {
+    "title": "Priorité aux fibres naturelles",
+    "content": "Choisissez des fibres naturelles biodégradables (coton, lin, laine, soie) plutôt que synthétiques quand c'est possible. Meilleures pour la planète et souvent plus confortables."
+  }
+}

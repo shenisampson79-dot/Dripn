@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslations } from '@/contexts/TranslationContext';
 import pushNotificationService from '@/services/PushNotificationService';
 import weatherService, { type WeatherCondition as OutfitWeatherCondition } from '@/services/WeatherService';
 
@@ -280,6 +281,7 @@ const MOCK_TREND_NOTIFICATIONS: TrendNotification[] = [
 
 export function SmartNotificationsProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
+  const { currentLanguage } = useTranslations();
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
   const [weatherSuggestion, setWeatherSuggestion] = useState<WeatherOutfitSuggestion | null>(null);
   const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
@@ -393,10 +395,15 @@ export function SmartNotificationsProvider({ children }: { children: ReactNode }
       const liveWeather = await weatherService.getWeatherForOutfits().catch(() => null);
       if (!liveWeather) return false;
 
-      const weatherData = mapOutfitWeatherToNotificationData(liveWeather);
-      const recommendation = weatherService.getOutfitRecommendation(
+      const localizedWeather = weatherService.localizeWeatherCondition(
         liveWeather,
+        currentLanguage,
+      );
+      const weatherData = mapOutfitWeatherToNotificationData(localizedWeather);
+      const recommendation = weatherService.getOutfitRecommendation(
+        localizedWeather,
         user?.gender ?? 'unspecified',
+        currentLanguage,
       );
       const suggestion = buildSuggestionFromOutfitRecommendation(weatherData, recommendation);
 
@@ -465,7 +472,7 @@ export function SmartNotificationsProvider({ children }: { children: ReactNode }
     } catch (err) {
       console.error('Failed to get weather:', err);
     }
-  }, [user?.id, user?.gender]);
+  }, [user?.id, user?.gender, currentLanguage]);
 
   const addPriceAlert = useCallback(async (
     alertData: Omit<PriceAlert, 'id' | 'isTriggered' | 'createdAt' | 'lastCheckedAt'>

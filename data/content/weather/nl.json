@@ -1,0 +1,247 @@
+{
+  "descriptions": {
+    "0": "Heldere hemel",
+    "1": "Overwegend helder",
+    "2": "Gedeeltelijk bewolkt",
+    "3": "Bewolkt",
+    "45": "Mist",
+    "48": "Rijpmist",
+    "51": "Lichte motregen",
+    "53": "Matige motregen",
+    "55": "Dichte motregen",
+    "61": "Lichte regen",
+    "63": "Matige regen",
+    "65": "Hevige regen",
+    "71": "Lichte sneeuw",
+    "73": "Matige sneeuw",
+    "75": "Zware sneeuw",
+    "80": "Lichte buien",
+    "81": "Matige buien",
+    "82": "Zware buien",
+    "95": "Onweer",
+    "96": "Onweer met lichte hagel",
+    "99": "Onweer met zware hagel"
+  },
+  "descriptionFallback": "Onbekend",
+  "defaultDescription": "Gedeeltelijk bewolkt",
+  "locationFallback": "Jouw locatie",
+  "unknownLocation": {
+    "yourLocation": "Jouw locatie",
+    "yourLocationTitle": "Jouw locatie",
+    "unknown": "Onbekend"
+  },
+  "bands": {
+    "hot": {
+      "layers": [
+        "Eén ademende laag — geen extra lagen nodig"
+      ],
+      "keyPiecesFemale": [
+        "Linnen jurk of rok",
+        "Katoenen blouse",
+        "Ademende short",
+        "Sandalen of loafers"
+      ],
+      "keyPiecesMale": [
+        "Linnen of katoenen overhemd",
+        "Lichte chino's of short",
+        "Ademende polo",
+        "Sneakers of loafers"
+      ],
+      "accessories": [
+        "Zonnebril",
+        "Brede hoed",
+        "Waterfles"
+      ],
+      "colors": [
+        "Wit",
+        "Crème",
+        "Pastels",
+        "Lichtblauw"
+      ],
+      "fabricTips": "Alleen linnen en katoen — sla gebreide stoffen, lagen en jassen over bij deze hitte.",
+      "stylingNoteTemplate": "Warme dag ({peakTemp}°C). Eén lichte outfit is genoeg — laat jassen en lagen thuis."
+    },
+    "warm": {
+      "layers": [
+        "Lichte basislaag",
+        "Optioneel licht omslagstuk"
+      ],
+      "keyPiecesFemale": [
+        "Midi-jurk",
+        "Hoge-taille jeans",
+        "Lichte katoenen blouse",
+        "Ademende broek"
+      ],
+      "keyPiecesMale": [
+        "Katoenen overhemd",
+        "Chino's",
+        "Lichte gebreide polo",
+        "Ongevoerd blazer"
+      ],
+      "accessories": [
+        "Zonnebril",
+        "Canvas tas"
+      ],
+      "colors": [
+        "Aardetonen",
+        "Saliegroen",
+        "Gedempt roze",
+        "Camel"
+      ],
+      "fabricTips": "Katoen en lichte gebreide stoffen werken goed wanneer de temperatuur overdag oploopt.",
+      "stylingNoteTemplate": "Comfortabel warm weer — voeg alleen een lichte laag toe als je die vroeg of laat nodig hebt."
+    },
+    "mild": {
+      "layers": [
+        "Basislaag",
+        "Middenlaag",
+        "Lichte buitenlaag"
+      ],
+      "keyPiecesFemale": [
+        "Lichte trenchcoat of jas",
+        "Fijn gebreide trui",
+        "Broek",
+        "Midi-rok met enkellaarsjes"
+      ],
+      "keyPiecesMale": [
+        "Licht gewicht jasje",
+        "Fijn gebreid trui",
+        "Chino's",
+        "Ongestructureerd blazer"
+      ],
+      "accessories": [
+        "Lichte sjaal",
+        "Gestructureerde tas"
+      ],
+      "colors": [
+        "Bordeaux",
+        "Bosgroen",
+        "Chocoladebruin",
+        "Marineblauw"
+      ],
+      "fabricTips": "Laag fijne gebreide stoffen onder een lichtere jas — bewaar zware wol voor koudere dagen.",
+      "stylingNoteTemplate": "Koel maar niet koud — laagjes zonder bulk."
+    },
+    "cold": {
+      "layers": [
+        "Basislaag",
+        "Isolerende middenlaag",
+        "Warme buitenlaag"
+      ],
+      "keyPiecesFemale": [
+        "Donsjas",
+        "Wollen jas",
+        "Thermoleggings",
+        "Grove gebreide trui"
+      ],
+      "keyPiecesMale": [
+        "Donsjas",
+        "Wollen overjas",
+        "Thermische basislaag",
+        "Zwaar gebreide trui"
+      ],
+      "accessories": [
+        "Muts",
+        "Wollen sjaal",
+        "Warme handschoenen",
+        "Warme laarzen"
+      ],
+      "colors": [
+        "Zwart",
+        "Antraciet",
+        "Diep bordeaux",
+        "Crème"
+      ],
+      "fabricTips": "Merinowollen basislagen houden warmte vast en voeren vocht af.",
+      "stylingNoteTemplate": "Investeer in kwaliteitsoverkleding. Warmte én stijl zijn beide essentieel."
+    },
+    "freezing": {
+      "layers": [
+        "Thermische basis",
+        "Zware isolatie",
+        "Waterdichte buitenkant"
+      ],
+      "keyPiecesFemale": [
+        "Lange donsjas",
+        "Fleece-gevoerde broek",
+        "Grove coltrui",
+        "Geïsoleerde laarzen"
+      ],
+      "keyPiecesMale": [
+        "Lange parka",
+        "Fleece-gevoerde broek",
+        "Zware wollen trui",
+        "Geïsoleerde laarzen"
+      ],
+      "accessories": [
+        "Warme muts",
+        "Cashmere sjaal",
+        "Geïsoleerde handschoenen",
+        "Oorwarmers"
+      ],
+      "colors": [
+        "Zwart",
+        "Diep marineblauw",
+        "Bordeaux",
+        "Crèmeaccents"
+      ],
+      "fabricTips": "Technische stoffen en donsisolatie zijn je beste vrienden.",
+      "stylingNoteTemplate": "Geef warmte prioriteit. Met de juiste laagjes kun je er nog steeds chic uitzien."
+    }
+  },
+  "overlays": {
+    "rain": {
+      "keyPiece": "Waterdichte jas of trenchcoat",
+      "accessories": [
+        "Paraplu",
+        "Waterdichte laarzen"
+      ],
+      "fabricTipsSuffix": " Kies waterafstotende materialen.",
+      "stylingNoteSuffix": " Een stijlvolle regenjas is essentieel. Overweeg Chelsea-regenlaarzen voor chic bescherming."
+    },
+    "snow": {
+      "accessories": [
+        "Sneeuwlaarzen",
+        "Waterdichte handschoenen"
+      ],
+      "stylingNoteSuffix": " Functie ontmoet mode. Kwaliteitssneeuwlaarzen en een warme parka zijn onmisbaar."
+    },
+    "wind": {
+      "accessory": "Winddichte sjaal",
+      "accessories": [
+        "Winddichte sjaal"
+      ],
+      "stylingNoteSuffix": " Zet losse items vast en kies voor getailleerde silhouetten bij wind."
+    }
+  },
+  "dailyRange": {
+    "layersHotMorning": [
+      "Lichte outfit voor de middagmaiddaghitte",
+      "Optioneel vest alleen voor de ochtend"
+    ],
+    "layersHotDay": [
+      "Lichte outfit voor de dag — geen basis- of middenlagen nodig"
+    ],
+    "sunglasses": "Zonnebril",
+    "heatSwingNoteTemplate": "{lowTemp}°C nu, piek op {peakTemp}°C — kleed je voor de hitte. Een lichte laag is alleen voor de koele ochtend als je die nodig hebt.",
+    "wideSwingLayer": "Afneembare laag voor temperatuurschommelingen",
+    "wideSwingNoteTemplate": "{lowTemp}–{peakTemp}°C vandaag — laagjes zodat je kunt aanpassen als de dag opwarmt of afkoelt.",
+    "modestSwingNoteTemplate": "Dagbereik {lowTemp}–{peakTemp}°C. {existing}",
+    "coldMorningFemale": [
+      "Lichte jas of trenchcoat",
+      "Fijn gebreid",
+      "Broek",
+      "Gesloten schoenen"
+    ],
+    "coldMorningMale": [
+      "Licht jasje",
+      "Fijn gebreid of overhemd",
+      "Chino's",
+      "Loafers of sneakers"
+    ],
+    "coldMorningLayers": [
+      "Warm genoeg voor de ochtend",
+      "Makkelijk lichter te maken in de middag"
+    ]
+  }
+}

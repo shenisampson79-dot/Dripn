@@ -1,0 +1,247 @@
+{
+  "descriptions": {
+    "0": "Clear sky",
+    "1": "Mainly clear",
+    "2": "Partly cloudy",
+    "3": "Overcast",
+    "45": "Fog",
+    "48": "Depositing rime fog",
+    "51": "Light drizzle",
+    "53": "Moderate drizzle",
+    "55": "Dense drizzle",
+    "61": "Slight rain",
+    "63": "Moderate rain",
+    "65": "Heavy rain",
+    "71": "Slight snow",
+    "73": "Moderate snow",
+    "75": "Heavy snow",
+    "80": "Slight rain showers",
+    "81": "Moderate rain showers",
+    "82": "Violent rain showers",
+    "95": "Thunderstorm",
+    "96": "Thunderstorm with slight hail",
+    "99": "Thunderstorm with heavy hail"
+  },
+  "descriptionFallback": "Unknown",
+  "defaultDescription": "Partly cloudy",
+  "locationFallback": "Your Location",
+  "unknownLocation": {
+    "yourLocation": "Your location",
+    "yourLocationTitle": "Your Location",
+    "unknown": "Unknown"
+  },
+  "bands": {
+    "hot": {
+      "layers": [
+        "Single breathable layer — no extra layers needed"
+      ],
+      "keyPiecesFemale": [
+        "Linen dress or skirt",
+        "Cotton blouse",
+        "Breathable shorts",
+        "Sandals or loafers"
+      ],
+      "keyPiecesMale": [
+        "Linen or cotton shirt",
+        "Light chinos or shorts",
+        "Breathable polo",
+        "Trainers or loafers"
+      ],
+      "accessories": [
+        "Sunglasses",
+        "Wide-brim hat",
+        "Water bottle"
+      ],
+      "colors": [
+        "White",
+        "Cream",
+        "Pastels",
+        "Light blue"
+      ],
+      "fabricTips": "Linen and cotton only — skip knits, layers, and jackets in this heat.",
+      "stylingNoteTemplate": "Hot day ({peakTemp}°C). One light outfit is enough — leave coats and layers at home."
+    },
+    "warm": {
+      "layers": [
+        "Light base layer",
+        "Optional light cover-up"
+      ],
+      "keyPiecesFemale": [
+        "Midi dress",
+        "High-waisted jeans",
+        "Light cotton blouse",
+        "Breathable trousers"
+      ],
+      "keyPiecesMale": [
+        "Cotton shirt",
+        "Chinos",
+        "Light knit polo",
+        "Unlined blazer"
+      ],
+      "accessories": [
+        "Sunglasses",
+        "Canvas bag"
+      ],
+      "colors": [
+        "Earth tones",
+        "Sage green",
+        "Dusty rose",
+        "Camel"
+      ],
+      "fabricTips": "Cotton and light knits work well when temperatures climb through the day.",
+      "stylingNoteTemplate": "Comfortable warm-weather dressing — add a light layer only if you need it early or late."
+    },
+    "mild": {
+      "layers": [
+        "Base layer",
+        "Mid layer",
+        "Light outer layer"
+      ],
+      "keyPiecesFemale": [
+        "Light trench or coat",
+        "Fine knit sweater",
+        "Trousers",
+        "Midi skirt with ankle boots"
+      ],
+      "keyPiecesMale": [
+        "Lightweight jacket",
+        "Fine-gauge knit",
+        "Chinos",
+        "Unstructured blazer"
+      ],
+      "accessories": [
+        "Light scarf",
+        "Structured bag"
+      ],
+      "colors": [
+        "Burgundy",
+        "Forest green",
+        "Chocolate brown",
+        "Navy"
+      ],
+      "fabricTips": "Layer fine knits under a lighter coat — save heavy wool for colder days.",
+      "stylingNoteTemplate": "Cool but not cold — layer without bulk."
+    },
+    "cold": {
+      "layers": [
+        "Base layer",
+        "Insulating mid layer",
+        "Warm outer layer"
+      ],
+      "keyPiecesFemale": [
+        "Puffer jacket",
+        "Wool coat",
+        "Thermal leggings",
+        "Chunky knit sweater"
+      ],
+      "keyPiecesMale": [
+        "Puffer jacket",
+        "Wool overcoat",
+        "Thermal base layer",
+        "Heavy knit sweater"
+      ],
+      "accessories": [
+        "Beanie",
+        "Wool scarf",
+        "Warm gloves",
+        "Warm boots"
+      ],
+      "colors": [
+        "Black",
+        "Charcoal",
+        "Deep burgundy",
+        "Cream"
+      ],
+      "fabricTips": "Merino wool base layers trap heat while wicking moisture.",
+      "stylingNoteTemplate": "Invest in quality outerwear. Warmth and style are both essential."
+    },
+    "freezing": {
+      "layers": [
+        "Thermal base",
+        "Heavy insulation",
+        "Waterproof outer"
+      ],
+      "keyPiecesFemale": [
+        "Long puffer coat",
+        "Fleece-lined trousers",
+        "Chunky turtleneck",
+        "Insulated boots"
+      ],
+      "keyPiecesMale": [
+        "Long parka",
+        "Fleece-lined pants",
+        "Heavy wool sweater",
+        "Insulated boots"
+      ],
+      "accessories": [
+        "Warm beanie",
+        "Cashmere scarf",
+        "Insulated gloves",
+        "Ear muffs"
+      ],
+      "colors": [
+        "Black",
+        "Deep navy",
+        "Burgundy",
+        "Cream accents"
+      ],
+      "fabricTips": "Technical fabrics and down insulation are your friends.",
+      "stylingNoteTemplate": "Prioritize warmth. You can still look chic with the right layering technique."
+    }
+  },
+  "overlays": {
+    "rain": {
+      "keyPiece": "Waterproof jacket or trench",
+      "accessories": [
+        "Umbrella",
+        "Waterproof boots"
+      ],
+      "fabricTipsSuffix": " Choose water-resistant materials.",
+      "stylingNoteSuffix": " A stylish rain jacket is essential. Consider Chelsea rain boots for chic protection."
+    },
+    "snow": {
+      "accessories": [
+        "Snow boots",
+        "Waterproof gloves"
+      ],
+      "stylingNoteSuffix": " Function meets fashion. Quality snow boots and a warm parka are non-negotiable."
+    },
+    "wind": {
+      "accessory": "Windproof scarf",
+      "accessories": [
+        "Windproof scarf"
+      ],
+      "stylingNoteSuffix": " Secure loose items and opt for fitted silhouettes in wind."
+    }
+  },
+  "dailyRange": {
+    "layersHotMorning": [
+      "Light outfit for midday heat",
+      "Optional cardigan for the morning only"
+    ],
+    "layersHotDay": [
+      "Light outfit for the day — no base or mid layers needed"
+    ],
+    "sunglasses": "Sunglasses",
+    "heatSwingNoteTemplate": "{lowTemp}°C now, peaking at {peakTemp}°C — dress for the heat. A light layer is only for the cool morning if you need it.",
+    "wideSwingLayer": "Removable layer for temperature swings",
+    "wideSwingNoteTemplate": "{lowTemp}–{peakTemp}°C today — layer so you can adjust as the day warms up or cools down.",
+    "modestSwingNoteTemplate": "Day range {lowTemp}–{peakTemp}°C. {existing}",
+    "coldMorningFemale": [
+      "Light coat or trench",
+      "Fine knit",
+      "Trousers",
+      "Closed-toe shoes"
+    ],
+    "coldMorningMale": [
+      "Light jacket",
+      "Fine-gauge knit or shirt",
+      "Chinos",
+      "Loafers or trainers"
+    ],
+    "coldMorningLayers": [
+      "Warm enough for morning",
+      "Easy to lighten by afternoon"
+    ]
+  }
+}

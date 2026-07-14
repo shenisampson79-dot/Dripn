@@ -162,18 +162,18 @@ export default function ColourInsightsScreen() {
     undertone === 'neutral' ? neutralSwatches : [];
 
   const profileTitle =
-    undertone === 'warm' ? 'Warm Undertone' :
-    undertone === 'cool' ? 'Cool Undertone' :
-    undertone === 'neutral' ? 'Neutral Undertone' : null;
+    undertone === 'warm' ? (t('colourInsights.warmUndertone') || 'Warm Undertone') :
+    undertone === 'cool' ? (t('colourInsights.coolUndertone') || 'Cool Undertone') :
+    undertone === 'neutral' ? (t('colourInsights.neutralUndertone') || 'Neutral Undertone') : null;
 
   const profileDesc =
     undertone === 'warm'
-      ? "Earth tones and rich, warm hues make you radiate. Lean into camel, terracotta, olive, rust, and gold — they work with your natural warmth rather than against it."
+      ? (t('colourInsights.warmDesc') || "Earth tones and rich, warm hues make you radiate. Lean into camel, terracotta, olive, rust, and gold — they work with your natural warmth rather than against it.")
     : undertone === 'cool'
-      ? "Cool, jewel-toned shades bring out the best in you. Navy, burgundy, lavender, cobalt, and rose all complement your undertone beautifully."
+      ? (t('colourInsights.coolDesc') || "Cool, jewel-toned shades bring out the best in you. Navy, burgundy, lavender, cobalt, and rose all complement your undertone beautifully.")
     : undertone === 'neutral'
-      ? "You have the most versatile palette — almost any colour works. Anchor looks with navy, camel, or white, then experiment freely with bolder accent shades."
-    : "Complete your profile to unlock a personalised colour palette based on your unique undertone.";
+      ? (t('colourInsights.neutralDesc') || "You have the most versatile palette — almost any colour works. Anchor looks with navy, camel, or white, then experiment freely with bolder accent shades.")
+    : (t('colourInsights.completeProfile') || "Complete your profile to unlock a personalised colour palette based on your unique undertone.");
 
   const s = makeStyles(theme);
 
@@ -188,9 +188,9 @@ export default function ColourInsightsScreen() {
           <Feather name="droplet" size={22} color={LUXURY_COLORS.gold} />
         </View>
         <View style={{ flex: 1 }}>
-          <ThemedText type="h2" style={s.headerTitle}>Colour Insights</ThemedText>
+          <ThemedText type="h2" style={s.headerTitle}>{t('colourInsights.title') || 'Colour Insights'}</ThemedText>
           <ThemedText type="small" style={s.headerSubtitle}>
-            {getCurrentCalendarSeason()} {getCurrentFashionYear()} · pull to refresh
+            {getCurrentCalendarSeason()} {getCurrentFashionYear()} · {t('colourInsights.pullToRefresh') || 'pull to refresh'}
           </ThemedText>
         </View>
         {isRefreshing ? <ActivityIndicator size="small" color={theme.link} /> : null}
@@ -210,7 +210,7 @@ export default function ColourInsightsScreen() {
             <LinearGradient colors={[LUXURY_COLORS.gold, LUXURY_COLORS.violet]} style={s.cardIconBadge}>
               <Feather name="camera" size={12} color="#FFFFFF" />
             </LinearGradient>
-            <ThemedText type="small" style={s.cardBadgeText}>YOUR COLOUR SEASON</ThemedText>
+            <ThemedText type="small" style={s.cardBadgeText}>{t('colourInsights.yourColourSeason') || 'YOUR COLOUR SEASON'}</ThemedText>
           </View>
           <View style={s.cardBody}>
             <ThemedText type="body" style={s.cardTitle}>{colorSeason}</ThemedText>
@@ -272,7 +272,7 @@ export default function ColourInsightsScreen() {
             <Feather name="user" size={12} color="#FFFFFF" />
           </LinearGradient>
           <ThemedText type="small" style={s.cardBadgeText}>
-            {profileTitle ? 'YOUR COLOUR PROFILE' : 'COMPLETE YOUR PROFILE'}
+            {profileTitle ? (t('colourInsights.yourColourProfile') || 'YOUR COLOUR PROFILE') : 'COMPLETE YOUR PROFILE'}
           </ThemedText>
         </View>
 
@@ -311,7 +311,7 @@ export default function ColourInsightsScreen() {
               <Feather name="award" size={12} color="#FFFFFF" />
             </LinearGradient>
             <ThemedText type="small" style={s.cardBadgeText}>
-              COLOUR OF THE YEAR {colorOfTheYear.year}
+              {(t('colourInsights.colourOfTheYear') || 'COLOUR OF THE YEAR {year}').replace('{year}', String(colorOfTheYear.year))}
             </ThemedText>
           </View>
           <View style={s.yearContent}>
@@ -326,7 +326,7 @@ export default function ColourInsightsScreen() {
           </View>
           <ThemedText type="small" style={s.yearDesc}>{colorOfTheYear.description}</ThemedText>
           <View style={s.pairingRow}>
-            <ThemedText type="small" style={s.pairingLabel}>Pairs with:</ThemedText>
+            <ThemedText type="small" style={s.pairingLabel}>{t('colourInsights.pairsWith') || 'Pairs with:'}</ThemedText>
             <View style={s.pairingSwatches}>
               {colorOfTheYear.pairingColors.map((color, idx) => (
                 <View key={idx} style={[s.pairingSwatch, { backgroundColor: color }]} />
@@ -334,7 +334,7 @@ export default function ColourInsightsScreen() {
             </View>
           </View>
           <View style={s.bestForRow}>
-            <ThemedText type="small" style={s.bestForLabel}>Best for:</ThemedText>
+            <ThemedText type="small" style={s.bestForLabel}>{t('colourInsights.bestFor') || 'Best for:'}</ThemedText>
             <ThemedText type="small" style={s.bestForValue}>
               {colorOfTheYear.bestFor.join(' & ')}
             </ThemedText>
@@ -351,7 +351,7 @@ export default function ColourInsightsScreen() {
           >
             <Feather name="grid" size={12} color="#FFFFFF" />
           </LinearGradient>
-          <ThemedText type="small" style={s.cardBadgeText}>COLOUR HARMONY GUIDE</ThemedText>
+          <ThemedText type="small" style={s.cardBadgeText}>{t('colourInsights.colourHarmonyGuide') || 'COLOUR HARMONY GUIDE'}</ThemedText>
         </View>
 
         <View style={s.harmonyRules}>

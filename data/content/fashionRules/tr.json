@@ -1,0 +1,439 @@
+{
+  "1": {
+    "title": "Üçler kuralı",
+    "content": "Kombinini en fazla üç ana renkle sınırla. Bu görsel uyum yaratır ve görünümünün kaotik veya bunaltıcı durmasını engeller.",
+    "colorSwatches": {
+      "Navy": "Lacivert",
+      "White": "Beyaz",
+      "Camel": "Deve tüyü"
+    }
+  },
+  "2": {
+    "title": "Renk mevsimine göre giyin",
+    "content": "Doğal renkliliğini (cilt tonu, saç, göz) tamamlayan renkler seni daha sağlıklı ve canlı gösterir. İlkbahar, Yaz, Sonbahar veya Kış mı olduğunu keşfet.",
+    "colorSwatches": {
+      "Warm Gold": "Sıcak altın",
+      "Cool Silver": "Soğuk gümüş"
+    }
+  },
+  "3": {
+    "title": "Nötr temel, renk vurgusu",
+    "content": "Kombinlerini nötr temeller (siyah, beyaz, gri, lacivert, bej) üzerine kur; rengi aksesuarla veya tek bir dikkat çekici parçayla ekle."
+  },
+  "4": {
+    "title": "Sıcak ve soğuk tonları anlamak",
+    "content": "Sıcak alt tonlar toprak renkleriyle (zeytin, hardal, mercan) iyi uyum sağlar; soğuk alt tonlar mücevher tonlarında (zümrüt, safir, yakut) parlar. Tonunu bilmek alışverişini dönüştürür.",
+    "colorSwatches": {
+      "Mustard": "Hardal",
+      "Emerald": "Zümrüt"
+    }
+  },
+  "5": {
+    "title": "Monokromun gücü",
+    "content": "Tek bir renk ailesinde giyinmek silueti uzatır ve sofistike bir etki yaratır. Derinlik için aynı ton içinde gölge ve doku çeşitliliği kullan."
+  },
+  "6": {
+    "title": "Tamamlayıcı renk ustalığı",
+    "content": "Renk çemberinde karşıt renkler (mavi/turuncu, mor/sarı, kırmızı/yeşil) dengeli kullanıldığında çarpıcı ve dinamik kombinler oluşturur.",
+    "colorSwatches": {
+      "Royal Blue": "Kraliyet mavisi",
+      "Burnt Orange": "Yanık turuncu"
+    }
+  },
+  "7": {
+    "title": "Lacivert yeni siyahtır",
+    "content": "Lacivert neredeyse herkese yakışır ve siyahtan daha fazla renkle uyum sağlar. Daha yumuşak, daha yaklaşılabilir ve eşit derecede çok yönlüdür."
+  },
+  "8": {
+    "title": "Beyaz yüzünü aydınlatır",
+    "content": "Yüzüne yakın beyaz veya krem ışığı yukarı yansıtır; seni daha uyanık ve canlı gösterir. Video görüşmeleri ve fotoğraflar için idealdir."
+  },
+  "9": {
+    "title": "Renkle desen karıştırma",
+    "content": "Desenleri karıştırırken en az bir ortak renk paylaştıklarından emin ol. Ölçek ve stil farklı olsa bile bütünlük oluşur."
+  },
+  "10": {
+    "title": "60-30-10 renk kuralı",
+    "content": "Dominant rengi kombinin %60'ında, ikincil rengi %30'unda, vurgu rengini %10'unda kullan. Dengeli ve göze hoş gelen görünümler yaratır."
+  },
+  "11": {
+    "title": "Mevsimsel renk rotasyonu",
+    "content": "Renk paletini mevsimlerle döndür: sonbahar/kış için zengin mücevher tonları, ilkbahar/yaz için yumuşak pasteller ve canlı renkler. Gardırobun taze kalır."
+  },
+  "12": {
+    "title": "Baştan ayağa siyah",
+    "content": "Tamamen siyah kombinler zamansız ve ince gösterir; ancak düz veya kostüm gibi durmamak için doku çeşitliliği (mat, parlak, örme) gerekir."
+  },
+  "13": {
+    "title": "Color blocking temelleri",
+    "content": "Color blocking, cesur etki için düz ve kontrast renk blokları kullanır. Siluetleri sade tut ve konuşmayı renklere bırak."
+  },
+  "14": {
+    "title": "Metalik bir nötrdür",
+    "content": "Altın ve gümüş metalikler nötr gibi çalışır ve neredeyse her renkle kombinlenebilir. En iyi etki için metalikleri alt tonuna göre eşleştir."
+  },
+  "15": {
+    "title": "Desen ölçeği önemlidir",
+    "content": "Bedenine uyan desen boyutlarını seç — küçük yapıya küçük baskılar yakışır; daha büyük yapılar daha cesur desenleri ezilmeden taşıyabilir."
+  },
+  "16": {
+    "title": "Üçüncü parça kuralı",
+    "content": "Herhangi bir kombini blazer, hırka, eşarp veya yapılı bir çanta gibi üçüncü bir parçayla yükselt. Temel kombinleri tamamlanmış ve bilinçli görünümler hâline getirir."
+  },
+  "17": {
+    "title": "Oran oyunu",
+    "content": "Hacmi dengele: üstte bol bir şey varsa altta oturan bir parça seç (ve tersi). Tüm vücut tiplerinde yakışan siluetler yaratır."
+  },
+  "18": {
+    "title": "Tek yıldız kuralı",
+    "content": "Kombinde tek bir parçanın yıldız olmasına izin ver. Cesur bir desen veya statement aksesuar varsa kalanını sade tut; görsel rekabet olmasın."
+  },
+  "19": {
+    "title": "Belini tanımla",
+    "content": "Doğal belinde tanım yaratmak — kemer, içeri sokma veya terzilik kesimleriyle — çoğu vücut tipine yakışan kum saati silueti oluşturur."
+  },
+  "20": {
+    "title": "Üçte birler kuralı",
+    "content": "Bedeni yarıya bölmek yerine 1/3–2/3 oranını hedefle (kısa üst + yüksek bel alt, veya uzun üst + kısa etek) — daha dinamik oranlar için."
+  },
+  "21": {
+    "title": "Dikey çizgiler uzatır",
+    "content": "Dikey çizgiler, uzun kolyeler ve açık hırkalar boy illüzyonu ve daha ince bir siluet yaratır. Uzatıcı etki için stratejik kullan."
+  },
+  "22": {
+    "title": "V yaka herkese yakışır",
+    "content": "V yakalar boynu uzatır, bakışı dikey çeker ve neredeyse her yüz şekli ile vücut tipine yakışır. Evrensel bir tercih."
+  },
+  "23": {
+    "title": "Yüksek belin gücü",
+    "content": "Yüksek bel alt parçalar bacakları görsel olarak uzatır ve daha uzun, ince bir siluet yaratır. Üst içeri sokulduğunda özellikle iyi çalışır."
+  },
+  "24": {
+    "title": "Yapılı ve yumuşak dengesi",
+    "content": "Yapılı parçaları (blazer, terzilik pantolon) daha yumuşak olanlarla (ipek bluz, örme üst) birleştir — bakımlı ama yaklaşılabilir kombinler için."
+  },
+  "25": {
+    "title": "Hacim olmadan katmanlama",
+    "content": "Kalın kumaşlar yerine ince, kaliteli kumaşları katmanla. Oturan temel katmanlarla başla, hacim eklememek için giderek daha bol parçalar ekle."
+  },
+  "26": {
+    "title": "Yarım sokma",
+    "content": "Rahat yarım sokma (gömleğin yalnızca önünü sokmak) bel tanımı yaratırken rahat ve zahmetsiz bir hava korur. Günlük zarafet için mükemmel."
+  },
+  "27": {
+    "title": "Vücut şekline göre giyin",
+    "content": "Elma, armut, kum saati veya dikdörtgen olup olmadığını anlamak, doğal oranlarını güçlendiren kesimleri seçmene yardımcı olur."
+  },
+  "28": {
+    "title": "Metallerini eşleştir",
+    "content": "Takı ve metal aksamı (kemer tokası, çanta klipsi, ayakkabı detayı) aynı metal ailesinde tut — bütünlüklü ve bakımlı bir görünüm için."
+  },
+  "29": {
+    "title": "Çantalar bedenine uymalı",
+    "content": "Çanta boyutunu bedenine orantılı seç — küçük yapıya küçük çantalar yakışır; daha uzun yapı daha büyük modelleri ezilmeden taşıyabilir."
+  },
+  "30": {
+    "title": "Saatler statement parçadır",
+    "content": "Kaliteli bir saat hem işlevsel hem şıktır. Kişiliğini yansıtan bir stil seç — klasik, sportif veya minimalist — ve her gün tak."
+  },
+  "31": {
+    "title": "Eşarplar kombini dönüştürür",
+    "content": "Bir ipek eşarp boyunda, saç bandı olarak, çantaya bağlanarak veya kemer olarak kullanılabilir. Bu çok yönlü aksesuar basit kombinleri anında yükseltir."
+  },
+  "32": {
+    "title": "Kemer yerleşimi önemlidir",
+    "content": "En yakışan etki için kemeri doğal belinde tak. Alçaktan kemerler gövdeyi kısaltabilir; yüksek kemerler bacakları uzatır."
+  },
+  "33": {
+    "title": "Güneş gözlüğü yüzünü şekillendirir",
+    "content": "Yüz şeklinle kontrast oluşturan güneş gözlüğü seç — yuvarlak yüzlere açılı çerçeveler, kare yüzlere yuvarlak modeller yakışır."
+  },
+  "34": {
+    "title": "Takıda az çoktur",
+    "content": "Tek bir odak noktası seç — statement küpe VEYA cesur kolye VEYA katmanlı bileklik. Her şeyi birden takmak etkiyi zayıflatır."
+  },
+  "35": {
+    "title": "Çanta ve ayakkabıyı gevşek eşleştir",
+    "content": "Çanta ve ayakkabının birebir eşleşmesi demode durur. Bunun yerine tamamlayıcı renkler veya ortak bir unsur (ikisi de deri, ikisi metalik aksam) hedefle."
+  },
+  "36": {
+    "title": "Şapkalar kombini tamamlar",
+    "content": "Doğru şapka kişilik ve bakımlılık katar. Yüz şekline ve yaşam tarzına uyan stilleri seç — fedoradan beyzbol şapkasına, bereteye."
+  },
+  "37": {
+    "title": "Kaliteli deri ürünlere yatırım yap",
+    "content": "İyi yapılmış bir deri çanta ve kemer onlarca yıl dayanır ve güzel bir patina geliştirir. Maksimum kullanım için klasik formları çok yönlü renklerde seç."
+  },
+  "38": {
+    "title": "Katmanlı kolyeler",
+    "content": "Modern derinlik için farklı uzunluklarda kolye katmanla (choker, prenses, opera). Metali tutarlı tut; zincir dokusu ve kolye ucu boyutunu çeşitlendir."
+  },
+  "39": {
+    "title": "Küpeler yüzünü çerçeveler",
+    "content": "Küpeler yüzüne dikkat çeker. Yüz şekline uyan stilleri seç — günlük için stud, akşam için sarkaç, çok yönlülük için halka."
+  },
+  "40": {
+    "title": "Doku karıştırma",
+    "content": "Farklı dokuları birleştir (ipekle denim, kaşmirle deri, ketenle yün) — monokrom veya sade kombinlere derinlik ve görsel ilgi katar."
+  },
+  "41": {
+    "title": "Doğal lifler daha iyi nefes alır",
+    "content": "Pamuk, keten, yün ve ipek sentetiklere göre sıcaklığı daha iyi dengeler. Konfor ve uzun ömür için doğal kumaşlara öncelik ver."
+  },
+  "42": {
+    "title": "Konfor için örme, yapı için dokuma",
+    "content": "Örme kumaşlar (jersey, ponte) esneklik ve konfor sunar. Dokuma kumaşlar (pamuk poplin, denim) yapı sağlar. İstediğin etkiye göre seç."
+  },
+  "43": {
+    "title": "Özel anlar için ipek",
+    "content": "İpek anında lüks ve zarafet katar. Özel hissetmek istediğin anlara sakla — ağırlığı ve dökümü eşsizdir."
+  },
+  "44": {
+    "title": "Kaşmir buna değer",
+    "content": "Kaliteli kaşmir yumuşak, sıcak ve hafiftir. Yıllarca giyeceğin klasik parçalara yatırım yap — kullanım başı maliyet bunu değerli kılar."
+  },
+  "45": {
+    "title": "Denimin çok yönlülüğü",
+    "content": "Kaliteli denim günlük stilin belkemiğidir. En az bir iyi oturan jean ve bir denim ceket sahibi ol — ikisi de mevsim ve ortamlarda işe yarar."
+  },
+  "46": {
+    "title": "Keten kırışığı kabullenir",
+    "content": "Keten kırışmak içindir — rahat cazibesinin parçasıdır. Doğal kırışıklığı kucakla, savaşma. Günlük ortamlar için sakla."
+  },
+  "47": {
+    "title": "Drama için kadife",
+    "content": "Kadife ışığı güzel yakalar ve her kombine anında drama katar. Akşam, sonbahar/kış veya giriş yapmak istediğin anlara sakla."
+  },
+  "48": {
+    "title": "Statement olarak deri",
+    "content": "Deri (veya kaliteli vegan alternatifler) kenar ve yapı katar. Deri ceket, mevsimler ve stiller arasında çalışan gardırop klasikidir."
+  },
+  "49": {
+    "title": "Şeffaf kumaş katmanlama",
+    "content": "Şeffaf kumaşlar doğru katmanlandığında derinlik katar. Altında neyin göründüğünü her zaman düşün — bakımlı görünüm için bilinçli katman parçaları kullan."
+  },
+  "50": {
+    "title": "Ortamdan bir kademe daha iyi giyin",
+    "content": "Ortamın gerektirdiğinden biraz daha iyi giyinmeyi hedefle. Eksik giyinmek tuhaftır; hafif fazla giyinmek çaba ve saygı gösterir."
+  },
+  "51": {
+    "title": "Giyim kodlarını anla",
+    "content": "Black-tie'dan smart casual'a, giyim kodlarını anlamak utançtan korur. Şüphen varsa ev sahibine sor veya formallikten yana ol."
+  },
+  "52": {
+    "title": "İş giyimi temelleri",
+    "content": "Değiştirilebilir parçalardan bir iş gardırobu kur: blazer, terzilik pantolon, kaliteli bluz ve ölçülü elbiseler. Bir haftalık kombin hedefle."
+  },
+  "53": {
+    "title": "Hafta sonu rahatlığı ile özensizlik",
+    "content": "Rahat, dikkatsiz demek değildir. İyi oturan jean, temiz spor ayakkabı ve kaliteli tişört zahmetsizce şık durur. Leke ve yırtık özensiz görünür."
+  },
+  "54": {
+    "title": "Randevu gecesi çabası",
+    "content": "Randevu için özen göstermek çaba ve saygı gösterir. Kendini güvende ve çekici hissettiren parçaları seç — enerjin yansır."
+  },
+  "55": {
+    "title": "Rahat ve şık seyahat",
+    "content": "Havalimanı stili bakımı feda etmeden konfora öncelik vermeli. Esnek kumaşlar, kolay giyilen ayakkabılar ve katmanlar sıcaklık değişimlerini ve uzun yolculukları karşılar."
+  },
+  "56": {
+    "title": "Mülakat izlenimleri",
+    "content": "Mülakatlarda ilk izlenim önemlidir. Şirket kültürünü araştır ve günlük giyimden bir kademe daha formal giyin. Dikkat dağıtan desen veya aksesuardan kaçın."
+  },
+  "57": {
+    "title": "Düğün davetlisi nezaketi",
+    "content": "Düğüne (özellikle istenmedikçe) beyaz giyme. Formaliteyi mekân ve saate göre ayarla. Şüphen varsa kokteyl kıyafeti güvenlidir."
+  },
+  "58": {
+    "title": "Cenaze saygısı",
+    "content": "Cenazeler koyu, muhafazakâr giyim ister. Sade, ölçülü kesimlerde siyah, lacivert veya antrasit saygı gösterir. Canlı renkleri hayat kutlamalarına sakla."
+  },
+  "59": {
+    "title": "Kültürel bağlam önemlidir",
+    "content": "Farklı kültürleri veya dini mekânları ziyaret ederken giyim beklentilerini araştır. Mahremiyet, baş örtüsü veya ayakkabı çıkarma gerekebilir."
+  },
+  "60": {
+    "title": "Kaliteli temellere yatırım yap",
+    "content": "Gardırop temelini iyi yapılmış klasiklerle kur: beyaz gömlek, koyu pantolon, kaliteli denim ve çok yönlü blazer. Her zaman kalite miktara üstün gelir."
+  },
+  "61": {
+    "title": "Terziliğin gücü",
+    "content": "İyi oturan kıyafetler, kötü oturan tasarımcı parçalardan daha pahalı görünür. Anahtar parçalar için tadilat yatırımı yap — fark dönüştürücüdür."
+  },
+  "62": {
+    "title": "80/20 gardırop kuralı",
+    "content": "Gardırobunun %20'sini zamanının %80'inde giyersin. Bu anahtar parçaları belirle ve kalitesine yatırım yap. Gardırobunu düzenli denetle ve sadeleştir."
+  },
+  "63": {
+    "title": "Kullanım başı maliyet hesabı",
+    "content": "Fiyatı beklenen kullanım sayısına böl. 100 kez giyilen 200£'lık bir kaban kullanım başına 2£'dır — 10 kez giyilen 50£'lık kabandan daha iyi değer."
+  },
+  "64": {
+    "title": "Trendden çok klasik",
+    "content": "Zamansız parçalara yatırım yap; trendleri ucuz aksesuarlara sakla. Klasik bir trençkot, trend bir silueti yıllarca geride bırakır."
+  },
+  "65": {
+    "title": "Kaliteli ayakkabı en önemlisidir",
+    "content": "İnsanlar ayakkabıya dikkat eder. Tabanı değiştirilebilen, iyi yapılmış klasik modellere yatırım yap. Ayakların teşekkür eder, kombinlerin yükselir."
+  },
+  "66": {
+    "title": "Mükemmel beyaz gömlek",
+    "content": "Her gardırobun diri bir beyaz gömleğe ihtiyacı vardır. Kaliteli pamuk, omuzlarda doğru oturuş ve düz duran yaka ara."
+  },
+  "67": {
+    "title": "Yatırım dış giyim",
+    "content": "Kabanlar görünürdür ve ilk izlenimi oluşturur. Çok yönlü renklerde kaliteli dış giyime yatırım yap — tüm görünümünü çerçeveler."
+  },
+  "68": {
+    "title": "Yavaş ve düşünceli inşa et",
+    "content": "Seçilmiş bir gardırop zaman ister. Parçaları kademeli ekle; her birinin sahip olduklarınla uyumunu sağla. Anlık alımlara diren."
+  },
+  "69": {
+    "title": "Pazarlık edilemezlerini bil",
+    "content": "Ödün vermeyeceğin unsurları belirle (konfor, etik üretim, belirli markalar) ve harcamayı oraya önceliklendir."
+  },
+  "70": {
+    "title": "Kıyafetlerine bakım yap",
+    "content": "Bakım etiketlerini oku, uygun askı kullan ve parçaları doğru sakla. İyi bakılan kıyafetler daha uzun ömürlüdür ve her giyimde daha iyi görünür."
+  },
+  "71": {
+    "title": "Daha az yıka, daha çok havalandır",
+    "content": "Çoğu kıyafet her giyimden sonra yıkama gerektirmez. Aralarda havalandırmak ömrü uzatır ve çevresel etkiyi azaltır."
+  },
+  "72": {
+    "title": "Doğru askı seçimi",
+    "content": "Yapılı parçalar için ahşap veya dolgulu askı, kaygan kumaşlar için kadife askı kullan; örmeleri omuz boncuğu olmasın diye katla."
+  },
+  "73": {
+    "title": "Ayakkabı bakım rutini",
+    "content": "Ayakkabıları düzenli temizle, bakıma al ve koru. Şekli korumak için kalıp kullan. Giyimler arasında kuruması için çiftleri dönüştür."
+  },
+  "74": {
+    "title": "Değiştirmeden önce onar",
+    "content": "Gevşek düğme, küçük delik veya bozuk fermuar çoğu zaman ucuza onarılabilir. Değiştirmek yerine hızlı onarımla ömrü uzat."
+  },
+  "75": {
+    "title": "Mevsimsel saklama",
+    "content": "Saklamadan önce temizle, nefes alan kılıflar kullan ve güve önleme için sedir veya lavanta ekle. Doğru saklama kaliteyi korur."
+  },
+  "76": {
+    "title": "Boncuklanma önleme",
+    "content": "Tüy alma araçları örmeleri neredeyse yeni gibi gösterir. Ters çevirerek yıkamak, nazik programlar ve sürtünmeden kaçınmak boncuklanmayı önler."
+  },
+  "77": {
+    "title": "Leke tedavisi temelleri",
+    "content": "Lekeleri hemen tedavi et, dıştan içe çalış. Hangi lekeye neyin işe yaradığını bil — kan için soğuk su, şarap için soda."
+  },
+  "78": {
+    "title": "Gerektiğinde profesyonel bakım",
+    "content": "Bazı parçalar profesyonel temizlik ister. Takım, ipek, deri ve yoğun pullu parçalar güvenilir kuru temizlemeye veya uzmanlara gitmeli."
+  },
+  "79": {
+    "title": "Doğru ütü ve buhar",
+    "content": "Farklı kumaşlar farklı ısı ayarı ister. Hassaslarda ters ütü yap, ütü bezi kullan ve yıkamalar arasında buharla tazeleyin."
+  },
+  "80": {
+    "title": "Mevsimsel kumaş seçimleri",
+    "content": "Kumaş ağırlığını mevsime uydur: yaz için keten ve pamuk, kış için yün ve kaşmir. Konforlu ve uygun görünürsün."
+  },
+  "81": {
+    "title": "Geçiş havası için katmanlama",
+    "content": "İlkbahar ve sonbahar çok yönlü katman ister. Gün boyunca sıcaklık değişimine uyum sağlayan kombinler kur."
+  },
+  "82": {
+    "title": "Yaz sıcağı stratejileri",
+    "content": "Açık renkler ısıyı yansıtır, bol kesimler hava akışı sağlar, doğal lifler nefes alır. Yaz konforu ve stili için stratejik giyin."
+  },
+  "83": {
+    "title": "Kış sıcaklığı katmanları",
+    "content": "Kış sıcaklığı için katmanla: nem atan temel, yalıtımlı orta, hava koşullarına dayanıklı dış. Bu sistem hacim eklemeden ısıtır."
+  },
+  "84": {
+    "title": "Geçiş gardırop parçaları",
+    "content": "Trençkot, hafif örme ve çok yönlü blazer mevsimler arasında çalışır. Hava geçişlerini köprüleyen parçalara yatırım yap."
+  },
+  "85": {
+    "title": "Havaya uygun ayakkabı",
+    "content": "Ayakkabıyı koşullara uydur: yağmura suya dayanıklı, soğuğa yalıtımlı, sıcağa nefes alan. Stil ve işlev bir arada olabilir."
+  },
+  "86": {
+    "title": "Mevsime göre renk paleti",
+    "content": "Renk paletini mevsimle kaydır: sonbahar için toprak tonları, kış için soğuk nötrler, ilkbahar için yumuşak pasteller, yaz için canlı parlaklıklar."
+  },
+  "87": {
+    "title": "Tatil ve bayram giyimi",
+    "content": "Çoğu kutlamada işe yarayan küçük bir şenlik parçası koleksiyonu kur. Metalikler, kadife ve mücevher tonları çoğu kutlamaya uyar."
+  },
+  "88": {
+    "title": "Açık hava etkinliği hazırlığı",
+    "content": "Açık hava etkinliklerinde hava değişimine hazır ol: gerektiğinde katman, su geçirmez veya güneş koruması getir. Tahmini ve mekânı kontrol et."
+  },
+  "89": {
+    "title": "Mevsimsel gardırop rotasyonu",
+    "content": "Gardırobunu mevsimsel döndür. Sezon dışı parçaları doğru sakla, taze parçaları çıkar — dolabın yönetilebilir ve ilham verici kalır."
+  },
+  "90": {
+    "title": "Özgüven en iyi aksesuarındır",
+    "content": "Seni güvende ve rahat hissettireni giy. En iyi giyinenler her trendi takip etmek yerine kişisel stilini sahiplenir."
+  },
+  "91": {
+    "title": "Sonra için değil, şimdi için giyin",
+    "content": "Kilo verene veya bir hedefe ulaşana kadar bekleme. Bugünkü bedenin için güzel giyin — kendini iyi hissetmeyi şimdi hak ediyorsun."
+  },
+  "92": {
+    "title": "Beden etiketlerini yok say",
+    "content": "Bedenler markalar arasında çok değişir. Etiketteki sayıya değil oturuşa odaklan. En iyi oturan beden doğru bedendir."
+  },
+  "93": {
+    "title": "Sevdiğini öne çıkar",
+    "content": "Algılanan kusurları gizlemek yerine sevdiğin özelliklere dikkat çek. Güzel kolların mı var? Göster. Bacaklarını mı seviyorsun? Daha kısa etek boyu tercih et."
+  },
+  "94": {
+    "title": "Konfor özgüven doğurur",
+    "content": "Sürekli düzeltiyor veya rahatsızsan bu belli olur. İyi oturan ve iyi hissettiren kıyafetlere öncelik ver — özgüvenin gelir."
+  },
+  "95": {
+    "title": "Moda kurallarından çok kişisel stil",
+    "content": "Stil kuralları yönergedir, yasa değil. Bir 'kural' sana uymuyorsa veya mutlu etmiyorsa boz. Gerçek kişisel stil her şeyi geçer."
+  },
+  "96": {
+    "title": "Benzersiz özelliklerini kucakla",
+    "content": "Seni farklı kılan, akılda kalıcı kılar. Benzersiz özellikleri kucakla — alışılmadık oranlar, belirgin renklilik veya atipik şekiller imza stil unsuru olabilir."
+  },
+  "97": {
+    "title": "Yaşa uygunluk bir efsanedir",
+    "content": "Stilde yaş sınırı yoktur. Seni harika hissettireni giy — ister 60'ta mini etek, ister 25'te sofistike takım."
+  },
+  "98": {
+    "title": "Miktardan çok kalite",
+    "content": "Hızlı moda yerine daha az ama daha iyi parçalara yatırım yap. Kaliteli kumaş, işçilik ve zamansız tasarım trendleri geride bırakır ve kullanım başı daha ucuza gelir."
+  },
+  "99": {
+    "title": "Önce ikinci el",
+    "content": "Yenisini almadan önce ikinci el seçeneklere bak. Hayır kurumları, vintage mağazalar ve yeniden satış platformları daha düşük çevresel etkiyle benzersiz parçalar sunar."
+  },
+  "100": {
+    "title": "Markalarını bil",
+    "content": "Alışveriş yaptığın markaların etik ve sürdürülebilirlik uygulamalarını araştır. Değerlerinle uyumlu üretim, çalışan ve çevre yaklaşımlarını destekle."
+  },
+  "101": {
+    "title": "Bir girer, bir çıkar kuralı",
+    "content": "Gardırobuna her yeni parça eklediğinde birini bağışla veya sat. Bu yönetilebilir bir gardırop tutar ve bilinçli alışverişi teşvik eder."
+  },
+  "102": {
+    "title": "Kapsül gardırop zihniyeti",
+    "content": "Birbiriyle uyumlu 30–40 çok yönlü parçadan oluşan kapsül gardırop karar yorgunluğunu ve çevresel etkiyi azaltırken stili en üst düzeye çıkarır."
+  },
+  "103": {
+    "title": "Onar ve yeniden tasarla",
+    "content": "Temel onarımları öğren veya iyi bir terzi bul. Tadilat, boyama veya yaratıcı yeniden yorumlamayla eski parçalara yeni hayat ver."
+  },
+  "104": {
+    "title": "Özel anlar için kirala",
+    "content": "Tek seferlik etkinliklerde kiralama hizmetlerini düşün. Tek kullanımlık satın almanın maliyeti veya çevresel etkisi olmadan tasarımcı parçalara eriş."
+  },
+  "105": {
+    "title": "Doğal lif önceliği",
+    "content": "Mümkün olduğunda sentetikler yerine doğal, biyolojik olarak bozunan lifleri (pamuk, keten, yün, ipek) seç. Gezegen için daha iyidir ve genelde daha konforludur."
+  }
+}

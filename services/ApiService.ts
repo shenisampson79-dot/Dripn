@@ -329,13 +329,25 @@ class ApiService {
     });
   }
 
-  async socialLogin(provider: 'google' | 'facebook' | 'apple', accessToken: string, idToken?: string) {
+  async socialLogin(
+    provider: 'google' | 'facebook' | 'apple',
+    accessToken: string,
+    idToken?: string,
+    extras?: {
+      email?: string;
+      displayName?: string;
+      providerUserId?: string;
+    },
+  ) {
     const token = idToken || accessToken;
     const result = await this.request<{ token: string; user: any }>('/api/auth/social', {
       method: 'POST',
-      body: JSON.stringify({ 
-        provider, 
+      body: JSON.stringify({
+        provider,
         token,
+        ...(extras?.email ? { email: extras.email } : {}),
+        ...(extras?.displayName ? { displayName: extras.displayName } : {}),
+        ...(extras?.providerUserId ? { providerUserId: extras.providerUserId } : {}),
       }),
     });
     await this.setToken(result.token);

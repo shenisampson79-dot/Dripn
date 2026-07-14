@@ -1,0 +1,439 @@
+{
+  "1": {
+    "title": "Kolmen sääntö",
+    "content": "Rajoita asusi enintään kolmeen pääväriin. Tämä luo visuaalista harmoniaa ja estää ilmettäsi näyttämästä kaoottiselta tai ylivoimaiselta.",
+    "colorSwatches": {
+      "Navy": "Laivasto",
+      "White": "Valkoinen",
+      "Camel": "Kameli"
+    }
+  },
+  "2": {
+    "title": "Mekko värikaudellesi",
+    "content": "Kun käytät värejä, jotka täydentävät luonnollista värjäystäsi (ihon sävy, hiukset, silmät), näytät terveemmältä ja eloisammalta. Ota selvää, oletko kevät, kesä, syksy tai talvi.",
+    "colorSwatches": {
+      "Warm Gold": "Lämmin Kulta",
+      "Cool Silver": "Viileä hopea"
+    }
+  },
+  "3": {
+    "title": "Neutraali meikkivoide, värikorostus",
+    "content": "Rakenna asuja neutraaleille perustuksille (musta, valkoinen, harmaa, tummansininen, beige) ja esittele väriä asusteiden tai yhden ilmeen avulla."
+  },
+  "4": {
+    "title": "Lämpimien vs kylmien sävyjen ymmärtäminen",
+    "content": "Lämpimät pohjasävyt yhdistyvät kauniisti maanläheisiin väreihin (oliivi, sinappi, koralli), kun taas kylmät pohjasävyt loistavat jalokivisävyissä (smaragdi, safiiri, rubiini). Omasi tunteminen muuttaa ostoksesi.",
+    "colorSwatches": {
+      "Mustard": "Sinappi",
+      "Emerald": "Smaragdi"
+    }
+  },
+  "5": {
+    "title": "Yksivärisen voima",
+    "content": "Yhden väriperheen pukeutuminen luo pidentävän, hienostuneen vaikutelman. Vaihtele sävyjä ja tekstuureja saman sävyn sisällä syvyyden ja kiinnostavuuden saavuttamiseksi."
+  },
+  "6": {
+    "title": "Täydentävä värinhallinta",
+    "content": "Väripyörän vastakkaiset värit (sininen/oranssi, violetti/keltainen, punainen/vihreä) luovat näyttäviä, dynaamisia asuja, kun ne on tasapainotettu oikein.",
+    "colorSwatches": {
+      "Royal Blue": "Kuninkaallinen Sininen",
+      "Burnt Orange": "Poltettu appelsiini"
+    }
+  },
+  "7": {
+    "title": "Navy on uusi musta",
+    "content": "Navy on yleisesti imartelevaa ja sopii kauniisti useampaan väriin kuin mustaan. Se on pehmeämpi, helposti lähestyttävä ja yhtä monipuolisempi."
+  },
+  "8": {
+    "title": "Valkoinen kirkastaa kasvosi",
+    "content": "Valkoisen tai kerman pukeutuminen kasvojen lähellä heijastaa valoa ylöspäin, mikä saa sinut näyttämään hereillä ja eloisammalta. Ihanteellinen videopuheluihin ja valokuvaamiseen."
+  },
+  "9": {
+    "title": "Kuvioiden sekoitus värin kanssa",
+    "content": "Kun sekoitat kuvioita, varmista, että niillä on vähintään yksi yhteinen väri. Tämä luo yhtenäisyyttä jopa eri mittakaavassa ja painotyyleissä."
+  },
+  "10": {
+    "title": "60-30-10 värisääntö",
+    "content": "Käytä hallitsevaa väriäsi 60 % asustasi, toissijaista väriä 30 % ja korostusväriä 10 %. Tämä luo tasapainoisen, visuaalisesti miellyttävän ilmeen."
+  },
+  "11": {
+    "title": "Kauden mukainen värien kierto",
+    "content": "Pyöritä väripalettiasi vuodenaikojen mukaan: täyteläisiä jalokivisävyjä syksyyn/talveen, pehmeitä pastellisävyjä ja kirkkaita kevääseen/kesään. Tämä pitää vaatekaappisi raikkaana."
+  },
+  "12": {
+    "title": "Musta päästä varpaisiin",
+    "content": "Täysmustat asut ovat ajattomia ja laihtuvia, mutta ne vaativat tekstuurin vaihtelua (matta, kiiltävä, neulottu), jotta ne eivät näytä tasaisilta tai pukumaisilta."
+  },
+  "13": {
+    "title": "Värien eston perusteet",
+    "content": "Värien esto käyttää yhtenäisiä, kontrastivärisiä lohkoja rohkean vaikutuksen aikaansaamiseksi. Pidä siluetit yksinkertaisina ja anna värien puhua."
+  },
+  "14": {
+    "title": "Metallinen neutraalina",
+    "content": "Kulta- ja hopeametallit toimivat neutraaleina ja ne voidaan yhdistää melkein mihin tahansa väriin. Yhdistä metallivärit pohjasävyisi saadaksesi imartelevimman vaikutuksen."
+  },
+  "15": {
+    "title": "Tulosta mittakaavassa",
+    "content": "Valitse kehyksesi kanssa yhteensopivia tulostuskokoja – pienemmät kehykset sopivat pienempiin tulosteisiin, suuremmat kehykset voivat sisältää rohkeampia kuvioita ilman ylikuormitusta."
+  },
+  "16": {
+    "title": "Kolmannen kappaleen sääntö",
+    "content": "Korosta mitä tahansa asua lisäämällä kolmas osa - bleiseri, neuletakki, huivi tai strukturoitu laukku. Tämä muuttaa perusyhdistelmät täydelliseksi, tarkoitukselliseksi ilmeeksi."
+  },
+  "17": {
+    "title": "Suhdepeli",
+    "content": "Tasapainota asusi volyymia: jos puet päällesi jotain löysää, käytä alaosaa (ja päinvastoin). Tämä luo imartelevia siluetteja kaikille vartalotyypeille."
+  },
+  "18": {
+    "title": "Yhden lausunnon sääntö",
+    "content": "Anna yhden palan olla asusi tähti. Jos käytät rohkeaa kuviota tai asustetta, pidä kaikki muu hillitynä visuaalisen kilpailun välttämiseksi."
+  },
+  "19": {
+    "title": "Määrittele vyötärösi",
+    "content": "Kun luot luonnollisen vyötäröllesi, joko vöiden, kiristyksen tai räätälöityjen leikkausten avulla, voit luoda tiimalasisiluetin, joka imartelee useimpia vartalotyyppejä."
+  },
+  "20": {
+    "title": "Kolmansien sääntö",
+    "content": "Sen sijaan, että jaat vartalosi kahtia, pyri 1/3–2/3 -suhteeseen (lyhyt toppi korkeavyötäröisellä alaosalla tai pidempi toppi lyhyemmällä hameella) saadaksesi dynaamisemmat mittasuhteet."
+  },
+  "21": {
+    "title": "Pystysuorat viivat pidentyvät",
+    "content": "Pystyraidat, pitkät kaulakorut ja avoimet neuletakit luovat illuusion korkeudesta ja ohuemmasta siluetista. Käytä strategisesti pidentämään vaikutuksia."
+  },
+  "22": {
+    "title": "V-kaula tasokkaampi kaikille",
+    "content": "V-pääntiet pidentävät kaulaa, kiinnittävät silmän pystysuoraan ja tasoittavat lähes kaikkia kasvojen muotoja ja vartalotyyppejä. Yleismaailmallisesti imarteleva valinta."
+  },
+  "23": {
+    "title": "Korkeavyötäröisen voima",
+    "content": "Korkeavyötäröiset alaosat pidentävät visuaalisesti jalkoja ja luovat pidemmän, ohuemman siluetin. Ne toimivat erityisen hyvin, kun topit on työnnetty sisään."
+  },
+  "24": {
+    "title": "Strukturoitu vs. jäsentämätön saldo",
+    "content": "Yhdistä strukturoidut osat (bleiserit, räätälöidyt housut) pehmeämpiin esineisiin (silkkipuserot, neulotut topit) saadaksesi asuja, jotka tuntuvat kiillotetuilta mutta helposti lähestyttäviltä."
+  },
+  "25": {
+    "title": "Kerrostaminen ilman massaa",
+    "content": "Kerrostele ohuita, laadukkaita kankaita paksujen sijaan. Aloita sovitetuista pohjakerroksista ja lisää asteittain löysempiä kappaleita välttääksesi turhan volyymin lisäämisen."
+  },
+  "26": {
+    "title": "Half-Tuck",
+    "content": "Rento puolitukka (paidan etuosan kiristäminen) luo vyötärön tarkkuuden säilyttäen samalla rento, vaivaton tunnelman. Täydellinen rentoon eleganssiin."
+  },
+  "27": {
+    "title": "Mekko vartalollesi sopivaksi",
+    "content": "Kun ymmärrät, oletko omena, päärynä, tiimalasi vai suorakulmio, voit valita leikkauksia, jotka parantavat luonnollisia mittasuhteitasi sen sijaan, että ne torjuisivat niitä."
+  },
+  "28": {
+    "title": "Yhdistä metallisi",
+    "content": "Pidä korusi ja tarvikkeet (vyönsoljet, laukkujen soljet, kengän yksityiskohdat) samassa metalliperheessä yhtenäisen, kiillotetun ilmeen saamiseksi."
+  },
+  "29": {
+    "title": "Laukkujen tulee sopia rungollesi",
+    "content": "Valitse vartaloasi verrannolliset laukkukoot - pienet kehykset sopivat pienempiin laukkuihin, kun taas korkeammat kehykset voivat kantaa suurempia tyylejä ilman, että ne kuormituvat."
+  },
+  "30": {
+    "title": "Kellot Statement Pieces -kappaleina",
+    "content": "Laadukas kello on sekä toimiva että muodikas. Valitse tyyli, joka heijastaa persoonallisuuttasi - klassinen, urheilullinen tai minimalistinen - ja käytä sitä päivittäin."
+  },
+  "31": {
+    "title": "Huivit Transform Outfits",
+    "content": "Silkkihuivia voi käyttää kaulassa, päänauhana, laukkuun sidottuna tai vyönä. Tämä monipuolinen lisävaruste kohottaa yksinkertaisia ​​asuja välittömästi."
+  },
+  "32": {
+    "title": "Vyön sijoittelulla on väliä",
+    "content": "Käytä vöitä luonnollisella vyötärölläsi saadaksesi imartelevimman vaikutuksen. Matalat vyöt voivat lyhentää vartaloasi, kun taas korkeat vyöt pidentävät jalkoja."
+  },
+  "33": {
+    "title": "Aurinkolasit muotoilevat kasvosi",
+    "content": "Valitse aurinkolasit, jotka eroavat kasvojesi muodosta – pyöreät kasvot sopivat kulmikkaan kehyksiin, neliömäiset kasvot näyttävät upeilta pyöristetyissä tyyleissä."
+  },
+  "34": {
+    "title": "Vähemmän on enemmän koruilla",
+    "content": "Valitse yksi keskipiste – ilmeiset korvakorut TAI rohkea kaulakoru TAI pinottavat rannekorut. Kaiken kerralla käyttäminen laimentaa vaikutusta."
+  },
+  "35": {
+    "title": "Match laukku ja kengät löyhästi",
+    "content": "Täydellisesti yhteensopivat laukut ja kengät näyttävät vanhentuneilta. Pyri sen sijaan täydentäviin väreihin tai yhteen yhteiseen elementtiin (molemmat nahkaiset, molemmat metalliset laitteistot)."
+  },
+  "36": {
+    "title": "Hatut täydelliset asut",
+    "content": "Oikea hattu lisää persoonallisuutta ja kiillotusta. Valitse tyylejä, jotka sopivat kasvojen muotoon ja elämäntyyliisi – fedorasta pesäpallolippiin ja baretteihin."
+  },
+  "37": {
+    "title": "Investoi laadukkaisiin nahkatavaroihin",
+    "content": "Hyvin tehty nahkalaukku ja -vyö kestävät vuosikymmeniä ja muodostavat kauniin patinan. Valitse klassisia muotoja monipuolisissa väreissä maksimaalisen puetettavuuden saavuttamiseksi."
+  },
+  "38": {
+    "title": "Kerrostetut kaulakorut",
+    "content": "Eripituisia kerroskaulakoruja (choker, prinsessa, ooppera) moderniin ulottuvuuteen. Pidä metallit yhtenäisinä ja vaihtele ketjujen rakennetta ja riipuksen kokoa."
+  },
+  "39": {
+    "title": "Korvakorut kehystävät kasvosi",
+    "content": "Korvakorut kiinnittävät huomion kasvoihisi. Valitse tyylejä, jotka täydentävät kasvojen muotoasi - nappuloita arkeen, tippaa iltaan, vanteet monipuolisuutta varten."
+  },
+  "40": {
+    "title": "Tekstuurien sekoitus",
+    "content": "Lisää syvyyttä ja visuaalista mielenkiintoa yksivärisiin tai yksinkertaisiin asuihin yhdistämällä erilaisia ​​tekstuureja (silkki denimillä, kashmir nahkalla, pellava villalla)."
+  },
+  "41": {
+    "title": "Luonnonkuidut hengittävät paremmin",
+    "content": "Puuvilla, pellava, villa ja silkki säätelevät lämpötilaa paremmin kuin synteettiset materiaalit. Etusijalla luonnonkankaat mukavuuden ja pitkäikäisyyden takaamiseksi."
+  },
+  "42": {
+    "title": "Neulo mukavuutta varten, kudottu rakennetta varten",
+    "content": "Neulotut kankaat (jersey, ponte) tarjoavat joustavuutta ja mukavuutta. Kudotut kankaat (puuvillapopliini, denim) antavat rakennetta. Valitse haluamasi tehosteen perusteella."
+  },
+  "43": {
+    "title": "Silkki erikoistilaisuuksiin",
+    "content": "Silkki lisää välitöntä ylellisyyttä ja eleganssia. Varaa se tilanteisiin, joissa haluat tuntea olosi erityiseksi - paino ja verho ovat vertaansa vailla."
+  },
+  "44": {
+    "title": "Cashmere on sen arvoista",
+    "content": "Laadukas kashmir on pehmeää, lämmintä ja kevyttä. Sijoita klassisiin asusteisiin, joita käytät vuosia – kulumiskohtaiset kustannukset tekevät siitä kannattavan."
+  },
+  "45": {
+    "title": "Denim monipuolisuus",
+    "content": "Laadukas denim on rento tyylin selkäranka. Omista vähintään yhdet hyvin istuvat farkut ja farkkutakki – molemmat toimivat eri vuodenaikoina ja tilaisuuksissa."
+  },
+  "46": {
+    "title": "Pellava syleilee ryppyjä",
+    "content": "Pellava on tarkoitettu rypistymään - se on osa sen rentoa viehätystä. Hyväksy luonnollinen rypistyminen sen sijaan, että taistelisit sitä vastaan. Varaa satunnaisiin asetuksiin."
+  },
+  "47": {
+    "title": "Velvet draamaan",
+    "content": "Velvet vangitsee valoa kauniisti ja lisää välitöntä draamaa mihin tahansa asuun. Varaa ilta, syksy/talvi tai kun haluat tehdä sisäänkäynnin."
+  },
+  "48": {
+    "title": "Nahka lausuntona",
+    "content": "Nahka (tai laadukkaat vegaanivaihtoehdot) lisää reunaa ja rakennetta. Nahkatakki on vaatekaappi, joka toimii eri vuodenaikoina ja tyyleillä."
+  },
+  "49": {
+    "title": "Läpinäkyvä kangaskerrostus",
+    "content": "Läpinäkyvät kankaat lisäävät mittaa, kun ne kerrostetaan oikein. Harkitse aina, mitä alla näkyy - käytä tarkoituksellisia kerrososia saadaksesi kiillotettua ilmettä."
+  },
+  "50": {
+    "title": "Occasion Plus One -mekko",
+    "content": "Pyri pukeutumaan hieman paremmin kuin tilaisuus vaatii. Alipukeutuminen tuntuu kiusalliselta, kun taas hieman ylipukeutuminen merkitsee pyrkimystä ja kunnioitusta."
+  },
+  "51": {
+    "title": "Ymmärrä pukukoodit",
+    "content": "Pukeutumiskoodien ymmärtäminen ehkäisee hämmennystä mustasta solmiosta smart casualiin. Jos olet epävarma, kysy isännöitsijältä tai erehdy muodollisuuden puolelle."
+  },
+  "52": {
+    "title": "Työvaatteiden perustukset",
+    "content": "Rakenna työvaatekaappi vaihdettavista osista: bleiserit, räätälöidyt housut, laadukkaat puserot ja vaatimattomat mekot. Tavoittele yhden viikon asuja."
+  },
+  "53": {
+    "title": "Viikonloppu Casual vs Sloppy",
+    "content": "Rento ei tarkoita huolimattomuutta. Hyvin istuvat farkut, puhtaat tennarit ja laadukas t-paita näyttävät vaivattoman tyylikkäiltä. Tahrat ja repeämät näyttävät huolimattomilta."
+  },
+  "54": {
+    "title": "Treffit yöllä",
+    "content": "Treffeille pukeutuminen osoittaa vaivaa ja kunnioitusta. Valitse kappaleita, jotka saavat sinut tuntemaan olosi varmaksi ja houkuttelevaksi - energiasi loistaa läpi."
+  },
+  "55": {
+    "title": "Matkusta mukavasti ja tyylillä",
+    "content": "Lentokenttätyylin tulisi asettaa mukavuus etusijalle kiillotuksesta tinkimättä. Joustavat kankaat, liukukengät ja kerrokset kestävät lämpötilan vaihteluita ja pitkiä matkoja."
+  },
+  "56": {
+    "title": "Haastattelun vaikutelmat",
+    "content": "Ensivaikutelmalla on väliä haastatteluissa. Tutki yrityskulttuuria ja pukeudu tasan muodollisemmin kuin arkipukeutuminen. Vältä häiritseviä kuvioita tai lisävarusteita."
+  },
+  "57": {
+    "title": "Häävierasetiketti",
+    "content": "Älä koskaan käytä valkoista häissä (ellei sitä erikseen pyydetä). Yhdistä muodollisuus paikkaan ja aikaan. Jos olet epävarma, cocktail-asu on turvallinen."
+  },
+  "58": {
+    "title": "Hautajaisten kunnioitus",
+    "content": "Hautajaisissa vaaditaan tummia, konservatiivisia vaatteita. Musta, laivastonsininen tai puuhiilen yksinkertaiset, vaatimattomat leikkaukset osoittavat kunnioitusta. Säästä kirkkaat värit elämän juhlia varten."
+  },
+  "59": {
+    "title": "Kulttuurikonteksti ratkaisee",
+    "content": "Tutki pukeutumisodotuksia vieraillessasi eri kulttuureissa tai uskonnollisissa paikoissa. Vaatimattomuusvaatimukset, päänpäällysteet tai kengänpoisto voivat olla voimassa."
+  },
+  "60": {
+    "title": "Investoi laadun perusteisiin",
+    "content": "Rakenna vaatekaappisi perusta hyvin tehdyillä perusasioilla: valkoinen paita, tummat housut, laadukas denim ja monipuolinen bleiseri. Laatu määrän edelle voittaa aina."
+  },
+  "61": {
+    "title": "Räätälöinnin voima",
+    "content": "Hyvin istuvat vaatteet näyttävät kalliimmalta kuin huonosti istuvat design-vaatteet. Investoi avainkappaleiden muutoksiin – ero on mullistava."
+  },
+  "62": {
+    "title": "Vaatekaappisääntö 80/20",
+    "content": "Käytät 20 % vaatekaapistasi 80 % ajasta. Tunnista nämä keskeiset osat ja investoi niiden laatuun. Tarkkaile ja muokkaa vaatekaappiasi säännöllisesti."
+  },
+  "63": {
+    "title": "Kulutuskohtainen laskelma",
+    "content": "Jaa hinta odotetulla kulumisella. 200 punnan takki 100 kertaa käytettynä maksaa 2 puntaa per käyttö – parempi hinta kuin 10 kertaa käytetty 50 punnan takki."
+  },
+  "64": {
+    "title": "Klassinen yli trendikäs",
+    "content": "Sijoita ajattomiin osiin ja säästä trendit edullisista tarvikkeista. Klassinen kaivanto kestää trendikkään siluetin vuosikymmeniä."
+  },
+  "65": {
+    "title": "Laadukkaat kengät ovat tärkeintä",
+    "content": "Ihmiset huomaavat kengät. Sijoita hyvin tehtyihin, klassisiin tyyleihin, jotka voidaan ratkaista. Jalkasi kiittävät sinua ja asusi näyttävät koholla."
+  },
+  "66": {
+    "title": "Täydellinen valkoinen paita",
+    "content": "Jokainen vaatekaappi tarvitsee raikkaan valkoisen paidan. Etsi laadukasta puuvillaa, sopivaa istuvuutta hartioiden läpi ja kaulusta, joka on tasainen."
+  },
+  "67": {
+    "title": "Investointipäällysvaatteet",
+    "content": "Takit näkyvät ja tekevät ensivaikutelman. Sijoita laadukkaisiin päällysvaatteisiin monipuolisissa väreissä – ne kehystävät koko ilmeesi."
+  },
+  "68": {
+    "title": "Rakenna hitaasti ja harkiten",
+    "content": "Kuroitu vaatekaappi vie aikaa. Lisää osat vähitellen varmistaaksesi, että jokainen toimii jo omistamiesi osien kanssa. Vastusta impulssiostoksia."
+  },
+  "69": {
+    "title": "Tunne ei-neuvoteltavissasi",
+    "content": "Tunnista kohteet, joista et suostu tekemään kompromisseja (mukavuus, eettinen tuotanto, tietyt tuotemerkit) ja priorisoi niiden kulutus."
+  },
+  "70": {
+    "title": "Pidä huolta vaatteistasi",
+    "content": "Lue hoitotarrat, käytä asianmukaisia ​​ripustimia ja säilytä tavarat oikein. Hyvin hoidetut vaatteet kestävät pidempään ja näyttävät paremmilta jokaisella käytöllä."
+  },
+  "71": {
+    "title": "Pese vähemmän, ilmaa enemmän",
+    "content": "Useimmat vaatteet eivät tarvitse pesua jokaisen käytön jälkeen. Vaatteiden tuulettaminen käyttökertojen välillä pidentää niiden käyttöikää ja vähentää ympäristövaikutuksia."
+  },
+  "72": {
+    "title": "Oikea ripustimen valinta",
+    "content": "Käytä puisia tai pehmustettuja ripustimia strukturoituihin tuotteisiin, samettia liukkaisiin kankaisiin ja taita neuleita estääksesi olkapäiden kohoumia."
+  },
+  "73": {
+    "title": "Kengänhoitorutiini",
+    "content": "Puhdista, huolla ja suojaa kengät säännöllisesti. Käytä kenkäpuita muodon ylläpitämiseen. Pyöritä pareja, jotta ne kuivuvat käyttökertojen välillä."
+  },
+  "74": {
+    "title": "Korjaa ennen vaihtoa",
+    "content": "Löystynyt nappi, pieni reikä tai rikkinäinen vetoketju voidaan usein korjata halvalla. Pidennä vaatteen käyttöikää korjaamalla sen vaihtamisen sijaan."
+  },
+  "75": {
+    "title": "Kausiaikainen säilytys",
+    "content": "Puhdista esineet ennen varastointia, käytä hengittäviä vaatepusseja ja lisää setriä tai laventelia koiden ehkäisemiseksi. Oikea säilytys säilyttää laadun."
+  },
+  "76": {
+    "title": "Pillingin ehkäisy",
+    "content": "Pillereiden poistotyökalut palauttavat neuleet lähes uuteen kuntoon. Estä nyppyyntyminen pesemällä nurinpäin, käyttämällä hellävaraisia ​​jaksoja ja välttämällä kitkaa."
+  },
+  "77": {
+    "title": "Tahrankäsittelyn perusteet",
+    "content": "Käsittele tahrat välittömästi, ulkoa sisäänpäin. Tiedä, mitkä hoidot sopivat mihinkin tahroihin - kylmä vesi verelle, sooda viinille."
+  },
+  "78": {
+    "title": "Ammattitaitoista hoitoa tarvittaessa",
+    "content": "Jotkut esineet vaativat ammattimaista puhdistusta. Puvut, silkki, nahka ja vahvasti helmillä koristellut esineet tulee toimittaa luotetuille kuivapesulaisille tai asiantuntijoille."
+  },
+  "79": {
+    "title": "Silitys ja höyry oikein",
+    "content": "Eri kankaat tarvitsevat erilaisia ​​lämpöasetuksia. Silitä aina nurinpäin herkät vaatteet, käytä puristusliinoja ja höyryä virkistymiseen pesujen välillä."
+  },
+  "80": {
+    "title": "Sesongin kangasvalinnat",
+    "content": "Yhdistä kankaan painot vuodenaikojen mukaan: pellava ja puuvilla kesällä, villa ja kashmir talvella. Tämä pitää sinut mukavana ja asianmukaisesti pukeutuneena."
+  },
+  "81": {
+    "title": "Kerrostaminen siirtymäsää varten",
+    "content": "Kevät ja syksy vaativat monipuolista kerrostusta. Rakenna asuja, jotka mukautuvat lämpötilan muutoksiin pitkin päivää."
+  },
+  "82": {
+    "title": "Kesän lämpöstrategiat",
+    "content": "Vaaleat värit heijastavat lämpöä, löysät istutukset mahdollistavat ilmavirran ja luonnonkuidut hengittävät. Pukeudu strategisesti kesän mukavuutta ja tyyliä varten."
+  },
+  "83": {
+    "title": "Talven lämpökerrokset",
+    "content": "Talven lämpökerros: kosteutta siirtävä pohja, eristävä keskiosa, säänkestävä ulkopinta. Tämä järjestelmä pitää sinut lämpimänä ilman bulkkia."
+  },
+  "84": {
+    "title": "Siirtymäkauden vaatekaappiosat",
+    "content": "Trenssitakit, kevyet neuleet ja monipuoliset bleiserit toimivat eri vuodenaikoina. Sijoita osiin, jotka yhdistävät säämuutoksia."
+  },
+  "85": {
+    "title": "Sään mukaiset jalkineet",
+    "content": "Sovita kengät olosuhteisiin: vedenpitävät sadetta varten, eristävät kylmää, hengittävät lämpöä varten. Tyyli ja toiminta voivat esiintyä rinnakkain."
+  },
+  "86": {
+    "title": "Väripaletti kausittain",
+    "content": "Vaihtele väripalettiasi vuodenaikojen mukaan: maanläheiset sävyt syksyyn, viileät neutraalit talvella, pehmeät pastellit kevääseen, kirkkaat sävyt kesään."
+  },
+  "87": {
+    "title": "Lomapukeutuminen",
+    "content": "Rakenna pieni kokoelma juhlatuotteita, jotka toimivat eri juhlatilaisuuksissa. Metalliset, sametti- ja jalokivisävyt sopivat useimpiin juhliin."
+  },
+  "88": {
+    "title": "Ulkotapahtuman valmistelu",
+    "content": "Ulkotapahtumiin varaudu sään muutoksiin: ota mukaan kerrokset, vedenpitävät tai aurinkosuojat tarpeen mukaan. Tarkista ennuste ja paikka."
+  },
+  "89": {
+    "title": "Kauden mukainen vaatekaappikierto",
+    "content": "Vaihtele vaatekaappiasi sesongin mukaan. Säilytä off-season tavarat kunnolla ja tuo tuoreet kappaleet esiin - se pitää kaappisi hallittavana ja inspiroivana."
+  },
+  "90": {
+    "title": "Itseluottamus on paras varusteesi",
+    "content": "Käytä sitä, mikä saa sinut tuntemaan olosi varmaksi ja mukavaksi. Parhaiten pukeutuneilla ihmisillä on henkilökohtainen tyylinsä sen sijaan, että he noudattaisivat jokaista trendiä."
+  },
+  "91": {
+    "title": "Pukeudu nyt, ei myöhemmin",
+    "content": "Älä odota, kunnes laihdut tai saavutat tavoitteen. Pukeudu kauniisti tämän päivän vartalollesi - ansaitset tuntea olosi hyväksi nyt."
+  },
+  "92": {
+    "title": "Ohita kokomerkinnät",
+    "content": "Koot vaihtelevat hurjasti eri merkkien välillä. Keskity istuvuuteen, älä etiketissä olevaan numeroon. Paras koko on oikean kokoinen."
+  },
+  "93": {
+    "title": "Korosta mitä rakastat",
+    "content": "Sen sijaan, että piilottaisit havaitut puutteet, kiinnitä huomiota piirteisiin, joista pidät. Hienot kädet? Näytä heille. Rakastatko jalkojasi? Käytä lyhyempiä helmiä."
+  },
+  "94": {
+    "title": "Mukavuus synnyttää luottamusta",
+    "content": "Kun olet jatkuvasti sopeutumassa tai tunnet olosi epämukavaksi, se näkyy. Aseta etusijalle vaatteet, jotka istuvat hyvin ja tuntuvat hyvältä – itseluottamuksesi seuraa perässä."
+  },
+  "95": {
+    "title": "Henkilökohtainen tyyli muodin sääntöjen yläpuolelle",
+    "content": "Tyylisäännöt ovat suuntaviivoja, eivät lakeja. Jos jokin \"sääntö\" ei toimi sinulle tai tee sinua onnelliseksi, riko sitä. Aito persoonallinen tyyli voittaa kaiken."
+  },
+  "96": {
+    "title": "Ota huomioon ainutlaatuiset ominaisuudet",
+    "content": "Se, mikä tekee sinusta erilaisen, tekee sinusta ikimuistoisen. Ymmärrä ainutlaatuisia piirteitä – epätavalliset mittasuhteet, erottuva väritys tai epätyypilliset muodot voivat olla tyylin tunnusomaisia ​​elementtejä."
+  },
+  "97": {
+    "title": "Ikäsopivuus on myytti",
+    "content": "Tyylillä ei ole ikärajaa. Käytä sitä, mikä saa sinut tuntemaan olosi ihanaksi, olipa kyseessä minihame 60-vuotiaana tai hienostuneita pukuja 25-vuotiaana."
+  },
+  "98": {
+    "title": "Laatu määrän yli",
+    "content": "Investoi vähemmän, parempiin kappaleisiin pikamuodin sijaan. Laadukkaat kankaat, rakenne ja ajaton muotoilu kestävät trendejä ja maksavat vähemmän kulumista kohti."
+  },
+  "99": {
+    "title": "Käytetty ensin",
+    "content": "Ennen kuin ostat uuden, tarkista käytetyt vaihtoehdot. Hyväntekeväisyysliikkeet, vintage-liikkeet ja jälleenmyyntialustat tarjoavat ainutlaatuisia esineitä, joilla on pienempi ympäristövaikutus."
+  },
+  "100": {
+    "title": "Tunne tuotemerkit",
+    "content": "Tutki ostamiesi tuotemerkkien etiikkaa ja kestävän kehityksen käytäntöjä. Tue niitä, jotka ovat linjassa tuotannon, työntekijöiden ja ympäristön arvojesi kanssa."
+  },
+  "101": {
+    "title": "Yksi sisään, yksi ulos -sääntö",
+    "content": "Lahjoita tai myy jokaista vaatekaappiisi lisättyä uutta tuotetta. Tämä ylläpitää hallittavissa olevaa vaatekaappia ja kannustaa harkittuihin ostoihin."
+  },
+  "102": {
+    "title": "Kapselivaatekaapin ajattelutapa",
+    "content": "Kapselivaatekaappi, jossa on 30-40 monipuolista osaa, jotka kaikki toimivat yhdessä, vähentää päätöksentekoväsymystä ja ympäristövaikutuksia maksimoimalla tyylin."
+  },
+  "103": {
+    "title": "Korjaus ja kierrätys",
+    "content": "Opi peruskorjaukset tai etsi hyvä räätäli. Hengitä uutta elämää vanhoihin kappaleisiin muutosten, värjäysten tai luovien uudelleen kuvitusten avulla."
+  },
+  "104": {
+    "title": "Vuokra erikoistilaisuuksiin",
+    "content": "Kertaluonteisissa tapahtumissa harkitse vuokrauspalveluita. Käytä design-tuotteita ilman kertakäyttöostosten kustannuksia tai ympäristövaikutuksia."
+  },
+  "105": {
+    "title": "Ensisijainen luonnonkuitu",
+    "content": "Valitse mahdollisuuksien mukaan luonnollisia, biohajoavia kuituja (puuvilla, pellava, villa, silkki) synteettisten kuitujen sijaan. Ne ovat parempia planeetalle ja usein mukavampia."
+  }
+}

@@ -38,7 +38,7 @@ import {
 import { apiService } from "@/services/ApiService";
 import weatherService from "@/services/WeatherService";
 import { pickDailyRuleFromPersonalized } from "@/utils/personalizedStyleRules";
-import { FASHION_RULES } from "@/data/fashionRules";
+import { getFashionRules } from "@/data/getFashionRules";
 import {
   buildOfflineColorOfTheYear,
   buildOfflineSeasonalPalette,
@@ -144,7 +144,7 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
   const { items: wardrobeItems } = useWardrobe();
-  const { t, translations } = useTranslations();
+  const { t, translations, currentLanguage } = useTranslations();
   const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<'type' | 'upload' | 'event-questions' | 'context' | 'response'>('type');
@@ -223,11 +223,12 @@ export default function AskStylistScreen({ navigation }: AskStylistScreenProps) 
       setCategories(categoriesRes.categories || []);
     } catch (error) {
       const currentWeather = await weatherService.getWeatherForOutfits().catch(() => null);
-      const personalizedRule = pickDailyRuleFromPersonalized(FASHION_RULES, {
+      const personalizedRule = pickDailyRuleFromPersonalized(getFashionRules(currentLanguage), {
         gender: user?.gender,
         wardrobeItems,
         weather: currentWeather,
         bodyShape: user?.bodyShape,
+        language: currentLanguage,
       });
       setDailyRule(personalizedRule ?? {
         id: 1,

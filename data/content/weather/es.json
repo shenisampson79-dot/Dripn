@@ -1,0 +1,247 @@
+{
+  "descriptions": {
+    "0": "Cielo despejado",
+    "1": "Mayormente despejado",
+    "2": "Parcialmente nublado",
+    "3": "Cubierto",
+    "45": "Niebla",
+    "48": "Niebla con escarcha",
+    "51": "Llovizna ligera",
+    "53": "Llovizna moderada",
+    "55": "Llovizna densa",
+    "61": "Lluvia ligera",
+    "63": "Lluvia moderada",
+    "65": "Lluvia intensa",
+    "71": "Nieve ligera",
+    "73": "Nieve moderada",
+    "75": "Nieve intensa",
+    "80": "Chubascos ligeros",
+    "81": "Chubascos moderados",
+    "82": "Chubascos violentos",
+    "95": "Tormenta",
+    "96": "Tormenta con granizo ligero",
+    "99": "Tormenta con granizo intenso"
+  },
+  "descriptionFallback": "Desconocido",
+  "defaultDescription": "Parcialmente nublado",
+  "locationFallback": "Tu ubicación",
+  "unknownLocation": {
+    "yourLocation": "Tu ubicación",
+    "yourLocationTitle": "Tu ubicación",
+    "unknown": "Desconocida"
+  },
+  "bands": {
+    "hot": {
+      "layers": [
+        "Una sola capa transpirable — no hace falta más"
+      ],
+      "keyPiecesFemale": [
+        "Vestido o falda de lino",
+        "Blusa de algodón",
+        "Shorts transpirables",
+        "Sandalias o mocasines"
+      ],
+      "keyPiecesMale": [
+        "Camisa de lino o algodón",
+        "Chinos ligeros o shorts",
+        "Polo transpirable",
+        "Zapatillas o mocasines"
+      ],
+      "accessories": [
+        "Gafas de sol",
+        "Sombrero de ala ancha",
+        "Botella de agua"
+      ],
+      "colors": [
+        "Blanco",
+        "Crema",
+        "Pasteles",
+        "Azul claro"
+      ],
+      "fabricTips": "Solo lino y algodón — evita puntos, capas extra y chaquetas con este calor.",
+      "stylingNoteTemplate": "Día caluroso ({peakTemp}°C). Un solo look ligero basta — deja abrigos y capas en casa."
+    },
+    "warm": {
+      "layers": [
+        "Capa base ligera",
+        "Cubrirse ligero opcional"
+      ],
+      "keyPiecesFemale": [
+        "Vestido midi",
+        "Jeans de cintura alta",
+        "Blusa de algodón ligera",
+        "Pantalones transpirables"
+      ],
+      "keyPiecesMale": [
+        "Camisa de algodón",
+        "Chinos",
+        "Polo de punto ligero",
+        "Blazer sin forro"
+      ],
+      "accessories": [
+        "Gafas de sol",
+        "Bolso de lona"
+      ],
+      "colors": [
+        "Tonos tierra",
+        "Verde salvia",
+        "Rosa empolvado",
+        "Camel"
+      ],
+      "fabricTips": "El algodón y los puntos ligeros funcionan bien cuando la temperatura sube a lo largo del día.",
+      "stylingNoteTemplate": "Vestimenta cómoda de clima cálido — añade una capa ligera solo si la necesitas temprano o al final del día."
+    },
+    "mild": {
+      "layers": [
+        "Capa base",
+        "Capa intermedia",
+        "Capa exterior ligera"
+      ],
+      "keyPiecesFemale": [
+        "Trench o abrigo ligero",
+        "Jersey de punto fino",
+        "Pantalones",
+        "Falda midi con botines"
+      ],
+      "keyPiecesMale": [
+        "Chaqueta ligera",
+        "Punto de galga fina",
+        "Chinos",
+        "Blazer sin estructurar"
+      ],
+      "accessories": [
+        "Pañuelo ligero",
+        "Bolso estructurado"
+      ],
+      "colors": [
+        "Burdeos",
+        "Verde bosque",
+        "Marrón chocolate",
+        "Marino"
+      ],
+      "fabricTips": "Superpone punto fino bajo un abrigo más ligero — reserva la lana gruesa para días más fríos.",
+      "stylingNoteTemplate": "Fresco pero no frío — superpone sin volumen."
+    },
+    "cold": {
+      "layers": [
+        "Capa base",
+        "Capa intermedia aislante",
+        "Capa exterior abrigada"
+      ],
+      "keyPiecesFemale": [
+        "Plumífero",
+        "Abrigo de lana",
+        "Leggings térmicos",
+        "Jersey de punto grueso"
+      ],
+      "keyPiecesMale": [
+        "Plumífero",
+        "Abrigo de lana",
+        "Capa base térmica",
+        "Jersey de punto grueso"
+      ],
+      "accessories": [
+        "Gorro",
+        "Bufanda de lana",
+        "Guantes abrigados",
+        "Botas abrigadas"
+      ],
+      "colors": [
+        "Negro",
+        "Carbón",
+        "Burdeos intenso",
+        "Crema"
+      ],
+      "fabricTips": "Las capas base de lana merino retienen el calor y evacúan la humedad.",
+      "stylingNoteTemplate": "Invierte en abrigos de calidad. El calor y el estilo son igual de esenciales."
+    },
+    "freezing": {
+      "layers": [
+        "Base térmica",
+        "Aislamiento pesado",
+        "Exterior impermeable"
+      ],
+      "keyPiecesFemale": [
+        "Abrigo plumífero largo",
+        "Pantalones forrados de polar",
+        "Cuello alto grueso",
+        "Botas aislantes"
+      ],
+      "keyPiecesMale": [
+        "Parka larga",
+        "Pantalones forrados de polar",
+        "Jersey de lana gruesa",
+        "Botas aislantes"
+      ],
+      "accessories": [
+        "Gorro abrigado",
+        "Bufanda de cachemira",
+        "Guantes aislantes",
+        "Orejeras"
+      ],
+      "colors": [
+        "Negro",
+        "Marino intenso",
+        "Burdeos",
+        "Toques de crema"
+      ],
+      "fabricTips": "Los tejidos técnicos y el aislamiento de plumón son tus aliados.",
+      "stylingNoteTemplate": "Prioriza el calor. Con la técnica de capas adecuada aún puedes lucir chic."
+    }
+  },
+  "overlays": {
+    "rain": {
+      "keyPiece": "Chaqueta impermeable o trench",
+      "accessories": [
+        "Paraguas",
+        "Botas impermeables"
+      ],
+      "fabricTipsSuffix": " Elige materiales resistentes al agua.",
+      "stylingNoteSuffix": " Una chaqueta de lluvia con estilo es esencial. Valora unas botas Chelsea impermeables para protección chic."
+    },
+    "snow": {
+      "accessories": [
+        "Botas de nieve",
+        "Guantes impermeables"
+      ],
+      "stylingNoteSuffix": " Función y moda a la vez. Unas botas de nieve de calidad y una parka abrigada son imprescindibles."
+    },
+    "wind": {
+      "accessory": "Pañuelo cortavientos",
+      "stylingNoteSuffix": " Asegura las prendas sueltas y apuesta por siluetas ajustadas con viento.",
+      "accessories": [
+        "Pañuelo cortavientos"
+      ]
+    }
+  },
+  "dailyRange": {
+    "layersHotMorning": [
+      "Look ligero para el calor del mediodía",
+      "Cárdigan opcional solo para la mañana"
+    ],
+    "layersHotDay": [
+      "Look ligero para el día — sin capas base ni intermedias"
+    ],
+    "sunglasses": "Gafas de sol",
+    "heatSwingNoteTemplate": "{lowTemp}°C ahora, máximo {peakTemp}°C — vístete para el calor. Una capa ligera solo para la mañana fresca si la necesitas.",
+    "wideSwingLayer": "Capa removible para los cambios de temperatura",
+    "wideSwingNoteTemplate": "{lowTemp}–{peakTemp}°C hoy — superpone para poder ajustar cuando el día suba o baje.",
+    "modestSwingNoteTemplate": "Rango del día {lowTemp}–{peakTemp}°C. {existing}",
+    "coldMorningFemale": [
+      "Abrigo o trench ligero",
+      "Punto fino",
+      "Pantalones",
+      "Zapatos cerrados"
+    ],
+    "coldMorningMale": [
+      "Chaqueta ligera",
+      "Punto de galga fina o camisa",
+      "Chinos",
+      "Mocasines o zapatillas"
+    ],
+    "coldMorningLayers": [
+      "Abrigo suficiente para la mañana",
+      "Fácil de aligerar por la tarde"
+    ]
+  }
+}

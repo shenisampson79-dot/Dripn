@@ -18,7 +18,8 @@ import { useWardrobe } from "@/contexts/WardrobeContext";
 import weatherService, { type WeatherCondition } from "@/services/WeatherService";
 import { personalizeStyleRules } from "@/utils/personalizedStyleRules";
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
-import { FASHION_RULES, FASHION_CATEGORIES, type FashionRule, type CategoryInfo } from "@/data/fashionRules";
+import { FASHION_CATEGORIES, type FashionRule, type CategoryInfo } from "@/data/fashionRules";
+import { getFashionRules } from "@/data/getFashionRules";
 
 type StyleRulesScreenProps = {
   navigation: NativeStackNavigationProp<UserStylistStackParamList, "StyleRules">;
@@ -28,6 +29,26 @@ const DIFFICULTY_COLORS: Record<string, { bg: string; text: string }> = {
   Beginner: { bg: '#E8F5E9', text: '#2E7D32' },
   Intermediate: { bg: '#FFF3E0', text: '#EF6C00' },
   Advanced: { bg: '#FCE4EC', text: '#C2185B' },
+};
+
+const CATEGORY_I18N_KEYS: Record<string, string> = {
+  All: 'styleRules.category.all',
+  'Colour & Palette': 'styleRules.category.colourPalette',
+  'Silhouette & Proportion': 'styleRules.category.silhouetteProportion',
+  'Fabric & Texture': 'styleRules.category.fabricTexture',
+  'Occasion & Context': 'styleRules.category.occasionContext',
+  Accessories: 'styleRules.category.accessories',
+  'Seasonal Dressing': 'styleRules.category.seasonalDressing',
+  'Care & Maintenance': 'styleRules.category.careMaintenance',
+  'Investment Pieces': 'styleRules.category.investmentPieces',
+  'Body Confidence': 'styleRules.category.bodyConfidence',
+  Sustainability: 'styleRules.category.sustainability',
+};
+
+const DIFFICULTY_I18N_KEYS: Record<string, string> = {
+  Beginner: 'styleRules.difficulty.beginner',
+  Intermediate: 'styleRules.difficulty.intermediate',
+  Advanced: 'styleRules.difficulty.advanced',
 };
 
 const CATEGORY_ICONS: Record<string, keyof typeof Feather.glyphMap> = {
@@ -45,11 +66,15 @@ const CATEGORY_ICONS: Record<string, keyof typeof Feather.glyphMap> = {
 
 export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) {
   const { theme, isDark } = useTheme();
-  const { translations } = useTranslations();
+  const { translations, t, currentLanguage } = useTranslations();
   const { palette } = useColorScheme();
   const { user } = useAuth();
   const { items: wardrobeItems } = useWardrobe();
-  const [rules, setRules] = useState<FashionRule[]>(FASHION_RULES);
+  const localizedRules = React.useMemo(
+    () => getFashionRules(currentLanguage),
+    [currentLanguage],
+  );
+  const [rules, setRules] = useState<FashionRule[]>(localizedRules);
   const [categories, setCategories] = useState<CategoryInfo[]>(FASHION_CATEGORIES);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,6 +83,16 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
   const [highlightRule, setHighlightRule] = useState<FashionRule | null>(null);
   const [contextLabel, setContextLabel] = useState<string | null>(null);
   const [weather, setWeather] = useState<WeatherCondition | null>(null);
+
+  const localizeCategory = useCallback((name: string) => {
+    const key = CATEGORY_I18N_KEYS[name];
+    return (key ? t(key) : '') || name;
+  }, [t]);
+
+  const localizeDifficulty = useCallback((difficulty: string) => {
+    const key = DIFFICULTY_I18N_KEYS[difficulty];
+    return (key ? t(key) : '') || difficulty;
+  }, [t]);
 
   const applyPersonalization = useCallback((
     allRules: FashionRule[],
@@ -73,18 +108,19 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
       wardrobeItems,
       weather: currentWeather,
       bodyShape: user?.bodyShape,
+      language: currentLanguage,
     });
 
     setHighlightRule(category ? null : personalized.highlightRule);
     setContextLabel(personalized.contextLabel);
     setRules(personalized.orderedRules);
-  }, [user?.gender, user?.bodyShape, wardrobeItems]);
+  }, [user?.gender, user?.bodyShape, wardrobeItems, currentLanguage]);
 
   const loadContext = useCallback(async () => {
     const currentWeather = await weatherService.getWeatherForOutfits().catch(() => null);
     setWeather(currentWeather);
-    applyPersonalization(FASHION_RULES, selectedCategory, currentWeather);
-  }, [applyPersonalization, selectedCategory]);
+    applyPersonalization(localizedRules, selectedCategory, currentWeather);
+  }, [applyPersonalization, selectedCategory, localizedRules]);
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoading(true);
@@ -96,8 +132,8 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
   }, [loadContext]);
 
   useEffect(() => {
-    applyPersonalization(FASHION_RULES, selectedCategory, weather);
-  }, [selectedCategory, weather, applyPersonalization]);
+    applyPersonalization(localizedRules, selectedCategory, weather);
+  }, [selectedCategory, weather, applyPersonalization, localizedRules]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -152,7 +188,7 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
             { color: isSelected ? '#000' : theme.text },
           ]}
         >
-          {item.name} ({item.count})
+          {localizeCategory(item.name)} ({item.count})
         </ThemedText>
       </Pressable>
     );
@@ -169,12 +205,12 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
             <View style={[styles.categoryBadge, { backgroundColor: palette.violet + '20' }]}>
               <Feather name={getCategoryIcon(item.category)} size={12} color={palette.violet} />
               <ThemedText style={[styles.categoryBadgeText, { color: palette.violet }]}>
-                {item.category}
+                {localizeCategory(item.category)}
               </ThemedText>
             </View>
             <View style={[styles.difficultyBadge, { backgroundColor: difficultyStyle.bg }]}>
               <ThemedText style={[styles.difficultyText, { color: difficultyStyle.text }]}>
-                {item.difficulty}
+                {localizeDifficulty(item.difficulty)}
               </ThemedText>
             </View>
           </View>
@@ -232,7 +268,7 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
     );
   };
 
-  const allCategory = { name: 'All', count: FASHION_RULES.length };
+  const allCategory = { name: 'All', count: localizedRules.length };
   const categoryList = [allCategory, ...categories];
 
   const ListHeader = () => (
@@ -252,7 +288,8 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
           </View>
           <ThemedText style={styles.headerTitle}>{translations.stylistHub?.styleRules || 'Style Rules'}</ThemedText>
           <ThemedText style={styles.headerSubtitle}>
-            {FASHION_RULES.length}+ essential fashion guidelines
+            {(t('styleRules.essentialGuidelines') || '{count}+ essential fashion guidelines')
+              .replace('{count}', String(localizedRules.length))}
           </ThemedText>
         </View>
       </LinearGradient>
@@ -265,7 +302,7 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
               {contextLabel}
             </ThemedText>
           </View>
-          <ThemedText style={styles.contextTitle}>Top rule for you today</ThemedText>
+          <ThemedText style={styles.contextTitle}>{t('styleRules.topRuleToday') || 'Top rule for you today'}</ThemedText>
           <ThemedText style={styles.contextRuleTitle}>{highlightRule.title}</ThemedText>
           <ThemedText style={styles.contextRulePreview} numberOfLines={3}>
             {highlightRule.content}
@@ -274,7 +311,7 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
       ) : null}
 
       <View style={styles.categoriesSection}>
-        <ThemedText style={styles.sectionTitle}>Categories</ThemedText>
+        <ThemedText style={styles.sectionTitle}>{t('styleRules.categories') || 'Categories'}</ThemedText>
         <View style={styles.categoriesScroll}>
           {categoryList.map((cat, index) => (
             <View key={cat.name}>
@@ -285,7 +322,12 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
       </View>
 
       <ThemedText style={styles.rulesCount}>
-        {selectedCategory ? `${rules.length} rules in ${selectedCategory}` : `All ${FASHION_RULES.length} rules`}
+        {selectedCategory
+          ? (t('styleRules.rulesInCategory') || '{count} rules in {category}')
+              .replace('{count}', String(rules.length))
+              .replace('{category}', localizeCategory(selectedCategory))
+          : (t('styleRules.allRules') || 'All {count} rules')
+              .replace('{count}', String(localizedRules.length))}
       </ThemedText>
     </View>
   );
@@ -294,7 +336,7 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
     return (
       <ThemedView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={palette.gold} />
-        <ThemedText style={styles.loadingText}>Loading style rules...</ThemedText>
+        <ThemedText style={styles.loadingText}>{t('styleRules.loading') || 'Loading style rules...'}</ThemedText>
       </ThemedView>
     );
   }

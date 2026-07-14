@@ -1,0 +1,247 @@
+{
+  "descriptions": {
+    "0": "Ciel dégagé",
+    "1": "Plutôt dégagé",
+    "2": "Partiellement nuageux",
+    "3": "Couvert",
+    "45": "Brouillard",
+    "48": "Brouillard givrant",
+    "51": "Bruine légère",
+    "53": "Bruine modérée",
+    "55": "Bruine dense",
+    "61": "Pluie faible",
+    "63": "Pluie modérée",
+    "65": "Pluie forte",
+    "71": "Neige faible",
+    "73": "Neige modérée",
+    "75": "Neige abondante",
+    "80": "Averses de pluie faibles",
+    "81": "Averses de pluie modérées",
+    "82": "Averses de pluie violentes",
+    "95": "Orage",
+    "96": "Orage avec grêle légère",
+    "99": "Orage avec grêle forte"
+  },
+  "descriptionFallback": "Inconnu",
+  "defaultDescription": "Partiellement nuageux",
+  "locationFallback": "Votre position",
+  "unknownLocation": {
+    "yourLocation": "Votre position",
+    "yourLocationTitle": "Votre position",
+    "unknown": "Inconnu"
+  },
+  "bands": {
+    "hot": {
+      "layers": [
+        "Une seule couche respirante — pas de couches supplémentaires"
+      ],
+      "keyPiecesFemale": [
+        "Robe ou jupe en lin",
+        "Chemisier en coton",
+        "Shorts respirants",
+        "Sandales ou mocassins"
+      ],
+      "keyPiecesMale": [
+        "Chemise en lin ou coton",
+        "Chinos légers ou shorts",
+        "Polo respirant",
+        "Baskets ou mocassins"
+      ],
+      "accessories": [
+        "Lunettes de soleil",
+        "Chapeau à large bord",
+        "Bouteille d'eau"
+      ],
+      "colors": [
+        "Blanc",
+        "Crème",
+        "Pastels",
+        "Bleu clair"
+      ],
+      "fabricTips": "Lin et coton uniquement — évitez les mailles, les couches et les vestes par cette chaleur.",
+      "stylingNoteTemplate": "Journée chaude ({peakTemp}°C). Une tenue légère suffit — laissez manteaux et couches à la maison."
+    },
+    "warm": {
+      "layers": [
+        "Couche de base légère",
+        "Couvre-épaule léger optionnel"
+      ],
+      "keyPiecesFemale": [
+        "Robe midi",
+        "Jean taille haute",
+        "Chemisier coton léger",
+        "Pantalon respirant"
+      ],
+      "keyPiecesMale": [
+        "Chemise en coton",
+        "Chinos",
+        "Polo en maille légère",
+        "Blazer non doublé"
+      ],
+      "accessories": [
+        "Lunettes de soleil",
+        "Sac en toile"
+      ],
+      "colors": [
+        "Tons terre",
+        "Vert sauge",
+        "Rose poudré",
+        "Camel"
+      ],
+      "fabricTips": "Le coton et les mailles légères fonctionnent bien quand la température monte dans la journée.",
+      "stylingNoteTemplate": "Tenue confortable par temps chaud — ajoutez une couche légère seulement tôt le matin ou en fin de journée."
+    },
+    "mild": {
+      "layers": [
+        "Couche de base",
+        "Couche intermédiaire",
+        "Couche extérieure légère"
+      ],
+      "keyPiecesFemale": [
+        "Trench ou manteau léger",
+        "Pull en maille fine",
+        "Pantalon",
+        "Jupe midi avec bottines"
+      ],
+      "keyPiecesMale": [
+        "Veste légère",
+        "Maille fine",
+        "Chinos",
+        "Blazer non structuré"
+      ],
+      "accessories": [
+        "Écharpe légère",
+        "Sac structuré"
+      ],
+      "colors": [
+        "Bourgogne",
+        "Vert forêt",
+        "Marron chocolat",
+        "Marine"
+      ],
+      "fabricTips": "Superposez une maille fine sous un manteau plus léger — réservez la laine épaisse aux jours plus froids.",
+      "stylingNoteTemplate": "Frais mais pas froid — superposez sans volume."
+    },
+    "cold": {
+      "layers": [
+        "Couche de base",
+        "Couche intermédiaire isolante",
+        "Couche extérieure chaude"
+      ],
+      "keyPiecesFemale": [
+        "Doudoune",
+        "Manteau en laine",
+        "Leggings thermiques",
+        "Pull en maille épaisse"
+      ],
+      "keyPiecesMale": [
+        "Doudoune",
+        "Manteau en laine",
+        "Couche de base thermique",
+        "Pull en maille épaisse"
+      ],
+      "accessories": [
+        "Bonnet",
+        "Écharpe en laine",
+        "Gants chauds",
+        "Bottes chaudes"
+      ],
+      "colors": [
+        "Noir",
+        "Anthracite",
+        "Bourgogne profond",
+        "Crème"
+      ],
+      "fabricTips": "Les couches de base en laine mérinos retiennent la chaleur tout en évacuant l'humidité.",
+      "stylingNoteTemplate": "Investissez dans un manteau de qualité. Chaleur et style sont aussi essentiels l'un que l'autre."
+    },
+    "freezing": {
+      "layers": [
+        "Base thermique",
+        "Isolation épaisse",
+        "Extérieur imperméable"
+      ],
+      "keyPiecesFemale": [
+        "Doudoune longue",
+        "Pantalon doublé polaire",
+        "Col roulé épais",
+        "Bottes isolantes"
+      ],
+      "keyPiecesMale": [
+        "Parka longue",
+        "Pantalon doublé polaire",
+        "Pull en laine épaisse",
+        "Bottes isolantes"
+      ],
+      "accessories": [
+        "Bonnet chaud",
+        "Écharpe en cachemire",
+        "Gants isolants",
+        "Cache-oreilles"
+      ],
+      "colors": [
+        "Noir",
+        "Marine profond",
+        "Bourgogne",
+        "Touches de crème"
+      ],
+      "fabricTips": "Les tissus techniques et l'isolation en duvet sont vos alliés.",
+      "stylingNoteTemplate": "Priorisez la chaleur. Avec la bonne technique de superposition, vous restez chic."
+    }
+  },
+  "overlays": {
+    "rain": {
+      "keyPiece": "Veste imperméable ou trench",
+      "accessories": [
+        "Parapluie",
+        "Bottes imperméables"
+      ],
+      "fabricTipsSuffix": " Choisissez des matières résistantes à l'eau.",
+      "stylingNoteSuffix": " Une veste de pluie élégante est essentielle. Envisagez des bottes Chelsea de pluie pour une protection chic."
+    },
+    "snow": {
+      "accessories": [
+        "Bottes de neige",
+        "Gants imperméables"
+      ],
+      "stylingNoteSuffix": " Fonction et mode réunies. Des bottes de neige de qualité et une parka chaude sont indispensables."
+    },
+    "wind": {
+      "accessory": "Écharpe coupe-vent",
+      "accessories": [
+        "Écharpe coupe-vent"
+      ],
+      "stylingNoteSuffix": " Fixez les pièces amples et privilégiez les silhouettes ajustées par grand vent."
+    }
+  },
+  "dailyRange": {
+    "layersHotMorning": [
+      "Tenue légère pour la chaleur de midi",
+      "Cardigan optionnel pour le matin seulement"
+    ],
+    "layersHotDay": [
+      "Tenue légère pour la journée — pas de couche de base ni intermédiaire"
+    ],
+    "sunglasses": "Lunettes de soleil",
+    "heatSwingNoteTemplate": "{lowTemp}°C maintenant, pic à {peakTemp}°C — habillez-vous pour la chaleur. Une couche légère seulement pour le matin frais si besoin.",
+    "wideSwingLayer": "Couche amovible pour les variations de température",
+    "wideSwingNoteTemplate": "{lowTemp}–{peakTemp}°C aujourd'hui — superposez pour pouvoir vous adapter quand la journée se réchauffe ou se refroidit.",
+    "modestSwingNoteTemplate": "Amplitude du jour {lowTemp}–{peakTemp}°C. {existing}",
+    "coldMorningFemale": [
+      "Manteau ou trench léger",
+      "Maille fine",
+      "Pantalon",
+      "Chaussures fermées"
+    ],
+    "coldMorningMale": [
+      "Veste légère",
+      "Maille fine ou chemise",
+      "Chinos",
+      "Mocassins ou baskets"
+    ],
+    "coldMorningLayers": [
+      "Assez chaud pour le matin",
+      "Facile à alléger l'après-midi"
+    ]
+  }
+}

@@ -61,6 +61,8 @@ Password: <SAME AS APP_REVIEW_PASSWORD ON RENDER>
 
 Please use the demo account above. New signup also works, but the demo account skips verification so the core flow is immediate.
 
+Social login options (Apple/Google/Facebook) are not required for review. Please use the demo account above for full access.
+
 CORE REVIEW FLOW (2–3 minutes)
 1. Sign in with the demo account.
 2. Open Wardrobe — add a clothing photo or browse existing items.
@@ -97,7 +99,9 @@ NOTES
 - [ ] Screenshots are exact 1290×2796
 - [ ] Description/subtitle are Apple-safe (no “perfect / guaranteed / better than humans”)
 - [ ] IAP products configured in App Store Connect match the app
+- [ ] Social login buttons hidden (`SHOW_SOCIAL_LOGIN = false` in AuthScreen)
 - [ ] App Review Notes include working demo credentials
+- [ ] App Review Notes mention social login is not required
 
 ---
 

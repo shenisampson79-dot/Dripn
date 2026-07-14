@@ -2910,22 +2910,30 @@ export default function AIStylistScreen() {
     const showWarning = remainingMessages !== Infinity && remainingMessages <= 3;
     const showTeaser = remainingMessages !== Infinity && remainingMessages <= 10 && tier === 'free';
     
-    let teaserTitle = `${remainingMessages} messages remaining today`;
-    let teaserMsg = `Unlock unlimited conversations with ${stylist.name} and never miss a styling moment.`;
+    let teaserTitle = (t('aiStylist.messagesRemainingToday') || '{count} messages remaining today')
+      .replace('{count}', String(remainingMessages));
+    let teaserMsg = (t('aiStylist.unlockUnlimitedConversations') || 'Unlock unlimited conversations with {name} and never miss a styling moment.')
+      .replace('{name}', stylist.name);
     let teaserIcon: 'star' | 'heart' | 'zap' = 'star';
     
     if (remainingMessages === 0) {
-      teaserTitle = "Don't leave the conversation here!";
-      teaserMsg = `${stylist.name} has so much more to share with you. Upgrade now for unlimited styling sessions.`;
+      teaserTitle = t('aiStylist.dontLeaveConversation') || "Don't leave the conversation here!";
+      teaserMsg = (t('aiStylist.upgradeForUnlimited') || '{name} has so much more to share with you. Upgrade now for unlimited styling sessions.')
+        .replace('{name}', stylist.name);
       teaserIcon = 'heart';
     } else if (remainingMessages <= 3) {
-      teaserTitle = `Only ${remainingMessages} message${remainingMessages === 1 ? '' : 's'} left today`;
-      teaserMsg = `Loving your chat with ${stylist.name}? Upgrade to keep the style advice flowing.`;
+      teaserTitle = (
+        remainingMessages === 1
+          ? (t('aiStylist.onlyMessagesLeft') || 'Only {count} message left today')
+          : (t('aiStylist.onlyMessagesLeftPlural') || 'Only {count} messages left today')
+      ).replace('{count}', String(remainingMessages));
+      teaserMsg = (t('aiStylist.lovingChatUpgrade') || 'Loving your chat with {name}? Upgrade to keep the style advice flowing.')
+        .replace('{name}', stylist.name);
       teaserIcon = 'zap';
     }
     
     return { showWarning, showTeaser, teaserTitle, teaserMsg, teaserIcon };
-  }, [remainingMessages, tier, stylist.name]);
+  }, [remainingMessages, tier, stylist.name, t]);
   
   const { showLimitWarning, showUpgradeTeaser } = {
     showLimitWarning: upgradeTeaserData.showWarning,

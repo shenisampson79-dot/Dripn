@@ -594,6 +594,8 @@ const DEFAULT_TRANSLATIONS: Translations = {
     styles: {
       smartCasual: { name: 'Smart Casual', description: 'Polished yet relaxed, tailored pieces for office to after-work drinks' },
       casual: { name: 'Casual', description: 'Relaxed, everyday comfort' },
+      streetwear: { name: 'Casual', description: 'Relaxed, everyday comfort' },
+      luxury: { name: 'Minimalist', description: 'Simple, timeless pieces' },
       boho: { name: 'Creative', description: 'Artistic, expressive style' },
       sporty: { name: 'Active', description: 'Sporty, athleisure focused' },
       business: { name: 'Professional', description: 'Office-ready, polished looks' },

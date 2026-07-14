@@ -1,0 +1,247 @@
+{
+  "descriptions": {
+    "0": "Açık gökyüzü",
+    "1": "Çoğunlukla açık",
+    "2": "Parçalı bulutlu",
+    "3": "Kapalı",
+    "45": "Sis",
+    "48": "Kırağılı sis",
+    "51": "Hafif çisenti",
+    "53": "Orta şiddette çisenti",
+    "55": "Yoğun çisenti",
+    "61": "Hafif yağmur",
+    "63": "Orta şiddette yağmur",
+    "65": "Şiddetli yağmur",
+    "71": "Hafif kar",
+    "73": "Orta şiddette kar",
+    "75": "Yoğun kar",
+    "80": "Hafif sağanak",
+    "81": "Orta şiddette sağanak",
+    "82": "Şiddetli sağanak",
+    "95": "Gök gürültülü fırtına",
+    "96": "Hafif dolu ile gök gürültülü fırtına",
+    "99": "Şiddetli dolu ile gök gürültülü fırtına"
+  },
+  "descriptionFallback": "Bilinmiyor",
+  "defaultDescription": "Parçalı bulutlu",
+  "locationFallback": "Konumunuz",
+  "unknownLocation": {
+    "yourLocation": "Konumunuz",
+    "yourLocationTitle": "Konumunuz",
+    "unknown": "Bilinmiyor"
+  },
+  "bands": {
+    "hot": {
+      "layers": [
+        "Tek nefes alan katman — ekstra katmana gerek yok"
+      ],
+      "keyPiecesFemale": [
+        "Keten elbise veya etek",
+        "Pamuk bluz",
+        "Nefes alan şort",
+        "Sandalet veya loafer"
+      ],
+      "keyPiecesMale": [
+        "Keten veya pamuk gömlek",
+        "Hafif chino veya şort",
+        "Nefes alan polo",
+        "Spor ayakkabı veya loafer"
+      ],
+      "accessories": [
+        "Güneş gözlüğü",
+        "Geniş kenarlı şapka",
+        "Su şişesi"
+      ],
+      "colors": [
+        "Beyaz",
+        "Krem",
+        "Pasteller",
+        "Açık mavi"
+      ],
+      "fabricTips": "Yalnızca keten ve pamuk — bu sıcakta örme, katman ve ceketleri atlayın.",
+      "stylingNoteTemplate": "Sıcak gün ({peakTemp}°C). Tek hafif kombin yeterli — mont ve katmanları evde bırakın."
+    },
+    "warm": {
+      "layers": [
+        "Hafif temel katman",
+        "İsteğe bağlı hafif örtü"
+      ],
+      "keyPiecesFemale": [
+        "Midi elbise",
+        "Yüksek bel jean",
+        "Hafif pamuk bluz",
+        "Nefes alan pantolon"
+      ],
+      "keyPiecesMale": [
+        "Pamuk gömlek",
+        "Chino",
+        "Hafif örme polo",
+        "Astarı olmayan blazer"
+      ],
+      "accessories": [
+        "Güneş gözlüğü",
+        "Kanvas çanta"
+      ],
+      "colors": [
+        "Toprak tonları",
+        "Adaçayı yeşili",
+        "Toz pembe",
+        "Deve tüyü"
+      ],
+      "fabricTips": "Sıcaklık gün içinde yükselirken pamuk ve hafif örme kumaşlar iyi çalışır.",
+      "stylingNoteTemplate": "Rahat sıcak hava kombinleri — hafif bir katmanı yalnızca sabah veya akşam ihtiyacınız varsa ekleyin."
+    },
+    "mild": {
+      "layers": [
+        "Temel katman",
+        "Orta katman",
+        "Hafif dış katman"
+      ],
+      "keyPiecesFemale": [
+        "Hafif trençkot veya mont",
+        "İnce örme kazak",
+        "Pantolon",
+        "Midi etek ve bilekte bot"
+      ],
+      "keyPiecesMale": [
+        "Hafif ceket",
+        "İnce örme",
+        "Chino",
+        "Yapılandırılmamış blazer"
+      ],
+      "accessories": [
+        "Hafif eşarp",
+        "Yapılı çanta"
+      ],
+      "colors": [
+        "Bordo",
+        "Orman yeşili",
+        "Çikolata kahve",
+        "Lacivert"
+      ],
+      "fabricTips": "Hafif bir montun altına ince örme kat kat giyin — ağır yünü soğuk günlere saklayın.",
+      "stylingNoteTemplate": "Serin ama soğuk değil — hacim eklemeden katmanlayın."
+    },
+    "cold": {
+      "layers": [
+        "Temel katman",
+        "Yalıtımlı orta katman",
+        "Sıcak dış katman"
+      ],
+      "keyPiecesFemale": [
+        "Şişme mont",
+        "Yün kaban",
+        "Termal tayt",
+        "Kalın örme kazak"
+      ],
+      "keyPiecesMale": [
+        "Şişme mont",
+        "Yün pardösü",
+        "Termal temel katman",
+        "Kalın örme kazak"
+      ],
+      "accessories": [
+        "Bere",
+        "Yün atkı",
+        "Sıcak eldiven",
+        "Sıcak bot"
+      ],
+      "colors": [
+        "Siyah",
+        "Antrasit",
+        "Koyu bordo",
+        "Krem"
+      ],
+      "fabricTips": "Merino yün temel katmanlar nemi atarken ısıyı tutar.",
+      "stylingNoteTemplate": "Kaliteli dış giyime yatırım yapın. Hem sıcaklık hem stil vazgeçilmezdir."
+    },
+    "freezing": {
+      "layers": [
+        "Termal temel",
+        "Yoğun yalıtım",
+        "Su geçirmez dış katman"
+      ],
+      "keyPiecesFemale": [
+        "Uzun şişme kaban",
+        "Polar astarlı pantolon",
+        "Kalın balıkçı yaka",
+        "Yalıtımlı bot"
+      ],
+      "keyPiecesMale": [
+        "Uzun parka",
+        "Polar astarlı pantolon",
+        "Kalın yün kazak",
+        "Yalıtımlı bot"
+      ],
+      "accessories": [
+        "Sıcak bere",
+        "Kaşmir atkı",
+        "Yalıtımlı eldiven",
+        "Kulaklık"
+      ],
+      "colors": [
+        "Siyah",
+        "Koyu lacivert",
+        "Bordo",
+        "Krem dokunuşlar"
+      ],
+      "fabricTips": "Teknik kumaşlar ve kaz tüyü yalıtım en iyi dostunuz.",
+      "stylingNoteTemplate": "Sıcaklığı önceliklendirin. Doğru katmanlama tekniğiyle yine de şık görünebilirsiniz."
+    }
+  },
+  "overlays": {
+    "rain": {
+      "keyPiece": "Su geçirmez ceket veya trençkot",
+      "accessories": [
+        "Şemsiye",
+        "Su geçirmez bot"
+      ],
+      "fabricTipsSuffix": " Suya dayanıklı malzemeler seçin.",
+      "stylingNoteSuffix": " Şık bir yağmurluk şarttır. Zarif koruma için Chelsea yağmur botlarını düşünün."
+    },
+    "snow": {
+      "accessories": [
+        "Kar botu",
+        "Su geçirmez eldiven"
+      ],
+      "stylingNoteSuffix": " İşlev moda ile buluşur. Kaliteli kar botu ve sıcak bir parka vazgeçilmezdir."
+    },
+    "wind": {
+      "accessory": "Rüzgara dayanıklı atkı",
+      "accessories": [
+        "Rüzgara dayanıklı atkı"
+      ],
+      "stylingNoteSuffix": " Gevşek parçaları sabitleyin ve rüzgârda oturan siluetleri tercih edin."
+    }
+  },
+  "dailyRange": {
+    "layersHotMorning": [
+      "Öğlen sıcağı için hafif kombin",
+      "Yalnızca sabah için isteğe bağlı hırka"
+    ],
+    "layersHotDay": [
+      "Gün boyu hafif kombin — temel veya orta katmana gerek yok"
+    ],
+    "sunglasses": "Güneş gözlüğü",
+    "heatSwingNoteTemplate": "Şimdi {lowTemp}°C, zirve {peakTemp}°C — sıcığa göre giyinin. Hafif katman yalnızca serin sabah için, ihtiyacınız varsa.",
+    "wideSwingLayer": "Sıcaklık dalgalanmaları için çıkarılabilir katman",
+    "wideSwingNoteTemplate": "Bugün {lowTemp}–{peakTemp}°C — gün ısınıp soğudukça ayarlayabileceğiniz şekilde katmanlayın.",
+    "modestSwingNoteTemplate": "Gün aralığı {lowTemp}–{peakTemp}°C. {existing}",
+    "coldMorningFemale": [
+      "Hafif mont veya trençkot",
+      "İnce örme",
+      "Pantolon",
+      "Kapalı ayakkabı"
+    ],
+    "coldMorningMale": [
+      "Hafif ceket",
+      "İnce örme veya gömlek",
+      "Chino",
+      "Loafer veya spor ayakkabı"
+    ],
+    "coldMorningLayers": [
+      "Sabah için yeterince sıcak",
+      "Öğleden sonra kolayca hafifletilebilir"
+    ]
+  }
+}

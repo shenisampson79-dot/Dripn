@@ -13,6 +13,7 @@ export function getLocalizedSubscriptionSubtitle(
 ): string {
   const normalized = normalizeSubscriptionTier(tier);
   const planName =
+    t(`subscription.tier.${normalized}`) ||
     t(TIER_I18N_KEYS[normalized]) ||
     (normalized === 'personal_stylist'
       ? 'Personal Stylist'

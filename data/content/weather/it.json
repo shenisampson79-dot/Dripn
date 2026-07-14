@@ -1,0 +1,247 @@
+{
+  "descriptions": {
+    "0": "Cielo sereno",
+    "1": "Prevalentemente sereno",
+    "2": "Parzialmente nuvoloso",
+    "3": "Coperto",
+    "45": "Nebbia",
+    "48": "Nebbia con brina",
+    "51": "Pioggerella leggera",
+    "53": "Pioggerella moderata",
+    "55": "Pioggerella intensa",
+    "61": "Pioggia leggera",
+    "63": "Pioggia moderata",
+    "65": "Pioggia intensa",
+    "71": "Neve leggera",
+    "73": "Neve moderata",
+    "75": "Neve abbondante",
+    "80": "Rovesci di pioggia leggeri",
+    "81": "Rovesci di pioggia moderati",
+    "82": "Rovesci di pioggia violenti",
+    "95": "Temporale",
+    "96": "Temporale con grandine leggera",
+    "99": "Temporale con grandine intensa"
+  },
+  "descriptionFallback": "Sconosciuto",
+  "defaultDescription": "Parzialmente nuvoloso",
+  "locationFallback": "La tua posizione",
+  "unknownLocation": {
+    "yourLocation": "La tua posizione",
+    "yourLocationTitle": "La tua posizione",
+    "unknown": "Sconosciuta"
+  },
+  "bands": {
+    "hot": {
+      "layers": [
+        "Un solo strato traspirante — niente strati extra"
+      ],
+      "keyPiecesFemale": [
+        "Abito o gonna in lino",
+        "Camicia in cotone",
+        "Shorts traspiranti",
+        "Sandali o mocassini"
+      ],
+      "keyPiecesMale": [
+        "Camicia in lino o cotone",
+        "Chino leggeri o shorts",
+        "Polo traspirante",
+        "Sneaker o mocassini"
+      ],
+      "accessories": [
+        "Occhiali da sole",
+        "Cappello a tesa larga",
+        "Borraccia"
+      ],
+      "colors": [
+        "Bianco",
+        "Crema",
+        "Pastelli",
+        "Azzurro"
+      ],
+      "fabricTips": "Solo lino e cotone — evita maglie, strati e giacche con questo caldo.",
+      "stylingNoteTemplate": "Giornata calda ({peakTemp}°C). Un outfit leggero basta — lascia cappotti e strati a casa."
+    },
+    "warm": {
+      "layers": [
+        "Strato base leggero",
+        "Copri-spalle leggero opzionale"
+      ],
+      "keyPiecesFemale": [
+        "Abito midi",
+        "Jeans a vita alta",
+        "Camicia di cotone leggera",
+        "Pantaloni traspiranti"
+      ],
+      "keyPiecesMale": [
+        "Camicia di cotone",
+        "Chino",
+        "Polo in maglia leggera",
+        "Blazer non foderato"
+      ],
+      "accessories": [
+        "Occhiali da sole",
+        "Borsa in canvas"
+      ],
+      "colors": [
+        "Toni terra",
+        "Verde salvia",
+        "Rosa antico",
+        "Cammello"
+      ],
+      "fabricTips": "Cotone e maglie leggere funzionano bene quando la temperatura sale durante il giorno.",
+      "stylingNoteTemplate": "Abbigliamento confortevole per il caldo — aggiungi uno strato leggero solo se serve la mattina o la sera."
+    },
+    "mild": {
+      "layers": [
+        "Strato base",
+        "Strato intermedio",
+        "Strato esterno leggero"
+      ],
+      "keyPiecesFemale": [
+        "Trench o cappotto leggero",
+        "Maglione in maglia fine",
+        "Pantaloni",
+        "Gonna midi con tronchetti"
+      ],
+      "keyPiecesMale": [
+        "Giacca leggera",
+        "Maglia a trama fine",
+        "Chino",
+        "Blazer non strutturato"
+      ],
+      "accessories": [
+        "Sciarpa leggera",
+        "Borsa strutturata"
+      ],
+      "colors": [
+        "Bordeaux",
+        "Verde bosco",
+        "Marrone cioccolato",
+        "Blu navy"
+      ],
+      "fabricTips": "Sovrapponi maglia fine sotto un cappotto più leggero — riserva la lana pesante ai giorni più freddi.",
+      "stylingNoteTemplate": "Fresco ma non freddo — stratifichi senza volume."
+    },
+    "cold": {
+      "layers": [
+        "Strato base",
+        "Strato intermedio isolante",
+        "Strato esterno caldo"
+      ],
+      "keyPiecesFemale": [
+        "Piumino",
+        "Cappotto di lana",
+        "Leggings termici",
+        "Maglione a maglia spessa"
+      ],
+      "keyPiecesMale": [
+        "Piumino",
+        "Cappotto di lana",
+        "Strato base termico",
+        "Maglione a maglia pesante"
+      ],
+      "accessories": [
+        "Berretto",
+        "Sciarpa di lana",
+        "Guanti caldi",
+        "Stivali caldi"
+      ],
+      "colors": [
+        "Nero",
+        "Antracite",
+        "Bordeaux intenso",
+        "Crema"
+      ],
+      "fabricTips": "Gli strati base in lana merino trattengono il calore e smaltiscono l'umidità.",
+      "stylingNoteTemplate": "Investi in cappotti di qualità. Calore e stile sono entrambi essenziali."
+    },
+    "freezing": {
+      "layers": [
+        "Base termica",
+        "Isolamento pesante",
+        "Esterno impermeabile"
+      ],
+      "keyPiecesFemale": [
+        "Piumino lungo",
+        "Pantaloni foderati in pile",
+        "Dolcevita spesso",
+        "Stivali isolanti"
+      ],
+      "keyPiecesMale": [
+        "Parka lunga",
+        "Pantaloni foderati in pile",
+        "Maglione di lana pesante",
+        "Stivali isolanti"
+      ],
+      "accessories": [
+        "Berretto caldo",
+        "Sciarpa in cashmere",
+        "Guanti isolanti",
+        "Paraorecchie"
+      ],
+      "colors": [
+        "Nero",
+        "Navy intenso",
+        "Bordeaux",
+        "Accenti crema"
+      ],
+      "fabricTips": "Tessuti tecnici e isolamento in piuma sono i tuoi alleati.",
+      "stylingNoteTemplate": "Dai priorità al caldo. Con la giusta tecnica di layering resti comunque chic."
+    }
+  },
+  "overlays": {
+    "rain": {
+      "keyPiece": "Giacca impermeabile o trench",
+      "accessories": [
+        "Ombrello",
+        "Stivali impermeabili"
+      ],
+      "fabricTipsSuffix": " Scegli materiali idrorepellenti.",
+      "stylingNoteSuffix": " Una giacca da pioggia stilosa è essenziale. Considera stivali Chelsea impermeabili per una protezione chic."
+    },
+    "snow": {
+      "accessories": [
+        "Stivali da neve",
+        "Guanti impermeabili"
+      ],
+      "stylingNoteSuffix": " Funzione e moda insieme. Stivali da neve di qualità e una parka calda sono imprescindibili."
+    },
+    "wind": {
+      "accessory": "Sciarpa antivento",
+      "accessories": [
+        "Sciarpa antivento"
+      ],
+      "stylingNoteSuffix": " Fissa gli elementi ampi e opta per silhouette aderenti con vento."
+    }
+  },
+  "dailyRange": {
+    "layersHotMorning": [
+      "Outfit leggero per il caldo di mezzogiorno",
+      "Cardigan opzionale solo per la mattina"
+    ],
+    "layersHotDay": [
+      "Outfit leggero per la giornata — niente strati base o intermedi"
+    ],
+    "sunglasses": "Occhiali da sole",
+    "heatSwingNoteTemplate": "{lowTemp}°C ora, picco a {peakTemp}°C — vestiti per il caldo. Uno strato leggero solo per la mattina fresca se serve.",
+    "wideSwingLayer": "Strato removibile per le variazioni di temperatura",
+    "wideSwingNoteTemplate": "{lowTemp}–{peakTemp}°C oggi — stratifichi così da poterti adattare quando la giornata si scalda o si raffredda.",
+    "modestSwingNoteTemplate": "Intervallo del giorno {lowTemp}–{peakTemp}°C. {existing}",
+    "coldMorningFemale": [
+      "Cappotto o trench leggero",
+      "Maglia fine",
+      "Pantaloni",
+      "Scarpe chiuse"
+    ],
+    "coldMorningMale": [
+      "Giacca leggera",
+      "Maglia fine o camicia",
+      "Chino",
+      "Mocassini o sneakers"
+    ],
+    "coldMorningLayers": [
+      "Abbastanza caldo per la mattina",
+      "Facile da alleggerire nel pomeriggio"
+    ]
+  }
+}
