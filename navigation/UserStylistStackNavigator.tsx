@@ -100,12 +100,20 @@ export default function UserStylistStackNavigator() {
       <Stack.Screen
         name="OutfitCalendar"
         component={OutfitCalendarScreen}
-        options={{ headerTitle: t('wardrobe.outfitCalendar'), headerShown: false }}
+        options={{
+          headerTitle: t('wardrobe.outfitCalendar') || t('stylistHub.outfitCalendar'),
+          headerShown: true,
+          headerTransparent: false,
+        }}
       />
       <Stack.Screen
         name="WeatherOutfit"
         component={WeatherOutfitScreen}
-        options={{ headerTitle: t('stylistHub.weatherOutfits'), headerShown: false }}
+        options={{
+          headerTitle: t('stylistHub.weatherOutfits'),
+          headerShown: true,
+          headerTransparent: false,
+        }}
       />
       <Stack.Screen
         name="CostPerWear"
@@ -135,17 +143,29 @@ export default function UserStylistStackNavigator() {
       <Stack.Screen
         name="FashionBlog"
         component={FashionBlogScreen}
-        options={{ headerTitle: t('navTitles.blog'), headerShown: false }}
+        options={{
+          headerTitle: t('navTitles.fashionBlog') || t('blog.title') || t('navTitles.blog'),
+          headerShown: true,
+          headerTransparent: false,
+        }}
       />
       <Stack.Screen
         name="StyleRules"
         component={StyleRulesScreen}
-        options={{ headerTitle: t('navTitles.styleRules'), headerShown: false }}
+        options={{
+          headerTitle: t('navTitles.styleRules') || t('stylistHub.styleRules'),
+          headerShown: true,
+          headerTransparent: false,
+        }}
       />
       <Stack.Screen
         name="ColourInsights"
         component={ColourInsightsScreen}
-        options={{ headerTitle: t('navTitles.colourInsights') }}
+        options={{
+          headerTitle: t('navTitles.colourInsights') || t('stylistHub.colourInsights'),
+          headerShown: true,
+          headerTransparent: false,
+        }}
       />
     </Stack.Navigator>
   );

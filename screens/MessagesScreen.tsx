@@ -182,7 +182,7 @@ export default function MessagesScreen({ navigation }: MessagesScreenProps) {
             <Feather name="inbox" size={48} color={theme.tabIconDefault} />
             <ThemedText type="h3" style={styles.emptyTitle}>No messages yet</ThemedText>
             <ThemedText type="body" style={styles.emptyText}>
-              Start a conversation by visiting another member's profile or sharing a deal
+              When you connect with real members, conversations will show up here. No demo chats.
             </ThemedText>
           </Card>
         ) : (

@@ -179,16 +179,16 @@ export default function ColourInsightsScreen() {
 
   return (
     <ScreenScrollView
+      opaqueHeader
       style={s.container}
       refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
     >
-      {/* Header */}
+      {/* Title lives in the stack header — keep a short season subtitle only */}
       <View style={s.headerRow}>
         <View style={s.headerIcon}>
           <Feather name="droplet" size={22} color={LUXURY_COLORS.gold} />
         </View>
         <View style={{ flex: 1 }}>
-          <ThemedText type="h2" style={s.headerTitle}>{t('colourInsights.title') || 'Colour Insights'}</ThemedText>
           <ThemedText type="small" style={s.headerSubtitle}>
             {getCurrentCalendarSeason()} {getCurrentFashionYear()} · {t('colourInsights.pullToRefresh') || 'pull to refresh'}
           </ThemedText>
@@ -445,14 +445,14 @@ function makeStyles(theme: Record<string, string>) {
   return StyleSheet.create({
     container: {
       paddingHorizontal: Spacing.lg,
-      paddingTop: Spacing.lg,
+      paddingTop: 0,
       paddingBottom: Spacing["2xl"],
     },
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: Spacing.md,
-      marginBottom: Spacing.xl,
+      marginBottom: Spacing.lg,
     },
     headerIcon: {
       width: 48,

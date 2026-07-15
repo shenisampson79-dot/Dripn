@@ -241,7 +241,17 @@ class ApiService {
         }
       }
       
-      throw new Error(errorMessage);
+      const apiError = new Error(errorMessage) as Error & {
+        status?: number;
+        statusCode?: number;
+        voiceCreditsExhausted?: boolean;
+      };
+      apiError.status = response.status;
+      apiError.statusCode = response.status;
+      if (error.voiceCreditsExhausted) {
+        apiError.voiceCreditsExhausted = true;
+      }
+      throw apiError;
     }
 
     return response.json();
@@ -256,9 +266,12 @@ class ApiService {
       ...(options.headers || {}),
     };
 
+    // Prefer dedicated admin portal JWT; fall back to app user JWT (is_admin).
     const adminToken = await AsyncStorage.getItem(ADMIN_TOKEN_KEY).catch(() => null);
-    if (adminToken) {
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${adminToken}`;
+    const userToken = adminToken ? null : await this.getToken().catch(() => null);
+    const bearer = adminToken || userToken;
+    if (bearer) {
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${bearer}`;
     }
 
     const adminSecret = process.env.EXPO_PUBLIC_ADMIN_SECRET;
@@ -286,7 +299,9 @@ class ApiService {
         (authError as Error & { code?: string }).code = 'ADMIN_AUTH_REQUIRED';
         throw authError;
       }
-      throw new Error(error.error || error.message || 'Admin request failed');
+      const base = error.error || error.message || 'Admin request failed';
+      const detail = typeof error.detail === 'string' && error.detail.trim() ? error.detail.trim() : '';
+      throw new Error(detail && detail !== base ? `${base}: ${detail}` : base);
     }
 
     return response.json();
@@ -1499,7 +1514,21 @@ class ApiService {
     stylistId: string;
     messages: Array<{ role: string; content: string }>;
     userMessage: string;
-    wardrobeItems?: Array<{ id: string; name: string; color: string; category: string }>;
+    wardrobeItems?: Array<{
+      id: string;
+      name: string;
+      color: string;
+      category: string;
+      brand?: string | null;
+      subcategory?: string | null;
+      wearCount?: number;
+      timesWorn?: number;
+      isFavorite?: boolean;
+      favorite?: boolean;
+      origin?: string | null;
+      aiTags?: string[] | null;
+      notes?: string | null;
+    }>;
     userGender?: string;
     subscriptionTier?: string;
     language?: string;
@@ -1743,6 +1772,17 @@ class ApiService {
     accent?: string;
     voiceRange?: string;
     language?: string;
+    wardrobeItems?: Array<{
+      id: string;
+      name: string;
+      color: string;
+      category: string;
+      brand?: string | null;
+      wearCount?: number;
+      timesWorn?: number;
+      isFavorite?: boolean;
+      origin?: string | null;
+    }>;
   }) {
     const { stylistId, voiceSettings, ...rest } = data;
     const raw = await this.request<{
@@ -1793,6 +1833,8 @@ class ApiService {
   async getVoiceCreditsBalance() {
     return this.request<{
       success: boolean;
+      canUse?: boolean;
+      reason?: string;
       credits: {
         remaining: number;
         monthlyAllowance: number;

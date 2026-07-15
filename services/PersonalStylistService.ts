@@ -99,11 +99,11 @@ export const STYLISTS: Record<string, PersonalStylist> = {
     icon: 'heart',
     color: '#E91E63',
     greeting: [
-      "Hello {name}! I'm Ruby, your personal stylist, and I'm genuinely delighted to meet you. I've been exploring your wardrobe and I'm already excited about the possibilities we can create together. What brings you here today?",
-      "Hey {name}! Ruby here, and honestly, helping you look fabulous is the highlight of my day. I've taken a look at your wardrobe and I have some lovely ideas brewing. What are we styling for, gorgeous?",
-      "Welcome {name}! I'm Ruby, and it's such a pleasure to be your style companion. I've had a peek at your wardrobe and I'm genuinely inspired. Tell me, what's on your mind today?",
-      "Hi there {name}! I'm Ruby, and I couldn't be happier to be here with you. Fashion is all about expressing who you are, and I'm here to help you do exactly that. What would you like to work on together?",
-      "Hello lovely {name}! Ruby here, at your service. I believe everyone deserves to feel confident and beautiful, and I'm so excited to help make that happen for you. What's the occasion?",
+      "Hello {name}! I'm Ruby, your personal stylist — delighted to meet you. What brings you here today?",
+      "Hey {name}! Ruby here. Helping you look fabulous is what I'm about. What are we styling for?",
+      "Welcome {name}! I'm Ruby, your style companion. Tell me what's on your mind today.",
+      "Hi there {name}! I'm Ruby — fashion is about expressing who you are, and I'm here for that. What would you like to work on?",
+      "Hello {name}! Ruby here. I believe everyone deserves to feel confident — what's the occasion?",
     ],
     signOffs: [
       "You've absolutely got this, {name}! I believe in you.",
@@ -124,11 +124,11 @@ export const STYLISTS: Record<string, PersonalStylist> = {
     icon: 'zap',
     color: '#2196F3',
     greeting: [
-      "Hey {name}! I'm Max, your personal stylist, and I'm genuinely glad you're here. I've had a look at your wardrobe and there's some great potential to work with. What's on your mind today?",
-      "What's up {name}! Max here, and honestly, it's great to meet you. Style is all about feeling good in what you wear, and I'm here to help make that happen. What are we working on?",
-      "Hey {name}! I'm Max, here to be your style partner. I've checked out your wardrobe and I'm already seeing some cool possibilities. What brings you here today?",
-      "Hey there {name}! Max here, and I'm genuinely excited to help you out. Whether it's a special occasion or just everyday style, I've got your back. What would you like to work on?",
-      "Hi {name}! I'm Max, your go-to guy for all things style. I believe everyone has their own unique vibe, and I'm here to help you express yours. What's the plan?",
+      "Hey {name}! I'm Max, your personal stylist — glad you're here. What's on your mind today?",
+      "What's up {name}! Max here. Style is about feeling good in what you wear — what are we working on?",
+      "Hey {name}! I'm Max, your style partner. What brings you here today?",
+      "Hey there {name}! Max here. Special occasion or everyday style — I've got your back. What would you like to work on?",
+      "Hi {name}! I'm Max. Everyone has their own vibe — what's the plan?",
     ],
     signOffs: [
       "You've got this, {name}! Go make it happen.",
@@ -207,29 +207,106 @@ export function getStylistForUser(userGender: Gender, stylistPreferences?: Styli
   return STYLISTS.ruby;
 }
 
+export type StylistGreetingWardrobe = {
+  totalOwned: number;
+  tops: number;
+  bottoms: number;
+  shoes: number;
+};
+
+function tx(t: ((key: string) => string) | undefined, key: string, fallback: string): string {
+  const value = t?.(key);
+  return value && value.trim() && value !== key ? value : fallback;
+}
+
+function formatGapsList(parts: string[]): string {
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`;
+}
+
+/** Honest, wardrobe-aware first message — never invents a wardrobe that isn't there. */
 export function getStylistGreeting(
   stylist: PersonalStylist,
   userName?: string | null,
   t?: (key: string) => string,
+  wardrobe?: StylistGreetingWardrobe | null,
 ): string {
   const displayName =
     userName || (t ? t('aiStylist.welcomeNameFallback') : null) || 'there';
+  const direct = stylist.id === 'ace' || stylist.id === 'ivy';
+  const warm = stylist.id === 'ruby' || stylist.id === 'max';
 
-  // Prefer localized welcome template so language switch updates the seed message.
-  if (t) {
-    const template = t('aiStylist.welcomeMessage');
-    if (template && template !== 'aiStylist.welcomeMessage') {
-      return template
-        .replace(/\{name\}/g, displayName)
-        .replace(/\{stylist\}/g, stylist.name);
-    }
+  const owned = wardrobe?.totalOwned ?? null;
+  const tops = wardrobe?.tops ?? 0;
+  const bottoms = wardrobe?.bottoms ?? 0;
+  const shoes = wardrobe?.shoes ?? 0;
+  const canPlan =
+    owned != null &&
+    tops >= 3 &&
+    bottoms >= 3 &&
+    shoes >= 3;
+
+  const apply = (template: string) =>
+    template
+      .replace(/\{name\}/g, displayName)
+      .replace(/\{stylist\}/g, stylist.name)
+      .replace(/\{count\}/g, String(owned ?? 0))
+      .replace(/\{tops\}/g, String(tops))
+      .replace(/\{bottoms\}/g, String(bottoms))
+      .replace(/\{shoes\}/g, String(shoes));
+
+  // Unknown wardrobe state (still loading) — stay neutral, no inventing.
+  if (owned == null) {
+    const neutrals = direct
+      ? [
+          "{name}. {stylist} here. What are we styling?",
+          "Hey {name}. {stylist}. Tell me what you need.",
+        ]
+      : [
+          "Hello {name}! I'm {stylist}, your personal stylist. What brings you here today?",
+          "Hey {name}! I'm {stylist} — ready when you are. What would you like to work on?",
+        ];
+    const localized = tx(t, 'aiStylist.welcomeNeutral', neutrals[0]);
+    return apply(localized);
   }
 
-  const greetings = stylist.greeting?.length
-    ? stylist.greeting
-    : ['Hi {name}! How can I help with your style today?'];
-  const greeting = greetings[Math.floor(Math.random() * greetings.length)];
-  return greeting.replace(/{name}/g, displayName);
+  if (owned === 0) {
+    const emptyFallback = direct
+      ? "{name}. {stylist} here. Your wardrobe is empty — 0 pieces. I can't build outfits from nothing. Add at least 3 tops, 3 bottoms, and 3 pairs of shoes, then we can get to work. Want to start in Wardrobe?"
+      : "Hello {name}! I'm {stylist}, your personal stylist. I checked your wardrobe — it's empty right now (0 pieces). That means I can't plan real outfits yet. Add at least 3 tops, 3 bottoms, and 3 pairs of shoes and I'll style from what you actually own. Shall we start there?";
+    return apply(tx(t, direct ? 'aiStylist.welcomeEmptyDirect' : 'aiStylist.welcomeEmpty', emptyFallback));
+  }
+
+  if (!canPlan) {
+    const needTops = Math.max(0, 3 - tops);
+    const needBottoms = Math.max(0, 3 - bottoms);
+    const needShoes = Math.max(0, 3 - shoes);
+    const gaps: string[] = [];
+    if (needTops > 0) gaps.push(needTops === 1 ? '1 more top' : `${needTops} more tops`);
+    if (needBottoms > 0) gaps.push(needBottoms === 1 ? '1 more bottom' : `${needBottoms} more bottoms`);
+    if (needShoes > 0) gaps.push(needShoes === 1 ? '1 more pair of shoes' : `${needShoes} more pairs of shoes`);
+    const gapsText = formatGapsList(gaps);
+
+    const sparseFallback = direct
+      ? `{name}. {stylist}. You've got {count} piece${owned === 1 ? '' : 's'} — {tops} top${tops === 1 ? '' : 's'}, {bottoms} bottom${bottoms === 1 ? '' : 's'}, {shoes} pair${shoes === 1 ? '' : 's'} of shoes. That's not enough for solid outfit planning yet. Still need ${gapsText}. Add those and I can work with what you own.`
+      : `Hello {name}! I'm {stylist}. I looked at your wardrobe: {count} piece${owned === 1 ? '' : 's'} total — {tops} top${tops === 1 ? '' : 's'}, {bottoms} bottom${bottoms === 1 ? '' : 's'}, and {shoes} pair${shoes === 1 ? '' : 's'} of shoes. With that mix I can't build reliable full outfits yet. Add ${gapsText} (aim for at least 3 of each), and I'll style from your real clothes. What would you like to tackle first?`;
+
+    const key = direct ? 'aiStylist.welcomeSparseDirect' : 'aiStylist.welcomeSparse';
+    return apply(tx(t, key, sparseFallback).replace(/\{gaps\}/g, gapsText));
+  }
+
+  // Ready wardrobe — only now claim we've explored it productively
+  if (warm || !direct) {
+    const readyFallback =
+      "Hello {name}! I'm {stylist}, your personal stylist. I've been through your wardrobe — {count} pieces, with {tops} tops, {bottoms} bottoms, and {shoes} pairs of shoes — so we've got enough to build real outfits. What brings you here today?";
+    return apply(tx(t, 'aiStylist.welcomeReady', readyFallback));
+  }
+
+  const readyDirectFallback =
+    "{name}. {stylist}. You've got {count} pieces — {tops} tops, {bottoms} bottoms, {shoes} pairs of shoes. Enough to build outfits. What are we styling?";
+  return apply(tx(t, 'aiStylist.welcomeReadyDirect', readyDirectFallback));
 }
 
 export function getStylistById(id: string): PersonalStylist | null {

@@ -41,7 +41,35 @@ export interface VoiceExchange {
 interface PersonalStylistVoicePanelProps {
   stylist: PersonalStylist;
   effectiveLanguage: string;
+  /** Backend accent key for native TTS (e.g. spanish, italian). Defaults to american. */
+  accent?: string;
+  wardrobeItems?: Array<{
+    id: string;
+    name: string;
+    color: string;
+    category: string;
+    brand?: string | null;
+    wearCount?: number;
+    timesWorn?: number;
+    isFavorite?: boolean;
+    origin?: string | null;
+  }>;
   onExchange?: (exchange: VoiceExchange) => void;
+  /** Sync credit balance back to parent (header usage card). */
+  onCreditsChange?: (credits: {
+    remaining?: string | number;
+    monthlyAllowance?: number;
+    monthlyHardCap?: number;
+    usedThisMonth?: number;
+    monthlyRemaining?: number;
+    purchasedCredits?: number;
+    isUnlimited?: boolean;
+    weekendUnlimitedActive?: boolean;
+    weekendUnlimitedExpiresAt?: string | null;
+    softCapWarning?: 'usage_high' | 'approaching_limit' | null;
+  }) => void;
+  /** Ask parent to re-fetch balance (e.g. after purchase). */
+  onBalanceRefreshNeeded?: () => void;
 }
 
 function getMimeTypeFromUri(uri: string): 'audio/m4a' | 'audio/webm' | 'audio/wav' | 'audio/mp3' | 'audio/mp4' {
@@ -53,12 +81,60 @@ function getMimeTypeFromUri(uri: string): 'audio/m4a' | 'audio/webm' | 'audio/wa
   return 'audio/m4a';
 }
 
+/**
+ * ApiService.request throws plain Error(message) without status codes.
+ * Only retry the slow STT + resilient-chat path on transport / 5xx style failures —
+ * never on credit (402), auth, or other client/business errors.
+ */
+function isTransientVoiceChatFailure(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err ?? '');
+  const lower = message.toLowerCase();
+
+  if (
+    lower.includes('authentication required') ||
+    lower.includes('please log in') ||
+    lower.includes('please sign in') ||
+    lower.includes('access denied') ||
+    lower.includes('spoken replies') ||
+    lower.includes('spoken reply') ||
+    lower.includes('voice credits') ||
+    lower.includes('credit') ||
+    lower.includes('402') ||
+    lower.includes('unauthorized') ||
+    lower.includes('forbidden')
+  ) {
+    return false;
+  }
+
+  if (
+    lower.includes('network error') ||
+    lower.includes('network request failed') ||
+    lower.includes('failed to fetch') ||
+    lower.includes('networkerror') ||
+    lower.includes('took too long') ||
+    lower.includes('server error') ||
+    lower.includes('service unavailable') ||
+    lower.includes('503') ||
+    lower.includes('502') ||
+    lower.includes('504') ||
+    /(?:^|\D)5\d{2}(?:\D|$)/.test(message)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 const TAB_BAR_HEIGHT = 56;
 
 export function PersonalStylistVoicePanel({
   stylist,
   effectiveLanguage,
+  accent = 'american',
+  wardrobeItems,
   onExchange,
+  onCreditsChange,
+  onBalanceRefreshNeeded,
 }: PersonalStylistVoicePanelProps) {
   const { theme } = useTheme();
   const { t } = useTranslations();
@@ -71,17 +147,18 @@ export function PersonalStylistVoicePanel({
   const controlsBottomPad = tabBarHeight + Spacing.lg;
   const {
     hasCredits,
-    remainingCredits,
-    hasMonthlyAllowance,
-    usageLabel,
-    usageNudge,
-    shouldShowBuyPacks,
     isLoading: creditsLoading,
+    balanceError,
+    denialMessage,
     updateBalance,
     refreshBalance,
-    weekendUnlimitedActive,
-    weekendExpiryLabel,
+    shouldShowBuyPacks,
   } = useVoiceCredits();
+
+  const applyCreditsUpdate = (credits: Parameters<NonNullable<PersonalStylistVoicePanelProps['onCreditsChange']>>[0]) => {
+    updateBalance(credits);
+    onCreditsChange?.(credits);
+  };
 
   const [showCreditsModal, setShowCreditsModal] = useState(false);
 
@@ -94,6 +171,7 @@ export function PersonalStylistVoicePanel({
 
   const [conversationState, setConversationState] = useState<ConversationState>('idle');
   const [transcript, setTranscript] = useState('');
+  const [processingPhase, setProcessingPhase] = useState<'transcribing' | 'answering'>('answering');
   const [recentLines, setRecentLines] = useState<VoiceExchange[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -105,6 +183,11 @@ export function PersonalStylistVoicePanel({
       setHasPermission(status === 'granted');
     });
   }, []);
+
+  useEffect(() => {
+    // Always re-check server balance when opening voice mode
+    refreshBalance();
+  }, [refreshBalance]);
 
   const playVoiceAudio = async (base64Audio: string) => {
     try {
@@ -129,6 +212,27 @@ export function PersonalStylistVoicePanel({
     setTranscript('Processing…');
     setError(null);
 
+    const stylistName = stylist.name || stylist.id || 'Ace';
+    const isNonRetryableVoiceError = (err: unknown): boolean => {
+      if (!(err instanceof Error)) return false;
+      const e = err as Error & { status?: number; statusCode?: number; voiceCreditsExhausted?: boolean };
+      if (e.voiceCreditsExhausted) return true;
+      const status = e.status ?? e.statusCode;
+      if (status === 401 || status === 402 || status === 403) return true;
+      // Other 4xx are client/request issues — don't burn a second STT+LLM+TTS path
+      if (typeof status === 'number' && status >= 400 && status < 500) return true;
+      const msg = e.message.toLowerCase();
+      if (
+        msg.includes('sign in') ||
+        msg.includes('spoken replies') ||
+        msg.includes('voice credits') ||
+        msg.includes('spoken reply limit')
+      ) {
+        return true;
+      }
+      return false;
+    };
+
     try {
       const token = await apiService.getToken();
       if (!token) {
@@ -136,7 +240,7 @@ export function PersonalStylistVoicePanel({
       }
 
       if (!hasCredits) {
-        throw new Error("You've used this month's spoken replies. Add a top-up voice pack to keep chatting hands-free — or switch to Chat for unlimited text.");
+        throw new Error(denialMessage);
       }
 
       await audioRecorder.stop();
@@ -145,6 +249,8 @@ export function PersonalStylistVoicePanel({
       const uri = audioRecorder.uri;
       if (!uri) throw new Error('No recording found.');
 
+      setProcessingPhase('transcribing');
+      setTranscript('Transcribing…');
       const audioBase64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
       const mimeType = getMimeTypeFromUri(uri);
       const voiceRange = stylist.gender === 'female' ? 'mezzo-soprano' : 'baritone';
@@ -154,17 +260,24 @@ export function PersonalStylistVoicePanel({
       let audioBase64Out: string | null = null;
 
       try {
+        setProcessingPhase('answering');
+        setTranscript(`${stylistName} is answering…`);
         const response = await apiService.voiceChat({
           audio: audioBase64,
           mimeType,
           stylist: stylist.id,
-          accent: 'american',
+          accent,
           voiceRange,
           language: effectiveLanguage,
         });
 
         if (response.voiceCreditsExhausted) {
-          throw new Error(response.message || "You've used your spoken replies for now. Add credits or switch to Chat.");
+          const creditErr = new Error(
+            response.message || "You've used your spoken replies for now. Add credits or switch to Chat.",
+          ) as Error & { voiceCreditsExhausted?: boolean; status?: number };
+          creditErr.voiceCreditsExhausted = true;
+          creditErr.status = 402;
+          throw creditErr;
         }
 
         if (response.success !== false && response.aiResponse) {
@@ -172,12 +285,20 @@ export function PersonalStylistVoicePanel({
           aiResponse = response.aiResponse;
           audioBase64Out = response.audioBase64;
           if (response.voiceCredits) {
-            updateBalance(response.voiceCredits);
+            applyCreditsUpdate(response.voiceCredits);
           }
         } else {
           throw new Error(response.message || 'Voice session failed');
         }
-      } catch {
+      } catch (primaryErr) {
+        if (isNonRetryableVoiceError(primaryErr)) {
+          throw primaryErr;
+        }
+
+        // Transport / 5xx only — avoid silently doubling STT+LLM+TTS on credit/auth errors
+        console.log('[VoicePanel] Primary voice-chat failed, trying resilient fallback:', primaryErr);
+        setProcessingPhase('answering');
+        setTranscript(`${stylistName} is answering…`);
         const transcriptRes = await apiService.transcribeAudio(audioBase64, mimeType, effectiveLanguage);
         const transcribedText = transcriptRes.text?.trim();
         if (!transcribedText) {
@@ -189,16 +310,17 @@ export function PersonalStylistVoicePanel({
           stylistId: stylist.id,
           message: transcribedText,
           generateVoice: true,
-          accent: 'american',
+          accent,
           voiceRange,
           language: effectiveLanguage,
+          wardrobeItems,
         });
 
         if (chatResponse.voiceCreditsExhausted) {
           setError(chatResponse.voiceError?.message || "Spoken replies used up — text reply below. Add credits anytime to keep talking.");
         }
         if (chatResponse.voiceCredits) {
-          updateBalance(chatResponse.voiceCredits);
+          applyCreditsUpdate(chatResponse.voiceCredits);
         }
 
         aiResponse = chatResponse.response;
@@ -219,6 +341,7 @@ export function PersonalStylistVoicePanel({
       }
 
       refreshBalance();
+      onBalanceRefreshNeeded?.();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Something went wrong.';
       setError(message);
@@ -231,7 +354,12 @@ export function PersonalStylistVoicePanel({
     if (conversationState !== 'idle' || creditsLoading) return;
 
     if (!hasCredits) {
-      setError("You've used your spoken replies. Add a top-up voice pack or switch to Chat for unlimited text.");
+      setError(denialMessage);
+      if (balanceError) {
+        refreshBalance();
+      } else {
+        setShowCreditsModal(true);
+      }
       return;
     }
 
@@ -271,13 +399,17 @@ export function PersonalStylistVoicePanel({
 
   const handleCreditsPurchased = () => {
     setError(null);
+    void refreshBalance();
+    onBalanceRefreshNeeded?.();
   };
 
   const stateLabel =
     conversationState === 'listening'
       ? 'Listening… tap when done'
       : conversationState === 'processing'
-        ? `${stylist.name} is thinking…`
+        ? processingPhase === 'transcribing'
+          ? 'Transcribing…'
+          : `${stylist.name} is answering…`
         : conversationState === 'speaking'
           ? `${stylist.name} is speaking…`
           : 'Tap to speak';
@@ -368,52 +500,18 @@ export function PersonalStylistVoicePanel({
           </LinearGradient>
         </Pressable>
 
-        {hasMonthlyAllowance && !creditsLoading ? (
-          <View style={styles.creditsRow}>
-            <ThemedText type="caption" style={{ color: theme.tabIconDefault, textAlign: 'center', flex: 1 }}>
-              {weekendUnlimitedActive
-                ? `Weekend voice active — expires ${weekendExpiryLabel}`
-                : usageLabel
-                  ? `${usageLabel} this month`
-                  : hasCredits
-                    ? `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left`
-                    : 'Monthly spoken replies used up — try Weekend Unlimited or add a credit pack.'}
+        {!hasCredits && !creditsLoading ? (
+          <Pressable
+            onPress={() => (balanceError ? refreshBalance() : setShowCreditsModal(true))}
+            style={({ pressed }) => [
+              styles.buyCreditsButton,
+              { backgroundColor: theme.link, opacity: pressed ? 0.85 : 1 },
+            ]}
+          >
+            <ThemedText style={styles.buyCreditsText}>
+              {balanceError ? 'Retry' : shouldShowBuyPacks ? 'Top up' : 'Buy credits'}
             </ThemedText>
-            {shouldShowBuyPacks ? (
-              <Pressable
-                onPress={() => setShowCreditsModal(true)}
-                style={({ pressed }) => [
-                  styles.buyCreditsButton,
-                  { backgroundColor: theme.link, opacity: pressed ? 0.85 : 1 },
-                ]}
-              >
-                <ThemedText style={styles.buyCreditsText}>Top up</ThemedText>
-              </Pressable>
-            ) : null}
-          </View>
-        ) : !hasMonthlyAllowance && !creditsLoading ? (
-          <View style={styles.creditsRow}>
-            <ThemedText type="caption" style={{ color: theme.tabIconDefault, textAlign: 'center', flex: 1 }}>
-              {hasCredits
-                ? `${remainingCredits} spoken repl${remainingCredits === 1 ? 'y' : 'ies'} left`
-                : 'Add a voice pack to use hands-free spoken replies.'}
-            </ThemedText>
-            <Pressable
-              onPress={() => setShowCreditsModal(true)}
-              style={({ pressed }) => [
-                styles.buyCreditsButton,
-                { backgroundColor: theme.link, opacity: pressed ? 0.85 : 1 },
-              ]}
-            >
-              <ThemedText style={styles.buyCreditsText}>Buy credits</ThemedText>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {usageNudge ? (
-          <ThemedText type="caption" style={{ color: theme.link, textAlign: 'center', paddingHorizontal: Spacing.sm }}>
-            {usageNudge}
-          </ThemedText>
+          </Pressable>
         ) : null}
       </View>
 

@@ -1052,6 +1052,14 @@
   "home.noPostsYet": "अब तक कोई पोस्ट नहीं",
   "home.pickAnother": "दूसरा चुनें",
   "home.todaysOutfit": "आज का पहनावा",
+  "home.wardrobeGapMoreBottoms": "{count} और बॉटम",
+  "home.wardrobeGapMoreShoes": "{count} और जोड़ी जूते",
+  "home.wardrobeGapMoreTops": "{count} और टॉप",
+  "home.wardrobeGapOneBottom": "1 और बॉटम",
+  "home.wardrobeGapOneShoe": "1 और जोड़ी जूते",
+  "home.wardrobeGapOneTop": "1 और टॉप",
+  "home.wardrobeNeedBasics": "कम से कम 3 टॉप, 3 बॉटम और 3 जोड़ी जूते जोड़ें — फिर हम आपके वॉर्डरोब से पूरे आउटफिट प्लान कर सकेंगे।",
+  "home.wardrobeNeedPartial": "आपके पास {tops} टॉप, {bottoms} बॉटम और {shoes} जोड़ी जूते हैं। आउटफिट प्लानिंग अनलॉक करने के लिए {gaps} जोड़ें।",
   "home.wearThis": "इसे पहनो",
   "home.yourStory": "आपकी कहानी",
   "messages.chooseAction": "कोई क्रिया चुनें",
@@ -1580,6 +1588,11 @@
   "session.failedSaveNotes": "नोट सहेजने में विफल",
   "session.markedCompleted": "सत्र पूर्ण के रूप में चिह्नित किया गया",
   "session.notesSaved": "नोट सफलतापूर्वक सहेजे गए",
+  "settings": {
+    "usageMeterPct": "{pct}% of monthly allowance used",
+    "usageRembgMonthLine": "Background removals: {month} this month",
+    "usageRembgFreeLine": "Background removals: {used} of {cap}"
+  },
   "settings.account": "खाता",
   "settings.accountActions": "खाता क्रियाएँ",
   "settings.autoPlayDescription": "जब स्टाइलिस्ट जवाब देता है तो स्वचालित रूप से आवाज बजाता है",
@@ -1624,8 +1637,8 @@
   "settings.normal": "सामान्य",
   "settings.notSet": "सेट नहीं",
   "settings.outfitPopupAppearAt": "Appear at",
-  "settings.outfitPopupOccasion": "Occasion",
   "settings.outfitPopupHint": "From this time onward the look stays until you wear it or dismiss it — even if you open the app later. Auto uses Work on weekday mornings and can switch to Date night after 5pm. You can still open today's look manually from the Stylist tab.",
+  "settings.outfitPopupOccasion": "Occasion",
   "settings.partnerWithUs": "हमारे साथ भागीदार",
   "settings.partnerWithUsSubtitle": "स्टाइलिस्ट और ब्रांड पूछताछ",
   "settings.plan": "प्लान",
@@ -2552,10 +2565,5 @@
   "wishlist.product": "उत्पाद",
   "wishlist.removeConfirm": "{name} को अपनी इच्छा सूची से हटाएं?",
   "wishlist.removeFromWishlist": "इच्छा सूची से हटाएँ",
-  "wishlist.trackingPriceDrops": "{name} अब कीमतों में गिरावट का पता लगाया जा रहा है।",
-  "settings": {
-    "usageMeterPct": "{pct}% of monthly allowance used",
-    "usageRembgMonthLine": "Background removals: {month} this month",
-    "usageRembgFreeLine": "Background removals: {used} of {cap}"
-  }
+  "wishlist.trackingPriceDrops": "{name} अब कीमतों में गिरावट का पता लगाया जा रहा है।"
 }

@@ -1052,6 +1052,14 @@
   "home.noPostsYet": "Ei viestejä vielä",
   "home.pickAnother": "Valitse toinen",
   "home.todaysOutfit": "Tämän päivän asu",
+  "home.wardrobeGapMoreBottoms": "{count} alaosaa lisää",
+  "home.wardrobeGapMoreShoes": "{count} paria kenkiä lisää",
+  "home.wardrobeGapMoreTops": "{count} yläosaa lisää",
+  "home.wardrobeGapOneBottom": "1 alaosa lisää",
+  "home.wardrobeGapOneShoe": "1 pari kenkiä lisää",
+  "home.wardrobeGapOneTop": "1 yläosa lisää",
+  "home.wardrobeNeedBasics": "Lisää vähintään 3 yläosaa, 3 alaosaa ja 3 paria kenkiä — sitten voimme suunnitella kokonaisia asuja vaatekaapistasi.",
+  "home.wardrobeNeedPartial": "Sinulla on {tops} yläosa(a), {bottoms} alaosa(a) ja {shoes} paria kenkiä. Lisää {gaps} avataksesi asujen suunnittelun.",
   "home.wearThis": "Käytä tätä",
   "home.yourStory": "Sinun tarinasi",
   "messages.chooseAction": "Valitse toiminto",
@@ -1580,6 +1588,11 @@
   "session.failedSaveNotes": "Muistiinpanojen tallentaminen epäonnistui",
   "session.markedCompleted": "Istunto merkitty suoritetuksi",
   "session.notesSaved": "Muistiinpanot tallennettu onnistuneesti",
+  "settings": {
+    "usageMeterPct": "{pct}% of monthly allowance used",
+    "usageRembgMonthLine": "Background removals: {month} this month",
+    "usageRembgFreeLine": "Background removals: {used} of {cap}"
+  },
   "settings.account": "Tili",
   "settings.accountActions": "Tilitoiminnot",
   "settings.autoPlayDescription": "Toista ääni automaattisesti, kun stylisti vastaa",
@@ -1624,8 +1637,8 @@
   "settings.normal": "Normaali",
   "settings.notSet": "Ei asetettu",
   "settings.outfitPopupAppearAt": "Appear at",
-  "settings.outfitPopupOccasion": "Occasion",
   "settings.outfitPopupHint": "From this time onward the look stays until you wear it or dismiss it — even if you open the app later. Auto uses Work on weekday mornings and can switch to Date night after 5pm. You can still open today's look manually from the Stylist tab.",
+  "settings.outfitPopupOccasion": "Occasion",
   "settings.partnerWithUs": "Kumppani kanssamme",
   "settings.partnerWithUsSubtitle": "Stylistit ja tuotemerkit tiedustelut",
   "settings.plan": "Tilaus",
@@ -2552,10 +2565,5 @@
   "wishlist.product": "Tuote",
   "wishlist.removeConfirm": "Poistetaanko {name} toivelistaltasi?",
   "wishlist.removeFromWishlist": "Poista toivelistalta",
-  "wishlist.trackingPriceDrops": "Käyttäjää {name} seurataan nyt hintojen laskun varalta.",
-  "settings": {
-    "usageMeterPct": "{pct}% of monthly allowance used",
-    "usageRembgMonthLine": "Background removals: {month} this month",
-    "usageRembgFreeLine": "Background removals: {used} of {cap}"
-  }
+  "wishlist.trackingPriceDrops": "Käyttäjää {name} seurataan nyt hintojen laskun varalta."
 }

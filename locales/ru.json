@@ -1052,6 +1052,14 @@
   "home.noPostsYet": "Пока нет сообщений",
   "home.pickAnother": "Выберите другой",
   "home.todaysOutfit": "Сегодняшний наряд",
+  "home.wardrobeGapMoreBottoms": "ещё {count} низа/ов",
+  "home.wardrobeGapMoreShoes": "ещё {count} пар(ы) обуви",
+  "home.wardrobeGapMoreTops": "ещё {count} верха/ов",
+  "home.wardrobeGapOneBottom": "ещё 1 низ",
+  "home.wardrobeGapOneShoe": "ещё 1 пара обуви",
+  "home.wardrobeGapOneTop": "ещё 1 верх",
+  "home.wardrobeNeedBasics": "Добавьте минимум 3 верха, 3 низа и 3 пары обуви — тогда мы сможем планировать полные образы из вашего гардероба.",
+  "home.wardrobeNeedPartial": "У вас {tops} верх(ов), {bottoms} низ(ов) и {shoes} пар(ы) обуви. Добавьте {gaps}, чтобы разблокировать планирование образов.",
   "home.wearThis": "Надень это",
   "home.yourStory": "Ваша история",
   "messages.chooseAction": "Выберите действие",
@@ -1580,6 +1588,11 @@
   "session.failedSaveNotes": "Не удалось сохранить заметки",
   "session.markedCompleted": "Сессия отмечена как завершенная",
   "session.notesSaved": "Заметки успешно сохранены",
+  "settings": {
+    "usageMeterPct": "{pct}% of monthly allowance used",
+    "usageRembgMonthLine": "Background removals: {month} this month",
+    "usageRembgFreeLine": "Background removals: {used} of {cap}"
+  },
   "settings.account": "Счет",
   "settings.accountActions": "Действия с учетной записью",
   "settings.autoPlayDescription": "Автоматически воспроизводить голос, когда стилист отвечает",
@@ -1624,8 +1637,8 @@
   "settings.normal": "Нормальный",
   "settings.notSet": "Не установлено",
   "settings.outfitPopupAppearAt": "Appear at",
-  "settings.outfitPopupOccasion": "Occasion",
   "settings.outfitPopupHint": "From this time onward the look stays until you wear it or dismiss it — even if you open the app later. Auto uses Work on weekday mornings and can switch to Date night after 5pm. You can still open today's look manually from the Stylist tab.",
+  "settings.outfitPopupOccasion": "Occasion",
   "settings.partnerWithUs": "Партнер с нами",
   "settings.partnerWithUsSubtitle": "Запросы стилистов и брендов",
   "settings.plan": "План",
@@ -2552,10 +2565,5 @@
   "wishlist.product": "Продукт",
   "wishlist.removeConfirm": "Удалить {name} из списка желаний?",
   "wishlist.removeFromWishlist": "Удалить из списка желаний",
-  "wishlist.trackingPriceDrops": "{name} сейчас отслеживается на предмет снижения цен.",
-  "settings": {
-    "usageMeterPct": "{pct}% of monthly allowance used",
-    "usageRembgMonthLine": "Background removals: {month} this month",
-    "usageRembgFreeLine": "Background removals: {used} of {cap}"
-  }
+  "wishlist.trackingPriceDrops": "{name} сейчас отслеживается на предмет снижения цен."
 }

@@ -1052,6 +1052,14 @@
   "home.noPostsYet": "Nenhuma postagem ainda",
   "home.pickAnother": "Escolha outro",
   "home.todaysOutfit": "Roupa de hoje",
+  "home.wardrobeGapMoreBottoms": "{count} partes de baixo a mais",
+  "home.wardrobeGapMoreShoes": "{count} pares de sapatos a mais",
+  "home.wardrobeGapMoreTops": "{count} tops a mais",
+  "home.wardrobeGapOneBottom": "1 parte de baixo a mais",
+  "home.wardrobeGapOneShoe": "1 par de sapatos a mais",
+  "home.wardrobeGapOneTop": "1 top a mais",
+  "home.wardrobeNeedBasics": "Adicione pelo menos 3 tops, 3 partes de baixo e 3 pares de sapatos — depois poderemos planear looks completos a partir do seu guarda-roupa.",
+  "home.wardrobeNeedPartial": "Tem {tops} top(s), {bottoms} parte(s) de baixo e {shoes} par(es) de sapatos. Adicione {gaps} para desbloquear o planeamento de looks.",
   "home.wearThis": "Use isso",
   "home.yourStory": "Sua história",
   "messages.chooseAction": "Escolha uma ação",
@@ -1580,6 +1588,11 @@
   "session.failedSaveNotes": "Falha ao salvar notas",
   "session.markedCompleted": "Sessão marcada como concluída",
   "session.notesSaved": "Notas salvas com sucesso",
+  "settings": {
+    "usageMeterPct": "{pct}% of monthly allowance used",
+    "usageRembgMonthLine": "Background removals: {month} this month",
+    "usageRembgFreeLine": "Background removals: {used} of {cap}"
+  },
   "settings.account": "Conta",
   "settings.accountActions": "Ações da conta",
   "settings.autoPlayDescription": "Reproduzir voz automaticamente quando o estilista responder",
@@ -1624,8 +1637,8 @@
   "settings.normal": "Normal",
   "settings.notSet": "Não definido",
   "settings.outfitPopupAppearAt": "Appear at",
-  "settings.outfitPopupOccasion": "Occasion",
   "settings.outfitPopupHint": "From this time onward the look stays until you wear it or dismiss it — even if you open the app later. Auto uses Work on weekday mornings and can switch to Date night after 5pm. You can still open today's look manually from the Stylist tab.",
+  "settings.outfitPopupOccasion": "Occasion",
   "settings.partnerWithUs": "Faça parceria conosco",
   "settings.partnerWithUsSubtitle": "Consultas de estilistas e marcas",
   "settings.plan": "Plano",
@@ -2552,10 +2565,5 @@
   "wishlist.product": "Produto",
   "wishlist.removeConfirm": "Remover {name} da sua lista de desejos?",
   "wishlist.removeFromWishlist": "Remover da lista de desejos",
-  "wishlist.trackingPriceDrops": "{name} agora está sendo rastreado por quedas de preços.",
-  "settings": {
-    "usageMeterPct": "{pct}% of monthly allowance used",
-    "usageRembgMonthLine": "Background removals: {month} this month",
-    "usageRembgFreeLine": "Background removals: {used} of {cap}"
-  }
+  "wishlist.trackingPriceDrops": "{name} agora está sendo rastreado por quedas de preços."
 }

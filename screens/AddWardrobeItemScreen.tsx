@@ -765,7 +765,7 @@ export default function AddWardrobeItemScreen({ navigation }: AddWardrobeItemScr
         t('wardrobe.itemAdded'),
         t('wardrobe.itemAddedGap')
           .replace('{name}', itemLabel)
-          .replace('{gap}', describeOutfitPlanningGap(outfitCounts)),
+          .replace('{gap}', describeOutfitPlanningGap(outfitCounts, t)),
         [{ text: t('common.keepBuilding'), onPress: () => navigation.goBack() }],
       );
     } catch (error) {

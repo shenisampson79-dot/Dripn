@@ -26,9 +26,15 @@ import {
   shouldUseAppleIAP,
 } from "@/utils/platformPayments";
 import { getErrorMessage, openExternalUrl } from "@/utils/openExternalUrl";
-import { isDevTestingModeEnabled } from "@/utils/devTesting";
+import { shouldApplyTestingUnlock } from "@/utils/devTesting";
+import {
+  finalizeDfyPurchase,
+  isApplePurchaseCancelled,
+  runDfyCheckout,
+} from "@/utils/dfyCheckout";
 import type { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { useTranslations } from "@/contexts/TranslationContext";
+import type { DFYTier } from "@/services/DFYService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -64,7 +70,7 @@ interface Plan {
   altPrice: string;
   savingsLabel: string;
   period: string;
-  description: string;
+  description?: string;
   features: PlanFeature[];
   popular?: boolean;
   bestValue?: boolean;
@@ -111,22 +117,18 @@ const getPlanFeatures = (t: (key: string) => string): Record<DisplayTier, PlanFe
   };
 };
 
-const getPlanMetadata = (t: (key: string) => string, isYearly: boolean): Record<DisplayTier, { name: string; period: string; description: string; popular?: boolean; bestValue?: boolean; tagline?: string; footerLine?: string }> => ({
+const getPlanMetadata = (t: (key: string) => string, isYearly: boolean): Record<DisplayTier, { name: string; period: string; description?: string; popular?: boolean; bestValue?: boolean; tagline?: string; footerLine?: string }> => ({
   free: { name: t('subscription.plan.free.name'), period: t('subscription.plan.free.period'), description: t('subscription.plan.free.description') },
   personal_stylist: {
     name: t('subscription.plan.personalStylist.name'),
     period: isYearly ? t('subscription.period.year') : t('subscription.period.month'),
-    description: t('subscription.plan.personalStylist.description'),
-    tagline: t('subscription.plan.personalStylist.tagline'),
     footerLine: t('subscription.plan.personalStylist.footerLine'),
     popular: true,
   },
   stylist_unlimited: {
     name: t('subscription.plan.stylistUnlimited.name'),
     period: isYearly ? t('subscription.period.year') : t('subscription.period.month'),
-    description: t('subscription.plan.stylistUnlimited.description'),
     bestValue: true,
-    tagline: t('subscription.plan.stylistUnlimited.tagline'),
     footerLine: t('subscription.plan.stylistUnlimited.footerLine'),
   },
 });
@@ -276,8 +278,8 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
   const useAppleIAP = shouldUseAppleIAP();
 
   useEffect(() => {
-    isDevTestingModeEnabled().then(setDevTestingMode).catch(() => {});
-  }, []);
+    shouldApplyTestingUnlock(user).then(setDevTestingMode).catch(() => {});
+  }, [user?.email, user?.isAdmin, user?.role]);
 
   useEffect(() => {
     if (!useAppleIAP || !user?.id) return;
@@ -369,13 +371,89 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     initCurrency();
   }, []);
 
-  const openPaidDfyCheckout = (tier: 'lite' | 'core') => {
+  const openPaidDfyCheckout = async (tier: DFYTier) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate('DFYComparison', {
-      selectedTier: tier,
-      paidAddOn: true,
-      autoCheckout: true,
-    });
+
+    if (useAppleIAP && !user?.id) {
+      Alert.alert(t('dfy.comparison.signInRequiredTitle'), t('dfy.comparison.signInRequiredApple'));
+      return;
+    }
+    if (!useAppleIAP && !user?.email) {
+      Alert.alert(t('dfy.comparison.signInRequiredTitle'), t('dfy.comparison.emailRequired'));
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const outcome = await runDfyCheckout({
+        tier,
+        email: user?.email,
+        userId: user?.id,
+        language: currentLanguage,
+      });
+
+      if (outcome === 'success') {
+        await finalizeDfyPurchase(tier);
+        refreshSubscriptionFromBackend().catch(() => {});
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        if (tier === 'lite') {
+          Alert.alert(
+            t('dfy.comparison.paymentSuccessTitle'),
+            t('dfy.comparison.paymentSuccessLiteMessage'),
+            [
+              {
+                text: t('dfy.comparison.getPersonalStylist'),
+                onPress: () => navigation.navigate('Subscription', { highlightPlan: 'personal_stylist' }),
+              },
+              {
+                text: t('dfy.comparison.continueSetup'),
+                onPress: () => navigation.navigate('DFYStylePlan'),
+                style: 'cancel',
+              },
+            ],
+          );
+        } else {
+          Alert.alert(
+            t('dfy.comparison.paymentSuccessTitle'),
+            t('dfy.comparison.paymentSuccessCoreMessage'),
+            [{ text: t('common.continue'), onPress: () => navigation.navigate('DFYUpload', { type: 'core' }) }],
+          );
+        }
+        return;
+      }
+
+      if (outcome === 'failed') {
+        Alert.alert(
+          t('dfy.comparison.paymentNotCompletedTitle'),
+          t('dfy.comparison.paymentNotCompletedMessage'),
+          [{ text: t('common.done') }],
+        );
+        return;
+      }
+
+      Alert.alert(
+        t('dfy.comparison.checkoutCancelledTitle'),
+        t('dfy.comparison.checkoutCancelledMessage'),
+        [{ text: t('common.done') }],
+      );
+    } catch (error: unknown) {
+      if (isApplePurchaseCancelled(error)) {
+        Alert.alert(
+          t('dfy.comparison.purchaseCancelledTitle'),
+          t('dfy.comparison.purchaseCancelledMessage'),
+          [{ text: t('common.done') }],
+        );
+        return;
+      }
+      console.error('DFY checkout error:', error);
+      Alert.alert(
+        t('dfy.comparison.paymentErrorTitle'),
+        error instanceof Error ? error.message : t('dfy.comparison.checkoutStartFailed'),
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleStartIncludedDfy = () => {
@@ -572,7 +650,7 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
         return;
       }
 
-      const devTesting = __DEV__ && (devTestingMode || (await isDevTestingModeEnabled().catch(() => false)));
+      const devTesting = await shouldApplyTestingUnlock(user);
       if (devTesting) {
         Alert.alert(t('subscription.testingModeTitle'), t('subscription.testingModeMessage'));
         return;
@@ -870,9 +948,11 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
             </ThemedText>
           ) : null}
 
-          <ThemedText type="body" style={[styles.planDescription, { color: 'rgba(255,255,255,0.8)' }]}>
-            {plan.description}
-          </ThemedText>
+          {plan.description ? (
+            <ThemedText type="body" style={[styles.planDescription, { color: 'rgba(255,255,255,0.8)' }]}>
+              {plan.description}
+            </ThemedText>
+          ) : null}
 
           {plan.tagline ? (
             <ThemedText type="small" style={styles.planTagline}>
@@ -941,6 +1021,26 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
                 ]}
               >
                 {isProcessing ? t('subscription.processing') : t('subscription.startPlan').replace('{planName}', plan.name)}
+              </ThemedText>
+            </Pressable>
+          ) : null}
+
+          {isSelected && isCurrent ? (
+            <Pressable
+              onPress={handleManageSubscription}
+              disabled={isProcessing}
+              style={[styles.inlineSubscribeButton, { backgroundColor: plan.accentColor }]}
+            >
+              <ThemedText
+                type="body"
+                style={[
+                  styles.inlineSubscribeButtonText,
+                  { color: plan.id === 'stylist_unlimited' ? '#FFFFFF' : LUXURY_COLORS.midnight },
+                ]}
+              >
+                {isProcessing
+                  ? t('subscription.processing')
+                  : (t('subscription.manageSubscription') || 'Manage Subscription')}
               </ThemedText>
             </Pressable>
           ) : null}
@@ -1532,7 +1632,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginBottom: 2,
+    marginBottom: Spacing.md,
   },
   savingsLabel: {
     color: LUXURY_COLORS.champagne,

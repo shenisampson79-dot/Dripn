@@ -3,7 +3,7 @@
  * Weather-based Outfit Recommendations Screen
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import {
   StyleSheet,
   View,
@@ -20,6 +20,7 @@ import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { HeaderHeightContext } from '@react-navigation/elements';
 
 import { ScreenScrollView } from '@/components/ScreenScrollView';
 import { ThemedText } from '@/components/ThemedText';
@@ -51,6 +52,8 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
   const { translations, t, currentLanguage } = useTranslations();
   const { user } = useAuth();
   const { items } = useWardrobe();
+  const headerHeightCtx = useContext(HeaderHeightContext);
+  const hasStackHeader = typeof headerHeightCtx === 'number' && headerHeightCtx > 0;
   const [weather, setWeather] = useState<WeatherCondition | null>(null);
   const [recommendation, setRecommendation] = useState<WeatherOutfitRecommendation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -161,17 +164,6 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
 
     return (
       <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => navigation.goBack()}
-            style={[styles.backButton, { backgroundColor: theme.backgroundDefault }]}
-          >
-            <Feather name="arrow-left" size={20} color={theme.text} />
-          </Pressable>
-          <ThemedText type="h2">{translations.stylistHub?.weatherOutfits || 'Weather Outfits'}</ThemedText>
-          <View style={styles.headerSpacer} />
-        </View>
-        
         <View style={styles.permissionContainer}>
           <View style={[styles.permissionIcon, { backgroundColor: theme.backgroundDefault }]}>
             <Feather name="map-pin" size={48} color={theme.tabIconDefault} />
@@ -218,21 +210,16 @@ export default function WeatherOutfitScreen({ navigation }: WeatherOutfitScreenP
 
   return (
     <ScreenScrollView
+      opaqueHeader={hasStackHeader}
       refreshControl={
         <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
       }
     >
       <View style={styles.header}>
         <Pressable
-          onPress={() => navigation.goBack()}
-          style={[styles.backButton, { backgroundColor: theme.backgroundDefault }]}
-        >
-          <Feather name="arrow-left" size={20} color={theme.text} />
-        </Pressable>
-        <ThemedText type="h2">{translations.stylistHub?.weatherOutfits || 'Weather Outfits'}</ThemedText>
-        <Pressable
           onPress={handleRefresh}
           style={[styles.backButton, { backgroundColor: theme.backgroundDefault }]}
+          accessibilityLabel={t('common.refresh') || 'Refresh'}
         >
           <Feather name="refresh-cw" size={20} color={theme.text} />
         </Pressable>
@@ -484,8 +471,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.xl,
+    justifyContent: 'flex-end',
+    marginBottom: Spacing.md,
   },
   backButton: {
     width: 40,

@@ -15,8 +15,7 @@ import { apiService } from '@/services/ApiService';
 import { onboardingProfileService } from '@/services/OnboardingProfileService';
 import { hydrateAndSyncUserProfileAfterAuth, hydrateUserProfileAfterAuth, getTourSeenStorageKey, persistTourSeenLocally, syncHydratedProfileToBackend } from '@/services/UserProfileSyncService';
 import { normalizeSubscriptionTier } from '@/utils/subscriptionTier';
-import { isDevTestingModeEnabled } from '@/utils/devTesting';
-
+import { shouldApplyTestingUnlock } from '@/utils/devTesting';
 WebBrowser.maybeCompleteAuthSession();
 
 export type Gender = 'woman' | 'man' | 'non-binary' | 'prefer-not-to-say' | null;
@@ -140,6 +139,7 @@ export interface UserProfile {
   extendedPreferences: ExtendedPreferences;
   stylistPreferences: StylistPreferences;
   role?: string;
+  isAdmin?: boolean;
   profileData?: Record<string, unknown>;
   colorScanData?: {
     colorSeasonType: string;
@@ -438,7 +438,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userData) {
         const localUser = JSON.parse(userData);
         localUser.subscriptionTier = normalizeSubscriptionTier(localUser.subscriptionTier);
-        if (__DEV__ && (await isDevTestingModeEnabled())) {
+        if (await shouldApplyTestingUnlock(localUser)) {
           localUser.subscriptionTier = 'stylist_unlimited';
         }
         setUser(localUser);
@@ -466,7 +466,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               ...hydrated,
               hasSeenTour,
             };
-            if (__DEV__ && (await isDevTestingModeEnabled())) {
+            if (await shouldApplyTestingUnlock(updatedUser)) {
               updatedUser.subscriptionTier = 'stylist_unlimited';
             }
             await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
@@ -567,6 +567,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (backendUser.subscriptionTier) {
         userProfile.subscriptionTier = normalizeSubscriptionTier(backendUser.subscriptionTier);
+      }
+      if (backendUser.isAdmin !== undefined) {
+        userProfile.isAdmin = Boolean(backendUser.isAdmin);
       }
 
       userProfile = await hydrateAndSyncUserProfileAfterAuth(userProfile, {
@@ -936,7 +939,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshSubscriptionFromBackend = useCallback(async (sessionId?: string) => {
     if (!user) return;
-    if (__DEV__ && (await isDevTestingModeEnabled())) return;
+    if (await shouldApplyTestingUnlock(user)) return;
     try {
       // First try direct verification (checks Stripe directly, bypasses webhook delays)
       let subStatus = await apiService.verifySubscription(sessionId).catch(async () => {

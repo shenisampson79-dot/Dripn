@@ -22,6 +22,8 @@ import { NamePronunciationPrompt } from "@/components/NamePronunciationPrompt";
 import { RetailerService, Retailer } from "@/services/RetailerService";
 import { OnboardingService, BodyScanResult, ColorScanResult, StyleQuizQuestion, StyleQuizResult, StyleArchetype, CameraGuidance, ScanReview } from "@/services/OnboardingService";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { useVoiceSettings } from "@/contexts/VoiceSettingsContext";
+import { stylistLanguageNameToCode } from "@/utils/stylistLanguage";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { setCurrentOnboardingStep } from "@/components/ErrorFallback";
 import { getLocalizedCountryName, filterCountriesBySearch } from "@/utils/countryLocalization";
@@ -550,6 +552,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
   const { theme, isDark } = useTheme();
   const { t, isRTL, translations, currentLanguage } = useTranslations();
   const { completeOnboarding, user } = useAuth();
+  const { updateSettings: updateVoiceSettings } = useVoiceSettings();
 
   const localizeCountry = useCallback(
     (englishName: string) => getLocalizedCountryName(englishName, currentLanguage, t),
@@ -1308,6 +1311,12 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
       useNameInGreetings,
       namePronunciationConfirmed,
     };
+    // Keep chat/voice speak language in sync with onboarding choice (independent of app UI language)
+    try {
+      await updateVoiceSettings({ preferredLanguage: stylistLanguageNameToCode(stylistLanguage) });
+    } catch (error) {
+      console.log('Failed to sync stylist speak language:', error);
+    }
     await completeOnboarding({
       country,
       gender,
@@ -1801,7 +1810,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
             <ThemedText type="h2" style={styles.stepTitle}>
               {t('onboarding.steps.stylist.title') || 'Meet Your Personal Stylist'}
             </ThemedText>
-            <ThemedText type="body" style={styles.stepSubtitle}>
+            <ThemedText type="body" style={[styles.stepSubtitle, styles.stylistStepSubtitle]}>
               {t('onboarding.steps.stylist.description') || 'Choose who will guide your fashion journey'}
             </ThemedText>
             <ScrollProgressIndicator />
@@ -1834,7 +1843,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                         ) : (
                           <Feather
                             name={stylist.icon}
-                            size={32}
+                            size={28}
                             color="#FFFFFF"
                           />
                         )}
@@ -1867,6 +1876,7 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
                         </ThemedText>
                         <ThemedText
                           type="small"
+                          numberOfLines={2}
                           style={{ color: isSelected ? "rgba(255,255,255,0.8)" : theme.tabIconDefault, marginTop: Spacing.xs }}
                         >
                           {stylist.personality}
@@ -1907,7 +1917,10 @@ export default function OnboardingScreen({ navigation, route }: OnboardingScreen
 
               <View style={styles.voiceSettingsSection}>
                 <ThemedText type="h3" style={styles.sectionLabel}>
-                  {t('onboarding.stylist.language') || 'Language'}
+                  {t('onboarding.stylist.language') || 'Stylist language'}
+                </ThemedText>
+                <ThemedText type="small" style={[styles.sectionHint, { color: theme.tabIconDefault }]}>
+                  {t('onboarding.stylist.languageHint') || 'This is the language your stylist will use in chat and voice — separate from the app language.'}
                 </ThemedText>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
                   <View style={styles.horizontalOptionsRow}>
@@ -4045,6 +4058,10 @@ const styles = StyleSheet.create({
   sectionLabel: {
     marginBottom: Spacing.md,
   },
+  sectionHint: {
+    marginTop: -Spacing.sm,
+    marginBottom: Spacing.md,
+  },
   optionsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -4089,22 +4106,26 @@ const styles = StyleSheet.create({
   nextButton: {
     width: "100%",
   },
+  stylistStepSubtitle: {
+    marginBottom: Spacing.md,
+  },
   stylistsContainer: {
     gap: Spacing.md,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.md,
   },
   stylistCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: Spacing.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.md,
     borderWidth: 2,
     gap: Spacing.md,
   },
   stylistIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -1052,6 +1052,14 @@
   "home.noPostsYet": "Ingen innlegg ennå",
   "home.pickAnother": "Velg en annen",
   "home.todaysOutfit": "Dagens antrekk",
+  "home.wardrobeGapMoreBottoms": "{count} underdeler til",
+  "home.wardrobeGapMoreShoes": "{count} par sko til",
+  "home.wardrobeGapMoreTops": "{count} overdeler til",
+  "home.wardrobeGapOneBottom": "1 underdel til",
+  "home.wardrobeGapOneShoe": "1 par sko til",
+  "home.wardrobeGapOneTop": "1 overdel til",
+  "home.wardrobeNeedBasics": "Legg til minst 3 overdeler, 3 underdeler og 3 par sko — deretter kan vi planlegge komplette antrekk fra garderoben din.",
+  "home.wardrobeNeedPartial": "Du har {tops} overdel(er), {bottoms} underdel(er) og {shoes} par sko. Legg til {gaps} for å låse opp antrekksplanlegging.",
   "home.wearThis": "Bruk denne",
   "home.yourStory": "Din historie",
   "messages.chooseAction": "Velg en handling",
@@ -1580,6 +1588,11 @@
   "session.failedSaveNotes": "Kunne ikke lagre notater",
   "session.markedCompleted": "Økt merket som fullført",
   "session.notesSaved": "Notater er lagret",
+  "settings": {
+    "usageMeterPct": "{pct}% of monthly allowance used",
+    "usageRembgMonthLine": "Background removals: {month} this month",
+    "usageRembgFreeLine": "Background removals: {used} of {cap}"
+  },
   "settings.account": "Konto",
   "settings.accountActions": "Kontohandlinger",
   "settings.autoPlayDescription": "Spill av stemmen automatisk når stylisten svarer",
@@ -1624,8 +1637,8 @@
   "settings.normal": "Normal",
   "settings.notSet": "Ikke satt",
   "settings.outfitPopupAppearAt": "Appear at",
-  "settings.outfitPopupOccasion": "Occasion",
   "settings.outfitPopupHint": "From this time onward the look stays until you wear it or dismiss it — even if you open the app later. Auto uses Work on weekday mornings and can switch to Date night after 5pm. You can still open today's look manually from the Stylist tab.",
+  "settings.outfitPopupOccasion": "Occasion",
   "settings.partnerWithUs": "Partner med oss",
   "settings.partnerWithUsSubtitle": "Stylister og merker henvendelser",
   "settings.plan": "Plan",
@@ -2552,10 +2565,5 @@
   "wishlist.product": "Produkt",
   "wishlist.removeConfirm": "Vil du fjerne {name} fra ønskelisten din?",
   "wishlist.removeFromWishlist": "Fjern fra ønskeliste",
-  "wishlist.trackingPriceDrops": "{name} spores nå for prisfall.",
-  "settings": {
-    "usageMeterPct": "{pct}% of monthly allowance used",
-    "usageRembgMonthLine": "Background removals: {month} this month",
-    "usageRembgFreeLine": "Background removals: {used} of {cap}"
-  }
+  "wishlist.trackingPriceDrops": "{name} spores nå for prisfall."
 }

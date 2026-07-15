@@ -33,6 +33,10 @@ import {
   getTodaysOutfitPopupPrefs,
   isWithinTodaysOutfitPopupWindow,
 } from '@/utils/todaysOutfitPrefs';
+import {
+  countWardrobeOutfitBasics,
+  describeOutfitPlanningGap,
+} from '@/utils/wardrobeOutfitReadiness';
 
 type Props = {
   onOpenStylist?: (prompt: string) => void;
@@ -195,12 +199,17 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  /** Separate from outfit dismiss — empty-wardrobe guidance must reopen from the chip. */
+  const [gapVisible, setGapVisible] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
 
   const load = useCallback(
     async (forceRefresh = false) => {
       setLoading(!forceRefresh);
       setGenerating(forceRefresh);
+      if (forceRefresh) {
+        setGapVisible(false);
+      }
       setErrorMessage(null);
 
       await onboardingProfileService.syncQuizGenderFromUserGender(user?.gender);
@@ -216,13 +225,21 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       if (!result.ok) {
         setOutfit(null);
         setPieces([]);
-        setErrorMessage(result.message);
+        const message =
+          result.reason === 'not_ready'
+            ? describeOutfitPlanningGap(countWardrobeOutfitBasics(wardrobeItems), t)
+            : result.message;
+        setErrorMessage(message);
         setVisible(false);
+        // Always show guidance when wardrobe isn't ready (initial load or chip tap).
+        setGapVisible(true);
         setLoading(false);
         setGenerating(false);
         return;
       }
 
+      setGapVisible(false);
+      setErrorMessage(null);
       setOutfit(result.outfit);
       setPieces(result.items);
 
@@ -242,7 +259,7 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       setGenerating(false);
       onRefresh?.();
     },
-    [wardrobeItems, user, onRefresh],
+    [wardrobeItems, user, onRefresh, t],
   );
 
   useEffect(() => {
@@ -290,6 +307,23 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
 
   const handleWearThis = () => handleClose('wore');
   const handleDismiss = () => handleClose('skipped');
+  const handleDismissGap = () => {
+    setGapVisible(false);
+  };
+
+  const openTodaysOutfit = () => {
+    if (outfit) {
+      setDismissed(false);
+      setVisible(true);
+      return;
+    }
+    if (errorMessage) {
+      // Re-show empty-wardrobe guidance — do not depend on outfit dismiss flags.
+      setGapVisible(true);
+      return;
+    }
+    void load(true);
+  };
 
   const visualPieces = useMemo(
     () =>
@@ -304,7 +338,7 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
 
   const itemIds = useMemo(() => pieces.map((p) => String(p.id)), [pieces]);
   const showReopenChip =
-    Boolean(user) && !loading && ((dismissed && !visible && outfit) || (!outfit && errorMessage));
+    Boolean(user) && !loading && ((dismissed && !visible && outfit) || (!outfit && Boolean(errorMessage)));
 
   if (!user) return null;
   if (loading && !outfit && !errorMessage) return null;
@@ -330,10 +364,7 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
               borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(61,52,38,0.15)',
             },
           ]}
-          onPress={() => {
-            if (outfit) setVisible(true);
-            else void load(true);
-          }}
+          onPress={openTodaysOutfit}
           accessibilityRole="button"
           accessibilityLabel={t('home.todaysOutfit') || "Today's outfit"}
         >
@@ -552,45 +583,51 @@ export function TodaysOutfitCard({ onRefresh }: Props) {
       />
 
       <Modal
-        visible={Boolean(errorMessage) && !outfit && !dismissed && !loading}
+        visible={Boolean(errorMessage) && !outfit && gapVisible && !loading}
         transparent
         animationType="fade"
         statusBarTranslucent
-        onRequestClose={handleDismiss}
+        onRequestClose={handleDismissGap}
       >
         <View style={styles.overlay}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={handleDismiss} />
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={handleDismissGap}
+            accessibilityLabel={t('common.dismiss') || 'Dismiss'}
+          />
           <View
             style={[
-              styles.sheet,
+              styles.gapSheet,
               {
                 marginTop: insets.top + 24,
                 marginBottom: insets.bottom + 24,
                 backgroundColor: isDark ? '#1A1614' : '#FFF9F0',
-                padding: Spacing.lg,
               },
             ]}
+            accessibilityViewIsModal
           >
             <View style={styles.sheetHeader}>
-              <ThemedText type="h3">
+              <ThemedText type="h3" style={{ flex: 1, paddingRight: Spacing.sm }}>
                 {t('home.todaysOutfit') || "Today's outfit"}
               </ThemedText>
-              <Pressable onPress={handleDismiss} hitSlop={12}>
+              <Pressable onPress={handleDismissGap} hitSlop={12} accessibilityRole="button">
                 <Feather name="x" size={18} color={theme.text} />
               </Pressable>
             </View>
-            <ThemedText type="body" style={{ lineHeight: 22, marginVertical: Spacing.md }}>
+            <ThemedText type="body" style={{ lineHeight: 22, marginBottom: Spacing.lg, color: theme.text }}>
               {errorMessage}
             </ThemedText>
             <Pressable
-              style={[styles.primaryBtn, { backgroundColor: theme.link }]}
-              onPress={handleDismiss}
+              style={[styles.ackBtn, { backgroundColor: theme.link }]}
+              onPress={handleDismissGap}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.ok') || 'OK'}
             >
               <ThemedText
                 type="body"
-                style={{ color: theme.buttonText, fontWeight: '600' }}
+                style={{ color: '#FFFFFF', fontWeight: '700', textAlign: 'center' }}
               >
-                OK
+                {t('common.ok') || 'OK'}
               </ThemedText>
             </Pressable>
           </View>
@@ -615,6 +652,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 16,
     flexShrink: 1,
+  },
+  gapSheet: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    zIndex: 2,
   },
   gradient: {
     paddingTop: Spacing.lg,
@@ -709,6 +756,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
+  },
+  ackBtn: {
+    width: '100%',
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: Spacing.buttonHeight,
   },
   secondaryBtn: {
     minWidth: 120,

@@ -271,12 +271,14 @@ export default function DiscoverPeopleScreen({ navigation }: DiscoverPeopleScree
 
       {filteredMembers.length === 0 ? (
         <View style={styles.emptyState}>
-          <Feather name="search" size={64} color={theme.tabIconDefault} />
+          <Feather name="users" size={64} color={theme.tabIconDefault} />
           <ThemedText type="h2" style={styles.emptyTitle}>
-            No Members Found
+            {searchQuery || selectedCountry ? 'No Members Found' : 'Community Growing'}
           </ThemedText>
           <ThemedText type="body" style={styles.emptyText}>
-            Try adjusting your search or filter criteria
+            {searchQuery || selectedCountry
+              ? 'Try adjusting your search or filter criteria'
+              : 'People discovery opens as real members join. Check back soon — no demo profiles here.'}
           </ThemedText>
           {(searchQuery || selectedCountry) ? (
             <Pressable

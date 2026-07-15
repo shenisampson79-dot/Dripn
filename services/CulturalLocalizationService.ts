@@ -20,11 +20,12 @@ const CULTURAL_GREETINGS: Record<string, Record<string, { greetings: string[]; s
   English: {
     'British': {
       greetings: [
-        "Hello {name}! I'm {stylist}, your personal stylist. Lovely to meet you! I've had a look at your wardrobe and I've got some rather brilliant ideas. What can I help you with today?",
+        "Hello {name}! I'm {stylist}, your personal stylist. Lovely to meet you! What can I help you with today?",
+        "Hi {name}! {stylist} here — ready when you are. What would you like to work on?",
+        "Hello {name}! I'm {stylist}. What brings you here today?",
         "Hiya {name}! {stylist} here. I'm absolutely chuffed to help you with your style! What shall we work on today?",
-        "Hello there {name}! I'm {stylist}, and fashion is my absolute passion. Let's find you the perfect look together. What occasion are we dressing for?",
-        "Good day {name}! {stylist} at your service. I'm ever so excited to create something lovely together! What did you have in mind?",
-        "Welcome {name}! I'm {stylist}, your personal stylist. I'd be delighted to help you look absolutely fabulous. What are you after?",
+        "Good day {name}! {stylist} at your service. What did you have in mind?",
+        "Welcome {name}! I'm {stylist}, your personal stylist. I'd be delighted to help. What are you after?",
       ],
       signOffs: [
         "You're going to look absolutely smashing, {name}! Best of luck!",
@@ -37,11 +38,11 @@ const CULTURAL_GREETINGS: Record<string, Record<string, { greetings: string[]; s
     },
     'American': {
       greetings: [
-        "Hey {name}! I'm {stylist}, your personal stylist. So nice to meet you! I've checked out your wardrobe and I've got some amazing ideas. What brings you here today?",
-        "Hi there {name}! {stylist} here. I'm super excited to help you with your style! What are we styling today?",
-        "Hello {name}! I'm {stylist}, and fashion is my passion. Let's find you the perfect look together. What occasion are we dressing for?",
-        "Hey {name}! {stylist} here, ready to help you slay! I'm thrilled to create something beautiful together. What did you have in mind?",
-        "Welcome {name}! I'm {stylist}, your personal stylist. I'd love to help you look absolutely stunning. What are you looking for?",
+        "Hey {name}! I'm {stylist}, your personal stylist. So nice to meet you! What brings you here today?",
+        "Hi there {name}! {stylist} here. I'm excited to help you with your style! What are we styling today?",
+        "Hello {name}! I'm {stylist}, and fashion is my passion. What occasion are we dressing for?",
+        "Hey {name}! {stylist} here, ready to help. What did you have in mind?",
+        "Welcome {name}! I'm {stylist}, your personal stylist. What are you looking for?",
       ],
       signOffs: [
         "You're going to look amazing, {name}! Good luck!",
@@ -306,11 +307,11 @@ const CULTURAL_GREETINGS_MALE: Record<string, Record<string, { greetings: string
   English: {
     'British': {
       greetings: [
-        "Alright {name}! I'm {stylist}, your personal stylist. Lovely to meet you, mate! I've had a proper look at your wardrobe and I've got some cracking ideas. What can I do for you today?",
+        "Alright {name}! I'm {stylist}, your personal stylist. Lovely to meet you, mate! What can I do for you today?",
         "Hello {name}! {stylist} here. I'm absolutely chuffed to bits to help you with your style! What shall we sort out today?",
-        "Hiya {name}! I'm {stylist}, and fashion is my absolute passion. Let's get you looking sharp as anything. What occasion are we dressing for?",
-        "Good day {name}! {stylist} at your service, mate. I'm rather excited to put together something brilliant for you! What did you have in mind?",
-        "Welcome {name}! I'm {stylist}, your personal stylist. I'd be delighted to help you look absolutely top-notch. What are you after?",
+        "Hiya {name}! I'm {stylist}, and fashion is my absolute passion. Let's get you looking sharp. What occasion are we dressing for?",
+        "Good day {name}! {stylist} at your service, mate. What did you have in mind?",
+        "Welcome {name}! I'm {stylist}, your personal stylist. I'd be delighted to help. What are you after?",
       ],
       signOffs: [
         "You're going to look absolutely brilliant, {name}! Best of luck, mate!",
@@ -323,8 +324,8 @@ const CULTURAL_GREETINGS_MALE: Record<string, Record<string, { greetings: string
     },
     'American': {
       greetings: [
-        "Hey {name}! I'm {stylist}, your personal stylist. Great to meet you, man! I've checked out your wardrobe and I've got some awesome ideas. What brings you here today?",
-        "What's up {name}! {stylist} here. I'm super stoked to help you with your style! What are we working on today?",
+        "Hey {name}! I'm {stylist}, your personal stylist. Great to meet you, man! What brings you here today?",
+        "What's up {name}! {stylist} here. I'm stoked to help you with your style! What are we working on today?",
         "Hey there {name}! I'm {stylist}, and fashion is my jam. Let's get you looking fresh. What occasion are we dressing for?",
         "Yo {name}! {stylist} here, ready to help you level up your style! What did you have in mind?",
         "Welcome {name}! I'm {stylist}, your personal stylist. Let's get you looking sharp. What are you looking for?",

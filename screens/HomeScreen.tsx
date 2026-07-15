@@ -173,9 +173,7 @@ function StoryReel({
     const now = Date.now();
     const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
 
-    const allUserIds = following.length > 0 
-      ? following 
-      : Object.keys(SAMPLE_USERS).slice(0, 10);
+    const allUserIds = following;
 
     const usersWithStories: StoryUser[] = allUserIds
       .map(userId => {

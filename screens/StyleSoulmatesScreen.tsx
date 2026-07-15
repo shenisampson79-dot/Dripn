@@ -3,7 +3,7 @@
  * Proprietary and confidential.
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import { StyleSheet, View, Pressable, Image, ActivityIndicator } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -14,12 +14,11 @@ import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
 import { Spacing, BorderRadius, StyleThemes, StyleTheme, LuxuryColors, ScreenGradients } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import { useStyleTheme } from "@/hooks/useStyleTheme";
-import { useSocial } from "@/contexts/SocialContext";
-import { getAllDiscoverableUsers, UserSummary } from "@/contexts/SocialContext";
-import { useBodyProfile, BodyProfile, BodyShape, HeightCategory, BuildCategory } from "@/contexts/BodyProfileContext";
+import { useSocial, UserSummary } from "@/contexts/SocialContext";
+import { useBodyProfile } from "@/contexts/BodyProfileContext";
 import type { CommunityStackParamList } from "@/navigation/CommunityStackNavigator";
 import { useTranslations } from "@/contexts/TranslationContext";
+import { apiService } from "@/services/ApiService";
 
 type StyleSoulmatesScreenProps = {
   navigation: NativeStackNavigationProp<CommunityStackParamList, "StyleSoulmates">;
@@ -29,10 +28,9 @@ interface StyleMatch extends UserSummary {
   matchPercentage: number;
   styleMatchPercentage: number;
   bodyMatchPercentage: number;
-  sharedStyles: StyleTheme[];
+  sharedStyles: string[];
   sharedColors: string[];
   compatibilityNote: string;
-  mockBodyProfile?: BodyProfile;
 }
 
 const STYLE_LABELS: Record<StyleTheme, string> = {
@@ -55,139 +53,50 @@ const STYLE_ICONS: Record<StyleTheme, keyof typeof Feather.glyphMap> = {
   edgy: "moon",
 };
 
-const COMPATIBILITY_NOTES = [
-  "Your style vibes match perfectly",
-  "Great fashion chemistry detected",
-  "You share similar aesthetic preferences",
-  "Your wardrobe choices align beautifully",
-  "A fashionable connection awaits",
-  "Style soulmate potential is high",
-  "Your fashion DNA overlaps significantly",
-];
-
-const SHARED_COLORS = [
-  ["Navy", "Black", "White"],
-  ["Beige", "Brown", "Cream"],
-  ["Burgundy", "Gold", "Black"],
-  ["Olive", "Tan", "Rust"],
-  ["Emerald", "White", "Gold"],
-  ["Coral", "Blush", "White"],
-];
-
-const BODY_SHAPES: BodyShape[] = ['hourglass', 'pear', 'apple', 'rectangle', 'inverted-triangle', 'athletic'];
-const HEIGHT_CATEGORIES: HeightCategory[] = ['petite', 'average', 'tall', 'very-tall'];
-const BUILD_CATEGORIES: BuildCategory[] = ['slim', 'average', 'athletic', 'curvy', 'plus'];
-
-const BODY_SHAPE_LABELS: Record<BodyShape, string> = {
-  hourglass: "Hourglass",
-  pear: "Pear",
-  apple: "Apple",
-  rectangle: "Rectangle",
-  "inverted-triangle": "Inverted Triangle",
-  athletic: "Athletic",
-  petite: "Petite",
-  "plus-size": "Plus Size",
-  tall: "Tall",
-  unknown: "Unknown",
-};
-
 export default function StyleSoulmatesScreen({ navigation }: StyleSoulmatesScreenProps) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslations();
-  const { styleTheme } = useStyleTheme();
   const { followUser, sendFriendRequest, isFollowing, isFriend, hasPendingRequestTo } = useSocial();
-  const { hasBodyProfile, getBodyMatchScore, bodyProfile } = useBodyProfile();
+  const { hasBodyProfile } = useBodyProfile();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
-
-  const allUsers = useMemo(() => getAllDiscoverableUsers(), []);
-
-  const generateMockBodyProfile = (index: number): BodyProfile => {
-    const shape = BODY_SHAPES[index % BODY_SHAPES.length];
-    const height = HEIGHT_CATEGORIES[index % HEIGHT_CATEGORIES.length];
-    const build = BUILD_CATEGORIES[index % BUILD_CATEGORIES.length];
-    
-    return {
-      id: `mock_body_${index}`,
-      userId: `user_${index}`,
-      measurements: {
-        bust: 34 + (index % 8),
-        waist: 26 + (index % 10),
-        hips: 36 + (index % 8),
-        height: 60 + (index % 12),
-      },
-      bodyShape: shape,
-      heightCategory: height,
-      buildCategory: build,
-      proportions: {
-        shoulderToHipRatio: 0.9 + (index % 3) * 0.1,
-        waistToHipRatio: 0.7 + (index % 3) * 0.05,
-        bustToWaistRatio: 1.1 + (index % 3) * 0.1,
-        torsoToLegRatio: 0.85 + (index % 3) * 0.05,
-      },
-      fitPreferences: {
-        preferredFit: 'fitted',
-        problemAreas: [],
-        highlightAreas: [],
-      },
-      isManualEntry: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  };
-
-  const styleMatches: StyleMatch[] = useMemo(() => {
-    if (!hasAnalyzed) return [];
-
-    const allStyles: StyleTheme[] = ["luxury", "streetwear", "boho", "sporty", "smart-casual", "business", "edgy"];
-    
-    return allUsers.slice(0, 10).map((user, index) => {
-      const randomStyles = allStyles
-        .sort(() => Math.random() - 0.5)
-        .slice(0, Math.floor(Math.random() * 3) + 1);
-      
-      const includesCurrentTheme = Math.random() > 0.5;
-      const sharedStyles = includesCurrentTheme && !randomStyles.includes(styleTheme)
-        ? [styleTheme, ...randomStyles.slice(0, 2)]
-        : randomStyles;
-
-      const styleMatchPercentage = 65 + Math.floor(Math.random() * 30);
-      const colorsIndex = index % SHARED_COLORS.length;
-      const noteIndex = index % COMPATIBILITY_NOTES.length;
-
-      const mockBodyProfile = generateMockBodyProfile(index);
-      const bodyMatchPercentage = hasBodyProfile 
-        ? getBodyMatchScore(mockBodyProfile) 
-        : 50 + Math.floor(Math.random() * 30);
-
-      const matchPercentage = hasBodyProfile
-        ? Math.round((styleMatchPercentage * 0.6) + (bodyMatchPercentage * 0.4))
-        : styleMatchPercentage;
-
-      return {
-        ...user,
-        matchPercentage,
-        styleMatchPercentage,
-        bodyMatchPercentage,
-        sharedStyles: sharedStyles as StyleTheme[],
-        sharedColors: SHARED_COLORS[colorsIndex],
-        compatibilityNote: COMPATIBILITY_NOTES[noteIndex],
-        mockBodyProfile,
-      };
-    }).sort((a, b) => b.matchPercentage - a.matchPercentage);
-  }, [allUsers, hasAnalyzed, styleTheme, hasBodyProfile, getBodyMatchScore]);
+  const [styleMatches, setStyleMatches] = useState<StyleMatch[]>([]);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
   const getStyleColor = (style: StyleTheme): string => {
     const colors = StyleThemes[style];
     return isDark ? colors.dark.primary : colors.light.primary;
   };
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = useCallback(async () => {
     setIsAnalyzing(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setHasAnalyzed(true);
-    setIsAnalyzing(false);
-  };
+    setAnalyzeError(null);
+    try {
+      const result = await apiService.getStyleSoulmates();
+      const raw = result.soulmates || [];
+      const mapped: StyleMatch[] = raw.map((m) => ({
+        id: m.id,
+        name: m.name,
+        avatar: m.avatar,
+        tier: (m.tier as UserSummary['tier']) || 'styleContributor',
+        matchPercentage: m.matchPercentage,
+        styleMatchPercentage: m.styleMatchPercentage,
+        bodyMatchPercentage: m.bodyMatchPercentage,
+        sharedStyles: m.sharedStyles || [],
+        sharedColors: m.sharedColors || [],
+        compatibilityNote: m.compatibilityNote || 'Style DNA overlap',
+      }));
+      setStyleMatches(mapped);
+      setHasAnalyzed(true);
+    } catch (err) {
+      console.warn('[StyleSoulmates] fetch failed:', err);
+      setStyleMatches([]);
+      setHasAnalyzed(true);
+      setAnalyzeError('Could not load matches right now. Try again in a moment.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, []);
 
   const handleUserPress = (userId: string) => {
     navigation.navigate("UserProfile", { userId });
@@ -269,31 +178,6 @@ export default function StyleSoulmatesScreen({ navigation }: StyleSoulmatesScree
             </View>
           </View>
 
-          {hasBodyProfile && match.mockBodyProfile ? (
-            <View style={styles.bodyMatchSection}>
-              <ThemedText type="caption" style={{ color: theme.tabIconDefault, marginBottom: Spacing.xs }}>
-                Body Compatibility
-              </ThemedText>
-              <View style={styles.bodyMatchTags}>
-                <View style={[styles.bodyTag, { backgroundColor: theme.link + "20" }]}>
-                  <ThemedText type="caption" style={{ color: theme.link }}>
-                    {BODY_SHAPE_LABELS[match.mockBodyProfile.bodyShape]}
-                  </ThemedText>
-                </View>
-                <View style={[styles.bodyTag, { backgroundColor: theme.backgroundSecondary }]}>
-                  <ThemedText type="caption">
-                    {match.mockBodyProfile.heightCategory.charAt(0).toUpperCase() + match.mockBodyProfile.heightCategory.slice(1)}
-                  </ThemedText>
-                </View>
-                <View style={[styles.bodyTag, { backgroundColor: theme.backgroundSecondary }]}>
-                  <ThemedText type="caption">
-                    {match.mockBodyProfile.buildCategory.charAt(0).toUpperCase() + match.mockBodyProfile.buildCategory.slice(1)}
-                  </ThemedText>
-                </View>
-              </View>
-            </View>
-          ) : null}
-
           <ThemedText type="small" style={[styles.compatibilityNote, { color: theme.tabIconDefault }]}>
             {match.compatibilityNote}
           </ThemedText>
@@ -303,17 +187,26 @@ export default function StyleSoulmatesScreen({ navigation }: StyleSoulmatesScree
               Shared Styles
             </ThemedText>
             <View style={styles.sharedStylesRow}>
-              {match.sharedStyles.map((style) => (
-                <View 
-                  key={style} 
-                  style={[styles.styleBadge, { backgroundColor: getStyleColor(style) + "20" }]}
-                >
-                  <Feather name={STYLE_ICONS[style]} size={12} color={getStyleColor(style)} />
-                  <ThemedText type="caption" style={{ color: getStyleColor(style), fontWeight: "500" }}>
-                    {STYLE_LABELS[style]}
-                  </ThemedText>
-                </View>
-              ))}
+              {match.sharedStyles.map((style) => {
+                const themeKey = style as StyleTheme;
+                const known = Boolean(STYLE_LABELS[themeKey]);
+                const color = known ? getStyleColor(themeKey) : theme.link;
+                return (
+                  <View
+                    key={style}
+                    style={[styles.styleBadge, { backgroundColor: color + "20" }]}
+                  >
+                    <Feather
+                      name={known ? STYLE_ICONS[themeKey] : "tag"}
+                      size={12}
+                      color={color}
+                    />
+                    <ThemedText type="caption" style={{ color, fontWeight: "500" }}>
+                      {known ? STYLE_LABELS[themeKey] : style}
+                    </ThemedText>
+                  </View>
+                );
+              })}
             </View>
           </View>
 
@@ -495,13 +388,31 @@ export default function StyleSoulmatesScreen({ navigation }: StyleSoulmatesScree
           <View style={styles.resultsHeader}>
             <ThemedText type="h3">Your Matches</ThemedText>
             <ThemedText type="small" style={{ color: theme.tabIconDefault }}>
-              {styleMatches.length} style soulmates found
+              {styleMatches.length} style soulmate{styleMatches.length === 1 ? '' : 's'} found
             </ThemedText>
           </View>
 
-          <View style={styles.matchesList}>
-            {styleMatches.map(renderMatchCard)}
-          </View>
+          {analyzeError ? (
+            <ThemedText type="body" style={{ color: theme.tabIconDefault, textAlign: 'center' }}>
+              {analyzeError}
+            </ThemedText>
+          ) : null}
+
+          {styleMatches.length === 0 ? (
+            <Card style={styles.analyzeCard}>
+              <Feather name="users" size={40} color={theme.tabIconDefault} style={styles.analyzeIcon} />
+              <ThemedText type="h3" style={styles.analyzeTitle}>
+                No soulmates yet
+              </ThemedText>
+              <ThemedText style={[styles.analyzeDescription, { color: theme.tabIconDefault }]}>
+                Matching uses real member style profiles. As more people complete their Style DNA, soulmates will appear here.
+              </ThemedText>
+            </Card>
+          ) : (
+            <View style={styles.matchesList}>
+              {styleMatches.map(renderMatchCard)}
+            </View>
+          )}
 
           <Pressable
             onPress={handleAnalyze}

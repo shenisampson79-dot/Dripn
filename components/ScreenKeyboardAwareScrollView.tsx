@@ -9,15 +9,25 @@ import { useScreenInsets } from "@/hooks/useScreenInsets";
 import { Spacing } from "@/constants/theme";
 import { ScreenScrollView } from "./ScreenScrollView";
 
+type Props = KeyboardAwareScrollViewProps & {
+  /**
+   * Use when the stack header is opaque (headerTransparent: false).
+   * Scene content is already inset below the header — avoid adding headerHeight again.
+   */
+  opaqueHeader?: boolean;
+};
+
 export function ScreenKeyboardAwareScrollView({
   children,
   contentContainerStyle,
   style,
   keyboardShouldPersistTaps = "handled",
+  opaqueHeader = false,
   ...scrollViewProps
-}: KeyboardAwareScrollViewProps) {
+}: Props) {
   const { theme } = useTheme();
   const { paddingTop, paddingBottom, scrollInsetBottom } = useScreenInsets();
+  const topPad = opaqueHeader ? Spacing.md : paddingTop;
 
   /**
    * KeyboardAwareScrollView isn't compatible with web (it relies on native APIs), so the code falls back to ScreenScrollView on web to avoid runtime errors.
@@ -28,6 +38,7 @@ export function ScreenKeyboardAwareScrollView({
         style={style}
         contentContainerStyle={contentContainerStyle}
         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+        opaqueHeader={opaqueHeader}
         {...scrollViewProps}
       >
         {children}
@@ -44,7 +55,7 @@ export function ScreenKeyboardAwareScrollView({
       ]}
       contentContainerStyle={[
         {
-          paddingTop,
+          paddingTop: topPad,
           paddingBottom,
         },
         styles.contentContainer,

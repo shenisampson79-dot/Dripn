@@ -100,7 +100,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
       setCurrentLanguage(langCode);
       applyRTL(newTranslations.localeInfo.direction === 'rtl');
 
-      // 3) Sync preferredLanguage for stylist chat in the background
+      // 3) Persist app UI language preference to the backend (does not change stylist speak language)
       void TranslationService.persistLanguagePreference(langCode).then((backendSaved) => {
         if (epoch !== languageEpochRef.current) return;
         if (!backendSaved && isAuthenticated) {
@@ -141,18 +141,43 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   }, [currentLanguage]);
 
   const t = useCallback((key: string): string => {
-    const parts = key.split('.');
-    let current: any = translations;
+    const lookup = (dict: any, dottedKey: string): string => {
+      if (!dict || typeof dict !== 'object') return '';
+      // Prefer exact flat key when merge left collisions (e.g. blog leaf vs blog.*)
+      const flat = dict[dottedKey];
+      if (typeof flat === 'string' && flat.trim()) return flat;
 
-    for (const part of parts) {
-      if (current && typeof current === 'object' && part in current) {
-        current = current[part];
-      } else {
-        return '';
+      const parts = dottedKey.split('.');
+      let current: any = dict;
+      for (const part of parts) {
+        if (current && typeof current === 'object' && part in current) {
+          current = current[part];
+        } else {
+          return '';
+        }
+      }
+      return typeof current === 'string' ? current : '';
+    };
+
+    let value = lookup(translations, key);
+    if (!value && key.startsWith('blog.')) {
+      value = lookup(translations, `fashionBlog.${key.slice('blog.'.length)}`);
+    } else if (!value && key.startsWith('fashionBlog.')) {
+      value = lookup(translations, `blog.${key.slice('fashionBlog.'.length)}`);
+    }
+    if (value) return value;
+
+    // Last resort: English defaults so empty chips / badges never ship blank
+    const english = TranslationService.getTranslations();
+    if (english && english !== translations) {
+      value = lookup(english, key);
+      if (!value && key.startsWith('blog.')) {
+        value = lookup(english, `fashionBlog.${key.slice('blog.'.length)}`);
+      } else if (!value && key.startsWith('fashionBlog.')) {
+        value = lookup(english, `blog.${key.slice('fashionBlog.'.length)}`);
       }
     }
-
-    return typeof current === 'string' ? current : '';
+    return value || '';
   }, [translations]);
 
   const isRTL = translations.localeInfo.direction === 'rtl';

@@ -37,7 +37,15 @@ function remaining(have: number): number {
 }
 
 /** User-facing copy when the wardrobe is not yet ready for outfit planning. */
-export function describeOutfitPlanningGap(counts: WardrobeOutfitBasicCounts): string {
+export function describeOutfitPlanningGap(
+  counts: WardrobeOutfitBasicCounts,
+  translate?: (key: string) => string,
+): string {
+  const t = (key: string, fallback: string) => {
+    const value = translate?.(key);
+    return value && value.trim() ? value : fallback;
+  };
+
   const needTops = remaining(counts.tops);
   const needBottoms = remaining(counts.bottoms);
   const needShoes = remaining(counts.shoes);
@@ -45,13 +53,41 @@ export function describeOutfitPlanningGap(counts: WardrobeOutfitBasicCounts): st
   if (needTops === MIN_WARDROBE_PIECES_FOR_OUTFIT_PLANNING &&
       needBottoms === MIN_WARDROBE_PIECES_FOR_OUTFIT_PLANNING &&
       needShoes === MIN_WARDROBE_PIECES_FOR_OUTFIT_PLANNING) {
-    return 'Add at least 3 tops, 3 bottoms, and 3 pairs of shoes — then we can plan full outfits from your wardrobe.';
+    return t(
+      'home.wardrobeNeedBasics',
+      'Add at least 3 tops, 3 bottoms, and 3 pairs of shoes — then we can plan full outfits from your wardrobe.',
+    );
   }
 
   const gaps: string[] = [];
-  if (needTops > 0) gaps.push(`${needTops} more top${needTops === 1 ? '' : 's'}`);
-  if (needBottoms > 0) gaps.push(`${needBottoms} more bottom${needBottoms === 1 ? '' : 's'}`);
-  if (needShoes > 0) gaps.push(`${needShoes} more pair${needShoes === 1 ? '' : 's'} of shoes`);
+  if (needTops > 0) {
+    gaps.push(
+      needTops === 1
+        ? t('home.wardrobeGapOneTop', '1 more top')
+        : t('home.wardrobeGapMoreTops', '{count} more tops').replace('{count}', String(needTops)),
+    );
+  }
+  if (needBottoms > 0) {
+    gaps.push(
+      needBottoms === 1
+        ? t('home.wardrobeGapOneBottom', '1 more bottom')
+        : t('home.wardrobeGapMoreBottoms', '{count} more bottoms').replace('{count}', String(needBottoms)),
+    );
+  }
+  if (needShoes > 0) {
+    gaps.push(
+      needShoes === 1
+        ? t('home.wardrobeGapOneShoe', '1 more pair of shoes')
+        : t('home.wardrobeGapMoreShoes', '{count} more pairs of shoes').replace('{count}', String(needShoes)),
+    );
+  }
 
-  return `You have ${counts.tops} top${counts.tops === 1 ? '' : 's'}, ${counts.bottoms} bottom${counts.bottoms === 1 ? '' : 's'}, and ${counts.shoes} pair${counts.shoes === 1 ? '' : 's'} of shoes. Add ${gaps.join(', ')} to unlock outfit planning.`;
+  return t(
+    'home.wardrobeNeedPartial',
+    'You have {tops} top(s), {bottoms} bottom(s), and {shoes} pair(s) of shoes. Add {gaps} to unlock outfit planning.',
+  )
+    .replace('{tops}', String(counts.tops))
+    .replace('{bottoms}', String(counts.bottoms))
+    .replace('{shoes}', String(counts.shoes))
+    .replace('{gaps}', gaps.join(', '));
 }

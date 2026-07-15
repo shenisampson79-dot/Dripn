@@ -164,16 +164,24 @@ export default function AdminDashboardScreen({ navigation, embedded }: Props) {
   const fetchData = useCallback(async () => {
     try {
       setError(null);
-      const [dashboard, payments, subscriptions, models, feedback] = await Promise.all([
-        apiService.getAdminDashboard(),
-        apiService.getAdminPayments(),
-        apiService.getAdminSubscriptions(),
-        apiService.getAdminModels().catch(() => null),
-        apiService.getAdminFeedback(30).catch(() => null),
-      ]);
-      setDashboardData(dashboard);
-      setPaymentsData(payments);
-      setSubscriptionsData(subscriptions);
+      // Dashboard is required; Stripe/payments can fail independently (missconfigured keys, etc.)
+      const [dashboardResult, paymentsResult, subscriptionsResult, models, feedback] =
+        await Promise.all([
+          apiService.getAdminDashboard(),
+          apiService.getAdminPayments().catch((err) => {
+            console.warn("Admin payments skipped:", err?.message || err);
+            return null;
+          }),
+          apiService.getAdminSubscriptions().catch((err) => {
+            console.warn("Admin subscriptions skipped:", err?.message || err);
+            return null;
+          }),
+          apiService.getAdminModels().catch(() => null),
+          apiService.getAdminFeedback(30).catch(() => null),
+        ]);
+      setDashboardData(dashboardResult);
+      setPaymentsData(paymentsResult);
+      setSubscriptionsData(subscriptionsResult);
       setModelStatus(models);
       setFeedbackData(
         feedback

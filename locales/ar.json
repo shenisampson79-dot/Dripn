@@ -1052,6 +1052,14 @@
   "home.noPostsYet": "لا توجد مشاركات حتى الآن",
   "home.pickAnother": "اختر آخر",
   "home.todaysOutfit": "الزي اليوم",
+  "home.wardrobeGapMoreBottoms": "{count} قطع سفليّة إضافية",
+  "home.wardrobeGapMoreShoes": "{count} أزواج أحذية إضافية",
+  "home.wardrobeGapMoreTops": "{count} قطع علويّة إضافية",
+  "home.wardrobeGapOneBottom": "قطعة سفليّة واحدة إضافية",
+  "home.wardrobeGapOneShoe": "زوج أحذية إضافي واحد",
+  "home.wardrobeGapOneTop": "قطعة علويّة واحدة إضافية",
+  "home.wardrobeNeedBasics": "أضف 3 قطع علويّة و3 قطع سفليّة و3 أزواج أحذية على الأقل — بعدها يمكننا تخطيط إطلالات كاملة من خزانة ملابسك.",
+  "home.wardrobeNeedPartial": "لديك {tops} قطعة علويّة، و{bottoms} قطعة سفليّة، و{shoes} زوج أحذية. أضف {gaps} لفتح تخطيط الإطلالات.",
   "home.wearThis": "ارتدي هذا",
   "home.yourStory": "قصتك",
   "messages.chooseAction": "اختر إجراءً",
@@ -1580,6 +1588,11 @@
   "session.failedSaveNotes": "فشل في حفظ الملاحظات",
   "session.markedCompleted": "تم وضع علامة على الجلسة كمكتملة",
   "session.notesSaved": "تم حفظ الملاحظات بنجاح",
+  "settings": {
+    "usageMeterPct": "{pct}% of monthly allowance used",
+    "usageRembgMonthLine": "Background removals: {month} this month",
+    "usageRembgFreeLine": "Background removals: {used} of {cap}"
+  },
   "settings.account": "حساب",
   "settings.accountActions": "إجراءات الحساب",
   "settings.autoPlayDescription": "تشغيل الصوت تلقائيًا عندما يستجيب المصمم",
@@ -1624,8 +1637,8 @@
   "settings.normal": "طبيعي",
   "settings.notSet": "لم يتم ضبطه",
   "settings.outfitPopupAppearAt": "Appear at",
-  "settings.outfitPopupOccasion": "Occasion",
   "settings.outfitPopupHint": "From this time onward the look stays until you wear it or dismiss it — even if you open the app later. Auto uses Work on weekday mornings and can switch to Date night after 5pm. You can still open today's look manually from the Stylist tab.",
+  "settings.outfitPopupOccasion": "Occasion",
   "settings.partnerWithUs": "شريك معنا",
   "settings.partnerWithUsSubtitle": "المصممون والعلامات التجارية الاستفسارات",
   "settings.plan": "الخطة",
@@ -2552,10 +2565,5 @@
   "wishlist.product": "منتج",
   "wishlist.removeConfirm": "هل تريد إزالة {name} من قائمة أمنياتك؟",
   "wishlist.removeFromWishlist": "إزالة من قائمة الرغبات",
-  "wishlist.trackingPriceDrops": "يتم الآن تتبع {name} بحثًا عن انخفاض الأسعار.",
-  "settings": {
-    "usageMeterPct": "{pct}% of monthly allowance used",
-    "usageRembgMonthLine": "Background removals: {month} this month",
-    "usageRembgFreeLine": "Background removals: {used} of {cap}"
-  }
+  "wishlist.trackingPriceDrops": "يتم الآن تتبع {name} بحثًا عن انخفاض الأسعار."
 }

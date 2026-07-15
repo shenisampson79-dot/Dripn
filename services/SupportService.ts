@@ -184,16 +184,17 @@ class SupportService {
           content: m.content,
         }));
 
-      // Julia is a stylist personality (support mode) — same /api/chat/resilient stack as Ruby/Max/Ace/Ivy
-      const result = await apiService.sendStylistMessage({
-        stylistId: 'julia',
-        messages: chatHistory,
-        userMessage,
+      // Julia support uses the dedicated support chat endpoint (not stylist resilient chat)
+      const result = await apiService.sendSupportMessage({
+        message: userMessage,
+        chatHistory,
+        stylistName: 'Julia',
+        stylistPersonality: 'warm, practical in-app support specialist for Dripn',
       });
 
-      const response = (result?.content || '').trim();
+      const response = (result?.response || '').trim();
       const looksLikeOutage =
-        Boolean(result?.error) ||
+        Boolean(result?.fallback) ||
         /trouble connecting|try again or email support/i.test(response);
 
       if (!response || looksLikeOutage) {

@@ -825,20 +825,85 @@ class DFYService {
     };
   }
 
+  /**
+   * Ensure a lite lookbook exists — prefer server generation, fall back to empty scaffold.
+   * Kept name createMockLiteDelivery for call-site compatibility.
+   */
   async createMockLiteDelivery(userId: string, stylistId: StylistId): Promise<DFYLiteDelivery> {
+    try {
+      if (apiService.isConfigured()) {
+        const result = await apiService.generateDFYDelivery({ tier: 'lite', stylistId });
+        if (result.success && result.delivery?.outfits?.length) {
+          const delivery: DFYLiteDelivery = {
+            ...result.delivery,
+            userId,
+            tier: 'lite',
+            outfits: result.delivery.outfits.map((o) => ({
+              ...o,
+              occasion: (o.occasion as DFYOccasion) || 'casual',
+              stylistId: (o.stylistId as StylistId) || stylistId,
+              items: (o.items || []).map((item) => ({
+                id: String(item.id),
+                name: item.name,
+                imageUri: item.imageUri || undefined,
+                category: item.category,
+                color: item.color,
+              })),
+            })),
+          };
+          await this.saveDFYDelivery(delivery);
+          await this.activateDFYAccess(userId, 'lite');
+          return delivery;
+        }
+
+        if (result.success && result.outfits?.length) {
+          const delivery: DFYLiteDelivery = {
+            userId,
+            tier: 'lite',
+            startDate: new Date().toISOString(),
+            expiryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            totalDays: 14,
+            currentDay: 1,
+            completed: false,
+            nudgesShown: [],
+            outfits: result.outfits.map((o, i) => ({
+              id: o.id || `outfit-${i + 1}`,
+              dayNumber: o.dayNumber ?? o.day ?? i + 1,
+              title: o.title || (i === 0 ? "Today's Look" : `Day ${i + 1} Look`),
+              description: 'A curated outfit for your 14-day plan',
+              items: (o.items || []).map((item) => ({
+                id: String(item.id),
+                name: item.name,
+                imageUri: item.imageUri || item.imageUrl || item.processedImageUrl || undefined,
+                category: item.category,
+                color: item.color,
+              })),
+              occasion: (o.occasion as DFYOccasion) || 'casual',
+              stylistNote: o.stylistNote,
+              stylistId: (o.stylistId as StylistId) || stylistId,
+              userReaction: null,
+              saved: false,
+            })),
+          };
+          await this.saveDFYDelivery(delivery);
+          await this.activateDFYAccess(userId, 'lite');
+          return delivery;
+        }
+      }
+    } catch (error) {
+      console.warn('[DFY] Server lookbook generation failed, using local scaffold:', error);
+    }
+
     const startDate = new Date().toISOString();
     const expiryDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-
-    // Note: Stylist analysis is generated server-side and will be populated via API
-    // Do not use hardcoded dummy comments to avoid misleading users about AI analysis
-    const mockOutfits: DFYOutfit[] = Array.from({ length: 14 }, (_, i) => ({
+    const scaffoldOutfits: DFYOutfit[] = Array.from({ length: 14 }, (_, i) => ({
       id: `outfit-${i + 1}`,
       dayNumber: i + 1,
       title: i === 0 ? "Today's Look" : `Day ${i + 1} Look`,
-      description: `A curated outfit rotated for your 14-day plan`,
+      description: 'Your stylist will fill this day once generation completes',
       items: [],
-      occasion: 'work' as DFYOccasion,
-      stylistNote: undefined, // Real AI analysis will be generated server-side
+      occasion: 'casual' as DFYOccasion,
+      stylistNote: undefined,
       stylistId,
       userReaction: null,
       saved: false,
@@ -850,7 +915,7 @@ class DFYService {
       startDate,
       expiryDate,
       totalDays: 14,
-      outfits: mockOutfits,
+      outfits: scaffoldOutfits,
       currentDay: 1,
       completed: false,
       nudgesShown: [],
@@ -858,7 +923,6 @@ class DFYService {
 
     await this.saveDFYDelivery(delivery);
     await this.activateDFYAccess(userId, 'lite');
-
     return delivery;
   }
 

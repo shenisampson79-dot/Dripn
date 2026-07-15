@@ -1052,6 +1052,14 @@
   "home.noPostsYet": "还没有帖子",
   "home.pickAnother": "选择另一个",
   "home.todaysOutfit": "今天的服装",
+  "home.wardrobeGapMoreBottoms": "再 {count} 件下装",
+  "home.wardrobeGapMoreShoes": "再 {count} 双鞋子",
+  "home.wardrobeGapMoreTops": "再 {count} 件上装",
+  "home.wardrobeGapOneBottom": "再 1 件下装",
+  "home.wardrobeGapOneShoe": "再 1 双鞋子",
+  "home.wardrobeGapOneTop": "再 1 件上装",
+  "home.wardrobeNeedBasics": "请至少添加 3 件上装、3 件下装和 3 双鞋子——然后我们就能根据你的衣橱规划完整穿搭。",
+  "home.wardrobeNeedPartial": "你有 {tops} 件上装、{bottoms} 件下装和 {shoes} 双鞋子。再添加 {gaps} 即可解锁穿搭规划。",
   "home.wearThis": "穿这个",
   "home.yourStory": "你的故事",
   "messages.chooseAction": "选择一个动作",
@@ -1580,6 +1588,11 @@
   "session.failedSaveNotes": "保存笔记失败",
   "session.markedCompleted": "会话标记为已完成",
   "session.notesSaved": "笔记保存成功",
+  "settings": {
+    "usageMeterPct": "{pct}% of monthly allowance used",
+    "usageRembgMonthLine": "Background removals: {month} this month",
+    "usageRembgFreeLine": "Background removals: {used} of {cap}"
+  },
   "settings.account": "帐户",
   "settings.accountActions": "账户操作",
   "settings.autoPlayDescription": "当造型师回应时自动播放语音",
@@ -1624,8 +1637,8 @@
   "settings.normal": "普通的",
   "settings.notSet": "未设置",
   "settings.outfitPopupAppearAt": "Appear at",
-  "settings.outfitPopupOccasion": "Occasion",
   "settings.outfitPopupHint": "From this time onward the look stays until you wear it or dismiss it — even if you open the app later. Auto uses Work on weekday mornings and can switch to Date night after 5pm. You can still open today's look manually from the Stylist tab.",
+  "settings.outfitPopupOccasion": "Occasion",
   "settings.partnerWithUs": "与我们合作",
   "settings.partnerWithUsSubtitle": "造型师和品牌查询",
   "settings.plan": "套餐",
@@ -2552,10 +2565,5 @@
   "wishlist.product": "产品",
   "wishlist.removeConfirm": "从您的愿望清单中删除{name}？",
   "wishlist.removeFromWishlist": "从愿望清单中删除",
-  "wishlist.trackingPriceDrops": "现在正在跟踪{name}的降价情况。",
-  "settings": {
-    "usageMeterPct": "{pct}% of monthly allowance used",
-    "usageRembgMonthLine": "Background removals: {month} this month",
-    "usageRembgFreeLine": "Background removals: {used} of {cap}"
-  }
+  "wishlist.trackingPriceDrops": "现在正在跟踪{name}的降价情况。"
 }

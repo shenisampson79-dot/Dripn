@@ -291,7 +291,9 @@ export function getLocalizedCountryName(
   return normalized;
 }
 
-/** Filter countries by English or localized name. */
+/** Filter countries by English or localized name.
+ * Starts-with matches rank above mid-word contains matches, then A→Z.
+ */
 export function filterCountriesBySearch(
   countries: readonly string[],
   search: string,
@@ -300,11 +302,26 @@ export function filterCountriesBySearch(
 ): string[] {
   const q = search.trim().toLowerCase();
   if (!q) return [...countries];
-  return countries.filter((english) => {
-    if (english.toLowerCase().includes(q)) return true;
+
+  const scored: Array<{ english: string; startsWith: boolean; sortKey: string }> = [];
+  for (const english of countries) {
+    const en = english.toLowerCase();
     const localized = getLocalizedCountryName(english, language, t).toLowerCase();
-    return localized.includes(q);
+    const startsWith = en.startsWith(q) || localized.startsWith(q);
+    const contains = en.includes(q) || localized.includes(q);
+    if (!contains) continue;
+    scored.push({
+      english,
+      startsWith,
+      sortKey: localized.startsWith(q) ? localized : en.startsWith(q) ? en : localized.includes(q) ? localized : en,
+    });
+  }
+
+  scored.sort((a, b) => {
+    if (a.startsWith !== b.startsWith) return a.startsWith ? -1 : 1;
+    return a.sortKey.localeCompare(b.sortKey);
   });
+  return scored.map((row) => row.english);
 }
 
 /** All ISO codes we ship country translation keys for. */

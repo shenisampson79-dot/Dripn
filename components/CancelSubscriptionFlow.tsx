@@ -20,7 +20,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { normalizeSubscriptionTier, getBillingPlanDisplayName } from "@/utils/subscriptionTier";
-import { isDevTestingModeEnabled } from "@/utils/devTesting";
+import { shouldApplyTestingUnlock } from "@/utils/devTesting";
 import {
   openAppleManageSubscriptions,
   shouldManageSubscriptionViaApple,
@@ -327,7 +327,7 @@ export function CancelSubscriptionFlow({ navigation, onComplete }: CancelSubscri
     const targetTier = normalizeSubscriptionTier(plan);
     setIsProcessing(true);
     try {
-      const devTesting = __DEV__ && (await isDevTestingModeEnabled());
+      const devTesting = await shouldApplyTestingUnlock(user);
       const currentRank = TIER_RANK[normalizedTier] ?? 0;
       const targetRank = TIER_RANK[targetTier] ?? 0;
 

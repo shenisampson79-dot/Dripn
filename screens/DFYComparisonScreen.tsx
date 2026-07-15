@@ -14,7 +14,6 @@ import { useRoute } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import * as WebBrowser from "expo-web-browser";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { 
   useSharedValue, 
@@ -35,9 +34,14 @@ import { apiService } from "@/services/ApiService";
 import { getDfyBenefitForSubscription } from "@/utils/dfyEntitlements";
 import { normalizeSubscriptionTier } from "@/utils/subscriptionTier";
 import {
+  finalizeDfyPurchase,
+  isApplePurchaseCancelled,
+  runAppleDfyCheckout,
+  runStripeDfyCheckout,
+} from "@/utils/dfyCheckout";
+import {
   appleIAPService,
   serializeDfyCustomerInfoForSync,
-  type IAPDFYTier,
 } from "@/services/AppleIAPService";
 import { shouldUseAppleIAP } from "@/utils/platformPayments";
 import { currencyService } from "@/services/CurrencyService";
@@ -62,56 +66,6 @@ const LUXURY_COLORS = {
 type DFYComparisonScreenProps = {
   navigation: NativeStackNavigationProp<any>;
 };
-
-const DFY_PRODUCT_IDS: Record<DFYTier, string> = {
-  lite: 'outfit_setup',
-  core: 'core_wardrobe',
-};
-
-type DfyCheckoutOutcome = 'success' | 'cancelled' | 'failed';
-
-function getBrowserReturnUrl(result: WebBrowser.WebBrowserResult): string {
-  return 'url' in result ? String((result as { url?: string }).url || '') : '';
-}
-
-function isDfyCancelUrl(url: string): boolean {
-  return url.includes('cancel') || url.includes('payment-cancelled');
-}
-
-function isDfySuccessUrl(url: string): boolean {
-  return url.includes('success') || url.includes('payment-success');
-}
-
-async function resolveDfyCheckoutOutcome(
-  result: WebBrowser.WebBrowserResult,
-  sessionId: string,
-  checkoutEmail: string,
-): Promise<DfyCheckoutOutcome> {
-  const returnUrl = getBrowserReturnUrl(result);
-
-  if (isDfyCancelUrl(returnUrl)) {
-    return 'cancelled';
-  }
-
-  const urlSessionId = returnUrl.match(/session_id=([^&]+)/)?.[1];
-  const verifySessionId = urlSessionId || sessionId;
-
-  try {
-    const verification = await apiService.verifyDFYPayment(verifySessionId, checkoutEmail);
-    if (verification.paid) {
-      return 'success';
-    }
-    if (isDfySuccessUrl(returnUrl)) {
-      return 'failed';
-    }
-  } catch {
-    if (isDfySuccessUrl(returnUrl)) {
-      return 'failed';
-    }
-  }
-
-  return 'cancelled';
-}
 
 export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenProps) {
   const route = useRoute();
@@ -147,6 +101,9 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
   const liteScale = useSharedValue(1);
   const coreScale = useSharedValue(1);
 
+  const isAutoCheckout = Boolean(routeParams?.autoCheckout && routeParams?.selectedTier);
+  const autoCheckoutStarted = useRef(false);
+
   // Bundled subscribers use DFYStart — unless they're buying an extra paid setup (Plan B).
   useEffect(() => {
     if (isPaidAddOn) return;
@@ -156,6 +113,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
   }, [includedBenefit, isPaidAddOn, navigation]);
 
   useEffect(() => {
+    if (isAutoCheckout) return;
     const loadPrices = async () => {
       if (useAppleIAP && user?.id) {
         try {
@@ -189,28 +147,164 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     };
 
     loadPrices().catch(() => {});
-  }, [useAppleIAP, user?.id]);
+  }, [isAutoCheckout, useAppleIAP, user?.id]);
+
+  const leaveAfterAutoCheckout = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Subscription' as any);
+    }
+  };
+
+  const showDfyPaymentSuccess = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (selectedTier === 'lite') {
+      Alert.alert(
+        t('dfy.comparison.paymentSuccessTitle'),
+        t('dfy.comparison.paymentSuccessLiteMessage'),
+        [
+          {
+            text: t('dfy.comparison.getPersonalStylist'),
+            onPress: () => {
+              if (isAutoCheckout) leaveAfterAutoCheckout();
+              navigation.navigate('Subscription' as any, { highlightPlan: 'personal_stylist' });
+            },
+          },
+          {
+            text: t('dfy.comparison.continueSetup'),
+            onPress: () => {
+              if (isAutoCheckout) {
+                navigation.replace('DFYStylePlan');
+              } else {
+                navigation.navigate('DFYStylePlan');
+              }
+            },
+            style: 'cancel',
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        t('dfy.comparison.paymentSuccessTitle'),
+        t('dfy.comparison.paymentSuccessCoreMessage'),
+        [{
+          text: t('common.continue'),
+          onPress: () => {
+            if (isAutoCheckout) {
+              navigation.replace('DFYUpload', { type: 'core' });
+            } else {
+              navigation.navigate('DFYUpload', { type: 'core' });
+            }
+          },
+        }]
+      );
+    }
+  };
+
+  const completeDfyPurchaseSuccess = async () => {
+    await finalizeDfyPurchase(selectedTier);
+    refreshSubscriptionFromBackend().catch(() => {});
+    showDfyPaymentSuccess();
+  };
+
+  const startAppleCheckout = async () => {
+    if (!user?.id) {
+      Alert.alert(t('dfy.comparison.signInRequiredTitle'), t('dfy.comparison.signInRequiredApple'));
+      if (isAutoCheckout) leaveAfterAutoCheckout();
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await runAppleDfyCheckout({ userId: user.id, tier: selectedTier });
+      await completeDfyPurchaseSuccess();
+    } catch (error: unknown) {
+      if (isApplePurchaseCancelled(error)) {
+        Alert.alert(
+          t('dfy.comparison.purchaseCancelledTitle'),
+          t('dfy.comparison.purchaseCancelledMessage'),
+          [{ text: t('common.done') }]
+        );
+        if (isAutoCheckout) leaveAfterAutoCheckout();
+        return;
+      }
+      console.error('DFY Apple IAP error:', error);
+      Alert.alert(
+        t('dfy.comparison.paymentErrorTitle'),
+        error instanceof Error ? error.message : t('dfy.comparison.applePurchaseFailed'),
+        [{ text: t('common.done') }]
+      );
+      if (isAutoCheckout) leaveAfterAutoCheckout();
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const startCheckout = async (checkoutEmail: string) => {
+    setIsProcessing(true);
+
+    try {
+      const outcome = await runStripeDfyCheckout({
+        email: checkoutEmail,
+        tier: selectedTier,
+        language: currentLanguage,
+      });
+
+      if (outcome === 'success') {
+        await completeDfyPurchaseSuccess();
+      } else if (outcome === 'failed') {
+        Alert.alert(
+          t('dfy.comparison.paymentNotCompletedTitle'),
+          t('dfy.comparison.paymentNotCompletedMessage'),
+          [{ text: t('common.done') }]
+        );
+        if (isAutoCheckout) leaveAfterAutoCheckout();
+      } else {
+        Alert.alert(
+          t('dfy.comparison.checkoutCancelledTitle'),
+          t('dfy.comparison.checkoutCancelledMessage'),
+          [{ text: t('common.done') }]
+        );
+        if (isAutoCheckout) leaveAfterAutoCheckout();
+      }
+    } catch (error: any) {
+      console.error('DFY checkout error:', error);
+      Alert.alert(
+        t('dfy.comparison.paymentErrorTitle'),
+        error.message || t('dfy.comparison.checkoutStartFailed'),
+        [{ text: t('common.done') }]
+      );
+      if (isAutoCheckout) leaveAfterAutoCheckout();
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   // Auto-start checkout for paid add-on or legacy free-user flow
   useEffect(() => {
+    if (!isAutoCheckout) return;
     if (!isPaidAddOn && includedBenefit !== 'none') return;
-    if (routeParams?.autoCheckout && routeParams?.selectedTier) {
-      const timer = setTimeout(() => {
-        if (useAppleIAP) {
-          if (user?.id) {
-            startAppleCheckout();
-          }
-          return;
-        }
-        if (user?.email) {
-          startCheckout(user.email);
+    if (autoCheckoutStarted.current) return;
+    autoCheckoutStarted.current = true;
+
+    const timer = setTimeout(() => {
+      if (useAppleIAP) {
+        if (user?.id) {
+          startAppleCheckout();
         } else {
-          setShowEmailModal(true);
+          leaveAfterAutoCheckout();
         }
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [routeParams?.autoCheckout, includedBenefit, isPaidAddOn, useAppleIAP, user?.id, user?.email]);
+        return;
+      }
+      if (user?.email) {
+        startCheckout(user.email);
+      } else {
+        setShowEmailModal(true);
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [isAutoCheckout, includedBenefit, isPaidAddOn, useAppleIAP, user?.id, user?.email]);
 
   const handleTierSelect = (tierId: DFYTier) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -282,78 +376,6 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
     startCheckout(trimmedEmail);
   };
 
-  const showDfyPaymentSuccess = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    if (selectedTier === 'lite') {
-      Alert.alert(
-        t('dfy.comparison.paymentSuccessTitle'),
-        t('dfy.comparison.paymentSuccessLiteMessage'),
-        [
-          {
-            text: t('dfy.comparison.getPersonalStylist'),
-            onPress: () => navigation.navigate('Subscription' as any, { highlightPlan: 'personal_stylist' }),
-          },
-          {
-            text: t('dfy.comparison.continueSetup'),
-            onPress: () => navigation.navigate('DFYStylePlan'),
-            style: 'cancel',
-          },
-        ]
-      );
-    } else {
-      Alert.alert(
-        t('dfy.comparison.paymentSuccessTitle'),
-        t('dfy.comparison.paymentSuccessCoreMessage'),
-        [{ text: t('common.continue'), onPress: () => navigation.navigate('DFYUpload', { type: 'core' }) }]
-      );
-    }
-  };
-
-  const completeDfyPurchaseSuccess = async () => {
-    try {
-      await apiService.generateDFYDelivery({ tier: selectedTier, stylistId: 'ruby' });
-    } catch (e) {
-      console.log('DFY delivery generation will continue async', e);
-    }
-    refreshSubscriptionFromBackend().catch(() => {});
-    showDfyPaymentSuccess();
-  };
-
-  const startAppleCheckout = async () => {
-    if (!user?.id) {
-      Alert.alert(t('dfy.comparison.signInRequiredTitle'), t('dfy.comparison.signInRequiredApple'));
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      await appleIAPService.configure(user.id);
-      const customerInfo = await appleIAPService.purchaseDFY(selectedTier as IAPDFYTier);
-      const syncPayload = serializeDfyCustomerInfoForSync(customerInfo);
-      if (!syncPayload.tier) {
-        throw new Error(t('dfy.comparison.purchaseVerifyFailed'));
-      }
-      await apiService.syncAppleDFYPurchase(syncPayload);
-      await completeDfyPurchaseSuccess();
-    } catch (error: unknown) {
-      if (error && typeof error === 'object' && 'cancelled' in error && (error as { cancelled?: boolean }).cancelled) {
-        Alert.alert(
-          t('dfy.comparison.purchaseCancelledTitle'),
-          t('dfy.comparison.purchaseCancelledMessage'),
-          [{ text: t('common.done') }]
-        );
-        return;
-      }
-      console.error('DFY Apple IAP error:', error);
-      Alert.alert(
-        t('dfy.comparison.paymentErrorTitle'),
-        error instanceof Error ? error.message : t('dfy.comparison.applePurchaseFailed')
-      );
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const handleRestoreDfyPurchases = async () => {
     if (!user?.id) {
       Alert.alert(t('dfy.comparison.signInRequiredTitle'), t('dfy.comparison.signInRequiredRestore'));
@@ -380,45 +402,6 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
       Alert.alert(
         t('dfy.comparison.restoreFailedTitle'),
         error instanceof Error ? error.message : t('dfy.comparison.restoreFailedMessage')
-      );
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const startCheckout = async (checkoutEmail: string) => {
-    setIsProcessing(true);
-    
-    try {
-      const response = await apiService.createDFYCheckoutSession(checkoutEmail, selectedTier, currentLanguage);
-      
-      if (!response.checkoutUrl || !response.sessionId) {
-        throw new Error('No checkout URL received');
-      }
-
-      const result = await WebBrowser.openBrowserAsync(response.checkoutUrl);
-      const outcome = await resolveDfyCheckoutOutcome(result, response.sessionId, checkoutEmail);
-
-      if (outcome === 'success') {
-        await completeDfyPurchaseSuccess();
-      } else if (outcome === 'failed') {
-        Alert.alert(
-          t('dfy.comparison.paymentNotCompletedTitle'),
-          t('dfy.comparison.paymentNotCompletedMessage'),
-          [{ text: t('common.done') }]
-        );
-      } else {
-        Alert.alert(
-          t('dfy.comparison.checkoutCancelledTitle'),
-          t('dfy.comparison.checkoutCancelledMessage'),
-          [{ text: t('common.done') }]
-        );
-      }
-    } catch (error: any) {
-      console.error('DFY checkout error:', error);
-      Alert.alert(
-        t('dfy.comparison.paymentErrorTitle'),
-        error.message || t('dfy.comparison.checkoutStartFailed')
       );
     } finally {
       setIsProcessing(false);
@@ -555,6 +538,14 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
         locations={[0, 0.5, 1]}
         style={StyleSheet.absoluteFill}
       />
+      {isAutoCheckout ? (
+        <View style={[styles.autoCheckoutLoading, { paddingTop: insets.top + Spacing.xl }]}>
+          <ActivityIndicator size="large" color={LUXURY_COLORS.gold} />
+          <ThemedText type="body" style={styles.autoCheckoutText}>
+            {t('dfy.comparison.openingCheckout') || 'Opening checkout…'}
+          </ThemedText>
+        </View>
+      ) : (
       <ScreenScrollView style={{ backgroundColor: 'transparent' }}>
         <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
           <Pressable
@@ -647,6 +638,7 @@ export default function DFYComparisonScreen({ navigation }: DFYComparisonScreenP
           ) : null}
         </View>
       </ScreenScrollView>
+      )}
 
       <Modal visible={showEmailModal} transparent animationType="fade">
         <Pressable 
@@ -757,6 +749,17 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
     marginBottom: Spacing.xl,
+  },
+  autoCheckoutLoading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+  },
+  autoCheckoutText: {
+    color: 'rgba(255,255,255,0.75)',
+    textAlign: 'center',
   },
   tiersContainer: {
     gap: Spacing.lg,

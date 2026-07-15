@@ -6,61 +6,103 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius, LuxuryColors } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { useVoiceSettings, SUPPORTED_LANGUAGES } from "@/contexts/VoiceSettingsContext";
+import { STYLIST_LANGUAGES } from "@/services/PersonalStylistService";
+import {
+  resolveStylistSpeakLanguage,
+  stylistLanguageCodeToName,
+  stylistLanguageNameToCode,
+} from "@/utils/stylistLanguage";
+
+type LanguagePickerMode = "app" | "stylist";
 
 type LanguagePickerModalProps = {
   visible: boolean;
   onClose: () => void;
+  /** `app` = UI chrome only. `stylist` = chat + voice speak language only. */
+  mode?: LanguagePickerMode;
 };
 
 /**
- * Shared language picker used by Settings and early auth/onboarding screens.
- * Updates UI language via TranslationContext and syncs preferredLanguage for AI/voice.
+ * Shared language picker for Welcome / Settings.
+ * App mode never changes stylist speak language; stylist mode never changes UI language.
  */
-export function LanguagePickerModal({ visible, onClose }: LanguagePickerModalProps) {
+export function LanguagePickerModal({ visible, onClose, mode = "app" }: LanguagePickerModalProps) {
   const { theme, isDark } = useTheme();
   const { t, setLanguage, currentLanguage, availableLanguages, isLoading } = useTranslations();
-  const { updateSettings: updateVoiceSettings } = useVoiceSettings();
+  const { settings: voiceSettings, updateSettings: updateVoiceSettings } = useVoiceSettings();
+  const { user, updateProfile } = useAuth();
   const [selectingCode, setSelectingCode] = useState<string | null>(null);
 
-  const languageOptions = useMemo(
-    () =>
-      availableLanguages.length > 0
-        ? availableLanguages
-        : SUPPORTED_LANGUAGES.map((lang) => ({
-            ...lang,
-            direction: (lang.code === "ar" ? "rtl" : "ltr") as "ltr" | "rtl",
-          })),
-    [availableLanguages]
-  );
+  const isStylistMode = mode === "stylist";
+
+  const stylistSpeakCode = resolveStylistSpeakLanguage({
+    stylistLanguageName: user?.stylistPreferences?.language,
+    preferredLanguageCode: voiceSettings.preferredLanguage,
+    uiLanguageCode: currentLanguage,
+  });
+
+  const languageOptions = useMemo(() => {
+    if (isStylistMode) {
+      return STYLIST_LANGUAGES.map((name) => {
+        const code = stylistLanguageNameToCode(name);
+        const supported = SUPPORTED_LANGUAGES.find((l) => l.code === code);
+        return {
+          code,
+          name,
+          nativeName: supported?.nativeName || name,
+          direction: (code === "ar" ? "rtl" : "ltr") as "ltr" | "rtl",
+        };
+      });
+    }
+    return availableLanguages.length > 0
+      ? availableLanguages
+      : SUPPORTED_LANGUAGES.map((lang) => ({
+          ...lang,
+          direction: (lang.code === "ar" ? "rtl" : "ltr") as "ltr" | "rtl",
+        }));
+  }, [availableLanguages, isStylistMode]);
+
+  const selectedCode = isStylistMode ? stylistSpeakCode : currentLanguage;
 
   const handleSelect = async (langCode: string) => {
     if (selectingCode) return;
-    if (langCode === currentLanguage) {
+    if (langCode === selectedCode) {
       onClose();
       return;
     }
 
     setSelectingCode(langCode);
     try {
-      // UI chrome first — local bundles apply immediately
-      await setLanguage(langCode);
-      try {
+      if (isStylistMode) {
+        const languageName = stylistLanguageCodeToName(langCode);
         await updateVoiceSettings({ preferredLanguage: langCode });
-      } catch (voiceError) {
-        // Voice preference sync must not undo a successful UI language change
-        console.warn("Failed to sync preferredLanguage to voice settings:", voiceError);
+        if (user) {
+          await updateProfile({
+            stylistPreferences: {
+              ...user.stylistPreferences,
+              language: languageName,
+            },
+          });
+        }
+      } else {
+        // App UI only — do not overwrite stylist chat/voice language
+        await setLanguage(langCode);
       }
       onClose();
     } catch {
-      // Error toast is shown by TranslationContext
+      // Error toast is shown by TranslationContext for app mode
     } finally {
       setSelectingCode(null);
     }
   };
 
-  const showInitialLoading = isLoading && languageOptions.length === 0;
+  const showInitialLoading = !isStylistMode && isLoading && languageOptions.length === 0;
+  const title = isStylistMode
+    ? t("settings.selectStylistLanguage") || "Select stylist language"
+    : t("settings.selectLanguage") || "Language / Idioma / Langue";
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -82,7 +124,7 @@ export function LanguagePickerModal({ visible, onClose }: LanguagePickerModalPro
           >
             <View style={styles.modalHeader}>
               <ThemedText type="h3" style={styles.modalTitle}>
-                {t("settings.selectLanguage") || "Language / Idioma / Langue"}
+                {title}
               </ThemedText>
               <Pressable
                 onPress={onClose}
@@ -105,7 +147,7 @@ export function LanguagePickerModal({ visible, onClose }: LanguagePickerModalPro
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
               {languageOptions.map((lang) => {
                 const isSelecting = selectingCode === lang.code;
-                const isSelected = currentLanguage === lang.code;
+                const isSelected = selectedCode === lang.code;
                 return (
                   <Pressable
                     key={lang.code}
@@ -173,11 +215,11 @@ export function LanguageEntryButton({
         { opacity: pressed ? 0.75 : 1 },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={t("settings.language") || "Language"}
+      accessibilityLabel={t("settings.appLanguage") || t("settings.language") || "App language"}
     >
       <Feather name="globe" size={16} color={color} />
       <ThemedText type="small" style={[styles.entryButtonText, { color }]}>
-        {t("settings.language") || "Language"} · {label}
+        {t("settings.appLanguage") || t("settings.language") || "Language"} · {label}
       </ThemedText>
     </Pressable>
   );

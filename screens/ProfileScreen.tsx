@@ -25,6 +25,7 @@ import { useStyleProfile } from "@/contexts/StyleProfileContext";
 import { useWardrobe } from "@/contexts/WardrobeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { getStyleThemeLabel } from "@/utils/styleThemeLabels";
+import { isStaffUser } from "@/utils/staffAccess";
 import {
   getLocalizedBodyShapeLabel,
   getLocalizedColorSeasonLabel,
@@ -417,10 +418,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
     navigation.navigate("AdminDashboard");
   };
 
-  const isAdmin = user?.email?.endsWith('@dripn.io') || 
-                  user?.email?.endsWith('@dripn.dev') ||
-                  user?.email === 'sheni_sampson@yahoo.co.uk' ||
-                  user?.role === 'admin';
+  const isStaff = isStaffUser(user);
 
   const getSubscriptionBadgeGradient = (): readonly [string, string] => {
     const tier = normalizeSubscriptionTier(user?.subscriptionTier);
@@ -588,7 +586,7 @@ export default function ProfileScreen({ navigation, onOpenPortal }: ProfileScree
           </Pressable>
         ) : null}
 
-        {isAdmin ? (
+        {isStaff ? (
           <LinearGradient
             colors={[LUXURY_COLORS.midnight, '#1a1a2e']}
             start={{ x: 0, y: 0 }}

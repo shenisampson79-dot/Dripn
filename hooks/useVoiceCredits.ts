@@ -1,946 +1,536 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-
+import { useState, useEffect, useCallback, useMemo, createContext, useContext, createElement, type ReactNode } from 'react';
 import { Platform, Alert } from 'react-native';
-
 import * as WebBrowser from 'expo-web-browser';
-
 import { apiService } from '@/services/ApiService';
-
 import { getBillingPlanDisplayName, normalizeSubscriptionTier } from '@/utils/subscriptionTier';
-
 import {
-
   appleIAPService,
-
   serializeVoiceCustomerInfoForSync,
-
   type VoiceCreditPackId,
-
   type VoiceCreditPriceInfo,
-
 } from '@/services/AppleIAPService';
-
 import { shouldUseAppleIAP } from '@/utils/platformPayments';
-
 import { useAuth } from '@/contexts/AuthContext';
-
 import { useTranslations } from '@/contexts/TranslationContext';
-
 import { formatVoicePricePence, VOICE_PACK_PRICE_PENCE, formatWeekendExpiry, sortVoiceCreditPacks } from '@/utils/voiceCreditPacks';
-
-
-
 export type SoftCapWarning = 'usage_high' | 'approaching_limit' | null;
-
-
-
 interface VoiceCreditsInternal {
-
   remaining: number;
-
   monthlyAllowance: number;
-
   monthlyHardCap?: number;
-
   usedThisMonth: number;
-
   monthlyRemaining: number;
-
   purchasedCredits: number;
-
   isUnlimited: boolean;
-
   weekendUnlimitedActive?: boolean;
-
   weekendUnlimitedExpiresAt?: string | null;
-
   softCapWarning?: SoftCapWarning;
-
 }
-
-
-
 export interface VoiceCreditPackage {
-
   id: string;
-
   credits: number;
-
   name?: string;
-
   description: string;
-
   priceLabel: string;
-
   priceGBP?: number;
-
   discountedPrice?: number;
-
   popular?: boolean;
-
   weekendUnlimited?: boolean;
-
 }
-
-
-
 export type StylistId = 'ruby' | 'max' | 'ace' | 'ivy';
-
-
-
 interface StylistNudge {
-
   stylistId: StylistId;
-
   stylistName: string;
-
   message: string;
-
   style: 'warm' | 'direct' | 'brief' | 'logical';
-
 }
-
-
-
 const STYLIST_NUDGES: Record<StylistId, StylistNudge> = {
-
   ruby: {
-
     stylistId: 'ruby',
-
     stylistName: 'Ruby',
-
     message: "Need more styling advice? Weekend Unlimited gives you 48 hours of voice — or grab a credit pack anytime.",
-
     style: 'warm',
-
   },
-
   max: {
-
     stylistId: 'max',
-
     stylistName: 'Max',
-
     message: "You've used your voice replies. Weekend Unlimited or credit packs add more instantly — text chat stays unlimited.",
-
     style: 'direct',
-
   },
-
   ace: {
-
     stylistId: 'ace',
-
     stylistName: 'Ace',
-
     message: "Cap hit. Weekend Unlimited or a credit pack fixes it. Text still unlimited.",
-
     style: 'brief',
-
   },
-
   ivy: {
-
     stylistId: 'ivy',
-
     stylistName: 'Ivy',
-
     message: "Need more styling advice? Weekend Unlimited unlocks 48 hours of voice — I'm still here for unlimited text.",
-
     style: 'logical',
-
   },
-
 };
-
-
-
 const USAGE_NUDGES: Record<NonNullable<SoftCapWarning>, string> = {
-
   usage_high: "Need more styling advice? You're making great use of voice — Weekend Unlimited or credit packs are ready when you need them.",
-
   approaching_limit: "You've used your included voice replies — grace replies still available, or try Weekend Unlimited for 48 hours of voice.",
-
 };
-
-
-
 function formatPence(pricePence?: number): string {
-
   return formatVoicePricePence(pricePence);
-
 }
-
-
-
 function resolvePackagePriceLabel(pkg: {
-
   id?: string;
-
   priceLabel?: string;
-
   priceGBP?: number;
-
   discountedPrice?: number;
-
   chargePence?: number;
-
 }): string {
-
   const chargePence = pkg.chargePence ?? pkg.discountedPrice ?? pkg.priceGBP;
-
   if (chargePence != null) return formatPence(chargePence);
-
   if (pkg.id && VOICE_PACK_PRICE_PENCE[pkg.id] != null) {
-
     return formatPence(VOICE_PACK_PRICE_PENCE[pkg.id]);
-
   }
-
   return pkg.priceLabel || '—';
-
 }
-
-
-
 function getBrowserReturnUrl(result: WebBrowser.WebBrowserResult): string {
-
   return 'url' in result ? String((result as { url?: string }).url || '') : '';
-
 }
-
-
-
 function isVoiceCancelUrl(url: string): boolean {
-
   return url.includes('cancel') || url.includes('voice-credits/cancel');
-
 }
-
-
-
 function isVoiceSuccessUrl(url: string): boolean {
-
   return url.includes('success') || url.includes('voice-credits/success');
-
 }
-
-
-
 function throwCancelledPurchase(): never {
-
   const cancelled = new Error('Purchase cancelled');
-
   (cancelled as Error & { cancelled?: boolean }).cancelled = true;
-
   throw cancelled;
-
 }
-
-
-
 export function isPurchaseCancelledError(error: unknown): boolean {
-
   return !!(error && typeof error === 'object' && 'cancelled' in error && (error as { cancelled?: boolean }).cancelled);
-
 }
-
-
-
 function isTechnicalErrorMessage(message: string): boolean {
-
   return /undefined|property|cannot read|TypeError|ReferenceError|SyntaxError|stack trace|\.js:\d|\.ts:\d|HTTP\s*\d{3}|status\s*(code)?\s*:?\s*\d{3}/i.test(message);
-
 }
-
-
-
 function isNetworkErrorMessage(message: string): boolean {
-
   return /network|internet|offline|connection|timeout|failed to fetch|ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND/i.test(message);
-
 }
-
-
-
 export function getPurchaseErrorMessage(error: unknown): string {
-
   if (isPurchaseCancelledError(error)) return '';
-
   const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
-
   if (message === 'Sign in required') return '';
-
   if (isNetworkErrorMessage(message)) {
-
     return 'Connection problem. Check your internet and try again.';
-
   }
-
   if (isTechnicalErrorMessage(message)) {
-
     return "We couldn't complete your purchase. Please try again.";
-
   }
-
   if (message.includes('Voice purchase could not be verified')) {
-
     return message;
-
   }
-
   return "We couldn't complete your purchase. Please try again.";
-
 }
-
-
-
 export function formatVoiceUsageLabel(credits: Pick<VoiceCreditsInternal, 'usedThisMonth' | 'monthlyAllowance'> | null): string {
-
   if (!credits || credits.monthlyAllowance <= 0) return '';
-
   const used = credits.usedThisMonth ?? 0;
-
   const allowance = credits.monthlyAllowance;
-
   const noun = allowance === 1 ? 'voice reply' : 'voice replies';
-
   return `${used}/${allowance} ${noun}`;
-
 }
-
-
-
 export function getVoiceUsageNudge(
-
   credits: Pick<VoiceCreditsInternal, 'softCapWarning' | 'remaining' | 'monthlyAllowance'> | null,
-
 ): string | null {
-
   if (!credits) return null;
-
   if (credits.remaining <= 0 && credits.monthlyAllowance > 0) {
-
     return "Need more styling advice? Weekend Unlimited gives 48 hours of voice — or add a credit pack right away.";
-
   }
-
   if (credits.softCapWarning && USAGE_NUDGES[credits.softCapWarning]) {
-
     return USAGE_NUDGES[credits.softCapWarning];
-
   }
-
   return null;
+}
+export type VoiceAccessReason =
+  | 'has_credits'
+  | 'weekend_unlimited'
+  | 'purchased_credits'
+  | 'no_credits'
+  | 'no_allowance'
+  | 'upgrade_required'
+  | 'error'
+  | 'loading'
+  | 'unknown';
 
+/** Human-readable why voice is blocked — never says "used up" unless they truly exhausted allowance. */
+export function getVoiceAccessDenialMessage(options: {
+  reason?: string | null;
+  hasMonthlyAllowance: boolean;
+  usedThisMonth: number;
+  monthlyAllowance: number;
+  balanceError?: boolean;
+}): string {
+  if (options.balanceError) {
+    return "Couldn't load your spoken-reply balance. Check your connection and try again.";
+  }
+  if (options.reason === 'no_allowance' || options.reason === 'upgrade_required') {
+    return "Spoken replies aren't included on your plan yet. Add a voice pack, or switch to Chat for unlimited text.";
+  }
+  if (options.hasMonthlyAllowance && options.usedThisMonth > 0) {
+    return "You've used this month's spoken replies. Add a top-up voice pack or switch to Chat for unlimited text.";
+  }
+  if (options.hasMonthlyAllowance && options.monthlyAllowance > 0 && options.usedThisMonth === 0) {
+    return "No spoken replies available right now. Pull to refresh, or add a voice pack.";
+  }
+  return "Spoken replies aren't available right now. Add a voice pack or switch to Chat for unlimited text.";
 }
 
+export function VoiceCreditsProvider({ children }: { children: ReactNode }) {
+  const value = useVoiceCreditsState();
+  // createElement (not JSX) so this file can stay .ts for Metro
+  return createElement(VoiceCreditsContext.Provider, { value }, children);
+}
 
-
-export function useVoiceCredits() {
-
+function useVoiceCreditsState() {
   const { user } = useAuth();
-
   const { currentLanguage } = useTranslations();
-
   const [credits, setCredits] = useState<VoiceCreditsInternal | null>(null);
-
   const [tier, setTier] = useState<string>('free');
-
   const [tierName, setTierName] = useState<string>('Free');
-
   const [isLoading, setIsLoading] = useState(true);
-
+  const [balanceError, setBalanceError] = useState(false);
+  const [accessReason, setAccessReason] = useState<VoiceAccessReason>('loading');
   const [isPurchasing, setIsPurchasing] = useState(false);
-
   const [packages, setPackages] = useState<VoiceCreditPackage[]>([]);
-
   const [applePrices, setApplePrices] = useState<VoiceCreditPriceInfo[]>([]);
-
   const useAppleIAP = shouldUseAppleIAP();
-
-
-
   const getTierDisplayName = (rawTier: string): string => {
-
     return getBillingPlanDisplayName(rawTier);
-
   };
-
-
-
   const fetchBalance = useCallback(async () => {
-
     try {
-
       setIsLoading(true);
+      setBalanceError(false);
 
-      const response = await apiService.getVoiceCreditsBalance();
-
-      if (response.success) {
-
-        setCredits({
-
-          ...response.credits,
-
-          isUnlimited: !!response.credits.isUnlimited || !!response.credits.weekendUnlimitedActive,
-
-        });
-
-        const normalized = normalizeSubscriptionTier(response.tier);
-
-        setTier(normalized);
-
-        setTierName(response.tierName || getTierDisplayName(response.tier));
-
+      // Wait for auth token — early calls before login storage hydrates used to 401 and look "broken"
+      let token = await apiService.getToken();
+      if (!token && user?.id) {
+        await new Promise((r) => setTimeout(r, 400));
+        token = await apiService.refreshToken();
+      }
+      if (!token) {
+        setBalanceError(true);
+        setAccessReason('error');
+        return;
       }
 
-    } catch (error) {
-
-      console.log('[useVoiceCredits] Balance fetch error:', error);
-
-      setCredits({
-
-        remaining: 0,
-
-        monthlyAllowance: 0,
-
-        usedThisMonth: 0,
-
-        monthlyRemaining: 0,
-
-        purchasedCredits: 0,
-
-        isUnlimited: false,
-
-      });
-
-    } finally {
-
-      setIsLoading(false);
-
-    }
-
-  }, []);
-
-
-
-  const fetchPackages = useCallback(async () => {
-
-    try {
-
-      const response = await apiService.getVoiceCreditPackages();
-
-      const mapped = (response.packages || []).map((pkg) => ({
-
-        id: pkg.id,
-
-        credits: pkg.credits,
-
-        name: pkg.name,
-
-        description: pkg.description || pkg.name || (pkg.weekendUnlimited ? 'Weekend Unlimited' : `${pkg.credits} voice credits`),
-
-        priceLabel: resolvePackagePriceLabel(pkg),
-
-        priceGBP: pkg.priceGBP,
-
-        discountedPrice: pkg.discountedPrice ?? pkg.priceGBP,
-
-        popular: pkg.popular ?? pkg.id === 'pro',
-
-        weekendUnlimited: !!pkg.weekendUnlimited,
-
-      }));
-
-      setPackages(sortVoiceCreditPacks(mapped));
-
-    } catch (error) {
-
-      console.log('[useVoiceCredits] Packages fetch error:', error);
-
-    }
-
-  }, []);
-
-
-
-  const fetchApplePrices = useCallback(async () => {
-
-    if (!useAppleIAP || !appleIAPService.isAvailable()) {
-
-      setApplePrices([]);
-
-      return;
-
-    }
-
-    try {
-
-      if (user?.id) {
-
-        await appleIAPService.configure(user.id);
-
-      }
-
-      const prices = await appleIAPService.getVoiceCreditPrices();
-
-      setApplePrices(prices);
-
-    } catch (error) {
-
-      console.log('[useVoiceCredits] Apple price fetch error:', error);
-
-    }
-
-  }, [useAppleIAP, user?.id]);
-
-
-
-  useEffect(() => {
-
-    fetchBalance();
-
-    fetchPackages();
-
-  }, [fetchBalance, fetchPackages]);
-
-
-
-  useEffect(() => {
-
-    fetchApplePrices();
-
-  }, [fetchApplePrices]);
-
-
-
-  const getPackagePriceLabel = useCallback((packageId: string, fallback: string): string => {
-
-    const applePrice = applePrices.find((p) => p.packId === packageId);
-
-    return applePrice?.priceString || fallback;
-
-  }, [applePrices]);
-
-
-
-  const updateBalance = useCallback((voiceCredits: {
-
-    remaining?: string | number;
-
-    monthlyAllowance?: number;
-
-    monthlyHardCap?: number;
-
-    usedThisMonth?: number;
-
-    monthlyRemaining?: number;
-
-    purchasedCredits?: number;
-
-    isUnlimited?: boolean;
-
-    weekendUnlimitedActive?: boolean;
-
-    weekendUnlimitedExpiresAt?: string | null;
-
-    softCapWarning?: SoftCapWarning;
-
-  }) => {
-
-    const { remaining, isUnlimited, ...rest } = voiceCredits;
-
-    const normalized: Partial<VoiceCreditsInternal> = {
-
-      ...rest,
-
-      isUnlimited: !!isUnlimited || !!rest.weekendUnlimitedActive,
-
-      ...(remaining !== undefined
-
-        ? { remaining: typeof remaining === 'string' ? Number(remaining) : remaining }
-
-        : {}),
-
-    };
-
-    setCredits(prev => prev ? { ...prev, ...normalized } : null);
-
-  }, []);
-
-
-
-  const refreshBalance = useCallback(() => {
-
-    return fetchBalance();
-
-  }, [fetchBalance]);
-
-
-
-  const purchaseVoiceCredits = useCallback(async (packageId: string) => {
-
-    if (useAppleIAP) {
-
-      if (!user?.id) {
-
-        Alert.alert('Sign in required', 'Please sign in to purchase voice credits with the App Store.');
-
-        throw new Error('Sign in required');
-
-      }
-
-
-
-      setIsPurchasing(true);
-
-      try {
-
-        await appleIAPService.configure(user.id);
-
-        const customerInfo = await appleIAPService.purchaseVoiceCredits(packageId as VoiceCreditPackId);
-
-        const syncPayload = serializeVoiceCustomerInfoForSync(customerInfo, packageId as VoiceCreditPackId);
-
-
-
-        if (!syncPayload.originalTransactionId) {
-
-          throw new Error('Voice purchase could not be verified. Please contact support if credits are missing.');
-
-        }
-
-
-
-        const result = await apiService.syncAppleVoicePurchase(syncPayload);
-
-        if (result.newBalance) {
-
-          updateBalance({
-
-            remaining: result.newBalance.remaining,
-
-            purchasedCredits: result.newBalance.purchasedCredits,
-
-            weekendUnlimitedActive: result.newBalance.weekendUnlimitedActive,
-
-            weekendUnlimitedExpiresAt: result.newBalance.weekendUnlimitedExpiresAt,
-
-            isUnlimited: result.weekendUnlimited || result.newBalance.weekendUnlimitedActive,
-
-          });
-
-        }
-
-        await refreshBalance();
-
-        return result;
-
-      } catch (error: unknown) {
-
-        if (isPurchaseCancelledError(error)) {
-
-          throw error;
-
-        }
-
-        console.error('[useVoiceCredits] Apple IAP error:', error);
-
-        throw error;
-
-      } finally {
-
-        setIsPurchasing(false);
-
-      }
-
-    }
-
-
-
-    setIsPurchasing(true);
-
-    try {
-
-      const response = await apiService.purchaseVoiceCredits(packageId, currentLanguage);
-
-      if (!response.checkoutUrl) {
-
-        throw new Error('Could not start checkout');
-
-      }
-
-
-
-      if (Platform.OS === 'web') {
-
-        window.location.href = response.checkoutUrl;
-
-        return response;
-
-      }
-
-
-
-      const browserResult = await WebBrowser.openBrowserAsync(response.checkoutUrl);
-
-      const returnUrl = getBrowserReturnUrl(browserResult);
-
-
-
-      if (isVoiceCancelUrl(returnUrl)) {
-
-        throwCancelledPurchase();
-
-      }
-
-
-
-      if ((browserResult.type === 'dismiss' || browserResult.type === 'cancel') && !isVoiceSuccessUrl(returnUrl)) {
-
-        throwCancelledPurchase();
-
-      }
-
-
-
-      const sessionId = returnUrl.match(/session_id=([^&]+)/)?.[1];
-
-
-
-      if (sessionId) {
-
+      let lastError: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
         try {
-
-          const confirm = await apiService.confirmVoiceCreditsPurchase(sessionId);
-
-          if (confirm.newBalance) {
-
-            updateBalance({
-
-              remaining: confirm.newBalance.remaining,
-
-              purchasedCredits: confirm.newBalance.purchasedCredits,
-
-              weekendUnlimitedActive: confirm.newBalance.weekendUnlimitedActive,
-
-              weekendUnlimitedExpiresAt: confirm.newBalance.weekendUnlimitedExpiresAt,
-
-              isUnlimited: confirm.weekendUnlimited || confirm.newBalance.weekendUnlimitedActive,
-
+          const response = await apiService.getVoiceCreditsBalance();
+          if (response?.success && response.credits) {
+            const remaining = Number(response.credits.remaining ?? 0);
+            setCredits({
+              remaining: Number.isFinite(remaining) ? remaining : 0,
+              monthlyAllowance: Number(response.credits.monthlyAllowance ?? 0),
+              monthlyHardCap: response.credits.monthlyHardCap,
+              usedThisMonth: Number(response.credits.usedThisMonth ?? 0),
+              monthlyRemaining: Number(response.credits.monthlyRemaining ?? 0),
+              purchasedCredits: Number(response.credits.purchasedCredits ?? 0),
+              isUnlimited: !!response.credits.isUnlimited || !!response.credits.weekendUnlimitedActive,
+              weekendUnlimitedActive: !!response.credits.weekendUnlimitedActive,
+              weekendUnlimitedExpiresAt: response.credits.weekendUnlimitedExpiresAt ?? null,
+              softCapWarning: response.credits.softCapWarning ?? null,
             });
-
+            const normalized = normalizeSubscriptionTier(response.tier);
+            setTier(normalized);
+            setTierName(response.tierName || getTierDisplayName(response.tier));
+            const reason = (response.reason || (response.canUse ? 'has_credits' : 'no_credits')) as VoiceAccessReason;
+            setAccessReason(reason);
+            setBalanceError(false);
+            return;
           }
-
-
-
-          await refreshBalance();
-
-          return { ...response, ...confirm };
-
+          lastError = new Error('Voice balance response missing credits');
         } catch (error) {
-
-          if (error instanceof Error && error.message === 'Payment not completed') {
-
-            throwCancelledPurchase();
-
+          lastError = error;
+          console.log(`[useVoiceCredits] Balance fetch attempt ${attempt + 1} failed:`, error);
+          if (attempt < 2) {
+            await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
           }
-
-          throw error;
-
         }
-
       }
 
-
-
-      throwCancelledPurchase();
-
-    } catch (error) {
-
-      if (isPurchaseCancelledError(error)) {
-
-        await refreshBalance().catch(() => {});
-
-        throw error;
-
-      }
-
-      console.error('[useVoiceCredits] Purchase error:', error);
-
-      throw error;
-
+      console.log('[useVoiceCredits] Balance fetch failed after retries:', lastError);
+      setBalanceError(true);
+      setAccessReason('error');
     } finally {
-
-      setIsPurchasing(false);
-
+      setIsLoading(false);
     }
-
-  }, [refreshBalance, updateBalance, useAppleIAP, user?.id, currentLanguage]);
-
-
-
-  const upgradeToPersonalStylist = useCallback(async () => {
-
+  }, [user?.id]);
+  const fetchPackages = useCallback(async () => {
     try {
-
-      setIsPurchasing(true);
-
-      const response = await apiService.createCheckoutSession('monthly', currentLanguage);
-
-      if (response.checkoutUrl) {
-
-        if (Platform.OS === 'web') {
-
-          window.location.href = response.checkoutUrl;
-
-        } else {
-
-          await WebBrowser.openBrowserAsync(response.checkoutUrl);
-
-          refreshBalance();
-
-        }
-
-      }
-
+      const response = await apiService.getVoiceCreditPackages();
+      const mapped = (response.packages || []).map((pkg) => ({
+        id: pkg.id,
+        credits: pkg.credits,
+        name: pkg.name,
+        description: pkg.description || pkg.name || (pkg.weekendUnlimited ? 'Weekend Unlimited' : `${pkg.credits} voice credits`),
+        priceLabel: resolvePackagePriceLabel(pkg),
+        priceGBP: pkg.priceGBP,
+        discountedPrice: pkg.discountedPrice ?? pkg.priceGBP,
+        popular: pkg.popular ?? pkg.id === 'pro',
+        weekendUnlimited: !!pkg.weekendUnlimited,
+      }));
+      setPackages(sortVoiceCreditPacks(mapped));
     } catch (error) {
-
-      console.error('[useVoiceCredits] Upgrade error:', error);
-
-      throw error;
-
-    } finally {
-
-      setIsPurchasing(false);
-
+      console.log('[useVoiceCredits] Packages fetch error:', error);
     }
-
-  }, [refreshBalance, currentLanguage]);
-
-
-
-  const getNudgeForStylist = useCallback((stylistId: StylistId): StylistNudge => {
-
-    return STYLIST_NUDGES[stylistId] || STYLIST_NUDGES.ruby;
-
   }, []);
-
-
-
+  const fetchApplePrices = useCallback(async () => {
+    if (!useAppleIAP || !appleIAPService.isAvailable()) {
+      setApplePrices([]);
+      return;
+    }
+    try {
+      if (user?.id) {
+        await appleIAPService.configure(user.id);
+      }
+      const prices = await appleIAPService.getVoiceCreditPrices();
+      setApplePrices(prices);
+    } catch (error) {
+      console.log('[useVoiceCredits] Apple price fetch error:', error);
+    }
+  }, [useAppleIAP, user?.id]);
+  useEffect(() => {
+    fetchBalance();
+    fetchPackages();
+  }, [fetchBalance, fetchPackages, user?.id]);
+  useEffect(() => {
+    fetchApplePrices();
+  }, [fetchApplePrices]);
+  const getPackagePriceLabel = useCallback((packageId: string, fallback: string): string => {
+    const applePrice = applePrices.find((p) => p.packId === packageId);
+    return applePrice?.priceString || fallback;
+  }, [applePrices]);
+  const updateBalance = useCallback((voiceCredits: {
+    remaining?: string | number;
+    monthlyAllowance?: number;
+    monthlyHardCap?: number;
+    usedThisMonth?: number;
+    monthlyRemaining?: number;
+    purchasedCredits?: number;
+    isUnlimited?: boolean;
+    weekendUnlimitedActive?: boolean;
+    weekendUnlimitedExpiresAt?: string | null;
+    softCapWarning?: SoftCapWarning;
+  }) => {
+    const { remaining, isUnlimited, ...rest } = voiceCredits;
+    const normalized: Partial<VoiceCreditsInternal> = {
+      ...rest,
+      isUnlimited: !!isUnlimited || !!rest.weekendUnlimitedActive,
+      ...(remaining !== undefined
+        ? { remaining: typeof remaining === 'string' ? Number(remaining) : remaining }
+        : {}),
+    };
+    setCredits(prev => prev ? { ...prev, ...normalized } : {
+      remaining: Number(normalized.remaining ?? 0),
+      monthlyAllowance: Number(normalized.monthlyAllowance ?? 0),
+      usedThisMonth: Number(normalized.usedThisMonth ?? 0),
+      monthlyRemaining: Number(normalized.monthlyRemaining ?? 0),
+      purchasedCredits: Number(normalized.purchasedCredits ?? 0),
+      isUnlimited: !!normalized.isUnlimited,
+      ...normalized,
+    } as VoiceCreditsInternal);
+    setBalanceError(false);
+  }, []);
+  const refreshBalance = useCallback(() => {
+    return fetchBalance();
+  }, [fetchBalance]);
+  const purchaseVoiceCredits = useCallback(async (packageId: string) => {
+    if (useAppleIAP) {
+      if (!user?.id) {
+        Alert.alert('Sign in required', 'Please sign in to purchase voice credits with the App Store.');
+        throw new Error('Sign in required');
+      }
+      setIsPurchasing(true);
+      try {
+        await appleIAPService.configure(user.id);
+        const customerInfo = await appleIAPService.purchaseVoiceCredits(packageId as VoiceCreditPackId);
+        const syncPayload = serializeVoiceCustomerInfoForSync(customerInfo, packageId as VoiceCreditPackId);
+        if (!syncPayload.originalTransactionId) {
+          throw new Error('Voice purchase could not be verified. Please contact support if credits are missing.');
+        }
+        const result = await apiService.syncAppleVoicePurchase(syncPayload);
+        if (result.newBalance) {
+          updateBalance({
+            remaining: result.newBalance.remaining,
+            purchasedCredits: result.newBalance.purchasedCredits,
+            weekendUnlimitedActive: result.newBalance.weekendUnlimitedActive,
+            weekendUnlimitedExpiresAt: result.newBalance.weekendUnlimitedExpiresAt,
+            isUnlimited: result.weekendUnlimited || result.newBalance.weekendUnlimitedActive,
+          });
+        }
+        await refreshBalance();
+        return result;
+      } catch (error: unknown) {
+        if (isPurchaseCancelledError(error)) {
+          throw error;
+        }
+        console.error('[useVoiceCredits] Apple IAP error:', error);
+        throw error;
+      } finally {
+        setIsPurchasing(false);
+      }
+    }
+    setIsPurchasing(true);
+    try {
+      const response = await apiService.purchaseVoiceCredits(packageId, currentLanguage);
+      if (!response.checkoutUrl) {
+        throw new Error('Could not start checkout');
+      }
+      if (Platform.OS === 'web') {
+        window.location.href = response.checkoutUrl;
+        return response;
+      }
+      const browserResult = await WebBrowser.openBrowserAsync(response.checkoutUrl);
+      const returnUrl = getBrowserReturnUrl(browserResult);
+      if (isVoiceCancelUrl(returnUrl)) {
+        throwCancelledPurchase();
+      }
+      if ((browserResult.type === 'dismiss' || browserResult.type === 'cancel') && !isVoiceSuccessUrl(returnUrl)) {
+        throwCancelledPurchase();
+      }
+      const sessionId = returnUrl.match(/session_id=([^&]+)/)?.[1];
+      if (sessionId) {
+        try {
+          const confirm = await apiService.confirmVoiceCreditsPurchase(sessionId);
+          if (confirm.newBalance) {
+            updateBalance({
+              remaining: confirm.newBalance.remaining,
+              purchasedCredits: confirm.newBalance.purchasedCredits,
+              weekendUnlimitedActive: confirm.newBalance.weekendUnlimitedActive,
+              weekendUnlimitedExpiresAt: confirm.newBalance.weekendUnlimitedExpiresAt,
+              isUnlimited: confirm.weekendUnlimited || confirm.newBalance.weekendUnlimitedActive,
+            });
+          }
+          await refreshBalance();
+          return { ...response, ...confirm };
+        } catch (error) {
+          if (error instanceof Error && error.message === 'Payment not completed') {
+            throwCancelledPurchase();
+          }
+          throw error;
+        }
+      }
+      throwCancelledPurchase();
+    } catch (error) {
+      if (isPurchaseCancelledError(error)) {
+        await refreshBalance().catch(() => {});
+        throw error;
+      }
+      console.error('[useVoiceCredits] Purchase error:', error);
+      throw error;
+    } finally {
+      setIsPurchasing(false);
+    }
+  }, [refreshBalance, updateBalance, useAppleIAP, user?.id, currentLanguage]);
+  const upgradeToPersonalStylist = useCallback(async () => {
+    try {
+      setIsPurchasing(true);
+      const response = await apiService.createCheckoutSession('monthly', currentLanguage);
+      if (response.checkoutUrl) {
+        if (Platform.OS === 'web') {
+          window.location.href = response.checkoutUrl;
+        } else {
+          await WebBrowser.openBrowserAsync(response.checkoutUrl);
+          refreshBalance();
+        }
+      }
+    } catch (error) {
+      console.error('[useVoiceCredits] Upgrade error:', error);
+      throw error;
+    } finally {
+      setIsPurchasing(false);
+    }
+  }, [refreshBalance, currentLanguage]);
+  const getNudgeForStylist = useCallback((stylistId: StylistId): StylistNudge => {
+    return STYLIST_NUDGES[stylistId] || STYLIST_NUDGES.ruby;
+  }, []);
   const normalizedTier = normalizeSubscriptionTier(tier);
-
   const remainingCredits = credits?.remaining ?? 0;
-
   const weekendUnlimitedActive = !!credits?.weekendUnlimitedActive;
-
   const weekendUnlimitedExpiresAt = credits?.weekendUnlimitedExpiresAt ?? null;
-
   const weekendExpiryLabel = weekendUnlimitedActive
     ? formatWeekendExpiry(weekendUnlimitedExpiresAt)
     : '';
-
   const hasMonthlyAllowance = (credits?.monthlyAllowance ?? 0) > 0;
-
   const isStylistUnlimited = normalizedTier === 'stylist_unlimited';
-
   const hasHighAllowance = isStylistUnlimited;
-
   const usageLabel = formatVoiceUsageLabel(credits);
-
   const usageNudge = getVoiceUsageNudge(credits);
-
+  const hasCredits = !balanceError && (weekendUnlimitedActive || remainingCredits > 0);
+  const denialMessage = getVoiceAccessDenialMessage({
+    reason: accessReason,
+    hasMonthlyAllowance,
+    usedThisMonth: credits?.usedThisMonth ?? 0,
+    monthlyAllowance: credits?.monthlyAllowance ?? 0,
+    balanceError,
+  });
   const shouldShowBuyPacks = useMemo(() => {
-
-    if (weekendUnlimitedActive) return false;
-
+    if (balanceError || weekendUnlimitedActive) return false;
     if (!hasMonthlyAllowance && normalizedTier === 'free') return remainingCredits <= 0;
-
     if (!hasMonthlyAllowance) return false;
-
     if (remainingCredits <= 0) return true;
-
     if (credits?.softCapWarning === 'usage_high' || credits?.softCapWarning === 'approaching_limit') return true;
-
     return false;
-
-  }, [credits?.softCapWarning, hasMonthlyAllowance, normalizedTier, remainingCredits, weekendUnlimitedActive]);
-
+  }, [balanceError, credits?.softCapWarning, hasMonthlyAllowance, normalizedTier, remainingCredits, weekendUnlimitedActive]);
   const displayPackages = useMemo(
     () => sortVoiceCreditPacks(packages),
     [packages],
   );
-
-
-
   return {
-
     tier: normalizedTier,
-
     tierName,
-
     credits,
-
     remainingCredits,
-
     packages: displayPackages,
-
     applePrices,
-
     useAppleIAP,
-
     isLoading,
-
-    hasCredits: weekendUnlimitedActive || remainingCredits > 0,
-
+    balanceError,
+    accessReason,
+    denialMessage,
+    hasCredits,
     isUnlimited: weekendUnlimitedActive,
-
     weekendUnlimitedActive,
-
     weekendUnlimitedExpiresAt,
-
     weekendExpiryLabel,
-
     hasHighAllowance,
-
     isStylistUnlimited,
-
     isPersonalStylist: normalizedTier === 'personal_stylist',
-
     isStyleChat: normalizedTier === 'personal_stylist',
-
     isFreeUser: normalizedTier === 'free',
-
     hasMonthlyAllowance,
-
     usageLabel,
-
     usageNudge,
-
     shouldShowBuyPacks,
-
     isPurchasing,
-
     getPackagePriceLabel,
-
     purchaseVoiceCredits,
-
     updateBalance,
-
     refreshBalance,
-
     upgradeToPersonalStylist,
-
     getNudgeForStylist,
-
   };
-
 }
 
+type VoiceCreditsContextValue = ReturnType<typeof useVoiceCreditsState>;
 
+const VoiceCreditsContext = createContext<VoiceCreditsContextValue | null>(null);
+
+export function useVoiceCredits() {
+  const ctx = useContext(VoiceCreditsContext);
+  if (!ctx) {
+    throw new Error('useVoiceCredits must be used within a VoiceCreditsProvider');
+  }
+  return ctx;
+}
 
 export { STYLIST_NUDGES };
-
-

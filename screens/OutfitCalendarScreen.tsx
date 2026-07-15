@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useContext } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { HeaderHeightContext } from '@react-navigation/elements';
 import { Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -147,6 +148,8 @@ function StackedOutfitPreview({ outfitItems }: StackedOutfitPreviewProps) {
 
 export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScreenProps) {
   const { theme, isDark } = useTheme();
+  const headerHeightCtx = useContext(HeaderHeightContext);
+  const hasStackHeader = typeof headerHeightCtx === 'number' && headerHeightCtx > 0;
   const { t, translations } = useTranslations();
   const { user } = useAuth();
   const { limits } = useSubscription();
@@ -657,14 +660,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
 
   if (!limits.canAccessOutfitCalendar) {
     return (
-      <ScreenKeyboardAwareScrollView>
-        <View style={styles.header}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={theme.text} />
-          </Pressable>
-          <ThemedText type="h2">{translations.stylistHub?.outfitCalendar || 'Outfit Calendar'}</ThemedText>
-          <View style={{ width: 40 }} />
-        </View>
+      <ScreenKeyboardAwareScrollView opaqueHeader={hasStackHeader}>
         <LimitHitUpgradePrompt
           variant="card"
           title={t('wardrobe.outfitCalendarIsPartOfStylistUnlimited') || "Outfit calendar is part of Stylist Unlimited"}
@@ -677,15 +673,7 @@ export default function OutfitCalendarScreen({ navigation }: OutfitCalendarScree
   }
 
   return (
-    <ScreenKeyboardAwareScrollView>
-      <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={theme.text} />
-        </Pressable>
-        <ThemedText type="h2">{translations.stylistHub?.outfitCalendar || 'Outfit Calendar'}</ThemedText>
-        <View style={{ width: 40 }} />
-      </View>
-
+    <ScreenKeyboardAwareScrollView opaqueHeader={hasStackHeader}>
       <Card elevation={1} style={styles.calendarCard}>
         <View style={styles.calendarHeader}>
           <Pressable onPress={goToPreviousMonth} style={styles.monthNavButton}>

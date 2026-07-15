@@ -1052,6 +1052,14 @@
   "home.noPostsYet": "Henüz gönderi yok",
   "home.pickAnother": "Başka birini seç",
   "home.todaysOutfit": "Bugünün kıyafeti",
+  "home.wardrobeGapMoreBottoms": "{count} alt daha",
+  "home.wardrobeGapMoreShoes": "{count} çift ayakkabı daha",
+  "home.wardrobeGapMoreTops": "{count} üst daha",
+  "home.wardrobeGapOneBottom": "1 alt daha",
+  "home.wardrobeGapOneShoe": "1 çift ayakkabı daha",
+  "home.wardrobeGapOneTop": "1 üst daha",
+  "home.wardrobeNeedBasics": "En az 3 üst, 3 alt ve 3 çift ayakkabı ekleyin — ardından gardırobunuzdan tam kombinler planlayabiliriz.",
+  "home.wardrobeNeedPartial": "{tops} üst, {bottoms} alt ve {shoes} çift ayakkabınız var. Kombin planlamasını açmak için {gaps} ekleyin.",
   "home.wearThis": "Bunu giy",
   "home.yourStory": "Hikayeniz",
   "messages.chooseAction": "Bir eylem seçin",
@@ -1580,6 +1588,11 @@
   "session.failedSaveNotes": "Notlar kaydedilemedi",
   "session.markedCompleted": "Oturum tamamlandı olarak işaretlendi",
   "session.notesSaved": "Notlar başarıyla kaydedildi",
+  "settings": {
+    "usageMeterPct": "{pct}% of monthly allowance used",
+    "usageRembgMonthLine": "Background removals: {month} this month",
+    "usageRembgFreeLine": "Background removals: {used} of {cap}"
+  },
   "settings.account": "Hesap",
   "settings.accountActions": "Hesap İşlemleri",
   "settings.autoPlayDescription": "Stilist yanıt verdiğinde otomatik olarak ses çal",
@@ -1624,8 +1637,8 @@
   "settings.normal": "Normal",
   "settings.notSet": "Ayarlanmadı",
   "settings.outfitPopupAppearAt": "Appear at",
-  "settings.outfitPopupOccasion": "Occasion",
   "settings.outfitPopupHint": "From this time onward the look stays until you wear it or dismiss it — even if you open the app later. Auto uses Work on weekday mornings and can switch to Date night after 5pm. You can still open today's look manually from the Stylist tab.",
+  "settings.outfitPopupOccasion": "Occasion",
   "settings.partnerWithUs": "Bizimle Ortak Olun",
   "settings.partnerWithUsSubtitle": "Stilistler ve markalarla ilgili sorular",
   "settings.plan": "Planı",
@@ -2552,10 +2565,5 @@
   "wishlist.product": "Ürün",
   "wishlist.removeConfirm": "{name} istek listenizden kaldırılsın mı?",
   "wishlist.removeFromWishlist": "İstek Listesinden Kaldır",
-  "wishlist.trackingPriceDrops": "{name} şu anda fiyat düşüşleri açısından takip ediliyor.",
-  "settings": {
-    "usageMeterPct": "{pct}% of monthly allowance used",
-    "usageRembgMonthLine": "Background removals: {month} this month",
-    "usageRembgFreeLine": "Background removals: {used} of {cap}"
-  }
+  "wishlist.trackingPriceDrops": "{name} şu anda fiyat düşüşleri açısından takip ediliyor."
 }

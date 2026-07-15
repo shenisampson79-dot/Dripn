@@ -86,128 +86,6 @@ const MESSAGING_STORAGE_KEY = '@dripn_messaging';
 const BLOCKED_USERS_KEY = '@dripn_blocked_users';
 const REPORTS_KEY = '@dripn_reports';
 
-const SAMPLE_USERS: Record<string, { name: string; avatar?: string }> = {
-  '1': { name: 'Emma Style' },
-  '2': { name: 'Jordan Chic' },
-  '3': { name: 'Sam Trendy' },
-  '4': { name: 'Alex Fashion' },
-  '5': { name: 'Casey Vogue' },
-};
-
-function generateSampleConversations(): Conversation[] {
-  const now = Date.now();
-  return [
-    {
-      id: 'conv_1',
-      participantId: '1',
-      participantName: 'Emma Style',
-      lastMessage: 'Love that outfit! Where did you get the jacket?',
-      lastMessageTimestamp: new Date(now - 30 * 60 * 1000).toISOString(),
-      unreadCount: 2,
-      isBlocked: false,
-      isMuted: false,
-    },
-    {
-      id: 'conv_2',
-      participantId: '2',
-      participantName: 'Jordan Chic',
-      lastMessage: 'Thanks for the style tip!',
-      lastMessageTimestamp: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
-      unreadCount: 0,
-      isBlocked: false,
-      isMuted: false,
-    },
-    {
-      id: 'conv_3',
-      participantId: '3',
-      participantName: 'Sam Trendy',
-      lastMessage: 'Check out this deal I found!',
-      lastMessageTimestamp: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
-      unreadCount: 1,
-      isBlocked: false,
-      isMuted: false,
-    },
-  ];
-}
-
-function generateSampleMessages(): Record<string, Message[]> {
-  const now = Date.now();
-  return {
-    'conv_1': [
-      {
-        id: 'msg_1_1',
-        conversationId: 'conv_1',
-        senderId: '1',
-        senderName: 'Emma Style',
-        content: 'Hey! Saw your post, really love your style!',
-        timestamp: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
-        isRead: true,
-        type: 'text',
-      },
-      {
-        id: 'msg_1_2',
-        conversationId: 'conv_1',
-        senderId: 'me',
-        senderName: 'Me',
-        content: 'Thank you so much! I appreciate it',
-        timestamp: new Date(now - 1.5 * 60 * 60 * 1000).toISOString(),
-        isRead: true,
-        type: 'text',
-      },
-      {
-        id: 'msg_1_3',
-        conversationId: 'conv_1',
-        senderId: '1',
-        senderName: 'Emma Style',
-        content: 'Love that outfit! Where did you get the jacket?',
-        timestamp: new Date(now - 30 * 60 * 1000).toISOString(),
-        isRead: false,
-        type: 'text',
-      },
-    ],
-    'conv_2': [
-      {
-        id: 'msg_2_1',
-        conversationId: 'conv_2',
-        senderId: 'me',
-        senderName: 'Me',
-        content: 'Try pairing it with some white sneakers for a casual look',
-        timestamp: new Date(now - 3 * 60 * 60 * 1000).toISOString(),
-        isRead: true,
-        type: 'text',
-      },
-      {
-        id: 'msg_2_2',
-        conversationId: 'conv_2',
-        senderId: '2',
-        senderName: 'Jordan Chic',
-        content: 'Thanks for the style tip!',
-        timestamp: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
-        isRead: true,
-        type: 'text',
-      },
-    ],
-    'conv_3': [
-      {
-        id: 'msg_3_1',
-        conversationId: 'conv_3',
-        senderId: '3',
-        senderName: 'Sam Trendy',
-        content: 'Check out this deal I found!',
-        timestamp: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
-        isRead: false,
-        type: 'deal',
-        metadata: {
-          dealId: 'deal_123',
-          dealTitle: 'Winter Coat Sale',
-          dealBrand: 'Zara',
-          dealDiscount: '50% OFF',
-        },
-      },
-    ],
-  };
-}
-
 interface MessagingProviderProps {
   children: ReactNode;
 }
@@ -238,10 +116,8 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
         setConversations(parsed.conversations || []);
         setMessages(parsed.messages || {});
       } else {
-        const sampleConvs = generateSampleConversations();
-        const sampleMsgs = generateSampleMessages();
-        setConversations(sampleConvs);
-        setMessages(sampleMsgs);
+        setConversations([]);
+        setMessages({});
       }
 
       if (blockedData) {
@@ -249,10 +125,8 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
       }
     } catch (error) {
       console.error('Error loading messaging data:', error);
-      const sampleConvs = generateSampleConversations();
-      const sampleMsgs = generateSampleMessages();
-      setConversations(sampleConvs);
-      setMessages(sampleMsgs);
+      setConversations([]);
+      setMessages({});
     } finally {
       setIsLoading(false);
     }

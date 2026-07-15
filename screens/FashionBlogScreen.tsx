@@ -123,14 +123,14 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
 
       // Non-English UI: prefer localized curated guides over English API newsletters.
       if (resolveContentLang(currentLanguage) !== 'en') {
-        loadFallbackPosts(t('blog.curatedGuides'));
+        loadFallbackPosts(t('blog.curatedGuides') || 'Curated style guides — not live newsletter issues.');
         return;
       }
 
       const gender = mapUserGenderToNewsletterFilter(user?.gender);
       
       if (!apiService.isConfigured()) {
-        loadFallbackPosts(t('blog.offlineNotice'));
+        loadFallbackPosts(t('blog.offlineNotice') || 'Connect to the internet to load weekly newsletter issues.');
         return;
       }
 
@@ -150,14 +150,14 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
         } else {
           setPosts(formattedPosts);
           setIsUsingFallback(false);
-          setContentNotice(t('blog.filterNotice'));
+          setContentNotice(t('blog.filterNotice') || 'No issues matched your season or profile filter — showing all published newsletters.');
         }
       } else {
-        loadFallbackPosts(t('blog.noIssuesYet'));
+        loadFallbackPosts(t('blog.noIssuesYet') || 'No weekly issues published yet — curated guides below until the newsletter feed goes live.');
       }
     } catch (error) {
       console.log("Error fetching newsletters, using fallback:", error);
-      loadFallbackPosts(t('blog.serverError'));
+      loadFallbackPosts(t('blog.serverError') || "Couldn't reach the newsletter server — curated guides below.");
     } finally {
       setLoading(false);
     }
@@ -270,9 +270,8 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-      <ThemedText type="h2" style={styles.title}>{t('blog.title')}</ThemedText>
       <ThemedText type="body" style={styles.subtitle}>
-        {t('blog.subtitle')}
+        {t('fashionBlog.subtitle') || t('blog.subtitle') || 'AI-researched weekly style insights and styling tips'}
       </ThemedText>
 
       {isUsingFallback || contentNotice ? (
@@ -281,7 +280,9 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
           <ThemedText type="small" style={styles.fallbackBannerText}>
             {contentNotice
               ?? (isUsingFallback
-                ? (isSubscribed ? t('blog.noIssuesYet') : t('blog.curatedGuides'))
+                ? (isSubscribed
+                  ? (t('blog.noIssuesYet') || 'No weekly issues published yet — curated guides below.')
+                  : (t('blog.curatedGuides') || 'Curated style guides — not live newsletter issues.'))
                 : null)}
           </ThemedText>
         </View>
@@ -294,28 +295,23 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
               <Feather name="mail" size={24} color={theme.link} />
             </View>
             <View style={styles.subscribeText}>
-              <ThemedText type="h3">{t('blog.subscribe')}</ThemedText>
+              <ThemedText type="h3">
+                {t('fashionBlog.getWeeklyUpdates') || t('blog.subscribe') || 'Get Weekly Updates'}
+              </ThemedText>
               <ThemedText type="small" style={styles.subscribeSubtext}>
-                {t('blog.joinNewsletter')}
+                {t('fashionBlog.newsletterJoin') || t('blog.joinNewsletter') || 'Join the Dripn newsletter for weekly fashion insights delivered to your inbox.'}
               </ThemedText>
             </View>
           </View>
           <Button onPress={handleSubscribe} style={styles.subscribeButton}>
-            {t('blog.subscribe')}
+            {t('fashionBlog.subscribe') || t('blog.subscribe') || 'Subscribe'}
           </Button>
         </Card>
-      ) : !isUsingFallback ? (
-        <View style={[styles.subscribedBadge, { backgroundColor: isDark ? "rgba(52, 199, 89, 0.2)" : "rgba(52, 199, 89, 0.1)" }]}>
-          <Feather name="check-circle" size={16} color={theme.success || "#34C759"} />
-          <ThemedText type="small" style={{ color: theme.success || "#34C759" }}>
-            {t('blog.subscribed')}
-          </ThemedText>
-        </View>
       ) : (
         <View style={[styles.subscribedBadge, { backgroundColor: isDark ? "rgba(52, 199, 89, 0.2)" : "rgba(52, 199, 89, 0.1)" }]}>
-          <Feather name="mail" size={16} color={theme.success || "#34C759"} />
-          <ThemedText type="small" style={{ color: theme.success || "#34C759" }}>
-            {t('blog.subscribed')}
+          <Feather name="check-circle" size={16} color={theme.success || "#34C759"} />
+          <ThemedText type="small" style={[styles.subscribedBadgeText, { color: theme.success || "#34C759" }]}>
+            {t('fashionBlog.subscribedWeekly') || t('blog.subscribed') || "Subscribed · weekly issues below"}
           </ThemedText>
         </View>
       )}
@@ -412,7 +408,9 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
               color={theme.tabIconDefault} 
             />
             <ThemedText type="caption" style={{ color: theme.tabIconDefault }}>
-              {isExpanded ? (t('blog.showLess') || 'Show less') : t('blog.readMore')}
+              {isExpanded
+                ? (t('fashionBlog.showLess') || t('blog.showLess') || 'Show less')
+                : (t('fashionBlog.readMore') || t('blog.readMore') || 'Read more')}
             </ThemedText>
           </View>
         </Card>
@@ -423,9 +421,11 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Feather name="book-open" size={48} color={theme.tabIconDefault} />
-      <ThemedText type="h3" style={styles.emptyTitle}>{t('blog.emptyTitle')}</ThemedText>
+      <ThemedText type="h3" style={styles.emptyTitle}>
+        {t('fashionBlog.noArticlesYet') || t('blog.emptyTitle') || 'No articles yet'}
+      </ThemedText>
       <ThemedText type="body" style={styles.emptySubtitle}>
-        {t('blog.emptyMessage')}
+        {t('fashionBlog.checkBackSoon') || t('blog.emptyMessage') || 'Check back soon for new fashion reads.'}
       </ThemedText>
     </View>
   );
@@ -434,7 +434,9 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
     return (
       <ThemedView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.link} />
-        <ThemedText type="body" style={styles.loadingText}>Loading articles...</ThemedText>
+        <ThemedText type="body" style={styles.loadingText}>
+          {t('fashionBlog.loadingArticles') || 'Loading articles...'}
+        </ThemedText>
       </ThemedView>
     );
   }
@@ -446,7 +448,8 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
       keyExtractor={(item) => item.id}
       ListHeaderComponent={renderHeader}
       ListEmptyComponent={renderEmptyState}
-      contentContainerStyle={styles.container}
+      opaqueHeader
+      contentContainerStyle={styles.listContent}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -460,8 +463,9 @@ export default function FashionBlogScreen({ navigation }: FashionBlogScreenProps
 }
 
 const styles = StyleSheet.create({
-  container: {
+  listContent: {
     paddingHorizontal: Spacing.md,
+    paddingTop: 0,
   },
   loadingContainer: {
     flex: 1,
@@ -473,14 +477,11 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   headerContainer: {
-    marginBottom: Spacing.xl,
-  },
-  title: {
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.lg,
   },
   subtitle: {
     opacity: 0.7,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   fallbackBanner: {
     flexDirection: 'row',
@@ -523,6 +524,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
+  },
+  subscribedBadgeText: {
+    flex: 1,
+    fontWeight: "600",
   },
   postCard: {
     padding: Spacing.lg,

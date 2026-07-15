@@ -1052,6 +1052,14 @@
   "home.noPostsYet": "Nie ma jeszcze żadnych postów",
   "home.pickAnother": "Wybierz inny",
   "home.todaysOutfit": "Dzisiejszy strój",
+  "home.wardrobeGapMoreBottoms": "{count} dołów więcej",
+  "home.wardrobeGapMoreShoes": "{count} par butów więcej",
+  "home.wardrobeGapMoreTops": "{count} gór więcej",
+  "home.wardrobeGapOneBottom": "1 dół więcej",
+  "home.wardrobeGapOneShoe": "1 parę butów więcej",
+  "home.wardrobeGapOneTop": "1 górę więcej",
+  "home.wardrobeNeedBasics": "Dodaj co najmniej 3 góry, 3 doły i 3 pary butów — wtedy będziemy mogli planować kompletne stylizacje z Twojej szafy.",
+  "home.wardrobeNeedPartial": "Masz {tops} gór(ę/y), {bottoms} dół/dółów i {shoes} par(ę/y) butów. Dodaj {gaps}, aby odblokować planowanie stylizacji.",
   "home.wearThis": "Noś to",
   "home.yourStory": "Twoja historia",
   "messages.chooseAction": "Wybierz akcję",
@@ -1580,6 +1588,11 @@
   "session.failedSaveNotes": "Nie udało się zapisać notatek",
   "session.markedCompleted": "Sesja oznaczona jako zakończona",
   "session.notesSaved": "Notatki zostały zapisane pomyślnie",
+  "settings": {
+    "usageMeterPct": "{pct}% of monthly allowance used",
+    "usageRembgMonthLine": "Background removals: {month} this month",
+    "usageRembgFreeLine": "Background removals: {used} of {cap}"
+  },
   "settings.account": "Konto",
   "settings.accountActions": "Działania na koncie",
   "settings.autoPlayDescription": "Automatycznie odtwarzaj głos, gdy stylista odpowie",
@@ -1624,8 +1637,8 @@
   "settings.normal": "Normalna",
   "settings.notSet": "Nie ustawiono",
   "settings.outfitPopupAppearAt": "Appear at",
-  "settings.outfitPopupOccasion": "Occasion",
   "settings.outfitPopupHint": "From this time onward the look stays until you wear it or dismiss it — even if you open the app later. Auto uses Work on weekday mornings and can switch to Date night after 5pm. You can still open today's look manually from the Stylist tab.",
+  "settings.outfitPopupOccasion": "Occasion",
   "settings.partnerWithUs": "Współpracuj z nami",
   "settings.partnerWithUsSubtitle": "Zapytania stylistów i marek",
   "settings.plan": "Plan",
@@ -2552,10 +2565,5 @@
   "wishlist.product": "Produkt",
   "wishlist.removeConfirm": "Usunąć {name} ze swojej listy życzeń?",
   "wishlist.removeFromWishlist": "Usuń z listy życzeń",
-  "wishlist.trackingPriceDrops": "Firma {name} jest teraz śledzona pod kątem obniżek cen.",
-  "settings": {
-    "usageMeterPct": "{pct}% of monthly allowance used",
-    "usageRembgMonthLine": "Background removals: {month} this month",
-    "usageRembgFreeLine": "Background removals: {used} of {cap}"
-  }
+  "wishlist.trackingPriceDrops": "Firma {name} jest teraz śledzona pod kątem obniżek cen."
 }

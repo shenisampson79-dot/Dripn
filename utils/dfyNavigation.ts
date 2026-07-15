@@ -33,7 +33,7 @@ export function navigateToCoreFeatureUpgrade(
   accessStatus: DFYAccessStatus | null,
 ): void {
   if (accessStatus?.hasAccess && accessStatus.tier === 'lite') {
-    navigation.navigate('DFYComparison', { selectedTier: 'core', paidAddOn: true });
+    navigation.navigate('DFYComparison', { selectedTier: 'core', paidAddOn: true, autoCheckout: true });
     return;
   }
   navigation.navigate('DFYStart');

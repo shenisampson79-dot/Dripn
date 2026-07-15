@@ -279,9 +279,6 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Feather name="arrow-left" size={24} color="#FFF" />
-        </Pressable>
         <View style={styles.headerContent}>
           <View style={styles.headerIconContainer}>
             <Feather name="book" size={32} color="#FFF" />
@@ -348,6 +345,7 @@ export default function StyleRulesScreen({ navigation }: StyleRulesScreenProps) 
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderRuleCard}
         ListHeaderComponent={ListHeader}
+        opaqueHeader
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl
@@ -418,13 +416,14 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   headerGradient: {
-    paddingTop: 60,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing.xl,
     paddingHorizontal: Spacing.lg,
     borderBottomLeftRadius: BorderRadius.xl,
     borderBottomRightRadius: BorderRadius.xl,
   },
   backButton: {
+    display: 'none',
     position: 'absolute',
     top: 50,
     left: Spacing.md,
@@ -438,7 +437,7 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     alignItems: 'center',
-    marginTop: Spacing.md,
+    marginTop: 0,
   },
   headerIconContainer: {
     width: 64,

@@ -24,10 +24,12 @@ import { getStyleThemeLabel } from "@/utils/styleThemeLabels";
 import { ALL_COUNTRIES } from "@/constants/countries";
 import { filterCountriesBySearch, getLocalizedCountryName } from "@/utils/countryLocalization";
 import { isDevTestingModeEnabled, setDevTestingModeEnabled } from "@/utils/devTesting";
+import { isStaffUser } from "@/utils/staffAccess";
 import { shouldUseAppleIAP } from "@/utils/platformPayments";
 import { VoiceCreditsPurchaseModal } from "@/components/VoiceCreditsPurchaseModal";
 import { LanguagePickerModal } from "@/components/LanguagePickerModal";
 import { useVoiceCredits } from "@/hooks/useVoiceCredits";
+import { resolveStylistSpeakLanguage, stylistLanguageCodeToName } from "@/utils/stylistLanguage";
 import {
   DEFAULT_TODAYS_OUTFIT_POPUP_PREFS,
   formatHourLabel,
@@ -130,14 +132,11 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const { t, translations, currentLanguage, availableLanguages } = useTranslations();
   const { colorScheme, setColorScheme, palette } = useColorScheme();
   
-  // Admin check — analytics / internal tools
-  const isAdmin = user?.email?.endsWith('@dripn.io') || 
-                  user?.email?.endsWith('@dripn.dev') ||
-                  user?.email === 'sheni_sampson@yahoo.co.uk' ||
-                  user?.role === 'admin';
-
-  // Testing toggles — dev builds only (never in production)
-  const showTestingTools = __DEV__;
+  // Staff-only — never shown to regular users (Admin Portal / Development)
+  const isStaff = isStaffUser(user);
+  const showStaffTools = isStaff;
+  // Testing Mode: keep visible for App Store review (remove / re-gate after Apple approval)
+  const showTestingTools = true;
   
   // Dynamic colors from palette
   const LUXURY_COLORS = {
@@ -157,6 +156,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
   const [isNewsletterSubscribed, setIsNewsletterSubscribed] = useState(false);
   const [pickerModal, setPickerModal] = useState<{ type: 'speed' | 'colorScheme' | null; visible: boolean }>({ type: null, visible: false });
   const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
+  const [stylistLanguagePickerVisible, setStylistLanguagePickerVisible] = useState(false);
   const [isNewsletterLoading, setIsNewsletterLoading] = useState(false);
   const [dfyAccess, setDfyAccess] = useState<DFYAccessStatus | null>(null);
   const [dfyLoading, setDfyLoading] = useState(false);
@@ -448,6 +448,10 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     setLanguagePickerVisible(true);
   };
 
+  const handleStylistLanguageSelect = () => {
+    setStylistLanguagePickerVisible(true);
+  };
+
   const handleSpeedSelect = () => {
     setPickerModal({ type: 'speed', visible: true });
   };
@@ -477,6 +481,15 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
     || SUPPORTED_LANGUAGES.find((lang) => lang.code === currentLanguage)?.nativeName
     || translations.localeInfo.language
     || 'English';
+
+  const stylistSpeakCode = resolveStylistSpeakLanguage({
+    stylistLanguageName: user?.stylistPreferences?.language,
+    preferredLanguageCode: voiceSettings.preferredLanguage,
+    uiLanguageCode: currentLanguage,
+  });
+  const stylistLanguageLabel =
+    SUPPORTED_LANGUAGES.find((lang) => lang.code === stylistSpeakCode)?.nativeName
+    || stylistLanguageCodeToName(stylistSpeakCode);
 
   const getSpeedLabel = (value: VoiceSpeed): string => {
     switch (value) {
@@ -902,12 +915,21 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
           ) : null}
           <SettingItem
             icon="globe"
-            title={t('settings.language')}
+            title={t('settings.appLanguage') || t('settings.language') || 'App language'}
             subtitle={currentLanguageLabel}
             onPress={handleLanguageSelect}
             theme={theme}
             isDark={isDark}
             iconGradient={[LUXURY_COLORS.violet, LUXURY_COLORS.deepViolet]}
+          />
+          <SettingItem
+            icon="message-circle"
+            title={t('settings.stylistLanguage') || 'Stylist language'}
+            subtitle={stylistLanguageLabel}
+            onPress={handleStylistLanguageSelect}
+            theme={theme}
+            isDark={isDark}
+            iconGradient={[LUXURY_COLORS.rose, LUXURY_COLORS.berry]}
           />
           <SettingItem
             icon="fast-forward"
@@ -1020,7 +1042,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         </View>
       </View>
 
-      {onOpenPortal ? (
+      {showStaffTools && onOpenPortal ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <LinearGradient
@@ -1133,7 +1155,7 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
         </View>
       ) : null}
 
-      {isAdmin ? (
+      {showStaffTools ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <LinearGradient
@@ -1441,6 +1463,12 @@ export default function SettingsScreen({ navigation, onOpenPortal }: SettingsScr
       <LanguagePickerModal
         visible={languagePickerVisible}
         onClose={() => setLanguagePickerVisible(false)}
+        mode="app"
+      />
+      <LanguagePickerModal
+        visible={stylistLanguagePickerVisible}
+        onClose={() => setStylistLanguagePickerVisible(false)}
+        mode="stylist"
       />
     </View>
   );

@@ -211,6 +211,9 @@ export async function hydrateUserProfileAfterAuth(
   if (options.backendLoginUser?.subscriptionTier) {
     merged.subscriptionTier = options.backendLoginUser.subscriptionTier;
   }
+  if (options.backendLoginUser?.isAdmin !== undefined) {
+    merged.isAdmin = Boolean(options.backendLoginUser.isAdmin);
+  }
   if (options.backendLoginUser?.displayName && !merged.name) {
     merged.name = options.backendLoginUser.displayName;
   }
@@ -227,6 +230,9 @@ export async function hydrateUserProfileAfterAuth(
     }
     if (me?.onboardingCompletedAt && !merged.hasCompletedOnboarding) {
       merged.hasCompletedOnboarding = true;
+    }
+    if (me?.isAdmin !== undefined) {
+      merged.isAdmin = Boolean(me.isAdmin);
     }
     if (me?.styleProfile) {
       merged = mergeObjectsPreferFilled(merged, mapStyleProfileToUserProfile(me.styleProfile));

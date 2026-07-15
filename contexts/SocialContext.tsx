@@ -110,40 +110,13 @@ export const SAMPLE_USERS: Record<string, UserSummary> = {
 };
 
 export function getAllDiscoverableUsers(): UserSummary[] {
-  return Object.values(SAMPLE_USERS);
+  // Real discovery must come from the API — do not seed fake community members.
+  return [];
 }
 
 export function getDiscoverableUserCountries(): string[] {
-  const countries = new Set(Object.values(SAMPLE_USERS).map(u => u.country).filter(Boolean) as string[]);
-  return Array.from(countries).sort();
+  return [];
 }
-
-const INITIAL_INCOMING_REQUESTS: FriendRequest[] = [
-  {
-    id: 'fr_1',
-    fromUserId: '6',
-    fromUserName: 'Riley Street',
-    toUserId: 'current_user',
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    status: 'pending',
-  },
-  {
-    id: 'fr_2',
-    fromUserId: '7',
-    fromUserName: 'Morgan Luxe',
-    toUserId: 'current_user',
-    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    status: 'pending',
-  },
-  {
-    id: 'fr_3',
-    fromUserId: '8',
-    fromUserName: 'Taylor Edge',
-    toUserId: 'current_user',
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    status: 'pending',
-  },
-];
 
 function generateSampleActivityFeed(following: string[], friends: string[]): ActivityItem[] {
   const activities: ActivityItem[] = [];
@@ -288,11 +261,11 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         setFollowing(parsed.following || []);
         setFollowers(parsed.followers || []);
         setFriends(parsed.friends || []);
-        setIncomingFriendRequests(parsed.incomingFriendRequests || INITIAL_INCOMING_REQUESTS);
+        setIncomingFriendRequests(parsed.incomingFriendRequests || []);
         setOutgoingFriendRequests(parsed.outgoingFriendRequests || []);
         setActivityFeed(generateSampleActivityFeed(parsed.following || [], parsed.friends || []));
       } else {
-        setIncomingFriendRequests(INITIAL_INCOMING_REQUESTS);
+        setIncomingFriendRequests([]);
         setActivityFeed([]);
       }
     } catch (err) {

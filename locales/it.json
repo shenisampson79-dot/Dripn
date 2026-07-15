@@ -1052,6 +1052,14 @@
   "home.noPostsYet": "Nessun post ancora",
   "home.pickAnother": "Scegline un altro",
   "home.todaysOutfit": "L'outfit di oggi",
+  "home.wardrobeGapMoreBottoms": "{count} pezzi inferiori in più",
+  "home.wardrobeGapMoreShoes": "{count} paia di scarpe in più",
+  "home.wardrobeGapMoreTops": "{count} top in più",
+  "home.wardrobeGapOneBottom": "1 pezzo inferiore in più",
+  "home.wardrobeGapOneShoe": "1 paio di scarpe in più",
+  "home.wardrobeGapOneTop": "1 top in più",
+  "home.wardrobeNeedBasics": "Aggiungi almeno 3 top, 3 pezzi inferiori e 3 paia di scarpe — così potremo pianificare outfit completi dal tuo guardaroba.",
+  "home.wardrobeNeedPartial": "Hai {tops} top, {bottoms} pezzo/i inferiore/i e {shoes} paio/a di scarpe. Aggiungi {gaps} per sbloccare la pianificazione degli outfit.",
   "home.wearThis": "Indossa questo",
   "home.yourStory": "La tua storia",
   "messages.chooseAction": "Scegli un'azione",
@@ -1580,6 +1588,11 @@
   "session.failedSaveNotes": "Impossibile salvare le note",
   "session.markedCompleted": "Sessione contrassegnata come completata",
   "session.notesSaved": "Note salvate con successo",
+  "settings": {
+    "usageMeterPct": "{pct}% of monthly allowance used",
+    "usageRembgMonthLine": "Background removals: {month} this month",
+    "usageRembgFreeLine": "Background removals: {used} of {cap}"
+  },
   "settings.account": "Account",
   "settings.accountActions": "Azioni dell'account",
   "settings.autoPlayDescription": "Riproduci automaticamente la voce quando lo stilista risponde",
@@ -1624,8 +1637,8 @@
   "settings.normal": "Normale",
   "settings.notSet": "Non impostato",
   "settings.outfitPopupAppearAt": "Appear at",
-  "settings.outfitPopupOccasion": "Occasion",
   "settings.outfitPopupHint": "From this time onward the look stays until you wear it or dismiss it — even if you open the app later. Auto uses Work on weekday mornings and can switch to Date night after 5pm. You can still open today's look manually from the Stylist tab.",
+  "settings.outfitPopupOccasion": "Occasion",
   "settings.partnerWithUs": "Collabora con noi",
   "settings.partnerWithUsSubtitle": "Richieste di stilisti e marchi",
   "settings.plan": "Piano",
@@ -2552,10 +2565,5 @@
   "wishlist.product": "Prodotto",
   "wishlist.removeConfirm": "Rimuovere {name} dalla tua lista dei desideri?",
   "wishlist.removeFromWishlist": "Rimuovi dalla lista dei desideri",
-  "wishlist.trackingPriceDrops": "{name} è ora monitorato per eventuali riduzioni di prezzo.",
-  "settings": {
-    "usageMeterPct": "{pct}% of monthly allowance used",
-    "usageRembgMonthLine": "Background removals: {month} this month",
-    "usageRembgFreeLine": "Background removals: {used} of {cap}"
-  }
+  "wishlist.trackingPriceDrops": "{name} è ora monitorato per eventuali riduzioni di prezzo."
 }

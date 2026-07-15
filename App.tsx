@@ -60,6 +60,7 @@ import { MessagingProvider } from "@/contexts/MessagingContext";
 import { VoiceSettingsProvider } from "@/contexts/VoiceSettingsContext";
 import { BodyProfileProvider } from "@/contexts/BodyProfileContext";
 import { TranslationProvider } from "@/contexts/TranslationContext";
+import { VoiceCreditsProvider } from "@/hooks/useVoiceCredits";
 import { ColorSchemeProvider } from "@/contexts/ColorSchemeContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { SubscriptionSuccessRedirect } from "@/components/SubscriptionSuccessRedirect";
@@ -293,11 +294,13 @@ export default function App() {
                                               <VoiceSettingsProvider>
                                                 <ToastProvider>
                                                   <TranslationProvider>
-                                                    <BodyProfileProvider>
-                                                      <ColorSchemeProvider>
-                                                        <NavigationContainerWithRef />
-                                                      </ColorSchemeProvider>
-                                                    </BodyProfileProvider>
+                                                    <VoiceCreditsProvider>
+                                                      <BodyProfileProvider>
+                                                        <ColorSchemeProvider>
+                                                          <NavigationContainerWithRef />
+                                                        </ColorSchemeProvider>
+                                                      </BodyProfileProvider>
+                                                    </VoiceCreditsProvider>
                                                   </TranslationProvider>
                                                 </ToastProvider>
                                               </VoiceSettingsProvider>

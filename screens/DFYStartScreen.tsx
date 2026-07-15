@@ -155,7 +155,7 @@ export default function DFYStartScreen({ navigation }: DFYStartScreenProps) {
     navigation.navigate('DFYComparison', {
       selectedTier: tier,
       paidAddOn: true,
-      autoCheckout: useAppleIAP,
+      autoCheckout: true,
     });
   };
 

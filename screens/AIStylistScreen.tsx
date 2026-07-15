@@ -55,6 +55,7 @@ import { WardrobeItemImage } from '@/components/WardrobeItemImage';
 import { Card } from '@/components/Card';
 import { LimitHitUpgradePrompt } from '@/components/LimitHitUpgradePrompt';
 import { PersonalStylistVoicePanel } from '@/components/PersonalStylistVoicePanel';
+import { VoiceCreditsPurchaseModal } from '@/components/VoiceCreditsPurchaseModal';
 import { Spacing, BorderRadius, Typography, LuxuryColors as ThemeLuxuryColors, ScreenGradients } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -63,6 +64,7 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import { useWardrobe, WardrobeItem, ClothingOccasion, ClothingSeason } from '@/contexts/WardrobeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { normalizeCountryCode } from '@/utils/outfitRegionalContext';
+import { resolveStylistSpeakLanguage, stylistLanguageCodeToAccent } from '@/utils/stylistLanguage';
 import { useNavigation, CommonActions, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
@@ -72,7 +74,7 @@ import { useVoiceSettings, VoiceId, StylistId } from '@/contexts/VoiceSettingsCo
 import { useVoiceCredits } from '@/hooks/useVoiceCredits';
 import * as FileSystem from 'expo-file-system/legacy';
 import Constants from 'expo-constants';
-import { getStylistForUser, getStylistGreeting, PersonalStylist } from '@/services/PersonalStylistService';
+import { getStylistForUser, getStylistGreeting, PersonalStylist, type StylistGreetingWardrobe } from '@/services/PersonalStylistService';
 import type { SharedValue } from 'react-native-reanimated';
 import type { UserStylistStackParamList } from '@/navigation/UserStylistStackNavigator';
 import {
@@ -89,6 +91,7 @@ import { getOccasionLabel, type OutfitOccasionId } from '@/constants/outfitOccas
 import { generateWardrobeOutfit } from '@/utils/generatedOutfit';
 import { occasionSlugFromLabel, wardrobeIdsFromPieces } from '@/utils/saveGeneratedOutfit';
 import { enrichWardrobeItemForDisplay, normalizeRemoteApiUrl, resolveWardrobeImageUri } from '@/utils/wardrobeImage';
+import { countWardrobeOutfitBasics } from '@/utils/wardrobeOutfitReadiness';
 
 interface WaveformBarProps {
   bar: SharedValue<number>;
@@ -1294,7 +1297,17 @@ export default function AIStylistScreen() {
   const { items: wardrobeItems } = useWardrobe();
   const { user, actualCountry } = useAuth();
   const { settings: voiceSettings, getVoiceForStylist } = useVoiceSettings();
-  const { hasCredits: hasVoiceCredits, refreshBalance: refreshVoiceCredits } = useVoiceCredits();
+  const {
+    hasCredits: hasVoiceCredits,
+    refreshBalance: refreshVoiceCredits,
+    updateBalance: updateVoiceCreditsBalance,
+    remainingCredits: voiceRemainingCredits,
+    credits: voiceCreditsBalance,
+    isLoading: voiceCreditsLoading,
+    weekendUnlimitedActive,
+    shouldShowBuyPacks,
+  } = useVoiceCredits();
+  const [showVoiceCreditsModal, setShowVoiceCreditsModal] = useState(false);
   const route = useRoute<RouteProp<UserStylistStackParamList, 'AIStylist'>>();
   const pendingInitialPromptRef = useRef(route.params?.initialPrompt);
   const initialPromptSentRef = useRef(false);
@@ -1315,24 +1328,29 @@ export default function AIStylistScreen() {
   
   const stylist = getStylistForUser(user?.gender || null, user?.stylistPreferences);
 
-  // Map onboarding language names (e.g. "Spanish") to BCP-47 codes (e.g. "es").
-  // This bridges the gap between the onboarding choice and the voice-settings code.
-  const LANGUAGE_NAME_TO_CODE: Record<string, string> = {
-    'English': 'en', 'Spanish': 'es', 'French': 'fr', 'German': 'de',
-    'Italian': 'it', 'Portuguese': 'pt', 'Japanese': 'ja', 'Korean': 'ko',
-    'Chinese': 'zh', 'Arabic': 'ar', 'Hindi': 'hi', 'Dutch': 'nl',
-    'Russian': 'ru', 'Swedish': 'sv',
-  };
+  const greetingWardrobe = useMemo((): StylistGreetingWardrobe => {
+    const owned = wardrobeItems.filter((item) => !item.origin || item.origin === 'owned');
+    const basics = countWardrobeOutfitBasics(owned);
+    return {
+      totalOwned: owned.length,
+      tops: basics.tops,
+      bottoms: basics.bottoms,
+      shoes: basics.shoes,
+    };
+  }, [wardrobeItems]);
 
-  // Single source of truth for which language the stylist should speak.
-  // Priority: UI language (Settings) > voice preferredLanguage > onboarding stylist language.
-  const onboardingLangCode =
-    LANGUAGE_NAME_TO_CODE[user?.stylistPreferences?.language || 'English'] || 'en';
-  const effectiveLanguage =
-    currentLanguage ||
-    (voiceSettings.preferredLanguage && voiceSettings.preferredLanguage !== 'en'
-      ? voiceSettings.preferredLanguage
-      : onboardingLangCode);
+  const buildSeedGreeting = useCallback(() => {
+    const userName = user?.name ? user.name.split(' ')[0] : null;
+    return getStylistGreeting(stylist, userName, t, greetingWardrobe);
+  }, [stylist, user?.name, t, greetingWardrobe]);
+
+  // Stylist chat/voice language is independent of app UI language (welcome / Settings).
+  // Priority: onboarding / Settings stylist language → preferredLanguage → UI fallback.
+  const effectiveLanguage = resolveStylistSpeakLanguage({
+    stylistLanguageName: user?.stylistPreferences?.language,
+    preferredLanguageCode: voiceSettings.preferredLanguage,
+    uiLanguageCode: currentLanguage,
+  });
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -1479,28 +1497,25 @@ export default function AIStylistScreen() {
   
   useEffect(() => {
     if (messages.length === 0) {
-      const userName = user?.name ? user.name.split(' ')[0] : null;
-      const greeting = getStylistGreeting(stylist, userName, t);
       const greetingMessage: ChatMessage = {
         id: `msg_${Date.now()}`,
         role: 'assistant',
-        content: greeting,
+        content: buildSeedGreeting(),
         timestamp: new Date().toISOString(),
       };
       setMessages([greetingMessage]);
     }
-  }, [stylist, user?.name, t, messages.length]);
+  }, [stylist, buildSeedGreeting, messages.length]);
 
-  // Refresh seed welcome when UI language changes (only if chat is still just the greeting).
+  // Refresh seed welcome when language or wardrobe counts change (only if chat is still just the greeting).
   useEffect(() => {
-    const userName = user?.name ? user.name.split(' ')[0] : null;
-    const nextGreeting = getStylistGreeting(stylist, userName, t);
+    const nextGreeting = buildSeedGreeting();
     setMessages((prev) => {
       if (prev.length !== 1 || prev[0]?.role !== 'assistant') return prev;
       if (prev[0].content === nextGreeting) return prev;
       return [{ ...prev[0], content: nextGreeting }];
     });
-  }, [currentLanguage, t, stylist, user?.name]);
+  }, [currentLanguage, buildSeedGreeting]);
 
   useEffect(() => {
     if (isRecording) {
@@ -1838,6 +1853,14 @@ export default function AIStylistScreen() {
         name: item.name,
         color: item.color,
         category: item.category,
+        brand: item.brand || null,
+        subcategory: item.subcategory || null,
+        wearCount: item.timesWorn ?? 0,
+        timesWorn: item.timesWorn ?? 0,
+        isFavorite: Boolean(item.isFavorite),
+        favorite: Boolean(item.isFavorite),
+        origin: item.origin || 'owned',
+        notes: item.notes || null,
       }));
       
       const chatHistory = updatedMessages.slice(-10).map(msg => ({
@@ -2107,6 +2130,14 @@ export default function AIStylistScreen() {
         name: item.name,
         color: item.color,
         category: item.category,
+        brand: item.brand || null,
+        subcategory: item.subcategory || null,
+        wearCount: item.timesWorn ?? 0,
+        timesWorn: item.timesWorn ?? 0,
+        isFavorite: Boolean(item.isFavorite),
+        favorite: Boolean(item.isFavorite),
+        origin: item.origin || 'owned',
+        notes: item.notes || null,
       }));
       
       const chatHistory = updatedMessages.slice(-10).map(msg => ({
@@ -2404,7 +2435,7 @@ export default function AIStylistScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
     
-    const greeting = getStylistGreeting(stylist, user?.name ? user.name.split(' ')[0] : null, t);
+    const greeting = buildSeedGreeting();
     const greetingMessage: ChatMessage = {
       id: `msg_${Date.now()}`,
       role: 'assistant',
@@ -2907,6 +2938,61 @@ export default function AIStylistScreen() {
   
   // Memoize upgrade teaser values to prevent flickering on every keystroke
   const upgradeTeaserData = useMemo(() => {
+    // Voice mode: show spoken-reply usage (more relevant than text-chat daily limit)
+    if (chatMode === 'voice') {
+      const allowance = voiceCreditsBalance?.monthlyAllowance ?? 0;
+      const remaining = voiceRemainingCredits;
+      const used = Math.max(
+        0,
+        Number(voiceCreditsBalance?.usedThisMonth ?? Math.max(0, allowance - remaining)),
+      );
+      const showTeaser =
+        !voiceCreditsLoading &&
+        !weekendUnlimitedActive &&
+        (allowance > 0 || tier === 'free');
+
+      let teaserTitle =
+        allowance > 0
+          ? (t('aiStylist.voiceRepliesThisMonth') || '{used}/{allowance} voice replies this month')
+              .replace('{used}', String(used))
+              .replace('{allowance}', String(allowance))
+          : (t('aiStylist.voiceRepliesLeft') || '{count} spoken replies left').replace(
+              '{count}',
+              String(remaining),
+            );
+
+      let teaserMsg = (t('aiStylist.voiceUnlockMore') ||
+        'Hands-free spoken replies are limited each month. Upgrade or add a voice pack to keep talking with {name}.')
+        .replace('{name}', stylist.name);
+      let teaserIcon: 'star' | 'heart' | 'zap' | 'mic' = 'mic';
+      let teaserCta: 'upgrade' | 'topup' = shouldShowBuyPacks || remaining <= 0 ? 'topup' : 'upgrade';
+      let teaserButtonLabel = teaserCta === 'topup'
+        ? (t('voiceCredits.topUpVoiceReplies') || 'Top up voice')
+        : (t('aiStylist.upgradeNow') || 'Upgrade Now');
+
+      if (weekendUnlimitedActive) {
+        return { showWarning: false, showTeaser: false, teaserTitle: '', teaserMsg: '', teaserIcon: 'star' as const, teaserCta: 'upgrade' as const, teaserButtonLabel: '' };
+      }
+
+      if (remaining <= 0 && allowance > 0) {
+        teaserTitle = t('aiStylist.voiceRepliesUsedUp') || "This month's spoken replies are used up";
+        teaserMsg = (t('aiStylist.voiceUnlockMore') ||
+          'Add a voice pack or upgrade so {name} can keep speaking with you. Text chat stays unlimited.')
+          .replace('{name}', stylist.name);
+        teaserIcon = 'heart';
+        teaserCta = 'topup';
+        teaserButtonLabel = t('voiceCredits.topUpVoiceReplies') || 'Top up voice';
+      } else if (allowance > 0 && remaining <= Math.max(1, Math.floor(allowance * 0.25))) {
+        teaserMsg = (t('aiStylist.voiceRunningLow') ||
+          'Running low on spoken replies with {name}. Top up or upgrade before you hit the cap.')
+          .replace('{name}', stylist.name);
+        teaserIcon = 'zap';
+      }
+
+      const showWarning = allowance > 0 && remaining <= Math.max(1, Math.floor(allowance * 0.25));
+      return { showWarning, showTeaser, teaserTitle, teaserMsg, teaserIcon, teaserCta, teaserButtonLabel };
+    }
+
     const showWarning = remainingMessages !== Infinity && remainingMessages <= 3;
     const showTeaser = remainingMessages !== Infinity && remainingMessages <= 10 && tier === 'free';
     
@@ -2914,7 +3000,7 @@ export default function AIStylistScreen() {
       .replace('{count}', String(remainingMessages));
     let teaserMsg = (t('aiStylist.unlockUnlimitedConversations') || 'Unlock unlimited conversations with {name} and never miss a styling moment.')
       .replace('{name}', stylist.name);
-    let teaserIcon: 'star' | 'heart' | 'zap' = 'star';
+    let teaserIcon: 'star' | 'heart' | 'zap' | 'mic' = 'star';
     
     if (remainingMessages === 0) {
       teaserTitle = t('aiStylist.dontLeaveConversation') || "Don't leave the conversation here!";
@@ -2932,8 +3018,28 @@ export default function AIStylistScreen() {
       teaserIcon = 'zap';
     }
     
-    return { showWarning, showTeaser, teaserTitle, teaserMsg, teaserIcon };
-  }, [remainingMessages, tier, stylist.name, t]);
+    return {
+      showWarning,
+      showTeaser,
+      teaserTitle,
+      teaserMsg,
+      teaserIcon,
+      teaserCta: 'upgrade' as const,
+      teaserButtonLabel: t('aiStylist.upgradeNow') || 'Upgrade Now',
+    };
+  }, [
+    chatMode,
+    remainingMessages,
+    tier,
+    stylist.name,
+    t,
+    voiceCreditsBalance?.usedThisMonth,
+    voiceCreditsBalance?.monthlyAllowance,
+    voiceRemainingCredits,
+    voiceCreditsLoading,
+    weekendUnlimitedActive,
+    shouldShowBuyPacks,
+  ]);
   
   const { showLimitWarning, showUpgradeTeaser } = {
     showLimitWarning: upgradeTeaserData.showWarning,
@@ -3054,13 +3160,21 @@ export default function AIStylistScreen() {
               </View>
             </View>
             <Pressable 
-              onPress={navigateToSubscription}
+              onPress={() => {
+                if (chatMode === 'voice' && upgradeTeaserData.teaserCta === 'topup') {
+                  setShowVoiceCreditsModal(true);
+                } else {
+                  navigateToSubscription();
+                }
+              }}
               style={({ pressed }) => [
                 styles.upgradeTeaserButton,
                 { opacity: pressed ? 0.9 : 1 },
               ]}
             >
-              <ThemedText style={styles.upgradeTeaserButtonText}>{t('aiStylist.upgradeNow') || 'Upgrade Now'}</ThemedText>
+              <ThemedText style={styles.upgradeTeaserButtonText}>
+                {upgradeTeaserData.teaserButtonLabel || t('aiStylist.upgradeNow') || 'Upgrade Now'}
+              </ThemedText>
               <Feather name="arrow-right" size={16} color={stylistGradient[0]} />
             </Pressable>
           </LinearGradient>
@@ -3338,7 +3452,13 @@ export default function AIStylistScreen() {
       },
     ]);
     setShowQuickPrompts(false);
-  }, []);
+    // Keep the header usage card in sync (voice panel has its own hook instance)
+    void refreshVoiceCredits();
+  }, [refreshVoiceCredits]);
+
+  const handleVoiceCreditsChange = useCallback((credits: Parameters<typeof updateVoiceCreditsBalance>[0]) => {
+    updateVoiceCreditsBalance(credits);
+  }, [updateVoiceCreditsBalance]);
 
   return (
     <>
@@ -3350,7 +3470,23 @@ export default function AIStylistScreen() {
           <PersonalStylistVoicePanel
             stylist={stylist}
             effectiveLanguage={effectiveLanguage}
+            accent={stylistLanguageCodeToAccent(effectiveLanguage)}
+            wardrobeItems={wardrobeItems
+              .filter((item) => !item.origin || item.origin === 'owned')
+              .map((item) => ({
+                id: String(item.id),
+                name: item.name,
+                color: item.color,
+                category: item.category,
+                brand: item.brand,
+                wearCount: item.timesWorn,
+                timesWorn: item.timesWorn,
+                isFavorite: item.isFavorite,
+                origin: item.origin,
+              }))}
             onExchange={handleVoiceExchange}
+            onCreditsChange={handleVoiceCreditsChange}
+            onBalanceRefreshNeeded={refreshVoiceCredits}
           />
         </View>
       ) : (
@@ -3383,6 +3519,13 @@ export default function AIStylistScreen() {
       </View>
       )}
       {renderFeedbackModal()}
+      <VoiceCreditsPurchaseModal
+        visible={showVoiceCreditsModal}
+        onClose={() => {
+          setShowVoiceCreditsModal(false);
+          refreshVoiceCredits();
+        }}
+      />
     </>
   );
 }
