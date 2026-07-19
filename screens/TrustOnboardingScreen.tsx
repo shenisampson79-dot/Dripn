@@ -60,9 +60,9 @@ const CONTROL: TrustMsgMeta[] = [
   { key: "ctrl0", tone: "confidence", bulletCount: 3, bulletIcons: ["refresh-cw", "x-circle", "lock"] },
   { key: "ctrl1", tone: "confidence", bulletCount: 3, bulletIcons: ["message-circle", "user", "check"] },
   { key: "ctrl2", tone: "confidence", bulletCount: 3, bulletIcons: ["lock", "eye-off", "shield"] },
-  { key: "ctrl3", tone: "confidence", bulletCount: 3, bulletIcons: ["lock", "users", "heart"] },
+  { key: "ctrl3", tone: "confidence", bulletCount: 3, bulletIcons: ["lock", "eye-off", "heart"] },
   { key: "ctrl4", tone: "confidence", bulletCount: 3, bulletIcons: ["smile", "bell-off", "coffee"] },
-  { key: "ctrl5", tone: "confidence", bulletCount: 3, bulletIcons: ["eye", "database", "shield"] },
+  { key: "ctrl5", tone: "confidence", bulletCount: 3, bulletIcons: ["layers", "database", "shield"] },
 ];
 
 const ALL_TRUST_MESSAGES: TrustMsgMeta[] = [
