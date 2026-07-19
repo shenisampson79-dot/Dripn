@@ -108,7 +108,7 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
   const [showLimitReached, setShowLimitReached] = useState(false);
   const [signupPrompt, setSignupPrompt] = useState<string | null>(null);
   const [userGender, setUserGender] = useState<string | null>(null);
-  const [imageGenUsed, setImageGenUsed] = useState(false);
+  const [imageGenUsed, setImageGenUsed] = useState(0);
 
 
   useEffect(() => {
@@ -236,8 +236,12 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
         else if (/\b(female|woman|girl|she|her|lady)\b/.test(lowerUserText)) setUserGender('female');
       }
 
-      const outfitContext = aiContent.replace(/►/g, '').substring(0, 400);
-      const showVisualizeButton = !imageGenUsed && (rawResponse?.hasOutfitRecommendation === true);
+      const outfitContext = rawResponse?.outfitVisualSuggestion?.outfitDescription
+        || aiContent.replace(/►/g, '').substring(0, 400);
+      const shouldVisualize = imageGenUsed < 3
+        && rawResponse?.hasOutfitRecommendation === true
+        && rawResponse?.outfitVisualSuggestion?.source === 'generated';
+      const showVisualizeButton = imageGenUsed < 3 && rawResponse?.hasOutfitRecommendation === true;
 
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -249,6 +253,9 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      if (shouldVisualize) {
+        void handleGenerateOutfitImage(aiMessage.id, outfitContext, activeToken);
+      }
 
       const remaining = rawResponse?.remainingMessages ?? messagesRemaining - 1;
       setMessagesRemaining(remaining);
@@ -277,25 +284,35 @@ export default function GuestBrowseScreen({ navigation }: { navigation: Navigati
     navigation.navigate("Auth", { mode: "signup" });
   };
 
-  const handleGenerateOutfitImage = async (messageId: string, outfitContext: string) => {
-    if (!sessionToken || !selectedStylist) return;
+  const handleGenerateOutfitImage = async (
+    messageId: string,
+    outfitContext: string,
+    tokenOverride?: string | null,
+  ) => {
+    const activeToken = tokenOverride || sessionToken;
+    if (!activeToken || !selectedStylist || imageGenUsed >= 3) return;
     setMessages(prev => prev.map(m => m.id === messageId ? { ...m, isGeneratingImage: true } : m));
     try {
       const result = await apiService.guestGenerateOutfitImage(
-        sessionToken,
+        activeToken,
         outfitContext,
         userGender || "neutral",
         selectedStylist.id
       ) as any;
+      const hasRealImage = Boolean(result.imageUrl) && result.isPlaceholder !== true;
+      setMessages(prev => prev.map(m => m.id === messageId
+        ? {
+            ...m,
+            isGeneratingImage: false,
+            showVisualizeButton: !hasRealImage && imageGenUsed < 3,
+            imageUrl: hasRealImage ? result.imageUrl : undefined,
+            isPlaceholder: result.isPlaceholder === true,
+          }
+        : m));
+      if (hasRealImage) setImageGenUsed((used) => Math.min(3, used + 1));
+    } catch {
       setMessages(prev => prev.map(m =>
-        m.id === messageId
-          ? { ...m, isGeneratingImage: false, showVisualizeButton: false, imageUrl: result.imageUrl, isPlaceholder: false }
-          : m
-      ));
-      setImageGenUsed(true);
-    } catch (err: any) {
-      setMessages(prev => prev.map(m =>
-        m.id === messageId ? { ...m, isGeneratingImage: false, showVisualizeButton: false } : m
+        m.id === messageId ? { ...m, isGeneratingImage: false, showVisualizeButton: imageGenUsed < 3 } : m
       ));
     }
   };

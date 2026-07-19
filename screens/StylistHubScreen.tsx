@@ -25,6 +25,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useColorScheme } from "@/contexts/ColorSchemeContext";
 import { useTranslations } from "@/contexts/TranslationContext";
 import { TodaysOutfitCard } from "@/components/TodaysOutfitCard";
+import { navigateToSubscription } from "@/utils/navigateToSubscription";
 
 import type { UserStylistStackParamList } from "@/navigation/UserStylistStackNavigator";
 
@@ -168,8 +169,11 @@ export default function StylistHubScreen({ navigation }: StylistHubScreenProps) 
   const handleFeaturePress = (feature: StylistFeature) => {
     if (isEditMode) return;
 
-    // Outfit Calendar: always open the screen — gated users see LimitHitUpgradePrompt there
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (feature.id === "outfit-calendar" && !limits.canAccessOutfitCalendar) {
+      navigateToSubscription(navigation);
+      return;
+    }
     navigation.navigate(feature.screen);
   };
 

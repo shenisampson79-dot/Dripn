@@ -158,6 +158,8 @@ export type WardrobeVisualPayload = {
   layout: 'highlight' | 'stacked' | 'multi';
   pieces?: OutfitPieceVisual[];
   outfits?: WardrobeOutfitVisual[];
+  source?: 'wardrobe';
+  matchScore?: number;
 };
 
 function buildPiecesFromItems(matched: WardrobeItem[]): OutfitPieceVisual[] {
@@ -216,8 +218,10 @@ export function normalizeWardrobeVisual(
     if (pieces.length === 0) return null;
     if (visual.outfits.length === 1) {
       return {
+        ...visual,
         layout: pieces.length === 1 ? 'highlight' : 'stacked',
         pieces,
+        outfits: undefined,
       };
     }
     return visual;

@@ -171,6 +171,12 @@ interface ChatMessage {
     reason: string;
   };
   wardrobeVisual?: WardrobeVisualPayload | null;
+  outfitVisualSuggestion?: {
+    source: 'generated';
+    outfitDescription: string;
+    occasion: string;
+  };
+  isVisualizingOutfit?: boolean;
 }
 
 function normalizeChatMessage(raw: unknown): ChatMessage | null {
@@ -191,6 +197,21 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
 
   if (typeof message.imageUri === 'string') {
     normalized.imageUri = message.imageUri;
+  }
+  if (message.isVisualizingOutfit === true) {
+    normalized.isVisualizingOutfit = true;
+  }
+  if (
+    message.outfitVisualSuggestion?.source === 'generated'
+    && typeof message.outfitVisualSuggestion.outfitDescription === 'string'
+  ) {
+    normalized.outfitVisualSuggestion = {
+      source: 'generated',
+      outfitDescription: message.outfitVisualSuggestion.outfitDescription,
+      occasion: typeof message.outfitVisualSuggestion.occasion === 'string'
+        ? message.outfitVisualSuggestion.occasion
+        : '',
+    };
   }
 
   if (message.voiceMessage && typeof message.voiceMessage === 'object') {
@@ -224,7 +245,12 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
         .filter((outfit) => outfit.pieces.length > 0);
 
       if (outfits.length > 0) {
-        normalized.wardrobeVisual = { layout: 'multi', outfits };
+        normalized.wardrobeVisual = {
+          layout: 'multi',
+          outfits,
+          source: visual.source === 'wardrobe' ? 'wardrobe' : undefined,
+          matchScore: typeof visual.matchScore === 'number' ? visual.matchScore : undefined,
+        };
       }
     } else {
       const pieces = Array.isArray(visual.pieces)
@@ -234,6 +260,8 @@ function normalizeChatMessage(raw: unknown): ChatMessage | null {
         normalized.wardrobeVisual = {
           layout: visual.layout === 'highlight' ? 'highlight' : 'stacked',
           pieces,
+          source: visual.source === 'wardrobe' ? 'wardrobe' : undefined,
+          matchScore: typeof visual.matchScore === 'number' ? visual.matchScore : undefined,
         };
       }
     }
@@ -248,6 +276,11 @@ function attachWardrobeVisualToMessage(
   response: {
     content: string;
     wardrobeVisual?: WardrobeVisualPayload | null;
+    outfitVisualSuggestion?: {
+      source: 'generated';
+      outfitDescription: string;
+      occasion: string;
+    } | null;
   },
   wardrobeItems: WardrobeItem[],
   subscriptionTier?: string | null,
@@ -274,12 +307,16 @@ function attachWardrobeVisualToMessage(
       || wardrobeVisual.pieces?.length
     ),
   );
-  if (!wardrobeVisual || !hasVisual) return message;
-
   const enriched: ChatMessage = {
     ...message,
-    wardrobeVisual,
   };
+
+  if (response.outfitVisualSuggestion?.source === 'generated') {
+    enriched.outfitVisualSuggestion = response.outfitVisualSuggestion;
+    enriched.isVisualizingOutfit = true;
+  }
+  if (!wardrobeVisual || !hasVisual) return enriched;
+  enriched.wardrobeVisual = wardrobeVisual;
 
   const allPieces = wardrobeVisual.layout === 'multi'
     ? (wardrobeVisual.outfits ?? []).flatMap((outfit) => outfit.pieces)
@@ -1963,6 +2000,9 @@ export default function AIStylistScreen() {
       setIsTyping(false);
 
       await saveChatHistory(finalMessages);
+      if (assistantMessage.outfitVisualSuggestion) {
+        void generateSuggestedOutfitVisual(assistantMessage.id, assistantMessage.outfitVisualSuggestion);
+      }
 
       if (voiceSettings.autoPlayResponses) {
         playTTSAudio(response.content);
@@ -2074,6 +2114,39 @@ export default function AIStylistScreen() {
       await AsyncStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(newMessages.slice(-50)));
     } catch (error) {
       console.error('Failed to save chat history:', error);
+    }
+  };
+
+  const generateSuggestedOutfitVisual = async (
+    messageId: string,
+    suggestion: NonNullable<ChatMessage['outfitVisualSuggestion']>,
+  ) => {
+    try {
+      const result = await apiService.generateOutfitImage(
+        suggestion.outfitDescription,
+        suggestion.occasion,
+      ) as { imageUrl?: string | null; isPlaceholder?: boolean };
+      setMessages((current) => {
+        const next = current.map((entry) => entry.id === messageId
+          ? {
+              ...entry,
+              isVisualizingOutfit: false,
+              imageUri: result.imageUrl && !result.isPlaceholder ? result.imageUrl : undefined,
+              outfitVisualSuggestion: undefined,
+            }
+          : entry);
+        void saveChatHistory(next);
+        return next;
+      });
+    } catch (error) {
+      console.log('Outfit visualization failed:', error);
+      setMessages((current) => {
+        const next = current.map((entry) => entry.id === messageId
+          ? { ...entry, isVisualizingOutfit: false, outfitVisualSuggestion: undefined }
+          : entry);
+        void saveChatHistory(next);
+        return next;
+      });
     }
   };
   
@@ -2270,6 +2343,9 @@ export default function AIStylistScreen() {
       setIsTyping(false);
       
       await saveChatHistory(finalMessages);
+      if (assistantMessage.outfitVisualSuggestion) {
+        void generateSuggestedOutfitVisual(assistantMessage.id, assistantMessage.outfitVisualSuggestion);
+      }
       
       if (voiceSettings.autoPlayResponses && ttsEnabled) {
         playTTSAudio(response.content);
@@ -2525,6 +2601,10 @@ export default function AIStylistScreen() {
       if (!legacyVisual) return null;
       return renderWardrobeVisual({ ...message, wardrobeVisual: legacyVisual }, label);
     }
+    const displayLabel = visual.source === 'wardrobe' && typeof visual.matchScore === 'number'
+      ? (t('aiStylist.wardrobeMatchCaption') || 'Styled from your wardrobe · {score}% match')
+          .replace('{score}', String(Math.round(visual.matchScore)))
+      : label;
 
     if (visual.layout === 'highlight' && visual.pieces?.length === 1) {
       const piece = visual.pieces[0];
@@ -2565,7 +2645,7 @@ export default function AIStylistScreen() {
       return (
         <View style={styles.wardrobeVisualBlock}>
           <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
-          <ThemedText style={styles.wardrobeVisualLabel}>{label}</ThemedText>
+          <ThemedText style={styles.wardrobeVisualLabel}>{displayLabel}</ThemedText>
           <View style={[styles.wardrobeHighlightFrame, { backgroundColor: isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF' }]}>
             <WardrobeItemImage
               item={displayItem}
@@ -2583,7 +2663,7 @@ export default function AIStylistScreen() {
     return (
       <View style={styles.wardrobeVisualBlock}>
         <View style={[styles.outfitDivider, { backgroundColor: theme.border }]} />
-        <ThemedText style={styles.wardrobeVisualLabel}>{label}</ThemedText>
+        <ThemedText style={styles.wardrobeVisualLabel}>{displayLabel}</ThemedText>
         <OutfitPiecesVisual
           pieces={visual.pieces ?? []}
           wardrobeItems={wardrobeItems}
@@ -2836,6 +2916,14 @@ export default function AIStylistScreen() {
               resizeMode="cover"
             />
           )}
+          {item.isVisualizingOutfit && !item.imageUri ? (
+            <View style={styles.visualizingOutfitRow}>
+              <ActivityIndicator size="small" color={theme.link} />
+              <ThemedText style={styles.visualizingOutfitText}>
+                {t('aiStylist.visualizingOutfit') || 'Visualizing your outfit...'}
+              </ThemedText>
+            </View>
+          ) : null}
 
         </View>
         
@@ -3844,6 +3932,16 @@ const styles = StyleSheet.create({
     width: 200,
     height: 250,
     borderRadius: BorderRadius.md,
+  },
+  visualizingOutfitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  visualizingOutfitText: {
+    ...Typography.small,
+    opacity: 0.7,
   },
   wardrobeVisualBlock: {
     marginBottom: Spacing.md,

@@ -1656,6 +1656,8 @@ class ApiService {
     content: string;
     wardrobeVisual?: {
       layout: 'highlight' | 'stacked' | 'multi';
+      source?: 'wardrobe';
+      matchScore?: number;
       pieces?: Array<{
         wardrobeItemId: number | string;
         name: string;
@@ -1678,6 +1680,11 @@ class ApiService {
           brand?: string | null;
         }>;
       }>;
+    } | null;
+    outfitVisualSuggestion?: {
+      source: 'generated';
+      outfitDescription: string;
+      occasion: string;
     } | null;
     mood?: {
       mood: string;
@@ -1718,6 +1725,8 @@ class ApiService {
       stylist?: string;
       wardrobeVisual?: {
         layout: 'highlight' | 'stacked' | 'multi';
+        source?: 'wardrobe';
+        matchScore?: number;
         pieces?: Array<{
           wardrobeItemId: number | string;
           name: string;
@@ -1740,6 +1749,11 @@ class ApiService {
             brand?: string | null;
           }>;
         }>;
+      } | null;
+      outfitVisualSuggestion?: {
+        source: 'generated';
+        outfitDescription: string;
+        occasion: string;
       } | null;
       mood?: {
         mood: string;
@@ -1784,6 +1798,7 @@ class ApiService {
     return {
       content: mappedContent,
       wardrobeVisual: result.wardrobeVisual ?? null,
+      outfitVisualSuggestion: result.outfitVisualSuggestion ?? null,
       mood: result.mood,
       stylistId: result.stylist || stylistId,
       error: result.error,

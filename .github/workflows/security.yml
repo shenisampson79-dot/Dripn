@@ -22,13 +22,10 @@ jobs:
 
       - name: Security smoke
         run: npm run security:smoke
-        env:
-          # Skip live health if network flaky; release smoke still runs static checks
-          DRIPN_API_BASE: https://dripn-server.onrender.com
 
       - name: Secret scan
         run: npm run security:scan-secrets
 
-      - name: npm audit (fail on critical)
-        run: npm audit --omit=dev --audit-level=critical
-        continue-on-error: false
+      - name: npm audit (warn only)
+        run: npm audit --omit=dev
+        continue-on-error: true

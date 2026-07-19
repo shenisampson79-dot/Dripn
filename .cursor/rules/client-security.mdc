@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Secrets never in the app
 
-- Do not commit `.env`, API keys, PEM files, or Stripe/OpenAI/ElevenLabs secrets.
+- Do not commit `.env`, API keys, PEM files, or Stripe/OpenAI/ElevenLabs/SendGrid secrets.
 - Never hardcode `sk-…`, `sk_live_…`, or `OPENAI_API_KEY = '…'` in client source.
 - Do not add secret-looking `EXPO_PUBLIC_*` names (`SECRET`, `PRIVATE_KEY`, `JWT`, `OPENAI`, `STRIPE_SECRET`, `ELEVENLABS`). Public SDK keys (e.g. RevenueCat) are OK.
 - AI / vision / TTS provider calls go through **Dripn-Server** (`API_URL`), not direct vendor SDKs with embedded keys.

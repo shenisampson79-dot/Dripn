@@ -22,6 +22,8 @@
   "aiStylist.onlyMessagesLeft": "Only {count} message left today",
   "aiStylist.onlyMessagesLeftPlural": "Only {count} messages left today",
   "aiStylist.outfitFromWardrobe": "Outfit from your wardrobe",
+  "aiStylist.visualizingOutfit": "Visualizing your outfit...",
+  "aiStylist.wardrobeMatchCaption": "Styled from your wardrobe · {score}% match",
   "aiStylist.photoPermissionRuby": "Please allow access to your photos to send images to Ruby",
   "aiStylist.promptCasualDay": "Casual Day",
   "aiStylist.promptCasualWeekend": "Casual Weekend",
