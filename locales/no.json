@@ -1328,8 +1328,8 @@
   "preSignupQuiz.look.date_f_3": "Uanstrengt Allure",
   "preSignupQuiz.look.date_f_4": "Myk romantisk",
   "preSignupQuiz.look.date_m_1": "Date Night Sharp",
-  "preSignupQuiz.look.date_m_2": "Avslappet sjarm",
-  "preSignupQuiz.look.date_m_3": "Klar for vinbar",
+  "preSignupQuiz.look.date_m_2": "Kveldsvass",
+  "preSignupQuiz.look.date_m_3": "Pusset casual",
   "preSignupQuiz.look.date_m_4": "Kledd for å imponere",
   "preSignupQuiz.look.event_f_1": "Gala Glamour",
   "preSignupQuiz.look.event_f_2": "Cocktailtime",
@@ -1362,7 +1362,7 @@
   "preSignupQuiz.look.myself_f_2": "Enkel Boho",
   "preSignupQuiz.look.myself_f_3": "Myke lag",
   "preSignupQuiz.look.myself_f_4": "Studioøkt",
-  "preSignupQuiz.look.myself_f_5": "Forhøyede ærend",
+  "preSignupQuiz.look.myself_f_5": "Klar for byvær",
   "preSignupQuiz.look.myself_m_1": "Gymklar",
   "preSignupQuiz.look.myself_m_2": "Avslappet vandring",
   "preSignupQuiz.look.myself_m_3": "Helgens letthet",
@@ -1405,7 +1405,7 @@
   "preSignupQuiz.styleTag.chic": "Elegant",
   "preSignupQuiz.styleTag.classic": "Klassisk",
   "preSignupQuiz.styleTag.creative": "Kreativ",
-  "preSignupQuiz.styleTag.luxury": "Luxury",
+  "preSignupQuiz.styleTag.luxury": "Luksus",
   "preSignupQuiz.styleTag.smartCasual": "Smart Casual",
   "preSignupQuiz.styleTag.sporty": "Sportslig",
   "preSignupQuiz.styleTag.streetwear": "Streetwear",
@@ -2574,5 +2574,8 @@
   "editProfile.emailReadOnlyHint": "Your email is your account ID and can't be changed here. Contact support@dripnapp.com if you need to update it.",
   "editProfile.displayName": "Display Name",
   "preSignupQuiz.occasionTag.gym": "Gym",
-  "preSignupQuiz.occasionTag.workout": "Trening"
+  "preSignupQuiz.occasionTag.workout": "Trening",
+  "styleShuffle.editorialBadge": "Editorial",
+  "styleShuffle.editorialNoteComplete": "Editorial-score: de synlige plaggene danner et sammenhengende look for anledningen. Passform og stoffkvalitet må fortsatt sjekkes personlig.",
+  "styleShuffle.editorialNoteIncomplete": "Editorial-scoren er begrenset fordi bildet eller listen ikke viser et komplett look fra topp til tå."
 }

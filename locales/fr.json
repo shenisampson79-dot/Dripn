@@ -1342,8 +1342,8 @@
   "preSignupQuiz.look.date_f_3": "Allure sans effort",
   "preSignupQuiz.look.date_f_4": "Doux romantique",
   "preSignupQuiz.look.date_m_1": "Rendez-vous nocturne précis",
-  "preSignupQuiz.look.date_m_2": "Charme décontracté",
-  "preSignupQuiz.look.date_m_3": "Prêt pour le bar à vin",
+  "preSignupQuiz.look.date_m_2": "Soirée affirmée",
+  "preSignupQuiz.look.date_m_3": "Décontracté soigné",
   "preSignupQuiz.look.date_m_4": "Habillé pour impressionner",
   "preSignupQuiz.look.event_f_1": "Gala Glamour",
   "preSignupQuiz.look.event_f_2": "L'heure du cocktail",
@@ -1376,7 +1376,7 @@
   "preSignupQuiz.look.myself_f_2": "Bohème facile",
   "preSignupQuiz.look.myself_f_3": "Couches douces",
   "preSignupQuiz.look.myself_f_4": "Séance studio",
-  "preSignupQuiz.look.myself_f_5": "Courses élevées",
+  "preSignupQuiz.look.myself_f_5": "Prête pour la météo urbaine",
   "preSignupQuiz.look.myself_m_1": "Prêt pour le gym",
   "preSignupQuiz.look.myself_m_2": "Promenade détendue",
   "preSignupQuiz.look.myself_m_3": "Facilité du week-end",
@@ -1414,7 +1414,7 @@
   "preSignupQuiz.sharpProfessional": "sharp and professional",
   "preSignupQuiz.showOutfitsFor": "Montre-moi des tenues pour",
   "preSignupQuiz.styleTag.boho": "Bohème",
-  "preSignupQuiz.styleTag.business": "Entreprise",
+  "preSignupQuiz.styleTag.business": "Business",
   "preSignupQuiz.styleTag.businessCasual": "Affaires décontractées",
   "preSignupQuiz.styleTag.chic": "Chic",
   "preSignupQuiz.styleTag.classic": "Classique",
@@ -2588,5 +2588,8 @@
   "editProfile.emailReadOnlyHint": "Your email is your account ID and can't be changed here. Contact support@dripnapp.com if you need to update it.",
   "editProfile.displayName": "Display Name",
   "preSignupQuiz.occasionTag.gym": "Salle de sport",
-  "preSignupQuiz.occasionTag.workout": "Entraînement"
+  "preSignupQuiz.occasionTag.workout": "Entraînement",
+  "styleShuffle.editorialBadge": "Éditorial",
+  "styleShuffle.editorialNoteComplete": "Note éditoriale : les pièces visibles forment une silhouette cohérente et adaptée à l’occasion. L’ajustement et la qualité du tissu demandent encore une vérification en personne.",
+  "styleShuffle.editorialNoteIncomplete": "La note éditoriale est plafonnée car l’image ou la liste d’articles ne montre pas une tenue complète de la tête aux pieds."
 }

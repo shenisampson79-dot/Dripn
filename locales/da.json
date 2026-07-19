@@ -1328,8 +1328,8 @@
   "preSignupQuiz.look.date_f_3": "Ubesværet Allure",
   "preSignupQuiz.look.date_f_4": "Blød romantisk",
   "preSignupQuiz.look.date_m_1": "Dato Night Sharp",
-  "preSignupQuiz.look.date_m_2": "Afslappet charme",
-  "preSignupQuiz.look.date_m_3": "Vinbar klar",
+  "preSignupQuiz.look.date_m_2": "Aftenklar",
+  "preSignupQuiz.look.date_m_3": "Poleret casual",
   "preSignupQuiz.look.date_m_4": "Klædt på til at imponere",
   "preSignupQuiz.look.event_f_1": "Gala Glamour",
   "preSignupQuiz.look.event_f_2": "Cocktail time",
@@ -1362,7 +1362,7 @@
   "preSignupQuiz.look.myself_f_2": "Nem Boho",
   "preSignupQuiz.look.myself_f_3": "Bløde lag",
   "preSignupQuiz.look.myself_f_4": "Studio-session",
-  "preSignupQuiz.look.myself_f_5": "Forhøjede ærinder",
+  "preSignupQuiz.look.myself_f_5": "Klar til byvejr",
   "preSignupQuiz.look.myself_m_1": "Gym klar",
   "preSignupQuiz.look.myself_m_2": "Afslappet vandring",
   "preSignupQuiz.look.myself_m_3": "Weekendens lethed",
@@ -1405,7 +1405,7 @@
   "preSignupQuiz.styleTag.chic": "Chic",
   "preSignupQuiz.styleTag.classic": "Klassisk",
   "preSignupQuiz.styleTag.creative": "Kreativ",
-  "preSignupQuiz.styleTag.luxury": "Luxury",
+  "preSignupQuiz.styleTag.luxury": "Luksus",
   "preSignupQuiz.styleTag.smartCasual": "Smart Casual",
   "preSignupQuiz.styleTag.sporty": "Sporty",
   "preSignupQuiz.styleTag.streetwear": "Streetwear",
@@ -2574,5 +2574,8 @@
   "editProfile.emailReadOnlyHint": "Your email is your account ID and can't be changed here. Contact support@dripnapp.com if you need to update it.",
   "editProfile.displayName": "Display Name",
   "preSignupQuiz.occasionTag.gym": "Fitness",
-  "preSignupQuiz.occasionTag.workout": "Træning"
+  "preSignupQuiz.occasionTag.workout": "Træning",
+  "styleShuffle.editorialBadge": "Editorial",
+  "styleShuffle.editorialNoteComplete": "Editorial score: de synlige dele danner et sammenhængende look til lejligheden. Pasform og stofkvalitet skal stadig tjekkes personligt.",
+  "styleShuffle.editorialNoteIncomplete": "Editorial-scoren er begrænset, fordi billedet eller listen ikke viser et komplet look fra top til tå."
 }

@@ -1342,8 +1342,8 @@
   "preSignupQuiz.look.date_f_3": "Mühelose Anziehungskraft",
   "preSignupQuiz.look.date_f_4": "Sanfte Romantik",
   "preSignupQuiz.look.date_m_1": "Datum Nacht scharf",
-  "preSignupQuiz.look.date_m_2": "Entspannter Charme",
-  "preSignupQuiz.look.date_m_3": "Weinbar bereit",
+  "preSignupQuiz.look.date_m_2": "Abend-Eleganz",
+  "preSignupQuiz.look.date_m_3": "Polierter Casual-Look",
   "preSignupQuiz.look.date_m_4": "Gekleidet, um zu beeindrucken",
   "preSignupQuiz.look.event_f_1": "Gala-Glamour",
   "preSignupQuiz.look.event_f_2": "Cocktailstunde",
@@ -1376,7 +1376,7 @@
   "preSignupQuiz.look.myself_f_2": "Einfacher Boho",
   "preSignupQuiz.look.myself_f_3": "Weiche Schichten",
   "preSignupQuiz.look.myself_f_4": "Studio-Session",
-  "preSignupQuiz.look.myself_f_5": "Erhöhte Besorgungen",
+  "preSignupQuiz.look.myself_f_5": "Stadt-Wetter-Look",
   "preSignupQuiz.look.myself_m_1": "Gym Ready",
   "preSignupQuiz.look.myself_m_2": "Entspannter Spaziergang",
   "preSignupQuiz.look.myself_m_3": "Wochenend-Leichtigkeit",
@@ -1414,7 +1414,7 @@
   "preSignupQuiz.sharpProfessional": "sharp and professional",
   "preSignupQuiz.showOutfitsFor": "Zeig mir Outfits für",
   "preSignupQuiz.styleTag.boho": "Boho",
-  "preSignupQuiz.styleTag.business": "Geschäft",
+  "preSignupQuiz.styleTag.business": "Business",
   "preSignupQuiz.styleTag.businessCasual": "Business-Casual",
   "preSignupQuiz.styleTag.chic": "Schick",
   "preSignupQuiz.styleTag.classic": "Klassiker",
@@ -2588,5 +2588,8 @@
   "editProfile.emailReadOnlyHint": "Your email is your account ID and can't be changed here. Contact support@dripnapp.com if you need to update it.",
   "editProfile.displayName": "Display Name",
   "preSignupQuiz.occasionTag.gym": "Fitnessstudio",
-  "preSignupQuiz.occasionTag.workout": "Training"
+  "preSignupQuiz.occasionTag.workout": "Training",
+  "styleShuffle.editorialBadge": "Editorial",
+  "styleShuffle.editorialNoteComplete": "Editorial-Score: Die sichtbaren Teile ergeben einen stimmigen, anlassgerechten Look. Passform und Stoffqualität brauchen noch eine Prüfung vor Ort.",
+  "styleShuffle.editorialNoteIncomplete": "Der Editorial-Score ist begrenzt, weil Bild oder Artikelliste keinen kompletten Look von Kopf bis Fuß zeigen."
 }

@@ -1328,8 +1328,8 @@
   "preSignupQuiz.look.date_f_3": "Enkel Allure",
   "preSignupQuiz.look.date_f_4": "Mjuk romantisk",
   "preSignupQuiz.look.date_m_1": "Date Night Sharp",
-  "preSignupQuiz.look.date_m_2": "Avslappnad charm",
-  "preSignupQuiz.look.date_m_3": "Vinbar redo",
+  "preSignupQuiz.look.date_m_2": "Kvällsskarp",
+  "preSignupQuiz.look.date_m_3": "Putsad casual",
   "preSignupQuiz.look.date_m_4": "Klädd för att imponera",
   "preSignupQuiz.look.event_f_1": "Gala Glamour",
   "preSignupQuiz.look.event_f_2": "Cocktail timme",
@@ -1362,7 +1362,7 @@
   "preSignupQuiz.look.myself_f_2": "Lätt Boho",
   "preSignupQuiz.look.myself_f_3": "Mjuka lager",
   "preSignupQuiz.look.myself_f_4": "Studiosession",
-  "preSignupQuiz.look.myself_f_5": "Förhöjda ärenden",
+  "preSignupQuiz.look.myself_f_5": "Redo för stadsväder",
   "preSignupQuiz.look.myself_m_1": "Gymklar",
   "preSignupQuiz.look.myself_m_2": "Avslappnad vandra",
   "preSignupQuiz.look.myself_m_3": "Helgens lätthet",
@@ -1405,7 +1405,7 @@
   "preSignupQuiz.styleTag.chic": "Chic",
   "preSignupQuiz.styleTag.classic": "Klassisk",
   "preSignupQuiz.styleTag.creative": "Kreativ",
-  "preSignupQuiz.styleTag.luxury": "Luxury",
+  "preSignupQuiz.styleTag.luxury": "Lyx",
   "preSignupQuiz.styleTag.smartCasual": "Smart Casual",
   "preSignupQuiz.styleTag.sporty": "Sportig",
   "preSignupQuiz.styleTag.streetwear": "Streetwear",
@@ -2574,5 +2574,8 @@
   "editProfile.emailReadOnlyHint": "Your email is your account ID and can't be changed here. Contact support@dripnapp.com if you need to update it.",
   "editProfile.displayName": "Display Name",
   "preSignupQuiz.occasionTag.gym": "Gym",
-  "preSignupQuiz.occasionTag.workout": "Träning"
+  "preSignupQuiz.occasionTag.workout": "Träning",
+  "styleShuffle.editorialBadge": "Editorial",
+  "styleShuffle.editorialNoteComplete": "Editorial-betyg: de synliga plagg­en bildar en sammanhängande look för tillfället. Passform och tygkvalitet behöver fortfarande kollas personligen.",
+  "styleShuffle.editorialNoteIncomplete": "Editorial-betyget är begränsat eftersom bilden eller listan inte visar en komplett look från topp till tå."
 }

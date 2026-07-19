@@ -324,44 +324,50 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   },
   {
     id: 'outfit_16',
-    image: require('../assets/images/styles/smart-casual/male/african.png'),
-    name: 'Navy Blazer Layer',
+    image: require('../assets/images/editorial-fullbody/male_smart_casual_fullbody_navy.png'),
+    name: 'Navy Blazer Complete',
     style: 'Smart Casual',
     occasion: 'Smart Casual',
     season: 'All Season',
     items: [
       { name: 'Navy Blazer', category: 'Outerwear' },
       { name: 'White Crew-Neck Tee', category: 'Tops' },
+      { name: 'Dark Slim Jeans', category: 'Bottoms' },
+      { name: 'Brown Leather Loafers', category: 'Shoes' },
     ],
     matchScore: 91,
     gender: 'male',
   },
   {
     id: 'outfit_17',
-    image: require('../assets/images/styles/smart-casual/male/asian.png'),
-    name: 'Navy Blazer Layer',
+    image: require('../assets/images/editorial-fullbody/male_summer_tailoring_fullbody.png'),
+    name: 'Summer Tailoring',
     style: 'Smart Casual',
     occasion: 'Smart Casual',
-    season: 'All Season',
+    season: 'Summer',
     items: [
-      { name: 'Navy Blazer', category: 'Outerwear' },
-      { name: 'White Crew-Neck Tee', category: 'Tops' },
+      { name: 'Beige Linen Blazer', category: 'Outerwear' },
+      { name: 'White Open-Collar Shirt', category: 'Tops' },
+      { name: 'Sand Chinos', category: 'Bottoms' },
+      { name: 'Brown Suede Loafers', category: 'Shoes' },
     ],
-    matchScore: 88,
+    matchScore: 90,
     gender: 'male',
   },
   {
     id: 'outfit_18',
-    image: require('../assets/images/styles/smart-casual/male/middle-eastern.png'),
-    name: 'Navy Blazer Layer',
+    image: require('../assets/images/editorial-fullbody/male_footwear_led_fullbody.png'),
+    name: 'Footwear-Led Casual',
     style: 'Smart Casual',
     occasion: 'Smart Casual',
-    season: 'All Season',
+    season: 'Autumn',
     items: [
-      { name: 'Navy Blazer', category: 'Outerwear' },
-      { name: 'White Crew-Neck Tee', category: 'Tops' },
+      { name: 'Cream Cable-Knit Sweater', category: 'Tops' },
+      { name: 'Olive Chinos', category: 'Bottoms' },
+      { name: 'Cognac Derby Shoes', category: 'Shoes' },
+      { name: 'Matching Leather Belt', category: 'Accessories' },
     ],
-    matchScore: 89,
+    matchScore: 90,
     gender: 'male',
   },
   {
@@ -546,7 +552,10 @@ const SHUFFLE_OUTFITS: ShuffleOutfit[] = [
   },
 ];
 
-function getEditorialAssessment(outfit: ShuffleOutfit): { score: number; note: string } {
+function getEditorialAssessment(
+  outfit: ShuffleOutfit,
+  t: (key: string) => string,
+): { score: number; note: string } {
   const categories = new Set(outfit.items.map((item) => item.category.toLowerCase()));
   const hasShoes = categories.has('shoes');
   const hasDress = categories.has('dresses');
@@ -555,8 +564,8 @@ function getEditorialAssessment(outfit: ShuffleOutfit): { score: number; note: s
   const complete = hasShoes && (hasDress || (hasTop && hasBottom));
   const score = Math.min(outfit.matchScore, complete ? 92 : 76);
   const note = complete
-    ? 'Editorial score: the visible pieces form a coherent, occasion-specific look. Final fit and fabric quality still need an in-person check.'
-    : 'Editorial score is capped because the image or item list does not show a complete head-to-toe look.';
+    ? t('styleShuffle.editorialNoteComplete')
+    : t('styleShuffle.editorialNoteIncomplete');
   return { score, note };
 }
 
@@ -780,7 +789,7 @@ export default function StyleShuffleScreen() {
       apiService.recordOutfitEngagement({
         items: engageItems,
         signal: direction === 'right' ? 'liked' : 'skipped',
-        outfitScore: getEditorialAssessment(currentOutfit).score,
+        outfitScore: getEditorialAssessment(currentOutfit, t).score,
         occasion: currentOutfit.occasion,
         contextSnapshot: {
           source: 'style_shuffle',
@@ -1143,7 +1152,7 @@ export default function StyleShuffleScreen() {
                 <View style={styles.cardInfo}>
                   <View style={styles.matchBadge}>
                     <ThemedText style={styles.matchScore}>
-                      {getEditorialAssessment(nextOutfit).score}/100 Editorial
+                      {getEditorialAssessment(nextOutfit, t).score}/100 {t('styleShuffle.editorialBadge')}
                     </ThemedText>
                   </View>
                   <ThemedText style={styles.outfitName}>{nextOutfit.name}</ThemedText>
@@ -1192,7 +1201,7 @@ export default function StyleShuffleScreen() {
                   <View style={styles.cardInfo}>
                     <View style={styles.matchBadge}>
                       <ThemedText style={styles.matchScore}>
-                        {getEditorialAssessment(currentOutfit).score}/100 Editorial
+                        {getEditorialAssessment(currentOutfit, t).score}/100 {t('styleShuffle.editorialBadge')}
                       </ThemedText>
                     </View>
                     <ThemedText style={styles.outfitName}>{currentOutfit.name}</ThemedText>
@@ -1291,7 +1300,7 @@ export default function StyleShuffleScreen() {
                   .replace('{items}', items);
                 Alert.alert(
                   currentOutfit.name,
-                  `${message}\n\n${getEditorialAssessment(currentOutfit).note}`,
+                  `${message}\n\n${getEditorialAssessment(currentOutfit, t).note}`,
                 );
               }
             }}
