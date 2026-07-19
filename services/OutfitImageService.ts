@@ -3,7 +3,11 @@
  * Proprietary and confidential.
  */
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { apiService } from './ApiService';
+
+const GUEST_TOKEN_KEY = '@dripn_guest_token';
 
 interface OutfitImageResult {
   imageUrl: string | null;
@@ -183,6 +187,39 @@ export function getStyleRuleForOccasion(
   };
 }
 
+async function getGuestSessionToken(forceNew = false): Promise<string | null> {
+  try {
+    if (!forceNew) {
+      const cached = await AsyncStorage.getItem(GUEST_TOKEN_KEY);
+      if (cached) return cached;
+    }
+    const session = await apiService.createGuestSession();
+    await AsyncStorage.setItem(GUEST_TOKEN_KEY, session.sessionToken);
+    return session.sessionToken;
+  } catch {
+    return null;
+  }
+}
+
+async function generateGuestOutfitImage(
+  outfitDescription: string,
+  occasion: string,
+): Promise<string | null> {
+  let token = await getGuestSessionToken();
+  for (let attempt = 0; attempt < 2 && token; attempt++) {
+    try {
+      const result = await apiService.guestGenerateOutfitImage(token, outfitDescription, occasion, 'ruby');
+      // Never show a generic stock placeholder as if it were the exact recommended outfit
+      if (result?.imageUrl && !result.isPlaceholder) return result.imageUrl;
+      return null;
+    } catch {
+      // Guest session likely expired — mint a fresh one and retry once
+      token = await getGuestSessionToken(true);
+    }
+  }
+  return null;
+}
+
 export async function generateOutfitImage(
   outfitDescription: string,
   occasion: string,
@@ -190,26 +227,27 @@ export async function generateOutfitImage(
 ): Promise<OutfitImageResult> {
   const { styleRule, explanation, styleRuleKey, explanationKey } = getStyleRuleForOccasion(occasion, t);
 
+  let imageUrl: string | null = null;
   try {
-    const result = await apiService.generateOutfitImage(outfitDescription, occasion);
-
-    return {
-      imageUrl: result.imageUrl || null,
-      styleRule,
-      explanation,
-      styleRuleKey,
-      explanationKey,
-    };
+    const authToken = await apiService.getToken().catch(() => null);
+    if (authToken) {
+      const result = await apiService.generateOutfitImage(outfitDescription, occasion);
+      imageUrl = result.imageUrl || null;
+    } else {
+      // Pre-signup users can't call the paid endpoint — use the capped guest route
+      imageUrl = await generateGuestOutfitImage(outfitDescription, occasion);
+    }
   } catch (error) {
     console.log('Image generation failed, using fallback:', error);
-    return {
-      imageUrl: null,
-      styleRule,
-      explanation,
-      styleRuleKey,
-      explanationKey,
-    };
   }
+
+  return {
+    imageUrl,
+    styleRule,
+    explanation,
+    styleRuleKey,
+    explanationKey,
+  };
 }
 
 /** English source map for i18n merge scripts */

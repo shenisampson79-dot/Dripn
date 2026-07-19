@@ -406,7 +406,8 @@ export default function DecideForMeScreen({ navigation }: DecideForMeScreenProps
           });
         } else if (step.id === "restart") {
           buttons.push({
-            text: t('decideForMe.startAgain') || "Start again",
+            text: t('decideForMe.maybeLater') || "Maybe later",
+            style: "cancel",
             onPress: () => {
               setStep("occasion");
               setRecommendation(null);
@@ -1333,6 +1334,7 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
